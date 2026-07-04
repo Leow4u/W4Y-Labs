@@ -47,7 +47,11 @@ $deployArgs = @(
     '--platform=managed',
     '--port=8080',
     '--args=gateway,run',
-    '--set-env-vars=WAYNE_DASHBOARD=1,WAYNE_DASHBOARD_HOST=0.0.0.0,WAYNE_DASHBOARD_PORT=8080',
+    # FORWARDED_ALLOW_IPS=*: o uvicorn só confia em X-Forwarded-Proto de IPs
+    # nesta lista (default 127.0.0.1 — e no Cloud Run o peer não é loopback).
+    # Sem isso o detect_https() do dashboard vê http e emite cookies de sessão
+    # sem Secure/__Host-. O Wayne já liga proxy_headers=True em modo gated.
+    '--set-env-vars=WAYNE_DASHBOARD=1,WAYNE_DASHBOARD_HOST=0.0.0.0,WAYNE_DASHBOARD_PORT=8080,FORWARDED_ALLOW_IPS=*',
     ('--set-secrets=' + (@(
         'OPENROUTER_API_KEY=openrouter-api-key:latest',
         'API_SERVER_KEY=wayne-api-server-key:latest',
