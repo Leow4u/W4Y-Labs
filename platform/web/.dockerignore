@@ -1,0 +1,12 @@
+# Nunca dentro da imagem: segredos e artefatos locais
+.env
+.env.*
+*.local
+node_modules
+.next
+drizzle
+README.md
+AGENTS.md
+CLAUDE.md
+Dockerfile
+.dockerignore

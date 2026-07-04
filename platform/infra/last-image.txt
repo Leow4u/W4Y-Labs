@@ -1,0 +1,1 @@
+southamerica-east1-docker.pkg.dev/project-67a4bd4d-a990-406b-9e7/w4y/wayne-agent@sha256:01362a09ce38959606da2c698128e14ae335a167ba55c00cfd7886004906bdbc

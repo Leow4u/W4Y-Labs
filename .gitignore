@@ -1,0 +1,9 @@
+# --- raiz da plataforma ---
+node_modules/
+.env
+.env.local
+*.log
+.secrets/
+*.json.key
+
+# O wayne-agent/ tem o próprio .gitignore (herdado do upstream)

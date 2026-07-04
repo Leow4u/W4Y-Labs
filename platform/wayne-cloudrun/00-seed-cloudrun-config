@@ -1,0 +1,12 @@
+#!/command/with-contenv sh
+# Cloud Run overlay: seed $WAYNE_HOME/config.yaml before the stage2-hook
+# (01-wayne-setup) fixes its ownership. Runs first (00-) in cont-init.d.
+# Cloud Run's filesystem is ephemeral, so config.yaml never survives a cold
+# start — we always re-seed it from the image-baked template.
+set -e
+WAYNE_HOME="${WAYNE_HOME:-/opt/data}"
+mkdir -p "$WAYNE_HOME"
+if [ ! -f "$WAYNE_HOME/config.yaml" ]; then
+    cp /opt/wayne/cloudrun/config.yaml "$WAYNE_HOME/config.yaml"
+    echo "[cloudrun] seeded config.yaml into $WAYNE_HOME"
+fi

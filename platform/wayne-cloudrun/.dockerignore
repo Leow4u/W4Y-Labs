@@ -1,0 +1,9 @@
+# Defense-in-depth: never let secrets or env files into the overlay context.
+.env
+.env.*
+*.key
+*.json.key
+.secrets/
+**/.secrets/
+*secret*
+*token*

@@ -1,2 +1,20 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Enforce LF for scripts that run inside Linux containers.
+# Without this, Windows checkout (core.autocrlf=true) converts to CRLF and
+# breaks `exec` in the container entrypoint with "no such file or directory".
+# (Regra herdada do upstream hermes-agent.)
+*.sh          text eol=lf
+Dockerfile    text eol=lf
+*.dockerfile  text eol=lf
+wayne-agent/docker/entrypoint.sh text eol=lf
+wayne-agent/docker/*.sh          text eol=lf
+
+# s6-overlay service files (type/run/finish/up — NO extension, so *.sh above
+# misses them) and cont-init scripts MUST be LF. A CRLF `type` file makes
+# s6-rc-compile fatal and the Cloud Run container never starts. See
+# platform/wayne-cloudrun/Dockerfile for the runtime safety net.
+wayne-agent/docker/s6-rc.d/**    text eol=lf
+wayne-agent/docker/cont-init.d/** text eol=lf
+platform/wayne-cloudrun/00-seed-cloudrun-config text eol=lf

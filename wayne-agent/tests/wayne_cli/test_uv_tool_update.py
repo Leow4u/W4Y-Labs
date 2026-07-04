@@ -1,0 +1,155 @@
+"""Tests for uv-tool install detection (issue #29700).
+
+``is_uv_tool_install`` / ``recommended_update_command_for_method`` are
+display/detection helpers and stay live. The actual PyPI update path
+(``_cmd_update_pip``) is DISABLED in the W4Y fork — the "wayne-agent"
+package on PyPI is upstream's code, not this fork's — so it must never
+spawn uv/pipx/pip (see TestCmdUpdatePipDisabled).
+"""
+from __future__ import annotations
+
+from types import SimpleNamespace
+from unittest.mock import patch
+
+
+# ---------------------------------------------------------------------------
+# is_uv_tool_install
+# ---------------------------------------------------------------------------
+
+
+class TestIsUvToolInstall:
+    def test_returns_true_when_sys_prefix_matches_uv_tool_layout(self):
+        from wayne_cli import config
+
+        with patch.object(config.sys, "prefix", "/home/user/.local/share/uv/tools/wayne-agent"):
+            assert config.is_uv_tool_install() is True
+
+    def test_returns_true_when_sys_executable_matches_uv_tool_layout(self):
+        """Some uv-tool layouts surface the marker on ``sys.executable`` (bin/python)."""
+        from wayne_cli import config
+
+        with patch.object(config.sys, "prefix", "/some/unrelated/venv"), \
+             patch.object(
+                 config.sys,
+                 "executable",
+                 "/home/user/.local/share/uv/tools/wayne-agent/bin/python",
+             ):
+            assert config.is_uv_tool_install() is True
+
+    def test_returns_false_when_neither_prefix_nor_executable_matches(self):
+        from wayne_cli import config
+
+        with patch.object(config.sys, "prefix", "/some/unrelated/venv"), \
+             patch.object(config.sys, "executable", "/usr/bin/python3"):
+            assert config.is_uv_tool_install() is False
+
+    def test_does_not_consult_uv_tool_list(self):
+        """Detection must NOT shell out: ``uv tool list`` would false-positive
+        when the active install is pip/venv but the machine also has
+        ``uv tool install wayne-agent`` somewhere on disk. Copilot review on
+        PR #29703 flagged this; the fix is to never call ``uv tool list``
+        from the detection path."""
+        from wayne_cli import config
+
+        with patch.object(config.sys, "prefix", "/some/unrelated/venv"), \
+             patch.object(config.sys, "executable", "/usr/bin/python3"), \
+             patch("subprocess.run") as mock_run:
+            assert config.is_uv_tool_install() is False
+            mock_run.assert_not_called()
+
+    def test_case_insensitive_match(self):
+        """Match must be case-insensitive — Windows paths preserve case
+        (e.g. ``...AppData\\Local\\UV\\Tools\\wayne-agent``) and a case-sensitive
+        check would miss them. We exercise the lower-cased compare path here
+        without monkey-patching ``os.sep``, which would break the whole suite."""
+        from wayne_cli import config
+
+        with patch.object(
+            config.sys, "prefix", "/HOME/USER/.local/share/UV/Tools/wayne-agent"
+        ):
+            assert config.is_uv_tool_install() is True
+
+    def test_handles_empty_executable(self):
+        from wayne_cli import config
+
+        with patch.object(config.sys, "prefix", "/some/unrelated/venv"), \
+             patch.object(config.sys, "executable", ""):
+            assert config.is_uv_tool_install() is False
+
+
+# ---------------------------------------------------------------------------
+# recommended_update_command_for_method
+# ---------------------------------------------------------------------------
+
+
+class TestRecommendedUpdateCommandForUvTool:
+    def test_uv_tool_install_recommends_uv_tool_upgrade(self):
+        from wayne_cli import config
+
+        with patch("shutil.which", return_value="/usr/local/bin/uv"), \
+             patch.object(config, "is_uv_tool_install", return_value=True):
+            cmd = config.recommended_update_command_for_method("pip")
+            assert cmd == "uv tool upgrade wayne-agent"
+
+    def test_uv_tool_install_recommends_uv_tool_upgrade_even_without_uv_on_path(self):
+        """Recommendation reflects the *install method*, not whether ``uv`` is
+        currently on PATH — the user needs to know the right command to run."""
+        from wayne_cli import config
+
+        with patch("shutil.which", return_value=None), \
+             patch.object(config, "is_uv_tool_install", return_value=True):
+            cmd = config.recommended_update_command_for_method("pip")
+            assert cmd == "uv tool upgrade wayne-agent"
+
+    def test_uv_pip_install_keeps_legacy_recommendation(self):
+        """Existing behavior: uv is on PATH but Wayne is a regular pip install."""
+        from wayne_cli import config
+
+        with patch("shutil.which", return_value="/usr/local/bin/uv"), \
+             patch.object(config, "is_uv_tool_install", return_value=False):
+            cmd = config.recommended_update_command_for_method("pip")
+            assert cmd == "uv pip install --upgrade wayne-agent"
+
+    def test_no_uv_falls_back_to_plain_pip(self):
+        from wayne_cli import config
+
+        with patch("shutil.which", return_value=None), \
+             patch.object(config, "is_uv_tool_install", return_value=False):
+            cmd = config.recommended_update_command_for_method("pip")
+            assert cmd == "pip install --upgrade wayne-agent"
+
+    def test_recommendation_does_not_spawn_subprocess(self):
+        """Computing the recommendation string must be cheap — no ``uv tool list``
+        spawn. Copilot review on PR #29703 flagged the prior subprocess hop
+        as adding overhead and a multi-second timeout window for what is
+        purely a display string."""
+        from wayne_cli import config
+
+        with patch.object(config.sys, "prefix", "/some/unrelated/venv"), \
+             patch.object(config.sys, "executable", "/usr/bin/python3"), \
+             patch("shutil.which", return_value="/usr/local/bin/uv"), \
+             patch("subprocess.run") as mock_run:
+            cmd = config.recommended_update_command_for_method("pip")
+            mock_run.assert_not_called()
+            assert cmd == "uv pip install --upgrade wayne-agent"
+
+
+# ---------------------------------------------------------------------------
+# _cmd_update_pip — disabled in the W4Y fork
+# ---------------------------------------------------------------------------
+
+
+class TestCmdUpdatePipDisabled:
+    """The PyPI update path never spawns uv/pipx/pip in the fork."""
+
+    @patch("subprocess.run")
+    def test_prints_disabled_notice_and_spawns_nothing(self, mock_run, capsys):
+        from wayne_cli.main import SELF_UPDATE_DISABLED_MESSAGE, _cmd_update_pip
+
+        # Even in a uv-tool layout with uv on PATH, nothing runs.
+        with patch("shutil.which", return_value="/usr/local/bin/uv"), \
+             patch("wayne_cli.config.is_uv_tool_install", return_value=True):
+            _cmd_update_pip(SimpleNamespace())  # returns; no SystemExit
+
+        mock_run.assert_not_called()
+        assert SELF_UPDATE_DISABLED_MESSAGE in capsys.readouterr().out

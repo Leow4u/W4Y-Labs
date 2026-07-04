@@ -1,0 +1,23 @@
+# Seeded into $WAYNE_HOME/config.yaml at container boot (see seed script).
+# Cloud Run is stateless, so this is re-seeded on every cold start.
+# Secrets (API_SERVER_KEY, OPENROUTER_API_KEY, dashboard basic-auth) come from
+# env via Secret Manager, NOT this file.
+#
+# Topology (per tenant service):
+#   - Cloud Run exposed port 8080  → Wayne DASHBOARD (SPA + /api/*), s6 service,
+#     enabled by WAYNE_DASHBOARD=1 and bound via WAYNE_DASHBOARD_HOST/PORT envs.
+#   - Internal port 8642           → gateway api_server (OpenAI-compatible +
+#     /v1/runs). Loopback-only: the dashboard and in-container tools reach it;
+#     the platform reaches the dashboard.
+model:
+  default: "anthropic/claude-sonnet-4.6"
+  provider: openrouter
+
+platforms:
+  api_server:
+    enabled: true
+    extra:
+      host: "127.0.0.1"
+      port: 8642
+      # (sem `key` aqui de propósito: o adapter cai no env API_SERVER_KEY,
+      # injetado pelo Secret Manager no deploy)
