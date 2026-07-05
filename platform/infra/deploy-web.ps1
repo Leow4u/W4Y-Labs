@@ -46,7 +46,11 @@ $deployArgs = @(
         'DATABASE_URL=w4y-web-database-url:latest',
         # Credenciais do Wayne para o SSO (login unificado no /login/enter).
         'WAYNE_DASHBOARD_USERNAME=wayne-dashboard-username:latest',
-        'WAYNE_DASHBOARD_PASSWORD=wayne-dashboard-password:latest'
+        'WAYNE_DASHBOARD_PASSWORD=wayne-dashboard-password:latest',
+        # Billing: assinatura Stripe + provisioning OpenRouter (crédito/tenant).
+        'STRIPE_SECRET_KEY=stripe-secret-key:latest',
+        'STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest',
+        'OPENROUTER_PROVISIONING_KEY=openrouter-provisioning-key:latest'
     ) -join ',')),
     ('--set-env-vars=' + (@(
         'ADMIN_EMAILS=leonardo@dutelog.com.br',

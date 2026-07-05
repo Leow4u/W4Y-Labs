@@ -21,5 +21,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/instancias", "/instancias/:path*", "/admin", "/admin/:path*"],
+  // /planos é gated (assinatura do tenant logado). /planos/checkout e
+  // /webhooks/stripe cuidam da própria auth (checkout via sessão; webhook
+  // via assinatura HMAC da Stripe) e ficam FORA do gate de página.
+  matcher: ["/instancias", "/instancias/:path*", "/admin", "/admin/:path*", "/planos"],
 };

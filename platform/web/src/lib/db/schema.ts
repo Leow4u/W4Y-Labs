@@ -99,6 +99,34 @@ export const agents = pgTable("agents", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+// Billing por tenant — assinatura (Stripe) + chave de créditos (OpenRouter).
+// Uma linha por tenant. `plan` reflete a assinatura ativa; `openrouterKeyHash`
+// aponta a runtime key provisionada com limite = crédito do plano (o corte
+// é via 402, que o Wayne já trata). `stripeCustomerId` amarra o cliente.
+export const billing = pgTable("billing", {
+  tenantId: text("tenant_id").primaryKey(),
+  plan: text("plan").notNull().default("free"), // free | plus | super | ultra
+  status: text("status").notNull().default("inactive"), // inactive | active | past_due | canceled
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
+  // runtime key OpenRouter provisionada p/ este tenant (guardamos só o hash;
+  // o valor da chave vai como secret na máquina Fly do tenant, nunca no DB).
+  openrouterKeyHash: text("openrouter_key_hash"),
+  monthlyCreditsUsd: numeric("monthly_credits_usd", { precision: 12, scale: 2 }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Log de eventos de billing (webhooks Stripe processados) — auditoria +
+// idempotência (event.id único evita reprocessar o mesmo webhook).
+export const billingEvents = pgTable("billing_events", {
+  id: text("id").primaryKey(), // Stripe event.id
+  tenantId: text("tenant_id"),
+  type: text("type").notNull(),
+  payload: jsonb("payload"),
+  ts: timestamp("ts", { withTimezone: true }).notNull().defaultNow(),
+});
+
 // Artefatos v0 — tabela criada desde já; o coletor chega em fase futura.
 export const artifacts = pgTable("artifacts", {
   id: uuid("id").primaryKey().defaultRandom(),
