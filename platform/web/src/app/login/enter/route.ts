@@ -65,6 +65,13 @@ export async function GET() {
     return redirectTo("/instancias");
   }
 
+  // Marca atividade (sinal usado pela reciclagem de tenants Free inativos).
+  try {
+    await db().execute(sql`UPDATE instances SET last_active=now() WHERE tenant_id=${session.tenantId}`);
+  } catch {
+    /* não bloqueia o login se o registry oscilar */
+  }
+
   const res = redirectTo("/chat");
 
   // Cookie de rota para o roteador (fly-replay). Só grava nomes válidos.

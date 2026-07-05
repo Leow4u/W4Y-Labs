@@ -1,0 +1,19 @@
+# Provisionador — sempre-aceso, pequeno. É o único que segura o org token
+# do Fly; a casca fala com ele por HMAC. Não exposto no work4you.ai (só a
+# casca o chama pelo hostname .fly.dev interno da org).
+app = "provisioner-w4y"
+primary_region = "gru"
+
+[build]
+  image = "registry.fly.io/provisioner-w4y:p1"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

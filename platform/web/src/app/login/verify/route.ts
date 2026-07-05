@@ -4,6 +4,8 @@ import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { setDevSession } from "@/lib/dev-auth";
 import { isEmailAllowed } from "@/lib/allowlist";
+import { requestProvision, slugFor } from "@/lib/provisioner";
+import { PLANS } from "@/lib/billing";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +67,20 @@ export async function POST(req: NextRequest) {
   } catch {
     /* registry indisponível — segue só com a allowlist */
   }
+
+  // FREE ABERTO: usuário verificado sem tenant → auto-provisiona uma
+  // instância Free e cai numa tela de preparação enquanto o app Fly sobe.
+  const freeOpen = (process.env.FREE_OPEN ?? "1") === "1";
+  if (!tenantId && freeOpen) {
+    const created = await autoProvision(email);
+    if (created) {
+      await setDevSession(email, created);
+      return NextResponse.json({ ok: true, next: "/onboarding" });
+    }
+    // provisionamento não pôde iniciar (registry/serviço fora) → nega educado
+    return NextResponse.json({ ok: false, error: "provision_failed" }, { status: 503 });
+  }
+
   if (!tenantId && !isEmailAllowed(email)) {
     return NextResponse.json({ ok: false, error: "denied" }, { status: 403 });
   }
@@ -72,4 +88,32 @@ export async function POST(req: NextRequest) {
   await setDevSession(email, tenantId);
   const target = next === "/admin" || next === "/instancias" ? next : "/login/enter";
   return NextResponse.json({ ok: true, next: target });
+}
+
+// Cria o registro do tenant Free (status=provisioning) e dispara o serviço
+// provisionador. Retorna o tenantId novo, ou null se não pôde iniciar.
+async function autoProvision(email: string): Promise<string | null> {
+  try {
+    const database = db();
+    const slug = slugFor(email);
+    const tenantId = `t-${slug}`;
+    const plusCredits = PLANS.plus.creditsUsd; // trial de entrada = crédito do Plus
+    await database.execute(sql`INSERT INTO users (email, tenant_id, role) VALUES (${email}, ${tenantId}, 'admin') ON CONFLICT (email) DO NOTHING`);
+    await database.execute(sql`
+      INSERT INTO instances (tenant_id, name, url, fly_app, status, notes)
+      VALUES (${tenantId}, ${"Work4You — " + slug}, '', ${"wayne-" + slug}, 'provisioning', 'Free · auto-provisionado')
+    `);
+    await database.execute(sql`
+      INSERT INTO billing (tenant_id, plan, status, monthly_credits_usd)
+      VALUES (${tenantId}, 'free', 'active', ${plusCredits}) ON CONFLICT (tenant_id) DO NOTHING
+    `);
+    const started = await requestProvision({ tenantId, slug, email, plan: "base", trialUsd: plusCredits });
+    if (!started) {
+      await database.execute(sql`UPDATE instances SET status='failed' WHERE tenant_id=${tenantId}`);
+      return null;
+    }
+    return tenantId;
+  } catch {
+    return null;
+  }
 }

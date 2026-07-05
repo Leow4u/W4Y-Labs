@@ -88,6 +88,10 @@ export const instances = pgTable(
     flyApp: text("fly_app"),
     dashboardUsername: text("dashboard_username"),
     dashboardPassword: text("dashboard_password"),
+    // Ciclo de vida: provisioning → ready → archived (reciclagem de inativos)
+    // | failed. last_active bumpa a cada entrada no Wayne (SSO).
+    status: text("status").notNull().default("ready"),
+    lastActive: timestamp("last_active", { withTimezone: true }).notNull().defaultNow(),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },

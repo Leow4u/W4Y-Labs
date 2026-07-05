@@ -50,12 +50,17 @@ $deployArgs = @(
         # Billing: assinatura Stripe + provisioning OpenRouter (crédito/tenant).
         'STRIPE_SECRET_KEY=stripe-secret-key:latest',
         'STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest',
-        'OPENROUTER_PROVISIONING_KEY=openrouter-provisioning-key:latest'
+        'OPENROUTER_PROVISIONING_KEY=openrouter-provisioning-key:latest',
+        # Multi-tenant: provisionador (auto-provision Free) + reciclagem.
+        'PROVISIONER_SHARED_SECRET=provisioner-shared-secret:latest',
+        'RECYCLE_SECRET=recycle-secret:latest'
     ) -join ',')),
     ('--set-env-vars=' + (@(
         'ADMIN_EMAILS=leonardo@dutelog.com.br',
         'ALLOWED_EMAILS=leonardo@dutelog.com.br',
-        'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev'
+        'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev',
+        'PROVISIONER_URL=https://provisioner-w4y.fly.dev',
+        'FREE_OPEN=1'
     ) -join ',')),
     # Landing pública sempre quente — visitante nunca espera cold start.
     '--min-instances=1',
