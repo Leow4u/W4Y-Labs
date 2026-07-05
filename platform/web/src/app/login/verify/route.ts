@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import { sql } from "drizzle-orm";
+import { db } from "@/lib/db";
 import { setDevSession } from "@/lib/dev-auth";
 import { isEmailAllowed } from "@/lib/allowlist";
 
@@ -51,11 +53,23 @@ export async function POST(req: NextRequest) {
   if (!email) {
     return NextResponse.json({ ok: false, error: "no_email" }, { status: 400 });
   }
-  if (!isEmailAllowed(email)) {
+
+  // Multi-tenant: a tabela `users` mapeia e-mail → tenant e também autoriza
+  // (um e-mail provisionado entra mesmo fora da ALLOWED_EMAILS de dev).
+  let tenantId: string | undefined;
+  try {
+    const r = await db().execute<{ tenant_id: string }>(
+      sql`SELECT tenant_id FROM users WHERE email=${email}`,
+    );
+    tenantId = r.rows[0]?.tenant_id;
+  } catch {
+    /* registry indisponível — segue só com a allowlist */
+  }
+  if (!tenantId && !isEmailAllowed(email)) {
     return NextResponse.json({ ok: false, error: "denied" }, { status: 403 });
   }
 
-  await setDevSession(email);
+  await setDevSession(email, tenantId);
   const target = next === "/admin" || next === "/instancias" ? next : "/login/enter";
   return NextResponse.json({ ok: true, next: target });
 }

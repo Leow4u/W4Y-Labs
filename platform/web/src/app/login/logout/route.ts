@@ -7,6 +7,8 @@ import { DEV_SESSION_COOKIE } from "@/lib/dev-auth";
 // Como não sabemos qual variante o browser guarda, expiramos TODAS — e o
 // __Host-/__Secure- só some se a deleção também vier com Secure.
 const WAYNE_COOKIES = ["wayne_session_at", "wayne_session_rt", "wayne_session_pkce", "wayne_sso_attempt"];
+// Cookie de rota do multi-tenant (roteador fly-replay) — limpo no logout.
+const ROUTE_COOKIE = "w4y_route";
 const PREFIXES = ["__Host-", "__Secure-", ""] as const;
 
 // Sair da Work4You: limpa a sessão da plataforma E os cookies do Wayne
@@ -18,6 +20,7 @@ export async function POST(req: NextRequest) {
   // para fora do domínio. Relativo o browser resolve contra work4you.ai.
   const res = new NextResponse(null, { status: 303, headers: { Location: "/" } });
   res.cookies.delete(DEV_SESSION_COOKIE);
+  res.cookies.set(ROUTE_COOKIE, "", { path: "/", maxAge: 0, httpOnly: true, sameSite: "lax", secure: true });
 
   // Em produção (LB) o tráfego é sempre HTTPS; o header X-Forwarded-Proto
   // pode não chegar ao req.url, então marcamos Secure quando o protocolo

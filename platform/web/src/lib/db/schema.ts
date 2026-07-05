@@ -80,12 +80,29 @@ export const instances = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: text("tenant_id").notNull(),
     name: text("name").notNull(),
-    url: text("url").notNull(), // base URL do serviço Cloud Run (dashboard na 8080)
+    url: text("url").notNull(), // base URL pública do app Fly do tenant
+    // Multi-tenant (Fase 3): nome do app Fly (alvo do fly-replay no roteador)
+    // e as credenciais do dashboard desta instância — o SSO da casca usa
+    // estas, não mais um par global. MVP: no registry (DB privado);
+    // endurecimento futuro = Secret Manager por tenant.
+    flyApp: text("fly_app"),
+    dashboardUsername: text("dashboard_username"),
+    dashboardPassword: text("dashboard_password"),
     notes: text("notes"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("instances_tenant_idx").on(t.tenantId)],
 );
+
+// Usuários da plataforma → tenant. Criado pelo provisionador (ou pelo admin);
+// e-mail presente aqui também vale como autorização de acesso (além da
+// ALLOWED_EMAILS de dev). role: member | admin (do tenant).
+export const users = pgTable("users", {
+  email: text("email").primaryKey(),
+  tenantId: text("tenant_id").notNull(),
+  role: text("role").notNull().default("member"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 // Agent Studio v0 — definição de agente (nome + instruções + modelo).
 // Usado como `instructions` no POST /v1/runs quando selecionado no chat.

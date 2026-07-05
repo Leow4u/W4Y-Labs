@@ -38,13 +38,14 @@ export async function getDevSession(): Promise<DevSession | null> {
   }
 }
 
-// Tenant fixo do stub de dev — o Identity Platform substitui isso.
+// Tenant default (o primeiro tenant, instância wayne-w4y). Usuários sem
+// linha na tabela `users` caem aqui — comportamento pré-multi-tenant.
 export const DEV_TENANT_ID = "dev-tenant";
 
-export async function setDevSession(email: string): Promise<void> {
+export async function setDevSession(email: string, tenantId?: string): Promise<void> {
   const store = await cookies();
   // role NÃO vai no cookie — é derivado do e-mail em getDevSession().
-  const session = { email, tenantId: DEV_TENANT_ID };
+  const session = { email, tenantId: tenantId || DEV_TENANT_ID };
   store.set(DEV_SESSION_COOKIE, JSON.stringify(session), {
     httpOnly: true,
     sameSite: "lax",
