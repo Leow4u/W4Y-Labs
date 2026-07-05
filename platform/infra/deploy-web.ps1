@@ -53,7 +53,10 @@ $deployArgs = @(
         'OPENROUTER_PROVISIONING_KEY=openrouter-provisioning-key:latest',
         # Multi-tenant: provisionador (auto-provision Free) + reciclagem.
         'PROVISIONER_SHARED_SECRET=provisioner-shared-secret:latest',
-        'RECYCLE_SECRET=recycle-secret:latest'
+        'RECYCLE_SECRET=recycle-secret:latest',
+        # Turnstile (Cloudflare): anti-robô no registro/auto-provisionamento.
+        'TURNSTILE_SITEKEY=turnstile-sitekey:latest',
+        'TURNSTILE_SECRET=turnstile-secret:latest'
     ) -join ',')),
     ('--set-env-vars=' + (@(
         'ADMIN_EMAILS=leonardo@dutelog.com.br',
