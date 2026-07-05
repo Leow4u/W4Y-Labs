@@ -37,6 +37,13 @@ export async function POST(req: NextRequest) {
       audience: PROJECT,
     });
     email = String(payload.email || "").trim().toLowerCase();
+    // Registro por e-mail/senha exige o clique no link de confirmação antes
+    // da primeira sessão. Provedores sociais (Google) já chegam verificados.
+    const signInProvider =
+      (payload.firebase as { sign_in_provider?: string } | undefined)?.sign_in_provider ?? "";
+    if (signInProvider === "password" && payload.email_verified !== true) {
+      return NextResponse.json({ ok: false, error: "unverified" }, { status: 403 });
+    }
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_token" }, { status: 401 });
   }

@@ -5,6 +5,7 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   type UserCredential,
@@ -14,13 +15,15 @@ import { firebaseAuth } from "@/lib/firebase-client";
 // Mensagens PT-BR para os códigos do Firebase Auth que o usuário pode ver.
 const ERROS: Record<string, string> = {
   "auth/operation-not-allowed": "Este provedor está em ativação — entre com e-mail e senha.",
-  "auth/invalid-credential": "E-mail ou senha incorretos.",
+  "auth/invalid-credential": "E-mail ou senha incorretos. Se ainda não tem conta, registre-se.",
+  "auth/user-not-found": "Conta não encontrada — registre-se abaixo.",
   "auth/wrong-password": "E-mail ou senha incorretos.",
   "auth/weak-password": "Senha muito curta — use pelo menos 6 caracteres.",
   "auth/invalid-email": "E-mail inválido.",
   "auth/too-many-requests": "Muitas tentativas — aguarde um instante e tente de novo.",
-  "auth/email-already-in-use": "Este e-mail já tem conta — confira a senha.",
+  "auth/email-already-in-use": "Este e-mail já tem conta — entre em vez de registrar.",
   denied: "Acesso ainda não liberado para este e-mail.",
+  unverified: "Seu e-mail ainda não foi confirmado — clique no link que enviamos.",
 };
 
 function GoogleIcon() {
@@ -46,10 +49,19 @@ function MicrosoftIcon() {
 }
 
 export default function LoginClient({ next }: { next: string }) {
+  const [modo, setModo] = useState<"entrar" | "registrar">("entrar");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
+  const [aviso, setAviso] = useState("");
+  const [podeReenviar, setPodeReenviar] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+
+  function limpar() {
+    setErro("");
+    setAviso("");
+    setPodeReenviar(false);
+  }
 
   async function concluir(cred: UserCredential) {
     const idToken = await cred.user.getIdToken();
@@ -61,6 +73,13 @@ export default function LoginClient({ next }: { next: string }) {
     const data = await r.json().catch(() => ({}));
     if (r.ok && data.next) {
       window.location.href = data.next;
+      return;
+    }
+    if (data.error === "unverified") {
+      // mantém o usuário logado no Firebase para permitir o reenvio do link
+      setErro(ERROS.unverified);
+      setPodeReenviar(true);
+      setOcupado(false);
       return;
     }
     await firebaseAuth().signOut().catch(() => {});
@@ -79,7 +98,7 @@ export default function LoginClient({ next }: { next: string }) {
   }
 
   async function social(provedor: "google" | "microsoft") {
-    setErro("");
+    limpar();
     setOcupado(true);
     const provider =
       provedor === "google" ? new GoogleAuthProvider() : new OAuthProvider("microsoft.com");
@@ -92,25 +111,48 @@ export default function LoginClient({ next }: { next: string }) {
 
   async function comEmail(ev: React.FormEvent) {
     ev.preventDefault();
-    setErro("");
+    limpar();
     setOcupado(true);
     const auth = firebaseAuth();
+
+    if (modo === "registrar") {
+      try {
+        const cred = await createUserWithEmailAndPassword(auth, email, senha);
+        // Link de confirmação — o usuário volta para /login depois de clicar.
+        await sendEmailVerification(cred.user, {
+          url: `${window.location.origin}/login`,
+        }).catch(() => {});
+        await auth.signOut().catch(() => {});
+        setModo("entrar");
+        setSenha("");
+        setAviso(
+          "Conta criada! Enviamos um link de confirmação para o seu e-mail — clique nele e depois entre aqui.",
+        );
+        setOcupado(false);
+      } catch (e) {
+        falhou(e);
+      }
+      return;
+    }
+
     try {
       await concluir(await signInWithEmailAndPassword(auth, email, senha));
     } catch (e) {
-      const code = (e as { code?: string })?.code ?? "";
-      // Conta não existe ainda → registra na hora (registro transparente).
-      if (code === "auth/user-not-found" || code === "auth/invalid-credential") {
-        try {
-          await concluir(await createUserWithEmailAndPassword(auth, email, senha));
-          return;
-        } catch (e2) {
-          falhou(e2);
-          return;
-        }
-      }
       falhou(e);
     }
+  }
+
+  async function reenviar() {
+    const u = firebaseAuth().currentUser;
+    if (!u) {
+      setErro("Entre com e-mail e senha para reenviarmos o link.");
+      setPodeReenviar(false);
+      return;
+    }
+    await sendEmailVerification(u, { url: `${window.location.origin}/login` }).catch(() => {});
+    setErro("");
+    setAviso("Link reenviado — confira sua caixa de entrada (e o spam).");
+    setPodeReenviar(false);
   }
 
   const botao =
@@ -142,25 +184,53 @@ export default function LoginClient({ next }: { next: string }) {
         <input
           type="password"
           required
-          minLength={6}
-          placeholder="Senha (mínimo 6 caracteres)"
+          placeholder="Senha"
+          autoComplete={modo === "registrar" ? "new-password" : "current-password"}
           value={senha}
           onChange={(e) => setSenha(e.target.value)}
           className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900"
         />
-        {erro && (
-          <p className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            {erro}
+        {aviso && (
+          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
+            {aviso}
           </p>
+        )}
+        {erro && (
+          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+            {erro}
+            {podeReenviar && (
+              <button type="button" onClick={reenviar} className="ml-1 underline">
+                Reenviar link
+              </button>
+            )}
+          </div>
         )}
         <button
           type="submit"
           disabled={ocupado}
           className="font-brand rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
         >
-          {ocupado ? "Entrando…" : "Continuar"}
+          {ocupado ? "Aguarde…" : modo === "registrar" ? "Criar conta" : "Continuar"}
         </button>
       </form>
+
+      <p className="text-center text-xs text-neutral-500">
+        {modo === "entrar" ? (
+          <>
+            Não tem conta?{" "}
+            <button type="button" onClick={() => { setModo("registrar"); limpar(); }} className="font-medium underline">
+              Registre-se
+            </button>
+          </>
+        ) : (
+          <>
+            Já tem conta?{" "}
+            <button type="button" onClick={() => { setModo("entrar"); limpar(); }} className="font-medium underline">
+              Entrar
+            </button>
+          </>
+        )}
+      </p>
     </div>
   );
 }
