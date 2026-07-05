@@ -423,7 +423,7 @@ export default function ConfigPage() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-4 sm:min-h-0 sm:flex-1">
       <PluginSlot name="config:top" />
       <Toast toast={toast} />
 
@@ -553,10 +553,10 @@ export default function ConfigPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="flex flex-col sm:flex-row gap-4">
-          <aside aria-label={t.config.filters} className="sm:w-56 sm:shrink-0">
-            <div className="sm:sticky sm:top-4">
-              <div className="flex flex-col border border-border bg-muted/20">
+        <div className="flex flex-col sm:flex-row gap-4 sm:min-h-0 sm:flex-1 sm:overflow-hidden">
+          <aside aria-label={t.config.filters} className="sm:w-56 sm:shrink-0 sm:flex sm:min-h-0 sm:flex-col">
+            <div className="sm:flex sm:min-h-0 sm:flex-1 sm:flex-col">
+              <div className="flex flex-col border border-border bg-muted/20 sm:min-h-0 sm:flex-1">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-2 border-b border-border">
                   <Filter className="h-3 w-3 text-text-tertiary" />
                   <span className="font-mondwest text-display text-xs tracking-[0.12em] text-text-secondary">
@@ -568,7 +568,7 @@ export default function ConfigPage() {
                   {t.config.sections}
                 </div>
 
-                <div className="flex sm:flex-col gap-1 sm:gap-px p-2 sm:pt-1 overflow-x-auto sm:overflow-x-visible scrollbar-none sm:max-h-[calc(100vh-260px)] sm:overflow-y-auto">
+                <div className="flex sm:flex-col gap-1 sm:gap-px p-2 sm:pt-1 overflow-x-auto sm:overflow-x-visible scrollbar-none sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
                   {categories.map((cat) => {
                     const isActive = !isSearching && activeCategory === cat;
 
@@ -606,7 +606,7 @@ export default function ConfigPage() {
             </div>
           </aside>
 
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 sm:min-h-0 sm:overflow-y-auto">
             {isSearching ? (
               <Card>
                 <CardHeader className="py-3 px-4">

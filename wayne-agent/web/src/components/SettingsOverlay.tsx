@@ -89,8 +89,10 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
         </div>
 
         {/* Corpo: a ConfigPage reusada (rola dentro do card), com sua própria
-            barra Guardar/YAML via o provider aninhado. */}
-        <div className="min-h-0 flex-1 overflow-hidden">
+            barra Guardar/YAML via o provider aninhado. `flex flex-col` é
+            essencial: cria o contexto flex que limita a altura da ConfigPage
+            (senão ela expande para a altura natural e vaza do modal). */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <PageHeaderProvider pluginTabs={[]}>
             <BlankProviderTitle />
             <ConfigPage />
