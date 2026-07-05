@@ -71,6 +71,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
       if (window.turnstile && captchaRef.current && !captchaRef.current.hasChildNodes()) {
         window.turnstile.render(captchaRef.current, {
           sitekey: turnstileSitekey,
+          size: "flexible", // ocupa a largura do container = mesma dos botões
           callback: (t: string) => setCaptcha(t),
           "error-callback": () => setCaptcha(""),
         });
@@ -211,7 +212,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
         <p className="text-xs text-neutral-500">Novo por aqui — crie uma palavra-passe para começar.</p>
       )}
       <input type="password" required autoFocus minLength={6} placeholder="Palavra-passe" autoComplete={registrando ? "new-password" : "current-password"} value={senha} onChange={(e) => setSenha(e.target.value)} className={inputCls} />
-      {registrando && turnstileSitekey && <div ref={captchaRef} className="min-h-[65px]" />}
+      {registrando && turnstileSitekey && <div ref={captchaRef} className="w-full min-h-[65px]" />}
       <Mensagens />
       <button type="submit" disabled={ocupado} className={btnPrim}>{ocupado ? "Aguarde…" : registrando ? "Criar conta" : "Continuar"}</button>
       {!registrando && (
