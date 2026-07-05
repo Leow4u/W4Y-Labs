@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 // work4you.ai (atrás do Load Balancer), o browser passa a mandar esses
 // cookies para /chat, /sessions, etc. Um login só; o usuário cai direto
 // no Wayne Agent. Nenhuma mudança no Wayne.
-const WAYNE = (process.env.WAYNE_INTERNAL_URL ?? "https://wayne-agent-jnu53njrda-rj.a.run.app").replace(/\/$/, "");
+const WAYNE = (process.env.WAYNE_INTERNAL_URL ?? "https://wayne-w4y.fly.dev").replace(/\/$/, "");
 
 // Redirect com Location RELATIVO. Atrás do Load Balancer o req.url do Next
 // resolve para o host interno do container (0.0.0.0:8080), então

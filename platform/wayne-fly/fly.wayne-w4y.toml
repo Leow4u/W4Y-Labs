@@ -1,0 +1,36 @@
+# Instância Wayne principal (tenant W4Y) no Fly.io — GRU.
+# Mesma topologia validada no PoC: dashboard público na 8080, api_server
+# interno na 8642, /opt/data em volume persistente, autostop=suspend
+# (RSS ocioso medido: ~438MB — cabe no teto de 2GB do suspend).
+app = "wayne-w4y"
+primary_region = "gru"
+
+[build]
+  # Imagem = overlay Fly (init-fly) sobre a imagem Cloud Run do Wayne.
+  image = "registry.fly.io/wayne-w4y:fly1"
+
+[processes]
+  # init-fly -> main-wrapper.sh -> `wayne gateway run`
+  app = "gateway run"
+
+[env]
+  WAYNE_DASHBOARD = "1"
+  WAYNE_DASHBOARD_HOST = "0.0.0.0"
+  WAYNE_DASHBOARD_PORT = "8080"
+  FORWARDED_ALLOW_IPS = "*"
+
+[mounts]
+  source = "wayne_data"
+  destination = "/opt/data"
+
+[http_service]
+  processes = ["app"]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-2x"
+  memory = "2048mb"

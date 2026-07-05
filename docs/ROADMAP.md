@@ -7,6 +7,13 @@
 > com **estado externalizado** (Cloud SQL + Cloud Storage + Secret Manager). Mantidos:
 > **OpenRouter**, **Composio**, **ReactFlow**. Cobrança: **Stripe**.
 
+> **Revisão 2026-07-05 (v4):** runtime Wayne em **Fly.io** (máquina + volume por tenant,
+> suspend/wake nativo — ver ARQUITETURA v4); Google mantém plataforma (domínio/LB, IdP,
+> registry, secrets, custo, CI, Scheduler). A entrega "estado externalizado" do M0 é
+> **substituída pelo volume Fly** (feito); durabilidade extra (litestream→Tigris) na fase 2.
+> M0 concluído em 2026-07-05: instância `wayne-w4y` em GRU atrás de work4you.ai, SSO,
+> despertador de cron (Cloud Scheduler `wayne-cron-wake`).
+
 Ordem: **Fundação → Novo Trabalho → Conectores → Artefatos → Uso/Observabilidade → Rotinas → Agent Studio.**
 
 ---

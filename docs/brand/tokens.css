@@ -1,0 +1,14 @@
+:root {
+  --w4y-ink: #171717;
+  --w4y-silver: #d8d8d8;
+  --w4y-paper: #ffffff;
+
+  --w4y-ink-2: #262626;
+  --w4y-silver-2: #b8b8b8;
+  --w4y-silver-3: #8f8f8f;
+
+  --w4y-radius-sm: 4px;
+  --w4y-radius-md: 8px;
+  --w4y-font-brand: "Cascadia Mono", "Consolas", "Courier New", monospace;
+}
+

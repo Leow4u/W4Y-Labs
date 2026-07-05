@@ -51,7 +51,7 @@ $deployArgs = @(
     ('--set-env-vars=' + (@(
         'ADMIN_EMAILS=leonardo@dutelog.com.br',
         'ALLOWED_EMAILS=leonardo@dutelog.com.br',
-        'WAYNE_INTERNAL_URL=https://wayne-agent-jnu53njrda-rj.a.run.app'
+        'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev'
     ) -join ',')),
     # Landing pública sempre quente — visitante nunca espera cold start.
     '--min-instances=1',

@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Work4You Brand Preview</title>
+    <link rel="stylesheet" href="./tokens.css" />
+    <style>
+      body {
+        margin: 0;
+        background: var(--w4y-paper);
+        color: var(--w4y-ink);
+        font-family: var(--w4y-font-brand);
+      }
+
+      main {
+        display: grid;
+        gap: 32px;
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 48px 24px;
+      }
+
+      h1,
+      h2,
+      p {
+        margin: 0;
+      }
+
+      h1 {
+        font-size: 24px;
+      }
+
+      h2 {
+        font-size: 13px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 16px;
+      }
+
+      .panel {
+        display: grid;
+        min-height: 220px;
+        place-items: center;
+        border: 1px solid var(--w4y-silver);
+        padding: 24px;
+      }
+
+      .panel.dark {
+        background: var(--w4y-ink);
+      }
+
+      .wordmark {
+        width: min(100%, 520px);
+      }
+
+      .icon {
+        width: 160px;
+        height: 160px;
+      }
+
+      .swatches {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .swatch {
+        width: 160px;
+        border: 1px solid var(--w4y-silver);
+      }
+
+      .chip {
+        height: 72px;
+      }
+
+      .label {
+        padding: 12px;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Work4You Brand Preview</h1>
+        <p>Ink, silver, paper. Maquina de trabalho digital.</p>
+      </header>
+
+      <section>
+        <h2>Wordmark</h2>
+        <div class="grid">
+          <div class="panel">
+            <img class="wordmark" src="./assets/work4you-wordmark-light.svg" alt="Work4You wordmark light" />
+          </div>
+          <div class="panel dark">
+            <img class="wordmark" src="./assets/work4you-wordmark-dark.svg" alt="Work4You wordmark dark" />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Typewriter Icon</h2>
+        <div class="grid">
+          <div class="panel">
+            <img class="icon" src="./assets/work4you-typewriter-icon-light.svg" alt="Work4You typewriter icon light" />
+          </div>
+          <div class="panel dark">
+            <img class="icon" src="./assets/work4you-typewriter-icon-dark.svg" alt="Work4You typewriter icon dark" />
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>Palette</h2>
+        <div class="swatches">
+          <div class="swatch">
+            <div class="chip" style="background:#171717"></div>
+            <div class="label">Ink<br />#171717</div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background:#d8d8d8"></div>
+            <div class="label">Silver<br />#d8d8d8</div>
+          </div>
+          <div class="swatch">
+            <div class="chip" style="background:#ffffff"></div>
+            <div class="label">Paper<br />#ffffff</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
+

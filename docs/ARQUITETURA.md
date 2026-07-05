@@ -10,6 +10,24 @@
 > ver [`wayne-agent/CREDITS.md`](../wayne-agent/CREDITS.md)). Único ponto fora do Google:
 > **Stripe** para cobrança B2C (o Google Cloud não faz billing de revenda).
 
+> **Revisão 2026-07-05 (v4 — HÍBRIDO, decisão executada):** a **camada de instâncias Wayne
+> migra para o Fly.io** (1 Fly Machine por tenant + volume persistente em GRU,
+> `autostop=suspend`) — é o ambiente nativo do upstream (o código do fork foi desenhado para
+> Fly: suspend/wake, volume em `/opt/data`, proxy TLS). O Google segue dono da **plataforma**:
+> domínio único + Global External ALB (construído; o §4.0 v3 abaixo está superado nisso),
+> Identity Platform (planejado), Cloud SQL (registry), Secret Manager, BigQuery (custo),
+> Cloud Scheduler (despertador de cron → o ticker do Wayne faz catch-up ao acordar), CI/CD.
+> PoC medido: RSS ocioso 438MB (cabe no teto de 2GB do suspend); wake por HTTP 0,67s;
+> estado intacto através de suspend→resume. A "Adaptação #5" (externalizar session store
+> p/ Cloud SQL etc.) fica **dispensada no MVP** — o volume Fly resolve; durabilidade extra
+> via snapshots diários + litestream→Tigris (fase 2). Canais de mensageria persistentes
+> (WhatsApp/Slack socket/Discord) = tier premium sempre-aceso (`min=1`); o relay/connector
+> do upstream é fechado e não será reconstruído no MVP. Entrypoint próprio para Fly em
+> `platform/wayne-fly/` (s6-overlay exige PID 1, que no Fly Machines é do init deles).
+> Roteamento multi-tenant sob domínio único: por sessão (estilo Manus), roteador na fase
+> do provisionador. Modelo de negócio: tiers + créditos + top-up via Stripe (cliente de
+> billing já existe no fork; lado servidor = Stripe + OpenRouter Provisioning por tenant).
+
 ---
 
 ## 1. O que é a Work4You
