@@ -57,6 +57,17 @@ export async function requestArchive(app: string): Promise<boolean> {
   }
 }
 
+// Troca o regime da máquina do tenant (upgrade/downgrade de plano):
+// base = dorme ociosa; premium = sempre-acesa. Re-deploy do app (~30s).
+export async function requestReconfigure(app: string, plan: "base" | "premium"): Promise<boolean> {
+  try {
+    const r = await call("/reconfigure", { app, plan });
+    return r.ok;
+  } catch {
+    return false;
+  }
+}
+
 // slug determinístico-ish e válido (^[a-z0-9-]{2,24}$): parte local do
 // e-mail sanitizada + sufixo aleatório curto (evita colisão).
 export function slugFor(email: string): string {

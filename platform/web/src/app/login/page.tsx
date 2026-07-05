@@ -22,7 +22,7 @@ export default async function LoginPage({
         </p>
       </div>
 
-      <LoginClient next={next ?? ""} />
+      <LoginClient next={next ?? ""} turnstileSitekey={process.env.TURNSTILE_SITEKEY || undefined} />
 
       <footer className="text-center text-[11px] leading-relaxed text-neutral-400">
         <p>

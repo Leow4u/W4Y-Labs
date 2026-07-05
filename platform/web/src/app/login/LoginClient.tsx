@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   GoogleAuthProvider,
   OAuthProvider,
   createUserWithEmailAndPassword,
+  fetchSignInMethodsForEmail,
   sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
@@ -12,18 +13,17 @@ import {
 } from "firebase/auth";
 import { firebaseAuth } from "@/lib/firebase-client";
 
-// Mensagens PT-BR para os códigos do Firebase Auth que o usuário pode ver.
 const ERROS: Record<string, string> = {
   "auth/operation-not-allowed": "Este provedor está em ativação — entre com e-mail e senha.",
-  "auth/invalid-credential": "E-mail ou senha incorretos. Se ainda não tem conta, registre-se.",
-  "auth/user-not-found": "Conta não encontrada — registre-se abaixo.",
-  "auth/wrong-password": "E-mail ou senha incorretos.",
-  "auth/weak-password": "Senha muito curta — use pelo menos 6 caracteres.",
+  "auth/invalid-credential": "Palavra-passe incorreta.",
+  "auth/wrong-password": "Palavra-passe incorreta.",
+  "auth/weak-password": "Palavra-passe muito curta — use pelo menos 6 caracteres.",
   "auth/invalid-email": "E-mail inválido.",
-  "auth/too-many-requests": "Muitas tentativas — aguarde um instante e tente de novo.",
-  "auth/email-already-in-use": "Este e-mail já tem conta — entre em vez de registrar.",
+  "auth/too-many-requests": "Muitas tentativas — aguarde um instante.",
+  "auth/email-already-in-use": "Este e-mail já tem conta.",
   denied: "Acesso ainda não liberado para este e-mail.",
-  unverified: "Seu e-mail ainda não foi confirmado — clique no link que enviamos.",
+  unverified: "Confirme o seu e-mail — clique no link que enviamos.",
+  captcha: "Confirmação anti-robô falhou — recarregue a página.",
 };
 
 function GoogleIcon() {
@@ -36,7 +36,6 @@ function GoogleIcon() {
     </svg>
   );
 }
-
 function MicrosoftIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 23 23" aria-hidden>
@@ -48,40 +47,57 @@ function MicrosoftIcon() {
   );
 }
 
-export default function LoginClient({ next }: { next: string }) {
-  const [modo, setModo] = useState<"entrar" | "registrar">("entrar");
+// Turnstile (Cloudflare) — carrega o widget só quando há sitekey configurada.
+// Sem sitekey, o gate anti-robô fica desligado e o registro funciona igual.
+declare global {
+  interface Window { turnstile?: { render: (el: HTMLElement, opts: Record<string, unknown>) => string } }
+}
+
+export default function LoginClient({ next, turnstileSitekey }: { next: string; turnstileSitekey?: string }) {
+  const [etapa, setEtapa] = useState<"email" | "senha" | "registrar">("email");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [podeReenviar, setPodeReenviar] = useState(false);
   const [ocupado, setOcupado] = useState(false);
+  const [captcha, setCaptcha] = useState("");
+  const captchaRef = useRef<HTMLDivElement>(null);
 
-  function limpar() {
-    setErro("");
-    setAviso("");
-    setPodeReenviar(false);
-  }
+  // Renderiza o Turnstile ao entrar na etapa de registro (se configurado).
+  useEffect(() => {
+    if (etapa !== "registrar" || !turnstileSitekey || !captchaRef.current) return;
+    const tryRender = () => {
+      if (window.turnstile && captchaRef.current && !captchaRef.current.hasChildNodes()) {
+        window.turnstile.render(captchaRef.current, {
+          sitekey: turnstileSitekey,
+          callback: (t: string) => setCaptcha(t),
+          "error-callback": () => setCaptcha(""),
+        });
+      }
+    };
+    if (window.turnstile) tryRender();
+    else {
+      const s = document.createElement("script");
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
+      s.async = true;
+      s.onload = tryRender;
+      document.head.appendChild(s);
+    }
+  }, [etapa, turnstileSitekey]);
+
+  function limpar() { setErro(""); setAviso(""); setPodeReenviar(false); }
 
   async function concluir(cred: UserCredential) {
     const idToken = await cred.user.getIdToken();
     const r = await fetch("/login/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken, next }),
+      body: JSON.stringify({ idToken, next, captcha }),
     });
     const data = await r.json().catch(() => ({}));
-    if (r.ok && data.next) {
-      window.location.href = data.next;
-      return;
-    }
-    if (data.error === "unverified") {
-      // mantém o usuário logado no Firebase para permitir o reenvio do link
-      setErro(ERROS.unverified);
-      setPodeReenviar(true);
-      setOcupado(false);
-      return;
-    }
+    if (r.ok && data.next) { window.location.href = data.next; return; }
+    if (data.error === "unverified") { setErro(ERROS.unverified); setPodeReenviar(true); setOcupado(false); return; }
     await firebaseAuth().signOut().catch(() => {});
     setErro(ERROS[data.error as string] ?? "Não foi possível entrar. Tente novamente.");
     setOcupado(false);
@@ -89,148 +105,121 @@ export default function LoginClient({ next }: { next: string }) {
 
   function falhou(e: unknown) {
     const code = (e as { code?: string })?.code ?? "";
-    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") {
-      setOcupado(false);
-      return; // usuário desistiu do popup — sem mensagem de erro
-    }
+    if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") { setOcupado(false); return; }
     setErro(ERROS[code] ?? "Não foi possível entrar. Tente novamente.");
     setOcupado(false);
   }
 
   async function social(provedor: "google" | "microsoft") {
-    limpar();
-    setOcupado(true);
-    const provider =
-      provedor === "google" ? new GoogleAuthProvider() : new OAuthProvider("microsoft.com");
-    try {
-      await concluir(await signInWithPopup(firebaseAuth(), provider));
-    } catch (e) {
-      falhou(e);
-    }
+    limpar(); setOcupado(true);
+    const provider = provedor === "google" ? new GoogleAuthProvider() : new OAuthProvider("microsoft.com");
+    try { await concluir(await signInWithPopup(firebaseAuth(), provider)); } catch (e) { falhou(e); }
   }
 
-  async function comEmail(ev: React.FormEvent) {
-    ev.preventDefault();
-    limpar();
+  // Etapa 1: e-mail → decide se vai para "senha" (conta existe) ou "registrar".
+  async function avancarEmail(ev: React.FormEvent) {
+    ev.preventDefault(); limpar(); setOcupado(true);
+    try {
+      const metodos = await fetchSignInMethodsForEmail(firebaseAuth(), email);
+      setEtapa(metodos.length > 0 ? "senha" : "registrar");
+    } catch (e) {
+      const code = (e as { code?: string })?.code ?? "";
+      if (code === "auth/invalid-email") { setErro(ERROS["auth/invalid-email"]); }
+      else { setEtapa("senha"); } // enumeração protegida → tenta senha
+    }
+    setOcupado(false);
+  }
+
+  async function entrar(ev: React.FormEvent) {
+    ev.preventDefault(); limpar(); setOcupado(true);
+    try { await concluir(await signInWithEmailAndPassword(firebaseAuth(), email, senha)); }
+    catch (e) { falhou(e); }
+  }
+
+  async function registrar(ev: React.FormEvent) {
+    ev.preventDefault(); limpar();
+    if (turnstileSitekey && !captcha) { setErro(ERROS.captcha); return; }
     setOcupado(true);
     const auth = firebaseAuth();
-
-    if (modo === "registrar") {
-      try {
-        const cred = await createUserWithEmailAndPassword(auth, email, senha);
-        // Link de confirmação — o usuário volta para /login depois de clicar.
-        await sendEmailVerification(cred.user, {
-          url: `${window.location.origin}/login`,
-        }).catch(() => {});
-        await auth.signOut().catch(() => {});
-        setModo("entrar");
-        setSenha("");
-        setAviso(
-          "Conta criada! Enviamos um link de confirmação para o seu e-mail — clique nele e depois entre aqui.",
-        );
-        setOcupado(false);
-      } catch (e) {
-        falhou(e);
-      }
-      return;
-    }
-
     try {
-      await concluir(await signInWithEmailAndPassword(auth, email, senha));
-    } catch (e) {
-      falhou(e);
-    }
+      const cred = await createUserWithEmailAndPassword(auth, email, senha);
+      await sendEmailVerification(cred.user, { url: `${window.location.origin}/login` }).catch(() => {});
+      await auth.signOut().catch(() => {});
+      setEtapa("senha"); setSenha("");
+      setAviso("Conta criada! Enviamos um link de confirmação — clique nele e depois entre aqui.");
+      setOcupado(false);
+    } catch (e) { falhou(e); }
   }
 
   async function reenviar() {
     const u = firebaseAuth().currentUser;
-    if (!u) {
-      setErro("Entre com e-mail e senha para reenviarmos o link.");
-      setPodeReenviar(false);
-      return;
-    }
+    if (!u) { setErro("Entre com e-mail e palavra-passe para reenviarmos o link."); setPodeReenviar(false); return; }
     await sendEmailVerification(u, { url: `${window.location.origin}/login` }).catch(() => {});
-    setErro("");
-    setAviso("Link reenviado — confira sua caixa de entrada (e o spam).");
-    setPodeReenviar(false);
+    setErro(""); setAviso("Link reenviado — confira a sua caixa de entrada (e o spam)."); setPodeReenviar(false);
   }
 
-  const botao =
+  const btnSocial =
     "flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800";
+  const inputCls =
+    "w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900";
+  const btnPrim =
+    "font-brand w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900";
 
-  return (
-    <div className="flex w-full flex-col gap-3">
-      <button type="button" className={botao} disabled={ocupado} onClick={() => social("google")}>
-        <GoogleIcon /> Continuar com Google
-      </button>
-      <button type="button" className={botao} disabled={ocupado} onClick={() => social("microsoft")}>
-        <MicrosoftIcon /> Continuar com Microsoft
-      </button>
+  const Mensagens = () => (
+    <>
+      {aviso && (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">{aviso}</p>
+      )}
+      {erro && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+          {erro}
+          {podeReenviar && <button type="button" onClick={reenviar} className="ml-1 underline">Reenviar link</button>}
+        </div>
+      )}
+    </>
+  );
 
-      <div className="my-2 flex items-center gap-3 text-xs text-neutral-400">
-        <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" /> Ou
-        <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+  // ETAPA 1 — e-mail + provedores sociais
+  if (etapa === "email") {
+    return (
+      <div className="flex w-full flex-col gap-3">
+        <button type="button" className={btnSocial} disabled={ocupado} onClick={() => social("google")}><GoogleIcon /> Continuar com Google</button>
+        <button type="button" className={btnSocial} disabled={ocupado} onClick={() => social("microsoft")}><MicrosoftIcon /> Continuar com Microsoft</button>
+        <div className="my-2 flex items-center gap-3 text-xs text-neutral-400">
+          <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" /> Ou <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+        </div>
+        <form onSubmit={avancarEmail} className="flex flex-col gap-3">
+          <input type="email" required autoFocus placeholder="Introduza o seu endereço de e-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+          <Mensagens />
+          <button type="submit" disabled={ocupado} className={btnPrim}>{ocupado ? "Aguarde…" : "Continuar"}</button>
+        </form>
       </div>
+    );
+  }
 
-      <form onSubmit={comEmail} className="flex flex-col gap-3">
-        <input
-          type="email"
-          required
-          placeholder="Introduza o seu endereço de e-mail"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900"
-        />
-        <input
-          type="password"
-          required
-          placeholder="Senha"
-          autoComplete={modo === "registrar" ? "new-password" : "current-password"}
-          value={senha}
-          onChange={(e) => setSenha(e.target.value)}
-          className="rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900"
-        />
-        {aviso && (
-          <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">
-            {aviso}
-          </p>
-        )}
-        {erro && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
-            {erro}
-            {podeReenviar && (
-              <button type="button" onClick={reenviar} className="ml-1 underline">
-                Reenviar link
-              </button>
-            )}
-          </div>
-        )}
-        <button
-          type="submit"
-          disabled={ocupado}
-          className="font-brand rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900"
-        >
-          {ocupado ? "Aguarde…" : modo === "registrar" ? "Criar conta" : "Continuar"}
-        </button>
-      </form>
-
-      <p className="text-center text-xs text-neutral-500">
-        {modo === "entrar" ? (
-          <>
-            Não tem conta?{" "}
-            <button type="button" onClick={() => { setModo("registrar"); limpar(); }} className="font-medium underline">
-              Registre-se
-            </button>
-          </>
-        ) : (
-          <>
-            Já tem conta?{" "}
-            <button type="button" onClick={() => { setModo("entrar"); limpar(); }} className="font-medium underline">
-              Entrar
-            </button>
-          </>
-        )}
-      </p>
-    </div>
+  // ETAPA 2 — senha (login) ou registro (com Turnstile)
+  const registrando = etapa === "registrar";
+  return (
+    <form onSubmit={registrando ? registrar : entrar} className="flex w-full flex-col gap-3">
+      <div className="rounded-lg border border-neutral-200 px-3 py-2.5 text-sm dark:border-neutral-800">
+        <div className="flex items-center justify-between">
+          <span className="truncate text-neutral-700 dark:text-neutral-300">{email}</span>
+          <button type="button" onClick={() => { setEtapa("email"); limpar(); setSenha(""); }} className="ml-3 shrink-0 text-xs text-blue-600 hover:underline">Editar</button>
+        </div>
+      </div>
+      {registrando && (
+        <p className="text-xs text-neutral-500">Novo por aqui — crie uma palavra-passe para começar.</p>
+      )}
+      <input type="password" required autoFocus minLength={6} placeholder="Palavra-passe" autoComplete={registrando ? "new-password" : "current-password"} value={senha} onChange={(e) => setSenha(e.target.value)} className={inputCls} />
+      {registrando && turnstileSitekey && <div ref={captchaRef} className="min-h-[65px]" />}
+      <Mensagens />
+      <button type="submit" disabled={ocupado} className={btnPrim}>{ocupado ? "Aguarde…" : registrando ? "Criar conta" : "Continuar"}</button>
+      {!registrando && (
+        <p className="text-center text-xs text-neutral-500">
+          Não tem conta?{" "}
+          <button type="button" onClick={() => { setEtapa("registrar"); limpar(); setSenha(""); }} className="font-medium underline">Registre-se</button>
+        </p>
+      )}
+    </form>
   );
 }

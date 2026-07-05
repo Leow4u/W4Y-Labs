@@ -71,9 +71,35 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
       `WAYNE_DASHBOARD_BASIC_AUTH_SECRET=${dashSecret}`,
     );
 
-    const autostop = plan === "premium" ? "off" : '"suspend"';
-    const minRun = plan === "premium" ? 1 : 0;
-    const toml = `app = "${app}"
+    const tomlPath = path.join(os.tmpdir(), `fly.${app}.toml`);
+    writeFileSync(tomlPath, tenantToml(app, plan));
+    await fly("deploy", "-c", tomlPath, "-a", app, "--image", IMAGE, "--ha=false", "--regions", REGION);
+
+    Object.assign(result, {
+      ok: true, app, url: `https://${app}.fly.dev`,
+      dashboardUsername: dashUser, dashboardPassword: dashPass, openrouterKeyHash: or.hash,
+    });
+  } catch (e) {
+    result.error = String(e.message || e).slice(0, 500);
+  }
+  // callback assinado para a casca persistir (ou marcar falha)
+  try {
+    const body = JSON.stringify(result);
+    await fetch(`${CASCA_URL}/onboarding/complete`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "x-provisioner-sig": sign(body) },
+      body,
+    });
+  } catch (e) {
+    console.error("[provisioner] callback falhou:", e.message);
+  }
+}
+
+// Gera o fly.toml de um tenant conforme o regime do plano.
+function tenantToml(app, plan) {
+  const autostop = plan === "premium" ? "off" : '"suspend"';
+  const minRun = plan === "premium" ? 1 : 0;
+  return `app = "${app}"
 primary_region = "${REGION}"
 [build]
   image = "${IMAGE}"
@@ -98,28 +124,15 @@ primary_region = "${REGION}"
   size = "shared-cpu-2x"
   memory = "2048mb"
 `;
-    const tomlPath = path.join(os.tmpdir(), `fly.${app}.toml`);
-    writeFileSync(tomlPath, toml);
-    await fly("deploy", "-c", tomlPath, "-a", app, "--image", IMAGE, "--ha=false", "--regions", REGION);
+}
 
-    Object.assign(result, {
-      ok: true, app, url: `https://${app}.fly.dev`,
-      dashboardUsername: dashUser, dashboardPassword: dashPass, openrouterKeyHash: or.hash,
-    });
-  } catch (e) {
-    result.error = String(e.message || e).slice(0, 500);
-  }
-  // callback assinado para a casca persistir (ou marcar falha)
-  try {
-    const body = JSON.stringify(result);
-    await fetch(`${CASCA_URL}/onboarding/complete`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "x-provisioner-sig": sign(body) },
-      body,
-    });
-  } catch (e) {
-    console.error("[provisioner] callback falhou:", e.message);
-  }
+// Troca o regime da máquina de um tenant (upgrade/downgrade de plano):
+// re-deploya o app com o novo autostop/min_machines. Estado no volume
+// persiste; downtime ~segundos.
+async function reconfigure({ app, plan }) {
+  const tomlPath = path.join(os.tmpdir(), `fly.${app}.toml`);
+  writeFileSync(tomlPath, tenantToml(app, plan));
+  await fly("deploy", "-c", tomlPath, "-a", app, "--image", IMAGE, "--ha=false", "--regions", REGION);
 }
 
 async function archive({ app }) {
@@ -160,6 +173,11 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.url === "/archive") {
     try { await archive(body); res.writeHead(200); res.end(JSON.stringify({ ok: true })); }
+    catch (e) { res.writeHead(500); res.end(JSON.stringify({ error: String(e.message) })); }
+    return;
+  }
+  if (req.url === "/reconfigure") {
+    try { await reconfigure(body); res.writeHead(200); res.end(JSON.stringify({ ok: true })); }
     catch (e) { res.writeHead(500); res.end(JSON.stringify({ error: String(e.message) })); }
     return;
   }

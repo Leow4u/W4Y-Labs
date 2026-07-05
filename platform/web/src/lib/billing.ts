@@ -31,6 +31,12 @@ export function planByPriceId(priceId: string): PlanDef | undefined {
   return Object.values(PLANS).find((p) => p.stripePriceId === priceId);
 }
 
+// Regime da máquina Fly por plano: Super/Ultra = sempre-acesa (canais
+// persistentes/"funcionário 24h"); Free/Plus = dorme ociosa (suspend).
+export function planRegime(plan: Plan): "base" | "premium" {
+  return plan === "super" || plan === "ultra" ? "premium" : "base";
+}
+
 // ---- segredos: env (Secret Manager em prod; .env.local em dev) -------------
 // Em produção os três chegam como env vars do Secret Manager (deploy-web.ps1).
 // Em dev, ficam no .env.local — nunca lemos .secrets/ do código (o tracer do
@@ -117,6 +123,29 @@ async function openrouter(path: string, method: string, body?: unknown) {
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`openrouter ${path}: ${JSON.stringify(json).slice(0, 200)}`);
   return json;
+}
+
+// RENOVAÇÃO MENSAL (disparada pelo invoice.paid da Stripe, no dia exato da
+// cobrança de cada tenant): o limite da runtime key OpenRouter é CUMULATIVO
+// (teto total de gasto), então recarregar = novo_limite = já_consumido +
+// créditos_do_mês + rollover. O rollover é o que sobrou do ciclo anterior,
+// limitado ao teto do plano — exatamente o modelo do Hermes hospedado.
+export async function renewTenantCredits(opts: {
+  tenantId: string;
+  keyHash: string;
+  plan: Plan;
+}): Promise<{ newLimit: number; rolledOver: number } | null> {
+  const def = PLANS[opts.plan];
+  if (!def.creditsUsd) return null; // Free não renova
+  const info = await openrouter(`keys/${opts.keyHash}`, "GET");
+  const d = info.data ?? info;
+  const usage = Number(d.usage ?? 0);
+  const limit = Number(d.limit ?? 0);
+  const remaining = Math.max(0, limit - usage);
+  const rolledOver = Math.min(remaining, def.rolloverUsd);
+  const newLimit = Number((usage + def.creditsUsd + rolledOver).toFixed(2));
+  await openrouter(`keys/${opts.keyHash}`, "PATCH", { limit: newLimit });
+  return { newLimit, rolledOver };
 }
 
 // Provisiona (ou re-limita) a runtime key do tenant e retorna a chave + hash.

@@ -23,10 +23,12 @@ const JWKS = createRemoteJWKSet(
 export async function POST(req: NextRequest) {
   let idToken = "";
   let next = "";
+  let captcha = "";
   try {
     const body = await req.json();
     idToken = String(body.idToken || "");
     next = String(body.next || "");
+    captcha = String(body.captcha || "");
   } catch {
     /* corpo inválido cai no missing_token abaixo */
   }
@@ -72,6 +74,12 @@ export async function POST(req: NextRequest) {
   // instância Free e cai numa tela de preparação enquanto o app Fly sobe.
   const freeOpen = (process.env.FREE_OPEN ?? "1") === "1";
   if (!tenantId && freeOpen) {
+    // Gate anti-robô no ponto caro (provisiona um app Fly de verdade). Só
+    // exige o token quando o Turnstile está configurado (secret presente).
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
+    if (!(await verifyTurnstile(captcha, ip))) {
+      return NextResponse.json({ ok: false, error: "captcha" }, { status: 403 });
+    }
     const created = await autoProvision(email);
     if (created) {
       await setDevSession(email, created);
@@ -88,6 +96,29 @@ export async function POST(req: NextRequest) {
   await setDevSession(email, tenantId);
   const target = next === "/admin" || next === "/instancias" ? next : "/login/enter";
   return NextResponse.json({ ok: true, next: target });
+}
+
+// Verifica o token do Turnstile (Cloudflare) no servidor. Sem secret
+// configurada, o gate é transparente (retorna true) — o registro segue
+// funcionando; ligar é só adicionar TURNSTILE_SECRET + TURNSTILE_SITEKEY.
+async function verifyTurnstile(token: string, ip?: string): Promise<boolean> {
+  const secret = process.env.TURNSTILE_SECRET?.trim();
+  if (!secret) return true;
+  if (!token) return false;
+  try {
+    const form = new URLSearchParams({ secret, response: token });
+    if (ip) form.set("remoteip", ip);
+    const r = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: form.toString(),
+      signal: AbortSignal.timeout(8000),
+    });
+    const d = (await r.json()) as { success?: boolean };
+    return d.success === true;
+  } catch {
+    return false; // fail-closed: sem confirmação, não provisiona
+  }
 }
 
 // Cria o registro do tenant Free (status=provisioning) e dispara o serviço
