@@ -41,6 +41,19 @@ for hook in /etc/cont-init.d/*; do
     esac
 done
 
+# -- 2b. durabilidade: litestream (restore se faltar + replicação contínua) -
+# Só ativa quando o app tem bucket Tigris (BUCKET_NAME via fly storage).
+# Restore roda ANTES do gateway criar bancos novos: num volume virgem puxa
+# a última réplica; num volume com dados, -if-db-not-exists não toca nada.
+if command -v litestream >/dev/null 2>&1 && [ -n "${BUCKET_NAME:-}" ]; then
+    for db in state.db kanban.db memory_store.db projects.db; do
+        litestream restore -if-db-not-exists -if-replica-exists "/opt/data/$db" \
+            || echo "[init-fly] aviso: restore litestream de $db falhou (segue sem)"
+    done
+    litestream replicate &
+    echo "[init-fly] litestream replicando para o bucket ${BUCKET_NAME}"
+fi
+
 # -- 3. dashboard em background (com retry) + gateway em foreground --------
 DASH_RUN=/etc/s6-overlay/s6-rc.d/dashboard/run
 if [ -x "$DASH_RUN" ]; then

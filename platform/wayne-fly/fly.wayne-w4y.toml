@@ -7,7 +7,7 @@ primary_region = "gru"
 
 [build]
   # Imagem = overlay Fly (init-fly) sobre a imagem Cloud Run do Wayne.
-  image = "registry.fly.io/wayne-w4y:fly1"
+  image = "registry.fly.io/wayne-w4y:fly2"
 
 [processes]
   # init-fly -> main-wrapper.sh -> `wayne gateway run`

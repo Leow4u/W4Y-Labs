@@ -1,0 +1,42 @@
+# Replicação contínua dos bancos SQLite do Wayne para o Tigris (S3-compat).
+# Credenciais (AWS_ACCESS_KEY_ID/SECRET, AWS_ENDPOINT_URL_S3) e BUCKET_NAME
+# entram como secrets do app Fly via `fly storage create` — o litestream
+# expande ${VAR} e lê as credenciais AWS do ambiente.
+#
+# Cobertos (os bancos de estado crítico; ver memória/varredura 04-07-2026):
+#   state.db        — sessões/mensagens/FTS (o coração)
+#   kanban.db       — quadro default
+#   memory_store.db — memória de longo prazo
+#   projects.db     — projetos
+# Fora (por design): response_store.db (cache LRU de 100 itens, descartável),
+# kanban/boards/* (paths dinâmicos — cobertos pelos snapshots diários do
+# volume), arquivos avulsos (config/.env/cron/jobs.json/skills — idem).
+dbs:
+  - path: /opt/data/state.db
+    replicas:
+      - type: s3
+        bucket: ${BUCKET_NAME}
+        path: litestream/state.db
+        endpoint: ${AWS_ENDPOINT_URL_S3}
+        region: auto
+  - path: /opt/data/kanban.db
+    replicas:
+      - type: s3
+        bucket: ${BUCKET_NAME}
+        path: litestream/kanban.db
+        endpoint: ${AWS_ENDPOINT_URL_S3}
+        region: auto
+  - path: /opt/data/memory_store.db
+    replicas:
+      - type: s3
+        bucket: ${BUCKET_NAME}
+        path: litestream/memory_store.db
+        endpoint: ${AWS_ENDPOINT_URL_S3}
+        region: auto
+  - path: /opt/data/projects.db
+    replicas:
+      - type: s3
+        bucket: ${BUCKET_NAME}
+        path: litestream/projects.db
+        endpoint: ${AWS_ENDPOINT_URL_S3}
+        region: auto
