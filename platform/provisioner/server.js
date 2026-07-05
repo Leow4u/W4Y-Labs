@@ -97,7 +97,7 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
 
 // Gera o fly.toml de um tenant conforme o regime do plano.
 function tenantToml(app, plan) {
-  const autostop = plan === "premium" ? "off" : '"suspend"';
+  const autostop = plan === "premium" ? '"off"' : '"suspend"';
   const minRun = plan === "premium" ? 1 : 0;
   return `app = "${app}"
 primary_region = "${REGION}"

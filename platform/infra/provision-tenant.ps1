@@ -81,7 +81,7 @@ Write-Host "runtime key OpenRouter: limite US`$$TrialUsd (hash $($orHash.Substri
 Write-Host "secrets do tenant staged"
 
 # -- 4. fly.toml do tenant (plano → autostop) ----------------------------------
-$autostop = if ($Plan -eq 'premium') { 'off' } else { '"suspend"' }
+$autostop = if ($Plan -eq 'premium') { '"off"' } else { '"suspend"' }
 $minRun = if ($Plan -eq 'premium') { 1 } else { 0 }
 $toml = @"
 app = "$APP"
