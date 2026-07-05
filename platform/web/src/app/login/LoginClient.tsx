@@ -5,8 +5,8 @@ import {
   GoogleAuthProvider,
   OAuthProvider,
   createUserWithEmailAndPassword,
-  fetchSignInMethodsForEmail,
   sendEmailVerification,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   type UserCredential,
@@ -20,7 +20,7 @@ const ERROS: Record<string, string> = {
   "auth/weak-password": "Palavra-passe muito curta — use pelo menos 6 caracteres.",
   "auth/invalid-email": "E-mail inválido.",
   "auth/too-many-requests": "Muitas tentativas — aguarde um instante.",
-  "auth/email-already-in-use": "Este e-mail já tem conta.",
+  "auth/email-already-in-use": "Este e-mail já tem conta — entre com a sua palavra-passe.",
   denied: "Acesso ainda não liberado para este e-mail.",
   unverified: "Confirme o seu e-mail — clique no link que enviamos.",
   captcha: "Confirmação anti-robô falhou — recarregue a página.",
@@ -47,14 +47,15 @@ function MicrosoftIcon() {
   );
 }
 
-// Turnstile (Cloudflare) — carrega o widget só quando há sitekey configurada.
-// Sem sitekey, o gate anti-robô fica desligado e o registro funciona igual.
+// Turnstile (Cloudflare) — no passo do E-MAIL, protegendo já a entrada.
 declare global {
   interface Window { turnstile?: { render: (el: HTMLElement, opts: Record<string, unknown>) => string } }
 }
 
+type Etapa = "email" | "senha" | "registrar";
+
 export default function LoginClient({ next, turnstileSitekey }: { next: string; turnstileSitekey?: string }) {
-  const [etapa, setEtapa] = useState<"email" | "senha" | "registrar">("email");
+  const [etapa, setEtapa] = useState<Etapa>("email");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
@@ -64,25 +65,25 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   const [captcha, setCaptcha] = useState("");
   const captchaRef = useRef<HTMLDivElement>(null);
 
-  // Renderiza o Turnstile ao entrar na etapa de registro (se configurado).
+  // Renderiza o Turnstile no passo do e-mail (se configurado).
   useEffect(() => {
-    if (etapa !== "registrar" || !turnstileSitekey || !captchaRef.current) return;
-    const tryRender = () => {
+    if (etapa !== "email" || !turnstileSitekey || !captchaRef.current) return;
+    const render = () => {
       if (window.turnstile && captchaRef.current && !captchaRef.current.hasChildNodes()) {
         window.turnstile.render(captchaRef.current, {
           sitekey: turnstileSitekey,
-          size: "flexible", // ocupa a largura do container = mesma dos botões
+          size: "flexible",
           callback: (t: string) => setCaptcha(t),
           "error-callback": () => setCaptcha(""),
         });
       }
     };
-    if (window.turnstile) tryRender();
+    if (window.turnstile) render();
     else {
       const s = document.createElement("script");
       s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js";
       s.async = true;
-      s.onload = tryRender;
+      s.onload = render;
       document.head.appendChild(s);
     }
   }, [etapa, turnstileSitekey]);
@@ -107,6 +108,8 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   function falhou(e: unknown) {
     const code = (e as { code?: string })?.code ?? "";
     if (code === "auth/popup-closed-by-user" || code === "auth/cancelled-popup-request") { setOcupado(false); return; }
+    // Corrida: tentou registrar mas a conta já existe → manda para "entrar".
+    if (code === "auth/email-already-in-use") { setEtapa("senha"); setErro(ERROS["auth/email-already-in-use"]); setOcupado(false); return; }
     setErro(ERROS[code] ?? "Não foi possível entrar. Tente novamente.");
     setOcupado(false);
   }
@@ -117,16 +120,21 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
     try { await concluir(await signInWithPopup(firebaseAuth(), provider)); } catch (e) { falhou(e); }
   }
 
-  // Etapa 1: e-mail → decide se vai para "senha" (conta existe) ou "registrar".
+  // Passo 1: e-mail → o servidor diz se a conta existe (com proteção de
+  // enumeração), roteando para ENTRAR (existe) ou REGISTRAR (nova).
   async function avancarEmail(ev: React.FormEvent) {
     ev.preventDefault(); limpar(); setOcupado(true);
     try {
-      const metodos = await fetchSignInMethodsForEmail(firebaseAuth(), email);
-      setEtapa(metodos.length > 0 ? "senha" : "registrar");
-    } catch (e) {
-      const code = (e as { code?: string })?.code ?? "";
-      if (code === "auth/invalid-email") { setErro(ERROS["auth/invalid-email"]); }
-      else { setEtapa("senha"); } // enumeração protegida → tenta senha
+      const r = await fetch("/login/exists", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const d = await r.json().catch(() => ({ exists: null }));
+      // exists=false → registrar; true/null → entrar (null é fallback seguro).
+      setEtapa(d.exists === false ? "registrar" : "senha");
+    } catch {
+      setEtapa("senha");
     }
     setOcupado(false);
   }
@@ -138,9 +146,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   }
 
   async function registrar(ev: React.FormEvent) {
-    ev.preventDefault(); limpar();
-    if (turnstileSitekey && !captcha) { setErro(ERROS.captcha); return; }
-    setOcupado(true);
+    ev.preventDefault(); limpar(); setOcupado(true);
     const auth = firebaseAuth();
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, senha);
@@ -150,6 +156,17 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
       setAviso("Conta criada! Enviamos um link de confirmação — clique nele e depois entre aqui.");
       setOcupado(false);
     } catch (e) { falhou(e); }
+  }
+
+  async function esqueceu() {
+    limpar();
+    try {
+      await sendPasswordResetEmail(firebaseAuth(), email, { url: `${window.location.origin}/login` });
+      setAviso("Enviamos um link para redefinir a sua palavra-passe — confira o seu e-mail (e o spam).");
+    } catch (e) {
+      const code = (e as { code?: string })?.code ?? "";
+      setErro(ERROS[code] ?? "Não foi possível enviar o link agora. Tente de novo.");
+    }
   }
 
   async function reenviar() {
@@ -180,7 +197,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
     </>
   );
 
-  // ETAPA 1 — e-mail + provedores sociais
+  // ETAPA 1 — e-mail + Turnstile + provedores sociais
   if (etapa === "email") {
     return (
       <div className="flex w-full flex-col gap-3">
@@ -191,6 +208,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
         </div>
         <form onSubmit={avancarEmail} className="flex flex-col gap-3">
           <input type="email" required autoFocus placeholder="Introduza o seu endereço de e-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
+          {turnstileSitekey && <div ref={captchaRef} className="w-full min-h-[65px]" />}
           <Mensagens />
           <button type="submit" disabled={ocupado} className={btnPrim}>{ocupado ? "Aguarde…" : "Continuar"}</button>
         </form>
@@ -198,7 +216,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
     );
   }
 
-  // ETAPA 2 — senha (login) ou registro (com Turnstile)
+  // ETAPA 2 — entrar (conta existe) ou registrar (conta nova)
   const registrando = etapa === "registrar";
   return (
     <form onSubmit={registrando ? registrar : entrar} className="flex w-full flex-col gap-3">
@@ -208,13 +226,13 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
           <button type="button" onClick={() => { setEtapa("email"); limpar(); setSenha(""); }} className="ml-3 shrink-0 text-xs text-blue-600 hover:underline">Editar</button>
         </div>
       </div>
-      {registrando && (
-        <p className="text-xs text-neutral-500">Novo por aqui — crie uma palavra-passe para começar.</p>
-      )}
+      {registrando && <p className="text-xs text-neutral-500">Novo por aqui — crie uma palavra-passe para começar.</p>}
       <input type="password" required autoFocus minLength={6} placeholder="Palavra-passe" autoComplete={registrando ? "new-password" : "current-password"} value={senha} onChange={(e) => setSenha(e.target.value)} className={inputCls} />
-      {registrando && turnstileSitekey && <div ref={captchaRef} className="w-full min-h-[65px]" />}
+      {!registrando && (
+        <button type="button" onClick={esqueceu} className="-mt-1 self-end text-xs text-blue-600 hover:underline">Esqueceu a palavra-passe?</button>
+      )}
       <Mensagens />
-      <button type="submit" disabled={ocupado} className={btnPrim}>{ocupado ? "Aguarde…" : registrando ? "Criar conta" : "Continuar"}</button>
+      <button type="submit" disabled={ocupado} className={btnPrim}>{ocupado ? "Aguarde…" : registrando ? "Criar conta" : "Entrar"}</button>
       {!registrando && (
         <p className="text-center text-xs text-neutral-500">
           Não tem conta?{" "}
