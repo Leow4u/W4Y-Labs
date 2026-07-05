@@ -1,0 +1,8 @@
+# Overlay FINO de UI — só troca o SPA do dashboard (web_dist) sobre a imagem
+# fly já pronta, sem reconstruir a base de 3.7GB. Usado para iterar rápido em
+# ajustes de frontend do Wayne (reorganização de UX). Contexto de build =
+# wayne-agent/ (onde vive wayne_cli/web_dist, gerado por `npm run build` em
+# wayne-agent/web).
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly2
+FROM ${BASE_IMAGE}
+COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist

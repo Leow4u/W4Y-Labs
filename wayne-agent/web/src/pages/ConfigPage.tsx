@@ -41,6 +41,7 @@ import { getNestedValue, setNestedValue } from "@/lib/nested";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { AutoField } from "@/components/AutoField";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { ListItem } from "@nous-research/ui/ui/components/list-item";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
@@ -425,6 +426,20 @@ export default function ConfigPage() {
     <div className="flex flex-col gap-4">
       <PluginSlot name="config:top" />
       <Toast toast={toast} />
+
+      {/* Aparência — Tema e fonte do dashboard. Preferência de UI (não é campo
+          do config.yaml); veio do rodapé da sidebar para dentro da Configuração. */}
+      <Card>
+        <CardHeader className="py-3 px-4">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <Palette className="h-4 w-4" />
+            {t.theme?.title ?? "Aparência"}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="px-4 pb-4">
+          <ThemeSwitcher />
+        </CardContent>
+      </Card>
 
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
         <div className="flex min-w-0 items-center gap-2 sm:flex-1">

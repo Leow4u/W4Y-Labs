@@ -91,8 +91,7 @@ import ChannelsPage from "@/pages/ChannelsPage";
 import WebhooksPage from "@/pages/WebhooksPage";
 import SystemPage from "@/pages/SystemPage";
 import ChatPage from "@/pages/ChatPage";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
-import { ThemeSwitcher } from "@/components/ThemeSwitcher";
+import { SettingsOverlay } from "@/components/SettingsOverlay";
 import { useI18n } from "@/i18n";
 import type { Translations } from "@/i18n/types";
 import { PluginPage, PluginSlot, usePlugins } from "@/plugins";
@@ -189,7 +188,8 @@ const BUILTIN_NAV_REST: NavItem[] = [
   { path: "/webhooks", label: "Webhooks", icon: Webhook },
   { path: "/pairing", label: "Pairing", icon: ShieldCheck },
   { path: "/profiles", labelKey: "profiles", label: "Profiles", icon: Users },
-  { path: "/config", labelKey: "config", label: "Config", icon: Settings },
+  // Config saiu da navegação principal — agora abre pelo menu do chip do
+  // usuário, como overlay (rota /config segue existindo para deep-links).
   { path: "/env", labelKey: "keys", label: "Keys", icon: KeyRound },
   { path: "/system", label: "System", icon: Wrench },
   {
@@ -353,6 +353,10 @@ export default function App() {
   const { theme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
+  // Overlay de Configuração (aberto pelo menu do chip do usuário). Fica no
+  // App para que o SettingsOverlay renderize dentro do PageHeaderProvider
+  // (a ConfigPage usa usePageHeader) e a trigger viva na sidebar.
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -660,47 +664,34 @@ export default function App() {
               )}
             </nav>
 
-            <SidebarSystemActions
-              collapsed={isDesktopCollapsed}
-              onNavigate={closeMobile}
-              status={sidebarStatus}
-              tooltipWarmRef={tooltipWarmRef}
-            />
+            {/* Bloco "Sistema" (estado do gateway / Reiniciar gateway)
+                OCULTADO do usuário final — é controle de OPERAÇÃO (nós
+                operamos a plataforma). Preservado atrás de `false &&` para
+                uma visão de admin futura (mantém o código referenciado). */}
+            {false && (
+              <>
+                <SidebarSystemActions
+                  collapsed={isDesktopCollapsed}
+                  onNavigate={closeMobile}
+                  status={sidebarStatus}
+                  tooltipWarmRef={tooltipWarmRef}
+                />
+                <SidebarIconWithTooltip collapsed={isDesktopCollapsed} label="" tooltipWarmRef={tooltipWarmRef}>
+                  <span />
+                </SidebarIconWithTooltip>
+              </>
+            )}
 
+            {/* Slot de plugins do rodapé preservado. Tema e Idioma saíram
+                daqui: Tema → Configuração (Aparência); Idioma → menu do chip
+                do usuário (AuthWidget). Container invisível quando vazio. */}
             <div
               className={cn(
-                "flex shrink-0 items-center gap-2",
-                "px-3 py-2",
-                "border-t border-current/20",
-                isDesktopCollapsed
-                  ? "lg:flex-col lg:items-start lg:gap-3 lg:py-3"
-                  : "justify-between",
+                "flex shrink-0 items-center px-3 empty:hidden",
+                isDesktopCollapsed && "lg:flex-col lg:items-start",
               )}
             >
-              <div
-                className={cn(
-                  "flex min-w-0 items-center gap-2",
-                  isDesktopCollapsed && "lg:flex-col lg:items-start",
-                )}
-              >
-                <PluginSlot name="header-right" />
-
-                <SidebarIconWithTooltip
-                  collapsed={isDesktopCollapsed}
-                  label={t.theme?.switchTheme ?? "Switch theme"}
-                  tooltipWarmRef={tooltipWarmRef}
-                >
-                  <ThemeSwitcher collapsed={isDesktopCollapsed} dropUp />
-                </SidebarIconWithTooltip>
-
-                <SidebarIconWithTooltip
-                  collapsed={isDesktopCollapsed}
-                  label={t.language.switchTo}
-                  tooltipWarmRef={tooltipWarmRef}
-                >
-                  <LanguageSwitcher collapsed={isDesktopCollapsed} dropUp />
-                </SidebarIconWithTooltip>
-              </div>
+              <PluginSlot name="header-right" />
             </div>
 
             <div
@@ -709,12 +700,16 @@ export default function App() {
                 isDesktopCollapsed && "lg:hidden",
               )}
             >
-              <AuthWidget />
+              <AuthWidget onOpenSettings={() => setSettingsOpen(true)} />
               <SidebarFooter status={sidebarStatus} />
             </div>
           </aside>
 
           <PageHeaderProvider pluginTabs={pluginTabMeta}>
+            {/* Configuração como overlay em tela cheia (aberta pelo menu do
+                chip). Dentro do PageHeaderProvider para a ConfigPage usar
+                usePageHeader e o overlay exibir o slot `end` (botão Guardar). */}
+            <SettingsOverlay open={settingsOpen} onClose={() => setSettingsOpen(false)} />
             <div
               className={cn(
                 "relative z-2 flex min-w-0 min-h-0 flex-1 flex-col",
