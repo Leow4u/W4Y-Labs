@@ -568,7 +568,10 @@ export default function ConfigPage() {
                   {t.config.sections}
                 </div>
 
-                <div className="flex sm:flex-col gap-1 sm:gap-px p-2 sm:pt-1 overflow-x-auto sm:overflow-x-visible scrollbar-none sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
+                {/* Mobile: chips horizontais com scrollbar oculta (scrollbar-none).
+                    Desktop (sm:): lista vertical com scrollbar VISÍVEL — sem o
+                    indicador, o menu parecia cortado/travado dentro do modal. */}
+                <div className="flex sm:flex-col gap-1 sm:gap-px p-2 sm:pt-1 overflow-x-auto sm:overflow-x-hidden max-sm:scrollbar-none sm:min-h-0 sm:flex-1 sm:overflow-y-auto">
                   {categories.map((cat) => {
                     const isActive = !isSearching && activeCategory === cat;
 

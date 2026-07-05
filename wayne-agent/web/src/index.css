@@ -231,13 +231,15 @@ code { font-size: 0.875rem; }
   to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-/* Hide scrollbar utility — used by the header's overflow-x nav row. */
-.scrollbar-none {
+/* Hide scrollbar utility — used by the header's overflow-x nav row.
+   Registrada como @utility (Tailwind v4) para aceitar variantes
+   responsivas (ex.: max-sm:scrollbar-none no menu do Config). */
+@utility scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;
-}
-.scrollbar-none::-webkit-scrollbar {
-  display: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 /* System UI-monospace stack — distinct from `font-courier` (Courier
