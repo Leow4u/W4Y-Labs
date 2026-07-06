@@ -442,13 +442,21 @@ export default function ConfigPage() {
       </Card>
 
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+        {/* Ferramentas de SISTEMA da barra — caminho do config.yaml,
+            import/export, reset e modo YAML — ocultas do usuário final
+            (curadoria do Config, Bloco 1). Ficam no código, atrás de
+            `false &&`, para uso interno/suporte e fácil reversão; o
+            usuário vê apenas o Guardar (até o auto-save do Bloco 3). */}
+        {false && (
         <div className="flex min-w-0 items-center gap-2 sm:flex-1">
           <Settings2 className="h-4 w-4 shrink-0 text-muted-foreground" />
           <code className="min-w-0 flex-1 break-words text-xs text-muted-foreground bg-muted/50 px-2 py-0.5">
             {configPath ?? t.config.configPath}
           </code>
         </div>
-        <div className="flex flex-wrap items-center gap-1.5 sm:shrink-0">
+        )}
+        <div className="flex flex-wrap items-center gap-1.5 sm:ml-auto sm:shrink-0">
+          {false && (<>
           <Button
             ghost
             size="icon"
@@ -506,6 +514,7 @@ export default function ConfigPage() {
           >
             {yamlMode ? t.common.form : "YAML"}
           </Button>
+          </>)}
 
           {yamlMode ? (
             <Button
