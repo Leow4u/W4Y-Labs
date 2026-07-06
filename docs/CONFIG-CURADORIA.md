@@ -470,3 +470,29 @@ Tudo só na instância `wayne-w4y` até aprovação final do pacote.
 - **Preferências**: Aparência (4 botões reais, sem "Sistema") · Fonte (14 + padrão do tema) · Movimento (decisão: omitir vs frontend-only trivial).
 - **Voz**: deferir (único controle real não afeta o chat do dashboard).
 - **Notificações**: Memória (funciona) + Créditos (decisão: incluir com ressalva vs deferir, inerte hoje).
+
+---
+
+# Revisão (benchmark → Manus web) — Conta · Geral · Personalização (06/07/2026)
+
+Pivô: benchmark passa a ser **Manus web**; estrutura vira **Conta · Geral · Personalização**. Uso/faturamento fica **FORA** (intocado — nem settings, nem dashboard agora). 2ª investigação multi-agente (5 frentes) confirmou:
+
+## CONTA — fina e honesta
+- Identidade **read-only** (iniciais + nome/e-mail/user_id via /api/auth/me) + **Logout** (já existe). ✅
+- Editar nome/e-mail, senha, métodos de login, eliminar conta → **casca/IdP**, sem endpoint no Wayne. Não construir. Plano/créditos → fora de escopo.
+
+## GERAL
+- **Idioma** ✅ — 16 locales, persiste em localStorage, default já `pt`. **Descoberta:** só existe UM locale `pt` e as strings estão em **português EUROPEU** (Guardar/Eliminar/A carregar). Para pt-BR de verdade: relabel "Português (Brasil)" + **brasileirizar pt.ts** (Salvar/Excluir/Carregando…). Tarefa própria.
+- **Tema** ✅ — **exatamente 4 paletas reais**: `white`(Claro) · `mono`(Escuro) · `cyberpunk` · `rose`. **NÃO existe** modo Claro/Escuro/Automático nem as paletas Midnight/Ember/Slate/Nous (apelidos mortos → mono/white). O modelo rico do Hermes é **desktop**; no web seria net-new (recriar paletas + camada de modo). Honesto: mostrar as 4 agrupadas por luminosidade (1 clara / 3 escuras), sem "Automático".
+- **Comunicação** — quase sem lastro no web: só **avisos de memória no chat** (dropdown off/on/verbose) tem efeito real (e é uma linha no chat, não notificação do SO). Sino sonoro = chave existe mas é só-terminal (precisaria de player WebAudio novo). Push do navegador / atualizações de produto / e-mail = sem lastro (casca / net-new pesado).
+
+## PERSONALIZAÇÃO
+- **Instruções personalizadas** ✅ — UM textarea = SOUL.md cru (PUT /api/profiles/default/soul), injetado como identidade em toda conversa. Absorve apelido/profissão/"mais sobre você"/persona em linguagem natural. Recomendado.
+- Campos separados (Apelido/Profissão/Mais sobre você) = net-new frágil (template+parse sobre o mesmo arquivo, com 2 editores). Não recomendado.
+- **Importar memória de outra AI** = sem lastro (só `wayne claw migrate` do OpenClaw via CLI). Workaround: colar no textarea de instruções. Deferir.
+
+## Correções de valores (verificadas)
+- Tema "Escuro" = `mono` (não `black`); schema config `dashboard.theme` está STALE (não usar sua lista).
+- Idioma da UI (i18n/localStorage) ≠ `display.language` (TUI/gateway, 8 locales sem pt).
+- `memory_notifications` = enum de 3 valores, não booleano.
+- Sob provider Nous, e-mail/nome vêm vazios → rótulo cai para user_id (no nosso IdP próprio, o e-mail deve vir).
