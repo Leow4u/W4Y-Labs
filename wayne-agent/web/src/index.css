@@ -312,6 +312,16 @@ code { font-size: 0.875rem; }
   letter-spacing: normal;
 }
 
+/* Mesmo tratamento nos RÓTULOS menores de seção (ex.: "Personalizar",       */
+/* "Filtros", "Secções"), que usavam a fonte display "Mondwest"              */
+/* (.font-mondwest / .text-display) + espaçamento largo — também "esmagados".*/
+/* Ficam em IBM Plex Sans, espaçamento normal, coesos com o resto.           */
+.font-mondwest,
+.text-display {
+  font-family: var(--theme-font-sans);
+  letter-spacing: normal;
+}
+
 /* Subtle grain overlay for badges. */
 .grain {
   position: relative;
