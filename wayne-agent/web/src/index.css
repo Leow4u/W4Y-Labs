@@ -299,6 +299,19 @@ code { font-size: 0.875rem; }
   text-transform: none;
 }
 
+/* ------------------------------------------------------------------ */
+/* UX — títulos legíveis (sem o aspecto "esmagado").                    */
+/* O design-system usa a fonte display "Rules Expanded" (glifos         */
+/* estreitos) + letter-spacing largo nos títulos de card/página         */
+/* (.font-expanded), o que dificultava a leitura. Passam à fonte de     */
+/* PRODUTO (IBM Plex Sans, via --theme-font-sans), coesos com o corpo e */
+/* limpos (padrão Claude). Regra sem @layer vence a utility do DS.      */
+/* .font-brand (wordmark Cascadia Mono) não é afetado.                  */
+.font-expanded {
+  font-family: var(--theme-font-sans);
+  letter-spacing: normal;
+}
+
 /* Subtle grain overlay for badges. */
 .grain {
   position: relative;
