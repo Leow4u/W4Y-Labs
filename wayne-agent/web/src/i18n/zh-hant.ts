@@ -533,6 +533,17 @@ export const zhHant: Translations = {
     plugins: "外掛",
     font: "字型",
     fontThemeDefault: "佈景主題預設",
+    skCreate: "建立",
+    skCreateW4Y: "用 W4Y-Labs 建立",
+    skUpload: "上傳技能",
+    skImportGithub: "從 GitHub 匯入",
+    skWrite: "撰寫指令",
+    skBrowse: "瀏覽技能",
+    skAll: "全部",
+    skDownload: "下載",
+    skFullscreen: "全螢幕",
+    skImportDesc: "直接從公開的 GitHub 儲存庫匯入技能。",
+    skImportAction: "匯入",
   },
 
   achievements: {

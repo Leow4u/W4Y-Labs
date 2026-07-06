@@ -535,6 +535,17 @@ export const fr: Translations = {
     plugins: "Plugins",
     font: "Police",
     fontThemeDefault: "Par défaut du thème",
+    skCreate: "Créer",
+    skCreateW4Y: "Créer avec W4Y-Labs",
+    skUpload: "Téléverser une compétence",
+    skImportGithub: "Importer depuis GitHub",
+    skWrite: "Écrire les instructions",
+    skBrowse: "Parcourir les compétences",
+    skAll: "Toutes",
+    skDownload: "Télécharger",
+    skFullscreen: "Plein écran",
+    skImportDesc: "Importez une compétence directement depuis un dépôt GitHub public.",
+    skImportAction: "Importer",
   },
   achievements: {
     hero: {

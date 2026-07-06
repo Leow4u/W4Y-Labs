@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Package,
@@ -17,7 +17,6 @@ import {
   Blocks,
   Code,
   Zap,
-  Filter,
   Download,
   RefreshCw,
   FileText,
@@ -26,8 +25,21 @@ import {
   AlertTriangle,
   Sparkles,
   Loader2,
-  Pencil,
   Plus,
+  ChevronDown,
+  Github,
+  PenLine,
+  Upload,
+  BarChart3,
+  BookOpen,
+  Camera,
+  Database,
+  FlaskConical,
+  Image,
+  Mail,
+  StickyNote,
+  Bot,
+  type LucideIcon,
 } from "lucide-react";
 import { api } from "@/lib/api";
 import type {
@@ -42,12 +54,12 @@ import type {
 import { useProfileScope } from "@/contexts/useProfileScope";
 import { ToolsetConfigDrawer } from "@/components/ToolsetConfigDrawer";
 import { SkillEditorDialog } from "@/components/SkillEditorDialog";
+import { SkillDetailModal } from "@/components/SkillDetailModal";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
+import { Card, CardContent } from "@nous-research/ui/ui/components/card";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
-import { ListItem } from "@nous-research/ui/ui/components/list-item";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import {
@@ -121,6 +133,51 @@ function toolsetIcon(
   return Wrench;
 }
 
+/** Icon per skill CATEGORY. Keyed by substring so nested categories
+ *  (e.g. "mlops/training", "data-science") still resolve. Falls back to
+ *  Sparkles for the uncategorized bucket. */
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  general: Package,
+  creative: Paintbrush,
+  design: Paintbrush,
+  data: Database,
+  "data-science": BarChart3,
+  analytics: BarChart3,
+  github: Github,
+  git: Github,
+  media: Image,
+  image: Image,
+  video: Camera,
+  productivity: Zap,
+  research: FlaskConical,
+  science: FlaskConical,
+  email: Mail,
+  mlops: Brain,
+  ml: Brain,
+  ai: Brain,
+  "note-taking": StickyNote,
+  notes: StickyNote,
+  "autonomous-ai-agents": Bot,
+  agent: Bot,
+  automation: Zap,
+  web: Globe,
+  code: Code,
+  security: Shield,
+  docs: BookOpen,
+  writing: PenLine,
+};
+
+/** Resolve a category string to its icon (substring match, Sparkles fallback). */
+function categoryIcon(category: string | null | undefined): LucideIcon {
+  if (!category) return Sparkles;
+  const lower = category.toLowerCase();
+  if (CATEGORY_ICON[lower]) return CATEGORY_ICON[lower];
+  for (const [key, icon] of Object.entries(CATEGORY_ICON)) {
+    if (lower.includes(key)) return icon;
+  }
+  return Sparkles;
+}
+
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
@@ -137,6 +194,17 @@ export default function SkillsPage() {
   // Skill editor dialog: open + which skill is being edited (null = create).
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorSkill, setEditorSkill] = useState<string | null>(null);
+  // Detail modal (card body click) — which skill's SKILL.md to read.
+  const [detailSkill, setDetailSkill] = useState<string | null>(null);
+  // "Criar" dropdown (open/closed).
+  const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  const createMenuRef = useRef<HTMLDivElement | null>(null);
+  // Hidden file input for "Upload a skill".
+  const uploadInputRef = useRef<HTMLInputElement | null>(null);
+  // "Import from GitHub" mini-modal.
+  const [importOpen, setImportOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState("");
+  const [importing, setImporting] = useState(false);
   const { toast, showToast } = useToast();
   const { t } = useI18n();
   const { setAfterTitle, setEnd } = usePageHeader();
@@ -244,22 +312,96 @@ export default function SkillsPage() {
     setLearnOpen(false);
     navigate(`/chat?learn=${encodeURIComponent(composed)}`);
   }, [learnDir, learnUrl, learnText, navigate]);
-  const openEditEditor = useCallback((skillName: string) => {
-    setEditorSkill(skillName);
-    setEditorOpen(true);
-  }, []);
+  /* ---- Reload the skills list (after create/upload/import) ---- */
+  const reloadSkills = useCallback(() => {
+    api
+      .getSkills(selectedProfile || undefined)
+      .then(setSkills)
+      .catch(() => {});
+  }, [selectedProfile]);
+
   const handleEditorSaved = useCallback(
     (skillName: string) => {
       showToast(`${skillName} saved ✓`, "success");
       // Reload the list so a newly created skill (or an edited description)
       // shows up immediately.
-      api
-        .getSkills(selectedProfile || undefined)
-        .then(setSkills)
-        .catch(() => {});
+      reloadSkills();
     },
-    [selectedProfile, showToast],
+    [reloadSkills, showToast],
   );
+
+  /* ---- Close the "Criar" dropdown on outside click / Escape ---- */
+  useEffect(() => {
+    if (!createMenuOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (
+        createMenuRef.current &&
+        !createMenuRef.current.contains(e.target as Node)
+      ) {
+        setCreateMenuOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setCreateMenuOpen(false);
+    };
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [createMenuOpen]);
+
+  /* ---- Upload a .md/.txt file → createSkill ---- */
+  const handleUploadFile = useCallback(
+    async (file: File) => {
+      try {
+        const text = await file.text();
+        // Slug: filename sans extension, lowercased, spaces → hyphens.
+        const base = file.name.replace(/\.[^.]+$/, "");
+        const name = base
+          .trim()
+          .toLowerCase()
+          .replace(/\s+/g, "-")
+          .replace(/[^a-z0-9._-]/g, "");
+        if (!name) {
+          showToast(t.common.failedToToggle, "error");
+          return;
+        }
+        const res = await api.createSkill(
+          { name, content: text },
+          selectedProfile || undefined,
+        );
+        if (res.success === false) {
+          showToast(res.error || res.message || t.common.failedToToggle, "error");
+          return;
+        }
+        showToast(`${name} ✓`, "success");
+        reloadSkills();
+      } catch {
+        showToast(t.common.failedToToggle, "error");
+      }
+    },
+    [reloadSkills, selectedProfile, showToast, t],
+  );
+
+  /* ---- Import a skill from a public GitHub repo ---- */
+  const submitImport = useCallback(async () => {
+    const url = importUrl.trim();
+    if (!url) return;
+    setImporting(true);
+    try {
+      await api.installSkillFromHub(url, selectedProfile || undefined);
+      showToast(`${url} ✓`, "success");
+      setImportOpen(false);
+      setImportUrl("");
+      reloadSkills();
+    } catch (e) {
+      showToast(`${t.common.failedToToggle}: ${e}`, "error");
+    } finally {
+      setImporting(false);
+    }
+  }, [importUrl, reloadSkills, selectedProfile, showToast, t]);
 
   /* ---- Derived data ---- */
   const lowerSearch = search.toLowerCase();
@@ -382,191 +524,184 @@ export default function SkillsPage() {
       <PluginSlot name="skills:top" />
       <Toast toast={toast} />
 
-      <div className="flex flex-col sm:flex-row sm:items-start gap-4">
-        <aside aria-label={t.skills.title} className="sm:w-56 sm:shrink-0">
-          <div className="sm:sticky sm:top-0">
-            <div className="flex flex-col rounded-none border border-border bg-muted/20">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-2 border-b border-border">
-                <Filter className="h-3 w-3 text-text-tertiary" />
-                <span className="font-mondwest text-display text-xs tracking-[0.12em] text-text-secondary">
-                  {t.skills.filters}
-                </span>
-              </div>
+      {/* Hidden input for "Upload a skill" (triggered from the Criar menu). */}
+      <input
+        ref={uploadInputRef}
+        type="file"
+        accept=".md,.markdown,.txt"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleUploadFile(file);
+          // Reset so re-selecting the same file fires onChange again.
+          e.target.value = "";
+        }}
+      />
 
-              <div className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-x-visible scrollbar-none p-2">
-                <PanelItem
-                  icon={Package}
-                  label={`${t.skills.all} (${skills.length})`}
-                  active={view === "skills" && !isSearching}
-                  onClick={() => {
-                    setView("skills");
-                    setActiveCategory(null);
-                    setSearch("");
-                  }}
-                />
-                <PanelItem
-                  icon={Wrench}
-                  label={`${t.skills.toolsets} (${toolsets.length})`}
-                  active={view === "toolsets"}
-                  onClick={() => {
-                    setView("toolsets");
-                    setSearch("");
-                  }}
-                />
-                <PanelItem
-                  icon={Search}
-                  label="Browse hub"
-                  active={view === "hub"}
-                  onClick={() => {
-                    setView("hub");
-                    setSearch("");
-                  }}
-                />
-              </div>
+      {/* ── Toolbar: view tabs (left) + actions (right) ── */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
+          <ViewTab
+            label={`${t.skills.all} (${skills.length})`}
+            active={view !== "toolsets"}
+            onClick={() => {
+              setView("skills");
+              setActiveCategory(null);
+              setSearch("");
+            }}
+          />
+          <ViewTab
+            label={`${t.skills.toolsets} (${toolsets.length})`}
+            active={view === "toolsets"}
+            onClick={() => {
+              setView("toolsets");
+              setSearch("");
+            }}
+          />
+        </div>
 
-              {view === "skills" &&
-                !isSearching &&
-                allCategories.length > 0 && (
-                  <div className="hidden sm:flex flex-col border-t border-border">
-                    <div className="px-3 pt-2 pb-1 font-mondwest text-display text-xs tracking-[0.12em] text-text-tertiary">
-                      {t.skills.categories}
-                    </div>
-                    <div className="flex flex-col p-2 pt-1 gap-px max-h-[calc(100vh-340px)] overflow-y-auto">
-                      {allCategories.map(({ key, name, count }) => {
-                        const isActive = activeCategory === key;
+        {view === "skills" && (
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              outlined
+              onClick={() => {
+                setView("hub");
+                setSearch("");
+              }}
+              prefix={<Search />}
+            >
+              {t.configUser.skBrowse}
+            </Button>
 
-                        return (
-                          <ListItem
-                            key={key}
-                            active={isActive}
-                            onClick={() =>
-                              setActiveCategory(isActive ? null : key)
-                            }
-                            className="rounded-none px-2 py-1 text-xs"
-                          >
-                            <span className="flex-1 truncate">{name}</span>
-                            <span
-                              className={`text-xs tabular-nums ${
-                                isActive
-                                  ? "text-text-secondary"
-                                  : "text-text-tertiary"
-                              }`}
-                            >
-                              {count}
-                            </span>
-                          </ListItem>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
+            {/* "Criar" dropdown. */}
+            <div className="relative" ref={createMenuRef}>
+              <Button
+                size="sm"
+                onClick={() => setCreateMenuOpen((v) => !v)}
+                prefix={<Plus />}
+                suffix={<ChevronDown className="h-3.5 w-3.5" />}
+              >
+                {t.configUser.skCreate}
+              </Button>
+              {createMenuOpen && (
+                <div
+                  className={cn(
+                    "absolute right-0 top-full z-20 mt-1 min-w-[15rem] overflow-hidden rounded-md",
+                    "border border-current/20 bg-background-base shadow-lg",
+                  )}
+                  role="menu"
+                >
+                  <CreateMenuItem
+                    icon={Sparkles}
+                    label={t.configUser.skCreateW4Y}
+                    onClick={() => {
+                      setCreateMenuOpen(false);
+                      openLearn();
+                    }}
+                  />
+                  <CreateMenuItem
+                    icon={Upload}
+                    label={t.configUser.skUpload}
+                    onClick={() => {
+                      setCreateMenuOpen(false);
+                      uploadInputRef.current?.click();
+                    }}
+                  />
+                  <CreateMenuItem
+                    icon={Github}
+                    label={t.configUser.skImportGithub}
+                    onClick={() => {
+                      setCreateMenuOpen(false);
+                      setImportUrl("");
+                      setImportOpen(true);
+                    }}
+                  />
+                  <CreateMenuItem
+                    icon={PenLine}
+                    label={t.configUser.skWrite}
+                    onClick={() => {
+                      setCreateMenuOpen(false);
+                      openCreateEditor();
+                    }}
+                  />
+                </div>
+              )}
             </div>
           </div>
-        </aside>
+        )}
+      </div>
 
-        <div className="flex-1 min-w-0">
-          {isSearching ? (
+      <div className="min-w-0">
+        {isSearching ? (
+          /* Search results — same mini-card grid. */
+          searchMatchedSkills.length === 0 ? (
             <Card className="rounded-none">
-              <CardHeader className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Search className="h-4 w-4" />
-                    {t.skills.title}
-                  </CardTitle>
-                  <Badge tone="secondary" className="text-xs">
-                    {t.skills.resultCount
-                      .replace("{count}", String(searchMatchedSkills.length))
-                      .replace(
-                        "{s}",
-                        searchMatchedSkills.length !== 1 ? "s" : "",
-                      )}
-                  </Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                {searchMatchedSkills.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    {t.skills.noSkillsMatch}
-                  </p>
-                ) : (
-                  <div className="grid gap-1">
-                    {searchMatchedSkills.map((skill) => (
-                      <SkillRow
-                        key={skill.name}
-                        skill={skill}
-                        toggling={togglingSkills.has(skill.name)}
-                        onToggle={() => handleToggleSkill(skill)}
-                        onEdit={() => openEditEditor(skill.name)}
-                        noDescriptionLabel={t.skills.noDescription}
-                      />
-                    ))}
-                  </div>
-                )}
+              <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                {t.skills.noSkillsMatch}
               </CardContent>
             </Card>
-          ) : view === "skills" ? (
-            /* Skills list */
-            <Card className="rounded-none">
-              <CardHeader className="py-3 px-4">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-sm flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    {activeCategory
-                      ? prettyCategory(
-                          activeCategory === "__none__" ? null : activeCategory,
-                          t.common.general,
-                        )
-                      : t.skills.all}
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    <Badge tone="secondary" className="text-xs">
-                      {t.skills.skillCount
-                        .replace("{count}", String(activeSkills.length))
-                        .replace("{s}", activeSkills.length !== 1 ? "s" : "")}
-                    </Badge>
-                    <Button
-                      size="sm"
-                      outlined
-                      onClick={openLearn}
-                      prefix={<Sparkles />}
-                    >
-                      Learn a skill
-                    </Button>
-                    <Button
-                      size="sm"
-                      outlined
-                      onClick={openCreateEditor}
-                      prefix={<Plus />}
-                    >
-                      New skill
-                    </Button>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="px-4 pb-4">
-                {activeSkills.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-8">
-                    {skills.length === 0
-                      ? t.skills.noSkills
-                      : t.skills.noSkillsMatch}
-                  </p>
-                ) : (
-                  <div className="grid gap-1">
-                    {activeSkills.map((skill) => (
-                      <SkillRow
-                        key={skill.name}
-                        skill={skill}
-                        toggling={togglingSkills.has(skill.name)}
-                        onToggle={() => handleToggleSkill(skill)}
-                        onEdit={() => openEditEditor(skill.name)}
-                        noDescriptionLabel={t.skills.noDescription}
-                      />
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : view === "toolsets" ? (
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {searchMatchedSkills.map((skill) => (
+                <SkillCard
+                  key={skill.name}
+                  skill={skill}
+                  toggling={togglingSkills.has(skill.name)}
+                  onToggle={() => handleToggleSkill(skill)}
+                  onOpen={() => setDetailSkill(skill.name)}
+                  noDescriptionLabel={t.skills.noDescription}
+                />
+              ))}
+            </div>
+          )
+        ) : view === "skills" ? (
+          /* Skills — category chips + mini-card grid. */
+          <div className="flex flex-col gap-3">
+            {allCategories.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <CategoryChip
+                  label={`${t.configUser.skAll} (${skills.length})`}
+                  active={!activeCategory}
+                  onClick={() => setActiveCategory(null)}
+                />
+                {allCategories.map(({ key, name, count }) => (
+                  <CategoryChip
+                    key={key}
+                    label={`${name} (${count})`}
+                    active={activeCategory === key}
+                    onClick={() =>
+                      setActiveCategory(activeCategory === key ? null : key)
+                    }
+                  />
+                ))}
+              </div>
+            )}
+
+            {activeSkills.length === 0 ? (
+              <Card className="rounded-none">
+                <CardContent className="py-10 text-center text-sm text-muted-foreground">
+                  {skills.length === 0
+                    ? t.skills.noSkills
+                    : t.skills.noSkillsMatch}
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {activeSkills.map((skill) => (
+                  <SkillCard
+                    key={skill.name}
+                    skill={skill}
+                    toggling={togglingSkills.has(skill.name)}
+                    onToggle={() => handleToggleSkill(skill)}
+                    onOpen={() => setDetailSkill(skill.name)}
+                    noDescriptionLabel={t.skills.noDescription}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        ) : view === "toolsets" ? (
             /* Toolsets grid */
             <>
               {filteredToolsets.length === 0 ? (
@@ -653,7 +788,6 @@ export default function SkillsPage() {
           ) : (
             <HubBrowser showToast={showToast} profile={selectedProfile || undefined} />
           )}
-        </div>
       </div>
       {configToolset && (
         <ToolsetConfigDrawer
@@ -716,7 +850,7 @@ export default function SkillsPage() {
           </div>
           <div className="flex justify-end gap-2 pt-1">
             <Button ghost onClick={() => setLearnOpen(false)}>
-              Cancel
+              {t.common.cancel}
             </Button>
             <Button
               onClick={submitLearn}
@@ -728,83 +862,195 @@ export default function SkillsPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ── Import from GitHub mini-modal ── */}
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t.configUser.skImportGithub}</DialogTitle>
+            <DialogDescription>{t.configUser.skImportDesc}</DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-3 py-2">
+            <Input
+              placeholder="https://github.com/owner/repo"
+              value={importUrl}
+              onChange={(e) => setImportUrl(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && importUrl.trim() && !importing) {
+                  void submitImport();
+                }
+              }}
+              autoFocus
+            />
+          </div>
+          <div className="flex justify-end gap-2 pt-1">
+            <Button ghost onClick={() => setImportOpen(false)}>
+              {t.common.cancel}
+            </Button>
+            <Button
+              onClick={() => void submitImport()}
+              disabled={!importUrl.trim() || importing}
+              prefix={
+                importing ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5" />
+                )
+              }
+            >
+              {t.configUser.skImportAction}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Skill detail modal (card body click) ── */}
+      <SkillDetailModal
+        open={detailSkill != null}
+        skillName={detailSkill}
+        onClose={() => setDetailSkill(null)}
+      />
+
       <PluginSlot name="skills:bottom" />
     </div>
   );
 }
 
-function SkillRow({
+/* ---- Small view tab (Habilidades / Toolsets) ---- */
+function ViewTab({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full px-3 py-1 text-xs transition-colors",
+        active
+          ? "bg-foreground/90 text-background"
+          : "text-text-secondary hover:bg-current/10 hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+/* ---- Category filter chip (pill) ---- */
+function CategoryChip({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "rounded-full border px-3 py-1 text-xs transition-colors",
+        active
+          ? "border-foreground bg-foreground/90 text-background"
+          : "border-border text-text-secondary hover:border-foreground/40 hover:text-foreground",
+      )}
+    >
+      {label}
+    </button>
+  );
+}
+
+/* ---- Item inside the "Criar" dropdown ---- */
+function CreateMenuItem({
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  icon: LucideIcon;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-sm hover:bg-current/10"
+    >
+      <Icon className="h-4 w-4 shrink-0 text-muted-foreground" />
+      <span className="truncate">{label}</span>
+    </button>
+  );
+}
+
+/* ---- Skill mini-card (grid). Body click opens detail; toggle stops it. ---- */
+function SkillCard({
   skill,
   toggling,
   onToggle,
-  onEdit,
+  onOpen,
   noDescriptionLabel,
-}: SkillRowProps) {
+}: SkillCardProps) {
+  const Icon = categoryIcon(skill.category);
   return (
-    <div className="group flex items-start gap-3 px-3 py-2.5 transition-colors hover:bg-muted/40">
-      <div className="pt-0.5 shrink-0">
-        <Switch
-          checked={skill.enabled}
-          onCheckedChange={onToggle}
-          disabled={toggling}
-        />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
+    <Card
+      className={cn(
+        "group cursor-pointer rounded-none transition-colors hover:bg-muted/30",
+        !skill.enabled && "opacity-80",
+      )}
+      onClick={onOpen}
+    >
+      <CardContent className="flex items-start gap-3 py-3.5">
+        <div className="mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded border border-border bg-muted/30">
+          <Icon
+            className={cn(
+              "h-4 w-4",
+              skill.enabled ? "text-foreground" : "text-muted-foreground",
+            )}
+          />
+        </div>
+        <div className="min-w-0 flex-1">
           <span
-            className={`font-mono-ui text-sm ${
-              skill.enabled ? "text-foreground" : "text-muted-foreground"
-            }`}
+            className={cn(
+              "block truncate font-mono-ui text-sm",
+              skill.enabled ? "text-foreground" : "text-muted-foreground",
+            )}
           >
             {skill.name}
           </span>
+          <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            {skill.description || noDescriptionLabel}
+          </p>
         </div>
-        <p className="text-xs text-muted-foreground leading-relaxed line-clamp-2">
-          {skill.description || noDescriptionLabel}
-        </p>
-      </div>
-      <Button
-        ghost
-        size="icon"
-        className="shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 focus-visible:opacity-100 hover:text-foreground"
-        title="Edit SKILL.md"
-        aria-label={`Edit ${skill.name}`}
-        onClick={onEdit}
-      >
-        <Pencil />
-      </Button>
-    </div>
+        {/* Toggle — stop propagation so it doesn't open the detail modal. */}
+        <div
+          className="shrink-0 pt-0.5"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Switch
+            checked={skill.enabled}
+            onCheckedChange={onToggle}
+            disabled={toggling}
+            aria-label={skill.name}
+          />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
 
-function PanelItem({ active, icon: Icon, label, onClick }: PanelItemProps) {
-  return (
-    <ListItem
-      active={active}
-      onClick={onClick}
-      className={cn(
-        "rounded-none whitespace-nowrap px-2.5 py-1.5",
-        "font-mondwest text-[0.7rem] tracking-[0.08em] uppercase",
-        active && "bg-foreground/90 text-background hover:text-background",
-      )}
-    >
-      <Icon className="h-3.5 w-3.5 shrink-0" />
-      <span className="flex-1 truncate">{label}</span>
-    </ListItem>
-  );
-}
-
-interface PanelItemProps {
-  active: boolean;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  onClick: () => void;
-}
-
-interface SkillRowProps {
+interface SkillCardProps {
   noDescriptionLabel: string;
   onToggle: () => void;
-  onEdit: () => void;
+  onOpen: () => void;
   skill: SkillInfo;
   toggling: boolean;
 }

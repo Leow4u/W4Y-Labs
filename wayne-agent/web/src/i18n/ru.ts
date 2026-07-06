@@ -534,6 +534,17 @@ export const ru: Translations = {
     plugins: "Плагины",
     font: "Шрифт",
     fontThemeDefault: "По умолчанию темы",
+    skCreate: "Создать",
+    skCreateW4Y: "Создать с W4Y-Labs",
+    skUpload: "Загрузить навык",
+    skImportGithub: "Импорт из GitHub",
+    skWrite: "Написать инструкции",
+    skBrowse: "Обзор навыков",
+    skAll: "Все",
+    skDownload: "Скачать",
+    skFullscreen: "Полный экран",
+    skImportDesc: "Импортируйте навык прямо из публичного репозитория GitHub.",
+    skImportAction: "Импортировать",
   },
 
   achievements: {

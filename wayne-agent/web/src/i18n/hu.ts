@@ -534,6 +534,17 @@ export const hu: Translations = {
     plugins: "Bővítmények",
     font: "Betűtípus",
     fontThemeDefault: "Téma alapértelmezett",
+    skCreate: "Létrehozás",
+    skCreateW4Y: "Létrehozás W4Y-Labs-szal",
+    skUpload: "Készség feltöltése",
+    skImportGithub: "Importálás GitHubról",
+    skWrite: "Utasítások megírása",
+    skBrowse: "Készségek böngészése",
+    skAll: "Összes",
+    skDownload: "Letöltés",
+    skFullscreen: "Teljes képernyő",
+    skImportDesc: "Importálj egy készséget közvetlenül egy nyilvános GitHub-tárolóból.",
+    skImportAction: "Importálás",
   },
 
   achievements: {

@@ -534,6 +534,17 @@ export const tr: Translations = {
     plugins: "Eklentiler",
     font: "Yazı tipi",
     fontThemeDefault: "Tema varsayılanı",
+    skCreate: "Oluştur",
+    skCreateW4Y: "W4Y-Labs ile oluştur",
+    skUpload: "Beceri yükle",
+    skImportGithub: "GitHub'dan içe aktar",
+    skWrite: "Talimatları yaz",
+    skBrowse: "Becerilere göz at",
+    skAll: "Tümü",
+    skDownload: "İndir",
+    skFullscreen: "Tam ekran",
+    skImportDesc: "Herkese açık bir GitHub deposundan doğrudan beceri içe aktarın.",
+    skImportAction: "İçe aktar",
   },
 
   achievements: {

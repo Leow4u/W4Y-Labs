@@ -534,6 +534,17 @@ export const af: Translations = {
     plugins: "Inproppe",
     font: "Lettertipe",
     fontThemeDefault: "Tema-verstek",
+    skCreate: "Skep",
+    skCreateW4Y: "Skep met W4Y-Labs",
+    skUpload: "Laai 'n vaardigheid op",
+    skImportGithub: "Voer in vanaf GitHub",
+    skWrite: "Skryf die instruksies",
+    skBrowse: "Blaai deur vaardighede",
+    skAll: "Almal",
+    skDownload: "Laai af",
+    skFullscreen: "Volskerm",
+    skImportDesc: "Voer 'n vaardigheid direk vanaf 'n openbare GitHub-bewaarplek in.",
+    skImportAction: "Voer in",
   },
 
   achievements: {

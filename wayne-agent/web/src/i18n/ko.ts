@@ -533,6 +533,17 @@ export const ko: Translations = {
     plugins: "플러그인",
     font: "글꼴",
     fontThemeDefault: "테마 기본값",
+    skCreate: "만들기",
+    skCreateW4Y: "W4Y-Labs로 만들기",
+    skUpload: "스킬 업로드",
+    skImportGithub: "GitHub에서 가져오기",
+    skWrite: "지침 작성",
+    skBrowse: "스킬 찾아보기",
+    skAll: "전체",
+    skDownload: "다운로드",
+    skFullscreen: "전체 화면",
+    skImportDesc: "공개 GitHub 저장소에서 스킬을 직접 가져옵니다.",
+    skImportAction: "가져오기",
   },
 
   achievements: {

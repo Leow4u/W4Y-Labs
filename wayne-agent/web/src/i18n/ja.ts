@@ -533,6 +533,17 @@ export const ja: Translations = {
     plugins: "プラグイン",
     font: "フォント",
     fontThemeDefault: "テーマの既定",
+    skCreate: "作成",
+    skCreateW4Y: "W4Y-Labs で作成",
+    skUpload: "スキルをアップロード",
+    skImportGithub: "GitHub からインポート",
+    skWrite: "指示を書く",
+    skBrowse: "スキルを探す",
+    skAll: "すべて",
+    skDownload: "ダウンロード",
+    skFullscreen: "全画面",
+    skImportDesc: "公開 GitHub リポジトリから直接スキルをインポートします。",
+    skImportAction: "インポート",
   },
 
   achievements: {

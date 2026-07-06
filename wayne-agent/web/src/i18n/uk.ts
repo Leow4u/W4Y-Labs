@@ -535,6 +535,17 @@ export const uk: Translations = {
     plugins: "Плагіни",
     font: "Шрифт",
     fontThemeDefault: "Типовий теми",
+    skCreate: "Створити",
+    skCreateW4Y: "Створити з W4Y-Labs",
+    skUpload: "Завантажити навичку",
+    skImportGithub: "Імпорт з GitHub",
+    skWrite: "Написати інструкції",
+    skBrowse: "Огляд навичок",
+    skAll: "Усі",
+    skDownload: "Завантажити",
+    skFullscreen: "Повний екран",
+    skImportDesc: "Імпортуйте навичку прямо з публічного репозиторію GitHub.",
+    skImportAction: "Імпортувати",
   },
 
   achievements: {

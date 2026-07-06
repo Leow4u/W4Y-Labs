@@ -542,6 +542,17 @@ export const ga: Translations = {
     plugins: "Breiseáin",
     font: "Cló",
     fontThemeDefault: "Réamhshocrú téama",
+    skCreate: "Cruthaigh",
+    skCreateW4Y: "Cruthaigh le W4Y-Labs",
+    skUpload: "Uaslódáil scil",
+    skImportGithub: "Iompórtáil ó GitHub",
+    skWrite: "Scríobh na treoracha",
+    skBrowse: "Brabhsáil scileanna",
+    skAll: "Uile",
+    skDownload: "Íoslódáil",
+    skFullscreen: "Lánscáileán",
+    skImportDesc: "Iompórtáil scil go díreach ó stórlann phoiblí GitHub.",
+    skImportAction: "Iompórtáil",
   },
 
   achievements: {

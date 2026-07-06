@@ -617,6 +617,17 @@ export interface Translations {
     plugins: string;
     font: string;
     fontThemeDefault: string;
+    skCreate: string;
+    skCreateW4Y: string;
+    skUpload: string;
+    skImportGithub: string;
+    skWrite: string;
+    skBrowse: string;
+    skAll: string;
+    skDownload: string;
+    skFullscreen: string;
+    skImportDesc: string;
+    skImportAction: string;
   };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──

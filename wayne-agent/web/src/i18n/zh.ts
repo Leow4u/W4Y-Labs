@@ -528,6 +528,17 @@ export const zh: Translations = {
     plugins: "插件",
     font: "字体",
     fontThemeDefault: "主题默认",
+    skCreate: "创建",
+    skCreateW4Y: "用 W4Y-Labs 创建",
+    skUpload: "上传技能",
+    skImportGithub: "从 GitHub 导入",
+    skWrite: "编写指令",
+    skBrowse: "浏览技能",
+    skAll: "全部",
+    skDownload: "下载",
+    skFullscreen: "全屏",
+    skImportDesc: "直接从公开的 GitHub 仓库导入技能。",
+    skImportAction: "导入",
   },
 
   achievements: {
