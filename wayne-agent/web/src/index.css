@@ -61,6 +61,41 @@
 }
 
 /* ------------------------------------------------------------------ */
+/* IBM Plex Sans — fonte-PADRÃO de produto da Work4You, SELF-HOSTED     */
+/* (OFL, vendorizada em public/fonts). Assim a fonte-padrão não depende */
+/* do Google Fonts (privacidade + offline + confiabilidade). Subset     */
+/* latin (cobre PT-BR/EN); outros alfabetos caem no stack de sistema.   */
+/* ------------------------------------------------------------------ */
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-600.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts/IBMPlexSans-700.woff2') format('woff2');
+}
+
+/* ------------------------------------------------------------------ */
 /* Wayne Agent — Nous DS with the LENS_0 (Wayne teal) palette applied
    statically as the default dashboard theme. */
 /* ------------------------------------------------------------------ */

@@ -48,9 +48,16 @@ export function PageHeaderProvider({
     [],
   );
 
+  // Colapsa o cabeçalho quando não há NADA para mostrar (título vazio +
+  // sem toolbar). Só acontece no modal de Configuração (a ConfigUser esvazia
+  // o título e não injeta toolbar nas seções) — nas rotas normais o título
+  // sempre existe, então o header nunca some ali. Elimina a faixa vazia.
+  const showHeader = Boolean(displayTitle || afterTitle || end);
+
   return (
     <PageHeaderContext.Provider value={value}>
       <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden">
+        {showHeader && (
         <header
           className={cn(
             "z-1 w-full shrink-0",
@@ -119,6 +126,7 @@ export function PageHeaderProvider({
             ) : null}
           </div>
         </header>
+        )}
 
         <main
           className={cn(

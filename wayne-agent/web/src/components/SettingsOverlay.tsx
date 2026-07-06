@@ -87,25 +87,21 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
         aria-modal="true"
         aria-label={title}
       >
-        {/* Barra do modal: título + fechar. */}
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-current/20 px-4 py-2.5 sm:px-5">
-          <span className="font-expanded text-sm font-bold tracking-[0.08em] text-midground">
-            {title}
-          </span>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label={closeLabel}
-            title={closeLabel}
-            className={cn(
-              "grid h-8 w-8 shrink-0 place-items-center rounded text-muted-foreground/80",
-              "transition-colors hover:bg-current/10 hover:text-foreground",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current/40",
-            )}
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+        {/* Sem barra de título (estilo Claude): o X flutua no canto e a busca
+            fica no topo do menu (dentro da ConfigUser). */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label={closeLabel}
+          title={closeLabel}
+          className={cn(
+            "absolute right-3 top-3 z-10 grid h-8 w-8 shrink-0 place-items-center rounded",
+            "text-muted-foreground/80 transition-colors hover:bg-current/10 hover:text-foreground",
+            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current/40",
+          )}
+        >
+          <X className="h-5 w-5" />
+        </button>
 
         {/* Corpo: tela enxuta (padrão) ou técnica (`?full=1`), rolando dentro
             do card. `flex flex-col` é essencial: cria o contexto flex que
