@@ -531,6 +531,8 @@ export const ko: Translations = {
     skills: "스킬",
     connectors: "커넥터",
     plugins: "플러그인",
+    font: "글꼴",
+    fontThemeDefault: "테마 기본값",
   },
 
   achievements: {

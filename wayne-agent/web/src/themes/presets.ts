@@ -28,8 +28,14 @@ const SYSTEM_MONO =
   'ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace';
 
 const DEFAULT_TYPOGRAPHY: ThemeTypography = {
-  fontSans: SYSTEM_SANS,
+  // IBM Plex Sans é a fonte-padrão de PRODUTO da Work4You (a "cara" da UI),
+  // não mais a fonte do sistema operacional. Carregada via Google Fonts;
+  // o stack sempre termina no sistema como fallback (se o webfont falhar).
+  // O usuário pode trocar em Configurações → Geral → Aparência → Fonte.
+  fontSans: `"IBM Plex Sans", ${SYSTEM_SANS}`,
   fontMono: SYSTEM_MONO,
+  fontUrl:
+    "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap",
   baseSize: "15px",
   lineHeight: "1.55",
   letterSpacing: "0",

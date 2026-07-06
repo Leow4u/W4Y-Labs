@@ -532,6 +532,8 @@ export const de: Translations = {
     skills: "Fähigkeiten",
     connectors: "Konnektoren",
     plugins: "Plugins",
+    font: "Schriftart",
+    fontThemeDefault: "Theme-Standard",
   },
   achievements: {
     hero: {

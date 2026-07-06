@@ -532,6 +532,8 @@ export const ru: Translations = {
     skills: "Навыки",
     connectors: "Коннекторы",
     plugins: "Плагины",
+    font: "Шрифт",
+    fontThemeDefault: "По умолчанию темы",
   },
 
   achievements: {

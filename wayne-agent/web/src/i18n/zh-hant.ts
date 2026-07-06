@@ -531,6 +531,8 @@ export const zhHant: Translations = {
     skills: "技能",
     connectors: "連接器",
     plugins: "外掛",
+    font: "字型",
+    fontThemeDefault: "佈景主題預設",
   },
 
   achievements: {

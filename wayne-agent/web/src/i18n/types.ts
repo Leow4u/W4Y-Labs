@@ -615,6 +615,8 @@ export interface Translations {
     skills: string;
     connectors: string;
     plugins: string;
+    font: string;
+    fontThemeDefault: string;
   };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──

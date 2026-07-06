@@ -28,7 +28,7 @@ import { api, type AuthMeResponse } from "@/lib/api";
 import { getNestedValue, setNestedValue } from "@/lib/nested";
 import { useI18n, LOCALE_META } from "@/i18n";
 import type { Locale } from "@/i18n";
-import { useTheme } from "@/themes";
+import { useTheme, THEME_DEFAULT_FONT_ID } from "@/themes";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
 
@@ -97,7 +97,7 @@ function ToggleRow({
 export default function ConfigUser() {
   const { t, locale, setLocale } = useI18n();
   const cu = t.configUser;
-  const { themeName, setTheme } = useTheme();
+  const { themeName, setTheme, fontId, fontChoices, setFont } = useTheme();
   const { setEnd } = usePageHeader();
   const { toast, showToast } = useToast();
 
@@ -321,6 +321,19 @@ export default function ConfigUser() {
                       })}
                     </div>
                   </div>
+
+                  {/* Fonte — reusa o seletor de fonte do useTheme (dashboard.font).
+                      "Padrão do tema" = a fonte do tema ativo (IBM Plex Sans no
+                      tema padrão). As demais persistem mesmo trocando de tema. */}
+                  <label className="flex flex-col gap-1.5 border-t border-border pt-4">
+                    <span className="text-sm">{cu.font}</span>
+                    <select className={cn(inputCls, "mt-1")} value={fontId} onChange={(e) => setFont(e.target.value)}>
+                      <option value={THEME_DEFAULT_FONT_ID}>{cu.fontThemeDefault}</option>
+                      {fontChoices.map((f) => (
+                        <option key={f.id} value={f.id}>{f.label}</option>
+                      ))}
+                    </select>
+                  </label>
 
                   <label className="flex flex-col gap-1.5 border-t border-border pt-4">
                     <span className="text-sm">{cu.timezone}</span>

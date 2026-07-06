@@ -531,6 +531,8 @@ export const ja: Translations = {
     skills: "スキル",
     connectors: "コネクタ",
     plugins: "プラグイン",
+    font: "フォント",
+    fontThemeDefault: "テーマの既定",
   },
 
   achievements: {

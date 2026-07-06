@@ -526,6 +526,8 @@ export const zh: Translations = {
     skills: "技能",
     connectors: "连接器",
     plugins: "插件",
+    font: "字体",
+    fontThemeDefault: "主题默认",
   },
 
   achievements: {

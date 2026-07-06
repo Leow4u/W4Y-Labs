@@ -533,6 +533,8 @@ export const es: Translations = {
     skills: "Habilidades",
     connectors: "Conectores",
     plugins: "Plugins",
+    font: "Fuente",
+    fontThemeDefault: "Predeterminada del tema",
   },
   achievements: {
     hero: {

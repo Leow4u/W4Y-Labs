@@ -533,6 +533,8 @@ export const uk: Translations = {
     skills: "Навички",
     connectors: "Конектори",
     plugins: "Плагіни",
+    font: "Шрифт",
+    fontThemeDefault: "Типовий теми",
   },
 
   achievements: {

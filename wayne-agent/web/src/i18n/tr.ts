@@ -532,6 +532,8 @@ export const tr: Translations = {
     skills: "Beceriler",
     connectors: "Bağlayıcılar",
     plugins: "Eklentiler",
+    font: "Yazı tipi",
+    fontThemeDefault: "Tema varsayılanı",
   },
 
   achievements: {

@@ -540,6 +540,8 @@ export const ga: Translations = {
     skills: "Scileanna",
     connectors: "Nascóirí",
     plugins: "Breiseáin",
+    font: "Cló",
+    fontThemeDefault: "Réamhshocrú téama",
   },
 
   achievements: {

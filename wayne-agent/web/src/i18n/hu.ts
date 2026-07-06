@@ -532,6 +532,8 @@ export const hu: Translations = {
     skills: "Készségek",
     connectors: "Csatlakozók",
     plugins: "Bővítmények",
+    font: "Betűtípus",
+    fontThemeDefault: "Téma alapértelmezett",
   },
 
   achievements: {

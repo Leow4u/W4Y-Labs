@@ -532,6 +532,8 @@ export const af: Translations = {
     skills: "Vaardighede",
     connectors: "Verbinders",
     plugins: "Inproppe",
+    font: "Lettertipe",
+    fontThemeDefault: "Tema-verstek",
   },
 
   achievements: {
