@@ -517,6 +517,18 @@ export const pt: Translations = {
     instructionsPlaceholder: "Ex.: Me chame de Leo. Trabalho com vendas. Seja direto, responda em português do Brasil.",
     themeLight: "Claro",
     themeDark: "Escuro",
+    privacy: "Privacidade",
+    dataControl: "Controle de dados",
+    redactPii: "Anonimizar meus dados",
+    redactPiiHint: "Oculta identificadores e telefones antes de enviar ao modelo. Pode reduzir a personalização.",
+    clearMemory: "Limpar memória",
+    clearMemoryHint: "Apaga tudo o que o seu Wayne aprendeu sobre você.",
+    clearMemoryConfirm: "Apagar toda a memória do seu Wayne? Isto não pode ser desfeito.",
+    clearSessions: "Apagar todas as conversas",
+    clearSessionsHint: "Remove todo o histórico de conversas desta instância.",
+    clearSessionsConfirm: "Apagar todas as conversas? Isto não pode ser desfeito.",
+    clearBtn: "Apagar",
+    done: "Pronto",
   },
 
   achievements: {

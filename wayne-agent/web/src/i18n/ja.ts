@@ -515,6 +515,18 @@ export const ja: Translations = {
     instructionsPlaceholder: "例：レオと呼んで。営業をしています。率直に、ブラジルポルトガル語で答えて。",
     themeLight: "ライト",
     themeDark: "ダーク",
+    privacy: "プライバシー",
+    dataControl: "データ管理",
+    redactPii: "データを匿名化",
+    redactPiiHint: "モデルに送信する前に識別子や電話番号を隠します。パーソナライズが弱まる場合があります。",
+    clearMemory: "メモリーを消去",
+    clearMemoryHint: "Wayne があなたについて学習した内容をすべて消去します。",
+    clearMemoryConfirm: "Wayne のメモリーをすべて消去しますか？元に戻せません。",
+    clearSessions: "すべての会話を削除",
+    clearSessionsHint: "このインスタンスの会話履歴をすべて削除します。",
+    clearSessionsConfirm: "すべての会話を削除しますか？元に戻せません。",
+    clearBtn: "削除",
+    done: "完了",
   },
 
   achievements: {

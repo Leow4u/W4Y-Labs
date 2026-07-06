@@ -515,6 +515,18 @@ export const ko: Translations = {
     instructionsPlaceholder: "예: 저를 Leo라고 불러요. 영업을 합니다. 직설적으로, 브라질 포르투갈어로 답해줘.",
     themeLight: "라이트",
     themeDark: "다크",
+    privacy: "개인정보",
+    dataControl: "데이터 관리",
+    redactPii: "내 데이터 익명화",
+    redactPiiHint: "모델로 보내기 전에 식별자와 전화번호를 숨깁니다. 개인화가 줄어들 수 있습니다.",
+    clearMemory: "메모리 지우기",
+    clearMemoryHint: "Wayne이 당신에 대해 학습한 모든 것을 지웁니다.",
+    clearMemoryConfirm: "Wayne의 메모리를 모두 지울까요? 되돌릴 수 없습니다.",
+    clearSessions: "모든 대화 삭제",
+    clearSessionsHint: "이 인스턴스의 모든 대화 기록을 삭제합니다.",
+    clearSessionsConfirm: "모든 대화를 삭제할까요? 되돌릴 수 없습니다.",
+    clearBtn: "삭제",
+    done: "완료",
   },
 
   achievements: {

@@ -517,6 +517,18 @@ export const uk: Translations = {
     instructionsPlaceholder: "Напр.: Звіть мене Leo. Працюю в продажах. Відповідай прямо, бразильською португальською.",
     themeLight: "Світла",
     themeDark: "Темна",
+    privacy: "Конфіденційність",
+    dataControl: "Керування даними",
+    redactPii: "Анонімізувати мої дані",
+    redactPiiHint: "Приховує ідентифікатори та номери телефонів перед надсиланням моделі. Може зменшити персоналізацію.",
+    clearMemory: "Очистити пам'ять",
+    clearMemoryHint: "Видаляє все, що ваш Wayne дізнався про вас.",
+    clearMemoryConfirm: "Видалити всю пам'ять вашого Wayne? Це не можна скасувати.",
+    clearSessions: "Видалити всі розмови",
+    clearSessionsHint: "Видаляє всю історію розмов цього екземпляра.",
+    clearSessionsConfirm: "Видалити всі розмови? Це не можна скасувати.",
+    clearBtn: "Видалити",
+    done: "Готово",
   },
 
   achievements: {

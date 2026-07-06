@@ -1,29 +1,24 @@
 /**
  * ConfigUser — Configuração ENXUTA do usuário (benchmark: Manus web).
- * Três seções: Conta · Geral · Personalização — só controles que pertencem
- * ao usuário e têm lastro REAL no sistema (nada inventado; curadoria + 2
- * investigações em docs/CONFIG-CURADORIA.md).
+ * Seções: Conta · Geral · Personalização · Privacidade · Controle de dados —
+ * só controles com lastro REAL (curadoria em docs/CONFIG-CURADORIA.md).
  *
- * Backings reais usados aqui:
- *  - Conta: /api/auth/me (read-only) + api.logout().
- *  - Geral: idioma (useI18n.setLocale, localStorage) · tema (useTheme.setTheme,
- *    4 paletas reais white/mono/cyberpunk/rose) · fuso (config.timezone) ·
- *    avisos de memória (config.display.memory_notifications).
- *  - Personalização: Instruções personalizadas = SOUL.md (updateProfileSoul,
- *    injetado como identidade em toda conversa) · Memória entre conversas
- *    (memory.memory_enabled) · Perfil pessoal (memory.user_profile_enabled).
+ * Bloco 3 — AUTO-SAVE: não há botão Salvar. Toggles/selects gravam no ato
+ * (api.saveConfig); o textarea de Instruções grava ao sair do campo
+ * (updateProfileSoul); tema/idioma já persistem nos próprios hooks.
  *
- * Tela técnica completa (ConfigPage) fica atrás de ?full=1 (nós/suporte).
- * Guardar persiste config + SOUL; tema/idioma persistem no ato (hooks
- * próprios). O auto-save total (removendo Guardar) é o Bloco 3.
+ * Backings: Conta=/api/auth/me + logout · Geral=useI18n/useTheme/config ·
+ * Personalização=SOUL.md · Privacidade=memory + privacy.redact_pii ·
+ * Controle de dados=resetMemory + bulkDeleteSessions. Tela técnica: ?full=1.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { UserCircle, SlidersHorizontal, Sparkles, LogOut } from "lucide-react";
+import { UserCircle, SlidersHorizontal, Sparkles, Shield, Database, LogOut } from "lucide-react";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
 import { ListItem } from "@nous-research/ui/ui/components/list-item";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
+import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { api, type AuthMeResponse } from "@/lib/api";
@@ -34,14 +29,15 @@ import { useTheme } from "@/themes";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
 
-type SectionKey = "account" | "general" | "personalization";
+type SectionKey = "account" | "general" | "personalization" | "privacy" | "dataControl";
 const SECTIONS: Array<{ key: SectionKey; icon: React.ComponentType<{ className?: string }> }> = [
   { key: "account", icon: UserCircle },
   { key: "general", icon: SlidersHorizontal },
   { key: "personalization", icon: Sparkles },
+  { key: "privacy", icon: Shield },
+  { key: "dataControl", icon: Database },
 ];
 
-/** As 4 paletas REAIS do dashboard (BUILTIN_THEMES). "Escuro" = chave `mono`. */
 const THEME_BUTTONS: Array<{ key: string; labelKey: "themeLight" | "themeDark" | null; literal?: string }> = [
   { key: "white", labelKey: "themeLight" },
   { key: "mono", labelKey: "themeDark" },
@@ -67,6 +63,21 @@ function initialsOf(label: string): string {
 const inputCls =
   "h-9 w-full max-w-sm border border-input bg-transparent px-2 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring";
 
+/** Linha de toggle reutilizável (rótulo + descrição + Switch). */
+function ToggleRow({
+  label, hint, checked, onChange, border,
+}: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; border?: boolean }) {
+  return (
+    <div className={cn("flex items-center justify-between gap-4", border && "border-t border-border pt-4")}>
+      <div className="flex flex-col gap-0.5">
+        <span className="text-sm">{label}</span>
+        {hint && <span className="text-xs text-text-secondary">{hint}</span>}
+      </div>
+      <Switch checked={checked} onCheckedChange={onChange} />
+    </div>
+  );
+}
+
 export default function ConfigUser() {
   const { t, locale, setLocale } = useI18n();
   const cu = t.configUser;
@@ -79,7 +90,8 @@ export default function ConfigUser() {
   const [soul, setSoul] = useState<string>("");
   const soulLoaded = useRef<string>("");
   const [active, setActive] = useState<SectionKey>("account");
-  const [saving, setSaving] = useState(false);
+  const [confirm, setConfirm] = useState<null | "memory" | "sessions">(null);
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     api.getConfig().then(setConfig).catch(() => {});
@@ -90,29 +102,67 @@ export default function ConfigUser() {
       .catch(() => {});
   }, []);
 
-  // Barra do provider limpa — o Guardar vive no próprio conteúdo.
   useEffect(() => {
     setEnd(null);
     return () => setEnd(null);
   }, [setEnd]);
 
   const val = (key: string) => getNestedValue(config ?? {}, key);
-  const update = (key: string, v: unknown) =>
-    setConfig((c) => setNestedValue(c ?? {}, key, v) as Record<string, unknown>);
 
-  const save = async () => {
-    setSaving(true);
+  const persist = async (next: Record<string, unknown>) => {
     try {
-      if (config) await api.saveConfig(config);
-      if (soul !== soulLoaded.current) {
-        await api.updateProfileSoul("default", soul);
-        soulLoaded.current = soul;
-      }
-      showToast(t.config.configSaved, "success");
+      await api.saveConfig(next);
+    } catch (e) {
+      showToast(`${t.config.failedToSave}: ${e}`, "error");
+    }
+  };
+  // Auto-save: grava a config inteira no ato de cada mudança (Bloco 3).
+  const update = (key: string, v: unknown) => {
+    const next = setNestedValue(config ?? {}, key, v) as Record<string, unknown>;
+    setConfig(next);
+    void persist(next);
+  };
+
+  const saveSoul = async () => {
+    if (soul === soulLoaded.current) return;
+    try {
+      await api.updateProfileSoul("default", soul);
+      soulLoaded.current = soul;
+      showToast(cu.done, "success");
+    } catch (e) {
+      showToast(`${t.config.failedToSave}: ${e}`, "error");
+    }
+  };
+
+  const clearMemory = async () => {
+    setBusy(true);
+    try {
+      await api.resetMemory("all");
+      showToast(cu.done, "success");
     } catch (e) {
       showToast(`${t.config.failedToSave}: ${e}`, "error");
     } finally {
-      setSaving(false);
+      setBusy(false);
+      setConfirm(null);
+    }
+  };
+
+  const clearSessions = async () => {
+    setBusy(true);
+    try {
+      for (let guard = 0; guard < 200; guard++) {
+        const page = await api.getSessions(200, 0);
+        const ids = page.sessions.map((s) => s.id);
+        if (ids.length === 0) break;
+        await api.bulkDeleteSessions(ids);
+        if (ids.length < 200) break;
+      }
+      showToast(cu.done, "success");
+    } catch (e) {
+      showToast(`${t.config.failedToSave}: ${e}`, "error");
+    } finally {
+      setBusy(false);
+      setConfirm(null);
     }
   };
 
@@ -183,12 +233,7 @@ export default function ConfigUser() {
                   </div>
                 </div>
                 <div className="border-t border-border pt-3">
-                  <Button
-                    outlined
-                    size="sm"
-                    prefix={<LogOut className="h-4 w-4" />}
-                    onClick={() => void api.logout()}
-                  >
+                  <Button outlined size="sm" prefix={<LogOut className="h-4 w-4" />} onClick={() => void api.logout()}>
                     {cu.logout}
                   </Button>
                 </div>
@@ -207,24 +252,16 @@ export default function ConfigUser() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-4 px-4 pb-4">
-                  {/* Idioma */}
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm">{cu.language}</span>
                     <span className="text-xs text-text-secondary">{cu.languageNote}</span>
-                    <select
-                      className={cn(inputCls, "mt-1")}
-                      value={locale}
-                      onChange={(e) => setLocale(e.target.value as Locale)}
-                    >
+                    <select className={cn(inputCls, "mt-1")} value={locale} onChange={(e) => setLocale(e.target.value as Locale)}>
                       {allLocales.map(([code, meta]) => (
-                        <option key={code} value={code}>
-                          {meta.name}
-                        </option>
+                        <option key={code} value={code}>{meta.name}</option>
                       ))}
                     </select>
                   </label>
 
-                  {/* Tema */}
                   <div className="flex flex-col gap-1.5 border-t border-border pt-4">
                     <span className="text-sm">{cu.appearance}</span>
                     <div className="mt-1 flex flex-wrap gap-2">
@@ -249,41 +286,29 @@ export default function ConfigUser() {
                     </div>
                   </div>
 
-                  {/* Fuso horário */}
                   <label className="flex flex-col gap-1.5 border-t border-border pt-4">
                     <span className="text-sm">{cu.timezone}</span>
-                    <select
-                      className={cn(inputCls, "mt-1")}
-                      value={tzValue}
-                      onChange={(e) => update("timezone", e.target.value)}
-                    >
+                    <select className={cn(inputCls, "mt-1")} value={tzValue} onChange={(e) => update("timezone", e.target.value)}>
                       <option value="">{cu.timezoneAuto}</option>
                       {timezones.map((tz) => (
-                        <option key={tz} value={tz}>
-                          {tz.replace(/_/g, " ")}
-                        </option>
+                        <option key={tz} value={tz}>{tz.replace(/_/g, " ")}</option>
                       ))}
                     </select>
                   </label>
                 </CardContent>
               </Card>
 
-              {/* Comunicação */}
               <Card>
                 <CardHeader className="px-4 py-3">
                   <CardTitle className="text-sm">{cu.communication}</CardTitle>
                 </CardHeader>
                 <CardContent className="px-4 pb-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm">{cu.memoryNotif}</span>
-                      <span className="text-xs text-text-secondary">{cu.memoryNotifHint}</span>
-                    </div>
-                    <Switch
-                      checked={val("display.memory_notifications") !== "off"}
-                      onCheckedChange={(v) => update("display.memory_notifications", v ? "on" : "off")}
-                    />
-                  </div>
+                  <ToggleRow
+                    label={cu.memoryNotif}
+                    hint={cu.memoryNotifHint}
+                    checked={val("display.memory_notifications") !== "off"}
+                    onChange={(v) => update("display.memory_notifications", v ? "on" : "off")}
+                  />
                 </CardContent>
               </Card>
             </>
@@ -291,64 +316,113 @@ export default function ConfigUser() {
 
           {/* ---------- PERSONALIZAÇÃO ---------- */}
           {active === "personalization" && (
-            <>
-              <Card>
-                <CardHeader className="px-4 py-3">
-                  <CardTitle className="flex items-center gap-2 text-sm">
-                    <Sparkles className="h-4 w-4" />
-                    {cu.instructions}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-2 px-4 pb-4">
-                  <span className="text-xs text-text-secondary">{cu.instructionsHint}</span>
-                  <textarea
-                    className="min-h-[160px] w-full resize-y border border-input bg-transparent px-3 py-2 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    placeholder={cu.instructionsPlaceholder}
-                    value={soul}
-                    onChange={(e) => setSoul(e.target.value)}
-                    spellCheck={false}
-                  />
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="px-4 py-3">
-                  <CardTitle className="text-sm">{cu.memory}</CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-4 px-4 pb-4">
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm">{cu.memoryBetween}</span>
-                      <span className="text-xs text-text-secondary">{cu.memoryBetweenHint}</span>
-                    </div>
-                    <Switch
-                      checked={val("memory.memory_enabled") !== false}
-                      onCheckedChange={(v) => update("memory.memory_enabled", v)}
-                    />
-                  </div>
-                  <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-sm">{cu.userProfile}</span>
-                      <span className="text-xs text-text-secondary">{cu.userProfileHint}</span>
-                    </div>
-                    <Switch
-                      checked={val("memory.user_profile_enabled") !== false}
-                      onCheckedChange={(v) => update("memory.user_profile_enabled", v)}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-            </>
+            <Card>
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Sparkles className="h-4 w-4" />
+                  {cu.instructions}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-2 px-4 pb-4">
+                <span className="text-xs text-text-secondary">{cu.instructionsHint}</span>
+                <textarea
+                  className="min-h-[160px] w-full resize-y border border-input bg-transparent px-3 py-2 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  placeholder={cu.instructionsPlaceholder}
+                  value={soul}
+                  onChange={(e) => setSoul(e.target.value)}
+                  onBlur={() => void saveSoul()}
+                  spellCheck={false}
+                />
+              </CardContent>
+            </Card>
           )}
 
-          {/* Guardar (persiste config + instruções). Tema e idioma já salvam no ato. */}
-          <div className="flex justify-end pt-1">
-            <Button size="sm" className="uppercase" onClick={save} disabled={saving}>
-              {saving ? t.common.saving : t.common.save}
-            </Button>
-          </div>
+          {/* ---------- PRIVACIDADE ---------- */}
+          {active === "privacy" && (
+            <Card>
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Shield className="h-4 w-4" />
+                  {cu.privacy}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 px-4 pb-4">
+                <ToggleRow
+                  label={cu.memoryBetween}
+                  hint={cu.memoryBetweenHint}
+                  checked={val("memory.memory_enabled") !== false}
+                  onChange={(v) => update("memory.memory_enabled", v)}
+                />
+                <ToggleRow
+                  border
+                  label={cu.userProfile}
+                  hint={cu.userProfileHint}
+                  checked={val("memory.user_profile_enabled") !== false}
+                  onChange={(v) => update("memory.user_profile_enabled", v)}
+                />
+                <ToggleRow
+                  border
+                  label={cu.redactPii}
+                  hint={cu.redactPiiHint}
+                  checked={val("privacy.redact_pii") === true}
+                  onChange={(v) => update("privacy.redact_pii", v)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ---------- CONTROLE DE DADOS ---------- */}
+          {active === "dataControl" && (
+            <Card>
+              <CardHeader className="px-4 py-3">
+                <CardTitle className="flex items-center gap-2 text-sm">
+                  <Database className="h-4 w-4" />
+                  {cu.dataControl}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-4 px-4 pb-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm">{cu.clearMemory}</span>
+                    <span className="text-xs text-text-secondary">{cu.clearMemoryHint}</span>
+                  </div>
+                  <Button outlined size="sm" disabled={busy} className="text-destructive" onClick={() => setConfirm("memory")}>
+                    {cu.clearBtn}
+                  </Button>
+                </div>
+                <div className="flex items-center justify-between gap-4 border-t border-border pt-4">
+                  <div className="flex flex-col gap-0.5">
+                    <span className="text-sm">{cu.clearSessions}</span>
+                    <span className="text-xs text-text-secondary">{cu.clearSessionsHint}</span>
+                  </div>
+                  <Button outlined size="sm" disabled={busy} className="text-destructive" onClick={() => setConfirm("sessions")}>
+                    {cu.clearBtn}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={confirm === "memory"}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void clearMemory()}
+        title={cu.clearMemory}
+        description={cu.clearMemoryConfirm}
+        destructive
+        confirmLabel={cu.clearBtn}
+      />
+      <ConfirmDialog
+        open={confirm === "sessions"}
+        onCancel={() => setConfirm(null)}
+        onConfirm={() => void clearSessions()}
+        title={cu.clearSessions}
+        description={cu.clearSessionsConfirm}
+        destructive
+        confirmLabel={cu.clearBtn}
+      />
     </div>
   );
 }

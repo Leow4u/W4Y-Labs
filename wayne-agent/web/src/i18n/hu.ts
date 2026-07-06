@@ -516,6 +516,18 @@ export const hu: Translations = {
     instructionsPlaceholder: "Pl.: Hívj Leónak. Értékesítésben dolgozom. Légy közvetlen, válaszolj brazil portugálul.",
     themeLight: "Világos",
     themeDark: "Sötét",
+    privacy: "Adatvédelem",
+    dataControl: "Adatvezérlés",
+    redactPii: "Adataim anonimizálása",
+    redactPiiHint: "Elrejti az azonosítókat és telefonszámokat a modellnek küldés előtt. Csökkentheti a személyre szabást.",
+    clearMemory: "Memória törlése",
+    clearMemoryHint: "Törli mindazt, amit a Wayne megtudott rólad.",
+    clearMemoryConfirm: "Törlöd a Wayne teljes memóriáját? Nem vonható vissza.",
+    clearSessions: "Összes beszélgetés törlése",
+    clearSessionsHint: "Eltávolítja a példány teljes beszélgetési előzményét.",
+    clearSessionsConfirm: "Törlöd az összes beszélgetést? Nem vonható vissza.",
+    clearBtn: "Törlés",
+    done: "Kész",
   },
 
   achievements: {

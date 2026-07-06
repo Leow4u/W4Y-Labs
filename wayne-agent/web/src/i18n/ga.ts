@@ -524,6 +524,18 @@ export const ga: Translations = {
     instructionsPlaceholder: "M.sh.: Glaoigh Leo orm. Oibrím i ndíolacháin. Bí díreach, freagair i bPortaingéilis na Brasaíle.",
     themeLight: "Geal",
     themeDark: "Dorcha",
+    privacy: "Príobháideachas",
+    dataControl: "Rialú sonraí",
+    redactPii: "Anaithnid mo shonraí",
+    redactPiiHint: "Ceileann sé aitheantóirí agus uimhreacha teileafóin sula seoltar chuig an tsamhail iad. D'fhéadfadh sé pearsantú a laghdú.",
+    clearMemory: "Glan an chuimhne",
+    clearMemoryHint: "Scriosann sé gach rud atá foghlamtha ag do Wayne fút.",
+    clearMemoryConfirm: "Scrios cuimhne iomlán do Wayne? Ní féidir é a chur ar ceal.",
+    clearSessions: "Scrios gach comhrá",
+    clearSessionsHint: "Baintear stair iomlán na gcomhráite den ásc seo.",
+    clearSessionsConfirm: "Scrios gach comhrá? Ní féidir é a chur ar ceal.",
+    clearBtn: "Scrios",
+    done: "Déanta",
   },
 
   achievements: {

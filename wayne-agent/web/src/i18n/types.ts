@@ -599,6 +599,18 @@ export interface Translations {
     instructionsPlaceholder: string;
     themeLight: string;
     themeDark: string;
+    privacy: string;
+    dataControl: string;
+    redactPii: string;
+    redactPiiHint: string;
+    clearMemory: string;
+    clearMemoryHint: string;
+    clearMemoryConfirm: string;
+    clearSessions: string;
+    clearSessionsHint: string;
+    clearSessionsConfirm: string;
+    clearBtn: string;
+    done: string;
   };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──

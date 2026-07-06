@@ -516,6 +516,18 @@ export const tr: Translations = {
     instructionsPlaceholder: "Örn.: Bana Leo de. Satışta çalışıyorum. Doğrudan ol, Brezilya Portekizcesiyle yanıtla.",
     themeLight: "Açık",
     themeDark: "Koyu",
+    privacy: "Gizlilik",
+    dataControl: "Veri denetimi",
+    redactPii: "Verilerimi anonimleştir",
+    redactPiiHint: "Tanımlayıcıları ve telefon numaralarını modele göndermeden önce gizler. Kişiselleştirmeyi azaltabilir.",
+    clearMemory: "Belleği temizle",
+    clearMemoryHint: "Wayne'inizin sizinle ilgili öğrendiği her şeyi siler.",
+    clearMemoryConfirm: "Wayne'inizin tüm belleği silinsin mi? Geri alınamaz.",
+    clearSessions: "Tüm sohbetleri sil",
+    clearSessionsHint: "Bu örneğin tüm sohbet geçmişini kaldırır.",
+    clearSessionsConfirm: "Tüm sohbetler silinsin mi? Geri alınamaz.",
+    clearBtn: "Sil",
+    done: "Tamam",
   },
 
   achievements: {

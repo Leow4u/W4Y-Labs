@@ -516,6 +516,18 @@ export const ru: Translations = {
     instructionsPlaceholder: "Напр.: Зовите меня Leo. Работаю в продажах. Отвечай прямо, на бразильском португальском.",
     themeLight: "Светлая",
     themeDark: "Тёмная",
+    privacy: "Конфиденциальность",
+    dataControl: "Управление данными",
+    redactPii: "Анонимизировать мои данные",
+    redactPiiHint: "Скрывает идентификаторы и номера телефонов перед отправкой модели. Может снизить персонализацию.",
+    clearMemory: "Очистить память",
+    clearMemoryHint: "Удаляет всё, что ваш Wayne узнал о вас.",
+    clearMemoryConfirm: "Удалить всю память вашего Wayne? Это нельзя отменить.",
+    clearSessions: "Удалить все беседы",
+    clearSessionsHint: "Удаляет всю историю бесед этого экземпляра.",
+    clearSessionsConfirm: "Удалить все беседы? Это нельзя отменить.",
+    clearBtn: "Удалить",
+    done: "Готово",
   },
 
   achievements: {

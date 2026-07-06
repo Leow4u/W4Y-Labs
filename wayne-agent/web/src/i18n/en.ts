@@ -577,6 +577,18 @@ export const en: Translations = {
     instructionsPlaceholder: "e.g. Call me Leo. I work in sales. Be direct, reply in Brazilian Portuguese.",
     themeLight: "Light",
     themeDark: "Dark",
+    privacy: "Privacy",
+    dataControl: "Data control",
+    redactPii: "Anonymize my data",
+    redactPiiHint: "Hides identifiers and phone numbers before sending to the model. May reduce personalization.",
+    clearMemory: "Clear memory",
+    clearMemoryHint: "Erases everything your Wayne has learned about you.",
+    clearMemoryConfirm: "Erase all of your Wayne's memory? This can't be undone.",
+    clearSessions: "Delete all conversations",
+    clearSessionsHint: "Removes the entire conversation history from this instance.",
+    clearSessionsConfirm: "Delete all conversations? This can't be undone.",
+    clearBtn: "Delete",
+    done: "Done",
   },
 
   achievements: {

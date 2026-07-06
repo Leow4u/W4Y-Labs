@@ -516,6 +516,18 @@ export const af: Translations = {
     instructionsPlaceholder: "Bv.: Noem my Leo. Ek werk in verkope. Wees direk, antwoord in Brasiliaanse Portugees.",
     themeLight: "Lig",
     themeDark: "Donker",
+    privacy: "Privaatheid",
+    dataControl: "Databeheer",
+    redactPii: "Anonimiseer my data",
+    redactPiiHint: "Versteek identifiseerders en telefoonnommers voordat dit na die model gestuur word. Kan personalisering verminder.",
+    clearMemory: "Vee geheue uit",
+    clearMemoryHint: "Vee alles uit wat jou Wayne oor jou geleer het.",
+    clearMemoryConfirm: "Vee jou Wayne se hele geheue uit? Dit kan nie ongedaan gemaak word nie.",
+    clearSessions: "Vee alle gesprekke uit",
+    clearSessionsHint: "Verwyder die hele gespreksgeskiedenis van hierdie instansie.",
+    clearSessionsConfirm: "Vee alle gesprekke uit? Dit kan nie ongedaan gemaak word nie.",
+    clearBtn: "Vee uit",
+    done: "Klaar",
   },
 
   achievements: {

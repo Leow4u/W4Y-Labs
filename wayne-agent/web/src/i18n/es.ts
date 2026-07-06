@@ -517,6 +517,18 @@ export const es: Translations = {
     instructionsPlaceholder: "Ej.: Llámame Leo. Trabajo en ventas. Sé directo, responde en portugués de Brasil.",
     themeLight: "Claro",
     themeDark: "Oscuro",
+    privacy: "Privacidad",
+    dataControl: "Control de datos",
+    redactPii: "Anonimizar mis datos",
+    redactPiiHint: "Oculta identificadores y números de teléfono antes de enviarlos al modelo. Puede reducir la personalización.",
+    clearMemory: "Borrar memoria",
+    clearMemoryHint: "Borra todo lo que tu Wayne ha aprendido sobre ti.",
+    clearMemoryConfirm: "¿Borrar toda la memoria de tu Wayne? No se puede deshacer.",
+    clearSessions: "Eliminar todas las conversaciones",
+    clearSessionsHint: "Elimina todo el historial de conversaciones de esta instancia.",
+    clearSessionsConfirm: "¿Eliminar todas las conversaciones? No se puede deshacer.",
+    clearBtn: "Eliminar",
+    done: "Listo",
   },
   achievements: {
     hero: {

@@ -165,7 +165,7 @@ instâncias (saúde/custo), runs agregadas, falhas. Restrito a operadores (role 
 
 - **Wayne no navegador local** (estilo "Claude in Chrome") — extensão **própria** (Manifest V3, auditável, permissões mínimas, consentimento explícito) que deixa o agente **ver e controlar o Chrome LOCAL do usuário ao vivo**. Encaixe já existente: toolset de navegador do Wayne suporta `browser.cdp_url` (dirige navegador por Chrome DevTools Protocol) + gateway/WebSocket + página de Pairing → ponte nuvem↔cliente local por relay autenticado. **NÃO** usar o repo BrowserKing (repack pirata da extensão proprietária da Anthropic, com `auth-bypass.js`, "MIT" inválida, bundle inauditável — descartado por copyright + circumvenção + supply-chain). Esforço = funcionalidade própria de semanas, barra de segurança altíssima (controla navegador logado). Distinto da "Navegador na nuvem", que já é o browser headless da instância.
 - **Avisos de uso no chat** (formato Hermes, fonte OpenRouter) — faixas 50/75/90% + 402 amigável com link de upgrade; ver memória billing-usage-notices.
-- **Controlo de dados** (seção de settings) — limpar memória (`/api/memory/reset`) + excluir sessões (`deleteSession`/bulk-delete); lastro real.
+- **Controle de dados** (seção de settings) — limpar memória (`/api/memory/reset`) + excluir sessões (`deleteSession`/bulk-delete); lastro real.
 - **Privacidade** (seção de settings) — toggles memória/perfil + anonimizar (`privacy.redact_pii`).
 - **Bloco 3 — auto-save** no Config do usuário (remove o botão Salvar; estilo Manus/Claude).
 - **Mail** (canal) — plugin de e-mail do Wayne (IMAP/SMTP; conecta conta existente, não hospeda `@wayne`).

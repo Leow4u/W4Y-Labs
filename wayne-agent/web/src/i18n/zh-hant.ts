@@ -515,6 +515,18 @@ export const zhHant: Translations = {
     instructionsPlaceholder: "例如：叫我 Leo。我做業務。請直接一點，用巴西葡萄牙語回覆。",
     themeLight: "淺色",
     themeDark: "深色",
+    privacy: "隱私",
+    dataControl: "資料控制",
+    redactPii: "匿名化我的資料",
+    redactPiiHint: "在傳送給模型前隱藏識別碼和電話號碼。可能降低個人化程度。",
+    clearMemory: "清除記憶",
+    clearMemoryHint: "清除你的 Wayne 了解到的關於你的一切。",
+    clearMemoryConfirm: "清除你的 Wayne 的全部記憶？此操作無法復原。",
+    clearSessions: "刪除所有對話",
+    clearSessionsHint: "刪除此實例的全部對話紀錄。",
+    clearSessionsConfirm: "刪除所有對話？此操作無法復原。",
+    clearBtn: "刪除",
+    done: "完成",
   },
 
   achievements: {

@@ -510,6 +510,18 @@ export const zh: Translations = {
     instructionsPlaceholder: "例如：叫我 Leo。我做销售。请直接一点，用巴西葡萄牙语回复。",
     themeLight: "浅色",
     themeDark: "深色",
+    privacy: "隐私",
+    dataControl: "数据控制",
+    redactPii: "匿名化我的数据",
+    redactPiiHint: "在发送给模型前隐藏标识符和电话号码。可能降低个性化程度。",
+    clearMemory: "清除记忆",
+    clearMemoryHint: "清除你的 Wayne 了解到的关于你的一切。",
+    clearMemoryConfirm: "清除你的 Wayne 的全部记忆？此操作无法撤销。",
+    clearSessions: "删除所有对话",
+    clearSessionsHint: "删除此实例的全部对话历史。",
+    clearSessionsConfirm: "删除所有对话？此操作无法撤销。",
+    clearBtn: "删除",
+    done: "完成",
   },
 
   achievements: {

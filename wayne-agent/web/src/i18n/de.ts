@@ -516,6 +516,18 @@ export const de: Translations = {
     instructionsPlaceholder: "z. B. Nenn mich Leo. Ich arbeite im Vertrieb. Sei direkt, antworte auf brasilianischem Portugiesisch.",
     themeLight: "Hell",
     themeDark: "Dunkel",
+    privacy: "Datenschutz",
+    dataControl: "Datenkontrolle",
+    redactPii: "Meine Daten anonymisieren",
+    redactPiiHint: "Verbirgt Kennungen und Telefonnummern vor dem Senden an das Modell. Kann die Personalisierung verringern.",
+    clearMemory: "Gedächtnis löschen",
+    clearMemoryHint: "Löscht alles, was dein Wayne über dich gelernt hat.",
+    clearMemoryConfirm: "Das gesamte Gedächtnis deines Wayne löschen? Kann nicht rückgängig gemacht werden.",
+    clearSessions: "Alle Unterhaltungen löschen",
+    clearSessionsHint: "Entfernt den gesamten Unterhaltungsverlauf dieser Instanz.",
+    clearSessionsConfirm: "Alle Unterhaltungen löschen? Kann nicht rückgängig gemacht werden.",
+    clearBtn: "Löschen",
+    done: "Fertig",
   },
   achievements: {
     hero: {
