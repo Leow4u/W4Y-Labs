@@ -585,6 +585,20 @@ export interface Translations {
     memoryBetweenHint: string;
     userProfile: string;
     userProfileHint: string;
+    account: string;
+    personalization: string;
+    identityNote: string;
+    logout: string;
+    language: string;
+    languageNote: string;
+    communication: string;
+    memoryNotif: string;
+    memoryNotifHint: string;
+    instructions: string;
+    instructionsHint: string;
+    instructionsPlaceholder: string;
+    themeLight: string;
+    themeDark: string;
   };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──
