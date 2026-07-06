@@ -19,8 +19,8 @@
 ## Plano de blocos (aprovado 06/07/2026)
 
 1. **Bloco 1 — Barra de ferramentas** ✅ implementado (fly12, commit 79f4345): ocultos caminho do arquivo, ⬇⬆ import/export JSON, ↺ reset e `<> YAML`; mantidos GUARDAR + busca. Racional: são affordances de editor de arquivo p/ desenvolvedor; backup do usuário é responsabilidade da plataforma (litestream→Tigris); YAML é modo dev; reset opera sobre centenas de campos técnicos.
-2. **Bloco 2 — Curadoria das seções** (este documento): discutir seção a seção, fechar o mapa inteiro, implementar de uma vez.
-3. **Bloco 3 — Auto-save estilo Claude**: salvar imediato em toggle/select e ao sair do campo em texto; GUARDAR sai. Só depois do Bloco 2 (auto-save é seguro na tela enxuta, perigoso na de 480 campos).
+2. **Bloco 2 — Tela enxuta do usuário** ✅ implementado (fly13, commit 65ad4f8): novo componente `ConfigUser` (menu lateral Geral/Aparência/Memória + conteúdo, estilo Claude) com só os 3 controles do usuário — Fuso horário, Memória entre conversas, Perfil pessoal — + Tema. Escreve nos mesmos campos do config.yaml. A tela técnica de 36 categorias sai da vista do usuário e fica atrás da escotilha interna `?full=1` (nós/suporte), no modal e na rota /config — resolve a exposição de credenciais. i18n `configUser` nos 16 idiomas.
+3. **Bloco 3 — Auto-save estilo Claude**: salvar imediato em toggle/select e ao sair do campo em texto; GUARDAR sai. Só depois do Bloco 2 (auto-save é seguro na tela enxuta, perigoso na de 480 campos). **← próximo.**
 
 **Rollout:** tudo somente na instância do Leonardo (`wayne-w4y`) até aprovação final; depois replica para todas as instâncias e vira padrão dos novos tenants.
 
@@ -421,4 +421,9 @@ As 16 tarefas: vision (descrever imagens), web_extract (resumir páginas), compr
 
 # Status
 
-✅ **Descoberta completa** — todas as 36 categorias / 480 campos cobertos (06/07/2026). Próximo: desenhar a tela final (quais seções o usuário vê e em que formato), aprovar, e implementar o Bloco 2 de uma vez.
+- ✅ **Descoberta completa** — 36 categorias / 480 campos (06/07/2026).
+- ✅ **Bloco 1** — barra de ferramentas só com Guardar (fly12).
+- ✅ **Bloco 2** — tela enxuta do usuário: menu lateral Geral/Aparência/Memória, técnica atrás de `?full=1` (fly13). Layout aprovado: menu lateral + conteúdo; tela técnica totalmente oculta.
+- ⏭️ **Bloco 3** — auto-save estilo Claude (remove o Guardar). Próximo.
+
+Tudo só na instância `wayne-w4y` até aprovação final do pacote.
