@@ -134,6 +134,38 @@ function isInternalView(): boolean {
   }
 }
 
+/** Habilidades expostas ao USUÁRIO (curadoria estilo Manus). A biblioteca
+ *  importada tem ~70 skills, a maioria de dev/ML/nicho — mostrá-las todas
+ *  sobrecarrega e foge da marca. O usuário vê só este conjunto relevante de
+ *  negócio; o resto continua bundled/disponível ao agente e visível apenas na
+ *  escotilha interna (?full=1). Desativar uma skill é seguro (soft-toggle), então
+ *  esconder aqui é só de apresentação. RASCUNHO — refinar com o Leonardo. */
+const FEATURED_SKILLS = new Set<string>([
+  // Produtividade / escritório
+  "google-workspace",
+  "notion",
+  "powerpoint",
+  "excel-presentations",
+  "airtable",
+  "ocr-and-documents",
+  "nano-pdf",
+  "maps",
+  "obsidian",
+  // Criação visual
+  "baoyu-infographic",
+  "claude-design",
+  "architecture-diagram",
+  "excalidraw",
+  // Pesquisa
+  "web-research-competitive-intelligence",
+  "research-paper-writing",
+  // Mídia
+  "youtube-content",
+  "gif-search",
+  // E-mail
+  "himalaya",
+]);
+
 function toolsetIcon(
   name: string,
 ): React.ComponentType<{ className?: string }> {
@@ -420,32 +452,40 @@ export default function SkillsPage() {
   const lowerSearch = search.toLowerCase();
   const isSearching = search.trim().length > 0;
 
+  // Base da LISTA exibida: usuário vê só as featured (curadoria); a escotilha
+  // interna (?full=1) vê a biblioteca inteira. Toda a grade + chips + contagens
+  // derivam daqui (não de `skills` cru).
+  const displaySkills = useMemo(
+    () => (isInternal ? skills : skills.filter((s) => FEATURED_SKILLS.has(s.name))),
+    [skills, isInternal],
+  );
+
   const searchMatchedSkills = useMemo(() => {
     if (!isSearching) return [];
-    return skills.filter(
+    return displaySkills.filter(
       (s) =>
         s.name.toLowerCase().includes(lowerSearch) ||
         s.description.toLowerCase().includes(lowerSearch) ||
         (s.category ?? "").toLowerCase().includes(lowerSearch),
     );
-  }, [skills, isSearching, lowerSearch]);
+  }, [displaySkills, isSearching, lowerSearch]);
 
   const activeSkills = useMemo(() => {
     if (isSearching) return [];
     if (!activeCategory)
-      return [...skills].sort((a, b) => a.name.localeCompare(b.name));
-    return skills
+      return [...displaySkills].sort((a, b) => a.name.localeCompare(b.name));
+    return displaySkills
       .filter((s) =>
         activeCategory === "__none__"
           ? !s.category
           : s.category === activeCategory,
       )
       .sort((a, b) => a.name.localeCompare(b.name));
-  }, [skills, activeCategory, isSearching]);
+  }, [displaySkills, activeCategory, isSearching]);
 
   const allCategories = useMemo(() => {
     const cats = new Map<string, number>();
-    for (const s of skills) {
+    for (const s of displaySkills) {
       const key = s.category || "__none__";
       cats.set(key, (cats.get(key) || 0) + 1);
     }
@@ -460,7 +500,7 @@ export default function SkillsPage() {
         name: prettyCategory(key === "__none__" ? null : key, t.common.general),
         count,
       }));
-  }, [skills, t]);
+  }, [displaySkills, t]);
 
   // Cabeçalho enxuto: sem contador "70/70 ativadas" e sem busca no header.
   // A busca desceu para a toolbar do corpo (ver abaixo), rotulada "Procurar
@@ -526,7 +566,7 @@ export default function SkillsPage() {
           ) : isInternal ? (
             <>
               <ViewTab
-                label={`${t.skills.all} (${skills.length})`}
+                label={`${t.skills.all} (${displaySkills.length})`}
                 active={view !== "toolsets"}
                 onClick={() => {
                   setView("skills");
@@ -657,7 +697,7 @@ export default function SkillsPage() {
             {allCategories.length > 0 && (
               <div className="flex flex-wrap items-center gap-1.5">
                 <CategoryChip
-                  label={`${t.configUser.skAll} (${skills.length})`}
+                  label={`${t.configUser.skAll} (${displaySkills.length})`}
                   active={!activeCategory}
                   onClick={() => setActiveCategory(null)}
                 />
@@ -677,7 +717,7 @@ export default function SkillsPage() {
             {activeSkills.length === 0 ? (
               <Card className="rounded-none">
                 <CardContent className="py-10 text-center text-sm text-muted-foreground">
-                  {skills.length === 0
+                  {displaySkills.length === 0
                     ? t.skills.noSkills
                     : t.skills.noSkillsMatch}
                 </CardContent>
