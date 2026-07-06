@@ -4,7 +4,8 @@
  * Mostra as iniciais + o nome de exibição do usuário e, ao clicar, abre um
  * menu (para cima, via portal — não é cortado pela sidebar) com:
  *   - Configurações  → abre a tela de Configuração como overlay (onOpenSettings)
- *   - Idioma         → o LanguageSwitcher existente (reuso)
+ *   - Idioma         → item com submenu lateral no hover (estilo Claude);
+ *                      reusa as primitivas de i18n (useI18n + LOCALE_META)
  *   - Sair           → POST /auth/logout + navegação para /login
  *
  * O tema saiu daqui e foi para dentro de Configuração → Aparência.
@@ -19,8 +20,10 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, type AuthMeResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { LogOut, Settings, ChevronUp } from "lucide-react";
-import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { LogOut, Settings, ChevronUp, ChevronRight, Globe, Check } from "lucide-react";
+import { useI18n } from "@/i18n/context";
+import { LOCALE_META } from "@/i18n";
+import type { Locale } from "@/i18n";
 
 interface AuthWidgetProps {
   className?: string;
@@ -45,8 +48,21 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   const [hidden, setHidden] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [langOpen, setLangOpen] = useState(false);
+  const { locale, setLocale } = useI18n();
   const chipRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const langListRef = useRef<HTMLDivElement>(null);
+
+  // Abre o submenu de idiomas com o idioma atual à vista. Roda SÓ na
+  // abertura (não a cada render): um callback ref inline re-executaria em
+  // re-renders e desfaria a rolagem manual do usuário no meio do gesto.
+  useEffect(() => {
+    if (!langOpen) return;
+    langListRef.current
+      ?.querySelector('[aria-checked="true"]')
+      ?.scrollIntoView({ block: "center" });
+  }, [langOpen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -62,7 +78,10 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     return () => { cancelled = true; };
   }, []);
 
-  const close = useCallback(() => setOpen(false), []);
+  const close = useCallback(() => {
+    setOpen(false);
+    setLangOpen(false);
+  }, []);
 
   // Fecha no Escape e no clique fora (mesmo padrão do ThemeSwitcher).
   useEffect(() => {
@@ -156,9 +175,71 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               Configurações
             </button>
 
-            {/* Idioma — reuso do LanguageSwitcher existente. */}
-            <div className="border-t border-current/10 px-1.5 py-1" role="none">
-              <LanguageSwitcher dropUp />
+            {/* Idioma — item com submenu lateral no hover (estilo Claude).
+                O flyout é filho do wrapper e cola nele via padding (pl-1.5),
+                sem gap real: o mouse nunca "sai" do wrapper ao atravessar.
+                Clique também alterna (telas de toque, sem hover). */}
+            <div
+              role="none"
+              className="relative border-t border-current/10"
+              onMouseEnter={() => setLangOpen(true)}
+              onMouseLeave={() => setLangOpen(false)}
+            >
+              <button
+                type="button"
+                role="menuitem"
+                aria-haspopup="menu"
+                aria-expanded={langOpen}
+                className={menuRow}
+                onClick={() => setLangOpen((v) => !v)}
+              >
+                <Globe className="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                Idioma
+                <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+              </button>
+
+              {langOpen && (
+                <div
+                  role="none"
+                  className={cn(
+                    "absolute bottom-0 left-full pl-1.5",
+                    // Em telas estreitas (sidebar quase full-width) não há
+                    // espaço à direita: abre ACIMA do menu, alinhado à direita.
+                    "max-sm:bottom-full max-sm:left-auto max-sm:right-0 max-sm:pb-1 max-sm:pl-0",
+                  )}
+                >
+                  <div
+                    ref={langListRef}
+                    role="menu"
+                    aria-label="Idioma"
+                    className={cn(
+                      "max-h-[min(24rem,70vh)] min-w-[11rem] overflow-y-auto py-1",
+                      "border border-current/20 bg-background-base/95",
+                      "shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]",
+                    )}
+                  >
+                    {(Object.entries(LOCALE_META) as Array<[Locale, (typeof LOCALE_META)[Locale]]>).map(
+                      ([code, meta]) => (
+                        <button
+                          key={code}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={code === locale}
+                          className={cn(
+                            "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs",
+                            "transition-colors hover:bg-current/10 focus-visible:outline-none focus-visible:bg-current/10",
+                            code === locale ? "font-semibold text-foreground" : "text-muted-foreground",
+                          )}
+                          onClick={() => { setLocale(code); close(); }}
+                        >
+                          <span className="truncate">{meta.name}</span>
+                          {code === locale && <Check className="ml-auto h-3.5 w-3.5 shrink-0 text-midground" />}
+                        </button>
+                      ),
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <button
