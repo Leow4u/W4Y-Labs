@@ -251,6 +251,18 @@ code { font-size: 0.875rem; }
   font-family: var(--theme-font-mono);
 }
 
+/* ------------------------------------------------------------------ */
+/* UX — Title Case dentro do modal de Configuração.                     */
+/* O design-system usa MAIÚSCULO nos títulos de card (CardTitle tem a   */
+/* classe `uppercase`) e nos rótulos de seção (`.text-display`), o que  */
+/* fica agressivo. Dentro do `.settings-modal` neutralizamos, ficando   */
+/* "Geral / Conta" em vez de "GERAL / CONTA" (padrão estilo Claude).    */
+/* Escopado ao modal — o resto do dashboard segue como está.            */
+.settings-modal .uppercase,
+.settings-modal .text-display {
+  text-transform: none;
+}
+
 /* Subtle grain overlay for badges. */
 .grain {
   position: relative;

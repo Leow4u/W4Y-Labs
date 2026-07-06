@@ -72,11 +72,14 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
         aria-hidden
       />
 
-      {/* Card do modal, centralizado (estilo Manus/Claude). */}
+      {/* Card do modal, centralizado (estilo Manus/Claude). Altura FIXA
+          (não redimensiona com o conteúdo): conteúdo curto deixa espaço,
+          conteúdo longo rola. `settings-modal` ativa o Title Case interno
+          (ver index.css) para suavizar o MAIÚSCULO do design-system. */}
       <div
         className={cn(
-          "relative flex w-full max-w-5xl flex-col",
-          "max-h-[85vh] overflow-hidden rounded-xl",
+          "settings-modal relative flex w-full max-w-5xl flex-col",
+          "h-[min(85vh,860px)] overflow-hidden rounded-xl",
           "border border-current/20 bg-background-base",
           "shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)]",
         )}
