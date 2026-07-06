@@ -546,6 +546,7 @@ export const ru: Translations = {
     skImportDesc: "Импортируйте навык прямо из публичного репозитория GitHub.",
     skImportAction: "Импортировать",
     skCopy: "Копировать",
+    skBack: "Назад",
   },
 
   achievements: {

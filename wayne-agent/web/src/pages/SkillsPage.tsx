@@ -1,10 +1,11 @@
-import { useEffect, useLayoutEffect, useState, useMemo, useCallback, useRef } from "react";
+import { useEffect, useState, useMemo, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Package,
   Search,
   Wrench,
   X,
+  ArrowLeft,
   Cpu,
   Globe,
   Shield,
@@ -25,7 +26,6 @@ import {
   AlertTriangle,
   Sparkles,
   Loader2,
-  Plus,
   ChevronDown,
   Github,
   PenLine,
@@ -72,7 +72,6 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@nous-research/ui/ui/components/input";
 import { useI18n } from "@/i18n";
-import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
 
 /* ------------------------------------------------------------------ */
@@ -122,6 +121,18 @@ const TOOLSET_ICONS: Record<
   code: Code,
   automation: Zap,
 };
+
+/** Internal/support view flag — mirrors SettingsOverlay's `?full=1` hatch
+ *  (inlined to avoid a SkillsPage→SettingsOverlay→ConfigUser→SkillsPage import
+ *  cycle). The "Conjuntos de ferramentas" tab (agent tool groups — plumbing,
+ *  not user skills) shows ONLY here; end users never see it. */
+function isInternalView(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("full") === "1";
+  } catch {
+    return false;
+  }
+}
 
 function toolsetIcon(
   name: string,
@@ -188,6 +199,9 @@ export default function SkillsPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"skills" | "toolsets" | "hub">("skills");
+  // Toolsets (agent tool groups) are internal-only — end users never reach the
+  // "toolsets" view, so it can't strand them; the tab renders only here.
+  const isInternal = isInternalView();
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [togglingSkills, setTogglingSkills] = useState<Set<string>>(new Set());
   const [configToolset, setConfigToolset] = useState<ToolsetInfo | null>(null);
@@ -207,7 +221,6 @@ export default function SkillsPage() {
   const [importing, setImporting] = useState(false);
   const { toast, showToast } = useToast();
   const { t } = useI18n();
-  const { setAfterTitle, setEnd } = usePageHeader();
 
   // ── Profile scoping ──
   // The write target comes from the GLOBAL profile switcher (sidebar) via
@@ -449,56 +462,9 @@ export default function SkillsPage() {
       }));
   }, [skills, t]);
 
-  const enabledCount = skills.filter((s) => s.enabled).length;
-
-  useLayoutEffect(() => {
-    if (loading) {
-      setAfterTitle(null);
-      setEnd(null);
-      return;
-    }
-    setAfterTitle(
-      <span className="flex items-center gap-2 whitespace-nowrap text-xs text-muted-foreground">
-        {t.skills.enabledOf
-          .replace("{enabled}", String(enabledCount))
-          .replace("{total}", String(skills.length))}
-      </span>,
-    );
-    setEnd(
-      <div className="relative w-full min-w-0 sm:max-w-xs">
-        <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-        <Input
-          className="h-8 rounded-none pl-8 pr-7 text-xs"
-          placeholder={t.common.search}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        {search && (
-          <Button
-            ghost
-            size="xs"
-            className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            onClick={() => setSearch("")}
-            aria-label={t.common.clear}
-          >
-            <X />
-          </Button>
-        )}
-      </div>,
-    );
-    return () => {
-      setAfterTitle(null);
-      setEnd(null);
-    };
-  }, [
-    enabledCount,
-    loading,
-    search,
-    setAfterTitle,
-    setEnd,
-    skills.length,
-    t,
-  ]);
+  // Cabeçalho enxuto: sem contador "70/70 ativadas" e sem busca no header.
+  // A busca desceu para a toolbar do corpo (ver abaixo), rotulada "Procurar
+  // habilidades".
 
   const filteredToolsets = useMemo(() => {
     return toolsets.filter(
@@ -538,48 +504,78 @@ export default function SkillsPage() {
         }}
       />
 
-      {/* ── Toolbar: view tabs (left) + actions (right) ── */}
+      {/* ── Toolbar: left slot (back / internal tabs) + actions (right) ──
+          "Todas" NÃO fica aqui para o usuário: sobra só como chip de categoria
+          (fim da redundância). As abas Todas | Conjuntos de ferramentas só
+          aparecem na escotilha interna (?full=1). No hub, um "voltar" que hoje
+          dependia da aba. */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-1">
-          <ViewTab
-            label={`${t.skills.all} (${skills.length})`}
-            active={view !== "toolsets"}
-            onClick={() => {
-              setView("skills");
-              setActiveCategory(null);
-              setSearch("");
-            }}
-          />
-          <ViewTab
-            label={`${t.skills.toolsets} (${toolsets.length})`}
-            active={view === "toolsets"}
-            onClick={() => {
-              setView("toolsets");
-              setSearch("");
-            }}
-          />
-        </div>
-
-        {view === "skills" && (
-          <div className="flex items-center gap-2">
+          {view === "hub" ? (
             <Button
               size="sm"
               outlined
               onClick={() => {
-                setView("hub");
+                setView("skills");
                 setSearch("");
               }}
-              prefix={<Search />}
+              prefix={<ArrowLeft />}
             >
-              {t.configUser.skBrowse}
+              {t.configUser.skBack}
             </Button>
+          ) : isInternal ? (
+            <>
+              <ViewTab
+                label={`${t.skills.all} (${skills.length})`}
+                active={view !== "toolsets"}
+                onClick={() => {
+                  setView("skills");
+                  setActiveCategory(null);
+                  setSearch("");
+                }}
+              />
+              <ViewTab
+                label={`${t.skills.toolsets} (${toolsets.length})`}
+                active={view === "toolsets"}
+                onClick={() => {
+                  setView("toolsets");
+                  setSearch("");
+                }}
+              />
+            </>
+          ) : null}
+        </div>
 
-            {/* "Criar" dropdown. */}
-            <div className="relative" ref={createMenuRef}>
+        {view === "skills" && (
+          <div className="flex items-center gap-2">
+            {/* Busca (descida do header) — rotulada "Procurar habilidades".
+                Filtra as habilidades instaladas. */}
+            <div className="relative w-full min-w-0 sm:w-64">
+              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                className="h-8 rounded-none pl-8 pr-7 text-xs"
+                placeholder={t.configUser.skBrowse}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              {search && (
+                <Button
+                  ghost
+                  size="xs"
+                  className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  onClick={() => setSearch("")}
+                  aria-label={t.common.clear}
+                >
+                  <X />
+                </Button>
+              )}
+            </div>
+
+            {/* "Criar" dropdown (sem o ícone "+"). */}
+            <div className="relative shrink-0" ref={createMenuRef}>
               <Button
                 size="sm"
                 onClick={() => setCreateMenuOpen((v) => !v)}
-                prefix={<Plus />}
                 suffix={<ChevronDown className="h-3.5 w-3.5" />}
               >
                 {t.configUser.skCreate}

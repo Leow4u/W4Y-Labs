@@ -545,6 +545,7 @@ export const ko: Translations = {
     skImportDesc: "공개 GitHub 저장소에서 스킬을 직접 가져옵니다.",
     skImportAction: "가져오기",
     skCopy: "복사",
+    skBack: "뒤로",
   },
 
   achievements: {

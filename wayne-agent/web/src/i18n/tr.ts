@@ -546,6 +546,7 @@ export const tr: Translations = {
     skImportDesc: "Herkese açık bir GitHub deposundan doğrudan beceri içe aktarın.",
     skImportAction: "İçe aktar",
     skCopy: "Kopyala",
+    skBack: "Geri",
   },
 
   achievements: {

@@ -546,6 +546,7 @@ export const de: Translations = {
     skImportDesc: "Importiere eine Fähigkeit direkt aus einem öffentlichen GitHub-Repository.",
     skImportAction: "Importieren",
     skCopy: "Kopieren",
+    skBack: "Zurück",
   },
   achievements: {
     hero: {

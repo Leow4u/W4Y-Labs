@@ -545,6 +545,7 @@ export const ja: Translations = {
     skImportDesc: "公開 GitHub リポジトリから直接スキルをインポートします。",
     skImportAction: "インポート",
     skCopy: "コピー",
+    skBack: "戻る",
   },
 
   achievements: {

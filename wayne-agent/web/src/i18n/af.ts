@@ -546,6 +546,7 @@ export const af: Translations = {
     skImportDesc: "Voer 'n vaardigheid direk vanaf 'n openbare GitHub-bewaarplek in.",
     skImportAction: "Voer in",
     skCopy: "Kopieer",
+    skBack: "Terug",
   },
 
   achievements: {

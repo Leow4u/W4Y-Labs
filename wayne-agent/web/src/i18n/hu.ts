@@ -546,6 +546,7 @@ export const hu: Translations = {
     skImportDesc: "Importálj egy készséget közvetlenül egy nyilvános GitHub-tárolóból.",
     skImportAction: "Importálás",
     skCopy: "Másolás",
+    skBack: "Vissza",
   },
 
   achievements: {

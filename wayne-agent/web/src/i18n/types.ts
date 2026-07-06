@@ -629,6 +629,7 @@ export interface Translations {
     skImportDesc: string;
     skImportAction: string;
     skCopy: string;
+    skBack: string;
   };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──

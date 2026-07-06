@@ -554,6 +554,7 @@ export const ga: Translations = {
     skImportDesc: "Iompórtáil scil go díreach ó stórlann phoiblí GitHub.",
     skImportAction: "Iompórtáil",
     skCopy: "Cóipeáil",
+    skBack: "Ar ais",
   },
 
   achievements: {
