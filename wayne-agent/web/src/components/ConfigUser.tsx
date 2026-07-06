@@ -12,7 +12,10 @@
  * Controle de dados=resetMemory + bulkDeleteSessions. Tela técnica: ?full=1.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { UserCircle, SlidersHorizontal, Sparkles, Shield, Database, LogOut } from "lucide-react";
+import { UserCircle, SlidersHorizontal, Sparkles, Shield, Database, LogOut, Package, Plug, Puzzle } from "lucide-react";
+import SkillsPage from "@/pages/SkillsPage";
+import McpPage from "@/pages/McpPage";
+import PluginsPage from "@/pages/PluginsPage";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
@@ -29,14 +32,27 @@ import { useTheme } from "@/themes";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
 
-type SectionKey = "account" | "general" | "personalization" | "privacy" | "dataControl";
-const SECTIONS: Array<{ key: SectionKey; icon: React.ComponentType<{ className?: string }> }> = [
+type SectionKey =
+  | "account" | "general" | "personalization" | "privacy" | "dataControl"
+  | "skills" | "connectors" | "plugins";
+type NavItem = { key: SectionKey; icon: React.ComponentType<{ className?: string }> };
+
+// Grupo "Configurações" — seções enxutas de settings (ConfigUser próprio).
+const SECTIONS: NavItem[] = [
   { key: "account", icon: UserCircle },
   { key: "general", icon: SlidersHorizontal },
   { key: "personalization", icon: Sparkles },
   { key: "privacy", icon: Shield },
   { key: "dataControl", icon: Database },
 ];
+// Grupo "Personalizar" — reusa as PÁGINAS existentes (mesmo backing/API),
+// montadas aqui no modal como o Claude/Manus fazem. Não são telas novas.
+const PAGES: NavItem[] = [
+  { key: "skills", icon: Package },
+  { key: "connectors", icon: Plug },
+  { key: "plugins", icon: Puzzle },
+];
+const PAGE_KEYS: SectionKey[] = ["skills", "connectors", "plugins"];
 
 const THEME_BUTTONS: Array<{ key: string; labelKey: "themeLight" | "themeDark" | null; literal?: string }> = [
   { key: "white", labelKey: "themeLight" },
@@ -102,10 +118,15 @@ export default function ConfigUser() {
       .catch(() => {});
   }, []);
 
+  // Nas seções de settings a barra do provider fica limpa (auto-save, sem
+  // toolbar). Nas PÁGINAS (Habilidades/Conectores/Plugins) NÃO limpamos —
+  // elas injetam a própria toolbar (busca/Adicionar) via usePageHeader.
+  const isPage = PAGE_KEYS.includes(active);
   useEffect(() => {
+    if (isPage) return;
     setEnd(null);
     return () => setEnd(null);
-  }, [setEnd]);
+  }, [setEnd, isPage]);
 
   const val = (key: string) => getNestedValue(config ?? {}, key);
 
@@ -192,6 +213,21 @@ export default function ConfigUser() {
         <aside className="sm:w-52 sm:shrink-0 sm:flex sm:min-h-0 sm:flex-col">
           <div className="flex gap-1 overflow-x-auto p-1 max-sm:scrollbar-none sm:flex-col sm:gap-px sm:overflow-x-hidden">
             {SECTIONS.map(({ key, icon: Icon }) => (
+              <ListItem
+                key={key}
+                active={active === key}
+                onClick={() => setActive(key)}
+                className="rounded-none whitespace-nowrap px-2 py-1.5 text-sm"
+              >
+                <Icon className="h-4 w-4 shrink-0" />
+                <span className="flex-1 truncate">{cu[key]}</span>
+              </ListItem>
+            ))}
+            {/* Grupo "Personalizar" — páginas existentes montadas no modal. */}
+            <div className="hidden sm:block px-2 pb-1 pt-3 font-mondwest text-display text-xs tracking-[0.12em] text-text-tertiary">
+              {cu.personalize}
+            </div>
+            {PAGES.map(({ key, icon: Icon }) => (
               <ListItem
                 key={key}
                 active={active === key}
@@ -402,6 +438,11 @@ export default function ConfigUser() {
               </CardContent>
             </Card>
           )}
+
+          {/* ---------- PERSONALIZAR (páginas existentes) ---------- */}
+          {active === "skills" && <SkillsPage />}
+          {active === "connectors" && <McpPage />}
+          {active === "plugins" && <PluginsPage />}
         </div>
       </div>
 

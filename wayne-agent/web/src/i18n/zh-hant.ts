@@ -527,6 +527,10 @@ export const zhHant: Translations = {
     clearSessionsConfirm: "刪除所有對話？此操作無法復原。",
     clearBtn: "刪除",
     done: "完成",
+    personalize: "個人化",
+    skills: "技能",
+    connectors: "連接器",
+    plugins: "外掛",
   },
 
   achievements: {

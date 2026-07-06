@@ -528,6 +528,10 @@ export const tr: Translations = {
     clearSessionsConfirm: "Tüm sohbetler silinsin mi? Geri alınamaz.",
     clearBtn: "Sil",
     done: "Tamam",
+    personalize: "Kişiselleştir",
+    skills: "Beceriler",
+    connectors: "Bağlayıcılar",
+    plugins: "Eklentiler",
   },
 
   achievements: {

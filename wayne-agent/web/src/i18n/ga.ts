@@ -536,6 +536,10 @@ export const ga: Translations = {
     clearSessionsConfirm: "Scrios gach comhrá? Ní féidir é a chur ar ceal.",
     clearBtn: "Scrios",
     done: "Déanta",
+    personalize: "Saincheap",
+    skills: "Scileanna",
+    connectors: "Nascóirí",
+    plugins: "Breiseáin",
   },
 
   achievements: {

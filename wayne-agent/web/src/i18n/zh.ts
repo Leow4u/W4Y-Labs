@@ -522,6 +522,10 @@ export const zh: Translations = {
     clearSessionsConfirm: "删除所有对话？此操作无法撤销。",
     clearBtn: "删除",
     done: "完成",
+    personalize: "个性化",
+    skills: "技能",
+    connectors: "连接器",
+    plugins: "插件",
   },
 
   achievements: {

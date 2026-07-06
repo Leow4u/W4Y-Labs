@@ -528,6 +528,10 @@ export const it: Translations = {
     clearSessionsConfirm: "Eliminare tutte le conversazioni? Non è reversibile.",
     clearBtn: "Elimina",
     done: "Fatto",
+    personalize: "Personalizza",
+    skills: "Competenze",
+    connectors: "Connettori",
+    plugins: "Plugin",
   },
   achievements: {
     hero: {

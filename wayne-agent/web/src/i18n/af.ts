@@ -528,6 +528,10 @@ export const af: Translations = {
     clearSessionsConfirm: "Vee alle gesprekke uit? Dit kan nie ongedaan gemaak word nie.",
     clearBtn: "Vee uit",
     done: "Klaar",
+    personalize: "Pasmaak",
+    skills: "Vaardighede",
+    connectors: "Verbinders",
+    plugins: "Inproppe",
   },
 
   achievements: {

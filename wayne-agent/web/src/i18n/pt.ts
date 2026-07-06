@@ -529,6 +529,10 @@ export const pt: Translations = {
     clearSessionsConfirm: "Apagar todas as conversas? Isto não pode ser desfeito.",
     clearBtn: "Apagar",
     done: "Pronto",
+    personalize: "Personalizar",
+    skills: "Habilidades",
+    connectors: "Conectores",
+    plugins: "Plugins",
   },
 
   achievements: {

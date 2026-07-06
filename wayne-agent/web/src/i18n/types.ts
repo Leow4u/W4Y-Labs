@@ -611,6 +611,10 @@ export interface Translations {
     clearSessionsConfirm: string;
     clearBtn: string;
     done: string;
+    personalize: string;
+    skills: string;
+    connectors: string;
+    plugins: string;
   };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──

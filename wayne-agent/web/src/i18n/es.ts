@@ -529,6 +529,10 @@ export const es: Translations = {
     clearSessionsConfirm: "¿Eliminar todas las conversaciones? No se puede deshacer.",
     clearBtn: "Eliminar",
     done: "Listo",
+    personalize: "Personalización",
+    skills: "Habilidades",
+    connectors: "Conectores",
+    plugins: "Plugins",
   },
   achievements: {
     hero: {

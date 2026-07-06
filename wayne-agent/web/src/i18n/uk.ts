@@ -529,6 +529,10 @@ export const uk: Translations = {
     clearSessionsConfirm: "Видалити всі розмови? Це не можна скасувати.",
     clearBtn: "Видалити",
     done: "Готово",
+    personalize: "Персоналізація",
+    skills: "Навички",
+    connectors: "Конектори",
+    plugins: "Плагіни",
   },
 
   achievements: {

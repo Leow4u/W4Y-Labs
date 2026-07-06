@@ -527,6 +527,10 @@ export const ja: Translations = {
     clearSessionsConfirm: "すべての会話を削除しますか？元に戻せません。",
     clearBtn: "削除",
     done: "完了",
+    personalize: "カスタマイズ",
+    skills: "スキル",
+    connectors: "コネクタ",
+    plugins: "プラグイン",
   },
 
   achievements: {

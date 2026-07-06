@@ -528,6 +528,10 @@ export const de: Translations = {
     clearSessionsConfirm: "Alle Unterhaltungen löschen? Kann nicht rückgängig gemacht werden.",
     clearBtn: "Löschen",
     done: "Fertig",
+    personalize: "Anpassen",
+    skills: "Fähigkeiten",
+    connectors: "Konnektoren",
+    plugins: "Plugins",
   },
   achievements: {
     hero: {

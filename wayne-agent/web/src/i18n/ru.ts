@@ -528,6 +528,10 @@ export const ru: Translations = {
     clearSessionsConfirm: "Удалить все беседы? Это нельзя отменить.",
     clearBtn: "Удалить",
     done: "Готово",
+    personalize: "Персонализация",
+    skills: "Навыки",
+    connectors: "Коннекторы",
+    plugins: "Плагины",
   },
 
   achievements: {

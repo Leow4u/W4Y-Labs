@@ -589,6 +589,10 @@ export const en: Translations = {
     clearSessionsConfirm: "Delete all conversations? This can't be undone.",
     clearBtn: "Delete",
     done: "Done",
+    personalize: "Personalize",
+    skills: "Skills",
+    connectors: "Connectors",
+    plugins: "Plugins",
   },
 
   achievements: {

@@ -528,6 +528,10 @@ export const hu: Translations = {
     clearSessionsConfirm: "Törlöd az összes beszélgetést? Nem vonható vissza.",
     clearBtn: "Törlés",
     done: "Kész",
+    personalize: "Testreszabás",
+    skills: "Készségek",
+    connectors: "Csatlakozók",
+    plugins: "Bővítmények",
   },
 
   achievements: {

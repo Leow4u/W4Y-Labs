@@ -527,6 +527,10 @@ export const ko: Translations = {
     clearSessionsConfirm: "모든 대화를 삭제할까요? 되돌릴 수 없습니다.",
     clearBtn: "삭제",
     done: "완료",
+    personalize: "맞춤 설정",
+    skills: "스킬",
+    connectors: "커넥터",
+    plugins: "플러그인",
   },
 
   achievements: {
