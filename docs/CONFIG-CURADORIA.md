@@ -427,3 +427,46 @@ As 16 tarefas: vision (descrever imagens), web_extract (resumir páginas), compr
 - ⏭️ **Bloco 3** — auto-save estilo Claude (remove o Guardar). Próximo.
 
 Tudo só na instância `wayne-w4y` até aprovação final do pacote.
+
+---
+
+# Tela "Geral" do usuário — mapeamento ao sistema (investigação 06/07/2026)
+
+> Benchmark: Claude. Regra: **ligar ao que existe, sem inventar**. Investigação multi-agente (7 subsistemas) com verificação dos valores exatos relendo o código. Aqui a Config deixa de esconder o sistema e passa a **oferecer** o que é do usuário.
+
+## Com lastro real (ligável hoje)
+
+| Controle (usuário) | Backing exato | Como ligar |
+|---|---|---|
+| **Instruções para a Work4You** (texto livre) | `SOUL.md` em WAYNE_HOME — slot de identidade nº1 do system prompt, injetado em TODA conversa (global, não só-código) | `api.updateProfileSoul('default', texto)` / `getProfileSoul('default')` (PUT /api/profiles/default/soul). **NÃO** é config.yaml. Efeito na próxima sessão; passa por filtro anti-injeção |
+| **Aparência — tema** (botões) | `setTheme(chave)` do `useTheme()` → localStorage + PUT /api/dashboard/theme `{name}` | Chaves REAIS: `white`(Claro) · `mono`(Escuro) · `cyberpunk` · `rose`. Reusa hooks do ThemeSwitcher |
+| **Fonte** (dropdown) | `setFont(id)` → PUT /api/dashboard/font `{font}`; allow-list `FONT_CHOICES` | 14 fontes + `theme`(padrão do tema). Reusa `useTheme()`. NÃO é config.yaml dot-path |
+| **Notificações — memória** | `display.memory_notifications` (config.yaml) — enum `off`/`on`/`verbose`, default `on` | getConfig/saveConfig. Dropdown Desligado/Breve/Detalhado (NÃO toggle) |
+| Voz — falar respostas (auto-TTS) | `voice.auto_tts` (config.yaml, bool) | getConfig/saveConfig. ⚠️ só afeta canais (CLI/mensageria); **não** o chat do dashboard ainda |
+| Notificações — créditos | `display.credits_notices` (config.yaml, bool) | getConfig/saveConfig. ⚠️ inerte hoje (fonte = créditos Nous, não usados); vale após a onda de billing OpenRouter |
+| Identidade (só exibir) | GET /api/auth/me (read-only, do SSO) | Exibir iniciais + nome/email; **não** editável |
+
+## Sem lastro — exigiria criar backend novo (NÃO ligar)
+
+- **Nome completo editável** — `display_name` é read-only do SSO; sem campo/endpoint de escrita (vem vazio no provedor Nous).
+- **"Como te chamar?" (apelido)** — sem campo estruturado; USER.md é texto livre escrito pelo agente, sem escrita pelo dashboard.
+- **"O que descreve seu trabalho?" (dropdown ocupação)** — 100% novo: não há presets nem armazenamento. Falsos-amigos: `onboarding.profile_build` (modo ask/off) e a ProfileBuilderPage (= perfis de AGENTE).
+- **Botão de tema "Sistema"** — sem `prefers-color-scheme` no caminho de tema.
+- **Movimento (reduzir animações)** — sem campo; seria novo, mas trivial e 100% frontend (data-attr + CSS + localStorage).
+- **Notificações do navegador (push)** — sem Web Notifications API / service worker.
+- **Sino ao concluir** (`display.bell_on_complete`) — só terminal, inerte no navegador.
+
+## Correções críticas (valores verificados relendo o código)
+
+- Tema "Escuro" = chave **`mono`** (label "Black"), NÃO `black` (salvar `black` cai em fallback `white`).
+- Instruções = **SOUL.md**, NÃO `agent.coding_instructions` (só-código, seria ignorado em chat comum) nem `display.personality` (não injeta no prompt).
+- Endpoints de aparência: tema usa body `{name}`, fonte usa `{font}`.
+- `memory_notifications` é **enum de 3 valores**, não booleano.
+- O schema `dashboard.theme` no config está DESATUALIZADO (lista default/midnight/ember…); a verdade viva são as 4 chaves de `BUILTIN_THEMES` (white/mono/cyberpunk/rose).
+
+## Desenho honesto proposto (a alinhar)
+
+- **Perfil**: identidade read-only (iniciais + nome do login) + **um** campo "Instruções para a Work4You" (SOUL.md) — que no nosso sistema absorve "como me chamar / meu trabalho / persona". Os 3 campos separados do Claude (nome/apelido/ocupação) **não** têm lastro e ficam de fora.
+- **Preferências**: Aparência (4 botões reais, sem "Sistema") · Fonte (14 + padrão do tema) · Movimento (decisão: omitir vs frontend-only trivial).
+- **Voz**: deferir (único controle real não afeta o chat do dashboard).
+- **Notificações**: Memória (funciona) + Créditos (decisão: incluir com ressalva vs deferir, inerte hoje).
