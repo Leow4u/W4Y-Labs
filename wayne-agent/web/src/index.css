@@ -252,14 +252,15 @@ code { font-size: 0.875rem; }
 }
 
 /* ------------------------------------------------------------------ */
-/* UX — Title Case dentro do modal de Configuração.                     */
-/* O design-system usa MAIÚSCULO nos títulos de card (CardTitle tem a   */
-/* classe `uppercase`) e nos rótulos de seção (`.text-display`), o que  */
-/* fica agressivo. Dentro do `.settings-modal` neutralizamos, ficando   */
-/* "Geral / Conta" em vez de "GERAL / CONTA" (padrão estilo Claude).    */
-/* Escopado ao modal — o resto do dashboard segue como está.            */
-.settings-modal .uppercase,
-.settings-modal .text-display {
+/* UX — Title Case GLOBAL (menos MAIÚSCULO agressivo).                  */
+/* O design-system força MAIÚSCULO em títulos de card (CardTitle tem a  */
+/* classe `uppercase`), na navegação lateral (`uppercase`) e nos        */
+/* rótulos de seção (`.text-display`). Por decisão de UX, neutralizamos */
+/* isso em TODO o dashboard, ficando "Geral / Conta / Chat" em vez de   */
+/* "GERAL / CONTA / CHAT" (padrão estilo Claude). Só o transform é      */
+/* afetado — a fonte/peso do design-system permanece.                   */
+.uppercase,
+.text-display {
   text-transform: none;
 }
 
