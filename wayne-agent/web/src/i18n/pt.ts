@@ -491,6 +491,19 @@ export const pt: Translations = {
     title: "Tema",
     switchTheme: "Mudar tema",
   },
+  configUser: {
+    title: "Configuração",
+    general: "Geral",
+    appearance: "Aparência",
+    memory: "Memória",
+    timezone: "Fuso horário",
+    timezoneHint: "Ajusta a noção de tempo do seu Wayne — agendamentos, \"amanhã às 9h\" e horários.",
+    timezoneAuto: "Automático (fuso do servidor)",
+    memoryBetween: "Memória entre conversas",
+    memoryBetweenHint: "O seu Wayne lembra de informações importantes de uma conversa para a outra.",
+    userProfile: "Perfil pessoal",
+    userProfileHint: "O seu Wayne usa o que sabe sobre você para personalizar as respostas.",
+  },
 
   achievements: {
     hero: {

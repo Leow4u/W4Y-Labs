@@ -491,6 +491,19 @@ export const fr: Translations = {
     title: "Thème",
     switchTheme: "Changer de thème",
   },
+  configUser: {
+    title: "Paramètres",
+    general: "Général",
+    appearance: "Apparence",
+    memory: "Mémoire",
+    timezone: "Fuseau horaire",
+    timezoneHint: "Ajuste la notion du temps de votre Wayne — planifications, « demain à 9h » et horodatages.",
+    timezoneAuto: "Automatique (heure du serveur)",
+    memoryBetween: "Mémoire entre les conversations",
+    memoryBetweenHint: "Votre Wayne retient les informations importantes d'une conversation à l'autre.",
+    userProfile: "Profil personnel",
+    userProfileHint: "Votre Wayne utilise ce qu'il sait de vous pour personnaliser ses réponses.",
+  },
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",

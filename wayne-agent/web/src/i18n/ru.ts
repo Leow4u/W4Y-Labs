@@ -490,6 +490,19 @@ export const ru: Translations = {
     title: "Тема",
     switchTheme: "Сменить тему",
   },
+  configUser: {
+    title: "Настройки",
+    general: "Общие",
+    appearance: "Вид",
+    memory: "Память",
+    timezone: "Часовой пояс",
+    timezoneHint: "Задаёт восприятие времени вашим Wayne — расписания, «завтра в 9» и метки времени.",
+    timezoneAuto: "Автоматически (время сервера)",
+    memoryBetween: "Память между беседами",
+    memoryBetweenHint: "Ваш Wayne запоминает важную информацию из одной беседы в следующую.",
+    userProfile: "Личный профиль",
+    userProfileHint: "Ваш Wayne использует то, что знает о вас, чтобы персонализировать ответы.",
+  },
 
   achievements: {
     hero: {

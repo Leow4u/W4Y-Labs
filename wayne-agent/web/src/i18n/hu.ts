@@ -490,6 +490,19 @@ export const hu: Translations = {
     title: "Téma",
     switchTheme: "Téma váltása",
   },
+  configUser: {
+    title: "Beállítások",
+    general: "Általános",
+    appearance: "Megjelenés",
+    memory: "Memória",
+    timezone: "Időzóna",
+    timezoneHint: "Beállítja a Wayne időérzékét — ütemezések, „holnap 9-kor\" és időbélyegek.",
+    timezoneAuto: "Automatikus (szerveridő)",
+    memoryBetween: "Memória a beszélgetések között",
+    memoryBetweenHint: "A Wayne megjegyzi a fontos információkat az egyik beszélgetésből a másikba.",
+    userProfile: "Személyes profil",
+    userProfileHint: "A Wayne a rólad tudottakat felhasználva személyre szabja a válaszait.",
+  },
 
   achievements: {
     hero: {

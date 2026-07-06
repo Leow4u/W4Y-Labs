@@ -491,6 +491,19 @@ export const uk: Translations = {
     title: "Тема",
     switchTheme: "Змінити тему",
   },
+  configUser: {
+    title: "Налаштування",
+    general: "Загальні",
+    appearance: "Вигляд",
+    memory: "Пам'ять",
+    timezone: "Часовий пояс",
+    timezoneHint: "Задає відчуття часу вашого Wayne — розклади, «завтра о 9-й» та позначки часу.",
+    timezoneAuto: "Автоматично (час сервера)",
+    memoryBetween: "Пам'ять між розмовами",
+    memoryBetweenHint: "Ваш Wayne запам'ятовує важливу інформацію з однієї розмови в наступну.",
+    userProfile: "Особистий профіль",
+    userProfileHint: "Ваш Wayne використовує те, що знає про вас, щоб персоналізувати відповіді.",
+  },
 
   achievements: {
     hero: {

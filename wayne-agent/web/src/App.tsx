@@ -91,8 +91,15 @@ import ChannelsPage from "@/pages/ChannelsPage";
 import WebhooksPage from "@/pages/WebhooksPage";
 import SystemPage from "@/pages/SystemPage";
 import ChatPage from "@/pages/ChatPage";
-import { SettingsOverlay } from "@/components/SettingsOverlay";
+import ConfigUser from "@/components/ConfigUser";
+import { SettingsOverlay, isFullConfigRequested } from "@/components/SettingsOverlay";
 import { useI18n } from "@/i18n";
+
+// Rota /config (deep-link): tela enxuta do usuário por padrão; a técnica
+// completa fica atrás da escotilha interna `?full=1` (nós/suporte).
+function ConfigRoute() {
+  return isFullConfigRequested() ? <ConfigPage /> : <ConfigUser />;
+}
 import type { Translations } from "@/i18n/types";
 import { PluginPage, PluginSlot, usePlugins } from "@/plugins";
 import type { PluginManifest } from "@/plugins";
@@ -146,7 +153,7 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/system": SystemPage,
   "/profiles": ProfilesPage,
   "/profiles/new": ProfileBuilderPage,
-  "/config": ConfigPage,
+  "/config": ConfigRoute,
   "/env": EnvPage,
   "/docs": DocsPage,
 };

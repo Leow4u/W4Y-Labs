@@ -490,6 +490,19 @@ export const de: Translations = {
     title: "Design",
     switchTheme: "Design wechseln",
   },
+  configUser: {
+    title: "Einstellungen",
+    general: "Allgemein",
+    appearance: "Darstellung",
+    memory: "Gedächtnis",
+    timezone: "Zeitzone",
+    timezoneHint: "Legt das Zeitverständnis deines Wayne fest – Zeitpläne, „morgen um 9 Uhr\" und Zeitstempel.",
+    timezoneAuto: "Automatisch (Serverzeit)",
+    memoryBetween: "Gedächtnis über Unterhaltungen hinweg",
+    memoryBetweenHint: "Dein Wayne merkt sich wichtige Informationen von einer Unterhaltung zur nächsten.",
+    userProfile: "Persönliches Profil",
+    userProfileHint: "Dein Wayne nutzt sein Wissen über dich, um seine Antworten zu personalisieren.",
+  },
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",

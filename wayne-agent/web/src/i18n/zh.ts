@@ -484,6 +484,19 @@ export const zh: Translations = {
     title: "主题",
     switchTheme: "切换主题",
   },
+  configUser: {
+    title: "设置",
+    general: "常规",
+    appearance: "外观",
+    memory: "记忆",
+    timezone: "时区",
+    timezoneHint: "设定你的 Wayne 的时间感——日程安排、\"明天早上9点\"和时间戳。",
+    timezoneAuto: "自动（服务器时间）",
+    memoryBetween: "跨对话记忆",
+    memoryBetweenHint: "你的 Wayne 会在不同对话之间记住重要信息。",
+    userProfile: "个人资料",
+    userProfileHint: "你的 Wayne 会利用对你的了解来个性化回复。",
+  },
 
   achievements: {
     hero: {

@@ -489,6 +489,19 @@ export const zhHant: Translations = {
     title: "主題",
     switchTheme: "切換主題",
   },
+  configUser: {
+    title: "設定",
+    general: "一般",
+    appearance: "外觀",
+    memory: "記憶",
+    timezone: "時區",
+    timezoneHint: "設定你的 Wayne 的時間感——排程、\"明天早上9點\"和時間戳記。",
+    timezoneAuto: "自動（伺服器時間）",
+    memoryBetween: "跨對話記憶",
+    memoryBetweenHint: "你的 Wayne 會在不同對話之間記住重要資訊。",
+    userProfile: "個人檔案",
+    userProfileHint: "你的 Wayne 會運用對你的了解來個人化回覆。",
+  },
 
   achievements: {
     hero: {

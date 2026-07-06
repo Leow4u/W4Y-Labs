@@ -490,6 +490,19 @@ export const af: Translations = {
     title: "Tema",
     switchTheme: "Wissel tema",
   },
+  configUser: {
+    title: "Instellings",
+    general: "Algemeen",
+    appearance: "Voorkoms",
+    memory: "Geheue",
+    timezone: "Tydsone",
+    timezoneHint: "Stel jou Wayne se tydsbesef in — skedules, \"môre om 9\" en tydstempels.",
+    timezoneAuto: "Outomaties (bedienertyd)",
+    memoryBetween: "Geheue oor gesprekke heen",
+    memoryBetweenHint: "Jou Wayne onthou belangrike inligting van een gesprek na die volgende.",
+    userProfile: "Persoonlike profiel",
+    userProfileHint: "Jou Wayne gebruik wat dit van jou weet om sy antwoorde te verpersoonlik.",
+  },
 
   achievements: {
     hero: {

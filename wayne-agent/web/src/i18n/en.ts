@@ -551,6 +551,19 @@ export const en: Translations = {
     fontSerif: "Serif",
     fontMono: "Mono",
   },
+  configUser: {
+    title: "Settings",
+    general: "General",
+    appearance: "Appearance",
+    memory: "Memory",
+    timezone: "Time zone",
+    timezoneHint: "Sets your Wayne's sense of time — schedules, \"tomorrow at 9am\", and timestamps.",
+    timezoneAuto: "Automatic (server time)",
+    memoryBetween: "Memory across conversations",
+    memoryBetweenHint: "Your Wayne remembers important information from one conversation to the next.",
+    userProfile: "Personal profile",
+    userProfileHint: "Your Wayne uses what it knows about you to personalize its replies.",
+  },
 
   achievements: {
     hero: {

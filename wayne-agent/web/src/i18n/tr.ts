@@ -490,6 +490,19 @@ export const tr: Translations = {
     title: "Tema",
     switchTheme: "Temayı değiştir",
   },
+  configUser: {
+    title: "Ayarlar",
+    general: "Genel",
+    appearance: "Görünüm",
+    memory: "Bellek",
+    timezone: "Saat dilimi",
+    timezoneHint: "Wayne'inizin zaman algısını ayarlar — zamanlamalar, \"yarın 9'da\" ve zaman damgaları.",
+    timezoneAuto: "Otomatik (sunucu saati)",
+    memoryBetween: "Sohbetler arası bellek",
+    memoryBetweenHint: "Wayne'iniz önemli bilgileri bir sohbetten diğerine hatırlar.",
+    userProfile: "Kişisel profil",
+    userProfileHint: "Wayne'iniz sizin hakkınızda bildiklerini yanıtlarını kişiselleştirmek için kullanır.",
+  },
 
   achievements: {
     hero: {

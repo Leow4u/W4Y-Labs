@@ -1,21 +1,35 @@
 /**
  * SettingsOverlay — Configuração como tela sobreposta (estilo Manus/Claude).
  *
- * Aberto pelo menu do chip do usuário (AuthWidget). Reusa a ConfigPage
- * inteira, sem recriar nada. A ConfigPage injeta seus botões de ação (YAML /
- * Guardar / download…) no cabeçalho via usePageHeader().setEnd — por isso
- * envolvemos a página num PageHeaderProvider FRESCO aqui dentro: assim a
- * barra de ferramentas dela é renderizada dentro do overlay (não na barra da
- * página de fundo, que fica escondida atrás). O título da barra do provider é
- * esvaziado; o título "Configuração" + o X ficam na barra própria do overlay.
+ * Aberto pelo menu do chip do usuário (AuthWidget). Por padrão mostra a tela
+ * ENXUTA do usuário (ConfigUser — só Geral/Aparência/Memória, curadoria do
+ * Bloco 2). A tela técnica completa de config.yaml (ConfigPage) fica atrás da
+ * escotilha interna `?full=1`, para nós/suporte.
+ *
+ * Ambas injetam sua barra de ação (Guardar etc.) via usePageHeader().setEnd —
+ * por isso o corpo é envolvido num PageHeaderProvider FRESCO aqui dentro (a
+ * barra é renderizada dentro do overlay, não na página de fundo). O título do
+ * provider é esvaziado; o título + o X ficam na barra própria do overlay.
  */
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import ConfigPage from "@/pages/ConfigPage";
+import ConfigUser from "@/components/ConfigUser";
 import { PageHeaderProvider } from "@/contexts/PageHeaderProvider";
 import { usePageHeader } from "@/contexts/usePageHeader";
+import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
+
+/** Escotilha interna (nós/suporte): `?full=1` na URL mostra a tela técnica
+ *  completa de config.yaml em vez da tela enxuta do usuário. */
+export function isFullConfigRequested(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("full") === "1";
+  } catch {
+    return false;
+  }
+}
 
 /** Esvazia o título da barra do provider aninhado — o overlay já tem o seu.
  *  (setTitle("") vence o defaultTitle da rota atual, que seria "Chat" etc.) */
@@ -29,6 +43,7 @@ function BlankProviderTitle() {
 }
 
 export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { t } = useI18n();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
@@ -44,8 +59,9 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
 
   if (!open) return null;
 
-  const title = "Configuração";
-  const closeLabel = "Fechar";
+  const full = isFullConfigRequested();
+  const title = t.configUser.title;
+  const closeLabel = t.common.close;
 
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6">
@@ -88,14 +104,14 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
           </button>
         </div>
 
-        {/* Corpo: a ConfigPage reusada (rola dentro do card), com sua própria
-            barra Guardar/YAML via o provider aninhado. `flex flex-col` é
-            essencial: cria o contexto flex que limita a altura da ConfigPage
-            (senão ela expande para a altura natural e vaza do modal). */}
+        {/* Corpo: tela enxuta (padrão) ou técnica (`?full=1`), rolando dentro
+            do card. `flex flex-col` é essencial: cria o contexto flex que
+            limita a altura do conteúdo (senão ele expande para a altura
+            natural e vaza do modal). */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
           <PageHeaderProvider pluginTabs={[]}>
             <BlankProviderTitle />
-            <ConfigPage />
+            {full ? <ConfigPage /> : <ConfigUser />}
           </PageHeaderProvider>
         </div>
       </div>

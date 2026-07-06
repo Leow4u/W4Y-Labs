@@ -498,6 +498,19 @@ export const ga: Translations = {
     title: "Téama",
     switchTheme: "Athraigh téama",
   },
+  configUser: {
+    title: "Socruithe",
+    general: "Ginearálta",
+    appearance: "Cuma",
+    memory: "Cuimhne",
+    timezone: "Crios ama",
+    timezoneHint: "Socraíonn sé tuiscint ama do Wayne — sceidil, \"amárach ar a 9\" agus stampaí ama.",
+    timezoneAuto: "Uathoibríoch (am an fhreastalaí)",
+    memoryBetween: "Cuimhne trasna comhráite",
+    memoryBetweenHint: "Cuimhníonn do Wayne ar eolas tábhachtach ó chomhrá amháin go dtí an chéad cheann eile.",
+    userProfile: "Próifíl phearsanta",
+    userProfileHint: "Úsáideann do Wayne an méid atá ar eolas aige fút chun a fhreagraí a phearsantú.",
+  },
 
   achievements: {
     hero: {

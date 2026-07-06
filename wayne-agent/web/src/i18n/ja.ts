@@ -489,6 +489,19 @@ export const ja: Translations = {
     title: "テーマ",
     switchTheme: "テーマを切り替え",
   },
+  configUser: {
+    title: "設定",
+    general: "一般",
+    appearance: "外観",
+    memory: "メモリー",
+    timezone: "タイムゾーン",
+    timezoneHint: "Wayne の時間感覚を設定します — スケジュール、「明日の9時」、タイムスタンプ。",
+    timezoneAuto: "自動（サーバー時間）",
+    memoryBetween: "会話をまたいだ記憶",
+    memoryBetweenHint: "あなたの Wayne は、ある会話から次の会話へ重要な情報を覚えています。",
+    userProfile: "個人プロフィール",
+    userProfileHint: "あなたの Wayne は、あなたについて知っていることを使って返答をパーソナライズします。",
+  },
 
   achievements: {
     hero: {

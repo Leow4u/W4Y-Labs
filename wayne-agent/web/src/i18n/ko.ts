@@ -489,6 +489,19 @@ export const ko: Translations = {
     title: "테마",
     switchTheme: "테마 전환",
   },
+  configUser: {
+    title: "설정",
+    general: "일반",
+    appearance: "화면",
+    memory: "메모리",
+    timezone: "시간대",
+    timezoneHint: "Wayne의 시간 감각을 설정합니다 — 일정, \"내일 오전 9시\", 타임스탬프.",
+    timezoneAuto: "자동(서버 시간)",
+    memoryBetween: "대화 간 메모리",
+    memoryBetweenHint: "Wayne이 한 대화에서 다음 대화로 중요한 정보를 기억합니다.",
+    userProfile: "개인 프로필",
+    userProfileHint: "Wayne이 당신에 대해 아는 것을 활용해 답변을 개인화합니다.",
+  },
 
   achievements: {
     hero: {

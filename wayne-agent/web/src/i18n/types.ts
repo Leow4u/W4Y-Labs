@@ -573,6 +573,19 @@ export interface Translations {
     fontSerif?: string;
     fontMono?: string;
   };
+  configUser: {
+    title: string;
+    general: string;
+    appearance: string;
+    memory: string;
+    timezone: string;
+    timezoneHint: string;
+    timezoneAuto: string;
+    memoryBetween: string;
+    memoryBetweenHint: string;
+    userProfile: string;
+    userProfileHint: string;
+  };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──
   achievements: {
