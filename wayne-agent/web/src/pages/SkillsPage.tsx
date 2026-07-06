@@ -139,14 +139,17 @@ function isInternalView(): boolean {
  *  sobrecarrega e foge da marca. O usuário vê só este conjunto relevante de
  *  negócio; o resto continua bundled/disponível ao agente e visível apenas na
  *  escotilha interna (?full=1). Desativar uma skill é seguro (soft-toggle), então
- *  esconder aqui é só de apresentação. RASCUNHO — refinar com o Leonardo. */
+ *  esconder aqui é só de apresentação.
+ *
+ *  Aqui SÓ entram skills de CAPACIDADE/MÉTODO puras (não precisam de credencial
+ *  externa). Integrações credenciadas (Notion, Airtable, Google, e-mail, GIFs…)
+ *  são CONECTORES (MCP), não skills — a plataforma nem deixa uma SKILL.md
+ *  autenticar; elas viraram "skill-com-curl" só como atalho da lib importada.
+ *  Seu lar canônico é Conectores/MCP (workstream à parte: popular o catálogo). */
 const FEATURED_SKILLS = new Set<string>([
-  // Produtividade / escritório
-  "google-workspace",
-  "notion",
+  // Produtividade / documentos (capacidade pura — sem credencial externa)
   "powerpoint",
   "excel-presentations",
-  "airtable",
   "ocr-and-documents",
   "nano-pdf",
   "maps",
@@ -161,9 +164,6 @@ const FEATURED_SKILLS = new Set<string>([
   "research-paper-writing",
   // Mídia
   "youtube-content",
-  "gif-search",
-  // E-mail
-  "himalaya",
 ]);
 
 function toolsetIcon(
