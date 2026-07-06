@@ -606,6 +606,7 @@ export const en: Translations = {
     skFullscreen: "Fullscreen",
     skImportDesc: "Import a skill directly from a public GitHub repository.",
     skImportAction: "Import",
+    skCopy: "Copy",
   },
 
   achievements: {

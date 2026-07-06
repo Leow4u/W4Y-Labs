@@ -628,6 +628,7 @@ export interface Translations {
     skFullscreen: string;
     skImportDesc: string;
     skImportAction: string;
+    skCopy: string;
   };
 
   // ── Achievements plugin (plugins/wayne-achievements) ──

@@ -539,6 +539,7 @@ export const zh: Translations = {
     skFullscreen: "全屏",
     skImportDesc: "直接从公开的 GitHub 仓库导入技能。",
     skImportAction: "导入",
+    skCopy: "复制",
   },
 
   achievements: {

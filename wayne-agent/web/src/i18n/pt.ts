@@ -546,6 +546,7 @@ export const pt: Translations = {
     skFullscreen: "Tela cheia",
     skImportDesc: "Importe uma habilidade direto de um repositório público do GitHub.",
     skImportAction: "Importar",
+    skCopy: "Copiar",
   },
 
   achievements: {

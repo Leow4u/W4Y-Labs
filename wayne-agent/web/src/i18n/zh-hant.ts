@@ -544,6 +544,7 @@ export const zhHant: Translations = {
     skFullscreen: "全螢幕",
     skImportDesc: "直接從公開的 GitHub 儲存庫匯入技能。",
     skImportAction: "匯入",
+    skCopy: "複製",
   },
 
   achievements: {

@@ -553,6 +553,7 @@ export const ga: Translations = {
     skFullscreen: "Lánscáileán",
     skImportDesc: "Iompórtáil scil go díreach ó stórlann phoiblí GitHub.",
     skImportAction: "Iompórtáil",
+    skCopy: "Cóipeáil",
   },
 
   achievements: {

@@ -544,6 +544,7 @@ export const ko: Translations = {
     skFullscreen: "전체 화면",
     skImportDesc: "공개 GitHub 저장소에서 스킬을 직접 가져옵니다.",
     skImportAction: "가져오기",
+    skCopy: "복사",
   },
 
   achievements: {

@@ -546,6 +546,7 @@ export const uk: Translations = {
     skFullscreen: "Повний екран",
     skImportDesc: "Імпортуйте навичку прямо з публічного репозиторію GitHub.",
     skImportAction: "Імпортувати",
+    skCopy: "Копіювати",
   },
 
   achievements: {

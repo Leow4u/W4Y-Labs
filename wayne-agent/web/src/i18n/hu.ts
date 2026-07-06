@@ -545,6 +545,7 @@ export const hu: Translations = {
     skFullscreen: "Teljes képernyő",
     skImportDesc: "Importálj egy készséget közvetlenül egy nyilvános GitHub-tárolóból.",
     skImportAction: "Importálás",
+    skCopy: "Másolás",
   },
 
   achievements: {

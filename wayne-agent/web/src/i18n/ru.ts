@@ -545,6 +545,7 @@ export const ru: Translations = {
     skFullscreen: "Полный экран",
     skImportDesc: "Импортируйте навык прямо из публичного репозитория GitHub.",
     skImportAction: "Импортировать",
+    skCopy: "Копировать",
   },
 
   achievements: {

@@ -545,6 +545,7 @@ export const tr: Translations = {
     skFullscreen: "Tam ekran",
     skImportDesc: "Herkese açık bir GitHub deposundan doğrudan beceri içe aktarın.",
     skImportAction: "İçe aktar",
+    skCopy: "Kopyala",
   },
 
   achievements: {
