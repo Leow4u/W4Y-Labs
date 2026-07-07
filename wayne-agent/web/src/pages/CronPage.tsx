@@ -46,6 +46,7 @@ import { PluginSlot } from "@/plugins";
 import { Segmented } from "@nous-research/ui/ui/components/segmented";
 import { AutomationBlueprints } from "@/components/AutomationBlueprints";
 import { cn, themedBody } from "@/lib/utils";
+import { isInternalView } from "@/lib/internal-view";
 
 function formatTime(iso?: string | null): string {
   if (!iso) return "—";
@@ -413,13 +414,19 @@ function CronJobFormFields({
         </p>
       </div>
 
-      <CronAdvancedFields
-        idPrefix={`${idPrefix}-advanced`}
-        form={form}
-        onChange={onChange}
-        modelOptions={modelOptions}
-        availableToolsets={availableToolsets}
-      />
+      {/* Curadoria: campos técnicos/admin (Provider, Model, Base URL, no_agent,
+          Script, Workdir, context_from, enabled_toolsets) ficam escondidos do
+          usuário-final. A criação segue funcionando com os defaults do form.
+          Voltam a aparecer com ?full=1 (nós/suporte). */}
+      {isInternalView() && (
+        <CronAdvancedFields
+          idPrefix={`${idPrefix}-advanced`}
+          form={form}
+          onChange={onChange}
+          modelOptions={modelOptions}
+          availableToolsets={availableToolsets}
+        />
+      )}
     </>
   );
 }

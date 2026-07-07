@@ -36,6 +36,7 @@ import { usePageHeader } from "@/contexts/usePageHeader";
 import { useI18n } from "@/i18n";
 import { api } from "@/lib/api";
 import { normalizeSessionTitle } from "@/lib/chat-title";
+import { isInternalView } from "@/lib/internal-view";
 import { PluginSlot } from "@/plugins";
 import { useTheme } from "@/themes";
 import { useProfileScope } from "@/contexts/useProfileScope";
@@ -1016,7 +1017,12 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
       <PluginSlot name="chat:top" />
       {mobileModelToolsPortal}
 
-      {banner && (
+      {/* Curadoria: avisos crus de conexão (tokens, PTY, códigos WS
+          4401/4403/4404/4408/1006, "Open through wayne dashboard") são
+          encanamento técnico. O estado `banner` e toda a lógica de
+          setBanner/reconexão continuam intactos — só a RENDERIZAÇÃO é
+          escondida do usuário-final; suporte/nós veem via ?full=1. */}
+      {isInternalView() && banner && (
         <div className="border border-warning/50 bg-warning/10 text-warning px-3 py-2 text-xs tracking-wide">
           {banner}
         </div>

@@ -33,6 +33,7 @@ import { Toast } from "@nous-research/ui/ui/components/toast";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { usePageHeader } from "@/contexts/usePageHeader";
+import { isInternalView } from "@/lib/internal-view";
 import { api } from "@/lib/api";
 import type { ManagedFileEntry, ManagedFilesResponse } from "@/lib/api";
 import { PluginSlot } from "@/plugins";
@@ -71,6 +72,15 @@ function displayPath(path: string | null | undefined): string {
   return path?.trim() || "Files";
 }
 
+// Só o nome da pasta atual (sem expor o caminho absoluto cru do sistema ao
+// usuário-final). O caminho completo continua visível para interno (?full=1).
+function displayFolderName(path: string | null | undefined): string {
+  const trimmed = path?.trim();
+  if (!trimmed) return "Files";
+  const segments = trimmed.split(/[\\/]+/).filter(Boolean);
+  return segments.length ? segments[segments.length - 1] : "Files";
+}
+
 function transferHasFiles(event: ReactDragEvent<HTMLElement>): boolean {
   return Array.from(event.dataTransfer.types).includes("Files");
 }
@@ -96,7 +106,11 @@ export default function FilesPage() {
   const activePath = listing?.path ?? currentPath ?? "";
   const canChangePath = listing?.can_change_path ?? false;
   const canUpload = Boolean(activePath) && !uploading;
-  const headerPath = displayPath(listing?.locked_root ?? listing?.path ?? currentPath);
+  const rawHeaderPath = listing?.locked_root ?? listing?.path ?? currentPath;
+  // Interno vê o caminho absoluto; usuário-final vê só o nome da pasta atual.
+  const headerPath = isInternalView()
+    ? displayPath(rawHeaderPath)
+    : displayFolderName(rawHeaderPath);
 
   const load = useCallback(
     async (path = currentPath) => {
@@ -273,30 +287,31 @@ export default function FilesPage() {
       />
 
       <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        {canChangePath ? (
-          <form
-            className="flex min-w-0 flex-1 items-center gap-2"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void goToPath();
-            }}
-          >
-            <Input
-              value={pathInput}
-              onChange={(event) => setPathInput(event.target.value)}
-              aria-label="Path"
-              placeholder="Path"
-              className="h-9 min-w-0 flex-1 font-mono"
-            />
-            <Button type="submit" size="sm" outlined className="uppercase">
-              Go
-            </Button>
-          </form>
-        ) : (
-          <div className="min-w-0 truncate font-mono text-sm text-text-secondary" title={activePath}>
-            {activePath}
-          </div>
-        )}
+        {isInternalView() &&
+          (canChangePath ? (
+            <form
+              className="flex min-w-0 flex-1 items-center gap-2"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void goToPath();
+              }}
+            >
+              <Input
+                value={pathInput}
+                onChange={(event) => setPathInput(event.target.value)}
+                aria-label="Path"
+                placeholder="Path"
+                className="h-9 min-w-0 flex-1 font-mono"
+              />
+              <Button type="submit" size="sm" outlined className="uppercase">
+                Go
+              </Button>
+            </form>
+          ) : (
+            <div className="min-w-0 truncate font-mono text-sm text-text-secondary" title={activePath}>
+              {activePath}
+            </div>
+          ))}
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <Button
             type="button"
@@ -346,9 +361,15 @@ export default function FilesPage() {
             <span className="block text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
               {uploading ? "Uploading" : draggingFiles ? "Release to upload" : "Drop files here"}
             </span>
-            <span className="block truncate font-mono text-xs text-text-secondary" title={activePath}>
-              {activePath || "Loading"}
-            </span>
+            {isInternalView() ? (
+              <span className="block truncate font-mono text-xs text-text-secondary" title={activePath}>
+                {activePath || "Loading"}
+              </span>
+            ) : (
+              <span className="block truncate text-xs text-text-secondary">
+                {activePath ? displayFolderName(activePath) : "Loading"}
+              </span>
+            )}
           </span>
         </span>
         <span className="hidden shrink-0 text-xs font-semibold uppercase tracking-[0.08em] text-text-tertiary sm:block">
@@ -469,7 +490,9 @@ export default function FilesPage() {
           <DialogHeader>
             <DialogTitle>Create folder</DialogTitle>
             <DialogDescription>
-              Target: {activePath || "Loading"}
+              {isInternalView()
+                ? `Destino: ${activePath || "Loading"}`
+                : `Pasta: ${activePath ? displayFolderName(activePath) : "Loading"}`}
             </DialogDescription>
           </DialogHeader>
           <div className="p-4">

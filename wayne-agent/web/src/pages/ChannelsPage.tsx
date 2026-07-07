@@ -31,6 +31,7 @@ import type {
   MessagingPlatformUpdate,
   TelegramOnboardingStartResponse,
 } from "@/lib/api";
+import { isInternalView } from "@/lib/internal-view";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn, themedBody } from "@/lib/utils";
@@ -248,6 +249,13 @@ export default function ChannelsPage() {
   };
 
   useLayoutEffect(() => {
+    // Curadoria: o botão "Restart gateway" é encanamento técnico — só aparece
+    // na visão interna (?full=1). Para o usuário-final o restart acontece nos
+    // bastidores após salvar.
+    if (!isInternalView()) {
+      setEnd(null);
+      return () => setEnd(null);
+    }
     setEnd(
       <Button
         className="uppercase"
@@ -280,8 +288,9 @@ export default function ChannelsPage() {
     <div className="flex flex-col gap-6">
       <Toast toast={toast} />
 
-      {/* Restart banner */}
-      {restartNeeded && (
+      {/* Restart banner — encanamento técnico (restart do gateway). Só na
+          visão interna (?full=1); para o usuário o restart é nos bastidores. */}
+      {isInternalView() && restartNeeded && (
         <Card className="border-warning/50">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm">
@@ -303,7 +312,9 @@ export default function ChannelsPage() {
         </Card>
       )}
 
-      {!gatewayRunning && !restartNeeded && (
+      {/* Banner "gateway não está rodando" com o comando CLI — jargão técnico,
+          escondido do usuário-final e visível só na visão interna (?full=1). */}
+      {isInternalView() && !gatewayRunning && !restartNeeded && (
         <Card className="border-border">
           <CardContent className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
             <WifiOff className="h-4 w-4 shrink-0" />
@@ -316,11 +327,17 @@ export default function ChannelsPage() {
         </Card>
       )}
 
-      <p className="text-xs text-muted-foreground">
-        {configured} of {platforms.length} channels configured. Credentials are
-        written to <code className="font-courier">{envPath}</code>; the
-        gateway connects each enabled channel on its next restart.
-      </p>
+      {isInternalView() ? (
+        <p className="text-xs text-muted-foreground">
+          {configured} of {platforms.length} channels configured. Credentials are
+          written to <code className="font-courier">{envPath}</code>; the
+          gateway connects each enabled channel on its next restart.
+        </p>
+      ) : (
+        <p className="text-xs text-muted-foreground">
+          {configured} de {platforms.length} canais configurados.
+        </p>
+      )}
 
       {/* Config modal */}
       {editing && (
@@ -479,7 +496,9 @@ export default function ChannelsPage() {
                       <span className="text-xs text-muted-foreground">
                         {platform.description}
                       </span>
-                      {platform.error_message && (
+                      {/* Mensagem de erro crua do runtime (startup_failed/fatal)
+                          — encanamento técnico, só na visão interna (?full=1). */}
+                      {isInternalView() && platform.error_message && (
                         <span className="text-xs text-destructive">
                           {platform.error_message}
                         </span>

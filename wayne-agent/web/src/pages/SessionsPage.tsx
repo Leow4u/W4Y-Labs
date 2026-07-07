@@ -66,6 +66,7 @@ import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
 import { isDashboardEmbeddedChatEnabled } from "@/lib/dashboard-flags";
+import { isInternalView } from "@/lib/internal-view";
 
 const SOURCE_CONFIG: Record<string, { icon: typeof Terminal; color: string }> =
   {
@@ -791,6 +792,12 @@ export default function SessionsPage() {
   }, [loading, setAfterTitle, total]);
 
   useEffect(() => {
+    // Curadoria: o botão "Prune old sessions" é manutenção técnica do store —
+    // só injeta no header quando interno (?full=1). Usuário-final não vê.
+    if (!isInternalView()) {
+      setEnd(null);
+      return;
+    }
     setEnd(
       <Button
         outlined
@@ -1344,7 +1351,7 @@ export default function SessionsPage() {
         </DialogContent>
       </Dialog>
 
-      {stats && (
+      {isInternalView() && stats && (
         <div className="flex flex-wrap items-center gap-x-6 gap-y-2 border border-border bg-background-base/40 px-4 py-3">
           <div className="flex flex-col">
             <span className="text-lg font-semibold tabular-nums leading-none">
@@ -1382,7 +1389,7 @@ export default function SessionsPage() {
         </div>
       )}
 
-      {alerts.length > 0 && (
+      {isInternalView() && alerts.length > 0 && (
         <div className="border border-destructive/30 bg-destructive/[0.06] p-4">
           <div className="flex items-start gap-3">
             <AlertTriangle className="h-5 w-5 text-destructive shrink-0 mt-0.5" />
@@ -1404,7 +1411,7 @@ export default function SessionsPage() {
         </div>
       )}
 
-      {activeAction && (
+      {isInternalView() && activeAction && (
         <div className="border border-border bg-background-base/50">
           <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2">
             <div className="flex items-center gap-2 min-w-0">
@@ -1511,7 +1518,7 @@ export default function SessionsPage() {
               </div>
             )}
 
-            {showList && emptyCount > 0 && !isSearching && (
+            {isInternalView() && showList && emptyCount > 0 && !isSearching && (
               <Button
                 outlined
                 destructive
@@ -1541,7 +1548,7 @@ export default function SessionsPage() {
         </div>
       ) : null}
 
-      {showList && selectedIds.size > 0 && (
+      {isInternalView() && showList && selectedIds.size > 0 && (
         <div
           className="flex flex-wrap items-center gap-2 border border-primary/30 bg-primary/[0.06] px-3 py-2"
           role="region"
