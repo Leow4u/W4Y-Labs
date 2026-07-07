@@ -30,6 +30,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 
+import { ChatModelBar } from "@/components/ChatModelBar";
 import { ChatSidebar } from "@/components/ChatSidebar";
 import { ChatSessionList } from "@/components/ChatSessionList";
 import { usePageHeader } from "@/contexts/usePageHeader";
@@ -1050,6 +1051,9 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
       )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 lg:flex-row lg:gap-3">
+        {/* Coluna do terminal + a barra de modelo (tier) logo abaixo do
+            composer — no lugar do seletor de modelo do benchmark do Claude. */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
         <div
           className={cn(
             "relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg",
@@ -1111,6 +1115,9 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
               </span>
             </span>
           </Button>
+        </div>
+
+          <ChatModelBar light={terminalIsLight} />
         </div>
 
         {!narrow && (
