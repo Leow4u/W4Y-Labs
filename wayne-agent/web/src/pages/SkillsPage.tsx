@@ -664,16 +664,19 @@ export default function SkillsPage() {
                 </Button>
               </div>
             ) : (
-              <Button
-                size="sm"
-                outlined
-                className="h-8 w-8 p-0"
+              <button
+                type="button"
                 onClick={() => setSearchOpen(true)}
                 aria-label={t.configUser.skBrowse}
                 title={t.configUser.skBrowse}
+                className={cn(
+                  "grid h-8 w-8 shrink-0 place-items-center rounded-md border border-border",
+                  "text-muted-foreground transition-colors hover:bg-current/10 hover:text-foreground",
+                  "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current/40",
+                )}
               >
                 <Search className="h-4 w-4" />
-              </Button>
+              </button>
             )}
 
             {/* "Criar" dropdown (sem o ícone "+"). */}
