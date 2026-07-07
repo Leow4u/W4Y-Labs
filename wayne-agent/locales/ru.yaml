@@ -398,3 +398,10 @@ Future messages in this room will use that transcript until `/reset` or another 
     session_db_unavailable_prefix: "База данных сеансов недоступна"
     session_not_found:           "Сеанс не найден в базе данных."
     warn_passthrough:            "⚠️ {error}"
+
+
+# In-chat credit-usage notices (OpenRouter usage -> Work4You credits). {sym}=level glyph, {pct}=usage band (50/75/90). Percentage-based.
+credits:
+  usage:    "{sym} Вы использовали {pct}% кредитов за этот месяц"
+  depleted: "✕ Кредиты закончились — оформите переход на другой тариф, чтобы продолжить"
+  restored: "✓ Кредиты обновлены — доступ восстановлен"
