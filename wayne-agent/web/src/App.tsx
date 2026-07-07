@@ -552,9 +552,12 @@ export default function App() {
           <Menu />
         </Button>
 
-        <Typography className="font-brand font-bold text-[0.95rem] leading-[0.95] text-midground">
-          {t.app.brand}
-        </Typography>
+        <img
+          src="/brand/work4you-logo.svg"
+          alt={t.app.brand}
+          className="h-[24px] w-auto select-none"
+          draggable={false}
+        />
       </header>
 
       {mobileOpen && (
@@ -608,10 +611,13 @@ export default function App() {
               >
                 <PluginSlot name="header-left" />
 
-                {/* Logo Work4You — a palavra escrita em Cascadia Mono (branding W4Y). */}
-                <Typography className="font-brand font-bold text-[1.125rem] leading-[0.95] text-midground">
-                  {t.app.brand}
-                </Typography>
+                {/* Logo Work4You — lockup oficial da marca (ícone + wordmark IBM Plex Mono). */}
+                <img
+                  src="/brand/work4you-logo.svg"
+                  alt={t.app.brand}
+                  className="h-[30px] w-auto select-none"
+                  draggable={false}
+                />
               </div>
 
               <Button
