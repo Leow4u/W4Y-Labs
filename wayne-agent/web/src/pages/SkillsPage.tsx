@@ -166,6 +166,25 @@ const FEATURED_SKILLS = new Set<string>([
   "youtube-content",
 ]);
 
+/** Ordem fixada no TOPO da grade de Habilidades (pedido do Leonardo). As demais
+ *  seguem alfabéticas por nome técnico. Vale na visão do usuário e no ?full=1. */
+const FEATURED_ORDER = [
+  "youtube-content",
+  "excel-presentations",
+  "nano-pdf",
+  "powerpoint",
+  "web-research-competitive-intelligence",
+];
+
+/** Fixadas primeiro (na ordem de FEATURED_ORDER); o resto, alfabético. */
+function compareSkills(a: SkillInfo, b: SkillInfo): number {
+  const ra = FEATURED_ORDER.indexOf(a.name);
+  const rb = FEATURED_ORDER.indexOf(b.name);
+  const na = ra === -1 ? Number.MAX_SAFE_INTEGER : ra;
+  const nb = rb === -1 ? Number.MAX_SAFE_INTEGER : rb;
+  return na !== nb ? na - nb : a.name.localeCompare(b.name);
+}
+
 function toolsetIcon(
   name: string,
 ): React.ComponentType<{ className?: string }> {
@@ -473,14 +492,14 @@ export default function SkillsPage() {
   const activeSkills = useMemo(() => {
     if (isSearching) return [];
     if (!activeCategory)
-      return [...displaySkills].sort((a, b) => a.name.localeCompare(b.name));
+      return [...displaySkills].sort(compareSkills);
     return displaySkills
       .filter((s) =>
         activeCategory === "__none__"
           ? !s.category
           : s.category === activeCategory,
       )
-      .sort((a, b) => a.name.localeCompare(b.name));
+      .sort(compareSkills);
   }, [displaySkills, activeCategory, isSearching]);
 
   const allCategories = useMemo(() => {
