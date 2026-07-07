@@ -614,7 +614,7 @@ export default function App() {
                 <img
                   src="/brand/work4you-favicon.svg"
                   alt={t.app.brand}
-                  className="h-12 w-auto select-none"
+                  className="h-10 w-auto select-none"
                   draggable={false}
                 />
               </div>

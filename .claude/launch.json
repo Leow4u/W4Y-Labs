@@ -7,6 +7,14 @@
       "runtimeArgs": ["run", "dev"],
       "cwd": "platform/web",
       "port": 3000
+    },
+    {
+      "name": "wayne-web",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "cwd": "wayne-agent/web",
+      "port": 5173,
+      "autoPort": true
     }
   ]
 }
