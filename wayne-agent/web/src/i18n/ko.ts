@@ -386,6 +386,10 @@ export const ko: Translations = {
     "obsidian": { name: "Obsidian 노트", desc: "Obsidian 볼트의 노트를 읽고 검색하고 만들고 편집." },
     "web-research-competitive-intelligence": { name: "시장·경쟁사 리서치", desc: "웹 리서치로 기업 전략, 경쟁사, 신규 출시, 시장 동향을 분석." },
     "research-paper-writing": { name: "논문 작성 지원", desc: "기획부터 제출까지 학술 논문 작성을 전 과정 지원." },
+    "humanizer": { name: "텍스트 휴머나이저", desc: "AI 특유의 표현 패턴을 제거하고 의미는 그대로 유지하면서, 자연스럽고 사람이 쓴 듯한 글로 다듬어 줍니다." },
+    "sketch": { name: "화면 목업", desc: "화면이나 페이지의 시각적 목업을 HTML로 2~3가지 버전으로 빠르게 생성해 아이디어를 비교할 수 있습니다." },
+    "arxiv": { name: "학술 검색 (arXiv)", desc: "arXiv와 Semantic Scholar에서 키워드, 저자, 분야별로 과학 논문을 검색합니다." },
+    "polymarket": { name: "예측 시장", desc: "Polymarket 예측 시장의 실시간 확률과 데이터를 조회합니다." },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

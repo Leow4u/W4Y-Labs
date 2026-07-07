@@ -387,6 +387,10 @@ export const tr: Translations = {
     "obsidian": { name: "Obsidian Notları", desc: "Obsidian kasanızdaki notları okuyun, arayın, oluşturun ve düzenleyin." },
     "web-research-competitive-intelligence": { name: "Pazar ve Rakip Araştırması", desc: "Web araştırmasıyla şirket stratejilerini, rakipleri, lansmanları ve pazar istihbaratını inceleyin." },
     "research-paper-writing": { name: "Bilimsel Makale Yazımı", desc: "Akademik makale yazımına planlamadan gönderime kadar destek olun." },
+    "humanizer": { name: "Metin Doğallaştırıcı", desc: "Metni doğal ve insan yazmış gibi duyulacak şekilde yeniden yazar — anlamı koruyarak yapay zekâ izlenimi veren kalıpları temizler." },
+    "sketch": { name: "Ekran Taslakları", desc: "Fikirleri karşılaştırmak için bir ekranın veya sayfanın 2-3 görsel taslak varyasyonunu HTML olarak hızlıca oluşturur." },
+    "arxiv": { name: "Akademik Arama (arXiv)", desc: "arXiv ve Semantic Scholar üzerinde anahtar kelime, yazar veya kategoriye göre bilimsel makale arar." },
+    "polymarket": { name: "Tahmin Piyasaları", desc: "Polymarket tahmin piyasalarından gerçek zamanlı oranları ve verileri sorgular." },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

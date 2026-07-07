@@ -395,6 +395,10 @@ export const ga: Translations = {
     "obsidian": { name: "Nótaí Obsidian", desc: "Léigh, cuardaigh, cruthaigh agus cuir in eagar nótaí i do dhaingean Obsidian." },
     "web-research-competitive-intelligence": { name: "Taighde Margaidh is Iomaitheoirí", desc: "Fiosraigh straitéisí cuideachtaí, iomaitheoirí, seoltaí agus faisnéis mhargaidh trí thaighde gréasáin." },
     "research-paper-writing": { name: "Scríobh Páipéar Eolaíochta", desc: "Tacaíocht le scríobh páipéar acadúil, ón bpleanáil go dtí an aighneacht." },
+    "humanizer": { name: "Daonnú Téacs", desc: "Athscríobh téacs le go mbeidh cuma nádúrtha dhaonna air — baintear patrúin a bhfuil blas IS orthu agus coinnítear an bhrí." },
+    "sketch": { name: "Samhlacha Scáileáin", desc: "Gin 2-3 leagan amhairc de scáileán nó de leathanach in HTML go tapa chun smaointe a chur i gcomparáid." },
+    "arxiv": { name: "Cuardach Acadúil (arXiv)", desc: "Cuardaigh páipéir eolaíochta ar arXiv agus Semantic Scholar de réir eochairfhocail, údair nó catagóire." },
+    "polymarket": { name: "Margaí Tuartha", desc: "Faigh corrlaigh agus sonraí fíor-ama ó mhargaí tuartha Polymarket." },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

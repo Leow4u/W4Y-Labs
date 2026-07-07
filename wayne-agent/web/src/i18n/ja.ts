@@ -386,6 +386,10 @@ export const ja: Translations = {
     "obsidian": { name: "Obsidianノート", desc: "Obsidianの保管庫内のノートを読み込み、検索、作成、編集できます。" },
     "web-research-competitive-intelligence": { name: "市場&競合リサーチ", desc: "Webリサーチで企業戦略、競合、新製品、市場動向を調査します。" },
     "research-paper-writing": { name: "論文執筆サポート", desc: "構想から投稿まで、学術論文の執筆を一貫してサポートします。" },
+    "humanizer": { name: "文章ヒューマナイザー", desc: "AIっぽい表現を取り除き、意味を保ったまま自然で人間らしい文章に書き換えます。" },
+    "sketch": { name: "画面モックアップ", desc: "画面やページのビジュアルモックアップをHTMLで2〜3パターン素早く生成し、アイデアを比較できます。" },
+    "arxiv": { name: "学術検索 (arXiv)", desc: "arXivとSemantic Scholarの学術論文をキーワード・著者・カテゴリで検索します。" },
+    "polymarket": { name: "予測市場", desc: "Polymarketの予測市場からリアルタイムのオッズやデータを取得します。" },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

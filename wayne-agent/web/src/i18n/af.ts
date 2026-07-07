@@ -387,6 +387,10 @@ export const af: Translations = {
     "obsidian": { name: "Obsidian-notas", desc: "Lees, deursoek, skep en redigeer notas in jou Obsidian-kluis." },
     "web-research-competitive-intelligence": { name: "Mark- en Mededingernavorsing", desc: "Ondersoek maatskappystrategieë, mededingers, bekendstellings en markintelligensie deur webnavorsing." },
     "research-paper-writing": { name: "Wetenskaplike Skryfwerk", desc: "Ondersteun die skryf van akademiese artikels, van beplanning tot indiening." },
+    "humanizer": { name: "Teks-vermensliker", desc: "Herskryf teks sodat dit natuurlik en menslik klink — verwyder KI-agtige patrone terwyl die betekenis behoue bly." },
+    "sketch": { name: "Skermontwerpe", desc: "Genereer vinnig 2-3 visuele voorbeeldweergawes van 'n skerm of bladsy in HTML om idees te vergelyk." },
+    "arxiv": { name: "Akademiese Soektog (arXiv)", desc: "Deursoek wetenskaplike artikels op arXiv en Semantic Scholar volgens sleutelwoord, outeur of kategorie." },
+    "polymarket": { name: "Voorspellingsmarkte", desc: "Raadpleeg intydse waarskynlikhede en data van Polymarket-voorspellingsmarkte." },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

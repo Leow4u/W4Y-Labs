@@ -387,6 +387,10 @@ export const hu: Translations = {
     "obsidian": { name: "Obsidian-jegyzetek", desc: "Jegyzetek olvasása, keresése, létrehozása és szerkesztése az Obsidian-tárolóban." },
     "web-research-competitive-intelligence": { name: "Piac- és versenytárselemzés", desc: "Cégstratégiák, versenytársak, termékbevezetések és piaci információk feltárása webes kutatással." },
     "research-paper-writing": { name: "Tudományos cikkírás", desc: "Segítség tudományos cikkek megírásához, a tervezéstől a beadásig." },
+    "humanizer": { name: "Szöveg-humanizáló", desc: "Átírja a szöveget, hogy természetesen, emberien hangozzon — eltávolítja az AI-ra jellemző fordulatokat, a jelentés megtartásával." },
+    "sketch": { name: "Képernyő-vázlatok", desc: "Gyorsan létrehoz 2-3 vizuális makett-változatot egy képernyőről vagy oldalról HTML-ben, az ötletek összehasonlításához." },
+    "arxiv": { name: "Tudományos keresés (arXiv)", desc: "Tudományos cikkek keresése az arXiv és a Semantic Scholar felületén kulcsszó, szerző vagy kategória szerint." },
+    "polymarket": { name: "Predikciós piacok", desc: "Valós idejű esélyek és adatok lekérdezése a Polymarket predikciós piacairól." },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

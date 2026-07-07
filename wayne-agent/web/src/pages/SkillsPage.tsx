@@ -142,28 +142,42 @@ function isInternalView(): boolean {
  *  aqui é só de apresentação.
  *
  *  Critérios: (a) capacidade/método puro — integração credenciada (Notion,
- *  Airtable, Google…) é CONECTOR (MCP), não skill; (b) RODA no container HOJE.
- *  Skills que dependem de ferramentas ausentes (LibreOffice, LaTeX, tesseract)
- *  ou de pacotes pip não instalados (python-pptx, openpyxl, pymupdf, youtube-
- *  transcript-api…) ficam FORA até instalarmos as deps — senão o usuário abre
- *  a skill e ela falha (foi o caso do PowerPoint). Ver docs/ROADMAP.md
- *  (auditoria de deps + Fase 1 pip / Fase 2 apt). */
+ *  Airtable, Google…) é CONECTOR (MCP), não skill; (b) RODA no container.
+ *  Auditoria completa das 72 + plano em ondas: docs/SKILLS-AUDITORIA.md.
+ *  Ondas B+C instaladas via platform/wayne-fly/Dockerfile.deps (openpyxl,
+ *  youtube-transcript-api, pymupdf, markitdown[pptx], LibreOffice+poppler) —
+ *  por isso excel/youtube/ocr/powerpoint voltaram ao featured. */
 const FEATURED_SKILLS = new Set<string>([
+  // Produtividade / documentos
+  "excel-presentations",
+  "powerpoint",
+  "ocr-and-documents",
+  "maps",
+  "obsidian",
   // Criação visual (geram HTML/SVG/JSON com ferramentas nativas do agente)
   "architecture-diagram",
   "baoyu-infographic",
   "claude-design",
   "excalidraw",
-  // Utilidades (sem deps externas)
-  "maps",
-  "obsidian",
-  // Pesquisa (usa o browser tool)
+  "sketch",
+  // Texto
+  "humanizer",
+  // Pesquisa
   "web-research-competitive-intelligence",
+  "arxiv",
+  "polymarket",
+  // Mídia
+  "youtube-content",
 ]);
 
 /** Ordem fixada no TOPO da grade de Habilidades (pedido do Leonardo). As demais
  *  seguem alfabéticas por nome técnico. Vale na visão do usuário e no ?full=1. */
 const FEATURED_ORDER = [
+  // Ordem do Leonardo (sem o nano-pdf, reclassificado como conector: o CLI
+  // usa um LLM próprio com API key). OCR cobre a frente de PDF/documentos.
+  "youtube-content",
+  "excel-presentations",
+  "powerpoint",
   "web-research-competitive-intelligence",
 ];
 

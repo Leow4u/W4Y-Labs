@@ -1,0 +1,92 @@
+# Auditoria de Operabilidade das Skills (2026-07-07)
+
+> Contexto: ao testar `powerpoint` em conversa livre, a skill falhou (python-pptx e LibreOffice ausentes).
+> Auditamos **as 72 SKILL.md do repositório** contra a realidade do container de produção
+> (fly.io · Debian 13 headless · sem GPU · `uv` presente · Pillow/cryptography no venv ·
+> **ausentes**: pip, LibreOffice, LaTeX, tesseract, pandoc, chromium-bin, GPU, apps macOS).
+> Critério: o bloqueio MAIS DURO para a skill **funcionar de verdade** para um usuário final.
+
+## Resumo
+
+| Tier | Qtde | Significado |
+|---|---|---|
+| 🟢 `works_now` | **17** | Funciona HOJE só com as ferramentas nativas do agente |
+| 🟡 `light_pip` | **5** (+1*) | Só falta pacote pip leve (instalável via `uv`, overlay fino) |
+| 🔴 `heavy_system` | **11** | Precisa de binário pesado (LibreOffice/LaTeX) ou GPU/modelos multi-GB |
+| 🔌 `connector_credential` | **12** | Precisa de credencial de serviço externo → é CONECTOR (MCP), não skill |
+| ⚫ `incompatible_niche` | **27** | macOS-only, dev-only (github/software-development), GUI/desktop, interno |
+
+\* `excel-presentations` (openpyxl) está instalada na instância mas não no repo — soma ao tier 🟡.
+
+## 🟢 Funciona hoje (17)
+
+architecture-diagram · ascii-art · baoyu-infographic · claude-design · design-md · excalidraw ·
+humanizer · p5js · popular-web-designs · pretext · sketch · songwriting-and-ai-music ·
+obsidian · maps · arxiv · llm-wiki · polymarket
+
+Featured atual (7): architecture-diagram, baoyu-infographic, claude-design, excalidraw, maps,
+obsidian, web-research-competitive-intelligence. **Candidatos a promover (zero custo):**
+humanizer (revisão de texto p/ tom humano), sketch (mockups HTML), arxiv (pesquisa acadêmica),
+polymarket (dados de mercados de previsão), llm-wiki (base de conhecimento em markdown).
+
+## 🟡 Pip leve — destravável com um overlay `uv pip install` (~100 MB total)
+
+| Skill | Pacotes | Valor de negócio |
+|---|---|---|
+| excel-presentations | `openpyxl` | ALTO (Gerador de Excel) |
+| youtube-content | `youtube-transcript-api` | ALTO (Conteúdo do YouTube) |
+| ocr-and-documents | `pymupdf` + `pymupdf4llm` (~25 MB; **não precisa** tesseract p/ o caminho padrão) | ALTO (extração de documentos) |
+| ascii-video | `numpy` + `scipy` | baixo (nicho) |
+| jupyter-live-kernel | `jupyterlab` via uv tool | baixo (dev) |
+| blogwatcher | binário Go único via curl (borderline) | baixo |
+
+> Nota técnica: instalar NO VENV do agente (`uv pip install --python /opt/wayne/.venv/bin/python3 …`),
+> num overlay Docker fino sobre a imagem fly (mesmo padrão do Dockerfile.ui). Persistente, sem rebuild da base.
+
+## 🔴 Pesadas — decisão caso a caso
+
+| Skill | Bloqueio | Vale? |
+|---|---|---|
+| **powerpoint** | LibreOffice/soffice (~600 MB) + poppler p/ QA visual e miniaturas | **SIM, recomendado** — era top-4 do produto; custo = só disco |
+| research-paper-writing | LaTeX/texlive (~300 MB–1 GB) + pips | Talvez (credibilidade); LaTeX serve também ao manim-video |
+| manim-video | LaTeX + manim | Carona do LaTeX |
+| comfyui · heartmula · vllm · llama-cpp · lm-evaluation-harness · audiocraft · segment-anything | **GPU + modelos multi-GB** | **NÃO neste container** (fly sem GPU; são skills de ML/dev — já ficam internas) |
+| songsee | toolchain Go p/ compilar | Não (nicho) |
+
+## 🔌 Conectores disfarçados (12) — workstream Conectores/MCP
+
+huggingface-hub · himalaya (e-mail) · gif-search (Tenor) · weights-and-biases · airtable ·
+google-workspace · **nano-pdf** (o CLI usa um LLM próprio → exige API key!) · notion ·
+teams-meeting-pipeline (MS Graph) · openhue (bridge físico na LAN — inalcançável da nuvem) ·
+xurl (X/Twitter pago) · yuanbao (Tencent)
+
+> Não estão "quebrados": precisam de conta/credencial do usuário. Lar canônico = **Conectores (MCP)**
+> (já no roadmap). Surpresa da auditoria: `nano-pdf` mudou de "pip leve" para conector (API key de LLM).
+
+## ⚫ Incompatíveis / nicho (27) — ficam internas (`?full=1`)
+
+- **macOS-only (4):** apple-notes, apple-reminders, findmy, imessage (dirigem apps do macOS)
+- **Agentes de código (4):** claude-code, codex, opencode, wayne-agent (meta)
+- **GUI/desktop (2):** computer-use (sem display no servidor), touchdesigner-mcp
+- **Interno/demo (2):** dogfood (QA interno), petdex (mascotes de terminal)
+- **Dev-only (15):** github/* (6) e software-development/* (9)
+
+## Lição de UX descoberta no teste
+
+`/web-research-competitive-intelligence …` **falha** ("not a quick/plugin/skill command"):
+skill **não é comando de barra**. Skills são auto-selecionadas pelo agente a partir da descrição
+da tarefa em linguagem natural (ex.: "faça uma pesquisa de mercado sobre a empresa Dutelog").
+Ideia futura (estilo Manus, botão "Experimente"): no modal de detalhe da skill, um botão que abre
+o chat com um prompt de exemplo pré-preenchido.
+
+## Plano em ondas ("sistema operante")
+
+- **Onda A — só curadoria (custo 0):** promover ao featured as `works_now` de valor de negócio
+  (humanizer, sketch, arxiv, polymarket…), 7 → ~11.
+- **Onda B — overlay pip (~100 MB, custo ≈ 0):** openpyxl, youtube-transcript-api, pymupdf(+4llm)
+  → devolve Gerador de Excel, Conteúdo do YouTube e OCR ao featured (~14).
+- **Onda C — LibreOffice (~600 MB disco, custo ≈ 0):** PowerPoint completo (criar + QA visual + miniatura).
+  Testar pico de RAM em 2 GB; subir p/ 4 GB só se necessário (~+US$5–10/mês, só quando em uso).
+- **Onda D — LaTeX (opcional):** research-paper-writing compilando PDF + manim-video.
+- **Permanente fora (não é bug):** GPU/ML, macOS, GUI, dev-tools — internos ou não aplicáveis.
+- **Conectores:** os 12 credenciados via workstream Conectores/MCP.

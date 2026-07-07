@@ -382,6 +382,10 @@ export const zh: Translations = {
     "obsidian": { name: "Obsidian 笔记", desc: "在 Obsidian 库中读取、搜索、创建并编辑笔记。" },
     "web-research-competitive-intelligence": { name: "市场竞品调研", desc: "通过网络调研洞察企业策略、竞争对手、新品发布与市场情报。" },
     "research-paper-writing": { name: "学术论文写作", desc: "从选题规划到投稿，全程助力学术论文写作。" },
+    "humanizer": { name: "文本人性化", desc: "重写文本，使其自然流畅、更具人味——去除 AI 痕迹的同时保留原意。" },
+    "sketch": { name: "界面原型图", desc: "用 HTML 快速生成 2-3 个页面或界面的视觉原型方案，便于比较创意。" },
+    "arxiv": { name: "学术检索（arXiv）", desc: "按关键词、作者或类别在 arXiv 和 Semantic Scholar 上检索科研论文。" },
+    "polymarket": { name: "预测市场", desc: "查询 Polymarket 预测市场的实时赔率与数据。" },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

@@ -387,6 +387,10 @@ export const de: Translations = {
     "obsidian": { name: "Obsidian-Notizen", desc: "Notizen in deinem Obsidian-Vault lesen, durchsuchen, erstellen und bearbeiten." },
     "web-research-competitive-intelligence": { name: "Markt- & Wettbewerbsanalyse", desc: "Unternehmensstrategien, Wettbewerber, Launches und Marktdaten per Web-Recherche untersuchen." },
     "research-paper-writing": { name: "Wissenschaftliches Schreiben", desc: "Unterstützung beim Verfassen wissenschaftlicher Arbeiten – von der Planung bis zur Einreichung." },
+    "humanizer": { name: "Text-Humanizer", desc: "Formuliert Texte natürlich und menschlich um — entfernt KI-typische Muster und erhält dabei die Aussage." },
+    "sketch": { name: "Screen-Mockups", desc: "Erstellt schnell 2-3 visuelle Mockup-Varianten eines Screens oder einer Seite in HTML, um Ideen zu vergleichen." },
+    "arxiv": { name: "Fachliteratur-Suche (arXiv)", desc: "Durchsucht wissenschaftliche Publikationen auf arXiv und Semantic Scholar nach Stichwort, Autor oder Kategorie." },
+    "polymarket": { name: "Prognosemärkte", desc: "Ruft Echtzeit-Quoten und Daten aus den Prognosemärkten von Polymarket ab." },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

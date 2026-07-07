@@ -386,6 +386,10 @@ export const zhHant: Translations = {
     "obsidian": { name: "Obsidian 筆記", desc: "讀取、搜尋、建立並編輯你 Obsidian 知識庫中的筆記。" },
     "web-research-competitive-intelligence": { name: "市場與競品調研", desc: "透過網路研究洞察企業策略、競爭對手、產品發表與市場情報。" },
     "research-paper-writing": { name: "學術論文撰寫", desc: "從構思規劃到投稿發表，全程協助撰寫學術論文。" },
+    "humanizer": { name: "文字自然化", desc: "改寫文字使其自然流暢、更具人味——去除 AI 風格的用語模式，同時保留原意。" },
+    "sketch": { name: "畫面示意稿", desc: "快速以 HTML 產生 2-3 種畫面或頁面的視覺示意稿，方便比較不同構想。" },
+    "arxiv": { name: "學術搜尋（arXiv）", desc: "依關鍵字、作者或類別，在 arXiv 與 Semantic Scholar 搜尋科學論文。" },
+    "polymarket": { name: "預測市場", desc: "查詢 Polymarket 預測市場的即時賠率與資料。" },
   },
   config: {
     configPath: "~/.wayne/config.yaml",

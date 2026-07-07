@@ -1,0 +1,41 @@
+# Overlay de DEPENDÊNCIAS de skills — Ondas B+C da auditoria de operabilidade
+# (docs/SKILLS-AUDITORIA.md). Camada sobre a imagem fly em uso, sem reconstruir
+# a base. As camadas de UI (Dockerfile.ui) passam a ser construídas EM CIMA
+# desta (--build-arg BASE_IMAGE=registry.fly.io/wayne-w4y:flyN-deps).
+#
+# Onda B — pips leves no VENV DO AGENTE (/opt/wayne/.venv):
+#   openpyxl               -> excel-presentations (Gerador de Excel)
+#   youtube-transcript-api -> youtube-content (Conteúdo do YouTube)
+#   pymupdf + pymupdf4llm  -> ocr-and-documents (extração de PDF/scan)
+#   markitdown[pptx]       -> powerpoint (leitura de decks; inclui python-pptx)
+#
+# Onda C — LibreOffice headless (subconjunto, sem recommends) + poppler:
+#   soffice (impress/calc/writer) -> powerpoint completo (criar + QA visual +
+#   miniaturas via pdftoppm). Sem Java (não é preciso p/ conversão headless).
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly36
+FROM ${BASE_IMAGE}
+
+USER root
+
+# Onda C — LibreOffice enxuto + poppler-utils (pdftoppm p/ miniaturas).
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+        libreoffice-impress \
+        libreoffice-calc \
+        libreoffice-writer \
+        poppler-utils \
+        fonts-liberation && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Onda B — pips leves DIRETO no venv do agente (uv já está na imagem).
+RUN uv pip install --python /opt/wayne/.venv/bin/python3 \
+        openpyxl \
+        youtube-transcript-api \
+        pymupdf \
+        pymupdf4llm \
+        "markitdown[pptx]"
+
+# Smoke checks de build: falha o build se algo não instalou.
+RUN soffice --version && \
+    pdftoppm -v 2>&1 | head -1 && \
+    /opt/wayne/.venv/bin/python3 -c "import openpyxl, fitz, pptx, youtube_transcript_api; print('py-deps OK')"
