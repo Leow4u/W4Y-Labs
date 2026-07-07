@@ -136,43 +136,34 @@ function isInternalView(): boolean {
 
 /** Habilidades expostas ao USUÁRIO (curadoria estilo Manus). A biblioteca
  *  importada tem ~70 skills, a maioria de dev/ML/nicho — mostrá-las todas
- *  sobrecarrega e foge da marca. O usuário vê só este conjunto relevante de
- *  negócio; o resto continua bundled/disponível ao agente e visível apenas na
- *  escotilha interna (?full=1). Desativar uma skill é seguro (soft-toggle), então
- *  esconder aqui é só de apresentação.
+ *  sobrecarrega e foge da marca. O usuário vê só este conjunto; o resto
+ *  continua bundled/disponível ao agente e visível apenas na escotilha interna
+ *  (?full=1). Desativar uma skill é soft-toggle (não quebra nada); esconder
+ *  aqui é só de apresentação.
  *
- *  Aqui SÓ entram skills de CAPACIDADE/MÉTODO puras (não precisam de credencial
- *  externa). Integrações credenciadas (Notion, Airtable, Google, e-mail, GIFs…)
- *  são CONECTORES (MCP), não skills — a plataforma nem deixa uma SKILL.md
- *  autenticar; elas viraram "skill-com-curl" só como atalho da lib importada.
- *  Seu lar canônico é Conectores/MCP (workstream à parte: popular o catálogo). */
+ *  Critérios: (a) capacidade/método puro — integração credenciada (Notion,
+ *  Airtable, Google…) é CONECTOR (MCP), não skill; (b) RODA no container HOJE.
+ *  Skills que dependem de ferramentas ausentes (LibreOffice, LaTeX, tesseract)
+ *  ou de pacotes pip não instalados (python-pptx, openpyxl, pymupdf, youtube-
+ *  transcript-api…) ficam FORA até instalarmos as deps — senão o usuário abre
+ *  a skill e ela falha (foi o caso do PowerPoint). Ver docs/ROADMAP.md
+ *  (auditoria de deps + Fase 1 pip / Fase 2 apt). */
 const FEATURED_SKILLS = new Set<string>([
-  // Produtividade / documentos (capacidade pura — sem credencial externa)
-  "powerpoint",
-  "excel-presentations",
-  "ocr-and-documents",
-  "nano-pdf",
-  "maps",
-  "obsidian",
-  // Criação visual
+  // Criação visual (geram HTML/SVG/JSON com ferramentas nativas do agente)
+  "architecture-diagram",
   "baoyu-infographic",
   "claude-design",
-  "architecture-diagram",
   "excalidraw",
-  // Pesquisa
+  // Utilidades (sem deps externas)
+  "maps",
+  "obsidian",
+  // Pesquisa (usa o browser tool)
   "web-research-competitive-intelligence",
-  "research-paper-writing",
-  // Mídia
-  "youtube-content",
 ]);
 
 /** Ordem fixada no TOPO da grade de Habilidades (pedido do Leonardo). As demais
  *  seguem alfabéticas por nome técnico. Vale na visão do usuário e no ?full=1. */
 const FEATURED_ORDER = [
-  "youtube-content",
-  "excel-presentations",
-  "nano-pdf",
-  "powerpoint",
   "web-research-competitive-intelligence",
 ];
 
