@@ -398,3 +398,10 @@ Future messages in this room will use that transcript until `/reset` or another 
     session_db_unavailable_prefix: "세션 데이터베이스를 사용할 수 없습니다"
     session_not_found:           "데이터베이스에서 세션을 찾을 수 없습니다."
     warn_passthrough:            "⚠️ {error}"
+
+
+# In-chat credit-usage notices (OpenRouter usage -> Work4You credits). {sym}=level glyph, {pct}=usage band (50/75/90). Percentage-based.
+credits:
+  usage:    "{sym} 이번 달 크레딧의 {pct}%를 사용했어요"
+  depleted: "✕ 크레딧이 모두 소진됐어요 — 계속하려면 요금제를 업그레이드하세요"
+  restored: "✓ 크레딧이 갱신됐어요 — 다시 사용할 수 있어요"

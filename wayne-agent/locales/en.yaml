@@ -410,3 +410,11 @@ gateway:
     session_db_unavailable_prefix: "Session database not available"
     session_not_found:           "Session not found in database."
     warn_passthrough:            "⚠️ {error}"
+
+# In-chat credit-usage notices (OpenRouter usage → Work4You credits). {sym} is a
+# level glyph (• info / ⚠ warn); {pct} the usage band (50/75/90). Percentage
+# based — never shows dollars.
+credits:
+  usage:    "{sym} You've used {pct}% of this month's credits"
+  depleted: "✕ You're out of credits — upgrade your plan to keep going"
+  restored: "✓ Credits renewed — access restored"

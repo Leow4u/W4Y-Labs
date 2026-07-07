@@ -398,3 +398,11 @@ Future messages in this room will use that transcript until `/reset` or another 
     session_db_unavailable_prefix: "Base de dados de sessões indisponível"
     session_not_found:           "Sessão não encontrada na base de dados."
     warn_passthrough:            "⚠️ {error}"
+
+# Avisos de uso de crédito no chat (uso OpenRouter → créditos Work4You). {sym} é
+# o glifo de nível (• info / ⚠ atenção); {pct} a faixa de uso (50/75/90). Base
+# percentual — nunca mostra valores em dinheiro.
+credits:
+  usage:    "{sym} Você já usou {pct}% dos créditos deste mês"
+  depleted: "✕ Seus créditos acabaram — faça upgrade do plano para continuar"
+  restored: "✓ Créditos renovados — acesso restaurado"

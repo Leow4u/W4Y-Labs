@@ -402,3 +402,10 @@ Future messages in this room will use that transcript until `/reset` or another 
     session_db_unavailable_prefix: "Níl bunachar sonraí na seisiún ar fáil"
     session_not_found:           "Seisiún gan a aimsiú sa bhunachar sonraí."
     warn_passthrough:            "⚠️ {error}"
+
+
+# In-chat credit-usage notices (OpenRouter usage -> Work4You credits). {sym}=level glyph, {pct}=usage band (50/75/90). Percentage-based.
+credits:
+  usage:    "{sym} Tá {pct}% de chreidmheasanna na míosa seo úsáidte agat"
+  depleted: "✕ Tá do chuid creidmheasanna ídithe — uasghrádaigh do phlean chun leanúint ar aghaidh"
+  restored: "✓ Creidmheasanna athnuaite — rochtain aischurtha"

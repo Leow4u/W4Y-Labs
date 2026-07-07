@@ -398,3 +398,10 @@ Future messages in this room will use that transcript until `/reset` or another 
     session_db_unavailable_prefix: "Sessie-databasis is nie beskikbaar"
     session_not_found:           "Sessie nie in databasis gevind nie."
     warn_passthrough:            "⚠️ {error}"
+
+
+# In-chat credit-usage notices (OpenRouter usage -> Work4You credits). {sym}=level glyph, {pct}=usage band (50/75/90). Percentage-based.
+credits:
+  usage:    "{sym} Jy het {pct}% van hierdie maand se krediete gebruik"
+  depleted: "✕ Jou krediete is op — dateer jou plan op om voort te gaan"
+  restored: "✓ Krediete hernu — toegang herstel"

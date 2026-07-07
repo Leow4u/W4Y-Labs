@@ -3086,6 +3086,12 @@ class AIAgent:
         EVALUATION/EMIT is a SEPARATE block that WARNS on failure (R1-M2): a bug in the
         depletion-notice path must not vanish silently under the parse swallow.
         """
+        # Work4You (OpenRouter): usage isn't on response headers — it lives behind
+        # GET /api/v1/key. Poll it (throttled, off-thread) and emit the same
+        # notice family. Short-circuits the Nous header path entirely.
+        if getattr(self, "provider", "") == "openrouter":
+            self._capture_openrouter_credits()
+            return
         # Dev test fixture (WAYNE_DEV_CREDITS_FIXTURE): inject a chosen notice state
         # each turn for repeatable testing, bypassing real headers. Throwaway scaffolding.
         try:
@@ -3195,6 +3201,74 @@ class AIAgent:
                 self._emit_notice(notice)
         except Exception:
             logger.warning("credits notice evaluation/emit failed", exc_info=True)
+
+    def _capture_openrouter_credits(self) -> None:
+        """Poll OpenRouter key usage (throttled, off-thread) and fire notices.
+
+        OpenRouter doesn't piggyback usage on response headers, so we GET
+        /api/v1/key at most once per minute. The fetch + emit run on a daemon
+        thread so the turn-completion path never blocks on network (the notice
+        delivery path is already thread-safe — the Nous session seed emits from a
+        worker thread too). Fail-open throughout — never breaks the agent loop.
+        """
+        try:
+            import time
+            if not self._credits_notices_enabled():
+                return
+            now = time.time()
+            last = getattr(self, "_or_credits_last_poll", 0.0)
+            if now - last < 60.0:  # poll OpenRouter usage at most once/min
+                return
+            self._or_credits_last_poll = now
+            api_key = (os.environ.get("OPENROUTER_API_KEY") or "").strip()
+            if not api_key:
+                return
+            import threading
+
+            def _poll() -> None:
+                try:
+                    from agent.openrouter_credits import fetch_openrouter_credits_state
+                    state = fetch_openrouter_credits_state(api_key)
+                    if state is None:
+                        return
+                    self._credits_state = state
+                    if self._credits_session_start_micros is None:
+                        self._credits_session_start_micros = state.remaining_micros
+                    self._emit_openrouter_notices()
+                except Exception:
+                    logger.debug("openrouter credits poll failed", exc_info=True)
+
+            threading.Thread(target=_poll, name="or-credits", daemon=True).start()
+        except Exception:
+            logger.debug("openrouter credits capture failed", exc_info=True)
+
+    def _emit_openrouter_notices(self) -> None:
+        """Evaluate + emit the Work4You usage notices from the OpenRouter state.
+
+        Same shape as _emit_credits_notices but routes through
+        evaluate_openrouter_notices (percentage-based, i18n copy — no dollars, no
+        Nous ``/credits`` command). Runs only when a notice consumer is bound.
+        """
+        if getattr(self, "notice_callback", None) is None and getattr(self, "notice_clear_callback", None) is None:
+            return
+        if not self._credits_notices_enabled():
+            return
+        state = getattr(self, "_credits_state", None)
+        if state is None:
+            return
+        try:
+            from agent.openrouter_credits import evaluate_openrouter_notices
+            latch = getattr(self, "_credits_latch", None)
+            if latch is None:
+                latch = self._credits_latch = {"active": set(), "seen_below_90": False, "usage_band": None}
+            # lang=None → agent.i18n.t() resolves from WAYNE_LANGUAGE / config.
+            to_show, to_clear = evaluate_openrouter_notices(state, latch)
+            for key in to_clear:        # clears FIRST …
+                self._emit_notice_clear(key)
+            for notice in to_show:      # … then shows
+                self._emit_notice(notice)
+        except Exception:
+            logger.warning("openrouter credits notice emit failed", exc_info=True)
 
     def _credits_notices_enabled(self) -> bool:
         """Whether credits notices are enabled (config display.credits_notices).

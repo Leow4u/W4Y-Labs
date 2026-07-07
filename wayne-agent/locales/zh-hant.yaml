@@ -398,3 +398,10 @@ Future messages in this room will use that transcript until `/reset` or another 
     session_db_unavailable_prefix: "工作階段資料庫無法使用"
     session_not_found:           "資料庫中找不到此工作階段。"
     warn_passthrough:            "⚠️ {error}"
+
+
+# In-chat credit-usage notices (OpenRouter usage -> Work4You credits). {sym}=level glyph, {pct}=usage band (50/75/90). Percentage-based.
+credits:
+  usage:    "{sym} 您已使用本月 {pct}% 的額度"
+  depleted: "✕ 額度已用完 — 升級方案以繼續使用"
+  restored: "✓ 額度已更新 — 已恢復存取"
