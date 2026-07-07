@@ -8,8 +8,8 @@ import { $isBlocked, $overlayState, patchOverlayState } from '../app/overlayStor
 import { $petBox } from '../app/petFlashStore.js'
 import { $uiState } from '../app/uiStore.js'
 import { usePet } from '../app/usePet.js'
-import { INLINE_MODE, SHOW_FPS, TERMUX_TUI_MODE } from '../config/env.js'
-import { PLACEHOLDER } from '../content/placeholders.js'
+import { DASHBOARD_TUI_MODE, INLINE_MODE, SHOW_FPS, TERMUX_TUI_MODE } from '../config/env.js'
+import { BUSY_PLACEHOLDER, PLACEHOLDER } from '../content/placeholders.js'
 import { prevRenderedMsg } from '../domain/blockLayout.js'
 import {
   COMPOSER_PROMPT_GAP_WIDTH,
@@ -192,18 +192,23 @@ const TranscriptPane = memo(function TranscriptPane({
               )}
 
               {row.msg.kind === 'intro' ? (
-                <Box flexDirection="column" paddingTop={1}>
-                  <Banner maxWidth={Math.max(1, composer.cols - 2)} t={ui.theme} />
+                // Curadoria: no dashboard embutido escondemos o banner pixelado
+                // WORK4YOU + painel Tools/Skills (é "coisa de terminal"); o chat
+                // abre limpo. No terminal real segue tudo como antes.
+                DASHBOARD_TUI_MODE ? null : (
+                  <Box flexDirection="column" paddingTop={1}>
+                    <Banner maxWidth={Math.max(1, composer.cols - 2)} t={ui.theme} />
 
-                  {row.msg.info && (
-                    <SessionPanel
-                      info={row.msg.info}
-                      maxWidth={Math.max(1, composer.cols - 2)}
-                      sid={ui.sid}
-                      t={ui.theme}
-                    />
-                  )}
-                </Box>
+                    {row.msg.info && (
+                      <SessionPanel
+                        info={row.msg.info}
+                        maxWidth={Math.max(1, composer.cols - 2)}
+                        sid={ui.sid}
+                        t={ui.theme}
+                      />
+                    )}
+                  </Box>
+                )
               ) : row.msg.kind === 'panel' && row.msg.panelData ? (
                 <Panel sections={row.msg.panelData.sections} t={ui.theme} title={row.msg.panelData.title} />
               ) : (
@@ -409,7 +414,7 @@ const ComposerPane = memo(function ComposerPane({
                   onChange={composer.updateInput}
                   onPaste={composer.handleTextPaste}
                   onSubmit={composer.submit}
-                  placeholder={composer.empty ? PLACEHOLDER : ui.busy ? 'Ctrl+C to interrupt…' : ''}
+                  placeholder={composer.empty ? PLACEHOLDER : ui.busy ? BUSY_PLACEHOLDER : ''}
                   value={composer.input}
                   voiceRecordKey={composer.voiceRecordKey}
                 />
@@ -457,6 +462,13 @@ const StatusRulePane = memo(function StatusRulePane({
   composer,
   status
 }: Pick<AppLayoutProps, 'composer' | 'status'> & { at: 'bottom' | 'top' }) {
+  // Curadoria: no dashboard embutido a barra "— ready │ modelo │ voice │
+  // sessions" some (o modelo vive no seletor lateral / no tier stick).
+  // DASHBOARD_TUI_MODE é uma constante de processo → early-return estável.
+  if (DASHBOARD_TUI_MODE) {
+    return null
+  }
+
   const ui = useStore($uiState)
 
   if (ui.statusBar !== at) {

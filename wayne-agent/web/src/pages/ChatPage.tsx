@@ -62,6 +62,19 @@ function generateChannelId(scope?: string): string {
 const DEFAULT_TERMINAL_BACKGROUND = "#000000";
 const DEFAULT_TERMINAL_FOREGROUND = "#f0e6d2";
 
+// Curadoria do Chat: on a light dashboard theme the terminal should blend into
+// the page (no heavy floating "terminal window" shadow); on dark themes it keeps
+// the framed look. Rec.709 luma ≥ 0.6 → treat the terminal background as light.
+function isLightHex(hex: string): boolean {
+  const m = /^#?([0-9a-fA-F]{6})$/.exec(hex.trim());
+  if (!m) return false;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  return (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255 >= 0.6;
+}
+
 function buildTerminalTheme(background: string, foreground: string) {
   return {
     background,
@@ -183,7 +196,13 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
     scope: string;
     title: string | null;
   }>({ scope: "", title: null });
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  // Passed to the PTY as ?lang= so the embedded TUI composer placeholder
+  // ("Escreva uma mensagem…") matches the dashboard UI language. A ref keeps the
+  // current value without adding `locale` to the connect effect's deps (which
+  // would reconnect the PTY on every language switch).
+  const localeRef = useRef(locale);
+  localeRef.current = locale;
   const closeMobilePanel = useCallback(() => setMobilePanelOpenRaw(false), []);
   const modelToolsLabel = useMemo(
     () => `${t.app.modelToolsSheetTitle} ${t.app.modelToolsSheetSubtitle}`,
@@ -201,6 +220,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
   const { theme } = useTheme();
   const terminalBg = theme.terminalBackground ?? DEFAULT_TERMINAL_BACKGROUND;
   const terminalFg = theme.terminalForeground ?? DEFAULT_TERMINAL_FOREGROUND;
+  const terminalIsLight = isLightHex(terminalBg);
   const terminalTheme = useMemo(
     () => buildTerminalTheme(terminalBg, terminalFg),
     [terminalBg, terminalFg],
@@ -680,6 +700,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
       const params: Record<string, string> = { channel };
       if (resumeParam) params.resume = resumeParam;
       if (forceFresh) params.fresh = "1";
+      if (localeRef.current) params.lang = localeRef.current;
       // Profile-scoped chat: the PTY child gets WAYNE_HOME pointed at the
       // selected profile, so the conversation runs with that profile's model,
       // skills, memory, and sessions (see web_server._resolve_chat_argv).
@@ -1036,7 +1057,11 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
           )}
           style={{
             backgroundColor: terminalBg,
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.4)",
+            // Cola no dashboard em tema claro; mantém a "janela de terminal"
+            // flutuante nos temas escuros (Black/Cyberpunk/Rosé).
+            boxShadow: terminalIsLight
+              ? "none"
+              : "0 8px 32px rgba(0, 0, 0, 0.4)",
           }}
         >
           <div

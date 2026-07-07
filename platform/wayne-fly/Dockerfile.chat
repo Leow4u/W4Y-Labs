@@ -1,0 +1,18 @@
+# Overlay FINO da Curadoria do Chat (Etapa A) — sobre a imagem fly pronta, sem
+# rebuild da base de 3.7GB. Troca 3 coisas:
+#   1) o SPA do dashboard  (web_dist)      — ChatPage cola o terminal no tema claro
+#   2) o bundle do TUI     (ui-tui/dist)   — esbuild AUTO-CONTIDO: banner/status
+#      escondidos + pele preto-no-branco + placeholder "Escreva uma mensagem…"
+#   3) wayne_cli/web_server.py             — ponte WAYNE_TUI_LANG (i18n do placeholder)
+#
+# Contexto de build = wayne-agent/ (onde vivem web_dist, ui-tui/dist, wayne_cli).
+# `FROM <base>` HERDA o ENTRYPOINT /init-fly da base — não precisa reaplicar init-fly.
+# NB: o `.dockerignore` do contexto wayne-agent/ exclui `ui-tui/dist/` (a base o
+# compila DENTRO do container). Por isso o dist entra por um CONTEXTO NOMEADO
+# (`--build-context uituidist=wayne-agent/ui-tui/dist`), que não é filtrado pelo
+# dockerignore do contexto principal. web_dist e web_server.py vêm do contexto normal.
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly2
+FROM ${BASE_IMAGE}
+COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+COPY --from=uituidist . /opt/wayne/ui-tui/dist
+COPY wayne_cli/web_server.py /opt/wayne/wayne_cli/web_server.py

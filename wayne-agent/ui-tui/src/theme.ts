@@ -1,3 +1,5 @@
+import { DASHBOARD_TUI_MODE } from './config/env.js'
+
 export interface ThemeColors {
   primary: string
   accent: string
@@ -346,6 +348,54 @@ export const LIGHT_THEME: Theme = {
   bannerHero: ''
 }
 
+// Embedded-dashboard palette: neutral near-black ink on white, matching the
+// platform "white" theme (#171717 ink, #fafafa terminal bg). Used ONLY when the
+// TUI runs inside the browser dashboard (WAYNE_TUI_DASHBOARD=1) — the standalone
+// terminal keeps its gold DARK_THEME. Deliberately grayscale (the white theme is
+// grayscale too); only semantic ok/warn/error carry colour, darkened to stay
+// legible on white. Curadoria do Chat (2026-07).
+export const EMBEDDED_THEME: Theme = {
+  color: {
+    primary: '#171717',
+    accent: '#171717',
+    border: '#d4d4d4',
+    text: '#171717',
+    muted: '#737373',
+    completionBg: '#f5f5f5',
+    completionCurrentBg: '#e5e5e5',
+    completionMetaBg: '#f5f5f5',
+    completionMetaCurrentBg: '#e5e5e5',
+
+    label: '#525252',
+    ok: '#157347',
+    error: '#b42318',
+    warn: '#b45309',
+
+    prompt: '#171717',
+    sessionLabel: '#737373',
+    sessionBorder: '#737373',
+
+    statusBg: '#f5f5f5',
+    statusFg: '#333333',
+    statusGood: '#157347',
+    statusWarn: '#b45309',
+    statusBad: '#c2410c',
+    statusCritical: '#b42318',
+    selectionBg: '#e5e7eb',
+
+    diffAdded: 'rgb(220,252,231)',
+    diffRemoved: 'rgb(254,226,226)',
+    diffAddedWord: 'rgb(21,115,71)',
+    diffRemovedWord: 'rgb(180,35,24)',
+    shellDollar: '#1565C0'
+  },
+
+  brand: BRAND,
+
+  bannerLogo: '',
+  bannerHero: ''
+}
+
 const TRUE_RE = /^(?:1|true|yes|on)$/
 const FALSE_RE = /^(?:0|false|no|off)$/
 
@@ -502,11 +552,13 @@ export function normalizeThemeForAnsiLightTerminal(
 
 const DEFAULT_LIGHT_MODE = detectLightMode()
 
-export const DEFAULT_THEME: Theme = normalizeThemeForAnsiLightTerminal(
-  DEFAULT_LIGHT_MODE ? LIGHT_THEME : DARK_THEME,
-  process.env,
-  DEFAULT_LIGHT_MODE
-)
+export const DEFAULT_THEME: Theme = DASHBOARD_TUI_MODE
+  ? EMBEDDED_THEME
+  : normalizeThemeForAnsiLightTerminal(
+      DEFAULT_LIGHT_MODE ? LIGHT_THEME : DARK_THEME,
+      process.env,
+      DEFAULT_LIGHT_MODE
+    )
 
 // ── Skin → Theme ─────────────────────────────────────────────────────
 
@@ -518,6 +570,24 @@ export function fromSkin(
   toolPrefix = '',
   helpHeader = ''
 ): Theme {
+  // Embedded dashboard: force the neutral light palette regardless of the
+  // tenant's skin (a dark/colourful skin would be unreadable on the white
+  // terminal). The skin's *branding* (agent name, prompt symbol) is preserved.
+  if (DASHBOARD_TUI_MODE) {
+    return {
+      ...EMBEDDED_THEME,
+      brand: {
+        name: branding.agent_name ?? EMBEDDED_THEME.brand.name,
+        icon: EMBEDDED_THEME.brand.icon,
+        prompt: cleanPromptSymbol(branding.prompt_symbol, EMBEDDED_THEME.brand.prompt),
+        welcome: branding.welcome ?? EMBEDDED_THEME.brand.welcome,
+        goodbye: branding.goodbye ?? EMBEDDED_THEME.brand.goodbye,
+        tool: toolPrefix || EMBEDDED_THEME.brand.tool,
+        helpHeader: branding.help_header ?? (helpHeader || EMBEDDED_THEME.brand.helpHeader)
+      }
+    }
+  }
+
   const d = DEFAULT_THEME
   const c = (k: string) => colors[k]
   const hasSkinColors = Object.keys(colors).length > 0

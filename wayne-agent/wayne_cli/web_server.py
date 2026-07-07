@@ -12602,6 +12602,7 @@ def _resolve_chat_argv(
     sidecar_url: Optional[str] = None,
     profile: Optional[str] = None,
     active_session_file: Optional[str] = None,
+    lang: Optional[str] = None,
 ) -> tuple[list[str], Optional[str], Optional[dict]]:
     """Resolve the argv + cwd + env for the chat PTY.
 
@@ -12662,6 +12663,22 @@ def _resolve_chat_argv(
     env.setdefault("WAYNE_TUI_DISABLE_MOUSE", "1")
     env.setdefault("WAYNE_TUI_INLINE", "1")
     env["WAYNE_TUI_DASHBOARD"] = "1"
+
+    # Curadoria do Chat: bridge the language into the embedded TUI so its
+    # composer placeholder ("Escreva uma mensagem…") localizes. The TUI is Node
+    # and can't call our Python i18n; it reads WAYNE_TUI_LANG (see
+    # ui-tui/src/content/placeholders.ts). Prefer the language the dashboard UI is
+    # actually showing (browser/localStorage, passed as ?lang= by the frontend);
+    # fall back to the agent's configured display.language. English on failure.
+    resolved_lang = (lang or "").strip()
+    if not resolved_lang:
+        try:
+            from agent.i18n import get_language as _resolve_language
+            resolved_lang = _resolve_language()
+        except Exception:
+            _log.debug("Failed to resolve language for embedded chat placeholder", exc_info=True)
+    if resolved_lang:
+        env["WAYNE_TUI_LANG"] = resolved_lang
 
     if profile_dir is not None:
         env["WAYNE_HOME"] = str(profile_dir)
@@ -12727,6 +12744,7 @@ async def _resolve_chat_argv_async(
     sidecar_url: Optional[str] = None,
     profile: Optional[str] = None,
     active_session_file: Optional[str] = None,
+    lang: Optional[str] = None,
 ) -> tuple[list[str], Optional[str], Optional[dict]]:
     """Resolve chat argv without blocking the dashboard event loop.
 
@@ -12745,6 +12763,8 @@ async def _resolve_chat_argv_async(
     }
     if active_session_file is not None:
         kwargs["active_session_file"] = active_session_file
+    if lang is not None:
+        kwargs["lang"] = lang
 
     async with _get_chat_argv_lock(app):
         return await asyncio.to_thread(
@@ -13486,6 +13506,9 @@ async def pty_ws(ws: WebSocket) -> None:
     # --- spawn PTY ------------------------------------------------------
     resume = ws.query_params.get("resume") or None
     profile = ws.query_params.get("profile") or None
+    # Curadoria do Chat: the dashboard UI language (browser/localStorage) so the
+    # embedded TUI composer placeholder matches what the rest of the UI shows.
+    lang = ws.query_params.get("lang") or None
     channel = _channel_or_close_code(ws)
     sidecar_url = _build_sidecar_url(channel) if channel else None
     force_fresh = (ws.query_params.get("fresh") or "").strip().lower() in {
@@ -13511,6 +13534,8 @@ async def pty_ws(ws: WebSocket) -> None:
     }
     if active_session_file is not None:
         resolve_kwargs["active_session_file"] = str(active_session_file)
+    if lang is not None:
+        resolve_kwargs["lang"] = lang
 
     try:
         argv, cwd, env = await _resolve_chat_argv_async(**resolve_kwargs)
