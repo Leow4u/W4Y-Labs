@@ -263,6 +263,8 @@ export default function SkillsPage() {
   const [detailSkill, setDetailSkill] = useState<string | null>(null);
   // "Criar" dropdown (open/closed).
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
+  // Busca colapsável: fechada = só a lupa; abre a caixa de texto ao clicar.
+  const [searchOpen, setSearchOpen] = useState(false);
   const createMenuRef = useRef<HTMLDivElement | null>(null);
   // Hidden file input for "Upload a skill".
   const uploadInputRef = useRef<HTMLInputElement | null>(null);
@@ -481,13 +483,19 @@ export default function SkillsPage() {
 
   const searchMatchedSkills = useMemo(() => {
     if (!isSearching) return [];
-    return displaySkills.filter(
-      (s) =>
+    return displaySkills.filter((s) => {
+      // Casa com nome técnico + descrição real E com o rótulo amigável exibido
+      // (assim buscar "gerador" acha "Gerador de Excel", o que o usuário vê).
+      const friendly = t.skillLabels[s.name];
+      return (
         s.name.toLowerCase().includes(lowerSearch) ||
         s.description.toLowerCase().includes(lowerSearch) ||
-        (s.category ?? "").toLowerCase().includes(lowerSearch),
-    );
-  }, [displaySkills, isSearching, lowerSearch]);
+        (s.category ?? "").toLowerCase().includes(lowerSearch) ||
+        (friendly?.name.toLowerCase().includes(lowerSearch) ?? false) ||
+        (friendly?.desc.toLowerCase().includes(lowerSearch) ?? false)
+      );
+    });
+  }, [displaySkills, isSearching, lowerSearch, t]);
 
   const activeSkills = useMemo(() => {
     if (isSearching) return [];
@@ -563,13 +571,10 @@ export default function SkillsPage() {
         }}
       />
 
-      {/* ── Toolbar: left slot (back / internal tabs) + actions (right) ──
-          "Todas" NÃO fica aqui para o usuário: sobra só como chip de categoria
-          (fim da redundância). As abas Todas | Conjuntos de ferramentas só
-          aparecem na escotilha interna (?full=1). No hub, um "voltar" que hoje
-          dependia da aba. */}
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-1">
+      {/* Mini-barra superior: só interno (abas Todas | Conjuntos de ferramentas)
+          ou hub (voltar). Para o usuário em Habilidades ela some. */}
+      {(view === "hub" || isInternal) && (
+        <div className="flex flex-wrap items-center gap-1">
           {view === "hub" ? (
             <Button
               size="sm"
@@ -582,7 +587,7 @@ export default function SkillsPage() {
             >
               {t.configUser.skBack}
             </Button>
-          ) : isInternal ? (
+          ) : (
             <>
               <ViewTab
                 label={`${t.skills.all} (${displaySkills.length})`}
@@ -602,33 +607,74 @@ export default function SkillsPage() {
                 }}
               />
             </>
-          ) : null}
+          )}
         </div>
+      )}
 
-        {view === "skills" && (
-          <div className="flex items-center gap-2">
-            {/* Busca (descida do header) — rotulada "Procurar habilidades".
-                Filtra as habilidades instaladas. */}
-            <div className="relative w-full min-w-0 sm:w-64">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-              <Input
-                className="h-8 rounded-none pl-8 pr-7 text-xs"
-                placeholder={t.configUser.skBrowse}
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+      {/* Linha ÚNICA (Habilidades): filtros por categoria à esquerda; à direita
+          a lupa colapsável + "Criar". Fica ACIMA da grade, então persiste
+          durante a busca. */}
+      {view === "skills" && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+            <CategoryChip
+              label={`${t.configUser.skAll} (${displaySkills.length})`}
+              active={!activeCategory}
+              onClick={() => setActiveCategory(null)}
+            />
+            {allCategories.map(({ key, name, count }) => (
+              <CategoryChip
+                key={key}
+                label={`${name} (${count})`}
+                active={activeCategory === key}
+                onClick={() =>
+                  setActiveCategory(activeCategory === key ? null : key)
+                }
               />
-              {search && (
+            ))}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {/* Busca colapsável: lupa → caixa "Procurar habilidades". Ao fechar
+                (X) ou ao sair vazia (blur), volta a ser só a lupa. */}
+            {searchOpen ? (
+              <div className="relative w-44 sm:w-56">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <Input
+                  autoFocus
+                  className="h-8 rounded-none pl-8 pr-7 text-xs"
+                  placeholder={t.configUser.skBrowse}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  onBlur={() => {
+                    if (!search) setSearchOpen(false);
+                  }}
+                />
                 <Button
                   ghost
                   size="xs"
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  onClick={() => setSearch("")}
+                  onClick={() => {
+                    setSearch("");
+                    setSearchOpen(false);
+                  }}
                   aria-label={t.common.clear}
                 >
                   <X />
                 </Button>
-              )}
-            </div>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                outlined
+                className="h-8 w-8 p-0"
+                onClick={() => setSearchOpen(true)}
+                aria-label={t.configUser.skBrowse}
+                title={t.configUser.skBrowse}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            )}
 
             {/* "Criar" dropdown (sem o ícone "+"). */}
             <div className="relative shrink-0" ref={createMenuRef}>
@@ -684,8 +730,8 @@ export default function SkillsPage() {
               )}
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="min-w-0">
         {isSearching ? (
@@ -711,28 +757,8 @@ export default function SkillsPage() {
             </div>
           )
         ) : view === "skills" ? (
-          /* Skills — category chips + mini-card grid. */
+          /* Skills — grade de mini-cards (chips + ações já na linha única acima). */
           <div className="flex flex-col gap-3">
-            {allCategories.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1.5">
-                <CategoryChip
-                  label={`${t.configUser.skAll} (${displaySkills.length})`}
-                  active={!activeCategory}
-                  onClick={() => setActiveCategory(null)}
-                />
-                {allCategories.map(({ key, name, count }) => (
-                  <CategoryChip
-                    key={key}
-                    label={`${name} (${count})`}
-                    active={activeCategory === key}
-                    onClick={() =>
-                      setActiveCategory(activeCategory === key ? null : key)
-                    }
-                  />
-                ))}
-              </div>
-            )}
-
             {activeSkills.length === 0 ? (
               <Card className="rounded-none">
                 <CardContent className="py-10 text-center text-sm text-muted-foreground">
