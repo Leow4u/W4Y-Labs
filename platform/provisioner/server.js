@@ -1,8 +1,10 @@
 // Serviço provisionador da Work4You (Fase 3+): as "mãos no Fly" da
 // plataforma. A casca (Cloud Run) não roda flyctl; este app (Fly, sempre
 // aceso, org token) executa as operações de frota:
-//   POST /provision {tenantId, slug, email, plan, trialUsd}  (async → callback)
-//   POST /archive   {app, tenantId}                          (snapshot+destroy)
+//   POST /provision  {tenantId, slug, email, plan, trialUsd}  (async → callback)
+//   POST /archive    {app, tenantId}                          (snapshot+destroy)
+//   POST /reconfigure{app, plan}                              (regime base/premium)
+//   POST /ensure-key {app, tenantId, limitUsd}  → {hash}      (cria+injeta chave capada)
 //   GET  /healthz
 // Não toca no banco: a CASCA é dona do registry. O /provision devolve o
 // resultado por callback assinado (HMAC) em CASCA_URL/onboarding/complete.
@@ -20,10 +22,20 @@ const ORG = process.env.FLY_ORG || "personal";
 const REGION = process.env.FLY_REGION || "gru";
 const OR_PROV = process.env.OPENROUTER_PROVISIONING_KEY || "";
 
+// Redige segredos de qualquer string (erro/log). flyctl recebe os secrets como
+// `KEY=value` no argv e os ecoa em erros — sem isto, a runtime key OpenRouter (e
+// senha/secret do dashboard) vazariam no callback e seriam persistidas no
+// registry. Centralizado aqui p/ nenhum caller poder encaminhar cru por acidente.
+function redact(s) {
+  return String(s)
+    .replace(/(\b[\w-]*(?:KEY|PASSWORD|SECRET|TOKEN)=)\S+/gi, "$1***")
+    .replace(/sk-or-[A-Za-z0-9._-]+/g, "sk-or-***");
+}
+
 function sh(cmd, args, opts = {}) {
   return new Promise((resolve, reject) => {
     execFile(cmd, args, { timeout: 300000, maxBuffer: 1 << 24, ...opts }, (err, stdout, stderr) => {
-      if (err) return reject(new Error(`${cmd} ${args.join(" ")} → ${stderr || err.message}`));
+      if (err) return reject(new Error(redact(`${cmd} ${args.join(" ")} → ${stderr || err.message}`)));
       resolve(stdout.toString());
     });
   });
@@ -135,6 +147,25 @@ async function reconfigure({ app, plan }) {
   await fly("deploy", "-c", tomlPath, "-a", app, "--image", IMAGE, "--ha=false", "--regions", REGION);
 }
 
+// Seta o secret OPENROUTER_API_KEY na máquina Fly do tenant. Sem --stage: aplica
+// de imediato e reinicia a máquina, então o agente sobe usando a chave capada.
+// A redação de segredos é global (sh()) — o erro nunca traz a key crua.
+async function injectKey(app, key) {
+  await fly("secrets", "set", "-a", app, `OPENROUTER_API_KEY=${key}`);
+}
+
+// Fonte ÚNICA da chave capada: cria a runtime key OpenRouter (limite = teto) E a
+// injeta no app, atomicamente; devolve só o hash. A key crua NUNCA sai daqui (a
+// casca não a vê) — elimina o transporte da key pela rede. Idempotente o
+// bastante p/ retry: repetir cria uma chave nova e re-seta o secret (a anterior,
+// que nunca foi usada, fica órfã e inofensiva).
+async function ensureKey({ app, tenantId, limitUsd }) {
+  if (!app || !tenantId) throw new Error("app e tenantId obrigatorios");
+  const or = await createOpenRouterKey(tenantId, limitUsd);
+  await injectKey(app, or.key);
+  return or.hash;
+}
+
 async function archive({ app }) {
   // Snapshot de segurança (retenção padrão do Fly) e destruição total do app
   // (para todo custo: máquina + volume + Tigris). Restaurável do snapshot.
@@ -159,9 +190,14 @@ const server = http.createServer(async (req, res) => {
   if (req.url === "/healthz") { res.writeHead(200); return res.end("ok"); }
   if (req.method !== "POST") { res.writeHead(405); return res.end(); }
   const raw = await readBody(req);
-  // auth: assinatura HMAC do corpo (mesma chave que a casca usa)
-  const sig = req.headers["x-provisioner-sig"] || "";
-  if (!SECRET || sign(raw) !== sig) { res.writeHead(401); return res.end("bad_sig"); }
+  // auth: assinatura HMAC do corpo (mesma chave que a casca usa). Comparação
+  // constant-time (espelha verifyProvisionerSig do cliente) — evita timing
+  // side-channel na verificação da assinatura que libera /ensure-key.
+  const sig = String(req.headers["x-provisioner-sig"] || "");
+  const expected = SECRET ? sign(raw) : "";
+  const sigOk = !!SECRET && sig.length === expected.length &&
+    crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(sig));
+  if (!sigOk) { res.writeHead(401); return res.end("bad_sig"); }
   let body;
   try { body = JSON.parse(raw); } catch { res.writeHead(400); return res.end("bad_json"); }
 
@@ -178,6 +214,12 @@ const server = http.createServer(async (req, res) => {
   }
   if (req.url === "/reconfigure") {
     try { await reconfigure(body); res.writeHead(200); res.end(JSON.stringify({ ok: true })); }
+    catch (e) { res.writeHead(500); res.end(JSON.stringify({ error: String(e.message) })); }
+    return;
+  }
+  if (req.url === "/ensure-key") {
+    // sh() redige segredos do erro; seguro ecoar e.message aqui.
+    try { const hash = await ensureKey(body); res.writeHead(200); res.end(JSON.stringify({ ok: true, hash })); }
     catch (e) { res.writeHead(500); res.end(JSON.stringify({ error: String(e.message) })); }
     return;
   }
