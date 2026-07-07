@@ -67,10 +67,12 @@ export const zh: Translations = {
     },
     nav: {
       analytics: "分析",
+      channels: "频道",
       chat: "对话",
       config: "配置",
       cron: "定时任务",
       documentation: "文档",
+      files: "文件",
       keys: "密钥",
       logs: "日志",
       models: "模型",

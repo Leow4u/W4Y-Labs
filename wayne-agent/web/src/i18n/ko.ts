@@ -68,10 +68,12 @@ export const ko: Translations = {
     },
     nav: {
       analytics: "분석",
+      channels: "채널",
       chat: "채팅",
       config: "설정",
-      cron: "Cron",
+      cron: "예약 작업",
       documentation: "문서",
+      files: "파일",
       keys: "키",
       logs: "로그",
       models: "모델",

@@ -68,10 +68,12 @@ export const hu: Translations = {
     },
     nav: {
       analytics: "Analitika",
+      channels: "Csatornák",
       chat: "Csevegés",
       config: "Beállítások",
-      cron: "Cron",
+      cron: "Ütemezés",
       documentation: "Dokumentáció",
+      files: "Fájlok",
       keys: "Kulcsok",
       logs: "Naplók",
       models: "Modellek",

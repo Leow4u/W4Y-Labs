@@ -68,10 +68,12 @@ export const ga: Translations = {
     },
     nav: {
       analytics: "Anailís",
+      channels: "Cainéil",
       chat: "Comhrá",
       config: "Cumraíocht",
-      cron: "Cron",
+      cron: "Sceideal",
       documentation: "Doiciméadú",
+      files: "Comhaid",
       keys: "Eochracha",
       logs: "Logaí",
       models: "Samhlacha",

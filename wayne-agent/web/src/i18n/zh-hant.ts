@@ -68,10 +68,12 @@ export const zhHant: Translations = {
     },
     nav: {
       analytics: "分析",
+      channels: "頻道",
       chat: "對話",
       config: "設定",
-      cron: "排程任務",
+      cron: "排程",
       documentation: "文件",
+      files: "檔案",
       keys: "金鑰",
       logs: "日誌",
       models: "模型",

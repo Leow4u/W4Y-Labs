@@ -68,10 +68,12 @@ export const pt: Translations = {
     },
     nav: {
       analytics: "Análise",
+      channels: "Canais",
       chat: "Chat",
       config: "Configuração",
-      cron: "Cron",
+      cron: "Agenda",
       documentation: "Documentação",
+      files: "Arquivos",
       keys: "Chaves",
       logs: "Registros",
       models: "Modelos",

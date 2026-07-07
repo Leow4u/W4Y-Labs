@@ -88,10 +88,12 @@ export interface Translations {
     };
     nav: {
       analytics: string;
+      channels: string;
       chat: string;
       config: string;
       cron: string;
       documentation: string;
+      files: string;
       keys: string;
       logs: string;
       models: string;

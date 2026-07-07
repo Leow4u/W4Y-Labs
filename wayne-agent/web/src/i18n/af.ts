@@ -68,10 +68,12 @@ export const af: Translations = {
     },
     nav: {
       analytics: "Analise",
+      channels: "Kanale",
       chat: "Klets",
       config: "Konfigurasie",
-      cron: "Cron",
+      cron: "Skedule",
       documentation: "Dokumentasie",
+      files: "Lêers",
       keys: "Sleutels",
       logs: "Logs",
       models: "Modelle",

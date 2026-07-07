@@ -68,10 +68,12 @@ export const uk: Translations = {
     },
     nav: {
       analytics: "Аналітика",
+      channels: "Канали",
       chat: "Чат",
       config: "Конфігурація",
-      cron: "Cron",
+      cron: "Розклад",
       documentation: "Документація",
+      files: "Файли",
       keys: "Ключі",
       logs: "Журнали",
       models: "Моделі",
