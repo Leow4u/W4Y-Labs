@@ -6,7 +6,7 @@ import {
   verifyStripeSignature, planByPriceId, planRegime, renewTenantCredits,
   PLANS, provisionTenantKey, type Plan,
 } from "@/lib/billing";
-import { requestReconfigure } from "@/lib/provisioner";
+import { requestReconfigure, requestEnsureKey } from "@/lib/provisioner";
 
 export const dynamic = "force-dynamic";
 
@@ -126,27 +126,69 @@ async function activate(
   const previousPlan = (prev?.plan ?? "free") as Plan;
 
   let keyHash = existingHash;
-  try {
-    const prov = await provisionTenantKey({
-      tenantId: opts.tenantId,
-      creditsUsd: def.creditsUsd,
-      existingHash,
-    });
-    keyHash = prov.hash;
-    // TODO(provisionador Fase 3): injetar prov.key como secret na máquina Fly
-    // do tenant (OPENROUTER_API_KEY). No MVP single-tenant guardamos só o hash.
-  } catch {
-    /* provisionamento falhou — mantém o registro; retry manual/observabilidade */
+  // se já havia chave, ela já está como secret na máquina (injetada no
+  // onboarding/ativação anterior); re-limites não trocam a chave.
+  let keyInjected = existingHash != null;
+  if (existingHash) {
+    // MESMA chave: só reajusta o limite ao novo plano (casca; sem reinjeção —
+    // o valor da chave não muda). Se falhar, a chave segue na máquina e o
+    // limite pega na próxima renovação/evento.
+    try {
+      const prov = await provisionTenantKey({
+        tenantId: opts.tenantId,
+        creditsUsd: def.creditsUsd,
+        existingHash,
+      });
+      keyHash = prov.hash;
+    } catch {
+      /* re-limite falhou — chave (mesmo valor) segue capada na máquina */
+    }
+  } else if (def.creditsUsd > 0) {
+    // Chave NOVA capada: o provisionador é a FONTE ÚNICA — cria E injeta e
+    // devolve o hash (a key crua nunca chega aqui). MAS só quando a instância
+    // está 'ready': se ainda está provisionando, o onboarding está em voo
+    // criando a chave de TRIAL, e criar a paga agora faria as duas competirem
+    // pelo secret da máquina (corrida de chave dupla). Nesse caso DIFERIMOS —
+    // a máquina roda na chave de trial (capada, seguro) até o reconciliador
+    // (internal/reconcile-keys, que só toca instâncias 'ready') aplicar o teto
+    // pago. Assim nunca fica SEM teto e nunca há corrida.
+    const inst = await database.execute(
+      sql`SELECT fly_app, status FROM instances WHERE tenant_id=${opts.tenantId} LIMIT 1`,
+    );
+    const row = inst.rows[0] as { fly_app: string | null; status: string } | undefined;
+    const app = row?.fly_app ?? null;
+    const ready = row?.status === "ready";
+    if (app && ready) {
+      const newHash = await requestEnsureKey(app, opts.tenantId, def.creditsUsd);
+      if (newHash) {
+        keyHash = newHash;
+        keyInjected = true;
+      } else {
+        keyInjected = false; // provisionador falhou → key_injected_at NULL → reconciliador repara
+        console.error(
+          `[billing] chave capada nao injetada tenant=${opts.tenantId} app=${app} plan=${opts.plan}`,
+        );
+      }
+    } else {
+      // Instância provisionando / sem app → difere p/ o reconciliador (evita a
+      // corrida com a chave de trial do onboarding). key_injected_at fica NULL.
+      keyInjected = false;
+      console.error(
+        `[billing] ativacao diferida (instancia nao-ready) tenant=${opts.tenantId} status=${row?.status ?? "none"} plan=${opts.plan}`,
+      );
+    }
   }
 
+  const injectedAt = keyInjected ? sql`now()` : sql`NULL`;
   await database.execute(sql`
-    INSERT INTO billing (tenant_id, plan, status, stripe_customer_id, stripe_subscription_id, openrouter_key_hash, monthly_credits_usd, updated_at)
-    VALUES (${opts.tenantId}, ${opts.plan}, 'active', ${opts.customer}, ${opts.subscription}, ${keyHash}, ${def.creditsUsd}, now())
+    INSERT INTO billing (tenant_id, plan, status, stripe_customer_id, stripe_subscription_id, openrouter_key_hash, key_injected_at, monthly_credits_usd, updated_at)
+    VALUES (${opts.tenantId}, ${opts.plan}, 'active', ${opts.customer}, ${opts.subscription}, ${keyHash}, ${injectedAt}, ${def.creditsUsd}, now())
     ON CONFLICT (tenant_id) DO UPDATE SET
       plan=EXCLUDED.plan, status='active',
       stripe_customer_id=EXCLUDED.stripe_customer_id,
       stripe_subscription_id=EXCLUDED.stripe_subscription_id,
       openrouter_key_hash=EXCLUDED.openrouter_key_hash,
+      key_injected_at=EXCLUDED.key_injected_at,
       monthly_credits_usd=EXCLUDED.monthly_credits_usd,
       updated_at=now()
   `);

@@ -133,6 +133,11 @@ export const billing = pgTable("billing", {
   // runtime key OpenRouter provisionada p/ este tenant (guardamos só o hash;
   // o valor da chave vai como secret na máquina Fly do tenant, nunca no DB).
   openrouterKeyHash: text("openrouter_key_hash"),
+  // quando a chave capada foi CONFIRMADA como secret na máquina Fly. NULL =
+  // injeção pendente (falhou/instância não pronta) → o reconciliador
+  // (internal/reconcile-keys) repara. É a garantia de que o teto rígido chegou
+  // de fato na instância, não só no registro.
+  keyInjectedAt: timestamp("key_injected_at", { withTimezone: true }),
   monthlyCreditsUsd: numeric("monthly_credits_usd", { precision: 12, scale: 2 }),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

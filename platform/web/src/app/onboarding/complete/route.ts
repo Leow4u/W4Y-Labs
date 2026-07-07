@@ -37,7 +37,12 @@ export async function POST(req: NextRequest) {
     WHERE tenant_id=${body.tenantId}
   `);
   if (body.openrouterKeyHash) {
-    await database.execute(sql`UPDATE billing SET openrouter_key_hash=${body.openrouterKeyHash} WHERE tenant_id=${body.tenantId}`);
+    // Grava o hash da chave de trial do onboarding — MAS só se a ativação de
+    // plano ainda não injetou uma chave paga (key_injected_at NULL). Sem isso, o
+    // callback do onboarding poderia clobberar a chave paga na corrida.
+    await database.execute(
+      sql`UPDATE billing SET openrouter_key_hash=${body.openrouterKeyHash} WHERE tenant_id=${body.tenantId} AND key_injected_at IS NULL`,
+    );
   }
   return NextResponse.json({ ok: true });
 }
