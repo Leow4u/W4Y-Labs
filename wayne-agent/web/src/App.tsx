@@ -207,6 +207,21 @@ const BUILTIN_NAV_REST: NavItem[] = [
   },
 ];
 
+// Curadoria (frontend de produto): a navegação do USUÁRIO é curta e focada —
+// só as telas com coração de produto. A visão técnica/admin completa (todas as
+// telas: Analytics, Models, Logs, Plugins, MCP, Webhooks, Pairing, Profiles,
+// Keys, System, Docs) aparece atrás da escotilha interna `?full=1` — o mesmo
+// mecanismo já usado por Config (ConfigUser↔ConfigPage) e Skills (featured↔full).
+// As rotas continuam todas montadas (deep-link admin); só o item de nav some.
+const USER_NAV_PATHS = new Set<string>([
+  "/chat",
+  "/sessions",
+  "/files",
+  "/cron",
+  "/skills",
+  "/channels",
+]);
+
 const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
   Activity,
   BarChart3,
@@ -437,14 +452,21 @@ export default function App() {
     [embeddedChat],
   );
 
+  // Escotilha interna (?full=1) revela a navegação técnica/admin completa —
+  // reusa o mesmo gate de Config/Skills. Sem ela, a sidebar mostra só a nav
+  // curada de produto (USER_NAV_PATHS).
+  const internalView = isFullConfigRequested();
+
   const builtinNav = useMemo(() => {
     const base = embeddedChat
       ? [CHAT_NAV_ITEM, ...BUILTIN_NAV_REST]
       : BUILTIN_NAV_REST;
-    return showTokenAnalytics
+    const withAnalytics = showTokenAnalytics
       ? base
       : base.filter((n) => n.path !== "/analytics");
-  }, [embeddedChat, showTokenAnalytics]);
+    if (internalView) return withAnalytics;
+    return withAnalytics.filter((n) => USER_NAV_PATHS.has(n.path));
+  }, [embeddedChat, showTokenAnalytics, internalView]);
 
   const sidebarNav = useMemo(
     () => partitionSidebarNav(builtinNav, manifests),

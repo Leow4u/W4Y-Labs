@@ -88,6 +88,7 @@ export default defineConfig({
     emptyOutDir: true,
   },
   server: {
+    port: Number(process.env.PORT) || 5173,
     proxy: {
       "/api": {
         target: BACKEND,
