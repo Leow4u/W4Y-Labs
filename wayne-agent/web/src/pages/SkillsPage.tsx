@@ -165,6 +165,7 @@ const FEATURED_SKILLS = new Set<string>([
   // Pesquisa
   "web-research-competitive-intelligence",
   "arxiv",
+  "research-paper-writing",
   "polymarket",
   // Mídia
   "youtube-content",
