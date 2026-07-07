@@ -552,9 +552,9 @@ export default function App() {
         </Button>
 
         <img
-          src="/brand/work4you-logo.svg"
+          src="/brand/work4you-favicon.svg"
           alt={t.app.brand}
-          className="h-[30px] w-auto select-none"
+          className="h-[34px] w-auto select-none"
           draggable={false}
         />
       </header>
@@ -612,9 +612,9 @@ export default function App() {
 
                 {/* Logo Work4You — lockup oficial da marca (ícone + wordmark IBM Plex Mono). */}
                 <img
-                  src="/brand/work4you-logo.svg"
+                  src="/brand/work4you-favicon.svg"
                   alt={t.app.brand}
-                  className="h-11 w-auto select-none"
+                  className="h-12 w-auto select-none"
                   draggable={false}
                 />
               </div>
