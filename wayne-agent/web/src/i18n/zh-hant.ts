@@ -372,6 +372,21 @@ export const zhHant: Translations = {
     more: "還有 {count} 個",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel 表格生成", desc: "生成兼顧美觀與數據分析的專業 Excel 表格，支援色塊、合併儲存格與主題樣式。" },
+    "powerpoint": { name: "PowerPoint 簡報生成", desc: "建立、讀取並編輯 .pptx 簡報，涵蓋投影片、備註與範本。" },
+    "youtube-content": { name: "YouTube 內容轉製", desc: "將 YouTube 影片轉為結構化內容：逐字稿、摘要、主題與部落格文章。" },
+    "baoyu-infographic": { name: "資訊圖表生成", desc: "將內容轉為視覺化資訊圖表，提供數十種版面配置與風格。" },
+    "claude-design": { name: "網頁與簡報設計", desc: "依描述打造客製化 HTML 成品，包含到達頁、簡報與原型。" },
+    "architecture-diagram": { name: "架構圖繪製", desc: "產生架構、雲端與基礎設施的 SVG 圖表，可直接用於文件。" },
+    "excalidraw": { name: "手繪風圖表", desc: "以 Excalidraw 手繪風格生成流程、架構與時序圖。" },
+    "ocr-and-documents": { name: "OCR 文件擷取", desc: "從 PDF 與掃描影像擷取文字，讓文件可搜尋、可編輯。" },
+    "nano-pdf": { name: "PDF 編輯", desc: "以自然語言指令編輯 PDF 內文、標題並修正錯字。" },
+    "maps": { name: "地圖與路線", desc: "地址定位、搜尋景點、計算路線與時區（基於 OpenStreetMap）。" },
+    "obsidian": { name: "Obsidian 筆記", desc: "讀取、搜尋、建立並編輯你 Obsidian 知識庫中的筆記。" },
+    "web-research-competitive-intelligence": { name: "市場與競品調研", desc: "透過網路研究洞察企業策略、競爭對手、產品發表與市場情報。" },
+    "research-paper-writing": { name: "學術論文撰寫", desc: "從構思規劃到投稿發表，全程協助撰寫學術論文。" },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "篩選",

@@ -373,6 +373,21 @@ export const af: Translations = {
     more: "+{count} meer",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel-bouer", desc: "Professionele Excel-sigblaaie met die klem op estetika en data-ontleding — gekleurde blokke, saamgevoegde selle, temas." },
+    "powerpoint": { name: "PowerPoint-bouer", desc: "Skep, lees en redigeer .pptx-aanbiedings — skyfies, notas en sjablone." },
+    "youtube-content": { name: "YouTube-inhoud", desc: "Verander YouTube-video's in gestruktureerde inhoud: transkripsies, opsommings, onderwerpe en blogplasings." },
+    "baoyu-infographic": { name: "Infografika-bouer", desc: "Verander inhoud in visuele infografika met tientalle uitlegte en style." },
+    "claude-design": { name: "Bladsy- en Skyfie-ontwerp", desc: "Skep pasgemaakte HTML-artefakte — bestemmingsbladsye, skyfiestelle en prototipes — uit 'n beskrywing." },
+    "architecture-diagram": { name: "Argitektuurdiagramme", desc: "Argitektuur-, wolk- en infrastruktuurdiagramme in SVG, gereed vir dokumentasie." },
+    "excalidraw": { name: "Handgetekende Diagramme", desc: "Genereer diagramme in handgetekende styl (vloei, argitektuur, volgorde) in die Excalidraw-styl." },
+    "ocr-and-documents": { name: "OCR en Dokumentonttrekking", desc: "Onttrek teks uit PDF's en geskandeerde beelde en maak dokumente deursoekbaar en redigeerbaar." },
+    "nano-pdf": { name: "PDF-redigeerder", desc: "Redigeer teks en titels en herstel tikfoute in PDF's met natuurliketaal-instruksies." },
+    "maps": { name: "Kaarte en Roetes", desc: "Geokodeer adresse, vind belangepunte, bereken roetes en tydsones (op OpenStreetMap gebaseer)." },
+    "obsidian": { name: "Obsidian-notas", desc: "Lees, deursoek, skep en redigeer notas in jou Obsidian-kluis." },
+    "web-research-competitive-intelligence": { name: "Mark- en Mededingernavorsing", desc: "Ondersoek maatskappystrategieë, mededingers, bekendstellings en markintelligensie deur webnavorsing." },
+    "research-paper-writing": { name: "Wetenskaplike Skryfwerk", desc: "Ondersteun die skryf van akademiese artikels, van beplanning tot indiening." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filters",

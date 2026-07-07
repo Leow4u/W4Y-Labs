@@ -445,6 +445,11 @@ export interface Translations {
     managingProfile?: string;
   };
 
+  // ── Rótulos amigáveis das habilidades em destaque (nome + resumo curto).
+  //    Camada só de EXIBIÇÃO: o SKILL.md fica intocado; o card/modal mostram
+  //    isto quando existe, senão caem no nome técnico. Chave = nome técnico. ──
+  skillLabels: Record<string, { name: string; desc: string }>;
+
   // ── Config page ──
   config: {
     configPath: string;

@@ -373,6 +373,21 @@ export const it: Translations = {
     more: "+{count} in più",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Generatore Excel", desc: "Fogli di calcolo Excel professionali curati nell'estetica e nell'analisi dei dati: blocchi colorati, celle unite, temi." },
+    "powerpoint": { name: "Generatore PowerPoint", desc: "Crea, leggi e modifica presentazioni .pptx: diapositive, note e modelli." },
+    "youtube-content": { name: "Contenuti da YouTube", desc: "Trasforma i video di YouTube in contenuti strutturati: trascrizioni, riassunti, argomenti e articoli." },
+    "baoyu-infographic": { name: "Generatore di Infografiche", desc: "Trasforma i contenuti in infografiche visive con decine di layout e stili." },
+    "claude-design": { name: "Design Pagine e Slide", desc: "Crea artefatti HTML su misura (landing page, presentazioni e prototipi) a partire da una descrizione." },
+    "architecture-diagram": { name: "Diagrammi di Architettura", desc: "Diagrammi di architettura, cloud e infrastruttura in SVG, pronti per la documentazione." },
+    "excalidraw": { name: "Diagrammi Disegnati a Mano", desc: "Genera diagrammi in stile disegnato a mano (flussi, architetture, sequenze) in stile Excalidraw." },
+    "ocr-and-documents": { name: "OCR ed Estrazione Documenti", desc: "Estrai il testo da PDF e immagini scansionate, rendendo i documenti ricercabili e modificabili." },
+    "nano-pdf": { name: "Editor PDF", desc: "Modifica testi e titoli e correggi refusi nei PDF con istruzioni in linguaggio naturale." },
+    "maps": { name: "Mappe e Percorsi", desc: "Geocodifica indirizzi, trova punti di interesse, calcola percorsi e fusi orari (basato su OpenStreetMap)." },
+    "obsidian": { name: "Note Obsidian", desc: "Leggi, cerca, crea e modifica le note nel tuo vault di Obsidian." },
+    "web-research-competitive-intelligence": { name: "Ricerca Mercato e Concorrenza", desc: "Indaga strategie aziendali, concorrenti, lanci e intelligence di mercato tramite ricerche sul web." },
+    "research-paper-writing": { name: "Scrittura Paper Scientifici", desc: "Supporto alla stesura di articoli accademici, dalla pianificazione alla pubblicazione." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filtri",

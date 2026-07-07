@@ -374,6 +374,21 @@ export const fr: Translations = {
     more: "+{count} de plus",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Générateur Excel", desc: "Feuilles de calcul Excel professionnelles, soignées et pensées pour l'analyse : blocs colorés, cellules fusionnées, thèmes." },
+    "powerpoint": { name: "Générateur PowerPoint", desc: "Créez, lisez et modifiez des présentations .pptx : diapositives, notes et modèles." },
+    "youtube-content": { name: "Contenu YouTube", desc: "Transformez les vidéos YouTube en contenu structuré : transcriptions, résumés, thèmes et articles de blog." },
+    "baoyu-infographic": { name: "Générateur d'infographies", desc: "Transformez votre contenu en infographies visuelles, avec des dizaines de mises en page et de styles." },
+    "claude-design": { name: "Pages et présentations", desc: "Créez des artefacts HTML sur mesure — landing pages, présentations et prototypes — à partir d'une simple description." },
+    "architecture-diagram": { name: "Schémas d'architecture", desc: "Schémas d'architecture, de cloud et d'infrastructure en SVG, prêts pour votre documentation." },
+    "excalidraw": { name: "Schémas dessinés à la main", desc: "Générez des schémas au style dessiné à la main (flux, architecture, séquences) dans le style Excalidraw." },
+    "ocr-and-documents": { name: "OCR et extraction", desc: "Extrayez le texte des PDF et des images scannées pour rendre vos documents consultables et modifiables." },
+    "nano-pdf": { name: "Éditeur PDF", desc: "Modifiez le texte et les titres, et corrigez les fautes dans vos PDF par simples instructions en langage naturel." },
+    "maps": { name: "Cartes et itinéraires", desc: "Géocodez des adresses, trouvez des points d'intérêt, calculez itinéraires et fuseaux horaires (basé sur OpenStreetMap)." },
+    "obsidian": { name: "Notes Obsidian", desc: "Lisez, recherchez, créez et modifiez les notes de votre coffre Obsidian." },
+    "web-research-competitive-intelligence": { name: "Veille concurrentielle", desc: "Analysez les stratégies d'entreprise, les concurrents, les lancements et le marché grâce à la recherche web." },
+    "research-paper-writing": { name: "Rédaction d'articles scientifiques", desc: "Un accompagnement pour rédiger vos articles universitaires, de la planification à la soumission." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filtres",

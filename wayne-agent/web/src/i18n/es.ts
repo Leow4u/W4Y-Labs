@@ -374,6 +374,21 @@ export const es: Translations = {
     more: "+{count} más",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Generador de Excel", desc: "Hojas de cálculo de Excel profesionales, cuidando la estética y el análisis de datos: bloques de color, celdas combinadas y temas." },
+    "powerpoint": { name: "Generador de PowerPoint", desc: "Crea, lee y edita presentaciones .pptx: diapositivas, notas y plantillas." },
+    "youtube-content": { name: "Contenido de YouTube", desc: "Convierte videos de YouTube en contenido estructurado: transcripciones, resúmenes, temas y artículos de blog." },
+    "baoyu-infographic": { name: "Generador de Infografías", desc: "Convierte tu contenido en infografías visuales con docenas de diseños y estilos." },
+    "claude-design": { name: "Diseño de Páginas y Presentaciones", desc: "Crea artefactos HTML a medida (landing pages, presentaciones y prototipos) a partir de una descripción." },
+    "architecture-diagram": { name: "Diagramas de Arquitectura", desc: "Diagramas de arquitectura, nube e infraestructura en SVG, listos para tu documentación." },
+    "excalidraw": { name: "Diagramas Dibujados a Mano", desc: "Genera diagramas con estilo dibujado a mano (flujos, arquitectura, secuencias) al estilo Excalidraw." },
+    "ocr-and-documents": { name: "OCR y Extracción de Documentos", desc: "Extrae texto de PDF e imágenes escaneadas para que tus documentos sean buscables y editables." },
+    "nano-pdf": { name: "Editor de PDF", desc: "Edita texto, títulos y corrige erratas en PDF con instrucciones en lenguaje natural." },
+    "maps": { name: "Mapas y Rutas", desc: "Geocodifica direcciones, encuentra puntos de interés y calcula rutas y zonas horarias (basado en OpenStreetMap)." },
+    "obsidian": { name: "Notas de Obsidian", desc: "Lee, busca, crea y edita notas en tu bóveda de Obsidian." },
+    "web-research-competitive-intelligence": { name: "Investigación de Mercado y Competencia", desc: "Investiga estrategias de empresas, competidores, lanzamientos e inteligencia de mercado mediante búsquedas en la web." },
+    "research-paper-writing": { name: "Redacción de Artículos Científicos", desc: "Apoyo en la redacción de artículos académicos, desde la planificación hasta el envío." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filtros",

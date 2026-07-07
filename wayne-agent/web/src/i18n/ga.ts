@@ -381,6 +381,21 @@ export const ga: Translations = {
     more: "+{count} eile",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Gineadóir Excel", desc: "Scarbhileoga Excel gairmiúla dírithe ar an gcuma agus ar anailís sonraí — bloic dhaite, cealla cumaiscthe agus téamaí." },
+    "powerpoint": { name: "Gineadóir PowerPoint", desc: "Cruthaigh, léigh agus cuir in eagar cur i láthair .pptx — sleamhnáin, nótaí agus teimpléid." },
+    "youtube-content": { name: "Ábhar YouTube", desc: "Déan ábhar struchtúrtha as físeáin YouTube: tras-scríbhinní, achoimrí, topaicí agus postálacha blaig." },
+    "baoyu-infographic": { name: "Gineadóir Infreagrafaic", desc: "Iompaigh ábhar ina infreagrafaicí amhairc le mórán leaganacha amach agus stíleanna." },
+    "claude-design": { name: "Dearadh Leathanaigh is Sleamhnán", desc: "Cruthaigh déantáin HTML shaincheaptha — leathanaigh tuirlingthe, cur i láthair agus fréamhshamhlacha — as cur síos." },
+    "architecture-diagram": { name: "Léaráidí Ailtireachta", desc: "Léaráidí ailtireachta, néil agus bonneagair in SVG, réidh don doiciméadú." },
+    "excalidraw": { name: "Léaráidí Lámhtharraingthe", desc: "Gin léaráidí ar stíl lámhtharraingthe (sreabha, ailtireacht, seicheamh) i stíl Excalidraw." },
+    "ocr-and-documents": { name: "OCR is Baint Cháipéisí", desc: "Bain téacs as comhaid PDF agus íomhánna scanáilte, rud a fhágann cáipéisí inchuardaithe agus ineagarthóireachta." },
+    "nano-pdf": { name: "Eagarthóir PDF", desc: "Cuir téacs is teidil in eagar agus ceartaigh botúin chló i gcomhaid PDF le treoracha gnáth-theanga." },
+    "maps": { name: "Léarscáileanna is Bealaí", desc: "Geochódaigh seoltaí, aimsigh láithreacha suime, ríomh bealaí agus criosanna ama (bunaithe ar OpenStreetMap)." },
+    "obsidian": { name: "Nótaí Obsidian", desc: "Léigh, cuardaigh, cruthaigh agus cuir in eagar nótaí i do dhaingean Obsidian." },
+    "web-research-competitive-intelligence": { name: "Taighde Margaidh is Iomaitheoirí", desc: "Fiosraigh straitéisí cuideachtaí, iomaitheoirí, seoltaí agus faisnéis mhargaidh trí thaighde gréasáin." },
+    "research-paper-writing": { name: "Scríobh Páipéar Eolaíochta", desc: "Tacaíocht le scríobh páipéar acadúil, ón bpleanáil go dtí an aighneacht." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Scagairí",

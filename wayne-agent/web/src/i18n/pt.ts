@@ -374,6 +374,21 @@ export const pt: Translations = {
     more: "+{count} mais",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Gerador de Excel", desc: "Criação profissional de planilhas Excel com foco na estética e na análise de dados — blocos coloridos, células mescladas, temas." },
+    "powerpoint": { name: "Gerador de PowerPoint", desc: "Cria, lê e edita apresentações .pptx — slides, notas e modelos." },
+    "youtube-content": { name: "Conteúdo do YouTube", desc: "Transforma vídeos do YouTube em conteúdo estruturado: transcrições, resumos, tópicos e posts de blog." },
+    "baoyu-infographic": { name: "Gerador de Infográficos", desc: "Transforma conteúdo em infográficos visuais, com dezenas de layouts e estilos." },
+    "claude-design": { name: "Design de Páginas & Decks", desc: "Cria artefatos em HTML sob medida — landing pages, apresentações e protótipos — a partir de uma descrição." },
+    "architecture-diagram": { name: "Diagramas de Arquitetura", desc: "Diagramas de arquitetura, nuvem e infraestrutura em SVG, prontos para documentação." },
+    "excalidraw": { name: "Diagramas à Mão Livre", desc: "Gera diagramas com traço \"desenhado à mão\" (fluxos, arquitetura, sequência), estilo Excalidraw." },
+    "ocr-and-documents": { name: "OCR & Extração de Documentos", desc: "Extrai texto de PDFs e imagens escaneadas, deixando documentos pesquisáveis e editáveis." },
+    "nano-pdf": { name: "Editor de PDF", desc: "Edita textos, títulos e corrige erros em PDFs a partir de instruções em linguagem natural." },
+    "maps": { name: "Mapas & Rotas", desc: "Geocodifica endereços, acha pontos de interesse, calcula rotas e fusos horários (base OpenStreetMap)." },
+    "obsidian": { name: "Notas no Obsidian", desc: "Lê, busca, cria e edita notas no seu cofre do Obsidian." },
+    "web-research-competitive-intelligence": { name: "Pesquisa de Mercado & Concorrência", desc: "Investiga estratégias de empresas, concorrentes, lançamentos e inteligência de mercado navegando na web." },
+    "research-paper-writing": { name: "Redação de Artigos Científicos", desc: "Apoia a escrita de artigos acadêmicos, do planejamento à submissão." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filtros",

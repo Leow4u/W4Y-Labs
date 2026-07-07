@@ -373,6 +373,21 @@ export const de: Translations = {
     more: "+{count} weitere",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel-Generator", desc: "Professionelle Excel-Tabellen mit Fokus auf Optik und Datenanalyse – farbige Blöcke, verbundene Zellen, Designvorlagen." },
+    "powerpoint": { name: "PowerPoint-Generator", desc: ".pptx-Präsentationen erstellen, lesen und bearbeiten – Folien, Notizen und Vorlagen." },
+    "youtube-content": { name: "YouTube-Inhalte", desc: "YouTube-Videos in strukturierte Inhalte verwandeln: Transkripte, Zusammenfassungen, Themen und Blogbeiträge." },
+    "baoyu-infographic": { name: "Infografik-Generator", desc: "Inhalte in visuelle Infografiken verwandeln – mit Dutzenden Layouts und Stilen." },
+    "claude-design": { name: "Seiten- & Deck-Design", desc: "Individuelle HTML-Artefakte erstellen – Landingpages, Decks und Prototypen – aus einer Beschreibung." },
+    "architecture-diagram": { name: "Architektur-Diagramme", desc: "Architektur-, Cloud- und Infrastruktur-Diagramme als SVG, direkt für die Dokumentation." },
+    "excalidraw": { name: "Handgezeichnete Diagramme", desc: "Diagramme im Handzeichnungsstil erzeugen (Abläufe, Architektur, Sequenzen) im Excalidraw-Look." },
+    "ocr-and-documents": { name: "OCR & Textextraktion", desc: "Text aus PDFs und gescannten Bildern extrahieren und Dokumente durchsuch- und bearbeitbar machen." },
+    "nano-pdf": { name: "PDF-Editor", desc: "Text und Titel in PDFs bearbeiten und Tippfehler per Anweisung in natürlicher Sprache korrigieren." },
+    "maps": { name: "Karten & Routen", desc: "Adressen geokodieren, Points of Interest finden, Routen und Zeitzonen berechnen (auf Basis von OpenStreetMap)." },
+    "obsidian": { name: "Obsidian-Notizen", desc: "Notizen in deinem Obsidian-Vault lesen, durchsuchen, erstellen und bearbeiten." },
+    "web-research-competitive-intelligence": { name: "Markt- & Wettbewerbsanalyse", desc: "Unternehmensstrategien, Wettbewerber, Launches und Marktdaten per Web-Recherche untersuchen." },
+    "research-paper-writing": { name: "Wissenschaftliches Schreiben", desc: "Unterstützung beim Verfassen wissenschaftlicher Arbeiten – von der Planung bis zur Einreichung." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filter",

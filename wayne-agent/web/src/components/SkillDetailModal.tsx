@@ -358,8 +358,15 @@ export function SkillDetailModal({
         {/* Top bar: name + "..." menu (Download), fullscreen, close. */}
         <div className="flex items-center gap-2 border-b border-current/10 px-4 py-2.5">
           <FileText className="h-4 w-4 shrink-0 text-muted-foreground" />
-          <span className="min-w-0 flex-1 truncate font-mono-ui text-sm">
-            {skillName}
+          {/* Título amigável quando houver rótulo; senão o nome técnico (mono).
+              O download e a busca continuam usando skillName real. */}
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate text-sm",
+              t.skillLabels[skillName]?.name ? "font-medium" : "font-mono-ui",
+            )}
+          >
+            {t.skillLabels[skillName]?.name || skillName}
           </span>
 
           <div className="relative" ref={menuRef}>

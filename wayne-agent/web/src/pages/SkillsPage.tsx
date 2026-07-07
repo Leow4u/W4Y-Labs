@@ -1035,7 +1035,14 @@ function SkillCard({
   onOpen,
   noDescriptionLabel,
 }: SkillCardProps) {
+  const { t } = useI18n();
   const Icon = categoryIcon(skill.category);
+  // Camada de exibição: rótulo amigável (nome + resumo) quando existe; senão
+  // cai no nome técnico + descrição da SKILL.md. Nome amigável usa fonte
+  // legível; o técnico (kebab-case) fica em mono.
+  const friendly = t.skillLabels[skill.name];
+  const displayName = friendly?.name || skill.name;
+  const displayDesc = friendly?.desc || skill.description || noDescriptionLabel;
   return (
     <Card
       className={cn(
@@ -1056,14 +1063,15 @@ function SkillCard({
         <div className="min-w-0 flex-1">
           <span
             className={cn(
-              "block truncate font-mono-ui text-sm",
+              "block truncate text-sm",
+              friendly ? "font-medium" : "font-mono-ui",
               skill.enabled ? "text-foreground" : "text-muted-foreground",
             )}
           >
-            {skill.name}
+            {displayName}
           </span>
           <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
-            {skill.description || noDescriptionLabel}
+            {displayDesc}
           </p>
         </div>
         {/* Toggle — stop propagation so it doesn't open the detail modal. */}

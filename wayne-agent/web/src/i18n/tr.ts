@@ -373,6 +373,21 @@ export const tr: Translations = {
     more: "+{count} daha",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel Oluşturucu", desc: "Estetik ve veri analizine odaklı profesyonel Excel tabloları — renkli bloklar, birleştirilmiş hücreler, temalar." },
+    "powerpoint": { name: "PowerPoint Oluşturucu", desc: ".pptx sunumları oluşturun, okuyun ve düzenleyin — slaytlar, notlar ve şablonlar." },
+    "youtube-content": { name: "YouTube İçeriği", desc: "YouTube videolarını yapılandırılmış içeriğe dönüştürün: transkriptler, özetler, konular ve blog yazıları." },
+    "baoyu-infographic": { name: "İnfografik Oluşturucu", desc: "İçeriği onlarca düzen ve stille görsel infografiklere dönüştürün." },
+    "claude-design": { name: "Sayfa ve Sunum Tasarımı", desc: "Bir açıklamadan özel HTML çıktıları oluşturun — açılış sayfaları, sunumlar ve prototipler." },
+    "architecture-diagram": { name: "Mimari Şemalar", desc: "Dokümantasyona hazır SVG formatında mimari, bulut ve altyapı şemaları." },
+    "excalidraw": { name: "El Çizimi Şemalar", desc: "Excalidraw stilinde el çizimi görünümlü şemalar oluşturun (akışlar, mimari, sıra diyagramları)." },
+    "ocr-and-documents": { name: "OCR ve Belge Çıkarma", desc: "PDF'lerden ve taranmış görsellerden metin çıkararak belgeleri aranabilir ve düzenlenebilir hale getirin." },
+    "nano-pdf": { name: "PDF Düzenleyici", desc: "Doğal dil komutlarıyla PDF'lerdeki metinleri, başlıkları düzenleyin ve yazım hatalarını giderin." },
+    "maps": { name: "Haritalar ve Rotalar", desc: "Adresleri konumlandırın, ilgi noktalarını bulun, rota ve saat dilimlerini hesaplayın (OpenStreetMap tabanlı)." },
+    "obsidian": { name: "Obsidian Notları", desc: "Obsidian kasanızdaki notları okuyun, arayın, oluşturun ve düzenleyin." },
+    "web-research-competitive-intelligence": { name: "Pazar ve Rakip Araştırması", desc: "Web araştırmasıyla şirket stratejilerini, rakipleri, lansmanları ve pazar istihbaratını inceleyin." },
+    "research-paper-writing": { name: "Bilimsel Makale Yazımı", desc: "Akademik makale yazımına planlamadan gönderime kadar destek olun." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filtreler",

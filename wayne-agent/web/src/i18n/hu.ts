@@ -373,6 +373,21 @@ export const hu: Translations = {
     more: "+{count} további",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel-táblák tervezése", desc: "Igényes Excel-táblázatok, a megjelenésre és az adatelemzésre hangolva – színes blokkok, egyesített cellák, témák." },
+    "powerpoint": { name: "PowerPoint-készítő", desc: "PowerPoint (.pptx) prezentációk létrehozása, olvasása és szerkesztése – diák, jegyzetek és sablonok." },
+    "youtube-content": { name: "YouTube-tartalom", desc: "YouTube-videók strukturált tartalommá alakítása: átiratok, összefoglalók, témák és blogbejegyzések." },
+    "baoyu-infographic": { name: "Infografika-készítő", desc: "Tartalom átalakítása látványos infografikákká, több tucat elrendezéssel és stílussal." },
+    "claude-design": { name: "Oldal- és diaterv", desc: "Egyedi HTML-alkotások leírásból – landoló oldalak, prezentációk és prototípusok." },
+    "architecture-diagram": { name: "Architektúradiagramok", desc: "Architektúra-, felhő- és infrastruktúra-diagramok SVG-ben, dokumentációhoz készen." },
+    "excalidraw": { name: "Kézzel rajzolt diagramok", desc: "Kézzel rajzolt stílusú diagramok (folyamatok, architektúra, szekvencia) Excalidraw-stílusban." },
+    "ocr-and-documents": { name: "OCR és dokumentumkinyerés", desc: "Szöveg kinyerése PDF-ekből és beszkennelt képekből, kereshetővé és szerkeszthetővé téve a dokumentumokat." },
+    "nano-pdf": { name: "PDF-szerkesztő", desc: "Szöveg és címek szerkesztése, elgépelések javítása PDF-ekben, egyszerű utasításokkal." },
+    "maps": { name: "Térképek és útvonalak", desc: "Címek geokódolása, érdekes pontok keresése, útvonalak és időzónák számítása (OpenStreetMap-alapon)." },
+    "obsidian": { name: "Obsidian-jegyzetek", desc: "Jegyzetek olvasása, keresése, létrehozása és szerkesztése az Obsidian-tárolóban." },
+    "web-research-competitive-intelligence": { name: "Piac- és versenytárselemzés", desc: "Cégstratégiák, versenytársak, termékbevezetések és piaci információk feltárása webes kutatással." },
+    "research-paper-writing": { name: "Tudományos cikkírás", desc: "Segítség tudományos cikkek megírásához, a tervezéstől a beadásig." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Szűrők",

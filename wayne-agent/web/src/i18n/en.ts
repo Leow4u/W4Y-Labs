@@ -428,6 +428,21 @@ export const en: Translations = {
       "Managing profile \u201c{name}\u201d — toggles apply to that profile, not this dashboard\u2019s.",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel Generator", desc: "Professional Excel spreadsheets focused on aesthetics and data analysis — colored blocks, merged cells, themes." },
+    "powerpoint": { name: "PowerPoint Generator", desc: "Create, read, and edit .pptx presentations — slides, notes, and templates." },
+    "youtube-content": { name: "YouTube Content", desc: "Turn YouTube videos into structured content: transcripts, summaries, topics, and blog posts." },
+    "baoyu-infographic": { name: "Infographic Generator", desc: "Turn content into visual infographics with dozens of layouts and styles." },
+    "claude-design": { name: "Page & Deck Design", desc: "Create custom HTML artifacts — landing pages, decks, and prototypes — from a description." },
+    "architecture-diagram": { name: "Architecture Diagrams", desc: "Architecture, cloud, and infrastructure diagrams in SVG, ready for documentation." },
+    "excalidraw": { name: "Hand-drawn Diagrams", desc: "Generate hand-drawn style diagrams (flows, architecture, sequence) in the Excalidraw style." },
+    "ocr-and-documents": { name: "OCR & Document Extraction", desc: "Extract text from PDFs and scanned images, making documents searchable and editable." },
+    "nano-pdf": { name: "PDF Editor", desc: "Edit text, titles, and fix typos in PDFs using natural-language instructions." },
+    "maps": { name: "Maps & Routes", desc: "Geocode addresses, find points of interest, compute routes and time zones (OpenStreetMap-based)." },
+    "obsidian": { name: "Obsidian Notes", desc: "Read, search, create, and edit notes in your Obsidian vault." },
+    "web-research-competitive-intelligence": { name: "Market & Competitor Research", desc: "Investigate company strategies, competitors, launches, and market intelligence via web research." },
+    "research-paper-writing": { name: "Scientific Paper Writing", desc: "Support writing academic papers, from planning to submission." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "Filters",

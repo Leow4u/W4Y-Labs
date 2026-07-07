@@ -372,6 +372,21 @@ export const ja: Translations = {
     more: "+{count} 件",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel作成AI", desc: "見た目とデータ分析にこだわったプロ仕様のExcelを作成。色分けブロック、セル結合、テーマに対応。" },
+    "powerpoint": { name: "PowerPoint作成AI", desc: ".pptxの作成・読み込み・編集に対応。スライド、ノート、テンプレートを自在に扱えます。" },
+    "youtube-content": { name: "YouTube活用", desc: "YouTube動画を文字起こし・要約・トピック・ブログ記事へと構造化されたコンテンツに変換します。" },
+    "baoyu-infographic": { name: "インフォグラフィック生成", desc: "コンテンツを多彩なレイアウトとスタイルでビジュアルなインフォグラフィックに変換します。" },
+    "claude-design": { name: "ページ&スライド設計", desc: "説明するだけでランディングページ、スライド、プロトタイプなどのHTMLを自動生成します。" },
+    "architecture-diagram": { name: "構成図の作成", desc: "アーキテクチャ、クラウド、インフラの構成図をSVGで作成。ドキュメントにそのまま使えます。" },
+    "excalidraw": { name: "手描き風の作図", desc: "フロー、アーキテクチャ、シーケンス図を手描き風のExcalidrawスタイルで生成します。" },
+    "ocr-and-documents": { name: "OCR&文書抽出", desc: "PDFやスキャン画像からテキストを抽出し、文書を検索・編集できる状態にします。" },
+    "nano-pdf": { name: "PDF編集", desc: "自然な言葉の指示だけで、PDFの本文やタイトルの編集、誤字の修正ができます。" },
+    "maps": { name: "地図&ルート検索", desc: "住所のジオコーディング、周辺スポット検索、ルートやタイムゾーンの算出に対応（OpenStreetMap基盤）。" },
+    "obsidian": { name: "Obsidianノート", desc: "Obsidianの保管庫内のノートを読み込み、検索、作成、編集できます。" },
+    "web-research-competitive-intelligence": { name: "市場&競合リサーチ", desc: "Webリサーチで企業戦略、競合、新製品、市場動向を調査します。" },
+    "research-paper-writing": { name: "論文執筆サポート", desc: "構想から投稿まで、学術論文の執筆を一貫してサポートします。" },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "フィルター",

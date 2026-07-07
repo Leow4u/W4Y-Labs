@@ -372,6 +372,21 @@ export const ko: Translations = {
     more: "+{count}개 더",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel 자동 생성", desc: "디자인과 데이터 분석에 최적화된 전문가급 Excel 스프레드시트 — 색상 블록, 셀 병합, 테마까지." },
+    "powerpoint": { name: "PowerPoint 제작", desc: ".pptx 프레젠테이션을 만들고 읽고 편집 — 슬라이드, 발표자 노트, 템플릿까지 한 번에." },
+    "youtube-content": { name: "YouTube 콘텐츠화", desc: "YouTube 영상을 정리된 콘텐츠로 — 스크립트, 요약, 주제, 블로그 글로 변환." },
+    "baoyu-infographic": { name: "인포그래픽 제작", desc: "콘텐츠를 시각 인포그래픽으로 — 수십 가지 레이아웃과 스타일 제공." },
+    "claude-design": { name: "페이지·덱 디자인", desc: "설명만 하면 맞춤형 HTML 결과물 완성 — 랜딩 페이지, 발표 자료, 프로토타입." },
+    "architecture-diagram": { name: "아키텍처 다이어그램", desc: "문서화에 바로 쓰는 SVG 아키텍처·클라우드·인프라 다이어그램." },
+    "excalidraw": { name: "손그림 다이어그램", desc: "Excalidraw 스타일의 손그림 다이어그램 생성 — 플로우, 아키텍처, 시퀀스." },
+    "ocr-and-documents": { name: "OCR·문서 추출", desc: "PDF와 스캔 이미지에서 텍스트 추출 — 검색과 편집이 가능한 문서로." },
+    "nano-pdf": { name: "PDF 편집", desc: "자연어 지시만으로 PDF의 텍스트·제목 편집과 오타 수정." },
+    "maps": { name: "지도·경로 탐색", desc: "주소 지오코딩, 관심 장소 검색, 경로·시간대 계산 (OpenStreetMap 기반)." },
+    "obsidian": { name: "Obsidian 노트", desc: "Obsidian 볼트의 노트를 읽고 검색하고 만들고 편집." },
+    "web-research-competitive-intelligence": { name: "시장·경쟁사 리서치", desc: "웹 리서치로 기업 전략, 경쟁사, 신규 출시, 시장 동향을 분석." },
+    "research-paper-writing": { name: "논문 작성 지원", desc: "기획부터 제출까지 학술 논문 작성을 전 과정 지원." },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "필터",

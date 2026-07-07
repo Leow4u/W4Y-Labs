@@ -368,6 +368,21 @@ export const zh: Translations = {
     more: "还有 {count} 个",
   },
 
+  skillLabels: {
+    "excel-presentations": { name: "Excel 智能生成", desc: "生成兼顾美观与数据分析的专业 Excel 表格——彩色区块、合并单元格、主题配色。" },
+    "powerpoint": { name: "PowerPoint 生成", desc: "创建、读取并编辑 .pptx 演示文稿——幻灯片、备注与模板一应俱全。" },
+    "youtube-content": { name: "YouTube 内容提炼", desc: "把 YouTube 视频转化为结构化内容：文字稿、摘要、要点与博客文章。" },
+    "baoyu-infographic": { name: "信息图生成", desc: "将内容一键转化为可视化信息图，数十种版式与风格任选。" },
+    "claude-design": { name: "网页与演示设计", desc: "一句话生成定制 HTML 作品——落地页、演示稿与原型。" },
+    "architecture-diagram": { name: "架构图绘制", desc: "生成 SVG 格式的架构、云与基础设施图，随取随用于文档。" },
+    "excalidraw": { name: "手绘风示意图", desc: "以 Excalidraw 手绘风格生成流程、架构与时序图。" },
+    "ocr-and-documents": { name: "OCR 文档识别", desc: "从 PDF 与扫描图像中提取文字，让文档可搜索、可编辑。" },
+    "nano-pdf": { name: "PDF 编辑", desc: "用自然语言指令编辑 PDF 中的正文、标题并修正错别字。" },
+    "maps": { name: "地图与路线", desc: "地址地理编码、查找兴趣点、计算路线与时区（基于 OpenStreetMap）。" },
+    "obsidian": { name: "Obsidian 笔记", desc: "在 Obsidian 库中读取、搜索、创建并编辑笔记。" },
+    "web-research-competitive-intelligence": { name: "市场竞品调研", desc: "通过网络调研洞察企业策略、竞争对手、新品发布与市场情报。" },
+    "research-paper-writing": { name: "学术论文写作", desc: "从选题规划到投稿，全程助力学术论文写作。" },
+  },
   config: {
     configPath: "~/.wayne/config.yaml",
     filters: "筛选",
