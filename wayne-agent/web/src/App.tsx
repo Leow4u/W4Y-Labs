@@ -554,7 +554,7 @@ export default function App() {
         <img
           src="/brand/work4you-logo.svg"
           alt={t.app.brand}
-          className="h-[24px] w-auto select-none"
+          className="h-[30px] w-auto select-none"
           draggable={false}
         />
       </header>
@@ -614,7 +614,7 @@ export default function App() {
                 <img
                   src="/brand/work4you-logo.svg"
                   alt={t.app.brand}
-                  className="h-[30px] w-auto select-none"
+                  className="h-11 w-auto select-none"
                   draggable={false}
                 />
               </div>
