@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   const form = await req.formData();
   const plan = String(form.get("plan") || "") as Plan;
-  if (!PLANS[plan] || !PLANS[plan].stripePriceId) {
+  if (!PLANS[plan] || !PLANS[plan].stripePriceIdMonth) {
     return NextResponse.redirect(new URL("/planos?erro=plano", originOf(req)), 303);
   }
 

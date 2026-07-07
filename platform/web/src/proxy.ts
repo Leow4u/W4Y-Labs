@@ -21,8 +21,8 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // /planos é gated (assinatura do tenant logado). /planos/checkout e
-  // /webhooks/stripe cuidam da própria auth (checkout via sessão; webhook
-  // via assinatura HMAC da Stripe) e ficam FORA do gate de página.
-  matcher: ["/instancias", "/instancias/:path*", "/admin", "/admin/:path*", "/planos"],
+  // /planos é PÚBLICA (página de preços da landing + funil de aquisição): o
+  // page.tsx lida com logado (checkout embedded) vs deslogado (CTA → cadastro).
+  // /planos/checkout e /webhooks/stripe cuidam da própria auth (sessão; HMAC).
+  matcher: ["/instancias", "/instancias/:path*", "/admin", "/admin/:path*"],
 };
