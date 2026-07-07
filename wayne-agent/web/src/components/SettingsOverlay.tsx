@@ -64,7 +64,7 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
   const closeLabel = t.common.close;
 
   return createPortal(
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-3 sm:p-6">
+    <div className="fixed inset-0 z-[80] flex items-center justify-center p-3">
       {/* Fundo escurecido — clique fecha. */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
@@ -72,14 +72,15 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
         aria-hidden
       />
 
-      {/* Card do modal, centralizado (estilo Manus/Claude). Altura FIXA
-          (não redimensiona com o conteúdo): conteúdo curto deixa espaço,
-          conteúdo longo rola. `settings-modal` ativa o Title Case interno
-          (ver index.css) para suavizar o MAIÚSCULO do design-system. */}
+      {/* Card do modal, centralizado (estilo Manus/Claude). Altura quase cheia
+          (fica perto do topo e do rodapé do navegador — só ~0,75rem de folga
+          de cada lado, casada com o p-3 do overlay). Conteúdo curto deixa
+          espaço, conteúdo longo rola. `settings-modal` ativa o Title Case
+          interno (ver index.css) para suavizar o MAIÚSCULO do design-system. */}
       <div
         className={cn(
           "settings-modal relative flex w-full max-w-5xl flex-col",
-          "h-[min(85vh,860px)] overflow-hidden rounded-xl",
+          "h-[calc(100vh-1.5rem)] overflow-hidden rounded-xl",
           "border border-current/20 bg-background-base",
           "shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)]",
         )}
@@ -106,8 +107,10 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
         {/* Corpo: tela enxuta (padrão) ou técnica (`?full=1`), rolando dentro
             do card. `flex flex-col` é essencial: cria o contexto flex que
             limita a altura do conteúdo (senão ele expande para a altura
-            natural e vaza do modal). */}
-        <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            natural e vaza do modal). `pt-12` reserva uma faixa no topo: evita
+            o conteúdo "esmagado" e deixa o X (canto sup. dir.) livre, sem ficar
+            atrás do "Criar" da tela de Habilidades. */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-12">
           <PageHeaderProvider pluginTabs={[]}>
             <BlankProviderTitle />
             {full ? <ConfigPage /> : <ConfigUser />}
