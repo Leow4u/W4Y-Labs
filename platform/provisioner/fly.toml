@@ -5,7 +5,7 @@ app = "provisioner-w4y"
 primary_region = "gru"
 
 [build]
-  image = "registry.fly.io/provisioner-w4y:p2"
+  image = "registry.fly.io/provisioner-w4y:p3"
 
 [http_service]
   internal_port = 8080

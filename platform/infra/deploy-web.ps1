@@ -51,9 +51,12 @@ $deployArgs = @(
         'STRIPE_SECRET_KEY=stripe-secret-key:latest',
         'STRIPE_WEBHOOK_SECRET=stripe-webhook-secret:latest',
         'OPENROUTER_PROVISIONING_KEY=openrouter-provisioning-key:latest',
-        # Multi-tenant: provisionador (auto-provision Free) + reciclagem.
+        # Multi-tenant: provisionador (auto-provision Free) + reciclagem + reconciliador de chaves.
         'PROVISIONER_SHARED_SECRET=provisioner-shared-secret:latest',
         'RECYCLE_SECRET=recycle-secret:latest',
+        'RECONCILE_SECRET=reconcile-secret:latest',
+        # Chave publica da Stripe (pk_test) — nao e segredo, mas fica no SM p/ consistencia.
+        'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=stripe-publishable-key:latest',
         # Turnstile (Cloudflare): anti-robô no registro/auto-provisionamento.
         'TURNSTILE_SITEKEY=turnstile-sitekey:latest',
         'TURNSTILE_SECRET=turnstile-secret:latest'
@@ -63,7 +66,14 @@ $deployArgs = @(
         'ALLOWED_EMAILS=leonardo@dutelog.com.br',
         'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev',
         'PROVISIONER_URL=https://provisioner-w4y.fly.dev',
-        'FREE_OPEN=1'
+        'FREE_OPEN=1',
+        # Billing: price IDs de teste (Stripe test mode) por plano x intervalo.
+        'STRIPE_PRICE_STARTER=price_1TqadkCn608ngT3WOPRy6FXx',
+        'STRIPE_PRICE_STARTER_YEAR=price_1TqadkCn608ngT3WfLm7zvbk',
+        'STRIPE_PRICE_PRO=price_1TqadlCn608ngT3WHgbjXtP8',
+        'STRIPE_PRICE_PRO_YEAR=price_1TqadlCn608ngT3WBSa9jKMb',
+        'STRIPE_PRICE_MAX=price_1TqadmCn608ngT3WEWLIoznD',
+        'STRIPE_PRICE_MAX_YEAR=price_1TqadmCn608ngT3W1TyH0tDQ'
     ) -join ',')),
     # Landing pública sempre quente — visitante nunca espera cold start.
     '--min-instances=1',

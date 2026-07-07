@@ -108,11 +108,17 @@ const STRIPE_WEBHOOK_SECRET = () => readSecret("STRIPE_WEBHOOK_SECRET");
 const OPENROUTER_PROVISIONING_KEY = () => readSecret("OPENROUTER_PROVISIONING_KEY");
 
 // ---- Stripe: chamadas via REST (sem SDK — reuse mínimo, x-www-form) --------
+// Pin da versão da API: o default da conta já descontinuou ui_mode="embedded"
+// (virou "embedded_page"), que o <EmbeddedCheckout> do @stripe/react-stripe-js
+// NÃO renderiza. Pinamos numa versão que ainda aceita "embedded" e casa com o
+// Stripe.js do componente. (Webhooks chegam na versão da conta — não afetados.)
+const STRIPE_API_VERSION = "2025-03-31.basil";
 async function stripe(path: string, method: "GET" | "POST", form?: Record<string, string>) {
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${STRIPE_KEY()}`,
+      "Stripe-Version": STRIPE_API_VERSION,
       ...(form ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
     },
     body: form ? new URLSearchParams(form).toString() : undefined,
@@ -178,6 +184,8 @@ export async function createEmbeddedCheckoutSession(opts: {
 }): Promise<string> {
   const session = await stripe("checkout/sessions", "POST", {
     ...checkoutBase(opts),
+    // embedded (in-app; client_secret p/ o <EmbeddedCheckout>). A versão da API
+    // é pinada em STRIPE_API_VERSION pra "embedded" continuar aceito.
     ui_mode: "embedded",
     return_url: `${opts.origin}/planos/retorno?session_id={CHECKOUT_SESSION_ID}`,
   });
