@@ -20,7 +20,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, type AuthMeResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { LogOut, Settings, ChevronUp, ChevronRight, Globe, Check } from "lucide-react";
+import { LogOut, Settings, ChevronUp, ChevronRight, Globe, Check, Sparkles } from "lucide-react";
 import { useI18n } from "@/i18n/context";
 import { LOCALE_META } from "@/i18n";
 import type { Locale } from "@/i18n";
@@ -241,6 +241,19 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
                 </div>
               )}
             </div>
+
+            {/* Atualizar plano → deep-link p/ a página de assinatura na casca
+                (mesma origem work4you.ai; o LB roteia /planos para o Next).
+                Navegação de página inteira (sai do SPA do agente) — intencional. */}
+            <a
+              href="/planos"
+              role="menuitem"
+              className={cn(menuRow, "border-t border-current/10")}
+              onClick={() => close()}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/80" />
+              Atualizar plano
+            </a>
 
             <button
               type="button"

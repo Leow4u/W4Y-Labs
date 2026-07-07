@@ -30,6 +30,7 @@ import { Card } from "@nous-research/ui/ui/components/card";
 import { ModelPickerDialog } from "@/components/ModelPickerDialog";
 import { ModelReloadConfirm } from "@/components/ModelReloadConfirm";
 import { ReasoningPicker } from "@/components/ReasoningPicker";
+import { TierPicker } from "@/components/TierPicker";
 import { GatewayClient, type ConnectionState } from "@/lib/gatewayClient";
 import { api, buildWsUrl } from "@/lib/api";
 import { titleFromSessionInfoPayload } from "@/lib/chat-title";
@@ -310,6 +311,18 @@ export function ChatSidebar({
         className,
       )}
     >
+      <Card className="py-0">
+        <TierPicker
+          currentModel={modelName}
+          refreshKey={modelRefreshKey}
+          onChanged={(tier) =>
+            setModelNotice(
+              `Modelo alterado para ${tier}. Rode /new ou recarregue a página para aplicar neste chat.`,
+            )
+          }
+        />
+      </Card>
+
       <Card className="flex items-center justify-between gap-2 px-3 py-2">
         <div className="min-w-0 flex-1">
           <div className="text-display text-xs tracking-wider text-text-tertiary">

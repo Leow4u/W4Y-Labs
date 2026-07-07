@@ -93,11 +93,19 @@ export default defineConfig({
       "/api": {
         target: BACKEND,
         ws: true,
+        // changeOrigin + secure:false permitem apontar o BACKEND para um
+        // tunnel remoto (ex.: Cloudflare) sem falhar no TLS/SNI (altname).
+        changeOrigin: true,
+        secure: false,
       },
       // Same host as `wayne dashboard` must serve these; Vite has no
       // dashboard-plugins/* files, so without this, plugin scripts 404
       // or receive index.html in dev.
-      "/dashboard-plugins": BACKEND,
+      "/dashboard-plugins": {
+        target: BACKEND,
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
 });

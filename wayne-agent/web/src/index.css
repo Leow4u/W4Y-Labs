@@ -194,6 +194,48 @@ code, kbd, pre, samp, .font-mono, .font-mono-ui {
   }
 }
 
+/* ------------------------------------------------------------------ */
+/* Toggles (DS Switch) — visual Work4You: pílula arredondada, fill    */
+/* AZUL quando ligado e botão BRANCO. O <Switch> do design-system     */
+/* (node_modules/@nous-research/ui) pinta o toggle com o token de     */
+/* tema `--midground`, que o deixava cinza/preto conforme o tema.     */
+/* Aqui a gente fixa um azul de produto, igual em todos os temas.     */
+/* Um único override global (role="switch") pega TODOS os toggles do  */
+/* dashboard de uma vez (AutoField, ConfigUser, Skills, Channels…).   */
+/* ------------------------------------------------------------------ */
+:root {
+  --toggle-on: #0a84ff;    /* azul iOS (ligado) */
+  --toggle-knob: #ffffff;  /* botão (knob) */
+}
+
+/* Track: pílula totalmente arredondada (antes era quadrado). */
+button[role="switch"] {
+  border-radius: 9999px;
+}
+
+/* Knob estilo iOS: redondo, branco, um pouco maior e com sombra suave — */
+/* nos dois estados. */
+button[role="switch"] > span {
+  width: 14px !important;
+  height: 14px !important;
+  border-radius: 9999px;
+  background-color: var(--toggle-knob) !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Ligado: preenchimento azul iOS + borda azul (some contra o fill). */
+button[role="switch"][aria-checked="true"] {
+  background-color: var(--toggle-on) !important;
+  border-color: var(--toggle-on) !important;
+}
+
+/* Desligado: track cinza iOS (systemFill) — visível em qualquer tema, */
+/* sem borda dura, pro botão branco sempre aparecer com a sombra. */
+button[role="switch"][aria-checked="false"] {
+  background-color: rgba(120, 120, 128, 0.36) !important;
+  border-color: rgba(120, 120, 128, 0.36) !important;
+}
+
 /* Nousnet's wayne-agent layout bumps `small` and `code` to readable
    dashboard sizes. Keep in sync. */
 small { font-size: 1.0625rem; }
