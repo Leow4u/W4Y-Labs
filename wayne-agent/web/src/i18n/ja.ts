@@ -174,6 +174,7 @@ export const ja: Translations = {
   chat: {
     composerPlaceholder: "メッセージを入力…",
     connecting: "接続中…",
+    emptyState: "メッセージを送信して始めましょう。",
     approvalTitle: "承認が必要です",
     approvalAllowOnce: "1回だけ許可",
     approvalAllowSession: "このセッションで許可",

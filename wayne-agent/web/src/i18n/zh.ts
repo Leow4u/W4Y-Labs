@@ -172,6 +172,7 @@ export const zh: Translations = {
   chat: {
     composerPlaceholder: "输入消息…",
     connecting: "正在连接…",
+    emptyState: "发送消息以开始。",
     approvalTitle: "需要批准",
     approvalAllowOnce: "允许一次",
     approvalAllowSession: "在此会话中允许",

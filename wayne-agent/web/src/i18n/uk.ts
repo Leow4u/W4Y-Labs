@@ -174,6 +174,7 @@ export const uk: Translations = {
   chat: {
     composerPlaceholder: "Введіть повідомлення…",
     connecting: "З'єднання…",
+    emptyState: "Надішліть повідомлення, щоб почати.",
     approvalTitle: "Потрібне підтвердження",
     approvalAllowOnce: "Дозволити один раз",
     approvalAllowSession: "Дозволити в цій сесії",

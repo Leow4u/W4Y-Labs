@@ -204,6 +204,7 @@ export interface Translations {
   chat: {
     composerPlaceholder: string;
     connecting: string;
+    emptyState: string;
     approvalTitle: string;
     approvalAllowOnce: string;
     approvalAllowSession: string;

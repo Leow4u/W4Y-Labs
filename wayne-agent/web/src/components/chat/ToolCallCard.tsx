@@ -5,13 +5,13 @@ import { ListItem } from "@nous-research/ui/ui/components/list-item";
 import { useI18n } from "@/i18n";
 import type { ToolCallState } from "./types";
 
-const STATUS_STYLES: Record<
-  ToolCallState["status"],
-  { border: string; bg: string; text: string }
-> = {
-  running: { border: "border-warning/20", bg: "bg-warning/5", text: "text-warning" },
-  done: { border: "border-success/20", bg: "bg-success/5", text: "text-success" },
-  error: { border: "border-destructive/20", bg: "bg-destructive/5", text: "text-destructive" },
+// Sober/monochrome by design (matches the curated dashboard — no
+// "coloridinha"): the card is always neutral; only the small status icon
+// carries a hint of semantic color.
+const ICON_COLOR: Record<ToolCallState["status"], string> = {
+  running: "text-muted-foreground",
+  done: "text-success",
+  error: "text-destructive",
 };
 
 function StatusIcon({ status }: { status: ToolCallState["status"] }) {
@@ -28,18 +28,17 @@ function StatusIcon({ status }: { status: ToolCallState["status"] }) {
 export function ToolCallCard({ toolCall }: { toolCall: ToolCallState }) {
   const [open, setOpen] = useState(false);
   const { t } = useI18n();
-  const style = STATUS_STYLES[toolCall.status];
   const hasBody = !!(toolCall.argsPreview || toolCall.result || toolCall.error || toolCall.inlineDiff);
 
   return (
-    <div className={`mt-2 border ${style.border} ${style.bg}`}>
+    <div className="rounded-md border border-border bg-muted/30">
       <ListItem
         onClick={() => hasBody && setOpen(!open)}
         aria-label={`${open ? t.common.collapse : t.common.expand} tool call ${toolCall.name}`}
         aria-expanded={open}
-        className={`px-3 py-2 text-xs ${style.text} hover:bg-current/10`}
+        className="px-3 py-1.5 text-xs text-muted-foreground hover:bg-foreground/5"
       >
-        <span className={style.text}>
+        <span className={ICON_COLOR[toolCall.status]}>
           <StatusIcon status={toolCall.status} />
         </span>
         {hasBody &&
@@ -48,17 +47,16 @@ export function ToolCallCard({ toolCall }: { toolCall: ToolCallState }) {
           ) : (
             <ChevronRight className="h-3 w-3" />
           ))}
-        <span className="font-mono-ui font-medium">{toolCall.name}</span>
+        <span className="font-mono-ui font-medium text-foreground/80">{toolCall.name}</span>
         {typeof toolCall.durationS === "number" && (
           <span className="opacity-60">{toolCall.durationS.toFixed(1)}s</span>
         )}
-        <span className="opacity-50 ml-auto">{toolCall.id}</span>
       </ListItem>
 
       {open && (
-        <div className={`border-t ${style.border} px-3 py-2 text-xs space-y-2`}>
+        <div className="border-t border-border px-3 py-2 text-xs space-y-2">
           {toolCall.argsPreview && (
-            <pre className={`${style.text} opacity-80 overflow-x-auto whitespace-pre-wrap font-mono`}>
+            <pre className="text-muted-foreground overflow-x-auto whitespace-pre-wrap font-mono">
               {toolCall.argsPreview}
             </pre>
           )}

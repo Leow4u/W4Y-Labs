@@ -174,6 +174,7 @@ export const ru: Translations = {
   chat: {
     composerPlaceholder: "Введите сообщение…",
     connecting: "Подключение…",
+    emptyState: "Отправьте сообщение, чтобы начать.",
     approvalTitle: "Требуется подтверждение",
     approvalAllowOnce: "Разрешить один раз",
     approvalAllowSession: "Разрешить в этой сессии",

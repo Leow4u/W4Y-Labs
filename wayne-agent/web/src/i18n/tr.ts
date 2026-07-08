@@ -174,6 +174,7 @@ export const tr: Translations = {
   chat: {
     composerPlaceholder: "Bir mesaj yazın…",
     connecting: "Bağlanıyor…",
+    emptyState: "Başlamak için bir mesaj gönderin.",
     approvalTitle: "Onay gerekli",
     approvalAllowOnce: "Bir kez izin ver",
     approvalAllowSession: "Bu oturumda izin ver",

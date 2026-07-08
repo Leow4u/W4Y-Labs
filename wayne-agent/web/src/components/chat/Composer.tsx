@@ -45,7 +45,7 @@ export function Composer({
   };
 
   return (
-    <div className="flex items-end gap-2 border border-current/15 bg-background/60 px-3 py-2">
+    <div className="flex items-end gap-2 rounded-2xl border border-foreground/15 bg-background px-3 py-2 focus-within:border-foreground/30">
       <textarea
         ref={taRef}
         rows={1}

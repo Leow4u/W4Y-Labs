@@ -174,6 +174,7 @@ export const hu: Translations = {
   chat: {
     composerPlaceholder: "Írjon üzenetet…",
     connecting: "Csatlakozás…",
+    emptyState: "Küldjön üzenetet a kezdéshez.",
     approvalTitle: "Jóváhagyás szükséges",
     approvalAllowOnce: "Engedélyezés egyszer",
     approvalAllowSession: "Engedélyezés ebben a munkamenetben",

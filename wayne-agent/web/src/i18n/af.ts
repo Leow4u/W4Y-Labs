@@ -174,6 +174,7 @@ export const af: Translations = {
   chat: {
     composerPlaceholder: "Tik 'n boodskap…",
     connecting: "Verbind tans…",
+    emptyState: "Stuur 'n boodskap om te begin.",
     approvalTitle: "Goedkeuring nodig",
     approvalAllowOnce: "Laat een keer toe",
     approvalAllowSession: "Laat hierdie sessie toe",

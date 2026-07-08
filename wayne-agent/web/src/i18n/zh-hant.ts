@@ -174,6 +174,7 @@ export const zhHant: Translations = {
   chat: {
     composerPlaceholder: "輸入訊息…",
     connecting: "正在連線…",
+    emptyState: "傳送訊息以開始。",
     approvalTitle: "需要核准",
     approvalAllowOnce: "允許一次",
     approvalAllowSession: "在此工作階段允許",

@@ -189,6 +189,7 @@ export const en: Translations = {
   chat: {
     composerPlaceholder: "Type a message…",
     connecting: "Connecting…",
+    emptyState: "Send a message to get started.",
     approvalTitle: "Approval needed",
     approvalAllowOnce: "Allow once",
     approvalAllowSession: "Allow this session",

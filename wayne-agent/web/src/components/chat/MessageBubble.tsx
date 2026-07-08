@@ -47,9 +47,18 @@ function splitCompactionContent(content: string): CompactionSplit | null {
 export function MessageBubble({
   msg,
   highlight,
+  variant = "review",
 }: {
   msg: ChatMessage;
   highlight?: string;
+  /**
+   * "review" (default) — the colored role blocks used to scan session
+   * history in SessionsPage. "chat" — the sober live-chat look: user in a
+   * discreet neutral bubble on the right, assistant as plain text on the
+   * page (no colored block), matching the Manus/Claude benchmark and the
+   * rest of the curated dashboard (no "coloridinha").
+   */
+  variant?: "chat" | "review";
 }) {
   const { t } = useI18n();
 
@@ -93,16 +102,55 @@ export function MessageBubble({
         <MessageBubble
           msg={{ ...msg, id: `${msg.id}-summary`, content: compactionSplit.summary }}
           highlight={highlight}
+          variant={variant}
         />
         <MessageBubble
           msg={{ ...msg, id: `${msg.id}-remainder`, content: compactionSplit.remainder }}
           highlight={highlight}
+          variant={variant}
         />
       </>
     );
   }
 
   const isCompaction = compactionSplit !== null;
+
+  // ── Sober live-chat look ──────────────────────────────────────────────
+  if (variant === "chat") {
+    if (msg.role === "user") {
+      return (
+        <div className="flex justify-end">
+          <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground">
+            {msg.content}
+          </div>
+        </div>
+      );
+    }
+
+    const muted = msg.role === "system" || msg.role === "tool" || isCompaction;
+    return (
+      <div className="min-w-0">
+        {msg.content &&
+          (muted ? (
+            <div className="whitespace-pre-wrap text-sm italic leading-relaxed text-muted-foreground">
+              {isCompaction ? "Context handoff — " : ""}
+              {msg.content}
+            </div>
+          ) : (
+            <Markdown content={msg.content} streaming={msg.streaming} />
+          ))}
+        {msg.toolCalls.length > 0 && (
+          <div className="mt-2 space-y-1.5">
+            {msg.toolCalls.map((tc) => (
+              <ToolCallCard key={tc.id} toolCall={tc} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Review look (session history) ─────────────────────────────────────
   const style = isCompaction ? ROLE_STYLES.compaction : ROLE_STYLES[msg.role] ?? ROLE_STYLES.system;
   const label = isCompaction
     ? ROLE_STYLES.compaction.label

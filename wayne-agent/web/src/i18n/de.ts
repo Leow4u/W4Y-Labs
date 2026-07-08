@@ -174,6 +174,7 @@ export const de: Translations = {
   chat: {
     composerPlaceholder: "Schreiben Sie eine Nachricht…",
     connecting: "Verbindung wird hergestellt…",
+    emptyState: "Schreiben Sie eine Nachricht, um zu beginnen.",
     approvalTitle: "Genehmigung erforderlich",
     approvalAllowOnce: "Einmal erlauben",
     approvalAllowSession: "Für diese Sitzung erlauben",

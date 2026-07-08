@@ -63,42 +63,43 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
 
   return (
     <div className="flex min-h-0 flex-1 gap-3">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
-        <div
-          ref={scrollRef}
-          className="min-h-0 flex-1 overflow-y-auto rounded-lg border border-current/10 bg-background/40"
-        >
-          {messages.length === 0 && connectionState !== "open" ? (
-            <div className="p-4 text-center text-xs text-text-tertiary">
-              {t.chat.connecting}
-            </div>
-          ) : (
-            <div className="flex flex-col divide-y divide-current/5">
-              {messages.map((m) => (
-                <MessageBubble key={m.id} msg={m} />
-              ))}
-            </div>
-          )}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
+          <div className="mx-auto flex max-w-3xl flex-col gap-6 px-4 py-6">
+            {messages.length === 0 ? (
+              <div className="py-16 text-center text-sm text-text-tertiary">
+                {connectionState === "open" ? t.chat.emptyState : t.chat.connecting}
+              </div>
+            ) : (
+              messages.map((m) => <MessageBubble key={m.id} msg={m} variant="chat" />)
+            )}
+          </div>
         </div>
 
-        {error && (
-          <div className="border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
-            {error}
+        <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-1">
+          {error && (
+            <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
+              {error}
+            </div>
+          )}
+
+          {pendingPrompt && (
+            <div className="mb-2">
+              <PendingPromptPanel
+                prompt={pendingPrompt}
+                onRespondApproval={respondApproval}
+                onRespondClarify={respondClarify}
+                onRespondSudo={respondSudo}
+                onRespondSecret={respondSecret}
+              />
+            </div>
+          )}
+
+          <Composer disabled={busy || !!pendingPrompt} onSend={sendMessage} />
+          <div className="mt-1">
+            <ChatModelBar light />
           </div>
-        )}
-
-        {pendingPrompt && (
-          <PendingPromptPanel
-            prompt={pendingPrompt}
-            onRespondApproval={respondApproval}
-            onRespondClarify={respondClarify}
-            onRespondSudo={respondSudo}
-            onRespondSecret={respondSecret}
-          />
-        )}
-
-        <Composer disabled={busy || !!pendingPrompt} onSend={sendMessage} />
-        <ChatModelBar light />
+        </div>
       </div>
 
       <div className="hidden min-h-0 w-64 shrink-0 flex-col overflow-hidden lg:flex">

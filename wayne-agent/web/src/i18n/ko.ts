@@ -174,6 +174,7 @@ export const ko: Translations = {
   chat: {
     composerPlaceholder: "메시지를 입력하세요…",
     connecting: "연결 중…",
+    emptyState: "메시지를 보내 시작하세요.",
     approvalTitle: "승인이 필요합니다",
     approvalAllowOnce: "한 번만 허용",
     approvalAllowSession: "이 세션에서 허용",

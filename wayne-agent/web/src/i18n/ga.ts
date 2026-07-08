@@ -174,6 +174,7 @@ export const ga: Translations = {
   chat: {
     composerPlaceholder: "Scríobh teachtaireacht…",
     connecting: "Ag ceangal…",
+    emptyState: "Seol teachtaireacht chun tosú.",
     approvalTitle: "Ceadú riachtanach",
     approvalAllowOnce: "Ceadaigh uair amháin",
     approvalAllowSession: "Ceadaigh don seisiún seo",
