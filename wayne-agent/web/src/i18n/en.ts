@@ -190,6 +190,7 @@ export const en: Translations = {
     composerPlaceholder: "Type a message…",
     connecting: "Connecting…",
     emptyState: "Send a message to get started.",
+    toolsLabel: "tools",
     approvalTitle: "Approval needed",
     approvalAllowOnce: "Allow once",
     approvalAllowSession: "Allow this session",

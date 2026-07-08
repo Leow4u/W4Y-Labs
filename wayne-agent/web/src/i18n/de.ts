@@ -175,6 +175,7 @@ export const de: Translations = {
     composerPlaceholder: "Schreiben Sie eine Nachricht…",
     connecting: "Verbindung wird hergestellt…",
     emptyState: "Schreiben Sie eine Nachricht, um zu beginnen.",
+    toolsLabel: "Werkzeuge",
     approvalTitle: "Genehmigung erforderlich",
     approvalAllowOnce: "Einmal erlauben",
     approvalAllowSession: "Für diese Sitzung erlauben",

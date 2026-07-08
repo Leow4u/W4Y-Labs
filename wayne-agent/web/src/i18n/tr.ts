@@ -175,6 +175,7 @@ export const tr: Translations = {
     composerPlaceholder: "Bir mesaj yazın…",
     connecting: "Bağlanıyor…",
     emptyState: "Başlamak için bir mesaj gönderin.",
+    toolsLabel: "araç",
     approvalTitle: "Onay gerekli",
     approvalAllowOnce: "Bir kez izin ver",
     approvalAllowSession: "Bu oturumda izin ver",

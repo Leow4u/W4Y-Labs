@@ -175,6 +175,7 @@ export const ja: Translations = {
     composerPlaceholder: "メッセージを入力…",
     connecting: "接続中…",
     emptyState: "メッセージを送信して始めましょう。",
+    toolsLabel: "ツール",
     approvalTitle: "承認が必要です",
     approvalAllowOnce: "1回だけ許可",
     approvalAllowSession: "このセッションで許可",

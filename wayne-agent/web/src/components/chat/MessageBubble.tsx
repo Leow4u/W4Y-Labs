@@ -3,7 +3,9 @@ import { Badge } from "@nous-research/ui/ui/components/badge";
 import { useI18n } from "@/i18n";
 import { timeAgo } from "@/lib/utils";
 
+import { FileRefCard, extractFileRefs, type FileRef } from "./FileRefCard";
 import { ToolCallCard } from "./ToolCallCard";
+import { ToolCallGroup } from "./ToolCallGroup";
 import type { ChatMessage } from "./types";
 
 // Context-compaction handoff blocks are persisted as role="user" or
@@ -128,22 +130,34 @@ export function MessageBubble({
     }
 
     const muted = msg.role === "system" || msg.role === "tool" || isCompaction;
+    // Assistant messages can reference generated files with a
+    // @session:<profile>/<path> token — pull those into cards and keep the
+    // prose clean. Don't touch system/tool/compaction content.
+    const { text, files }: { text: string; files: FileRef[] } = muted
+      ? { text: msg.content ?? "", files: [] }
+      : extractFileRefs(msg.content ?? "");
+
     return (
       <div className="min-w-0">
-        {msg.content &&
+        {text &&
           (muted ? (
             <div className="whitespace-pre-wrap text-sm italic leading-relaxed text-muted-foreground">
               {isCompaction ? "Context handoff — " : ""}
-              {msg.content}
+              {text}
             </div>
           ) : (
-            <Markdown content={msg.content} streaming={msg.streaming} />
+            <Markdown content={text} streaming={msg.streaming} />
           ))}
-        {msg.toolCalls.length > 0 && (
-          <div className="mt-2 space-y-1.5">
-            {msg.toolCalls.map((tc) => (
-              <ToolCallCard key={tc.id} toolCall={tc} />
+        {files.length > 0 && (
+          <div className="mt-2 flex flex-col gap-1.5">
+            {files.map((f) => (
+              <FileRefCard key={f.path} file={f} />
             ))}
+          </div>
+        )}
+        {msg.toolCalls.length > 0 && (
+          <div className="mt-2">
+            <ToolCallGroup toolCalls={msg.toolCalls} />
           </div>
         )}
       </div>

@@ -175,6 +175,7 @@ export const ru: Translations = {
     composerPlaceholder: "Введите сообщение…",
     connecting: "Подключение…",
     emptyState: "Отправьте сообщение, чтобы начать.",
+    toolsLabel: "инструментов",
     approvalTitle: "Требуется подтверждение",
     approvalAllowOnce: "Разрешить один раз",
     approvalAllowSession: "Разрешить в этой сессии",

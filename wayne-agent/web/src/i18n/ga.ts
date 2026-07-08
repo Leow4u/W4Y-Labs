@@ -175,6 +175,7 @@ export const ga: Translations = {
     composerPlaceholder: "Scríobh teachtaireacht…",
     connecting: "Ag ceangal…",
     emptyState: "Seol teachtaireacht chun tosú.",
+    toolsLabel: "uirlisí",
     approvalTitle: "Ceadú riachtanach",
     approvalAllowOnce: "Ceadaigh uair amháin",
     approvalAllowSession: "Ceadaigh don seisiún seo",

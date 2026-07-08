@@ -175,6 +175,7 @@ export const hu: Translations = {
     composerPlaceholder: "Írjon üzenetet…",
     connecting: "Csatlakozás…",
     emptyState: "Küldjön üzenetet a kezdéshez.",
+    toolsLabel: "eszköz",
     approvalTitle: "Jóváhagyás szükséges",
     approvalAllowOnce: "Engedélyezés egyszer",
     approvalAllowSession: "Engedélyezés ebben a munkamenetben",

@@ -205,6 +205,7 @@ export interface Translations {
     composerPlaceholder: string;
     connecting: string;
     emptyState: string;
+    toolsLabel: string;
     approvalTitle: string;
     approvalAllowOnce: string;
     approvalAllowSession: string;

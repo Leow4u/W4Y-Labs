@@ -175,6 +175,7 @@ export const af: Translations = {
     composerPlaceholder: "Tik 'n boodskap…",
     connecting: "Verbind tans…",
     emptyState: "Stuur 'n boodskap om te begin.",
+    toolsLabel: "gereedskap",
     approvalTitle: "Goedkeuring nodig",
     approvalAllowOnce: "Laat een keer toe",
     approvalAllowSession: "Laat hierdie sessie toe",
