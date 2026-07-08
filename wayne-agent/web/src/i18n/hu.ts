@@ -171,6 +171,24 @@ export const hu: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "Írjon üzenetet…",
+    connecting: "Csatlakozás…",
+    approvalTitle: "Jóváhagyás szükséges",
+    approvalAllowOnce: "Engedélyezés egyszer",
+    approvalAllowSession: "Engedélyezés ebben a munkamenetben",
+    approvalAllowAlways: "Mindig engedélyezve",
+    approvalDeny: "Elutasítás",
+    clarifyOther: "Egyéb (írja be a választ)",
+    clarifyAnswerPlaceholder: "Az Ön válasza…",
+    clarifySend: "Küldés",
+    sudoTitle: "Rendszergazdai jelszó szükséges",
+    sudoPlaceholder: "Jelszó",
+    secretPlaceholder: "Érték",
+    promptSubmit: "Megerősítés",
+    promptCancel: "Mégse",
+  },
+
   analytics: {
     period: "Időszak:",
     totalTokens: "Összes token",

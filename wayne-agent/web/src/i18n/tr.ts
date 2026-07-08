@@ -171,6 +171,24 @@ export const tr: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "Bir mesaj yazın…",
+    connecting: "Bağlanıyor…",
+    approvalTitle: "Onay gerekli",
+    approvalAllowOnce: "Bir kez izin ver",
+    approvalAllowSession: "Bu oturumda izin ver",
+    approvalAllowAlways: "Her zaman izin ver",
+    approvalDeny: "Reddet",
+    clarifyOther: "Diğer (yanıtınızı yazın)",
+    clarifyAnswerPlaceholder: "Yanıtınız…",
+    clarifySend: "Gönder",
+    sudoTitle: "Yönetici parolası gerekli",
+    sudoPlaceholder: "Parola",
+    secretPlaceholder: "Değer",
+    promptSubmit: "Onayla",
+    promptCancel: "İptal",
+  },
+
   analytics: {
     period: "Dönem:",
     totalTokens: "Toplam Token",

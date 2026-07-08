@@ -171,6 +171,24 @@ export const ga: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "Scríobh teachtaireacht…",
+    connecting: "Ag ceangal…",
+    approvalTitle: "Ceadú riachtanach",
+    approvalAllowOnce: "Ceadaigh uair amháin",
+    approvalAllowSession: "Ceadaigh don seisiún seo",
+    approvalAllowAlways: "Ceadaigh i gcónaí",
+    approvalDeny: "Diúltaigh",
+    clarifyOther: "Eile (clóscríobh do fhreagra)",
+    clarifyAnswerPlaceholder: "Do fhreagra…",
+    clarifySend: "Seol",
+    sudoTitle: "Focal faire riarthóra riachtanach",
+    sudoPlaceholder: "Focal faire",
+    secretPlaceholder: "Luach",
+    promptSubmit: "Deimhnigh",
+    promptCancel: "Cealaigh",
+  },
+
   analytics: {
     period: "Tréimhse:",
     totalTokens: "Tokens iomlána",

@@ -169,6 +169,24 @@ export const zh: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "输入消息…",
+    connecting: "正在连接…",
+    approvalTitle: "需要批准",
+    approvalAllowOnce: "允许一次",
+    approvalAllowSession: "在此会话中允许",
+    approvalAllowAlways: "始终允许",
+    approvalDeny: "拒绝",
+    clarifyOther: "其他（输入你的回答）",
+    clarifyAnswerPlaceholder: "你的回答…",
+    clarifySend: "发送",
+    sudoTitle: "需要管理员密码",
+    sudoPlaceholder: "密码",
+    secretPlaceholder: "值",
+    promptSubmit: "确认",
+    promptCancel: "取消",
+  },
+
   analytics: {
     period: "时间范围：",
     totalTokens: "总 Token 数",

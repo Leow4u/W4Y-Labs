@@ -171,6 +171,24 @@ export const pt: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "Escreva uma mensagem…",
+    connecting: "Conectando…",
+    approvalTitle: "Aprovação necessária",
+    approvalAllowOnce: "Permitir uma vez",
+    approvalAllowSession: "Permitir nesta sessão",
+    approvalAllowAlways: "Sempre permitir",
+    approvalDeny: "Negar",
+    clarifyOther: "Outro (digite sua resposta)",
+    clarifyAnswerPlaceholder: "Sua resposta…",
+    clarifySend: "Enviar",
+    sudoTitle: "Senha de administrador necessária",
+    sudoPlaceholder: "Senha",
+    secretPlaceholder: "Valor",
+    promptSubmit: "Confirmar",
+    promptCancel: "Cancelar",
+  },
+
   analytics: {
     period: "Período:",
     totalTokens: "Tokens totais",

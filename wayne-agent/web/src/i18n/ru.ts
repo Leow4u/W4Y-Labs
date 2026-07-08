@@ -171,6 +171,24 @@ export const ru: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "Введите сообщение…",
+    connecting: "Подключение…",
+    approvalTitle: "Требуется подтверждение",
+    approvalAllowOnce: "Разрешить один раз",
+    approvalAllowSession: "Разрешить в этой сессии",
+    approvalAllowAlways: "Всегда разрешать",
+    approvalDeny: "Отклонить",
+    clarifyOther: "Другое (введите ответ)",
+    clarifyAnswerPlaceholder: "Ваш ответ…",
+    clarifySend: "Отправить",
+    sudoTitle: "Требуется пароль администратора",
+    sudoPlaceholder: "Пароль",
+    secretPlaceholder: "Значение",
+    promptSubmit: "Подтвердить",
+    promptCancel: "Отмена",
+  },
+
   analytics: {
     period: "Период:",
     totalTokens: "Всего токенов",

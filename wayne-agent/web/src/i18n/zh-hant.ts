@@ -171,6 +171,24 @@ export const zhHant: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "輸入訊息…",
+    connecting: "正在連線…",
+    approvalTitle: "需要核准",
+    approvalAllowOnce: "允許一次",
+    approvalAllowSession: "在此工作階段允許",
+    approvalAllowAlways: "永遠允許",
+    approvalDeny: "拒絕",
+    clarifyOther: "其他（輸入你的回答）",
+    clarifyAnswerPlaceholder: "你的回答…",
+    clarifySend: "傳送",
+    sudoTitle: "需要系統管理員密碼",
+    sudoPlaceholder: "密碼",
+    secretPlaceholder: "值",
+    promptSubmit: "確認",
+    promptCancel: "取消",
+  },
+
   analytics: {
     period: "時間範圍：",
     totalTokens: "Token 總數",

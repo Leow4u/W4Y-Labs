@@ -171,6 +171,24 @@ export const ja: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "メッセージを入力…",
+    connecting: "接続中…",
+    approvalTitle: "承認が必要です",
+    approvalAllowOnce: "1回だけ許可",
+    approvalAllowSession: "このセッションで許可",
+    approvalAllowAlways: "常に許可",
+    approvalDeny: "拒否",
+    clarifyOther: "その他（回答を入力）",
+    clarifyAnswerPlaceholder: "回答を入力…",
+    clarifySend: "送信",
+    sudoTitle: "管理者パスワードが必要です",
+    sudoPlaceholder: "パスワード",
+    secretPlaceholder: "値",
+    promptSubmit: "確認",
+    promptCancel: "キャンセル",
+  },
+
   analytics: {
     period: "期間:",
     totalTokens: "合計トークン数",

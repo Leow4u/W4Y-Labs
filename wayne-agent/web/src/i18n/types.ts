@@ -200,6 +200,25 @@ export interface Translations {
     };
   };
 
+  // ── Native chat (composer, streaming, blocking prompts) ──
+  chat: {
+    composerPlaceholder: string;
+    connecting: string;
+    approvalTitle: string;
+    approvalAllowOnce: string;
+    approvalAllowSession: string;
+    approvalAllowAlways: string;
+    approvalDeny: string;
+    clarifyOther: string;
+    clarifyAnswerPlaceholder: string;
+    clarifySend: string;
+    sudoTitle: string;
+    sudoPlaceholder: string;
+    secretPlaceholder: string;
+    promptSubmit: string;
+    promptCancel: string;
+  };
+
   // ── Analytics page ──
   analytics: {
     period: string;

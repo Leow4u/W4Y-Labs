@@ -171,6 +171,24 @@ export const uk: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "Введіть повідомлення…",
+    connecting: "З'єднання…",
+    approvalTitle: "Потрібне підтвердження",
+    approvalAllowOnce: "Дозволити один раз",
+    approvalAllowSession: "Дозволити в цій сесії",
+    approvalAllowAlways: "Завжди дозволяти",
+    approvalDeny: "Відхилити",
+    clarifyOther: "Інше (введіть відповідь)",
+    clarifyAnswerPlaceholder: "Ваша відповідь…",
+    clarifySend: "Надіслати",
+    sudoTitle: "Потрібен пароль адміністратора",
+    sudoPlaceholder: "Пароль",
+    secretPlaceholder: "Значення",
+    promptSubmit: "Підтвердити",
+    promptCancel: "Скасувати",
+  },
+
   analytics: {
     period: "Період:",
     totalTokens: "Усього токенів",

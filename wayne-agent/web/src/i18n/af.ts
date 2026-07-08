@@ -171,6 +171,24 @@ export const af: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "Tik 'n boodskap…",
+    connecting: "Verbind tans…",
+    approvalTitle: "Goedkeuring nodig",
+    approvalAllowOnce: "Laat een keer toe",
+    approvalAllowSession: "Laat hierdie sessie toe",
+    approvalAllowAlways: "Laat altyd toe",
+    approvalDeny: "Weier",
+    clarifyOther: "Ander (tik jou antwoord)",
+    clarifyAnswerPlaceholder: "Jou antwoord…",
+    clarifySend: "Stuur",
+    sudoTitle: "Administrateurwagwoord nodig",
+    sudoPlaceholder: "Wagwoord",
+    secretPlaceholder: "Waarde",
+    promptSubmit: "Bevestig",
+    promptCancel: "Kanselleer",
+  },
+
   analytics: {
     period: "Tydperk:",
     totalTokens: "Totale Tokens",

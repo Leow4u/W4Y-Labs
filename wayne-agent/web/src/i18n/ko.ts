@@ -171,6 +171,24 @@ export const ko: Translations = {
     },
   },
 
+  chat: {
+    composerPlaceholder: "메시지를 입력하세요…",
+    connecting: "연결 중…",
+    approvalTitle: "승인이 필요합니다",
+    approvalAllowOnce: "한 번만 허용",
+    approvalAllowSession: "이 세션에서 허용",
+    approvalAllowAlways: "항상 허용",
+    approvalDeny: "거부",
+    clarifyOther: "기타 (답변 입력)",
+    clarifyAnswerPlaceholder: "답변을 입력하세요…",
+    clarifySend: "보내기",
+    sudoTitle: "관리자 비밀번호가 필요합니다",
+    sudoPlaceholder: "비밀번호",
+    secretPlaceholder: "값",
+    promptSubmit: "확인",
+    promptCancel: "취소",
+  },
+
   analytics: {
     period: "기간:",
     totalTokens: "총 토큰",
