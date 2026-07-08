@@ -191,6 +191,8 @@ export const en: Translations = {
     connecting: "Connecting…",
     emptyState: "Send a message to get started.",
     toolsLabel: "tools",
+    taskProgress: "Task progress",
+    working: "Working…",
     approvalTitle: "Approval needed",
     approvalAllowOnce: "Allow once",
     approvalAllowSession: "Allow this session",

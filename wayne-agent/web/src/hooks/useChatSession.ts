@@ -2,7 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { GatewayClient, type ConnectionState, type GatewayEvent } from "@/lib/gatewayClient";
 import { api } from "@/lib/api";
-import { fromSessionMessage, type ChatMessage, type ToolCallState } from "@/components/chat/types";
+import {
+  fromSessionMessage,
+  type ChatBlock,
+  type ChatMessage,
+  type TaskStep,
+  type ToolCallState,
+} from "@/components/chat/types";
 
 export type { ConnectionState };
 
@@ -13,6 +19,16 @@ export type PendingPrompt =
   | { kind: "secret"; prompt: string; envVar: string; requestId: string };
 
 export type ApprovalChoice = "once" | "session" | "always" | "deny";
+
+export interface ChatProgress {
+  steps: TaskStep[];
+  /** The live "doing now" line (status.update kind status/goal). */
+  statusText: string | null;
+  /** When the current turn started (client clock) — drives the elapsed timer. */
+  turnStartedAt: number | null;
+  running: boolean;
+  toolCount: number;
+}
 
 interface MessageDeltaPayload {
   text?: string;
@@ -28,6 +44,11 @@ interface ToolStartPayload {
   context?: string;
   args_text?: string;
 }
+interface TodoItem {
+  id: string;
+  content: string;
+  status: "pending" | "in_progress" | "completed" | "cancelled";
+}
 interface ToolCompletePayload {
   tool_id: string;
   name?: string;
@@ -37,6 +58,11 @@ interface ToolCompletePayload {
   result_text?: string;
   error?: string;
   inline_diff?: string;
+  todos?: TodoItem[];
+}
+interface StatusUpdatePayload {
+  kind?: string;
+  text?: string;
 }
 interface ApprovalRequestPayload {
   command: string;
@@ -62,7 +88,6 @@ interface SessionInfoPayload {
 interface ErrorPayload {
   message?: string;
 }
-
 interface SessionCreateResult {
   session_id: string;
   info?: SessionInfoPayload;
@@ -87,22 +112,42 @@ function approvalPromptFromPayload(p: ApprovalRequestPayload): PendingPrompt {
     kind: "approval",
     command: p.command,
     description: p.description,
-    // Backend redacts the command for display already — see
-    // tools/approval.py:_redact_approval_command. allow_permanent is
+    // Backend redacts the command for display already. allow_permanent is
     // omitted (not false) on most call sites, so default to allowed.
     allowPermanent: p.allow_permanent !== false,
   };
 }
 
+// Status noise we never want as a "doing now" label.
+const HIDDEN_STATUS_KINDS = new Set(["ready", "compacting", "compressing", "lifecycle"]);
+
 let localIdSeq = 0;
 const nextLocalId = () => `local-${++localIdSeq}`;
 
+// ── Block builders (interleaved assistant turn) ───────────────────────
+function appendText(blocks: ChatBlock[], chunk: string): ChatBlock[] {
+  const last = blocks[blocks.length - 1];
+  if (last && last.kind === "text") {
+    return [...blocks.slice(0, -1), { ...last, text: last.text + chunk }];
+  }
+  return [...blocks, { kind: "text", id: nextLocalId(), text: chunk }];
+}
+function pushTool(blocks: ChatBlock[], tool: ToolCallState): ChatBlock[] {
+  return [...blocks, { kind: "tool", tool }];
+}
+function patchTool(blocks: ChatBlock[], toolId: string, patch: Partial<ToolCallState>): ChatBlock[] {
+  return blocks.map((b) =>
+    b.kind === "tool" && b.tool.id === toolId ? { kind: "tool", tool: { ...b.tool, ...patch } } : b,
+  );
+}
+
 /**
- * Owns the connection + session lifecycle + event reducer for the native
- * chat. Talks directly to /api/ws (session.create/resume, prompt.submit,
- * approval/clarify/sudo/secret.respond) — no PTY, no /api/pty, no
- * /api/events channel mirror. See ui-tui/src/app/createGatewayEventHandler.ts
- * for the reference switch/case this mirrors (Ink's own event reducer).
+ * Owns the connection + session lifecycle + event reducer for the native chat.
+ * Talks directly to /api/ws (session.create/resume, prompt.submit,
+ * approval/clarify/sudo/secret.respond) — no PTY. Builds the assistant turn as
+ * ordered interleaved blocks (text/tool) and a task-progress view (todo steps
+ * with client-clocked timing + the live status line). See
+ * ui-tui/src/app/createGatewayEventHandler.ts for the reference reducer.
  */
 export function useChatSession(resumeId: string | null, freshNonce = 0) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -112,20 +157,41 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
   const [title, setTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [steps, setSteps] = useState<TaskStep[]>([]);
+  const [statusText, setStatusText] = useState<string | null>(null);
+  const [turnStartedAt, setTurnStartedAt] = useState<number | null>(null);
+  const [toolCount, setToolCount] = useState(0);
+
   const gwRef = useRef<GatewayClient | null>(null);
   const sessionIdRef = useRef<string | null>(null);
   const streamingIdRef = useRef<string | null>(null);
-  // approval.respond resolves the OLDEST pending approval for the session
-  // (FIFO by session_key, no request_id) — queue extra ones instead of
-  // dropping them when a second arrives while one is already showing.
   const approvalQueueRef = useRef<ApprovalRequestPayload[]>([]);
+  // Client-side per-step timing (the protocol carries none for todos): id →
+  // {startedAt when first in_progress, durationS frozen on completion}.
+  const todoTimingRef = useRef<Map<string, { startedAt?: number; durationS?: number }>>(new Map());
 
   const acceptsEvent = useCallback((ev: GatewayEvent) => {
     const sid = sessionIdRef.current;
-    // Mirrors the Ink client's own multiplexing rule: ignore events for a
-    // different session_id on the same connection. gateway.* events have no
-    // session_id and always pass through.
     return !sid || !ev.session_id || ev.session_id === sid;
+  }, []);
+
+  const applyTodos = useCallback((todos: TodoItem[]) => {
+    const now = Date.now();
+    const timing = todoTimingRef.current;
+    const next: TaskStep[] = todos.map((td) => {
+      let t = timing.get(td.id) ?? {};
+      if (td.status === "in_progress" && t.startedAt == null) t = { ...t, startedAt: now };
+      if (
+        (td.status === "completed" || td.status === "cancelled") &&
+        t.startedAt != null &&
+        t.durationS == null
+      ) {
+        t = { ...t, durationS: (now - t.startedAt) / 1000 };
+      }
+      timing.set(td.id, t);
+      return { id: td.id, content: td.content, status: td.status, startedAt: t.startedAt, durationS: t.durationS };
+    });
+    setSteps(next);
   }, []);
 
   useEffect(() => {
@@ -141,9 +207,10 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
       const id = nextLocalId();
       streamingIdRef.current = id;
       setBusy(true);
+      setTurnStartedAt((prev) => prev ?? Date.now());
       setMessages((prev) => [
         ...prev,
-        { id, role: "assistant", content: "", toolCalls: [], streaming: true },
+        { id, role: "assistant", content: "", toolCalls: [], blocks: [], streaming: true },
       ]);
     });
 
@@ -153,7 +220,11 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
       const chunk = ev.payload?.text;
       if (!id || !chunk) return;
       setMessages((prev) =>
-        prev.map((m) => (m.id === id ? { ...m, content: (m.content ?? "") + chunk } : m)),
+        prev.map((m) =>
+          m.id === id
+            ? { ...m, content: (m.content ?? "") + chunk, blocks: appendText(m.blocks ?? [], chunk) }
+            : m,
+        ),
       );
     });
 
@@ -162,17 +233,15 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
       const id = streamingIdRef.current;
       streamingIdRef.current = null;
       setBusy(false);
+      setTurnStartedAt(null);
+      setStatusText(null);
       const payload = ev.payload;
       if (id) {
         setMessages((prev) =>
-          prev.map((m) =>
-            m.id === id ? { ...m, content: payload?.text ?? m.content, streaming: false } : m,
-          ),
+          prev.map((m) => (m.id === id ? { ...m, streaming: false } : m)),
         );
       }
-      if (payload?.status === "error" && payload.warning) {
-        setError(payload.warning);
-      }
+      if (payload?.status === "error" && payload.warning) setError(payload.warning);
     });
 
     const offToolStart = gw.on<ToolStartPayload>("tool.start", (ev) => {
@@ -180,6 +249,7 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
       const msgId = streamingIdRef.current;
       const p = ev.payload;
       if (!msgId || !p) return;
+      setToolCount((n) => n + 1);
       const call: ToolCallState = {
         id: p.tool_id,
         name: p.name ?? "tool",
@@ -187,35 +257,51 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
         status: "running",
       };
       setMessages((prev) =>
-        prev.map((m) => (m.id === msgId ? { ...m, toolCalls: [...m.toolCalls, call] } : m)),
+        prev.map((m) =>
+          m.id === msgId
+            ? { ...m, toolCalls: [...m.toolCalls, call], blocks: pushTool(m.blocks ?? [], call) }
+            : m,
+        ),
       );
     });
 
     const offToolComplete = gw.on<ToolCompletePayload>("tool.complete", (ev) => {
       if (!acceptsEvent(ev)) return;
-      const msgId = streamingIdRef.current;
       const p = ev.payload;
-      if (!msgId || !p) return;
+      if (!p) return;
+      // The todo tool is the task plan — feed the progress chip, don't render as
+      // a tool card.
+      if (p.name === "todo" && p.todos) {
+        applyTodos(p.todos);
+        return;
+      }
+      const msgId = streamingIdRef.current;
+      if (!msgId) return;
+      const patch: Partial<ToolCallState> = {
+        status: p.error ? "error" : "done",
+        result: resultText(p),
+        error: p.error,
+        durationS: p.duration_s,
+        inlineDiff: p.inline_diff,
+      };
       setMessages((prev) =>
         prev.map((m) => {
           if (m.id !== msgId) return m;
           return {
             ...m,
-            toolCalls: m.toolCalls.map((tc) =>
-              tc.id === p.tool_id
-                ? {
-                    ...tc,
-                    status: p.error ? "error" : "done",
-                    result: resultText(p),
-                    error: p.error,
-                    durationS: p.duration_s,
-                    inlineDiff: p.inline_diff,
-                  }
-                : tc,
-            ),
+            toolCalls: m.toolCalls.map((tc) => (tc.id === p.tool_id ? { ...tc, ...patch } : tc)),
+            blocks: patchTool(m.blocks ?? [], p.tool_id, patch),
           };
         }),
       );
+    });
+
+    const offStatus = gw.on<StatusUpdatePayload>("status.update", (ev) => {
+      if (!acceptsEvent(ev)) return;
+      const p = ev.payload;
+      const kind = p?.kind ?? "status";
+      if (!p?.text || HIDDEN_STATUS_KINDS.has(kind)) return;
+      setStatusText(p.text);
     });
 
     const offApproval = gw.on<ApprovalRequestPayload>("approval.request", (ev) => {
@@ -277,9 +363,7 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
           ]);
           if (cancelled) return;
           sessionIdRef.current = resumed.session_id;
-          if (history) {
-            setMessages(history.messages.map((m, i) => fromSessionMessage(m, i)));
-          }
+          if (history) setMessages(history.messages.map((m, i) => fromSessionMessage(m, i)));
           setTitle(resumed.info?.title ?? null);
           setBusy(!!resumed.running);
         } else {
@@ -301,6 +385,7 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
       offMessageComplete();
       offToolStart();
       offToolComplete();
+      offStatus();
       offApproval();
       offClarify();
       offSudo();
@@ -311,13 +396,7 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
       gwRef.current = null;
       sessionIdRef.current = null;
     };
-    // `freshNonce` is intentionally in the dep array with no use in the body
-    // — bumping it forces a brand-new session even when resumeId is
-    // unchanged (e.g. "new chat" clicked while already on a fresh session
-    // with no ?resume param to clear). Mirrors ChatSessionList's own
-    // reconnect-nonce comment for the terminal path.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resumeId, acceptsEvent, freshNonce]);
+  }, [resumeId, freshNonce, acceptsEvent, applyTodos]);
 
   const sendMessage = useCallback(
     (text: string) => {
@@ -327,6 +406,11 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
       if (!gw || !sid || !trimmed || busy || pendingPrompt) return;
       setError(null);
       setBusy(true);
+      // Fresh task view per request.
+      todoTimingRef.current.clear();
+      setSteps([]);
+      setStatusText(null);
+      setToolCount(0);
       setMessages((prev) => [
         ...prev,
         { id: nextLocalId(), role: "user", content: trimmed, toolCalls: [] },
@@ -375,6 +459,8 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
     void gw.request("secret.respond", { request_id: requestId, value });
   }, []);
 
+  const progress: ChatProgress = { steps, statusText, turnStartedAt, running: busy, toolCount };
+
   return {
     messages,
     connectionState,
@@ -382,6 +468,7 @@ export function useChatSession(resumeId: string | null, freshNonce = 0) {
     pendingPrompt,
     title,
     error,
+    progress,
     sendMessage,
     respondApproval,
     respondClarify,

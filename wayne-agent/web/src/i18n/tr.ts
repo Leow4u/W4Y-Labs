@@ -176,6 +176,8 @@ export const tr: Translations = {
     connecting: "Bağlanıyor…",
     emptyState: "Başlamak için bir mesaj gönderin.",
     toolsLabel: "araç",
+    taskProgress: "Görev ilerlemesi",
+    working: "Çalışıyor…",
     approvalTitle: "Onay gerekli",
     approvalAllowOnce: "Bir kez izin ver",
     approvalAllowSession: "Bu oturumda izin ver",

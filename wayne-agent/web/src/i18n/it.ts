@@ -176,6 +176,8 @@ export const it: Translations = {
     connecting: "Connessione…",
     emptyState: "Scrivi un messaggio per iniziare.",
     toolsLabel: "strumenti",
+    taskProgress: "Avanzamento attività",
+    working: "In corso…",
     approvalTitle: "Approvazione necessaria",
     approvalAllowOnce: "Consenti una volta",
     approvalAllowSession: "Consenti per questa sessione",

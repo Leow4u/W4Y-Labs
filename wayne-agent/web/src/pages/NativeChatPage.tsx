@@ -14,6 +14,7 @@ import { ChatSessionList } from "@/components/ChatSessionList";
 import { Composer } from "@/components/chat/Composer";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { PendingPromptPanel } from "@/components/chat/PendingPromptPanel";
+import { TaskProgressPanel } from "@/components/chat/TaskProgressPanel";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useI18n } from "@/i18n";
@@ -32,6 +33,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     pendingPrompt,
     title,
     error,
+    progress,
     sendMessage,
     respondApproval,
     respondClarify,
@@ -77,6 +79,8 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
         </div>
 
         <div className="mx-auto w-full max-w-3xl shrink-0 px-4 pb-1">
+          <TaskProgressPanel progress={progress} />
+
           {error && (
             <div className="mb-2 rounded-md border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
               {error}

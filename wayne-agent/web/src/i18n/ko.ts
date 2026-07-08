@@ -176,6 +176,8 @@ export const ko: Translations = {
     connecting: "연결 중…",
     emptyState: "메시지를 보내 시작하세요.",
     toolsLabel: "개 도구",
+    taskProgress: "작업 진행 상황",
+    working: "처리 중…",
     approvalTitle: "승인이 필요합니다",
     approvalAllowOnce: "한 번만 허용",
     approvalAllowSession: "이 세션에서 허용",

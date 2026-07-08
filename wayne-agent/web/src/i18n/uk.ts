@@ -176,6 +176,8 @@ export const uk: Translations = {
     connecting: "З'єднання…",
     emptyState: "Надішліть повідомлення, щоб почати.",
     toolsLabel: "інструментів",
+    taskProgress: "Хід виконання",
+    working: "Виконується…",
     approvalTitle: "Потрібне підтвердження",
     approvalAllowOnce: "Дозволити один раз",
     approvalAllowSession: "Дозволити в цій сесії",

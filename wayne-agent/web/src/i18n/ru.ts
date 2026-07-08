@@ -176,6 +176,8 @@ export const ru: Translations = {
     connecting: "Подключение…",
     emptyState: "Отправьте сообщение, чтобы начать.",
     toolsLabel: "инструментов",
+    taskProgress: "Ход выполнения",
+    working: "Выполняется…",
     approvalTitle: "Требуется подтверждение",
     approvalAllowOnce: "Разрешить один раз",
     approvalAllowSession: "Разрешить в этой сессии",

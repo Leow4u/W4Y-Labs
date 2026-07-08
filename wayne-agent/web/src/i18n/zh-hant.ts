@@ -176,6 +176,8 @@ export const zhHant: Translations = {
     connecting: "正在連線…",
     emptyState: "傳送訊息以開始。",
     toolsLabel: "個工具",
+    taskProgress: "任務進度",
+    working: "處理中…",
     approvalTitle: "需要核准",
     approvalAllowOnce: "允許一次",
     approvalAllowSession: "在此工作階段允許",

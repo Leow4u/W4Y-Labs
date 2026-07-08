@@ -176,6 +176,8 @@ export const af: Translations = {
     connecting: "Verbind tans…",
     emptyState: "Stuur 'n boodskap om te begin.",
     toolsLabel: "gereedskap",
+    taskProgress: "Taakvordering",
+    working: "Besig…",
     approvalTitle: "Goedkeuring nodig",
     approvalAllowOnce: "Laat een keer toe",
     approvalAllowSession: "Laat hierdie sessie toe",

@@ -23,16 +23,40 @@ export interface ToolCallState {
   inlineDiff?: string;
 }
 
+/**
+ * An assistant turn is a sequence of interleaved blocks — text the model
+ * narrated and tool activity — in arrival order, so the UI shows "narrate →
+ * run tool → narrate → run tool" like the reference (Manus), instead of all
+ * text then a lump of tools. Built live by the reducer; history messages have
+ * no blocks (fall back to content + toolCalls).
+ */
+export type ChatBlock =
+  | { kind: "text"; id: string; text: string }
+  | { kind: "tool"; tool: ToolCallState };
+
 export interface ChatMessage {
   /** Stable React list key. */
   id: string;
   role: ChatRole;
   content: string | null;
   toolCalls: ToolCallState[];
+  /** Ordered interleaved blocks (assistant, live). Absent on history. */
+  blocks?: ChatBlock[];
   /** For role:"tool" messages — matches `SessionMessage.tool_name`. */
   toolName?: string;
   streaming?: boolean;
   timestamp?: number;
+}
+
+/** A task step for the progress chip. Timing is clocked client-side (the
+ *  protocol carries none for todos) — startedAt on first in_progress, frozen
+ *  durationS when it completes. */
+export interface TaskStep {
+  id: string;
+  content: string;
+  status: "pending" | "in_progress" | "completed" | "cancelled";
+  startedAt?: number;
+  durationS?: number;
 }
 
 function formatArgs(raw: string): string {

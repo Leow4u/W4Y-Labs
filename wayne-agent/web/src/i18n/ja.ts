@@ -176,6 +176,8 @@ export const ja: Translations = {
     connecting: "接続中…",
     emptyState: "メッセージを送信して始めましょう。",
     toolsLabel: "ツール",
+    taskProgress: "タスクの進捗",
+    working: "処理中…",
     approvalTitle: "承認が必要です",
     approvalAllowOnce: "1回だけ許可",
     approvalAllowSession: "このセッションで許可",

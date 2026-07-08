@@ -174,6 +174,8 @@ export const zh: Translations = {
     connecting: "正在连接…",
     emptyState: "发送消息以开始。",
     toolsLabel: "个工具",
+    taskProgress: "任务进度",
+    working: "处理中…",
     approvalTitle: "需要批准",
     approvalAllowOnce: "允许一次",
     approvalAllowSession: "在此会话中允许",

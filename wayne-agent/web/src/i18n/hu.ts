@@ -176,6 +176,8 @@ export const hu: Translations = {
     connecting: "Csatlakozás…",
     emptyState: "Küldjön üzenetet a kezdéshez.",
     toolsLabel: "eszköz",
+    taskProgress: "Feladat előrehaladása",
+    working: "Dolgozik…",
     approvalTitle: "Jóváhagyás szükséges",
     approvalAllowOnce: "Engedélyezés egyszer",
     approvalAllowSession: "Engedélyezés ebben a munkamenetben",

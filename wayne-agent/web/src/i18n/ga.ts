@@ -176,6 +176,8 @@ export const ga: Translations = {
     connecting: "Ag ceangal…",
     emptyState: "Seol teachtaireacht chun tosú.",
     toolsLabel: "uirlisí",
+    taskProgress: "Dul chun cinn na taisce",
+    working: "Ag obair…",
     approvalTitle: "Ceadú riachtanach",
     approvalAllowOnce: "Ceadaigh uair amháin",
     approvalAllowSession: "Ceadaigh don seisiún seo",

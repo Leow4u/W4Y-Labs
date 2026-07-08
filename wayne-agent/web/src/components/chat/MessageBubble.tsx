@@ -1,12 +1,14 @@
+import type { ReactNode } from "react";
+
 import { Markdown } from "@/components/Markdown";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { useI18n } from "@/i18n";
 import { timeAgo } from "@/lib/utils";
 
-import { FileRefCard, extractFileRefs, type FileRef } from "./FileRefCard";
+import { FileRefCard, extractFileRefs } from "./FileRefCard";
 import { ToolCallCard } from "./ToolCallCard";
 import { ToolCallGroup } from "./ToolCallGroup";
-import type { ChatMessage } from "./types";
+import type { ChatMessage, ToolCallState } from "./types";
 
 // Context-compaction handoff blocks are persisted as role="user" or
 // role="assistant" with content starting with one of these prefixes — they're
@@ -130,28 +132,78 @@ export function MessageBubble({
     }
 
     const muted = msg.role === "system" || msg.role === "tool" || isCompaction;
-    // Assistant messages can reference generated files with a
-    // @session:<profile>/<path> token — pull those into cards and keep the
-    // prose clean. Don't touch system/tool/compaction content.
-    const { text, files }: { text: string; files: FileRef[] } = muted
-      ? { text: msg.content ?? "", files: [] }
-      : extractFileRefs(msg.content ?? "");
 
-    return (
-      <div className="min-w-0">
-        {text &&
-          (muted ? (
+    // Muted rows (system / tool result / compaction): plain, no file parsing.
+    if (muted) {
+      return (
+        <div className="min-w-0">
+          {msg.content && (
             <div className="whitespace-pre-wrap text-sm italic leading-relaxed text-muted-foreground">
               {isCompaction ? "Context handoff — " : ""}
-              {text}
+              {msg.content}
             </div>
-          ) : (
-            <Markdown content={text} streaming={msg.streaming} />
-          ))}
-        {files.length > 0 && (
+          )}
+          {msg.toolCalls.length > 0 && (
+            <div className="mt-2">
+              <ToolCallGroup toolCalls={msg.toolCalls} />
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Assistant. Live turns carry ordered blocks (text/tool interleaved) — render
+    // in arrival order, grouping consecutive tools into one chip so the work
+    // shows up mid-conversation. Text blocks get file-ref cards inline. History
+    // assistant messages have no blocks → fall back to content + tools.
+    const blocks = msg.blocks;
+    if (blocks && blocks.length > 0) {
+      const lastTextIdx = blocks.reduce((acc, b, i) => (b.kind === "text" ? i : acc), -1);
+      const out: ReactNode[] = [];
+      let toolRun: ToolCallState[] = [];
+      const flush = (key: string) => {
+        if (toolRun.length) {
+          out.push(
+            <div key={`tg-${key}`}>
+              <ToolCallGroup toolCalls={toolRun} />
+            </div>,
+          );
+          toolRun = [];
+        }
+      };
+      blocks.forEach((b, i) => {
+        if (b.kind === "tool") {
+          toolRun.push(b.tool);
+          return;
+        }
+        flush(String(i));
+        const { text, files } = extractFileRefs(b.text);
+        out.push(
+          <div key={b.id}>
+            {text && <Markdown content={text} streaming={msg.streaming && i === lastTextIdx} />}
+            {files.length > 0 && (
+              <div className="mt-2 flex flex-col gap-1.5">
+                {files.map((f) => (
+                  <FileRefCard key={f.path ?? f.url} file={f} />
+                ))}
+              </div>
+            )}
+          </div>,
+        );
+      });
+      flush("end");
+      return <div className="min-w-0 space-y-2">{out}</div>;
+    }
+
+    // History assistant (no blocks).
+    const hist = extractFileRefs(msg.content ?? "");
+    return (
+      <div className="min-w-0">
+        {hist.text && <Markdown content={hist.text} streaming={msg.streaming} />}
+        {hist.files.length > 0 && (
           <div className="mt-2 flex flex-col gap-1.5">
-            {files.map((f) => (
-              <FileRefCard key={f.path} file={f} />
+            {hist.files.map((f) => (
+              <FileRefCard key={f.path ?? f.url} file={f} />
             ))}
           </div>
         )}

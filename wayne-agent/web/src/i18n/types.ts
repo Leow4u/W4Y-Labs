@@ -206,6 +206,8 @@ export interface Translations {
     connecting: string;
     emptyState: string;
     toolsLabel: string;
+    taskProgress: string;
+    working: string;
     approvalTitle: string;
     approvalAllowOnce: string;
     approvalAllowSession: string;
