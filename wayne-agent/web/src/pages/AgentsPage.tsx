@@ -82,33 +82,50 @@ export default function AgentsPage() {
     load();
   }, [load]);
 
+  // Cron cru na cara do usuário fere a curadoria: exprs dos presets → rótulo.
+  const exprLabel: Record<string, string> = useMemo(
+    () => ({
+      "0 9 * * *": t.agents.presetDaily9,
+      "0 8 * * 1-5": t.agents.presetWeekdays8,
+      "0 9 * * 1": t.agents.presetWeeklyMon9,
+    }),
+    [t.agents.presetDaily9, t.agents.presetWeekdays8, t.agents.presetWeeklyMon9],
+  );
+
   // Pulso operacional (custo 30d + rotinas) — em paralelo, sem travar o canvas.
-  const loadExtras = useCallback((names: string[]) => {
-    for (const name of names) {
-      void Promise.all([
-        api.getAnalytics(30, name).catch(() => null),
-        api.getCronJobs(name).catch(() => [] as Awaited<ReturnType<typeof api.getCronJobs>>),
-      ]).then(([usage, jobs]) => {
-        const usd = usage
-          ? usage.totals.total_actual_cost > 0
-            ? usage.totals.total_actual_cost
-            : usage.totals.total_estimated_cost
-          : 0;
-        const enabled = jobs.filter((j) => j.enabled);
-        const next = enabled[0] ?? jobs[0];
-        setExtras((prev) => ({
-          ...prev,
-          [name]: {
-            credits30: usdToCredits(usd),
-            nextRun: next
-              ? next.schedule_display || next.schedule?.display || next.schedule?.expr || null
-              : null,
-            routineCount: jobs.length,
-          },
-        }));
-      });
-    }
-  }, []);
+  const loadExtras = useCallback(
+    (names: string[]) => {
+      for (const name of names) {
+        void Promise.all([
+          api.getAnalytics(30, name).catch(() => null),
+          api.getCronJobs(name).catch(() => [] as Awaited<ReturnType<typeof api.getCronJobs>>),
+        ]).then(([usage, jobs]) => {
+          const usd = usage
+            ? usage.totals.total_actual_cost > 0
+              ? usage.totals.total_actual_cost
+              : usage.totals.total_estimated_cost
+            : 0;
+          const enabled = jobs.filter((j) => j.enabled);
+          const next = enabled[0] ?? jobs[0];
+          setExtras((prev) => ({
+            ...prev,
+            [name]: {
+              credits30: usdToCredits(usd),
+              nextRun: next
+                ? next.schedule_display ||
+                  next.schedule?.display ||
+                  exprLabel[next.schedule?.expr ?? ""] ||
+                  next.schedule?.expr ||
+                  null
+                : null,
+              routineCount: jobs.length,
+            },
+          }));
+        });
+      }
+    },
+    [exprLabel],
+  );
 
   useEffect(() => {
     if (profiles.length) loadExtras(profiles.map((p) => p.name));

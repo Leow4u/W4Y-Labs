@@ -53,9 +53,17 @@ type Tab = "profile" | "schedule" | "skills" | "channels";
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-live/50";
 
-/** Display humano do agendamento de um job. */
-function scheduleDisplay(j: CronJob): string {
-  return j.schedule_display || j.schedule?.display || j.schedule?.expr || j.schedule?.run_at || "—";
+/** Display humano do agendamento de um job (exprs dos presets → rótulo i18n). */
+function scheduleDisplay(j: CronJob, exprLabel: Record<string, string>): string {
+  const expr = j.schedule?.expr ?? "";
+  return (
+    j.schedule_display ||
+    j.schedule?.display ||
+    exprLabel[expr] ||
+    expr ||
+    j.schedule?.run_at ||
+    "—"
+  );
 }
 
 export function AgentDrawer({
@@ -181,6 +189,12 @@ export function AgentDrawer({
     daily_9: ag.presetDaily9,
     weekdays_8: ag.presetWeekdays8,
     weekly_mon_9: ag.presetWeeklyMon9,
+  };
+  // Cron cru na cara do usuário fere a curadoria: exprs conhecidas → rótulo.
+  const exprLabel: Record<string, string> = {
+    [ROUTINE_PRESETS.daily_9.expr]: ag.presetDaily9,
+    [ROUTINE_PRESETS.weekdays_8.expr]: ag.presetWeekdays8,
+    [ROUTINE_PRESETS.weekly_mon_9.expr]: ag.presetWeeklyMon9,
   };
 
   const createRoutine = useCallback(async () => {
@@ -483,7 +497,7 @@ export function AgentDrawer({
                 </div>
               ) : (
                 jobs.map((j) => (
-                  <div key={j.id} className="rounded-xl border border-border bg-card p-3.5">
+                  <div key={j.id} className="min-w-0 rounded-xl border border-border bg-card p-3.5">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium text-foreground">
@@ -491,7 +505,7 @@ export function AgentDrawer({
                         </div>
                         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                           <CalendarClock className="h-3.5 w-3.5" />
-                          {scheduleDisplay(j)}
+                          {scheduleDisplay(j, exprLabel)}
                         </div>
                       </div>
                       <span
@@ -620,7 +634,7 @@ export function AgentDrawer({
                         {list.map((s) => (
                           <div
                             key={s.name}
-                            className="flex items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/60"
+                            className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/60"
                           >
                             <div className="min-w-0 flex-1">
                               <div className="truncate text-sm text-foreground">{s.name}</div>
@@ -636,15 +650,17 @@ export function AgentDrawer({
                               aria-checked={s.enabled}
                               disabled={togglingSkill === s.name}
                               onClick={() => toggleSkill(s)}
+                              // Cores/knob vêm do padrão GLOBAL de toggles do produto
+                              // (index.css button[role="switch"], azul iOS !important)
+                              // — mesmo visual das Configurações. Aqui só layout.
                               className={cn(
                                 "relative h-5 w-9 shrink-0 rounded-full transition-colors",
-                                s.enabled ? "bg-live" : "bg-muted-foreground/25",
                                 togglingSkill === s.name && "opacity-60",
                               )}
                             >
                               <span
                                 className={cn(
-                                  "absolute top-0.5 h-4 w-4 rounded-full bg-background shadow transition-all",
+                                  "absolute top-0.5 rounded-full transition-all",
                                   s.enabled ? "left-[18px]" : "left-0.5",
                                 )}
                               />
@@ -674,7 +690,7 @@ export function AgentDrawer({
                   {connected.map((p) => (
                     <div
                       key={p.id}
-                      className="flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5"
+                      className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5"
                     >
                       <span className={cn("h-2 w-2 shrink-0 rounded-full", stateDot(p.state))} />
                       <div className="min-w-0 flex-1">
