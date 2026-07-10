@@ -404,8 +404,6 @@ export default function AgentWorkflowPage() {
         )}
       </div>
 
-      <p className="mb-3 text-sm text-muted-foreground">{ag.wfHint}</p>
-
       {/* O workflow (React Flow LR). */}
       <div className="w4y-flow min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-background/60">
         <ReactFlow

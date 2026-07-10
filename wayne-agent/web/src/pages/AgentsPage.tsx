@@ -155,14 +155,15 @@ export default function AgentsPage() {
     [profiles, extras, isActive],
   );
 
+  // Sem legenda didática e sem max-width: a tela É o canvas (feedback 10/07 —
+  // sistema profissional se explica sozinho e usa o espaço todo). Sem flex-1
+  // no holder: flex-basis 0% derrota o height inline no eixo do flex.
   return (
-    <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 py-4">
-      <p className="mb-4 max-w-2xl text-sm text-muted-foreground">{t.agents.eqCanvasHint}</p>
-
+    <div className="w-full px-3 py-3">
       {loading ? (
         <div className="py-16 text-center text-sm text-muted-foreground">…</div>
       ) : (
-        <div className="min-h-[440px] flex-1" style={{ height: "calc(100dvh - 190px)" }}>
+        <div className="min-h-[440px]" style={{ height: "calc(100dvh - 104px)" }}>
           <TeamCanvas
             agents={cards}
             onOpen={(name) => navigate(`/profiles/agent?name=${encodeURIComponent(name)}`)}

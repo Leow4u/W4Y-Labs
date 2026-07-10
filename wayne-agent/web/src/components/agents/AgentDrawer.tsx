@@ -654,7 +654,6 @@ export function AgentDrawer({
           {/* ---------------- Habilidades ---------------- */}
           {tab === "skills" && (
             <div className="grid gap-4">
-              <p className="type-micro text-muted-foreground">{ag.eqSkillsHint}</p>
               {skills === null ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">…</p>
               ) : (
@@ -717,7 +716,6 @@ export function AgentDrawer({
           {/* ---------------- Canais ---------------- */}
           {tab === "channels" && (
             <div className="grid gap-4">
-              <p className="type-micro text-muted-foreground">{ag.eqChannelsHint}</p>
               {platforms === null ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">…</p>
               ) : connected.length === 0 ? (
@@ -753,7 +751,6 @@ export function AgentDrawer({
           {/* ---------------- MCP ---------------- */}
           {tab === "mcp" && (
             <div className="grid gap-4">
-              <p className="type-micro text-muted-foreground">{ag.eqMcpHint}</p>
               {mcpServers === null ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">…</p>
               ) : mcpServers.length === 0 ? (
@@ -805,7 +802,6 @@ export function AgentDrawer({
                   </div>
                 </div>
               </div>
-              <p className="type-micro text-muted-foreground">{ag.eqActivityHint}</p>
               {activity === null ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">…</p>
               ) : activity.length === 0 ? (

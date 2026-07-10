@@ -446,7 +446,6 @@ export interface Translations {
     quickTab: string;
     teamTab: string;
     qsTitle: string;
-    qsHint: string;
     qsPlaceholder: string;
     qsGenerate: string;
     qsGenerating: string;
@@ -473,9 +472,7 @@ export interface Translations {
     qsCreated: string;
     // ── Onda 2.5/3: raio-X (MCP/Atividade), workflow, Operações, Governança ──
     eqTabActivity: string;
-    eqMcpHint: string;
     eqMcpNone: string;
-    eqActivityHint: string;
     eqActivityNone: string;
     wfTriggers: string;
     wfChat: string;
@@ -483,11 +480,8 @@ export interface Translations {
     /** "{n} servidores". */
     wfServers: string;
     wfResults: string;
-    wfHint: string;
     opsTab: string;
-    opsHint: string;
     opsNewTask: string;
-    opsNewTaskHint: string;
     opsTaskTitle: string;
     opsTaskTitlePh: string;
     opsTaskBody: string;
@@ -508,7 +502,6 @@ export interface Translations {
     opsApproved: string;
     opsEmpty: string;
     govTab: string;
-    govHint: string;
     govHitlNote: string;
     govColRoutines: string;
     govColApproval: string;
@@ -524,7 +517,6 @@ export interface Translations {
     tplCollapse: string;
     tplExpand: string;
     // ── Equipe (Onda 2): canvas + raio-X do agente ──
-    eqCanvasHint: string;
     eqTabProfile: string;
     eqTalk: string;
     eqCost30d: string;
@@ -539,15 +531,12 @@ export interface Translations {
     eqPaused: string;
     eqRoutineCreated: string;
     eqRoutineDeleted: string;
-    eqSkillsHint: string;
     /** "{on} de {total} ativas". */
     eqSkillsActive: string;
-    eqChannelsHint: string;
     eqChannelsNone: string;
     eqChannelsManage: string;
     qsStartOver: string;
     templatesTitle: string;
-    templatesHint: string;
     recurringBadge: string;
     premiumBadge: string;
     upgradeToUse: string;

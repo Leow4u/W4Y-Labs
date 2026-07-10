@@ -181,7 +181,6 @@ export default function OperationsPage() {
   return (
     <div className="flex h-[calc(100dvh-112px)] min-h-[480px] flex-col px-4 py-3">
       <Toast toast={toast} />
-      <p className="mb-3 max-w-3xl text-sm text-muted-foreground">{ag.opsHint}</p>
 
       {board === null ? (
         <div className="py-16 text-center text-sm text-muted-foreground">…</div>
@@ -313,7 +312,6 @@ export default function OperationsPage() {
             </Button>
             <header className="border-b border-border p-5 pb-3">
               <h2 className="text-base font-semibold text-foreground">{ag.opsNewTask}</h2>
-              <p className="mt-0.5 type-caption text-muted-foreground">{ag.opsNewTaskHint}</p>
             </header>
             <div className="grid gap-4 p-5">
               <label className="flex flex-col gap-1.5">

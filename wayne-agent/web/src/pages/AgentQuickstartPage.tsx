@@ -20,8 +20,6 @@ import {
   Check,
   Loader2,
   Lock,
-  PanelRightClose,
-  PanelRightOpen,
   Plus,
   Search,
   Sparkles,
@@ -225,8 +223,9 @@ export default function AgentQuickstartPage() {
     // Altura EXPLÍCITA (padrão AgentsPage): o wrapper das rotas é um block
     // (`w-full pb-8`), então `flex-1` aqui não estica — sem isto a coluna
     // central colapsava na altura do conteúdo e o hero perdia a centralização
-    // quando o painel de modelos era recolhido.
-    <div className="flex h-[calc(100dvh-112px)] min-h-[480px] flex-col overflow-hidden lg:flex-row">
+    // quando o painel de modelos era recolhido. `relative` ancora o handle
+    // do painel recolhido na borda direita.
+    <div className="relative flex h-[calc(100dvh-112px)] min-h-[480px] flex-col overflow-hidden lg:flex-row">
       <Toast toast={toast} />
 
       {/* ─────────── Coluna central ─────────── */}
@@ -270,13 +269,14 @@ export default function AgentQuickstartPage() {
             {/* Pergunta no CENTRO da tela (padrão Claude). */}
             <div className="grid min-h-0 flex-1 content-center px-6">
               <div className="mx-auto w-full max-w-[640px] text-center">
+                {/* Só o título — o exemplo vive no placeholder do composer
+                    (feedback 10/07: legenda + exemplo = redundância infantil). */}
                 <h1
                   className="mb-2 text-[2.1rem] font-medium tracking-tight text-foreground"
                   style={{ fontFamily: "var(--theme-font-serif)", textWrap: "balance" }}
                 >
                   {ag.qsTitle}
                 </h1>
-                <p className="type-ui text-muted-foreground">{ag.qsHint}</p>
                 {phase === "drafting" && (
                   <p className="mt-5 type-ui">
                     <span className="text-shimmer font-medium">{ag.qsGenerating}</span>
@@ -531,21 +531,23 @@ export default function AgentQuickstartPage() {
       {/* ─────────── Painel direito: modelos prontos (expansível) ─────────── */}
       {showTplPanel &&
         (tplOpen ? (
-          <aside className="flex min-h-0 w-full shrink-0 flex-col border-t border-border lg:w-[400px] lg:border-l lg:border-t-0">
+          <aside className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-border lg:w-[400px] lg:border-l lg:border-t-0">
+            {/* Handle na borda (padrão Claude) — clique recolhe. Sem botão. */}
+            <button
+              type="button"
+              onClick={toggleTpl}
+              aria-label={ag.tplCollapse}
+              title={ag.tplCollapse}
+              className="group absolute -left-2 top-1/2 z-10 hidden h-16 w-4 -translate-y-1/2 cursor-pointer items-center justify-center lg:flex"
+            >
+              <span className="h-9 w-1 rounded-full bg-border transition-all duration-150 group-hover:h-12 group-hover:w-1.5 group-hover:bg-foreground/40" />
+            </button>
+
             <div className="flex items-center gap-2 px-5 pb-3 pt-5">
               <h2 className="flex min-w-0 flex-1 items-center gap-2 text-sm font-semibold text-foreground">
                 <Sparkles className="h-4 w-4 shrink-0 text-live" />
                 <span className="truncate">{ag.templatesTitle}</span>
               </h2>
-              <button
-                type="button"
-                onClick={toggleTpl}
-                aria-label={ag.tplCollapse}
-                title={ag.tplCollapse}
-                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              >
-                <PanelRightClose className="h-4 w-4" />
-              </button>
             </div>
 
             <div className="px-5 pb-3">
@@ -558,7 +560,6 @@ export default function AgentQuickstartPage() {
                   className={cn(inputCls, "pl-9")}
                 />
               </div>
-              <p className="mt-2 type-micro text-muted-foreground">{ag.templatesHint}</p>
             </div>
 
             <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6">
@@ -621,16 +622,15 @@ export default function AgentQuickstartPage() {
             </div>
           </aside>
         ) : (
-          /* Painel recolhido: trilho fino que reabre (handle estilo Claude). */
+          /* Recolhido: só o handle encostado na borda direita — clique expande. */
           <button
             type="button"
             onClick={toggleTpl}
             aria-label={ag.tplExpand}
             title={ag.tplExpand}
-            className="hidden shrink-0 flex-col items-center gap-3 border-l border-border px-2.5 pt-5 text-muted-foreground transition-colors hover:bg-muted/50 hover:text-foreground lg:flex"
+            className="group absolute right-0 top-1/2 z-10 hidden h-16 w-4 -translate-y-1/2 cursor-pointer items-center justify-center lg:flex"
           >
-            <PanelRightOpen className="h-4 w-4" />
-            <Sparkles className="h-4 w-4 text-live" />
+            <span className="h-9 w-1 rounded-full bg-border transition-all duration-150 group-hover:h-12 group-hover:w-1.5 group-hover:bg-foreground/40" />
           </button>
         ))}
     </div>

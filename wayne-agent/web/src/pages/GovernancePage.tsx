@@ -132,13 +132,8 @@ export default function GovernancePage() {
   const totalCredits = (rows ?? []).reduce((acc, r) => acc + (r.credits30 ?? 0), 0);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 py-4">
+    <div className="mx-auto w-full max-w-5xl px-4 py-5">
       <Toast toast={toast} />
-      <p className="mb-1 max-w-3xl text-sm text-muted-foreground">{ag.govHint}</p>
-      <p className="mb-5 flex items-center gap-1.5 type-micro text-muted-foreground">
-        <ShieldCheck className="h-3.5 w-3.5 text-live" />
-        {ag.govHitlNote}
-      </p>
 
       {rows === null ? (
         <div className="py-16 text-center text-sm text-muted-foreground">…</div>
@@ -162,8 +157,15 @@ export default function GovernancePage() {
                 <th className="px-4 py-3 text-right type-caption font-medium text-muted-foreground">
                   {ag.govColRoutines}
                 </th>
-                <th className="px-4 py-3 type-caption font-medium text-muted-foreground">
-                  {ag.govColApproval}
+                {/* A explicação do HITL vive no hover — nada de legenda na tela. */}
+                <th
+                  className="px-4 py-3 type-caption font-medium text-muted-foreground"
+                  title={ag.govHitlNote}
+                >
+                  <span className="inline-flex items-center gap-1">
+                    {ag.govColApproval}
+                    <ShieldCheck className="h-3 w-3 opacity-60" />
+                  </span>
                 </th>
               </tr>
             </thead>
