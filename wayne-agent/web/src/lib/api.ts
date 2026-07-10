@@ -610,7 +610,8 @@ export const api = {
     fetchJSON<ModelsAnalyticsResponse>(
       appendProfileParam(`/api/analytics/models?days=${days}`, profile),
     ),
-  getConfig: () => fetchJSON<Record<string, unknown>>("/api/config"),
+  getConfig: (profile?: string) =>
+    fetchJSON<Record<string, unknown>>(`/api/config${profileQuery(profile)}`),
   getDefaults: () => fetchJSON<Record<string, unknown>>("/api/config/defaults"),
   getSchema: () => fetchJSON<{ fields: Record<string, unknown>; category_order: string[] }>("/api/config/schema"),
   getModelInfo: (profile?: string) =>
@@ -631,8 +632,8 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     }),
-  saveConfig: (config: Record<string, unknown>) =>
-    fetchJSON<{ ok: boolean }>("/api/config", {
+  saveConfig: (config: Record<string, unknown>, profile?: string) =>
+    fetchJSON<{ ok: boolean }>(`/api/config${profileQuery(profile)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ config }),
@@ -1082,7 +1083,29 @@ export const api = {
     }),
 
   // ── Admin: MCP servers ──────────────────────────────────────────────
-  getMcpServers: () => fetchJSON<{ servers: McpServer[] }>("/api/mcp/servers"),
+  getMcpServers: (profile?: string) =>
+    fetchJSON<{ servers: McpServer[] }>(`/api/mcp/servers${profileQuery(profile)}`),
+
+  // ── Kanban (plugin nativo /api/plugins/kanban) — módulo Operações ──
+  // O board é COMPARTILHADO entre agentes (kanban.db é profile-agnóstico);
+  // assignee = slug do profile. PATCH status:"ready" com assignee acorda o
+  // dispatcher na hora (spawna `wayne -p <assignee>` com o WAYNE_HOME dele).
+  getKanbanBoard: () => fetchJSON<KanbanBoardResponse>("/api/plugins/kanban/board"),
+  createKanbanTask: (body: KanbanTaskCreate) =>
+    fetchJSON<Record<string, unknown>>("/api/plugins/kanban/tasks", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  updateKanbanTask: (id: string, updates: KanbanTaskUpdate) =>
+    fetchJSON<Record<string, unknown>>(
+      `/api/plugins/kanban/tasks/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      },
+    ),
   addMcpServer: (body: McpServerCreate) =>
     fetchJSON<McpServer>("/api/mcp/servers", {
       method: "POST",
@@ -2165,6 +2188,53 @@ export interface AutomationBlueprint {
   fields: AutomationBlueprintField[];
   command: string;
   appUrl: string;
+}
+
+// ── Kanban (plugin nativo) — módulo Operações ──
+export interface KanbanTask {
+  id: string;
+  title: string;
+  status: string;
+  assignee?: string | null;
+  priority?: number | null;
+  body?: string | null;
+  result?: string | null;
+  block_reason?: string | null;
+  /** Preview (~200 chars) do último resumo de execução do worker. */
+  latest_summary?: string | null;
+  tenant?: string | null;
+  created_at?: string | null;
+  age?: {
+    created_age_seconds?: number | null;
+    started_age_seconds?: number | null;
+    time_to_complete_seconds?: number | null;
+  } | null;
+  link_counts?: { parents: number; children: number };
+  comment_count?: number;
+  progress?: { done?: number; total?: number } | null;
+}
+
+export interface KanbanBoardResponse {
+  columns: Array<{ name: string; tasks: KanbanTask[] }>;
+  tenants: string[];
+  assignees: string[];
+  latest_event_id: number;
+  now: number;
+}
+
+export interface KanbanTaskCreate {
+  title: string;
+  body?: string;
+  assignee?: string;
+  priority?: number;
+}
+
+export interface KanbanTaskUpdate {
+  status?: string;
+  assignee?: string;
+  priority?: number;
+  title?: string;
+  body?: string;
 }
 
 export interface SkillInfo {

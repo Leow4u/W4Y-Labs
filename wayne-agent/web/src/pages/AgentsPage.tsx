@@ -1,20 +1,15 @@
 /**
- * AgentsPage — a Equipe (módulo Agentes, Onda 2): o organograma vivo dos
- * funcionários de IA. Benchmark Google Cloud Agent Designer com curadoria
- * Editorial: canvas React Flow (agente principal → time), cada card com o
- * pulso operacional (custo 30d em créditos + próxima rotina); clicar abre o
- * raio-X (AgentDrawer) com Perfil/Agenda/Habilidades/Canais.
+ * AgentsPage — a Equipe (módulo Agentes): o organograma vivo dos funcionários
+ * de IA. Benchmark Google Cloud Agent Designer com curadoria Editorial:
+ * canvas React Flow (agente principal → time), cada card com o pulso
+ * operacional (custo 30d em créditos + próxima rotina). Clicar num agente
+ * abre a PÁGINA de workflow dele (AgentWorkflowPage, benchmark Stack AI) —
+ * o raio-X profundo com nós Gatilhos/Modelo/Habilidades/MCP/Canais/Resultados.
  *
  * Curadoria de produto: em vez de "perfis" (jargão: SOUL.md, gateway, MCP),
  * o usuário vê AGENTES. Reaproveita 100% os endpoints /api/profiles + ?profile=
  * (sem backend novo). A página admin completa continua atrás de `?full=1`.
- * Criar/editar agora vivem no Início rápido e no raio-X — o modal antigo saiu.
- *
- * Mapa de conceitos (interno → produto):
- *   profile.name        → id do agente (slug); exibido "bonito" (prettify)
- *   profile.description → Especialidade (frase curta)
- *   SOUL.md             → Instruções (como o agente se comporta)
- *   active profile      → o agente que o Wayne usa agora ("Em uso")
+ * Submódulos vivem no dropdown da sidebar (SidebarNavGroup) — sem abas.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,11 +18,8 @@ import { Plus } from "lucide-react";
 import { api } from "@/lib/api";
 import type { ActiveProfileInfo, ProfileInfo } from "@/lib/api";
 import { usdToCredits } from "@/lib/credits";
-import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { TeamCanvas, type TeamAgentCard } from "@/components/agents/TeamCanvas";
-import { AgentDrawer, type DrawerAgent } from "@/components/agents/AgentDrawer";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
@@ -62,9 +54,7 @@ export default function AgentsPage() {
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [active, setActive] = useState<ActiveProfileInfo | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activating, setActivating] = useState<string | null>(null);
   const [extras, setExtras] = useState<Record<string, AgentExtras>>({});
-  const [selected, setSelected] = useState<string | null>(null);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -138,45 +128,6 @@ export default function AgentsPage() {
     [activeName],
   );
 
-  const activate = async (name: string) => {
-    const p = profiles.find((x) => x.name === name);
-    if (!p || isActive(p)) return;
-    setActivating(name);
-    try {
-      const res = await api.setActiveProfile(name);
-      setActive((prev) => ({
-        active: res.active,
-        current: prev?.current ?? res.active,
-      }));
-      showToast(`${t.agents.switched}: ${prettify(name)}`, "success");
-    } catch (e) {
-      showToast(`${t.status.error}: ${e}`, "error");
-    } finally {
-      setActivating(null);
-    }
-  };
-
-  const agentDelete = useConfirmDelete<string>({
-    onDelete: useCallback(
-      async (name: string) => {
-        try {
-          await api.deleteProfile(name);
-          showToast(`${t.agents.deleted}: ${prettify(name)}`, "success");
-          setSelected(null);
-          load();
-        } catch (e) {
-          showToast(`${t.status.error}: ${e}`, "error");
-          throw e;
-        }
-      },
-      [showToast, t.status.error, t.agents.deleted, load],
-    ),
-  });
-  const pendingName = agentDelete.pendingId;
-  const deleteMessage = pendingName
-    ? t.agents.confirmDeleteMessage.replace("{name}", prettify(pendingName))
-    : t.agents.confirmDeleteMessage;
-
   // Botão "Novo agente" no header — o funil de criação é o Início rápido.
   useEffect(() => {
     setEnd(
@@ -204,23 +155,8 @@ export default function AgentsPage() {
     [profiles, extras, isActive],
   );
 
-  const drawerAgent: DrawerAgent | null = useMemo(() => {
-    const c = cards.find((x) => x.name === selected);
-    if (!c) return null;
-    return {
-      name: c.name,
-      displayName: c.displayName,
-      monogram: c.monogram,
-      specialty: c.specialty,
-      isActive: c.isActive,
-      isDefault: c.isDefault,
-    };
-  }, [cards, selected]);
-
   return (
     <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 py-4">
-      {/* Submódulos agora vivem no dropdown da sidebar (SidebarNavGroup) —
-          a tela é só o canvas respirando (pedido 10/07: sem abas internas). */}
       <p className="mb-4 max-w-2xl text-sm text-muted-foreground">{t.agents.eqCanvasHint}</p>
 
       {loading ? (
@@ -229,37 +165,13 @@ export default function AgentsPage() {
         <div className="min-h-[440px] flex-1" style={{ height: "calc(100dvh - 190px)" }}>
           <TeamCanvas
             agents={cards}
-            onOpen={(name) => setSelected(name)}
+            onOpen={(name) => navigate(`/profiles/agent?name=${encodeURIComponent(name)}`)}
             onAdd={() => navigate("/profiles/quickstart")}
           />
         </div>
       )}
 
       <Toast toast={toast} />
-
-      <DeleteConfirmDialog
-        open={agentDelete.isOpen}
-        onCancel={agentDelete.cancel}
-        onConfirm={agentDelete.confirm}
-        title={t.agents.confirmDeleteTitle}
-        description={deleteMessage}
-        loading={agentDelete.isDeleting}
-      />
-
-      {drawerAgent && (
-        <AgentDrawer
-          agent={drawerAgent}
-          onClose={() => setSelected(null)}
-          onChanged={() => {
-            load();
-            loadExtras(profiles.map((p) => p.name));
-          }}
-          onActivate={(name) => void activate(name)}
-          onRequestDelete={(name) => agentDelete.requestDelete(name)}
-          activating={activating === drawerAgent.name}
-          notify={(msg, kind) => showToast(msg, kind)}
-        />
-      )}
     </div>
   );
 }

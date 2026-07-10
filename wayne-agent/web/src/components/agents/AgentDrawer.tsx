@@ -30,7 +30,8 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
-import type { CronJob, MessagingPlatform, SkillInfo } from "@/lib/api";
+import type { CronJob, McpServer, MessagingPlatform, SessionInfo, SkillInfo } from "@/lib/api";
+import { timeAgoShort } from "@/lib/utils";
 import { ROUTINE_PRESETS } from "@/lib/agent-draft";
 import type { AgentRoutineDraft } from "@/lib/agent-draft";
 import { formatCredits, usdToCredits } from "@/lib/credits";
@@ -48,7 +49,14 @@ export interface DrawerAgent {
   isDefault: boolean;
 }
 
-type Tab = "profile" | "schedule" | "skills" | "channels";
+export type AgentDrawerTab =
+  | "profile"
+  | "schedule"
+  | "skills"
+  | "channels"
+  | "mcp"
+  | "activity";
+type Tab = AgentDrawerTab;
 
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-live/50";
@@ -74,6 +82,7 @@ export function AgentDrawer({
   onRequestDelete,
   activating,
   notify,
+  initialTab,
 }: {
   agent: DrawerAgent;
   onClose: () => void;
@@ -83,13 +92,19 @@ export function AgentDrawer({
   onRequestDelete: (name: string) => void;
   activating: boolean;
   notify: (msg: string, kind: "success" | "error") => void;
+  /** Aba inicial — o workflow (Onda 2.5) abre o raio-X direto no nó clicado. */
+  initialTab?: AgentDrawerTab;
 }) {
   const { t } = useI18n();
   const ag = t.agents;
   const navigate = useNavigate();
   const modalRef = useModalBehavior({ open: true, onClose });
 
-  const [tab, setTab] = useState<Tab>("profile");
+  const [tab, setTab] = useState<Tab>(initialTab ?? "profile");
+  // Clicar noutro nó do workflow com o drawer já aberto troca a aba.
+  useEffect(() => {
+    if (initialTab) setTab(initialTab);
+  }, [initialTab]);
 
   /* ---------------- Perfil ---------------- */
   const [specialty, setSpecialty] = useState(agent.specialty);
@@ -302,6 +317,28 @@ export function AgentDrawer({
 
   const connected = (platforms ?? []).filter((p) => p.configured || p.enabled);
 
+  /* ---------------- MCP ---------------- */
+  const [mcpServers, setMcpServers] = useState<McpServer[] | null>(null);
+
+  useEffect(() => {
+    if (tab !== "mcp" || mcpServers !== null) return;
+    api
+      .getMcpServers(agent.name)
+      .then((r) => setMcpServers(r.servers ?? []))
+      .catch(() => setMcpServers([]));
+  }, [tab, mcpServers, agent.name]);
+
+  /* ---------------- Atividade ---------------- */
+  const [activity, setActivity] = useState<SessionInfo[] | null>(null);
+
+  useEffect(() => {
+    if (tab !== "activity" || activity !== null) return;
+    api
+      .getSessions(10, 0, agent.name, "recent")
+      .then((r) => setActivity(r.sessions ?? []))
+      .catch(() => setActivity([]));
+  }, [tab, activity, agent.name]);
+
   /* ---------------- Render ---------------- */
 
   const tabs: Array<{ key: Tab; label: string }> = [
@@ -309,6 +346,8 @@ export function AgentDrawer({
     { key: "schedule", label: t.app.nav.cron },
     { key: "skills", label: t.app.nav.skills },
     { key: "channels", label: t.app.nav.channels },
+    { key: "mcp", label: "MCP" },
+    { key: "activity", label: ag.eqTabActivity },
   ];
 
   const stateDot = (state: string) =>
@@ -708,6 +747,99 @@ export function AgentDrawer({
               >
                 {ag.eqChannelsManage} →
               </Link>
+            </div>
+          )}
+
+          {/* ---------------- MCP ---------------- */}
+          {tab === "mcp" && (
+            <div className="grid gap-4">
+              <p className="type-micro text-muted-foreground">{ag.eqMcpHint}</p>
+              {mcpServers === null ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">…</p>
+              ) : mcpServers.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border py-8 text-center">
+                  <p className="text-sm text-muted-foreground">{ag.eqMcpNone}</p>
+                </div>
+              ) : (
+                <div className="grid gap-2">
+                  {mcpServers.map((s) => (
+                    <div
+                      key={s.name}
+                      className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5"
+                    >
+                      <span
+                        className={cn(
+                          "h-2 w-2 shrink-0 rounded-full",
+                          s.enabled ? "bg-emerald-500" : "bg-muted-foreground/40",
+                        )}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-foreground">{s.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {s.transport}
+                          {s.tools && s.tools.length > 0 ? ` · ${s.tools.length} tools` : ""}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ---------------- Atividade ---------------- */}
+          {tab === "activity" && (
+            <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="type-micro text-muted-foreground">{ag.eqCost30d}</div>
+                  <div className="mt-1 flex items-center gap-1.5 text-lg font-semibold tabular-nums text-foreground">
+                    <Coins className="h-4 w-4 text-live" />
+                    {stats ? formatCredits(stats.credits) : "…"}
+                  </div>
+                </div>
+                <div className="rounded-xl border border-border bg-card p-3">
+                  <div className="type-micro text-muted-foreground">{ag.eqSessions}</div>
+                  <div className="mt-1 text-lg font-semibold tabular-nums text-foreground">
+                    {stats ? stats.sessions : "…"}
+                  </div>
+                </div>
+              </div>
+              <p className="type-micro text-muted-foreground">{ag.eqActivityHint}</p>
+              {activity === null ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">…</p>
+              ) : activity.length === 0 ? (
+                <div className="rounded-xl border border-dashed border-border py-8 text-center">
+                  <p className="text-sm text-muted-foreground">{ag.eqActivityNone}</p>
+                </div>
+              ) : (
+                <div className="grid gap-1.5">
+                  {activity.map((s) => (
+                    <div
+                      key={s.id}
+                      className="flex min-w-0 items-center gap-3 rounded-lg px-2 py-1.5"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm text-foreground">
+                          {s.title?.trim() || s.preview?.trim() || s.id.slice(0, 8)}
+                        </div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {s.message_count} msgs
+                          {s.model ? ` · ${s.model.split("/").pop()}` : ""}
+                        </div>
+                      </div>
+                      <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                        {timeAgoShort(s.last_active || s.started_at, {
+                          ageNow: t.chat.ageNow,
+                          ageMin: t.chat.ageMin,
+                          ageHour: t.chat.ageHour,
+                          ageDay: t.chat.ageDay,
+                        })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
         </div>

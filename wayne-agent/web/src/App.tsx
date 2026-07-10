@@ -86,6 +86,9 @@ import CronPage from "@/pages/CronPage";
 import ProfilesPage from "@/pages/ProfilesPage";
 import ProfileBuilderPage from "@/pages/ProfileBuilderPage";
 import AgentQuickstartPage from "@/pages/AgentQuickstartPage";
+import AgentWorkflowPage from "@/pages/AgentWorkflowPage";
+import OperationsPage from "@/pages/OperationsPage";
+import GovernancePage from "@/pages/GovernancePage";
 import AgentsPage from "@/pages/AgentsPage";
 import JourneyPage from "@/pages/JourneyPage";
 import SkillsPage from "@/pages/SkillsPage";
@@ -174,6 +177,9 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/journey": JourneyPage,
   "/profiles/new": ProfileBuilderPage,
   "/profiles/quickstart": AgentQuickstartPage,
+  "/profiles/agent": AgentWorkflowPage,
+  "/profiles/operations": OperationsPage,
+  "/profiles/governance": GovernancePage,
   "/config": ConfigRoute,
   "/env": EnvPage,
   "/docs": DocsPage,
@@ -220,11 +226,12 @@ const BUILTIN_NAV_REST: NavItem[] = [
     labelKey: "profiles",
     label: "Agents",
     icon: Bot,
-    // Submódulos do módulo Agentes (dropdown). Onda 3 acrescenta
-    // Operações/Governança aqui — a estrutura já é a final.
+    // Submódulos do módulo Agentes (dropdown estilo Claude Console).
     children: [
       { path: "/profiles/quickstart", getLabel: (tt) => tt.agents.quickTab },
       { path: "/profiles", end: true, getLabel: (tt) => tt.agents.teamTab },
+      { path: "/profiles/operations", getLabel: (tt) => tt.agents.opsTab },
+      { path: "/profiles/governance", getLabel: (tt) => tt.agents.govTab },
     ],
   },
   // Config saiu da navegação principal — agora abre pelo menu do chip do
