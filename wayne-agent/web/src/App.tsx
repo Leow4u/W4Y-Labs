@@ -22,6 +22,7 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  ChevronDown,
   Clock,
   Code,
   Cpu,
@@ -214,7 +215,18 @@ const BUILTIN_NAV_REST: NavItem[] = [
   { path: "/channels", labelKey: "channels", label: "Channels", icon: Radio },
   { path: "/webhooks", label: "Webhooks", icon: Webhook },
   { path: "/pairing", label: "Pairing", icon: ShieldCheck },
-  { path: "/profiles", labelKey: "profiles", label: "Agents", icon: Bot },
+  {
+    path: "/profiles",
+    labelKey: "profiles",
+    label: "Agents",
+    icon: Bot,
+    // Submódulos do módulo Agentes (dropdown). Onda 3 acrescenta
+    // Operações/Governança aqui — a estrutura já é a final.
+    children: [
+      { path: "/profiles/quickstart", getLabel: (tt) => tt.agents.quickTab },
+      { path: "/profiles", end: true, getLabel: (tt) => tt.agents.teamTab },
+    ],
+  },
   // Config saiu da navegação principal — agora abre pelo menu do chip do
   // usuário, como overlay (rota /config segue existindo para deep-links).
   { path: "/env", labelKey: "keys", label: "Keys", icon: KeyRound },
@@ -678,16 +690,27 @@ export default function App() {
               aria-label={t.app.navigation}
             >
               <ul className="flex flex-col">
-                {sidebarNav.coreItems.map((item) => (
-                  <SidebarNavLink
-                    closeMobile={closeMobile}
-                    collapsed={isDesktopCollapsed}
-                    item={item}
-                    key={item.path}
-                    t={t}
-                    tooltipWarmRef={tooltipWarmRef}
-                  />
-                ))}
+                {sidebarNav.coreItems.map((item) =>
+                  item.children ? (
+                    <SidebarNavGroup
+                      closeMobile={closeMobile}
+                      collapsed={isDesktopCollapsed}
+                      item={item}
+                      key={item.path}
+                      t={t}
+                      tooltipWarmRef={tooltipWarmRef}
+                    />
+                  ) : (
+                    <SidebarNavLink
+                      closeMobile={closeMobile}
+                      collapsed={isDesktopCollapsed}
+                      item={item}
+                      key={item.path}
+                      t={t}
+                      tooltipWarmRef={tooltipWarmRef}
+                    />
+                  ),
+                )}
               </ul>
 
               {/* Histórico de Tarefas/Sessões na sidebar global (estilo
@@ -966,6 +989,142 @@ function SidebarNavLink({
 
       {collapsed && hovered && tooltipAnchor && (
         <SidebarTooltip anchor={tooltipAnchor} label={navLabel} warmRef={tooltipWarmRef} />
+      )}
+    </li>
+  );
+}
+
+/**
+ * Grupo expansível na nav (dropdown estilo Claude Console): o pai NÃO navega —
+ * só abre/fecha; os submódulos são filhos indentados, sentence-case (mesmo
+ * padrão dos itens da SidebarTasks). Auto-expande quando a rota atual pertence
+ * ao grupo; a escolha manual persiste em localStorage. Colapsada em ícones,
+ * o grupo degrada para o SidebarNavLink normal (link + tooltip).
+ */
+function SidebarNavGroup({
+  closeMobile,
+  collapsed,
+  item,
+  t,
+  tooltipWarmRef,
+}: SidebarNavLinkProps) {
+  const { path, label, labelKey, icon: Icon, children = [] } = item;
+  const location = useLocation();
+  const inGroup =
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const storageKey = `w4y-nav-group:${path}`;
+  const [open, setOpen] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem(storageKey);
+      if (v !== null) return v === "1";
+    } catch {
+      /* sem storage → padrão aberto */
+    }
+    return true;
+  });
+  // Entrar numa rota do grupo sempre o revela — ninguém navega às cegas.
+  useEffect(() => {
+    if (inGroup) setOpen(true);
+  }, [inGroup]);
+  const toggle = () =>
+    setOpen((v) => {
+      const next = !v;
+      try {
+        localStorage.setItem(storageKey, next ? "1" : "0");
+      } catch {
+        /* melhor esforço */
+      }
+      return next;
+    });
+
+  // Sidebar em modo ícones: dropdown não cabe — vira o link simples de sempre.
+  if (collapsed) {
+    return (
+      <SidebarNavLink
+        closeMobile={closeMobile}
+        collapsed={collapsed}
+        item={{ ...item, children: undefined }}
+        t={t}
+        tooltipWarmRef={tooltipWarmRef}
+      />
+    );
+  }
+
+  const navLabel = labelKey
+    ? ((t.app.nav as Record<string, string>)[labelKey] ?? label)
+    : label;
+
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={toggle}
+        aria-expanded={open}
+        className={cn(
+          "group/nav relative flex w-full items-center gap-3.5",
+          "px-5 py-3",
+          "font-sans text-display uppercase text-sm tracking-[0.06em]",
+          "whitespace-nowrap transition-colors cursor-pointer",
+          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
+          inGroup ? "text-midground" : "text-text-secondary hover:text-midground",
+        )}
+      >
+        <Icon className="h-[18px] w-[18px] shrink-0" />
+        <span className="flex-1 truncate text-left">{navLabel}</span>
+        <ChevronDown
+          className={cn(
+            "h-3.5 w-3.5 shrink-0 opacity-60 transition-transform duration-200",
+            !open && "-rotate-90",
+          )}
+        />
+        <span
+          aria-hidden
+          className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/nav:opacity-5"
+        />
+        {/* Grupo fechado com rota ativa dentro: mantém o sinal de onde você está. */}
+        {inGroup && !open && (
+          <span aria-hidden className="absolute left-0 top-0 bottom-0 w-px bg-midground" />
+        )}
+      </button>
+
+      {open && (
+        <ul className="flex flex-col pb-1">
+          {children.map((child) => (
+            <li key={child.path}>
+              <NavLink
+                to={child.path}
+                end={child.end}
+                onClick={closeMobile}
+                className={({ isActive }) =>
+                  cn(
+                    "group/nav relative flex items-center py-2 pl-[52px] pr-5",
+                    "font-sans text-sm whitespace-nowrap transition-colors cursor-pointer",
+                    "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
+                    isActive
+                      ? "text-midground"
+                      : "text-text-secondary hover:text-midground",
+                  )
+                }
+              >
+                {({ isActive }) => (
+                  <>
+                    <span className="truncate">{child.getLabel(t)}</span>
+                    <span
+                      aria-hidden
+                      className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/nav:opacity-5"
+                    />
+                    {isActive && (
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-0 bottom-0 w-px bg-midground"
+                      />
+                    )}
+                  </>
+                )}
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       )}
     </li>
   );
@@ -1382,6 +1541,14 @@ interface GatewayDotProps {
   tooltipWarmRef: TooltipWarmRef;
 }
 
+/** Sub-item de um grupo de nav (dropdown estilo Claude Console) — sem ícone,
+ *  só texto indentado; `end` distingue a rota-índice do grupo dos filhos. */
+interface SidebarSubItem {
+  path: string;
+  end?: boolean;
+  getLabel: (t: Translations) => string;
+}
+
 interface NavItem {
   icon: ComponentType<{ className?: string }>;
   label: string;
@@ -1390,6 +1557,10 @@ interface NavItem {
   /** Destino real do link quando difere do `path` de identidade (ex.: o item
    *  "Nova tarefa" navega com um gatilho ?new=1 que força conversa nova). */
   to?: string;
+  /** Presente = o item vira um GRUPO expansível (dropdown) com submódulos —
+   *  padrão Claude Console ("Agentes Gerenciados ⌄"). Pedido do Leonardo
+   *  10/07: submódulos na sidebar, não abas dentro do módulo. */
+  children?: SidebarSubItem[];
 }
 
 interface SidebarIconWithTooltipProps {

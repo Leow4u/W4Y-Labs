@@ -628,10 +628,13 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   }, [resumeId, freshNonce]);
 
   useEffect(() => {
-    if (!isActive) {
-      setTitle(null);
-      return;
-    }
+    // OCULTO (o /chat fica montado atrás das outras telas): NÃO tocar no
+    // título global — nem com null. A sessão conectada segue recebendo
+    // session.info em segundo plano; cada re-run daqui apagava o título
+    // que a página VISÍVEL tinha acabado de setar (visto no Início rápido:
+    // header regredia pro path cru). O cleanup abaixo já limpa UMA vez na
+    // transição ativa→oculta; daí em diante o título é da página da vez.
+    if (!isActive) return;
     setTitle(titleOverride ?? title);
     return () => setTitle(null);
   }, [isActive, title, titleOverride, setTitle]);

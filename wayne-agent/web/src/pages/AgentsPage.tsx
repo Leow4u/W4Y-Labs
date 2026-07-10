@@ -32,7 +32,6 @@ import { Toast } from "@nous-research/ui/ui/components/toast";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
-import { AgentsSubNav } from "@/pages/AgentQuickstartPage";
 
 /** "redator-financeiro" → "Redator Financeiro" (nome de exibição). */
 function prettify(name: string): string {
@@ -220,14 +219,14 @@ export default function AgentsPage() {
 
   return (
     <div className="mx-auto flex h-full w-full max-w-6xl flex-col px-4 py-4">
-      {/* Sub-nav do módulo: Início rápido | Equipe. */}
-      <AgentsSubNav active="team" />
+      {/* Submódulos agora vivem no dropdown da sidebar (SidebarNavGroup) —
+          a tela é só o canvas respirando (pedido 10/07: sem abas internas). */}
       <p className="mb-4 max-w-2xl text-sm text-muted-foreground">{t.agents.eqCanvasHint}</p>
 
       {loading ? (
         <div className="py-16 text-center text-sm text-muted-foreground">…</div>
       ) : (
-        <div className="min-h-[440px] flex-1" style={{ height: "calc(100dvh - 250px)" }}>
+        <div className="min-h-[440px] flex-1" style={{ height: "calc(100dvh - 190px)" }}>
           <TeamCanvas
             agents={cards}
             onOpen={(name) => setSelected(name)}

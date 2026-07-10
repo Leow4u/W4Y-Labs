@@ -471,6 +471,13 @@ export interface Translations {
     qsRefine: string;
     qsRefinePlaceholder: string;
     qsCreated: string;
+    // ── Início rápido (reforma UX): stepper + painel de modelos ──
+    stepDescribe: string;
+    stepReview: string;
+    stepJoin: string;
+    tplSearch: string;
+    tplCollapse: string;
+    tplExpand: string;
     // ── Equipe (Onda 2): canvas + raio-X do agente ──
     eqCanvasHint: string;
     eqTabProfile: string;
