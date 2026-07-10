@@ -19,6 +19,7 @@ import { api } from "@/lib/api";
 import type { ActiveProfileInfo, ProfileInfo } from "@/lib/api";
 import { usdToCredits } from "@/lib/credits";
 import { TeamCanvas, type TeamAgentCard } from "@/components/agents/TeamCanvas";
+import { useScheduleText } from "@/hooks/useScheduleText";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { Button } from "@nous-research/ui/ui/components/button";
@@ -71,15 +72,8 @@ export default function AgentsPage() {
     load();
   }, [load]);
 
-  // Cron cru na cara do usuário fere a curadoria: exprs dos presets → rótulo.
-  const exprLabel: Record<string, string> = useMemo(
-    () => ({
-      "0 9 * * *": t.agents.presetDaily9,
-      "0 8 * * 1-5": t.agents.presetWeekdays8,
-      "0 9 * * 1": t.agents.presetWeeklyMon9,
-    }),
-    [t.agents.presetDaily9, t.agents.presetWeekdays8, t.agents.presetWeeklyMon9],
-  );
+  // Agenda em frase humana localizada (reusa a lógica da tela de Cron).
+  const describeSchedule = useScheduleText();
 
   // Pulso operacional (custo 30d + rotinas) — em paralelo, sem travar o canvas.
   const loadExtras = useCallback(
@@ -100,20 +94,14 @@ export default function AgentsPage() {
             ...prev,
             [name]: {
               credits30: usdToCredits(usd),
-              nextRun: next
-                ? next.schedule_display ||
-                  next.schedule?.display ||
-                  exprLabel[next.schedule?.expr ?? ""] ||
-                  next.schedule?.expr ||
-                  null
-                : null,
+              nextRun: next ? describeSchedule(next.schedule, next.schedule_display ?? undefined) : null,
               routineCount: jobs.length,
             },
           }));
         });
       }
     },
-    [exprLabel],
+    [describeSchedule],
   );
 
   useEffect(() => {

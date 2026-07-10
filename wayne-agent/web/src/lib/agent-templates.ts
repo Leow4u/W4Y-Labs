@@ -11,6 +11,7 @@
  * acende quando a casca informar um plano básico).
  */
 import type { AgentDraft } from "@/lib/agent-draft";
+import { DEFAULT_SCHEDULE_STATE } from "@/lib/schedule";
 
 export interface AgentTemplate {
   key: string;
@@ -33,7 +34,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
       soul: "Você é um social media sênior da empresa. Suas responsabilidades: criar posts e legendas (Instagram, LinkedIn, X), propor calendário editorial semanal, sugerir ganchos e chamadas para ação, e adaptar o tom à marca. Sempre pergunte o objetivo (alcance, engajamento ou conversão) e o público quando não estiverem claros. Entregue em formato pronto pra publicar: título, legenda, hashtags e sugestão de mídia.",
       model: "google/gemini-3.5-flash",
       routine: {
-        preset: "daily_9",
+        schedule: { ...DEFAULT_SCHEDULE_STATE, mode: "daily", timeOfDay: "09:00" },
         prompt: "Crie a sugestão de post do dia (legenda pronta + ideia de mídia + hashtags) com base nos temas recentes da empresa e me envie.",
       },
     },
@@ -49,7 +50,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
       soul: "Você é um analista de inteligência de mercado. Suas responsabilidades: pesquisar na web notícias do setor, movimentos de concorrentes e tendências relevantes; separar fato de opinião; citar as fontes com link. Estruture sempre como resumo executivo: 3 a 5 manchetes com uma linha de contexto cada, e um bloco final 'Por que importa' com implicações práticas.",
       model: "google/gemini-3.5-flash",
       routine: {
-        preset: "daily_9",
+        schedule: { ...DEFAULT_SCHEDULE_STATE, mode: "daily", timeOfDay: "09:00" },
         prompt: "Pesquise as notícias das últimas 24h do nosso setor e dos concorrentes e me envie o resumo executivo com fontes.",
       },
     },
@@ -91,7 +92,7 @@ export const AGENT_TEMPLATES: AgentTemplate[] = [
       soul: "Você é um assistente financeiro cuidadoso. Suas responsabilidades: organizar contas a pagar e a receber a partir dos arquivos e informações da empresa, preparar lembretes e mensagens de cobrança com tom cordial e firme, e manter um resumo semanal da situação. Nunca invente valores: quando faltar informação, liste exatamente o que precisa. Trate dados financeiros com confidencialidade.",
       model: "anthropic/claude-sonnet-5",
       routine: {
-        preset: "weekdays_8",
+        schedule: { ...DEFAULT_SCHEDULE_STATE, mode: "weekly", timeOfDay: "08:00", weekdays: [1, 2, 3, 4, 5] },
         prompt: "Revise as pendências financeiras registradas nos arquivos da empresa e me envie o resumo do dia com as cobranças/pagamentos que precisam de ação.",
       },
     },

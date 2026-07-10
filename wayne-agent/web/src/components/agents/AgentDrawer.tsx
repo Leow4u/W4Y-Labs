@@ -32,9 +32,11 @@ import {
 import { api } from "@/lib/api";
 import type { CronJob, McpServer, MessagingPlatform, SessionInfo, SkillInfo } from "@/lib/api";
 import { timeAgoShort } from "@/lib/utils";
-import { ROUTINE_PRESETS } from "@/lib/agent-draft";
-import type { AgentRoutineDraft } from "@/lib/agent-draft";
+import { defaultRoutineSchedule } from "@/lib/agent-draft";
+import { buildScheduleString, type ScheduleBuilderState } from "@/lib/schedule";
 import { formatCredits, usdToCredits } from "@/lib/credits";
+import { AgentSchedulePicker } from "@/components/agents/AgentSchedulePicker";
+import { useScheduleText } from "@/hooks/useScheduleText";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
@@ -60,19 +62,6 @@ type Tab = AgentDrawerTab;
 
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-live/50";
-
-/** Display humano do agendamento de um job (exprs dos presets → rótulo i18n). */
-function scheduleDisplay(j: CronJob, exprLabel: Record<string, string>): string {
-  const expr = j.schedule?.expr ?? "";
-  return (
-    j.schedule_display ||
-    j.schedule?.display ||
-    exprLabel[expr] ||
-    expr ||
-    j.schedule?.run_at ||
-    "—"
-  );
-}
 
 export function AgentDrawer({
   agent,
@@ -181,9 +170,10 @@ export function AgentDrawer({
   }, [agent.name, agent.displayName, specialty, model, soul, base, notify, onChanged, ag.saved, t.status.error]);
 
   /* ---------------- Agenda ---------------- */
+  const describeSchedule = useScheduleText();
   const [jobs, setJobs] = useState<CronJob[] | null>(null);
   const [creating, setCreating] = useState(false);
-  const [preset, setPreset] = useState<AgentRoutineDraft["preset"]>("daily_9");
+  const [schedState, setSchedState] = useState<ScheduleBuilderState>(defaultRoutineSchedule);
   const [routinePrompt, setRoutinePrompt] = useState("");
   const [routineSaving, setRoutineSaving] = useState(false);
   const [busyJob, setBusyJob] = useState<string | null>(null);
@@ -200,33 +190,19 @@ export function AgentDrawer({
     if (tab === "schedule" && jobs === null) loadJobs();
   }, [tab, jobs, loadJobs]);
 
-  const presetLabel: Record<AgentRoutineDraft["preset"], string> = {
-    daily_9: ag.presetDaily9,
-    weekdays_8: ag.presetWeekdays8,
-    weekly_mon_9: ag.presetWeeklyMon9,
-  };
-  // Cron cru na cara do usuário fere a curadoria: exprs conhecidas → rótulo.
-  const exprLabel: Record<string, string> = {
-    [ROUTINE_PRESETS.daily_9.expr]: ag.presetDaily9,
-    [ROUTINE_PRESETS.weekdays_8.expr]: ag.presetWeekdays8,
-    [ROUTINE_PRESETS.weekly_mon_9.expr]: ag.presetWeeklyMon9,
-  };
-
   const createRoutine = useCallback(async () => {
-    if (!routinePrompt.trim()) return;
+    const schedule = buildScheduleString(schedState);
+    if (!routinePrompt.trim() || !schedule) return;
     setRoutineSaving(true);
     try {
       await api.createCronJob(
-        {
-          name: `${agent.displayName} — ${presetLabel[preset]}`,
-          prompt: routinePrompt.trim(),
-          schedule: ROUTINE_PRESETS[preset].expr,
-        },
+        { name: agent.displayName, prompt: routinePrompt.trim(), schedule },
         agent.name,
       );
       notify(ag.eqRoutineCreated, "success");
       setCreating(false);
       setRoutinePrompt("");
+      setSchedState(defaultRoutineSchedule());
       loadJobs();
       onChanged();
     } catch (e) {
@@ -235,7 +211,7 @@ export function AgentDrawer({
       setRoutineSaving(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [agent.name, agent.displayName, preset, routinePrompt, notify, loadJobs, onChanged]);
+  }, [agent.name, agent.displayName, schedState, routinePrompt, notify, loadJobs, onChanged]);
 
   const jobAction = useCallback(
     async (job: CronJob, action: "trigger" | "toggle" | "delete") => {
@@ -544,7 +520,7 @@ export function AgentDrawer({
                         </div>
                         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-muted-foreground">
                           <CalendarClock className="h-3.5 w-3.5" />
-                          {scheduleDisplay(j, exprLabel)}
+                          {describeSchedule(j.schedule, j.schedule_display ?? undefined)}
                         </div>
                       </div>
                       <span
@@ -604,24 +580,8 @@ export function AgentDrawer({
 
               {creating ? (
                 <div className="rounded-xl border border-live/40 bg-live/5 p-3.5">
-                  <div className="type-caption text-foreground">{ag.eqNewRoutine}</div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {(Object.keys(ROUTINE_PRESETS) as AgentRoutineDraft["preset"][]).map((p) => (
-                      <button
-                        key={p}
-                        type="button"
-                        onClick={() => setPreset(p)}
-                        className={cn(
-                          "rounded-full border px-2.5 py-1 text-xs transition-colors",
-                          preset === p
-                            ? "border-live bg-live/10 font-medium text-live"
-                            : "border-border text-muted-foreground hover:text-foreground",
-                        )}
-                      >
-                        {presetLabel[p]}
-                      </button>
-                    ))}
-                  </div>
+                  <div className="mb-2 type-caption text-foreground">{ag.eqNewRoutine}</div>
+                  <AgentSchedulePicker value={schedState} onChange={setSchedState} />
                   <textarea
                     className={cn(inputCls, "mt-2.5 min-h-[72px] resize-y")}
                     value={routinePrompt}

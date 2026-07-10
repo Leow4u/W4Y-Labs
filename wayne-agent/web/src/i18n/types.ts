@@ -459,13 +459,9 @@ export interface Translations {
     qsModelHint: string;
     qsSoul: string;
     qsRoutine: string;
-    qsRoutineHint: string;
     qsRoutineAdd: string;
     qsRoutineRemove: string;
     qsRoutinePrompt: string;
-    presetDaily9: string;
-    presetWeekdays8: string;
-    presetWeeklyMon9: string;
     qsCreate: string;
     qsRefine: string;
     qsRefinePlaceholder: string;

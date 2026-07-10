@@ -27,9 +27,11 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
-import { draftAgent, ROUTINE_PRESETS } from "@/lib/agent-draft";
+import { draftAgent, defaultRoutineSchedule } from "@/lib/agent-draft";
 import type { AgentDraft } from "@/lib/agent-draft";
 import { AGENT_TEMPLATES } from "@/lib/agent-templates";
+import { AgentSchedulePicker } from "@/components/agents/AgentSchedulePicker";
+import { buildScheduleString } from "@/lib/schedule";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { useI18n } from "@/i18n";
@@ -172,16 +174,12 @@ export default function AgentQuickstartPage() {
         await api.setProfileModel(slug, "openrouter", draft.model).catch(() => {});
       }
       if (draft.routine) {
-        await api
-          .createCronJob(
-            {
-              name: draft.name,
-              prompt: draft.routine.prompt,
-              schedule: ROUTINE_PRESETS[draft.routine.preset].expr,
-            },
-            slug,
-          )
-          .catch(() => {});
+        const schedule = buildScheduleString(draft.routine.schedule);
+        if (schedule) {
+          await api
+            .createCronJob({ name: draft.name, prompt: draft.routine.prompt, schedule }, slug)
+            .catch(() => {});
+        }
       }
       showToast(ag.qsCreated, "success");
       navigate("/profiles");
@@ -190,12 +188,6 @@ export default function AgentQuickstartPage() {
       setPhase("editing");
     }
   }, [draft, phase, showToast, ag.qsCreated, t.status.error, navigate]);
-
-  const presetLabel: Record<keyof typeof ROUTINE_PRESETS, string> = {
-    daily_9: ag.presetDaily9,
-    weekdays_8: ag.presetWeekdays8,
-    weekly_mon_9: ag.presetWeeklyMon9,
-  };
 
   const initials = useMemo(() => {
     const parts = (draft?.name ?? "").split(/\s+/).filter(Boolean);
@@ -415,7 +407,7 @@ export default function AgentQuickstartPage() {
                           type="button"
                           onClick={() =>
                             patchDraft({
-                              routine: { preset: "daily_9", prompt: "" },
+                              routine: { schedule: defaultRoutineSchedule(), prompt: "" },
                             })
                           }
                           className="flex items-center gap-1 type-caption text-foreground transition-colors hover:text-live"
@@ -425,30 +417,14 @@ export default function AgentQuickstartPage() {
                         </button>
                       )}
                     </div>
-                    <p className="mt-0.5 type-micro text-muted-foreground">{ag.qsRoutineHint}</p>
                     {draft.routine && (
                       <div className="mt-3 flex flex-col gap-3">
-                        <div className="flex flex-wrap gap-2">
-                          {(Object.keys(ROUTINE_PRESETS) as Array<keyof typeof ROUTINE_PRESETS>).map(
-                            (k) => (
-                              <button
-                                key={k}
-                                type="button"
-                                onClick={() =>
-                                  patchDraft({ routine: { ...draft.routine!, preset: k } })
-                                }
-                                className={cn(
-                                  "rounded-lg border px-3 py-1.5 type-caption transition-colors",
-                                  draft.routine!.preset === k
-                                    ? "border-current/60 bg-current/10 font-semibold text-foreground"
-                                    : "border-border text-muted-foreground hover:bg-current/5",
-                                )}
-                              >
-                                {presetLabel[k]}
-                              </button>
-                            ),
-                          )}
-                        </div>
+                        <AgentSchedulePicker
+                          value={draft.routine.schedule}
+                          onChange={(schedule) =>
+                            patchDraft({ routine: { ...draft.routine!, schedule } })
+                          }
+                        />
                         <textarea
                           className={cn(inputCls, "min-h-[64px] resize-y")}
                           placeholder={ag.qsRoutinePrompt}
