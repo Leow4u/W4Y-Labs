@@ -28,7 +28,7 @@ import {
 
 import { api } from "@/lib/api";
 import { draftAgent, defaultRoutineSchedule } from "@/lib/agent-draft";
-import type { AgentDraft } from "@/lib/agent-draft";
+import type { AgentDraft, AgentRoutineDraft } from "@/lib/agent-draft";
 import { AGENT_TEMPLATES } from "@/lib/agent-templates";
 import { AgentSchedulePicker } from "@/components/agents/AgentSchedulePicker";
 import { buildScheduleString } from "@/lib/schedule";
@@ -160,6 +160,20 @@ export default function AgentQuickstartPage() {
   const patchDraft = (patch: Partial<AgentDraft>) =>
     setDraft((d) => (d ? { ...d, ...patch } : d));
 
+  // Rotinas do agente (várias — contextos diferentes).
+  const addRoutine = () =>
+    setDraft((d) =>
+      d
+        ? { ...d, routines: [...d.routines, { schedule: defaultRoutineSchedule(), prompt: "" }] }
+        : d,
+    );
+  const updateRoutine = (i: number, patch: Partial<AgentRoutineDraft>) =>
+    setDraft((d) =>
+      d ? { ...d, routines: d.routines.map((r, idx) => (idx === i ? { ...r, ...patch } : r)) } : d,
+    );
+  const removeRoutine = (i: number) =>
+    setDraft((d) => (d ? { ...d, routines: d.routines.filter((_, idx) => idx !== i) } : d));
+
   const create = useCallback(async () => {
     if (!draft || phase === "creating") return;
     const slug = slugify(draft.name);
@@ -173,11 +187,12 @@ export default function AgentQuickstartPage() {
       if (draft.model) {
         await api.setProfileModel(slug, "openrouter", draft.model).catch(() => {});
       }
-      if (draft.routine) {
-        const schedule = buildScheduleString(draft.routine.schedule);
-        if (schedule) {
+      // Uma rotina = um cron job próprio (contextos diferentes).
+      for (const r of draft.routines) {
+        const schedule = buildScheduleString(r.schedule);
+        if (schedule && r.prompt.trim()) {
           await api
-            .createCronJob({ name: draft.name, prompt: draft.routine.prompt, schedule }, slug)
+            .createCronJob({ name: draft.name, prompt: r.prompt.trim(), schedule }, slug)
             .catch(() => {});
         }
       }
@@ -386,55 +401,54 @@ export default function AgentQuickstartPage() {
                     />
                   </label>
 
-                  {/* Rotina — a agenda nativa do agente (cron ?profile). */}
+                  {/* Rotinas — agenda(s) nativa(s) do agente (cron ?profile).
+                      Várias permitidas: contextos/horários diferentes. */}
                   <div className="rounded-xl border border-border bg-background p-4">
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="flex items-center gap-2 text-sm font-medium">
-                        <CalendarClock className="h-4 w-4 text-live" />
-                        {ag.qsRoutine}
-                      </span>
-                      {draft.routine ? (
-                        <button
-                          type="button"
-                          onClick={() => patchDraft({ routine: null })}
-                          className="flex items-center gap-1 type-caption text-muted-foreground transition-colors hover:text-destructive"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                          {ag.qsRoutineRemove}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            patchDraft({
-                              routine: { schedule: defaultRoutineSchedule(), prompt: "" },
-                            })
-                          }
-                          className="flex items-center gap-1 type-caption text-foreground transition-colors hover:text-live"
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                          {ag.qsRoutineAdd}
-                        </button>
-                      )}
-                    </div>
-                    {draft.routine && (
-                      <div className="mt-3 flex flex-col gap-3">
-                        <AgentSchedulePicker
-                          value={draft.routine.schedule}
-                          onChange={(schedule) =>
-                            patchDraft({ routine: { ...draft.routine!, schedule } })
-                          }
-                        />
-                        <textarea
-                          className={cn(inputCls, "min-h-[64px] resize-y")}
-                          placeholder={ag.qsRoutinePrompt}
-                          value={draft.routine.prompt}
-                          onChange={(e) =>
-                            patchDraft({ routine: { ...draft.routine!, prompt: e.target.value } })
-                          }
-                        />
+                    <span className="flex items-center gap-2 text-sm font-medium">
+                      <CalendarClock className="h-4 w-4 text-live" />
+                      {ag.qsRoutine}
+                    </span>
+
+                    {draft.routines.length > 0 && (
+                      <div className="mt-3 flex flex-col gap-2.5">
+                        {draft.routines.map((r, i) => (
+                          <div
+                            key={i}
+                            className="relative rounded-lg border border-border bg-card p-3"
+                          >
+                            <button
+                              type="button"
+                              onClick={() => removeRoutine(i)}
+                              aria-label={ag.qsRoutineRemove}
+                              className="absolute right-2 top-2 rounded-md p-1 text-muted-foreground transition-colors hover:text-destructive"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </button>
+                            <div className="pr-6">
+                              <AgentSchedulePicker
+                                value={r.schedule}
+                                onChange={(schedule) => updateRoutine(i, { schedule })}
+                              />
+                            </div>
+                            <textarea
+                              className={cn(inputCls, "mt-2 w-full min-h-[56px] resize-y")}
+                              placeholder={ag.qsRoutinePrompt}
+                              value={r.prompt}
+                              onChange={(e) => updateRoutine(i, { prompt: e.target.value })}
+                            />
+                          </div>
+                        ))}
                       </div>
                     )}
+
+                    <button
+                      type="button"
+                      onClick={addRoutine}
+                      className="mt-3 flex items-center gap-1 type-caption text-foreground transition-colors hover:text-live"
+                    >
+                      <Plus className="h-3.5 w-3.5" />
+                      {ag.qsRoutineAdd}
+                    </button>
                   </div>
                 </div>
 

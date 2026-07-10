@@ -25,7 +25,9 @@ export interface AgentDraft {
   specialty: string;
   soul: string;
   model: string;
-  routine: AgentRoutineDraft | null;
+  /** Um agente pode ter VÁRIAS rotinas (contextos diferentes — ex.: postar às
+   *  9h + mandar e-mail às 12h). Cada item vira um cron job próprio. */
+  routines: AgentRoutineDraft[];
 }
 
 /** Agenda padrão de uma rotina nova (todo dia às 9h) — ponto de partida do
@@ -63,8 +65,8 @@ function scheduleFromLLM(raw: unknown): ScheduleBuilderState {
 /** Instrução do turno descartável — pt-BR, saída JSON estrita. */
 function buildInstruction(request: string, current?: AgentDraft, refinement?: string): string {
   const base = `Você é o assistente de criação de agentes da Work4You. NÃO use ferramentas. Responda SOMENTE com um objeto JSON válido (sem markdown, sem cercas de código, sem comentários) exatamente neste formato:
-{"name": "nome curto do agente (ex.: Agente de Marketing)", "specialty": "1 a 2 frases do que ele faz", "soul": "instruções de sistema completas em português, segunda pessoa (Você é...), com responsabilidades, tom e como estruturar entregas — 1 a 3 parágrafos", "model": "slug OpenRouter mais adequado à função (ex.: google/gemini-3.5-flash para tarefas rápidas/volume; anthropic/claude-sonnet-5 para análise/escrita profunda; google/gemini-2.5-flash-image-preview para criação de imagens)", "routine": null OU {"frequency": "daily"|"weekdays"|"weekly"|"monthly", "time": "HH:MM em 24h (ex.: 09:00)", "weekdays": [0-6, 0=domingo, só se frequency=weekly], "day": 1-31 (só se frequency=monthly), "prompt": "o que executar quando a rotina disparar"}}
-Só inclua routine se o pedido indicar recorrência (diário, toda segunda às 8h, todo dia 1, etc.). Deduza a hora/dia do pedido; se não vier, use 09:00.`;
+{"name": "nome curto do agente (ex.: Agente de Marketing)", "specialty": "1 a 2 frases do que ele faz", "soul": "instruções de sistema completas em português, segunda pessoa (Você é...), com responsabilidades, tom e como estruturar entregas — 1 a 3 parágrafos", "model": "slug OpenRouter mais adequado à função (ex.: google/gemini-3.5-flash para tarefas rápidas/volume; anthropic/claude-sonnet-5 para análise/escrita profunda; google/gemini-2.5-flash-image-preview para criação de imagens)", "routines": [] OU uma lista de rotinas, cada uma {"frequency": "daily"|"weekdays"|"weekly"|"monthly", "time": "HH:MM em 24h (ex.: 09:00)", "weekdays": [0-6, 0=domingo, só se frequency=weekly], "day": 1-31 (só se frequency=monthly), "prompt": "o que executar quando ESTA rotina disparar"}}
+Um agente pode ter VÁRIAS rotinas em horários/contextos diferentes (ex.: "postar às 9h" e "mandar e-mail às 12h" = duas rotinas). Inclua uma entrada por recorrência que o pedido mencionar; lista vazia [] se não houver nenhuma. Deduza a hora/dia de cada uma; se não vier, use 09:00.`;
   if (current && refinement) {
     return `${base}
 Configuração atual: ${JSON.stringify(current)}
@@ -86,22 +88,28 @@ function parseDraft(text: string): AgentDraft | null {
       specialty?: unknown;
       soul?: unknown;
       model?: unknown;
+      routines?: unknown;
       routine?: unknown;
     };
     if (!raw || typeof raw.name !== "string" || typeof raw.soul !== "string") return null;
-    const routine =
-      raw.routine && typeof raw.routine === "object"
-        ? {
-            schedule: scheduleFromLLM(raw.routine),
-            prompt: String((raw.routine as { prompt?: unknown }).prompt ?? ""),
-          }
-        : null;
+    // Aceita `routines` (lista, novo) ou `routine` (objeto único, compat).
+    const rawList = Array.isArray(raw.routines)
+      ? raw.routines
+      : raw.routine && typeof raw.routine === "object"
+        ? [raw.routine]
+        : [];
+    const routines: AgentRoutineDraft[] = rawList
+      .filter((r): r is object => Boolean(r) && typeof r === "object")
+      .map((r) => ({
+        schedule: scheduleFromLLM(r),
+        prompt: String((r as { prompt?: unknown }).prompt ?? ""),
+      }));
     return {
       name: raw.name.trim().slice(0, 60),
       specialty: String(raw.specialty ?? "").trim().slice(0, 280),
       soul: raw.soul.trim(),
       model: String(raw.model ?? "google/gemini-3.5-flash").trim(),
-      routine,
+      routines,
     };
   } catch {
     return null;
