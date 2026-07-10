@@ -354,13 +354,27 @@ export const api = {
     offset = 0,
     profile = getManagementProfile(),
     order: "created" | "recent" = "created",
-  ) =>
-    fetchJSON<PaginatedSessions>(
-      appendProfileParam(
-        `/api/sessions?limit=${limit}&offset=${offset}&order=${order}`,
-        profile,
-      ),
-    ),
+    // Filtros que o backend JÁ aceita (GET /api/sessions): escopo por origem
+    // (`source`/`exclude_sources`, ex.: cron) e arquivadas (soft-archive).
+    opts?: {
+      source?: string;
+      excludeSources?: string;
+      archived?: "exclude" | "only" | "include";
+      /** Workspace scoping (projetos) — o backend já filtra por prefixo. */
+      cwdPrefix?: string;
+      /** Esconde sessões vazias (min_messages já existia no endpoint). */
+      minMessages?: number;
+    },
+  ) => {
+    let url = `/api/sessions?limit=${limit}&offset=${offset}&order=${order}`;
+    if (opts?.minMessages) url += `&min_messages=${opts.minMessages}`;
+    if (opts?.source) url += `&source=${encodeURIComponent(opts.source)}`;
+    if (opts?.excludeSources)
+      url += `&exclude_sources=${encodeURIComponent(opts.excludeSources)}`;
+    if (opts?.archived) url += `&archived=${opts.archived}`;
+    if (opts?.cwdPrefix) url += `&cwd_prefix=${encodeURIComponent(opts.cwdPrefix)}`;
+    return fetchJSON<PaginatedSessions>(appendProfileParam(url, profile));
+  },
   getSessionMessages: (id: string, profile = getManagementProfile()) =>
     fetchJSON<SessionMessagesResponse>(
       appendProfileParam(`/api/sessions/${encodeURIComponent(id)}/messages`, profile),
@@ -406,6 +420,21 @@ export const api = {
         body: JSON.stringify({ title, profile: profile || undefined }),
       },
     ),
+  // Soft-archive/restaura — o MESMO PATCH do rename; o backend já aceita
+  // `archived` (web_server.py rename_session_endpoint).
+  setSessionArchived: (
+    id: string,
+    archived: boolean,
+    profile = getManagementProfile(),
+  ) =>
+    fetchJSON<{ ok: boolean; archived?: boolean }>(
+      `/api/sessions/${encodeURIComponent(id)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ archived, profile: profile || undefined }),
+      },
+    ),
   getSessionStats: (profile = getManagementProfile()) =>
     fetchJSON<SessionStoreStats>(appendProfileParam("/api/sessions/stats", profile)),
   exportSessionUrl: (id: string, profile = getManagementProfile()) =>
@@ -449,11 +478,121 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path }),
     }),
+  // Ditado por voz — grava no navegador (MediaRecorder), envia como data_url
+  // e recebe o texto (o mesmo endpoint que o desktop usa; STT do backend).
+  transcribeAudio: (dataUrl: string, mimeType: string) =>
+    fetchJSON<{ transcript: string }>("/api/audio/transcribe", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ data_url: dataUrl, mime_type: mimeType }),
+    }),
+  /** Synthesize speech and return it as a data URL — the same endpoint the
+   *  desktop's voice-conversation mode uses (POST /api/audio/speak). No
+   *  local hardware involved (cloud-safe): just the configured TTS provider
+   *  chain (Edge/OpenAI/ElevenLabs/…), audio returned inline. */
+  speakText: (text: string) =>
+    fetchJSON<{ ok: boolean; data_url: string; mime_type: string; provider?: string }>(
+      "/api/audio/speak",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text }),
+      },
+    ),
   deleteFile: (path: string, recursive = false) =>
     fetchJSON<{ ok: boolean; path: string }>("/api/files", {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path, recursive }),
+    }),
+  // ── Git do workspace (dock "Computador do Wayne") — /api/git/*, a MESMA
+  //    suíte REST que o desktop usa via web_git.py. `path` = cwd do projeto.
+  gitStatus: (path: string) =>
+    fetchJSON<GitRepoStatus | null>(`/api/git/status?path=${encodeURIComponent(path)}`),
+  gitBranches: (path: string) =>
+    fetchJSON<{ branches: Array<{ name?: string } | string> }>(
+      `/api/git/branches?path=${encodeURIComponent(path)}`,
+    ),
+  gitReviewList: (path: string) =>
+    fetchJSON<{ files: GitReviewFile[]; base: string | null }>(
+      `/api/git/review/list?path=${encodeURIComponent(path)}`,
+    ),
+  gitReviewDiff: (path: string, file: string, staged = false) =>
+    fetchJSON<{ diff: string }>(
+      `/api/git/review/diff?path=${encodeURIComponent(path)}&file=${encodeURIComponent(file)}&staged=${staged}`,
+    ),
+  gitStage: (path: string, file: string) =>
+    fetchJSON<{ ok: boolean }>("/api/git/review/stage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, file }),
+    }),
+  gitUnstage: (path: string, file: string) =>
+    fetchJSON<{ ok: boolean }>("/api/git/review/unstage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, file }),
+    }),
+  gitRevert: (path: string, file: string) =>
+    fetchJSON<{ ok: boolean }>("/api/git/review/revert", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, file }),
+    }),
+  gitBranchSwitch: (path: string, branch: string) =>
+    fetchJSON<{ ok?: boolean }>("/api/git/branch/switch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, branch }),
+    }),
+  gitCommit: (path: string, message: string, push: boolean) =>
+    fetchJSON<{ ok: boolean }>("/api/git/review/commit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, message, push }),
+    }),
+  gitCreatePr: (path: string) =>
+    fetchJSON<{ ok?: boolean; url?: string }>("/api/git/review/create-pr", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path }),
+    }),
+  gitShipInfo: (path: string) =>
+    fetchJSON<{ ghReady: boolean; pr: { url: string; state?: string; number?: number } | null }>(
+      `/api/git/review/ship-info?path=${encodeURIComponent(path)}`,
+    ),
+  // Conteúdo com mime REAL (iframe de preview) e mídia do cache do agente
+  // (screenshots do navegador). Campo pode vir dataUrl ou data_url.
+  readFileDataUrl: (path: string) =>
+    fetchJSON<{ dataUrl?: string; data_url?: string }>(
+      `/api/fs/read-data-url?path=${encodeURIComponent(path)}`,
+    ),
+  getMedia: (path: string) =>
+    fetchJSON<{ data_url?: string; dataUrl?: string }>(
+      `/api/media?path=${encodeURIComponent(path)}`,
+    ),
+  // ── Jornada de aprendizado (/journey, Onda 6) — /api/learning/*, os
+  //    MESMOS endpoints que o desktop (starmap) consome. Shape defensivo:
+  //    nodes variam entre skill/memory.
+  getLearningGraph: () =>
+    fetchJSON<{ nodes?: Array<Record<string, unknown>>; links?: unknown[] }>(
+      "/api/learning/graph",
+    ),
+  getLearningNode: (id: string) =>
+    fetchJSON<{ ok: boolean; content?: string; title?: string; kind?: string }>(
+      `/api/learning/node?id=${encodeURIComponent(id)}`,
+    ),
+  deleteLearningNode: (id: string) =>
+    fetchJSON<{ ok: boolean }>("/api/learning/node", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id }),
+    }),
+  editLearningNode: (id: string, content: string) =>
+    fetchJSON<{ ok: boolean }>("/api/learning/node", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, content }),
     }),
   getLogs: (params: { file?: string; lines?: number; level?: string; component?: string }) => {
     const qs = new URLSearchParams();
@@ -474,7 +613,8 @@ export const api = {
   getConfig: () => fetchJSON<Record<string, unknown>>("/api/config"),
   getDefaults: () => fetchJSON<Record<string, unknown>>("/api/config/defaults"),
   getSchema: () => fetchJSON<{ fields: Record<string, unknown>; category_order: string[] }>("/api/config/schema"),
-  getModelInfo: () => fetchJSON<ModelInfoResponse>("/api/model/info"),
+  getModelInfo: (profile?: string) =>
+    fetchJSON<ModelInfoResponse>(`/api/model/info${profileQuery(profile)}`),
   getModelOptions: (profile?: string) =>
     fetchJSON<ModelOptionsResponse>(`/api/model/options${profileQuery(profile)}`),
   getAuxiliaryModels: () => fetchJSON<AuxiliaryModelsResponse>("/api/model/auxiliary"),
@@ -806,8 +946,8 @@ export const api = {
   },
 
   // Messaging platforms (gateway channels)
-  getMessagingPlatforms: () =>
-    fetchJSON<MessagingPlatformsResponse>("/api/messaging/platforms"),
+  getMessagingPlatforms: (profile?: string) =>
+    fetchJSON<MessagingPlatformsResponse>(`/api/messaging/platforms${profileQuery(profile)}`),
   updateMessagingPlatform: (id: string, body: MessagingPlatformUpdate) =>
     fetchJSON<{ ok: boolean; platform: string }>(
       `/api/messaging/platforms/${encodeURIComponent(id)}`,
@@ -1673,6 +1813,10 @@ export interface SessionInfo {
   output_tokens: number;
   preview: string | null;
   parent_session_id?: string | null;
+  /** Workspace da sessão (o SELECT devolve s.* — agrupa a sidebar por projeto). */
+  cwd?: string | null;
+  /** Soft-archive (PATCH /api/sessions/{id} {archived}). */
+  archived?: boolean;
 }
 
 export interface SessionLatestDescendantResponse {
@@ -1761,6 +1905,31 @@ export interface ManagedFileEntry {
   size: number | null;
   mtime: number;
   mime_type: string | null;
+}
+
+/** GET /api/git/status — shape do web_git.repo_status (null = não é repo). */
+export interface GitRepoStatus {
+  branch: string | null;
+  defaultBranch: string | null;
+  detached: boolean;
+  ahead: number;
+  behind: number;
+  staged: number;
+  unstaged: number;
+  untracked: number;
+  conflicted: number;
+  changed: number;
+  added: number;
+  removed: number;
+  files: GitReviewFile[];
+}
+export interface GitReviewFile {
+  path: string;
+  added: number;
+  removed: number;
+  status: string;
+  staged: boolean;
+  untracked?: boolean;
 }
 
 export interface ManagedFilesResponse {

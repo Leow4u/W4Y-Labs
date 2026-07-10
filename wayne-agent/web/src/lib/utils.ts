@@ -24,6 +24,21 @@ export function timeAgo(ts: number): string {
   return `${Math.floor(delta / 86400)}d ago`;
 }
 
+/** Idade compacta LOCALIZADA ("agora"/"43m"/"2h"/"3d") — o formato curto do
+ *  produto (chat + sidebar). Recebe os rótulos `chat.age*` do i18n em vez de
+ *  importar o hook (função pura, usável fora de componentes). Substitui o
+ *  `timeAgo` inglês-hardcoded acima nas superfícies do usuário final. */
+export function timeAgoShort(
+  epochSeconds: number,
+  labels: { ageNow: string; ageMin: string; ageHour: string; ageDay: string },
+): string {
+  const deltaS = Date.now() / 1000 - epochSeconds;
+  if (deltaS < 60) return labels.ageNow;
+  if (deltaS < 3600) return labels.ageMin.replace("{n}", String(Math.floor(deltaS / 60)));
+  if (deltaS < 86400) return labels.ageHour.replace("{n}", String(Math.floor(deltaS / 3600)));
+  return labels.ageDay.replace("{n}", String(Math.floor(deltaS / 86400)));
+}
+
 /** Relative time from an ISO-8601 timestamp string. */
 export function isoTimeAgo(iso: string): string {
   const delta = (Date.now() - new Date(iso).getTime()) / 1000;

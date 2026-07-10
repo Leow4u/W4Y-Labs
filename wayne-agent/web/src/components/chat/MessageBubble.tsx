@@ -1,14 +1,30 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  Check,
+  ChevronDown,
+  Circle,
+  Copy,
+  GitBranch,
+  RotateCw,
+  Sparkles,
+} from "lucide-react";
 
 import { Markdown } from "@/components/Markdown";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { useI18n } from "@/i18n";
+import { api } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
 
 import { FileRefCard, extractFileRefs } from "./FileRefCard";
 import { ToolCallCard } from "./ToolCallCard";
-import { ToolCallGroup } from "./ToolCallGroup";
-import type { ChatMessage, ToolCallState } from "./types";
+import { ToolLine } from "./ToolLine";
+import type { ChatMessage, TaskStep, ToolCallState } from "./types";
+
+// Ferramentas cujo próprio painel já mostra tudo — a linha de tool no
+// transcript é ruído redundante (ex.: o `clarify` abre o ClarifyPanel com a
+// pergunta + opções; mostrar "Usando ferramenta / Asking … / 5m 0s" só polui).
+const NOISE_TOOL_RE = /\bclarify\b|ask[_-]?user|ask[_-]?question|request[_-]?clarif/i;
+const isNoiseTool = (name: string | undefined) => !!name && NOISE_TOOL_RE.test(name);
 
 // Context-compaction handoff blocks are persisted as role="user" or
 // role="assistant" with content starting with one of these prefixes — they're
@@ -48,21 +64,322 @@ function splitCompactionContent(content: string): CompactionSplit | null {
   };
 }
 
+// ── Chat variant building blocks (Manus look) ─────────────────────────
+
+/** Thumb de imagem anexada pelo usuário — resolve via /api/files/read. */
+function UserImageThumb({ rel }: { rel: string }) {
+  const [url, setUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    api
+      .readFile(rel)
+      .then((r) => {
+        if (!cancelled) setUrl(r.data_url);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [rel]);
+  if (!url) {
+    return <span className="h-24 w-32 animate-pulse rounded-lg bg-muted" aria-hidden />;
+  }
+  return (
+    <img
+      src={url}
+      alt=""
+      className="max-h-48 max-w-full rounded-lg border border-border object-contain"
+    />
+  );
+}
+
+/** Pulsing blue dot — the reference's "this step is live" indicator. */
+function LiveDot() {
+  return (
+    <span className="relative flex h-2.5 w-2.5 shrink-0">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-30" />
+      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-live" />
+    </span>
+  );
+}
+
+/** Raciocínio do modelo — disclosure com PREVIEW AO VIVO (paridade com o
+ *  desktop, ThinkingDisclosure): auto-abre enquanto o modelo pensa (você vê o
+ *  raciocínio fluir), auto-colapsa quando termina. O clique do usuário vence. */
+function ReasoningBlock({ text, live }: { text: string; live?: boolean }) {
+  const { t } = useI18n();
+  const [userToggled, setUserToggled] = useState<boolean | null>(null);
+  const open = userToggled ?? !!live;
+  return (
+    <div className="min-w-0">
+      <button
+        type="button"
+        onClick={() => setUserToggled(!open)}
+        className={`flex items-center gap-1.5 rounded-md px-1 py-0.5 text-xs text-muted-foreground/80 transition-colors hover:text-foreground ${
+          live && !open ? "chat-working" : ""
+        }`}
+      >
+        <Sparkles className="h-3 w-3" />
+        {t.chat.reasoning}
+        <ChevronDown
+          className={`h-3 w-3 transition-transform ${open ? "" : "-rotate-90"}`}
+        />
+      </button>
+      {open && (
+        <div className="ml-[5px] mt-1 max-h-64 overflow-y-auto whitespace-pre-wrap border-l border-border/60 pl-3 text-[13px] leading-relaxed text-muted-foreground">
+          {text}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Texto plano de uma mensagem (blocos de texto ou content) — p/ copiar. */
+function messagePlainText(msg: ChatMessage): string {
+  if (msg.blocks && msg.blocks.length) {
+    return msg.blocks
+      .filter((b): b is Extract<typeof b, { kind: "text" }> => b.kind === "text")
+      .map((b) => b.text)
+      .join("")
+      .trim();
+  }
+  return (msg.content ?? "").trim();
+}
+
+/** Barra de ações da resposta (hover): copiar · regenerar · ramificar
+ *  (paridade: AssistantActionBar do desktop). Regenerar/ramificar só na
+ *  última resposta. */
+function MessageActions({
+  msg,
+  isLast,
+  onRegenerate,
+  onBranch,
+}: {
+  msg: ChatMessage;
+  isLast?: boolean;
+  onRegenerate?: () => void;
+  onBranch?: () => void;
+}) {
+  const { t } = useI18n();
+  const [copied, setCopied] = useState(false);
+  const copy = () => {
+    const text = messagePlainText(msg);
+    if (!text) return;
+    void navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  const btn =
+    "flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground";
+  return (
+    <div className="mt-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/msg:opacity-100">
+      <button type="button" onClick={copy} className={btn} title={t.chat.copy}>
+        {copied ? <Check className="h-3.5 w-3.5 text-success" /> : <Copy className="h-3.5 w-3.5" />}
+      </button>
+      {isLast && onRegenerate && (
+        <button type="button" onClick={onRegenerate} className={btn} title={t.chat.regenerate}>
+          <RotateCw className="h-3.5 w-3.5" />
+        </button>
+      )}
+      {isLast && onBranch && (
+        <button type="button" onClick={onBranch} className={btn} title={t.chat.branchChat}>
+          <GitBranch className="h-3.5 w-3.5" />
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ThinkingRow({ label }: { label: string }) {
+  return (
+    <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+      <span>{label}</span>
+      <span className="flex items-end gap-0.5 pb-[3px]">
+        <span className="chat-dot h-1 w-1 rounded-full bg-muted-foreground" />
+        <span className="chat-dot h-1 w-1 rounded-full bg-muted-foreground" />
+        <span className="chat-dot h-1 w-1 rounded-full bg-muted-foreground" />
+      </span>
+    </div>
+  );
+}
+
+/**
+ * A run of consecutive tool calls, optionally nested under its plan step
+ * (Manus-style): step header line (live dot / muted check + title + chevron),
+ * tools indented beneath. Steps auto-collapse once completed unless the user
+ * toggled them open.
+ */
+function StepRun({
+  tools,
+  step,
+}: {
+  tools: ToolCallState[];
+  step?: TaskStep;
+}) {
+  const { t } = useI18n();
+  const [userToggled, setUserToggled] = useState<boolean | null>(null);
+  const anyRunning = tools.some((tc) => tc.status === "running");
+
+  // Rollout interno (paridade com o desktop): a lista de ferramentas nunca
+  // vira paredão — altura limitada com scroll próprio.
+  const listCls =
+    "ml-[5px] max-h-56 space-y-0.5 overflow-y-auto border-l border-border/60 pl-[18px]";
+
+  if (!step) {
+    // Poucas ferramentas → linhas diretas. Muitas → rollout colapsável:
+    // aberto enquanto roda, AUTO-COLAPSA num chip "N ferramentas" ao terminar
+    // (o usuário pode reabrir) — como o desktop faz com o bloco de atividade.
+    if (tools.length <= 3) {
+      return (
+        <div className="space-y-0.5">
+          {tools.map((tc) => (
+            <ToolLine key={tc.id} tool={tc} />
+          ))}
+        </div>
+      );
+    }
+    const open = userToggled ?? anyRunning;
+    return (
+      <div className="min-w-0">
+        <button
+          type="button"
+          onClick={() => setUserToggled(!open)}
+          className="group flex w-full items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-muted/50"
+        >
+          {anyRunning ? (
+            <LiveDot />
+          ) : (
+            <Check className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+          )}
+          <span
+            className={`min-w-0 flex-1 truncate text-sm ${
+              anyRunning ? "font-medium text-foreground" : "text-muted-foreground"
+            }`}
+          >
+            {tools.length} {t.chat.toolsLabel}
+          </span>
+          <ChevronDown
+            className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform ${
+              open ? "" : "-rotate-90"
+            }`}
+          />
+        </button>
+        {open && (
+          <div className={listCls}>
+            {tools.map((tc) => (
+              <ToolLine key={tc.id} tool={tc} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const live = step.status === "in_progress" || anyRunning;
+  const open = userToggled ?? live;
+
+  return (
+    <div className="min-w-0">
+      <button
+        type="button"
+        onClick={() => setUserToggled(!open)}
+        className="group flex w-full items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-muted/50"
+      >
+        {live ? (
+          <LiveDot />
+        ) : step.status === "completed" ? (
+          <Check className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+        ) : (
+          <Circle className="h-2.5 w-2.5 shrink-0 text-muted-foreground/40" />
+        )}
+        <span
+          className={`min-w-0 flex-1 truncate text-sm ${
+            live ? "font-medium text-foreground" : "text-muted-foreground"
+          }`}
+        >
+          {step.content}
+        </span>
+        <ChevronDown
+          className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform ${
+            open ? "" : "-rotate-90"
+          }`}
+        />
+      </button>
+      {open && (
+        <div className={listCls}>
+          {tools.map((tc) => (
+            <ToolLine key={tc.id} tool={tc} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Markdown text block + any referenced-file cards it carries.
+ *  `seen` dedupe os cards NO NÍVEL DA MENSAGEM: o agente costuma citar o
+ *  mesmo arquivo mais de uma vez (anúncio + conclusão do subagente) e cada
+ *  citação virava um card repetido (visto ao vivo na curadoria). */
+function TextBlock({
+  text,
+  streaming,
+  seen,
+}: {
+  text: string;
+  streaming?: boolean;
+  seen?: Set<string>;
+}) {
+  const { text: cleaned, files } = extractFileRefs(text);
+  const unique = seen
+    ? files.filter((f) => {
+        const key = f.path ?? f.url ?? f.name;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+    : files;
+  return (
+    <div>
+      {cleaned && <Markdown content={cleaned} streaming={streaming} />}
+      {unique.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-2">
+          {unique.map((f) => (
+            <FileRefCard key={f.path ?? f.url} file={f} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function MessageBubble({
   msg,
   highlight,
   variant = "review",
+  steps,
+  badge,
+  isLast,
+  onRegenerate,
+  onBranch,
 }: {
   msg: ChatMessage;
   highlight?: string;
+  /** Última mensagem da lista — habilita regenerar/ramificar (chat). */
+  isLast?: boolean;
+  onRegenerate?: () => void;
+  onBranch?: () => void;
   /**
    * "review" (default) — the colored role blocks used to scan session
-   * history in SessionsPage. "chat" — the sober live-chat look: user in a
-   * discreet neutral bubble on the right, assistant as plain text on the
-   * page (no colored block), matching the Manus/Claude benchmark and the
-   * rest of the curated dashboard (no "coloridinha").
+   * history in SessionsPage. "chat" — the native chat look, faithful to the
+   * Manus reference: user in a bordered white bubble on the right, assistant
+   * as an agent-headed rich block with plan steps + tool lines inline.
    */
   variant?: "chat" | "review";
+  /** Live plan steps (chat variant) — lets tool runs nest under their step. */
+  steps?: TaskStep[];
+  /** Mode badge shown next to the agent name (chat variant), e.g. "Crew". */
+  badge?: string;
 }) {
   const { t } = useI18n();
 
@@ -107,11 +424,15 @@ export function MessageBubble({
           msg={{ ...msg, id: `${msg.id}-summary`, content: compactionSplit.summary }}
           highlight={highlight}
           variant={variant}
+          steps={steps}
+          badge={badge}
         />
         <MessageBubble
           msg={{ ...msg, id: `${msg.id}-remainder`, content: compactionSplit.remainder }}
           highlight={highlight}
           variant={variant}
+          steps={steps}
+          badge={badge}
         />
       </>
     );
@@ -119,98 +440,200 @@ export function MessageBubble({
 
   const isCompaction = compactionSplit !== null;
 
-  // ── Sober live-chat look ──────────────────────────────────────────────
+  // ── Native chat look (Manus reference) ────────────────────────────────
   if (variant === "chat") {
     if (msg.role === "user") {
       return (
-        <div className="flex justify-end">
-          <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-2xl bg-muted px-4 py-2.5 text-sm text-foreground">
-            {msg.content}
+        <div className="chat-msg-in flex justify-end">
+          <div className="max-w-[78%] rounded-2xl border border-border bg-card px-4 py-2.5 shadow-card">
+            {msg.images && msg.images.length > 0 && (
+              <div className="mb-2 flex flex-wrap justify-end gap-2 pt-1">
+                {msg.images.map((rel) => (
+                  <UserImageThumb key={rel} rel={rel} />
+                ))}
+              </div>
+            )}
+            <div className="whitespace-pre-wrap break-words text-[16px] leading-relaxed text-foreground">
+              {msg.content}
+            </div>
           </div>
         </div>
       );
     }
 
-    const muted = msg.role === "system" || msg.role === "tool" || isCompaction;
+    // Resultado de ferramenta órfão (sem par na costura do histórico) —
+    // vira uma ToolLine discreta e expansível, NUNCA texto solto na conversa
+    // (payloads de tool são JSON/traceback gigantes).
+    if (msg.role === "tool" && !isCompaction) {
+      return (
+        <ToolLine
+          tool={{
+            id: msg.id,
+            name: msg.toolName ?? "tool",
+            status: "done",
+            result: msg.content ?? undefined,
+          }}
+        />
+      );
+    }
 
-    // Muted rows (system / tool result / compaction): plain, no file parsing.
+    const muted = msg.role === "system" || isCompaction;
+
+    // Muted rows (system / compaction): plain, no file parsing.
     if (muted) {
       return (
         <div className="min-w-0">
           {msg.content && (
-            <div className="whitespace-pre-wrap text-sm italic leading-relaxed text-muted-foreground">
+            <div className="whitespace-pre-wrap text-[13px] italic leading-relaxed text-muted-foreground/80">
               {isCompaction ? "Context handoff — " : ""}
               {msg.content}
             </div>
           )}
           {msg.toolCalls.length > 0 && (
-            <div className="mt-2">
-              <ToolCallGroup toolCalls={msg.toolCalls} />
+            <div className="mt-2 space-y-0.5">
+              {msg.toolCalls.map((tc) => (
+                <ToolLine key={tc.id} tool={tc} />
+              ))}
             </div>
           )}
         </div>
       );
     }
 
-    // Assistant. Live turns carry ordered blocks (text/tool interleaved) — render
-    // in arrival order, grouping consecutive tools into one chip so the work
-    // shows up mid-conversation. Text blocks get file-ref cards inline. History
-    // assistant messages have no blocks → fall back to content + tools.
+    // Assistant. Live turns carry ordered blocks (text/tool interleaved) —
+    // render in arrival order; consecutive tools sharing a plan step nest
+    // under that step's header line, exactly like the reference.
+    const stepById = new Map<string, TaskStep>((steps ?? []).map((s) => [s.id, s]));
+    // Dedupe dos cards de arquivo em TODA a mensagem (recriado a cada render).
+    const seenFiles = new Set<string>();
+    const body: ReactNode[] = [];
+
     const blocks = msg.blocks;
     if (blocks && blocks.length > 0) {
       const lastTextIdx = blocks.reduce((acc, b, i) => (b.kind === "text" ? i : acc), -1);
-      const out: ReactNode[] = [];
-      let toolRun: ToolCallState[] = [];
+      let run: ToolCallState[] = [];
+      let runStep: string | undefined;
       const flush = (key: string) => {
-        if (toolRun.length) {
-          out.push(
-            <div key={`tg-${key}`}>
-              <ToolCallGroup toolCalls={toolRun} />
-            </div>,
-          );
-          toolRun = [];
-        }
+        if (!run.length) return;
+        body.push(
+          <StepRun
+            key={`run-${key}`}
+            tools={run}
+            step={runStep ? stepById.get(runStep) : undefined}
+          />,
+        );
+        run = [];
+        runStep = undefined;
       };
       blocks.forEach((b, i) => {
         if (b.kind === "tool") {
-          toolRun.push(b.tool);
+          if (isNoiseTool(b.tool.name)) return; // clarify → o painel já mostra
+          if (run.length && b.tool.stepId !== runStep) flush(`s-${i}`);
+          runStep = b.tool.stepId;
+          run.push(b.tool);
           return;
         }
         flush(String(i));
-        const { text, files } = extractFileRefs(b.text);
-        out.push(
-          <div key={b.id}>
-            {text && <Markdown content={text} streaming={msg.streaming && i === lastTextIdx} />}
-            {files.length > 0 && (
-              <div className="mt-2 flex flex-col gap-1.5">
-                {files.map((f) => (
-                  <FileRefCard key={f.path ?? f.url} file={f} />
-                ))}
-              </div>
-            )}
-          </div>,
-        );
+        if (b.text.trim()) {
+          body.push(
+            <TextBlock
+              key={b.id}
+              text={b.text}
+              streaming={msg.streaming && i === lastTextIdx}
+              seen={seenFiles}
+            />,
+          );
+        }
       });
       flush("end");
-      return <div className="min-w-0 space-y-2">{out}</div>;
+    } else if (msg.content) {
+      // History assistant (no blocks).
+      body.push(
+        <TextBlock
+          key="hist"
+          text={msg.content}
+          streaming={msg.streaming}
+          seen={seenFiles}
+        />,
+      );
+      {
+        const histTools = msg.toolCalls.filter((tc) => !isNoiseTool(tc.name));
+        if (histTools.length > 0) {
+          body.push(
+            <div key="hist-tools" className="space-y-0.5">
+              {histTools.map((tc) => (
+                <ToolLine key={tc.id} tool={tc} />
+              ))}
+            </div>,
+          );
+        }
+      }
     }
 
-    // History assistant (no blocks).
-    const hist = extractFileRefs(msg.content ?? "");
+    if (body.length === 0 && msg.streaming) {
+      body.push(<ThinkingRow key="thinking" label={t.chat.thinking} />);
+    } else if (body.length === 0 && !msg.reasoning && !msg.errorKind) {
+      // Turno terminou 100% vazio e sem erro sinalizado — nunca deixar a bolha
+      // VAZIA (parecia "travado"): aviso genérico + botão regenerar.
+      body.push(
+        <span key="empty" className="text-sm italic text-muted-foreground">
+          {t.chat.noResponse}
+        </span>,
+      );
+    }
+
+    // Erro de turno (ex.: 402 do provedor) sinalizado pelo gateway e sem texto
+    // final de resposta — mostra o motivo localizado e SEGURO (nunca o texto
+    // cru, que carrega URL/hash da chave). Anexa mesmo se ferramentas rodaram.
+    if (msg.errorKind && !msg.streaming) {
+      body.push(
+        msg.errorKind === "billing" ? (
+          <div
+            key="err-billing"
+            className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm text-amber-700 dark:text-amber-300"
+          >
+            {t.chat.errorBilling}
+          </div>
+        ) : (
+          <div
+            key="err-generic"
+            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
+            {t.chat.errorGeneric}
+          </div>
+        ),
+      );
+    }
+
     return (
-      <div className="min-w-0">
-        {hist.text && <Markdown content={hist.text} streaming={msg.streaming} />}
-        {hist.files.length > 0 && (
-          <div className="mt-2 flex flex-col gap-1.5">
-            {hist.files.map((f) => (
-              <FileRefCard key={f.path ?? f.url} file={f} />
-            ))}
+      <div className="group/msg chat-msg-in min-w-0">
+        <div className="mb-2 flex items-center gap-2">
+          <img src="/brand/work4you-favicon.svg" alt="" className="h-4 w-4" />
+          <span className="text-sm font-semibold tracking-tight text-foreground">Wayne</span>
+          {badge && (
+            <span className="rounded-md bg-live/10 px-1.5 py-px text-[11px] font-medium text-live">
+              {badge}
+            </span>
+          )}
+          {msg.timestamp && (
+            <span className="ml-auto text-xs text-muted-foreground/60">
+              {timeAgo(msg.timestamp)}
+            </span>
+          )}
+        </div>
+        {msg.reasoning && (
+          <div className="mb-2">
+            <ReasoningBlock text={msg.reasoning} live={msg.streaming} />
           </div>
         )}
-        {msg.toolCalls.length > 0 && (
-          <div className="mt-2">
-            <ToolCallGroup toolCalls={msg.toolCalls} />
-          </div>
+        <div className="min-w-0 space-y-2.5 text-[15px] leading-relaxed">{body}</div>
+        {!msg.streaming && body.length > 0 && (
+          <MessageActions
+            msg={msg}
+            isLast={isLast}
+            onRegenerate={onRegenerate}
+            onBranch={onBranch}
+          />
         )}
       </div>
     );

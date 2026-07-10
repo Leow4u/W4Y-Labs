@@ -90,7 +90,11 @@ export default function FilesPage() {
   const { setAfterTitle, setEnd } = usePageHeader();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
-  const [currentPath, setCurrentPath] = useState<string | undefined>(undefined);
+  // Deep-link: /files?path=projects/x abre direto naquela pasta (usado pelo
+  // "Ver todos" da tela de projeto do chat). Lazy init — lê a URL uma vez.
+  const [currentPath, setCurrentPath] = useState<string | undefined>(
+    () => new URLSearchParams(window.location.search).get("path") ?? undefined,
+  );
   const [pathInput, setPathInput] = useState("");
   const [listing, setListing] = useState<ManagedFilesResponse | null>(null);
   const [loading, setLoading] = useState(false);

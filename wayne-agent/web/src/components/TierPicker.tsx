@@ -13,11 +13,11 @@
  * todos os tiers ficam disponíveis.
  */
 
-import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
-import { Zap } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
+import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 import {
   DEFAULT_TIER,
   TIER_ORDER,
@@ -57,6 +57,8 @@ export function TierPicker({
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [plan, setPlan] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  useMenuDismiss(open, () => setOpen(false), "tier");
   const lastFetchKeyRef = useRef("");
 
   // Plano do tenant, lido AO VIVO da casca (mesma origem work4you.ai — o cookie
@@ -144,27 +146,69 @@ export function TierPicker({
     [tier, onChanged, plan],
   );
 
+  const currentLabel =
+    tier === CUSTOM
+      ? "Personalizado"
+      : (TIER_PRESETS[tier as TierKey]?.label ?? "Modelo");
+
+  // Pill limpa (só o nome do modo) + dropdown estilo Grok (nome em negrito +
+  // descrição + check), abrindo PRA CIMA em camada própria (fixed via anchor
+  // não é preciso: o composer não recorta o dropdown p/ cima). Sem "modelo"/raio.
   return (
-    <div className="flex items-center gap-2 px-3 py-2 text-xs">
-      <div className="flex items-center gap-1.5 text-text-tertiary">
-        <Zap className="h-3.5 w-3.5" />
-        <span className="text-display tracking-wider">modelo</span>
-      </div>
-      <Select
-        className="ml-auto min-w-0"
+    <div className="relative">
+      <button
+        type="button"
         disabled={!loaded || saving}
-        onValueChange={onSelect}
-        value={tier}
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
       >
-        {TIER_ORDER.map((k) => (
-          <SelectOption key={k} value={k}>
-            {`${TIER_PRESETS[k].label}${tierLocked(plan, k) ? " 🔒" : ""} · ${TIER_PRESETS[k].subtitle}`}
-          </SelectOption>
-        ))}
-        {tier === CUSTOM && (
-          <SelectOption value={CUSTOM}>Personalizado</SelectOption>
-        )}
-      </Select>
+        {currentLabel}
+        <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
+          <div
+            role="listbox"
+            data-menu-root="tier"
+            className="absolute bottom-full right-0 z-50 mb-2 w-64 rounded-2xl border border-border bg-card p-1.5 shadow-xl"
+          >
+            {TIER_ORDER.map((k) => {
+              const p = TIER_PRESETS[k];
+              const locked = tierLocked(plan, k);
+              const active = k === tier;
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  role="option"
+                  aria-selected={active}
+                  onClick={() => {
+                    onSelect(k);
+                    setOpen(false);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors hover:bg-muted"
+                >
+                  <span className="flex w-4 shrink-0 justify-center">
+                    {active && <Check className="h-4 w-4 text-foreground" />}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
+                      {p.label}
+                      {locked && <span className="text-xs">🔒</span>}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {p.subtitle}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
     </div>
   );
 }

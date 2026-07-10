@@ -79,10 +79,12 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
           interno (ver index.css) para suavizar o MAIÚSCULO do design-system. */}
       <div
         className={cn(
-          "settings-modal relative flex w-full max-w-5xl flex-col",
-          "h-[calc(100vh-1.5rem)] overflow-hidden rounded-xl",
-          "border border-current/20 bg-background-base",
-          "shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)]",
+          // Largura de settings do Hermes desktop (feedback 10/07: "tela
+          // apertada") — quase a janela toda, com teto de 1180px.
+          "settings-modal relative flex w-[min(1180px,calc(100vw-1.5rem))] flex-col",
+          "h-[calc(100vh-1.5rem)] overflow-hidden rounded-2xl",
+          "border border-border bg-background-base",
+          "shadow-pop",
         )}
         role="dialog"
         aria-modal="true"

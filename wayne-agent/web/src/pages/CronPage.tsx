@@ -143,7 +143,9 @@ function emptyCronJobForm(): CronJobEditorState {
     no_agent: false,
     context_from: "",
     enabled_toolsets: [],
-    workdir: "",
+    // Deep-link: /cron?workdir=<pasta> pré-preenche o workspace do job novo
+    // (usado pelo painel "Tarefas agendadas" da tela de projeto do chat).
+    workdir: new URLSearchParams(window.location.search).get("workdir") ?? "",
     scheduleState: { ...DEFAULT_SCHEDULE_STATE },
   };
 }

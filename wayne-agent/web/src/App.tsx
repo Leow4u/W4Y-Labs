@@ -25,6 +25,7 @@ import {
   Clock,
   Code,
   Cpu,
+  Bot,
   Database,
   Download,
   Eye,
@@ -60,6 +61,7 @@ import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { SidebarFooter } from "@/components/SidebarFooter";
+import { SidebarTasks, NewTaskIcon } from "@/components/SidebarTasks";
 import { SidebarStatusStrip, gatewayLine } from "@/components/SidebarStatusStrip";
 import { useBelowBreakpoint } from "@nous-research/ui/hooks/use-below-breakpoint";
 import { useSidebarStatus } from "@/hooks/useSidebarStatus";
@@ -82,6 +84,9 @@ import ModelsPage from "@/pages/ModelsPage";
 import CronPage from "@/pages/CronPage";
 import ProfilesPage from "@/pages/ProfilesPage";
 import ProfileBuilderPage from "@/pages/ProfileBuilderPage";
+import AgentQuickstartPage from "@/pages/AgentQuickstartPage";
+import AgentsPage from "@/pages/AgentsPage";
+import JourneyPage from "@/pages/JourneyPage";
 import SkillsPage from "@/pages/SkillsPage";
 import PluginsPage from "@/pages/PluginsPage";
 import McpPage from "@/pages/McpPage";
@@ -99,6 +104,13 @@ import { useI18n } from "@/i18n";
 function ConfigRoute() {
   return isFullConfigRequested() ? <ConfigPage /> : <ConfigUser />;
 }
+
+// Rota /profiles (curadoria de produto): o usuário final vê a galeria de
+// Agentes; a admin de perfis (wizard de 5 passos, modelo cru, skills, MCP,
+// gateway) fica atrás da escotilha interna `?full=1` — mesmo padrão do Config.
+function ProfilesRoute() {
+  return isFullConfigRequested() ? <ProfilesPage /> : <AgentsPage />;
+}
 import type { Translations } from "@/i18n/types";
 import { PluginPage, PluginSlot, usePlugins } from "@/plugins";
 import type { PluginManifest } from "@/plugins";
@@ -108,7 +120,8 @@ import { api } from "@/lib/api";
 import type { StatusResponse, UpdateCheckResponse } from "@/lib/api";
 
 function RootRedirect() {
-  return <Navigate to="/sessions" replace />;
+  // Entrada do produto = o chat (Nova tarefa). Sessões virou técnica (?full=1).
+  return <Navigate to="/chat" replace />;
 }
 
 function UnknownRouteFallback({ pluginsLoading }: { pluginsLoading: boolean }) {
@@ -116,14 +129,20 @@ function UnknownRouteFallback({ pluginsLoading }: { pluginsLoading: boolean }) {
     // Render nothing during the plugin-load window — a spinner here would just flash.
     return null;
   }
-  return <Navigate to="/sessions" replace />;
+  return <Navigate to="/chat" replace />;
 }
 
+// "Nova tarefa" (curadoria estilo Manus): o item de nav do chat É o gesto de
+// começar uma tarefa nova — SEMPRE. O link carrega o gatilho ?new=1: o
+// NativeChatPage o consome (limpa resume/project e força uma sessão fresca),
+// então clicar aqui abre chat novo mesmo voltando de outra página ou já
+// estando numa conversa. O histórico vive na seção Tarefas da sidebar.
 const CHAT_NAV_ITEM: NavItem = {
   path: "/chat",
+  to: "/chat?new=1",
   labelKey: "chat",
-  label: "Chat",
-  icon: Terminal,
+  label: "New task",
+  icon: NewTaskIcon,
 };
 
 /**
@@ -150,8 +169,10 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/channels": ChannelsPage,
   "/webhooks": WebhooksPage,
   "/system": SystemPage,
-  "/profiles": ProfilesPage,
+  "/profiles": ProfilesRoute,
+  "/journey": JourneyPage,
   "/profiles/new": ProfileBuilderPage,
+  "/profiles/quickstart": AgentQuickstartPage,
   "/config": ConfigRoute,
   "/env": EnvPage,
   "/docs": DocsPage,
@@ -193,7 +214,7 @@ const BUILTIN_NAV_REST: NavItem[] = [
   { path: "/channels", labelKey: "channels", label: "Channels", icon: Radio },
   { path: "/webhooks", label: "Webhooks", icon: Webhook },
   { path: "/pairing", label: "Pairing", icon: ShieldCheck },
-  { path: "/profiles", labelKey: "profiles", label: "Profiles", icon: Users },
+  { path: "/profiles", labelKey: "profiles", label: "Agents", icon: Bot },
   // Config saiu da navegação principal — agora abre pelo menu do chip do
   // usuário, como overlay (rota /config segue existindo para deep-links).
   { path: "/env", labelKey: "keys", label: "Keys", icon: KeyRound },
@@ -214,11 +235,15 @@ const BUILTIN_NAV_REST: NavItem[] = [
 // As rotas continuam todas montadas (deep-link admin); só o item de nav some.
 const USER_NAV_PATHS = new Set<string>([
   "/chat",
-  "/sessions",
+  // /sessions saiu da nav do usuário: a sidebar "Tarefas" (SidebarTasks) já é o
+  // ponto user-facing das conversas (mesma /api/sessions, curada). Sessões vira
+  // superfície técnica/admin atrás do ?full=1 (plataformas, modelos, cron,
+  // vazias). A rota segue montada p/ deep-link e ações de admin.
   "/files",
   "/cron",
   "/skills",
   "/channels",
+  "/profiles",
 ]);
 
 const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
@@ -580,7 +605,7 @@ export default function App() {
             id="app-sidebar"
             aria-label={t.app.navigation}
             className={cn(
-              "fixed top-0 left-0 z-50 flex h-dvh max-h-dvh w-64 min-h-0 flex-col font-sans",
+              "fixed top-0 left-0 z-50 flex h-dvh max-h-dvh w-[280px] min-h-0 flex-col font-sans",
               "border-r border-current/20",
               "bg-background-base",
               "transition-[transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
@@ -664,6 +689,16 @@ export default function App() {
                   />
                 ))}
               </ul>
+
+              {/* Histórico de Tarefas/Sessões na sidebar global (estilo
+                  Manus) — lista real de /api/sessions com filtro + ações.
+                  Some quando a sidebar colapsa em ícones. */}
+              {embeddedChat && (
+                <SidebarTasks
+                  collapsed={isDesktopCollapsed}
+                  onNavigate={closeMobile}
+                />
+              )}
 
               {sidebarNav.pluginItems.length > 0 && (
                 <div
@@ -840,9 +875,22 @@ function SidebarNavLink({
   tooltipWarmRef,
   t,
 }: SidebarNavLinkProps) {
-  const { path, label, labelKey, icon: Icon } = item;
+  const { path, to, label, labelKey, icon: Icon } = item;
   const [hovered, setHovered] = useState(false);
   const [tooltipAnchor, setTooltipAnchor] = useState<HTMLElement | null>(null);
+
+  // "Nova sessão" (o item do /chat) só fica ATIVO na tela de sessão nova —
+  // não no espaço do projeto (?home=1) nem numa conversa retomada (?resume).
+  // Sem isto, o NavLink casa por pathname e ele ficava sempre aceso; e o
+  // projeto ficava destacado junto, dando a sensação estranha que o Leonardo
+  // apontou. Aqui "Nova sessão" acende e o projeto apaga (ver SidebarTasks).
+  const location = useLocation();
+  const isChatItem = path === "/chat";
+  const chatFresh =
+    isChatItem &&
+    location.pathname === "/chat" &&
+    !new URLSearchParams(location.search).has("resume") &&
+    !new URLSearchParams(location.search).has("home");
 
   const navLabel = labelKey
     ? ((t.app.nav as Record<string, string>)[labelKey] ?? label)
@@ -862,31 +910,34 @@ function SidebarNavLink({
       onMouseLeave={collapsed ? hideTooltip : undefined}
     >
       <NavLink
-        to={path}
+        to={to ?? path}
         end={path === "/sessions"}
         onClick={closeMobile}
         aria-label={collapsed ? navLabel : undefined}
         onFocus={collapsed ? showTooltip : undefined}
         onBlur={collapsed ? hideTooltip : undefined}
-        className={({ isActive }) =>
-          cn(
-            "group/nav relative flex items-center gap-3",
-            "px-5 py-2.5",
-            "font-sans text-display uppercase text-sm tracking-[0.12em]",
+        className={({ isActive }) => {
+          const active = isChatItem ? chatFresh : isActive;
+          return cn(
+            "group/nav relative flex items-center gap-3.5",
+            "px-5 py-3",
+            "font-sans text-display uppercase text-sm tracking-[0.06em]",
             "whitespace-nowrap transition-colors cursor-pointer",
             "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
-            isActive
+            active
               ? "text-midground"
               : "text-text-secondary hover:text-midground",
-          )
-        }
+          );
+        }}
         style={{
           clipPath: "var(--component-tab-clip-path)",
         }}
       >
-        {({ isActive }) => (
+        {({ isActive }) => {
+          const active = isChatItem ? chatFresh : isActive;
+          return (
           <>
-            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <Icon className="h-[18px] w-[18px] shrink-0" />
 
             <span
               className={cn(
@@ -902,14 +953,15 @@ function SidebarNavLink({
               className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/nav:opacity-5"
             />
 
-            {isActive && (
+            {active && (
               <span
                 aria-hidden
                 className="absolute left-0 top-0 bottom-0 w-px bg-midground"
               />
             )}
           </>
-        )}
+          );
+        }}
       </NavLink>
 
       {collapsed && hovered && tooltipAnchor && (
@@ -1335,6 +1387,9 @@ interface NavItem {
   label: string;
   labelKey?: string;
   path: string;
+  /** Destino real do link quando difere do `path` de identidade (ex.: o item
+   *  "Nova tarefa" navega com um gatilho ?new=1 que força conversa nova). */
+  to?: string;
 }
 
 interface SidebarIconWithTooltipProps {

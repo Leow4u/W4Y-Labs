@@ -1,27 +1,23 @@
 /**
- * ChatSessionList — a ChatGPT-style conversation switcher that sits beside
- * the embedded TUI on the dashboard Chat tab.
+ * ChatSessionList — a coluna "Tarefas" do chat nativo, no desenho do
+ * benchmark (Manus): "Nova tarefa" como item no topo, lista de conversas em
+ * linhas de UMA linha (ícone + título truncado), item ativo numa pill
+ * discreta, e um spinner azul no item ativo enquanto o agente trabalha.
  *
- * It lists the most recent sessions for the active management profile and
- * lets the user swap between them without leaving the Chat page. Selecting
- * a row sets `/chat?resume=<id>`; ChatPage treats the resume target as part
- * of the PTY identity, so the change tears down the current terminal child
- * and respawns it resuming that conversation (see ChatPage.tsx). The
- * "New session" action clears the resume param, which spawns a fresh PTY.
- *
- * Best-effort, like ChatSidebar: a failed fetch surfaces a small inline
- * error with a retry affordance and the terminal pane keeps working.
- *
- * This is a navigation surface, NOT a session-management one — delete,
- * rename, export, and bulk actions live on the Sessions page. Keeping this
- * panel read-only (plus select / new) avoids duplicating that machinery and
- * keeps the chat context focused on switching conversations quickly.
+ * Continua sendo uma superfície de NAVEGAÇÃO (selecionar / criar) — gestão de
+ * sessões (renomear, excluir, exportar) vive na página de Sessões. Selecionar
+ * uma linha seta `/chat?resume=<id>`; "Nova tarefa" limpa o resume.
  */
 
 import { Button } from "@nous-research/ui/ui/components/button";
-import { ListItem } from "@nous-research/ui/ui/components/list-item";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { AlertCircle, MessageSquarePlus, RefreshCw } from "lucide-react";
+import {
+  AlertCircle,
+  Loader2,
+  MessageSquare,
+  RefreshCw,
+  SquarePen,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -31,18 +27,19 @@ import { cn, timeAgo } from "@/lib/utils";
 
 const SESSION_LIMIT = 30;
 interface ChatSessionListProps {
-  /** Active resume target (the session currently shown in the terminal). */
+  /** Active resume target (the session currently open in the chat). */
   activeSessionId: string | null;
   /** Management profile from the dashboard switcher — scopes the listing. */
   profile?: string;
   className?: string;
+  /** Turno rodando na sessão ativa → spinner azul no item (como o Manus). */
+  activeBusy?: boolean;
   /** Optional callback fired after a row is picked (e.g. close mobile sheet). */
   onPicked?: () => void;
   /**
-   * Starts a fresh chat. ChatPage supplies its `startFreshDashboardChat`,
-   * which clears `?resume` AND bumps the reconnect nonce so a brand-new PTY
-   * spawns even when the user is already on an unsaved fresh session. When
-   * omitted, we fall back to clearing the resume param ourselves.
+   * Starts a fresh chat. NativeChatPage supplies its `startFreshChat` (clears
+   * `?resume` AND bumps the fresh nonce so a brand-new session spawns even
+   * when already on an unsaved fresh one). Fallback: clear the param.
    */
   onNewChat?: () => void;
 }
@@ -59,6 +56,7 @@ export function ChatSessionList({
   activeSessionId,
   profile,
   className,
+  activeBusy = false,
   onPicked,
   onNewChat,
 }: ChatSessionListProps) {
@@ -110,8 +108,8 @@ export function ChatSessionList({
 
   const reload = useCallback(() => setReloadNonce((n) => n + 1), []);
 
-  // Picking a row sets `/chat?resume=<id>`. Re-picking the row already in
-  // the terminal is a no-op (avoids a needless PTY teardown).
+  // Picking a row sets `/chat?resume=<id>`. Re-picking the row already open
+  // is a no-op (avoids a needless session teardown).
   const pick = useCallback(
     (id: string) => {
       onPicked?.();
@@ -128,11 +126,6 @@ export function ChatSessionList({
     [activeSessionId, onPicked, setSearchParams],
   );
 
-  // "New chat" prefers ChatPage's robust handler (clears resume + forces a
-  // PTY respawn even from an already-fresh session). Fallback: clear the
-  // resume param ourselves, which spawns a fresh PTY whenever one was being
-  // resumed. Session management (delete/rename/export) lives on the Sessions
-  // page; this panel only switches and starts conversations.
   const startNew = useCallback(() => {
     onPicked?.();
     if (onNewChat) {
@@ -152,7 +145,7 @@ export function ChatSessionList({
   const content = useMemo(() => {
     if (loading && sessions === null) {
       return (
-        <div className="flex items-center justify-center gap-2 px-2 py-6 text-xs text-text-secondary">
+        <div className="flex items-center justify-center gap-2 px-2 py-6 text-xs text-muted-foreground">
           <Spinner /> {t.common.loading}
         </div>
       );
@@ -172,52 +165,42 @@ export function ChatSessionList({
     }
     if (!sessions || sessions.length === 0) {
       return (
-        <div className="px-2 py-6 text-center text-xs text-text-secondary">
+        <div className="px-2 py-6 text-center text-xs text-muted-foreground">
           {t.sessions.noSessions}
         </div>
       );
     }
     return (
-      <div className="flex flex-col gap-0.5">
+      <div className="flex flex-col gap-px">
         {sessions.map((s) => {
           const isActive = s.id === activeSessionId;
+          const label = rowLabel(s, t.sessions.untitledSession);
           return (
-            <ListItem
+            <button
               key={s.id}
+              type="button"
               onClick={() => pick(s.id)}
               aria-current={isActive ? "true" : undefined}
+              title={`${label} · ${timeAgo(s.last_active)}`}
               className={cn(
-                "flex-col items-start gap-0.5 rounded px-2 py-1.5",
-                "normal-case tracking-normal",
+                "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors",
                 isActive
-                  ? "bg-primary/10 text-foreground border-l-2 border-primary"
-                  : "text-text-secondary hover:bg-midground/5 hover:text-foreground",
+                  ? "bg-muted font-medium text-foreground"
+                  : "text-muted-foreground hover:bg-muted/60 hover:text-foreground",
               )}
             >
-              <span className="w-full truncate text-sm font-medium">
-                {rowLabel(s, t.sessions.untitledSession)}
-              </span>
-              <span className="flex w-full items-center gap-1.5 text-[0.6875rem] text-text-tertiary">
-                <span>{timeAgo(s.last_active)}</span>
-                {s.message_count > 0 && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span>{s.message_count} msgs</span>
-                  </>
-                )}
-                {s.source && s.source !== "cli" && (
-                  <>
-                    <span aria-hidden>·</span>
-                    <span className="truncate">{s.source}</span>
-                  </>
-                )}
-              </span>
-            </ListItem>
+              {isActive && activeBusy ? (
+                <Loader2 className="h-4 w-4 shrink-0 animate-spin text-live" />
+              ) : (
+                <MessageSquare className="h-4 w-4 shrink-0 opacity-60" />
+              )}
+              <span className="min-w-0 flex-1 truncate">{label}</span>
+            </button>
           );
         })}
       </div>
     );
-  }, [activeSessionId, error, loading, pick, reload, sessions, t]);
+  }, [activeBusy, activeSessionId, error, loading, pick, reload, sessions, t]);
 
   return (
     <aside
@@ -226,33 +209,31 @@ export function ChatSessionList({
         className,
       )}
     >
-      <div className="flex items-center justify-between gap-2 px-2 pb-2">
-        <span className="text-display text-xs tracking-wider text-text-tertiary">
-          {t.sessions.title}
+      <button
+        type="button"
+        onClick={startNew}
+        className="mx-1 mb-3 flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm font-medium text-foreground transition-colors hover:bg-muted"
+      >
+        <SquarePen className="h-4 w-4 shrink-0" />
+        {t.chat.newTask}
+      </button>
+
+      <div className="flex items-center justify-between gap-2 px-3.5 pb-1.5">
+        <span className="text-xs font-medium text-muted-foreground">
+          {t.chat.tasks}
         </span>
-        <Button
-          ghost
-          size="icon"
+        <button
+          type="button"
           onClick={reload}
           aria-label={t.common.refresh}
           title={t.common.refresh}
-          className="text-text-secondary hover:text-foreground"
+          className="text-muted-foreground/60 transition-colors hover:text-foreground"
         >
-          <RefreshCw className={cn(loading && "animate-spin")} />
-        </Button>
+          <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
+        </button>
       </div>
 
-      <Button
-        outlined
-        size="sm"
-        onClick={startNew}
-        prefix={<MessageSquarePlus />}
-        className="mx-2 mb-2 justify-center"
-      >
-        {t.sessions.newChat}
-      </Button>
-
-      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 pb-1">
+      <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden px-1 pb-2">
         {content}
       </div>
     </aside>

@@ -7275,6 +7275,44 @@ def _(rid, params: dict) -> dict:
         return _ok(rid, {"logged_in": False, "balance_lines": [], "identity_line": None, "topup_url": None, "depleted": False})
 
 
+@method("usage.account")
+def _(rid, params: dict) -> dict:
+    """Client-safe usage meter for the tenant's OpenRouter key (Work4You).
+
+    Exposes ONLY a percentage — never the key, never dollar amounts (the
+    money→credits mapping lives in the plan catalog, not here). The dashboard's
+    "Plano e utilização" tab renders the cycle meter from ``used_percent``;
+    the same key payload feeds the in-chat 50/75/90 notices
+    (agent/openrouter_credits.py). ``configured=False`` covers: no OpenRouter
+    key, an uncapped key (limit=None → nothing to gauge), or a fetch miss —
+    the UI keeps its "plans coming soon" shell in all three cases.
+    """
+    try:
+        from agent.openrouter_credits import fetch_openrouter_credits_state
+        from wayne_cli.runtime_provider import resolve_runtime_provider
+
+        runtime = resolve_runtime_provider(
+            requested="openrouter", explicit_base_url=None, explicit_api_key=None
+        )
+        api_key = str(runtime.get("api_key", "") or "").strip()
+        state = fetch_openrouter_credits_state(api_key) if api_key else None
+        fraction = state.used_fraction if state is not None else None
+        if state is None or fraction is None:
+            return _ok(rid, {"configured": False, "used_percent": None, "depleted": False})
+        pct = max(0.0, min(100.0, float(fraction) * 100.0))
+        return _ok(
+            rid,
+            {
+                "configured": True,
+                "used_percent": round(pct, 1),
+                "depleted": bool(state.is_depleted),
+            },
+        )
+    except Exception:
+        # Fail-open: meter simply stays on the placeholder shell.
+        return _ok(rid, {"configured": False, "used_percent": None, "depleted": False})
+
+
 # ===========================================================================
 # Phase 2b terminal billing RPC methods
 # ===========================================================================
@@ -7829,7 +7867,20 @@ def _(rid, params: dict) -> dict:
         if lease is not None:
             lease.release()
         return _err(rid, 5000, f"agent init failed on branch: {e}")
-    return _ok(rid, {"session_id": new_sid, "title": title, "parent": old_key})
+    return _ok(
+        rid,
+        {
+            "session_id": new_sid,
+            # Durable key (already computed above) — callers that address
+            # sessions by their persisted id (e.g. the web dashboard's
+            # ?resume=<stored_session_id> URL scheme) need this; without it
+            # they fall back to `session_id` (the ephemeral runtime id),
+            # which doesn't resolve via session.resume/db.get_session.
+            "stored_session_id": new_key,
+            "title": title,
+            "parent": old_key,
+        },
+    )
 
 
 @method("session.interrupt")

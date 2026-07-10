@@ -346,7 +346,7 @@ export function SkillDetailModal({
         className={cn(
           "settings-modal relative flex w-full flex-col overflow-hidden rounded-xl",
           "border border-current/20 bg-background-base",
-          "shadow-[0_24px_64px_-16px_rgba(0,0,0,0.7)]",
+          "shadow-pop",
           fullscreen
             ? "h-[calc(100vh-1.5rem)] max-w-[calc(100vw-1.5rem)] sm:h-[calc(100vh-3rem)] sm:max-w-[calc(100vw-3rem)]"
             : "h-[min(90vh,940px)] max-w-[min(1400px,94vw)]",

@@ -161,7 +161,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
             className={cn(
               "fixed z-[100] min-w-[220px]",
               "border border-current/20 bg-background-base/95",
-              "shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]",
+              "shadow-pop",
             )}
             style={rect ? { bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width } : undefined}
           >
@@ -215,7 +215,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
                     className={cn(
                       "max-h-[min(24rem,70vh)] min-w-[11rem] overflow-y-auto py-1",
                       "border border-current/20 bg-background-base/95",
-                      "shadow-[0_12px_32px_-8px_rgba(0,0,0,0.6)]",
+                      "shadow-pop",
                     )}
                   >
                     {(Object.entries(LOCALE_META) as Array<[Locale, (typeof LOCALE_META)[Locale]]>).map(

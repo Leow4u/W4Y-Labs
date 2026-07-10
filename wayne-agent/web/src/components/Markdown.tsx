@@ -18,11 +18,24 @@ export function Markdown({
   highlightTerms?: string[];
   streaming?: boolean;
 }) {
-  const blocks = useMemo(() => parseBlocks(content), [content]);
+  // Códigos ANSI (cores de terminal) vazam quando o modelo cola saída de
+  // comando na resposta — mesmo strip do ToolLine, com ESC opcional
+  // (String.fromCharCode(27) evita um ESC literal no código-fonte).
+  const clean = useMemo(
+    () =>
+      content.replace(
+        new RegExp(String.fromCharCode(27) + "?" + String.fromCharCode(92) + "[[0-9;]{1,8}m", "g"),
+        "",
+      ),
+    [content],
+  );
+  const blocks = useMemo(() => parseBlocks(clean), [clean]);
   const caret = streaming ? <StreamingCaret /> : null;
 
   return (
-    <div className="text-sm text-foreground leading-relaxed space-y-2">
+    // Sem tamanho fixo aqui (Onda 1) — o WRAPPER decide a voz: prosa serifada
+    // da resposta (.prose-serif), narração type-body, review. Só ritmo e cor.
+    <div className="text-foreground space-y-2.5">
       {blocks.map((block, i) => (
         <Block
           key={i}
@@ -37,12 +50,7 @@ export function Markdown({
 }
 
 function StreamingCaret() {
-  return (
-    <span
-      aria-hidden
-      className="inline-block w-[0.5em] h-[1em] ml-0.5 align-[-0.15em] bg-foreground/50 animate-pulse"
-    />
-  );
+  return <span aria-hidden className="chat-caret" />;
 }
 
 /* ------------------------------------------------------------------ */
@@ -54,7 +62,26 @@ type BlockNode =
   | { type: "heading"; level: number; content: string }
   | { type: "hr" }
   | { type: "list"; ordered: boolean; items: string[] }
+  | { type: "table"; header: string[]; rows: string[][] }
   | { type: "paragraph"; content: string };
+
+/** `| a | b |` → ["a", "b"] (tolerante a pipes de borda ausentes). */
+function splitTableRow(line: string): string[] {
+  return line
+    .trim()
+    .replace(/^\|/, "")
+    .replace(/\|$/, "")
+    .split("|")
+    .map((c) => c.trim());
+}
+
+/** Linha separadora de tabela GFM: | --- | :---: | ---: | */
+function isTableSeparator(line: string | undefined): boolean {
+  if (!line) return false;
+  const t = line.trim();
+  if (!t.includes("-") || !/^[|\s:-]+$/.test(t)) return false;
+  return splitTableRow(t).every((c) => /^:?-{2,}:?$/.test(c));
+}
 
 /* ------------------------------------------------------------------ */
 /*  Block parser                                                       */
@@ -124,6 +151,19 @@ function parseBlocks(text: string): BlockNode[] {
       continue;
     }
 
+    // Table (GFM): header row + separator row + data rows
+    if (line.trim().startsWith("|") && isTableSeparator(lines[i + 1])) {
+      const header = splitTableRow(line);
+      i += 2; // skip header + separator
+      const rows: string[][] = [];
+      while (i < lines.length && lines[i].trim().startsWith("|")) {
+        rows.push(splitTableRow(lines[i]));
+        i++;
+      }
+      blocks.push({ type: "table", header, rows });
+      continue;
+    }
+
     // Empty line
     if (line.trim() === "") {
       i++;
@@ -139,7 +179,8 @@ function parseBlocks(text: string): BlockNode[] {
       !lines[i].match(/^#{1,4}\s/) &&
       !lines[i].match(/^[-*+]\s/) &&
       !lines[i].match(/^\d+[.)]\s/) &&
-      !lines[i].match(/^[-*_]{3,}\s*$/)
+      !lines[i].match(/^[-*_]{3,}\s*$/) &&
+      !(lines[i].trim().startsWith("|") && isTableSeparator(lines[i + 1]))
     ) {
       paraLines.push(lines[i]);
       i++;
@@ -176,13 +217,47 @@ function Block({
         </pre>
       );
 
+    case "table":
+      return (
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-sm">
+            <thead>
+              <tr>
+                {block.header.map((h, i) => (
+                  <th
+                    key={i}
+                    className="border-b border-border bg-muted/50 px-3 py-1.5 text-left font-semibold text-foreground"
+                  >
+                    <InlineContent text={h} highlightTerms={highlightTerms} />
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {block.rows.map((row, ri) => (
+                <tr key={ri} className="border-b border-border/60 last:border-b-0">
+                  {row.map((cell, ci) => (
+                    <td key={ci} className="px-3 py-1.5 align-top text-foreground/90">
+                      <InlineContent text={cell} highlightTerms={highlightTerms} />
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {caret}
+        </div>
+      );
+
     case "heading": {
       const Tag = `h${Math.min(block.level, 4)}` as "h1" | "h2" | "h3" | "h4";
+      // Em-based: os títulos escalam com a voz do wrapper (serifa 16px na
+      // resposta, 15px na narração/review) em vez de travar em rem.
       const sizes: Record<string, string> = {
-        h1: "text-base font-bold",
-        h2: "text-sm font-bold",
-        h3: "text-sm font-semibold",
-        h4: "text-sm font-medium",
+        h1: "text-[1.3em] font-semibold tracking-tight",
+        h2: "text-[1.15em] font-semibold tracking-tight",
+        h3: "text-[1.02em] font-semibold",
+        h4: "text-[1em] font-medium",
       };
       return (
         <Tag className={sizes[Tag]}>
@@ -205,7 +280,7 @@ function Block({
       const last = block.items.length - 1;
       return (
         <Tag
-          className={`space-y-0.5 ${block.ordered ? "list-decimal" : "list-disc"} pl-5 text-sm`}
+          className={`space-y-0.5 ${block.ordered ? "list-decimal" : "list-disc"} pl-5`}
         >
           {block.items.map((item, i) => (
             <li key={i}>
@@ -242,8 +317,11 @@ type InlineNode =
 function parseInline(text: string): InlineNode[] {
   const nodes: InlineNode[] = [];
   // Pattern priority: code > link > bold > italic > bare URL > line break
+  // HTML inline básico (<b>/<strong>/<i>/<em>) entra no parse — modelos às
+  // vezes emitem essas tags no lugar de markdown e o React escaparia o texto
+  // cru na tela (visto ao vivo: "<i>Olá!</i>" literal na conversa).
   const pattern =
-    /(`[^`]+`)|(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(\bhttps?:\/\/[^\s<>)\]]+)|(\n)/g;
+    /(`[^`]+`)|(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(<(?:b|strong)>([\s\S]*?)<\/(?:b|strong)>)|(<(?:i|em)>([\s\S]*?)<\/(?:i|em)>)|(\bhttps?:\/\/[^\s<>)\]]+)|(\n)/g;
   let lastIndex = 0;
   let match: RegExpExecArray | null;
 
@@ -265,9 +343,15 @@ function parseInline(text: string): InlineNode[] {
       // *italic*
       nodes.push({ type: "italic", content: match[8] });
     } else if (match[9]) {
+      // <b>/<strong>
+      nodes.push({ type: "bold", content: match[10] });
+    } else if (match[11]) {
+      // <i>/<em>
+      nodes.push({ type: "italic", content: match[12] });
+    } else if (match[13]) {
       // Bare URL
-      nodes.push({ type: "link", text: match[9], href: match[9] });
-    } else if (match[10]) {
+      nodes.push({ type: "link", text: match[13], href: match[13] });
+    } else if (match[14]) {
       // Line break within paragraph
       nodes.push({ type: "br" });
     }
@@ -307,7 +391,7 @@ function InlineContent({
             return (
               <code
                 key={i}
-                className="bg-secondary/60 px-1.5 py-0.5 text-xs font-mono text-primary/90"
+                className="bg-secondary/60 px-1.5 py-0.5 text-[0.85em] font-mono text-primary/90"
               >
                 {node.content}
               </code>

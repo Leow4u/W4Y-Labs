@@ -21,6 +21,10 @@ export interface ToolCallState {
   error?: string;
   durationS?: number;
   inlineDiff?: string;
+  /** Todo step (plan item) this tool ran under — set live by the reducer from
+   *  the step that was `in_progress` when the tool started. Lets the chat
+   *  nest tool lines under their plan step, like the reference (Manus). */
+  stepId?: string;
 }
 
 /**
@@ -46,6 +50,18 @@ export interface ChatMessage {
   toolName?: string;
   streaming?: boolean;
   timestamp?: number;
+  /** Imagens anexadas a esta mensagem do usuário (paths relativos ao root de
+   *  arquivos — renderizadas via /api/files/read). Só no turno ao vivo. */
+  images?: string[];
+  /** Raciocínio do modelo (reasoning/thinking) — bloco colapsável no chat.
+   *  Alimentado por reasoning.delta/thinking.delta/reasoning.available e pelo
+   *  `reasoning` do message.complete (paridade com o desktop). */
+  reasoning?: string;
+  /** Turno terminou sem conteúdo por causa de um erro que o gateway sinalizou
+   *  via status.update "❌ ..." (ex.: HTTP 402 do provedor). Nunca guardamos o
+   *  texto cru do provedor (vaza URL/hash da chave) — só a classe do erro, que
+   *  o MessageBubble mapeia para uma mensagem localizada e segura. */
+  errorKind?: "billing" | "generic";
 }
 
 /** A task step for the progress chip. Timing is clocked client-side (the
@@ -103,4 +119,33 @@ export function fromSessionMessage(
     toolName: msg.tool_name,
     timestamp: msg.timestamp,
   };
+}
+
+/**
+ * Converte o histórico persistido COSTURANDO os resultados de ferramenta de
+ * volta às suas chamadas: cada `role:"tool"` carrega `tool_call_id` — o
+ * resultado entra no `ToolCallState` correspondente da mensagem do assistente
+ * (como no turno ao vivo) e a mensagem-resultado some da lista. Sem isto, o
+ * transcript retomado despeja JSON/traceback cru como texto de conversa
+ * (visto ao vivo na curadoria). Tool sem par fica na lista (vira ToolLine
+ * avulsa no render).
+ */
+export function stitchHistory(messages: SessionMessage[]): ChatMessage[] {
+  const out: ChatMessage[] = [];
+  const byCallId = new Map<string, ToolCallState>();
+  messages.forEach((msg, index) => {
+    if (msg.role === "tool" && msg.tool_call_id) {
+      const call = byCallId.get(msg.tool_call_id);
+      if (call) {
+        if (typeof msg.content === "string" && msg.content) {
+          call.result = msg.content;
+        }
+        return; // costurado — não vira linha própria no transcript
+      }
+    }
+    const cm = fromSessionMessage(msg, index);
+    for (const tc of cm.toolCalls) byCallId.set(tc.id, tc);
+    out.push(cm);
+  });
+  return out;
 }

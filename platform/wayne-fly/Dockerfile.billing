@@ -1,0 +1,19 @@
+# Camada FINA de billing — overlay sobre uma base JÁ BOOTÁVEL (fly127), NÃO
+# rebuild da imagem base. Lição 10/07: `docker build wayne-agent` do HEAD gera
+# uma base que não dá boot no Fly (s6-overlay-suexec: can only run as pid 1 →
+# crash-loop). A cadeia de deploy sempre sentou sobre o fly115 pré-construído;
+# aqui fazemos igual às camadas gh/UI: só copiamos os arquivos alterados.
+#
+# Conteúdo: a RPC `usage.account` (medidor da aba Plano — server.py, delta = só
+# esse método sobre o que já roda) + o web_dist novo (card do medidor + taxa
+# de crédito 1cr=$0,01). Os avisos 50/75/90 (openrouter_credits.py + run_agent)
+# JÁ estão na base há tempos — confirmado extraindo do fly127 (0 diff).
+#
+#   docker build -f platform/wayne-fly/Dockerfile.billing \
+#     --build-arg BASE_IMAGE=registry.fly.io/wayne-w4y:fly127 \
+#     -t registry.fly.io/wayne-w4y:fly129 wayne-agent
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly127
+FROM ${BASE_IMAGE}
+
+COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py

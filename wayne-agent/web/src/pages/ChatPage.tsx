@@ -13,6 +13,7 @@
  */
 import { isInternalView } from "@/lib/internal-view";
 
+import { ChatErrorBoundary } from "@/components/chat/ChatErrorBoundary";
 import ChatTerminalPage from "./ChatTerminalPage";
 import NativeChatPage from "./NativeChatPage";
 
@@ -20,6 +21,8 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
   return isInternalView() ? (
     <ChatTerminalPage isActive={isActive} />
   ) : (
-    <NativeChatPage isActive={isActive} />
+    <ChatErrorBoundary>
+      <NativeChatPage isActive={isActive} />
+    </ChatErrorBoundary>
   );
 }

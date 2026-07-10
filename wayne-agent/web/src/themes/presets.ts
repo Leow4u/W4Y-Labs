@@ -28,20 +28,20 @@ const SYSTEM_MONO =
   'ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace';
 
 const DEFAULT_TYPOGRAPHY: ThemeTypography = {
-  // IBM Plex Sans é a fonte-padrão de PRODUTO da Work4You (a "cara" da UI),
-  // não mais a fonte do sistema operacional. SELF-HOSTED via @font-face em
-  // index.css (public/fonts) — não depende do Google Fonts. Sem fontUrl aqui:
-  // o @font-face global já disponibiliza a família; o stack termina no
-  // sistema como fallback. O usuário troca em Config → Geral → Aparência → Fonte.
-  fontSans: `"IBM Plex Sans", ${SYSTEM_SANS}`,
-  fontMono: SYSTEM_MONO,
+  // Design System "Editorial" (Onda 0): Hanken Grotesk é a grotesk quente do
+  // CHROME da UI (papel do Styrene no claude.ai); a prosa do assistente usa a
+  // serifa Source Serif 4 via token global --theme-font-serif (index.css).
+  // Ambas SELF-HOSTED via @font-face (public/fonts) — sem Google Fonts.
+  // A mono de UI/código é a Cascadia Mono (fonte da marca), também vendorizada.
+  fontSans: `"Hanken Grotesk", ${SYSTEM_SANS}`,
+  fontMono: `"Cascadia Mono", ${SYSTEM_MONO}`,
   baseSize: "15px",
   lineHeight: "1.55",
   letterSpacing: "0",
 };
 
 const DEFAULT_LAYOUT: ThemeLayout = {
-  radius: "0.5rem",
+  radius: "0.625rem",
   density: "comfortable",
 };
 
@@ -49,29 +49,30 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 // Themes
 // ---------------------------------------------------------------------------
 
-/** Modo claro neutro — o tema padrão da W4Y. Estruturalmente segue o antigo
- *  "nous-blue" (o único light do upstream): fundo claro, acentos escuros,
- *  terminal claro e swatches/séries explícitos. */
+/** Modo claro EDITORIAL — o tema padrão da W4Y (Onda 0). Creme quente +
+ *  tinta quase-preta quente, no espírito do claude.ai: calmo, sofisticado,
+ *  prosa serifada (via --theme-font-serif global) e acento terracota para
+ *  estados ao vivo. */
 export const whiteTheme: DashboardTheme = {
   name: "white",
   label: "White",
-  description: "Modo claro — branco limpo e neutro (padrão)",
+  description: "Modo claro editorial — creme quente e tinta (padrão)",
   palette: {
-    background: { hex: "#ffffff", alpha: 1 },
-    midground: { hex: "#171717", alpha: 1 },
-    foreground: { hex: "#171717", alpha: 0 },
-    warmGlow: "rgba(23, 23, 23, 0.07)",
+    background: { hex: "#faf9f5", alpha: 1 },
+    midground: { hex: "#1a1915", alpha: 1 },
+    foreground: { hex: "#1a1915", alpha: 0 },
+    warmGlow: "rgba(193, 95, 60, 0.06)",
     noiseOpacity: 0,
   },
   typography: DEFAULT_TYPOGRAPHY,
   layout: DEFAULT_LAYOUT,
-  terminalBackground: "#fafafa",
-  terminalForeground: "#171717",
+  terminalBackground: "#f5f3ec",
+  terminalForeground: "#1a1915",
   seriesColors: {
-    inputTokenAccent: "#171717",
-    outputTokenAccent: "#737373",
+    inputTokenAccent: "#1a1915",
+    outputTokenAccent: "#c15f3c",
   },
-  swatchColors: ["#171717", "#a3a3a3", "#ffffff"],
+  swatchColors: ["#1a1915", "#c15f3c", "#faf9f5"],
 };
 
 /** O tema padrão da plataforma (fallback de nomes desconhecidos). */
@@ -98,6 +99,13 @@ export const monoTheme: DashboardTheme = {
   layout: {
     ...DEFAULT_LAYOUT,
     radius: "0",
+  },
+  // Os defaults de status (index.css) agora são aquecidos pro canvas claro
+  // editorial; num fundo escuro eles ficam lamacentos — re-acende aqui.
+  colorOverrides: {
+    success: "#4ade80",
+    warning: "#ffbd38",
+    destructive: "#fb2c36",
   },
 };
 
@@ -151,6 +159,11 @@ export const roseTheme: DashboardTheme = {
   layout: {
     ...DEFAULT_LAYOUT,
     radius: "1rem",
+  },
+  colorOverrides: {
+    success: "#4ade80",
+    warning: "#ffbd38",
+    destructive: "#fb2c36",
   },
 };
 

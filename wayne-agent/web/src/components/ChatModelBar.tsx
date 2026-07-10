@@ -33,32 +33,32 @@ export function ChatModelBar({ light }: { light: boolean }) {
     };
   }, []);
 
+  // Pill de modelo (estilo Grok) — o TierPicker já é a pill + dropdown. O aviso
+  // de "aplica na próxima tarefa" some após alguns segundos p/ não poluir.
+  useEffect(() => {
+    if (!notice) return;
+    const id = setTimeout(() => setNotice(null), 4000);
+    return () => clearTimeout(id);
+  }, [notice]);
+
   return (
-    // O Select do nous-ui abre o listbox SEMPRE p/ baixo (absolute, sem
-    // colisão). Como esta barra fica no rodapé, viramos o listbox p/ CIMA via
-    // variantes arbitrárias — senão Expert/Crew ficam cortados fora da tela.
-    <div className="flex shrink-0 items-center gap-2 px-1 [&_[role=listbox]]:bottom-full [&_[role=listbox]]:top-auto [&_[role=listbox]]:mt-0 [&_[role=listbox]]:mb-1">
+    <div className="flex shrink-0 items-center gap-1.5">
       {notice && (
         <span
           className={cn(
-            "min-w-0 flex-1 truncate text-xs",
-            light ? "text-neutral-500" : "text-white/60",
+            "hidden max-w-[220px] truncate text-[11px] sm:block",
+            light ? "text-neutral-400" : "text-white/50",
           )}
         >
           {notice}
         </span>
       )}
-
-      <div className={cn("shrink-0", notice ? "" : "ml-auto")}>
-        <TierPicker
-          currentModel={model}
-          onChanged={(tier: TierKey) =>
-            setNotice(
-              `Modelo → ${TIER_PRESETS[tier].label}. Rode /new ou recarregue para aplicar.`,
-            )
-          }
-        />
-      </div>
+      <TierPicker
+        currentModel={model}
+        onChanged={(tier: TierKey) =>
+          setNotice(`${TIER_PRESETS[tier].label} — aplica na próxima tarefa`)
+        }
+      />
     </div>
   );
 }
