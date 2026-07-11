@@ -1353,6 +1353,12 @@ export const api = {
     fetchJSON<SkillHubSourcesResponse>(
       `/api/skills/hub/sources${profileQuery(profile)}`,
     ),
+  /** Full local "official" catalog (102 optional-skills) for the browse
+   *  marketplace — no query, no network, grouped by category. */
+  getSkillHubCatalog: (profile?: string) =>
+    fetchJSON<SkillHubCatalogResponse>(
+      `/api/skills/hub/catalog${profileQuery(profile)}`,
+    ),
   previewSkillFromHub: (identifier: string) =>
     fetchJSON<SkillHubPreview>(
       `/api/skills/hub/preview?identifier=${encodeURIComponent(identifier)}`,
@@ -1417,6 +1423,15 @@ export interface SkillHubResult {
   trust_level: string;
   repo: string | null;
   tags: string[];
+  /** Category, present on catalog listings (grouping the browse view). */
+  category?: string;
+}
+
+/** GET /api/skills/hub/catalog — full local "official" catalog for the browse
+ *  marketplace (no query, no network; grouped by category). */
+export interface SkillHubCatalogResponse {
+  skills: SkillHubResult[];
+  installed: Record<string, SkillHubInstalledEntry>;
 }
 
 /** Lock-entry summary for an already-installed hub skill (keyed by identifier). */

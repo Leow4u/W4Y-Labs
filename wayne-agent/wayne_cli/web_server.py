@@ -10609,6 +10609,49 @@ async def search_skills_hub(
         raise HTTPException(status_code=502, detail=f"Hub search failed: {exc}")
 
 
+@app.get("/api/skills/hub/catalog")
+async def catalog_skills_hub(profile: Optional[str] = None):
+    """Full OFFICIAL optional-skills catalog (local, no network) para um
+    marketplace navegável por CATEGORIA — não precisa de query nem do
+    wayne-index. Lê optional-skills/ do disco via a mesma OptionalSkillSource
+    que o hub instala; devolve nome/descrição/tags ORIGINAIS + categoria
+    (de meta.extra['category'] ou do identifier ``official/<cat>/<skill>``).
+    ``installed`` marca o que já está no perfil.
+    """
+
+    def _run():
+        from tools.skills_hub import OptionalSkillSource
+
+        src = OptionalSkillSource()
+        # query vazia casa tudo em OptionalSkillSource.search (percorre _scan_all);
+        # limite alto pra trazer o catálogo inteiro.
+        metas = src.search("", limit=1000)
+        out = []
+        for m in metas:
+            payload = _skill_meta_to_payload(m)
+            cat = ""
+            try:
+                cat = (getattr(m, "extra", {}) or {}).get("category") or ""
+            except Exception:
+                cat = ""
+            if not cat:
+                parts = (m.identifier or "").split("/")
+                if len(parts) >= 3:
+                    cat = parts[1]
+            payload["category"] = cat or "general"
+            out.append(payload)
+        out.sort(key=lambda p: (p.get("category", ""), str(p.get("name", "")).lower()))
+        return {"skills": out, "installed": _installed_hub_identifiers(profile)}
+
+    try:
+        return await asyncio.to_thread(_run)
+    except HTTPException:
+        raise
+    except Exception as exc:
+        _log.exception("skills hub catalog failed")
+        raise HTTPException(status_code=502, detail=f"Hub catalog failed: {exc}")
+
+
 @app.get("/api/skills/hub/preview")
 async def preview_skill_hub(identifier: str = "", profile: Optional[str] = None):
     """Fetch a hub skill's SKILL.md content + metadata for in-dashboard reading.

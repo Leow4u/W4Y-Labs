@@ -862,6 +862,11 @@ export interface Translations {
     filters: string;
     noSkills: string;
     noSkillsMatch: string;
+    install: string;
+    installed: string;
+    installing: string;
+    remove: string;
+    removing: string;
     skillCount: string;
     resultCount: string;
     noDescription: string;

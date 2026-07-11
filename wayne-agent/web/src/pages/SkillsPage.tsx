@@ -55,6 +55,7 @@ import { useProfileScope } from "@/contexts/useProfileScope";
 import { ToolsetConfigDrawer } from "@/components/ToolsetConfigDrawer";
 import { SkillEditorDialog } from "@/components/SkillEditorDialog";
 import { SkillDetailModal } from "@/components/SkillDetailModal";
+import { SkillMarketplace } from "@/components/skills/SkillMarketplace";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { Card, CardContent } from "@nous-research/ui/ui/components/card";
@@ -548,6 +549,20 @@ export default function SkillsPage() {
         ts.description.toLowerCase().includes(lowerSearch),
     );
   }, [toolsets, search, lowerSearch]);
+
+  // Usuário-final: Habilidades = o MARKETPLACE do catálogo Oficial (as 102
+  // optional-skills), por categoria + filtro. As 72 skills ATIVAS ("do sistema",
+  // não-desativáveis pelo usuário) e os toolsets só aparecem no ?full=1 (nós).
+  if (!isInternal) {
+    return (
+      <div className="flex flex-col gap-4">
+        <PluginSlot name="skills:top" />
+        <Toast toast={toast} />
+        <SkillMarketplace profile={selectedProfile || undefined} />
+        <PluginSlot name="skills:bottom" />
+      </div>
+    );
+  }
 
   /* ---- Loading ---- */
   if (loading) {
