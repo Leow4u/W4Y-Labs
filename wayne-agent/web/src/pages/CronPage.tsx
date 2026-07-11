@@ -1,10 +1,24 @@
+/**
+ * Agenda / Rotinas — a tela de automações do tenant, fiel ao "Routines" do
+ * Claude e ao nosso jeito Editorial.
+ *
+ * Onda 1: composer "O que você quer automatizar?" + chips → drawer pré-preenchido;
+ *   lista de rotinas redesenhada (ícone, agenda humana, chip do AGENTE, próxima
+ *   execução, status, ações no hover); empty "Nenhuma rotina ainda"; seletor de
+ *   agente; curadoria sistema×usuário (lib/cron-curation) — sistema só no ?full=1.
+ * Onda 2: galeria "Ou comece com um modelo" reusa os blueprints nativos.
+ * Onda 3: toggle Rotinas↔Calendário (RoutineCalendar, próximas execuções por agente).
+ *
+ * Rotinas são INDEPENDENTES por agente (todo job tem `profile`); o form cria
+ * sempre mirando um agente. Campos técnicos (provider/model/script/…) seguem
+ * escondidos no ?full=1.
+ */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { Clock, Pause, Pencil, Play, Trash2, X, Zap } from "lucide-react";
+import { Clock, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { H2 } from "@nous-research/ui/ui/components/typography/h2";
 import { api } from "@/lib/api";
 import type {
   CronJob,
@@ -21,11 +35,10 @@ import {
   type CronJobFormState,
 } from "@/lib/cron-job";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
+import { AgentSchedulePicker } from "@/components/agents/AgentSchedulePicker";
+import { RoutineCalendar } from "@/components/agenda/RoutineCalendar";
 import {
   DEFAULT_SCHEDULE_STATE,
-  ScheduleBuilder,
-} from "@/components/ScheduleBuilder";
-import {
   buildScheduleString,
   describeSchedule,
   englishOrdinal,
@@ -33,17 +46,17 @@ import {
   type ScheduleBuilderState,
   type ScheduleDescribeStrings,
 } from "@/lib/schedule";
+import { partitionJobs } from "@/lib/cron-curation";
+import { agentColorOf } from "@/lib/agent-colors";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { Toast } from "@nous-research/ui/ui/components/toast";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
 import { Input } from "@nous-research/ui/ui/components/input";
 import { Label } from "@nous-research/ui/ui/components/label";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
-import { Segmented } from "@nous-research/ui/ui/components/segmented";
 import { AutomationBlueprints } from "@/components/AutomationBlueprints";
 import { cn, themedBody } from "@/lib/utils";
 import { isInternalView } from "@/lib/internal-view";
@@ -59,9 +72,7 @@ function asText(value: unknown): string {
 }
 
 function truncateText(value: string, maxLength: number): string {
-  return value.length > maxLength
-    ? value.slice(0, maxLength) + "..."
-    : value;
+  return value.length > maxLength ? value.slice(0, maxLength) + "..." : value;
 }
 
 function getJobPrompt(job: CronJob): string {
@@ -95,10 +106,7 @@ function NameCheckboxPicker({
   };
 
   return (
-    <div
-      id={id}
-      className="max-h-36 overflow-y-auto border border-border bg-background/40 p-1"
-    >
+    <div id={id} className="max-h-36 overflow-y-auto rounded-lg border border-border bg-background/40 p-1">
       {all.map((item) => (
         <label
           key={item.name}
@@ -107,7 +115,7 @@ function NameCheckboxPicker({
         >
           <input
             type="checkbox"
-            className="accent-foreground"
+            className="accent-live"
             checked={selected.includes(item.name)}
             onChange={(e) => toggle(item.name, e.target.checked)}
           />
@@ -143,10 +151,10 @@ function emptyCronJobForm(): CronJobEditorState {
     no_agent: false,
     context_from: "",
     enabled_toolsets: [],
-    // Deep-link: /cron?workdir=<pasta> pré-preenche o workspace do job novo
-    // (usado pelo painel "Tarefas agendadas" da tela de projeto do chat).
+    // Deep-link: /cron?workdir=<pasta> pré-preenche o workspace do job novo.
     workdir: new URLSearchParams(window.location.search).get("workdir") ?? "",
-    scheduleState: { ...DEFAULT_SCHEDULE_STATE },
+    // Rotina = recorrente → começa em "diário às 9h" (não no intervalo de 30min).
+    scheduleState: { ...DEFAULT_SCHEDULE_STATE, mode: "daily", timeOfDay: "09:00" },
   };
 }
 
@@ -211,40 +219,28 @@ function CronAdvancedFields({
   const models = selectedProvider?.models ?? [];
 
   return (
-    <details className="border border-border bg-background/30 p-3" open>
+    <details className="rounded-lg border border-border bg-background/30 p-3" open>
       <summary className="cursor-pointer text-xs font-medium uppercase tracking-wide text-muted-foreground">
         Advanced fields
       </summary>
       <div className="mt-3 grid gap-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
             <Label htmlFor={`${idPrefix}-provider`}>Provider</Label>
             <Select
               id={`${idPrefix}-provider`}
               value={form.provider}
-              onValueChange={(v) => {
-                onChange({ ...form, provider: v, model: "" });
-              }}
+              onValueChange={(v) => onChange({ ...form, provider: v, model: "" })}
             >
               <SelectOption value="">Default</SelectOption>
-              {selectOptions(
-                form.provider,
-                providers.map((p) => ({ value: p.slug, label: p.name })),
-              )}
+              {selectOptions(form.provider, providers.map((p) => ({ value: p.slug, label: p.name })))}
             </Select>
           </div>
           <div className="grid gap-1">
             <Label htmlFor={`${idPrefix}-model`}>Model</Label>
-            <Select
-              id={`${idPrefix}-model`}
-              value={form.model}
-              onValueChange={(v) => update("model", v)}
-            >
+            <Select id={`${idPrefix}-model`} value={form.model} onValueChange={(v) => update("model", v)}>
               <SelectOption value="">Default</SelectOption>
-              {selectOptions(
-                form.model,
-                models.map((model) => ({ value: model, label: model })),
-              )}
+              {selectOptions(form.model, models.map((model) => ({ value: model, label: model })))}
             </Select>
           </div>
         </div>
@@ -259,11 +255,11 @@ function CronAdvancedFields({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
+        <div className="grid grid-cols-1 items-end gap-3 sm:grid-cols-2">
           <label className="flex items-center gap-2 text-xs text-muted-foreground">
             <input
               type="checkbox"
-              className="accent-foreground"
+              className="accent-live"
               checked={form.no_agent}
               onChange={(e) => update("no_agent", e.target.checked)}
             />
@@ -290,12 +286,12 @@ function CronAdvancedFields({
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div className="grid gap-1">
             <Label htmlFor={`${idPrefix}-context-from`}>context_from job IDs</Label>
             <textarea
               id={`${idPrefix}-context-from`}
-              className="flex min-h-[64px] w-full border border-border bg-background/40 px-3 py-2 text-xs font-courier shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30 focus-visible:border-foreground/25"
+              className="flex min-h-[64px] w-full rounded-lg border border-border bg-background/40 px-3 py-2 text-xs font-courier shadow-sm placeholder:text-muted-foreground focus-visible:border-foreground/25 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30"
               placeholder="one job id per line"
               value={form.context_from}
               onChange={(e) => update("context_from", e.target.value)}
@@ -325,13 +321,7 @@ interface CronJobFormFieldsProps {
   onChange: (form: CronJobEditorState) => void;
 }
 
-function CronJobFormFields({
-  idPrefix,
-  autoFocus,
-  form,
-  resources,
-  onChange,
-}: CronJobFormFieldsProps) {
+function CronJobFormFields({ idPrefix, autoFocus, form, resources, onChange }: CronJobFormFieldsProps) {
   const { t } = useI18n();
   const { availableSkills, availableToolsets, deliveryTargets, modelOptions } = resources;
   const update = <K extends keyof CronJobEditorState,>(
@@ -372,25 +362,24 @@ function CronJobFormFields({
         <Label htmlFor={`${idPrefix}-prompt`}>{t.cron.prompt}</Label>
         <textarea
           id={`${idPrefix}-prompt`}
-          className="flex min-h-[80px] w-full border border-border bg-background/40 px-3 py-2 text-sm font-courier shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30 focus-visible:border-foreground/25"
+          className="flex min-h-[96px] w-full rounded-lg border border-border bg-background/40 px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:border-foreground/25 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-foreground/30"
           placeholder={t.cron.promptPlaceholder}
           value={form.prompt}
           onChange={(e) => update("prompt", e.target.value)}
         />
       </div>
 
-      <ScheduleBuilder
-        value={form.scheduleState}
-        onChange={(state) => update("scheduleState", state)}
-      />
+      <div className="grid gap-1.5">
+        <Label>{t.cron.scheduleMode}</Label>
+        <AgentSchedulePicker
+          value={form.scheduleState}
+          onChange={(state) => update("scheduleState", state)}
+        />
+      </div>
 
       <div className="grid gap-2">
         <Label htmlFor={`${idPrefix}-deliver`}>{t.cron.deliverTo}</Label>
-        <Select
-          id={`${idPrefix}-deliver`}
-          value={form.deliver}
-          onValueChange={(v) => update("deliver", v)}
-        >
+        <Select id={`${idPrefix}-deliver`} value={form.deliver} onValueChange={(v) => update("deliver", v)}>
           {deliveryOptions}
         </Select>
         {onlyLocalAvailable && (
@@ -410,16 +399,10 @@ function CronJobFormFields({
           onChange={(skills) => update("skills", skills)}
           emptyLabel="No skills installed for this profile."
         />
-        <p className="text-xs text-muted-foreground">
-          Selected skills are loaded before the prompt runs — the cron
-          sets when, the skill sets how.
-        </p>
       </div>
 
-      {/* Curadoria: campos técnicos/admin (Provider, Model, Base URL, no_agent,
-          Script, Workdir, context_from, enabled_toolsets) ficam escondidos do
-          usuário-final. A criação segue funcionando com os defaults do form.
-          Voltam a aparecer com ?full=1 (nós/suporte). */}
+      {/* Curadoria: campos técnicos/admin ficam escondidos do usuário-final.
+          A criação segue com os defaults do form. Voltam no ?full=1 (nós/suporte). */}
       {isInternalView() && (
         <CronAdvancedFields
           idPrefix={`${idPrefix}-advanced`}
@@ -440,26 +423,14 @@ function getJobName(job: CronJob): string {
 function getJobTitle(job: CronJob): string {
   const name = getJobName(job);
   if (name) return name;
-
   const prompt = getJobPrompt(job);
   if (prompt) return truncateText(prompt, 60);
-
   const script = asText(job.script);
   if (script) return truncateText(script, 60);
-
   return job.id || "Cron job";
 }
 
-function getJobScheduleDisplay(
-  job: CronJob,
-  strings: ScheduleDescribeStrings,
-): string {
-  // Prefer a structured render so cron expressions like
-  // ``30 14 * * 1,3,5`` surface as "Weekly on Mon, Wed, Fri at 14:30"
-  // in the list instead of the raw five-field gibberish. Falls back
-  // through the existing chain (``schedule_display`` from the backend,
-  // then the structured ``display`` field, then the raw ``expr``) so
-  // legacy job rows still render *something* meaningful.
+function getJobScheduleDisplay(job: CronJob, strings: ScheduleDescribeStrings): string {
   return describeSchedule(
     job.schedule,
     asText(job.schedule_display) || asText(job.schedule?.display),
@@ -469,26 +440,6 @@ function getJobScheduleDisplay(
 
 function getJobState(job: CronJob): string {
   return asText(job.state) || (job.enabled === false ? "disabled" : "scheduled");
-}
-
-function getRepeatDisplay(job: CronJob): string {
-  const repeat = job.repeat;
-  if (!repeat || repeat.times == null) return "forever";
-  const completed = repeat.completed ?? 0;
-  return completed > 0 ? `${completed}/${repeat.times}` : `${repeat.times} times`;
-}
-
-function getJobMode(job: CronJob): string {
-  if (job.no_agent) return "no_agent";
-  if (job.script) return "script+agent";
-  return "agent";
-}
-
-function getModelDisplay(job: CronJob): string {
-  const provider = asText(job.provider);
-  const model = asText(job.model);
-  if (provider && model) return `${provider}/${model}`;
-  return model || provider;
 }
 
 function getJobProfile(job: CronJob): string {
@@ -506,74 +457,214 @@ function splitJobKey(key: string): { profile: string; id: string } {
 }
 
 function profileLabel(profile: string): string {
-  return profile === "default" ? "default" : profile;
+  return profile === "default" ? "Wayne" : profile;
 }
 
-const STATUS_TONE: Record<string, "success" | "warning" | "destructive"> = {
-  enabled: "success",
-  scheduled: "success",
-  paused: "warning",
-  error: "destructive",
-  completed: "destructive",
-};
+// Ponto colorido do agente (mesma cor no card e no calendário).
+function AgentDot({ profile }: { profile: string }) {
+  return (
+    <span
+      aria-hidden
+      className="inline-block h-2 w-2 shrink-0 rounded-full"
+      style={{ backgroundColor: agentColorOf(profile) }}
+    />
+  );
+}
+
+// Selo de status da rotina (bolinha + rótulo traduzido).
+function StatusPill({ state, label }: { state: string; label: string }) {
+  const tone =
+    state === "paused" || state === "disabled"
+      ? "text-amber-600 dark:text-amber-500"
+      : state === "error"
+        ? "text-destructive"
+        : state === "completed"
+          ? "text-muted-foreground"
+          : "text-live";
+  return (
+    <span className={cn("inline-flex items-center gap-1 type-micro font-medium", tone)}>
+      <span className="inline-block h-1.5 w-1.5 rounded-full bg-current" />
+      {label}
+    </span>
+  );
+}
+
+/** Composer estilo Claude: texto livre + chips → cria a rotina (abre o drawer
+ *  pré-preenchido). Cmd/Ctrl+Enter envia. */
+function RoutineComposer({
+  onCreate,
+  chips,
+  placeholder,
+  createLabel,
+}: {
+  onCreate: (prompt: string) => void;
+  chips: string[];
+  placeholder: string;
+  createLabel: string;
+}) {
+  const [text, setText] = useState("");
+  const submit = () => {
+    const v = text.trim();
+    if (v) onCreate(v);
+  };
+  return (
+    <div className="rounded-2xl border border-border bg-card p-3 shadow-card">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+            e.preventDefault();
+            submit();
+          }
+        }}
+        placeholder={placeholder}
+        className="min-h-[60px] w-full resize-none bg-transparent px-2 py-1.5 text-sm text-foreground outline-none placeholder:text-muted-foreground"
+      />
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        {chips.map((c) => (
+          <button
+            key={c}
+            type="button"
+            onClick={() => onCreate(c)}
+            className="rounded-full border border-border px-3 py-1.5 type-caption text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            {c}
+          </button>
+        ))}
+        <button
+          type="button"
+          onClick={submit}
+          disabled={!text.trim()}
+          className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-foreground px-3.5 py-2 type-ui font-medium text-background transition-opacity disabled:opacity-40"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          {createLabel}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/** Cartão de rotina estilo Claude — ícone, título, agenda humana, próxima
+ *  execução, chip do agente, status; ações no hover. */
+function RoutineCard({
+  job,
+  scheduleText,
+  stateLabel,
+  onToggle,
+  onTrigger,
+  onEdit,
+  onDelete,
+  t,
+}: {
+  job: CronJob;
+  scheduleText: string;
+  stateLabel: string;
+  onToggle: () => void;
+  onTrigger: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  t: ReturnType<typeof useI18n>["t"];
+}) {
+  const state = getJobState(job);
+  const title = getJobTitle(job);
+  const profile = getJobProfile(job);
+  const paused = state === "paused" || state === "disabled";
+  const deliver = asText(job.deliver);
+  return (
+    <div className="group flex items-center gap-3.5 rounded-2xl border border-border bg-card px-4 py-3.5 transition-shadow hover:shadow-pop">
+      <button type="button" onClick={onEdit} title={title} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted text-foreground">
+        <Zap className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="truncate type-body font-medium text-foreground">{title}</span>
+          <StatusPill state={state} label={stateLabel} />
+          {deliver && deliver !== "local" && <Badge tone="outline">{deliver}</Badge>}
+        </div>
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 type-caption text-muted-foreground">
+          <span className="inline-flex items-center gap-1.5">
+            <Clock className="h-3.5 w-3.5" />
+            {scheduleText}
+          </span>
+          {job.next_run_at && (
+            <span>
+              {t.cron.next}: {formatTime(job.next_run_at)}
+            </span>
+          )}
+          <span className="inline-flex items-center gap-1.5" title={t.cron.agent}>
+            <AgentDot profile={profile} />
+            {profileLabel(profile)}
+          </span>
+        </div>
+        {job.last_error && <p className="mt-1 type-micro text-destructive">{job.last_error}</p>}
+      </div>
+      </button>
+      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <Button
+          ghost
+          size="icon"
+          title={paused ? t.cron.resume : t.cron.pause}
+          aria-label={paused ? t.cron.resume : t.cron.pause}
+          onClick={onToggle}
+          className={paused ? "text-live" : "text-muted-foreground hover:text-foreground"}
+        >
+          {paused ? <Play /> : <Pause />}
+        </Button>
+        <Button ghost size="icon" title={t.cron.triggerNow} aria-label={t.cron.triggerNow} onClick={onTrigger}>
+          <Zap />
+        </Button>
+        <Button
+          ghost
+          destructive
+          size="icon"
+          title={t.common.delete}
+          aria-label={t.common.delete}
+          onClick={onDelete}
+        >
+          <Trash2 />
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 export default function CronPage() {
   const [jobs, setJobs] = useState<CronJob[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [selectedProfile, setSelectedProfile] = useState("all");
-  const [view, setView] = useState<"jobs" | "blueprints">("jobs");
+  const [tab, setTab] = useState<"routines" | "calendar">("routines");
   const [loading, setLoading] = useState(true);
   const { toast, showToast } = useToast();
   const { t, locale } = useI18n();
   const { setEnd } = usePageHeader();
+  const internal = isInternalView();
 
-  // Translation surface for the human-readable schedule describer.
-  // English ordinals are a special case ("1st", "2nd", "23rd"); every
-  // other locale falls back to the plain numeric form, which avoids
-  // shipping incorrect grammar (e.g. naive "1th"/"2th" suffixes that
-  // don't exist in most languages).
-  //
-  // Built inline (not memoized) — the cron page renders a small job
-  // list, this is single-digit microseconds, and a useMemo here would
-  // just add boilerplate.
   const scheduleDescribeStrings: ScheduleDescribeStrings = {
     ...t.cron.scheduleDescribe,
     weekdaysShort: t.cron.scheduleModes.weekdaysShort,
     ordinal: locale === "en" ? englishOrdinal : (n: number) => String(n),
   };
 
-  // New job modal state
+  // New / edit modal state.
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createProfile, setCreateProfile] = useState("default");
-  const [createForm, setCreateForm] = useState<CronJobEditorState>(
-    emptyCronJobForm,
-  );
+  const [createForm, setCreateForm] = useState<CronJobEditorState>(emptyCronJobForm);
   const closeCreateModal = useCallback(() => setCreateModalOpen(false), []);
-  const createModalRef = useModalBehavior({
-    open: createModalOpen,
-    onClose: closeCreateModal,
-  });
+  const createModalRef = useModalBehavior({ open: createModalOpen, onClose: closeCreateModal });
   const [deliveryTargets, setDeliveryTargets] = useState<CronDeliveryTarget[]>([
     { id: "local", name: "Local", home_target_set: true, home_env_var: null },
   ]);
   const [creating, setCreating] = useState(false);
 
-  // Edit job modal state
   const [editJob, setEditJob] = useState<CronJob | null>(null);
-  const [editForm, setEditForm] = useState<CronJobEditorState>(
-    emptyCronJobForm,
-  );
+  const [editForm, setEditForm] = useState<CronJobEditorState>(emptyCronJobForm);
   const [saving, setSaving] = useState(false);
   const closeEditModal = useCallback(() => setEditJob(null), []);
-  const editModalRef = useModalBehavior({
-    open: editJob !== null,
-    onClose: closeEditModal,
-  });
+  const editModalRef = useModalBehavior({ open: editJob !== null, onClose: closeEditModal });
 
-  // Skills installed in the profile a job will run under, for the
-  // attach-skill selector (parity with `wayne cron edit --add-skill`).
-  // Keyed on the create-modal profile; the edit modal reuses the list —
-  // a job's current skills are always shown even if not in it.
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
   const [availableToolsets, setAvailableToolsets] = useState<ToolsetInfo[]>([]);
   const [modelOptions, setModelOptions] = useState<ModelOptionsResponse | null>(null);
@@ -585,6 +676,16 @@ export default function CronPage() {
     setEditForm(editorFormFromJob(job));
   }, []);
 
+  // Composer / chips / "+ Nova rotina" → abre o drawer pré-preenchido no agente ativo.
+  const openCreateWithPrompt = useCallback(
+    (prompt: string) => {
+      setCreateProfile(selectedProfile === "all" ? "default" : selectedProfile);
+      setCreateForm({ ...emptyCronJobForm(), prompt });
+      setCreateModalOpen(true);
+    },
+    [selectedProfile],
+  );
+
   const loadJobs = useCallback(() => {
     api
       .getCronJobs(selectedProfile)
@@ -594,10 +695,7 @@ export default function CronPage() {
   }, [selectedProfile, showToast, t.common.loading]);
 
   useEffect(() => {
-    api
-      .getProfiles()
-      .then((res) => setProfiles(res.profiles))
-      .catch(() => setProfiles([]));
+    api.getProfiles().then((res) => setProfiles(res.profiles)).catch(() => setProfiles([]));
   }, []);
 
   useEffect(() => {
@@ -605,10 +703,7 @@ export default function CronPage() {
       .getCronDeliveryTargets()
       .then((res) => setDeliveryTargets(res.targets))
       .catch(() =>
-        // Fall back to local-only so the modal still works if the endpoint fails.
-        setDeliveryTargets([
-          { id: "local", name: "Local", home_target_set: true, home_env_var: null },
-        ]),
+        setDeliveryTargets([{ id: "local", name: "Local", home_target_set: true, home_env_var: null }]),
       );
   }, []);
 
@@ -616,9 +711,6 @@ export default function CronPage() {
     loadJobs();
   }, [loadJobs]);
 
-  // Load resources from the profile the create/edit form actually targets.
-  // Pass "default" explicitly so the global dashboard profile switch cannot
-  // redirect a default-profile cron form to some other profile.
   useEffect(() => {
     let cancelled = false;
     Promise.all([
@@ -638,10 +730,7 @@ export default function CronPage() {
 
   const handleCreate = async () => {
     const payload = buildCronJobPayloadFromEditor(createForm);
-    if (
-      !payload.schedule ||
-      (!payload.no_agent && !cronJobHasExecutionContent(payload))
-    ) {
+    if (!payload.schedule || (!payload.no_agent && !cronJobHasExecutionContent(payload))) {
       showToast(`${t.cron.prompt} & ${t.cron.schedule} required`, "error");
       return;
     }
@@ -666,10 +755,7 @@ export default function CronPage() {
   const handleEdit = async () => {
     if (!editJob) return;
     const payload = buildCronJobPayloadFromEditor(editForm);
-    if (
-      !payload.schedule ||
-      (!payload.no_agent && !cronJobHasExecutionContent(payload))
-    ) {
+    if (!payload.schedule || (!payload.no_agent && !cronJobHasExecutionContent(payload))) {
       showToast(`${t.cron.prompt} & ${t.cron.schedule} required`, "error");
       return;
     }
@@ -679,12 +765,8 @@ export default function CronPage() {
     }
     setSaving(true);
     try {
-      await api.updateCronJob(
-        editJob.id,
-        payload,
-        getJobProfile(editJob),
-      );
-      showToast("Saved changes ✓", "success");
+      await api.updateCronJob(editJob.id, payload, getJobProfile(editJob));
+      showToast("Saved ✓", "success");
       setEditJob(null);
       loadJobs();
     } catch (e) {
@@ -698,19 +780,8 @@ export default function CronPage() {
     try {
       const isPaused = getJobState(job) === "paused";
       const profile = getJobProfile(job);
-      if (isPaused) {
-        await api.resumeCronJob(job.id, profile);
-        showToast(
-          `${t.cron.resume}: "${truncateText(getJobTitle(job), 30)}"`,
-          "success",
-        );
-      } else {
-        await api.pauseCronJob(job.id, profile);
-        showToast(
-          `${t.cron.pause}: "${truncateText(getJobTitle(job), 30)}"`,
-          "success",
-        );
-      }
+      if (isPaused) await api.resumeCronJob(job.id, profile);
+      else await api.pauseCronJob(job.id, profile);
       loadJobs();
     } catch (e) {
       showToast(`${t.status.error}: ${e}`, "error");
@@ -720,10 +791,7 @@ export default function CronPage() {
   const handleTrigger = async (job: CronJob) => {
     try {
       await api.triggerCronJob(job.id, getJobProfile(job));
-      showToast(
-        `${t.cron.triggerNow}: "${truncateText(getJobTitle(job), 30)}"`,
-        "success",
-      );
+      showToast(`${t.cron.triggerNow}: "${truncateText(getJobTitle(job), 30)}"`, "success");
       loadJobs();
     } catch (e) {
       showToast(`${t.status.error}: ${e}`, "error");
@@ -734,41 +802,51 @@ export default function CronPage() {
     onDelete: useCallback(
       async (key: string) => {
         const { profile, id } = splitJobKey(key);
-        const job = jobs.find((j) => getJobKey(j) === key);
         try {
           await api.deleteCronJob(id, profile);
-          showToast(
-            `${t.common.delete}: "${job ? truncateText(getJobTitle(job), 30) : id}"`,
-            "success",
-          );
           loadJobs();
         } catch (e) {
           showToast(`${t.status.error}: ${e}`, "error");
           throw e;
         }
       },
-      [jobs, loadJobs, showToast, t.common.delete, t.status.error],
+      [loadJobs, showToast, t.status.error],
     ),
   });
 
-  // Put "Create" button in page header
+  // Cabeçalho: toggle Rotinas↔Calendário + "+ Nova rotina".
   useLayoutEffect(() => {
     setEnd(
-      <Button
-        className="uppercase"
-        size="sm"
-        onClick={() => {
-          setCreateProfile(selectedProfile === "all" ? "default" : selectedProfile);
-          setCreateModalOpen(true);
-        }}
-      >
-        {t.common.create}
-      </Button>,
+      <div className="flex items-center gap-2">
+        <div className="flex items-center rounded-lg border border-border p-0.5">
+          <button
+            type="button"
+            onClick={() => setTab("routines")}
+            className={cn(
+              "rounded-md px-2.5 py-1 type-ui transition-colors",
+              tab === "routines" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.cron.routines}
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("calendar")}
+            className={cn(
+              "rounded-md px-2.5 py-1 type-ui transition-colors",
+              tab === "calendar" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {t.cron.viewCalendar}
+          </button>
+        </div>
+        <Button size="sm" onClick={() => openCreateWithPrompt("")} prefix={<Plus />}>
+          {t.cron.newRoutine}
+        </Button>
+      </div>,
     );
-    return () => {
-      setEnd(null);
-    };
-  }, [setEnd, t.common.create, loading, selectedProfile]);
+    return () => setEnd(null);
+  }, [setEnd, tab, t.cron.routines, t.cron.viewCalendar, t.cron.newRoutine, openCreateWithPrompt]);
 
   if (loading) {
     return (
@@ -778,31 +856,93 @@ export default function CronPage() {
     );
   }
 
-  const pendingJob = jobDelete.pendingId
-    ? jobs.find((j) => getJobKey(j) === jobDelete.pendingId)
-    : null;
+  const { user: userJobs } = partitionJobs(jobs);
+  const shown = internal ? jobs : userJobs; // ?full=1 vê tudo (incl. jobs de sistema)
+  const pendingJob = jobDelete.pendingId ? jobs.find((j) => getJobKey(j) === jobDelete.pendingId) : null;
+
+  const stateLabelOf = (job: CronJob) => {
+    const s = getJobState(job);
+    if (s === "paused" || s === "disabled") return t.cron.statePaused;
+    if (s === "error") return t.cron.stateError;
+    if (s === "completed") return t.cron.stateDone;
+    return t.cron.stateScheduled;
+  };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex min-h-[calc(100dvh-140px)] flex-col gap-6">
       <PluginSlot name="cron:top" />
       <Toast toast={toast} />
 
-      <Segmented
-        value={view}
-        onChange={(v) => setView(v as "jobs" | "blueprints")}
-        options={[
-          { value: "jobs", label: "Jobs" },
-          { value: "blueprints", label: "Blueprints" },
-        ]}
-      />
+      {tab === "calendar" ? (
+        <RoutineCalendar jobs={shown} strings={scheduleDescribeStrings} locale={locale} onOpen={openEditModal} />
+      ) : (
+        <>
+          {/* Composer hero (fiel ao Claude). */}
+          <div className="grid gap-3">
+            <p className="type-body text-muted-foreground">{t.cron.routinesSubtitle}</p>
+            <RoutineComposer
+              onCreate={openCreateWithPrompt}
+              chips={[t.cron.chip1, t.cron.chip2, t.cron.chip3]}
+              placeholder={t.cron.composerPlaceholder}
+              createLabel={t.cron.createRoutine}
+            />
+          </div>
 
-      {view === "blueprints" && (
-        <AutomationBlueprints
-          profile={selectedProfile === "all" ? "default" : selectedProfile}
-          onCreated={loadJobs}
-        />
+          {/* Filtro por agente + contagem. */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <span className="inline-flex items-center gap-2 type-ui text-muted-foreground">
+              <Clock className="h-4 w-4" />
+              {t.cron.routines} · {shown.length}
+            </span>
+            <div className="grid min-w-[200px] gap-1">
+              <Label htmlFor="cron-agent-filter" className="type-micro uppercase tracking-wide">
+                {t.cron.agent}
+              </Label>
+              <Select id="cron-agent-filter" value={selectedProfile} onValueChange={setSelectedProfile}>
+                <SelectOption value="all">{t.cron.allAgents}</SelectOption>
+                {profiles.map((p) => (
+                  <SelectOption key={p.name} value={p.name}>
+                    {profileLabel(p.name)}
+                  </SelectOption>
+                ))}
+              </Select>
+            </div>
+          </div>
+
+          {/* Lista de rotinas. */}
+          {shown.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-border py-16 text-center">
+              <Clock className="mx-auto mb-3 h-6 w-6 text-muted-foreground/60" />
+              <p className="type-body text-muted-foreground">{t.cron.noRoutines}</p>
+            </div>
+          ) : (
+            <div className="grid gap-2.5">
+              {shown.map((job) => (
+                <RoutineCard
+                  key={getJobKey(job)}
+                  job={job}
+                  scheduleText={getJobScheduleDisplay(job, scheduleDescribeStrings)}
+                  stateLabel={stateLabelOf(job)}
+                  onToggle={() => handlePauseResume(job)}
+                  onTrigger={() => handleTrigger(job)}
+                  onEdit={() => openEditModal(job)}
+                  onDelete={() => jobDelete.requestDelete(getJobKey(job))}
+                  t={t}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Galeria de modelos (blueprints nativos) — Onda 2. */}
+          <div className="grid gap-3 pt-2">
+            <h3 className="type-ui font-medium text-foreground">{t.cron.startFromTemplate}</h3>
+            <AutomationBlueprints
+              profile={selectedProfile === "all" ? "default" : selectedProfile}
+              onCreated={loadJobs}
+            />
+          </div>
+        </>
       )}
-
 
       <DeleteConfirmDialog
         open={jobDelete.isOpen}
@@ -811,15 +951,13 @@ export default function CronPage() {
         title={t.cron.confirmDeleteTitle}
         description={
           pendingJob
-            ? `"${truncateText(getJobTitle(pendingJob), 40)}" — ${
-                t.cron.confirmDeleteMessage
-              }`
+            ? `"${truncateText(getJobTitle(pendingJob), 40)}" — ${t.cron.confirmDeleteMessage}`
             : t.cron.confirmDeleteMessage
         }
         loading={jobDelete.isDeleting}
       />
 
-      {/* Create job modal */}
+      {/* Create routine drawer. */}
       {createModalOpen && (
         <div
           ref={createModalRef}
@@ -829,34 +967,25 @@ export default function CronPage() {
           aria-modal="true"
           aria-labelledby="create-cron-title"
         >
-          <div className={cn(themedBody, "relative w-full max-w-3xl max-h-[90vh] border border-border bg-card shadow-2xl flex flex-col")}>
+          <div className={cn(themedBody, "relative flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-border bg-card shadow-2xl")}>
             <Button
               ghost
               size="icon"
               onClick={() => setCreateModalOpen(false)}
               className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-              aria-label="Close"
+              aria-label={t.common.close}
             >
               <X />
             </Button>
-
-            <header className="p-5 pb-3 border-b border-border">
-              <h2
-                id="create-cron-title"
-                className="font-mondwest text-display text-base tracking-wider"
-              >
-                {t.cron.newJob}
+            <header className="border-b border-border p-5 pb-3">
+              <h2 id="create-cron-title" className="type-body font-medium text-foreground">
+                {t.cron.newRoutine}
               </h2>
             </header>
-
-            <div className="min-h-0 overflow-y-auto p-5 grid gap-4">
+            <div className="grid min-h-0 gap-4 overflow-y-auto p-5">
               <div className="grid gap-2">
-                <Label htmlFor="cron-profile">Profile</Label>
-                <Select
-                  id="cron-profile"
-                  value={createProfile}
-                  onValueChange={(v) => setCreateProfile(v)}
-                >
+                <Label htmlFor="cron-agent">{t.cron.agent}</Label>
+                <Select id="cron-agent" value={createProfile} onValueChange={(v) => setCreateProfile(v)}>
                   {profiles.map((profile) => (
                     <SelectOption key={profile.name} value={profile.name}>
                       {profileLabel(profile.name)}
@@ -864,29 +993,20 @@ export default function CronPage() {
                   ))}
                 </Select>
               </div>
-
               <CronJobFormFields
                 idPrefix="cron"
                 autoFocus
                 form={createForm}
                 onChange={setCreateForm}
-                resources={{
-                  availableSkills,
-                  availableToolsets,
-                  modelOptions,
-                  deliveryTargets,
-                }}
+                resources={{ availableSkills, availableToolsets, modelOptions, deliveryTargets }}
               />
-
               <div className="flex justify-end">
                 <Button
-                  className="uppercase"
-                  size="sm"
                   onClick={handleCreate}
                   disabled={creating}
-                  prefix={creating ? <Spinner /> : undefined}
+                  prefix={creating ? <Spinner /> : <Plus />}
                 >
-                  {creating ? t.common.creating : t.common.create}
+                  {creating ? t.common.creating : t.cron.createRoutine}
                 </Button>
               </div>
             </div>
@@ -894,7 +1014,7 @@ export default function CronPage() {
         </div>
       )}
 
-      {/* Edit job modal */}
+      {/* Edit routine drawer. */}
       {editJob && (
         <div
           ref={editModalRef}
@@ -904,226 +1024,38 @@ export default function CronPage() {
           aria-modal="true"
           aria-labelledby="edit-cron-title"
         >
-          <div className={cn(themedBody, "relative w-full max-w-3xl max-h-[90vh] border border-border bg-card shadow-2xl flex flex-col")}>
+          <div className={cn(themedBody, "relative flex max-h-[90vh] w-full max-w-2xl flex-col rounded-2xl border border-border bg-card shadow-2xl")}>
             <Button
               ghost
               size="icon"
               onClick={() => setEditJob(null)}
               className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-              aria-label="Close"
+              aria-label={t.common.close}
             >
               <X />
             </Button>
-
-            <header className="p-5 pb-3 border-b border-border">
-              <h2
-                id="edit-cron-title"
-                className="font-mondwest text-display text-base tracking-wider"
-              >
-                Edit job
+            <header className="border-b border-border p-5 pb-3">
+              <h2 id="edit-cron-title" className="type-body font-medium text-foreground">
+                {getJobTitle(editJob)}
               </h2>
             </header>
-
-            <div className="min-h-0 overflow-y-auto p-5 grid gap-4">
+            <div className="grid min-h-0 gap-4 overflow-y-auto p-5">
               <CronJobFormFields
                 idPrefix="edit-cron"
                 autoFocus
                 form={editForm}
                 onChange={setEditForm}
-                resources={{
-                  availableSkills,
-                  availableToolsets,
-                  modelOptions,
-                  deliveryTargets,
-                }}
+                resources={{ availableSkills, availableToolsets, modelOptions, deliveryTargets }}
               />
-
               <div className="flex items-center justify-between">
-                <span className="text-xs text-muted-foreground font-mono-ui truncate pr-4">
-                  {editJob.id}
-                </span>
-                <Button
-                  className="uppercase"
-                  size="sm"
-                  onClick={handleEdit}
-                  disabled={saving}
-                  prefix={saving ? <Spinner /> : undefined}
-                >
-                  {saving ? t.common.loading : "Save changes"}
+                <span className="truncate pr-4 type-micro font-mono-ui text-muted-foreground">{editJob.id}</span>
+                <Button onClick={handleEdit} disabled={saving} prefix={saving ? <Spinner /> : undefined}>
+                  {saving ? t.common.loading : t.common.save}
                 </Button>
               </div>
             </div>
           </div>
         </div>
-      )}
-
-      {view === "jobs" && (
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <H2
-            variant="sm"
-            className="flex items-center gap-2 text-muted-foreground"
-          >
-            <Clock className="h-4 w-4" />
-            {t.cron.scheduledJobs} ({jobs.length})
-          </H2>
-
-          <div className="grid gap-1 min-w-[220px]">
-            <Label htmlFor="cron-profile-filter">Profile</Label>
-            <Select
-              id="cron-profile-filter"
-              value={selectedProfile}
-              onValueChange={(v) => setSelectedProfile(v)}
-            >
-              <SelectOption value="all">All profiles</SelectOption>
-              {profiles.map((profile) => (
-                <SelectOption key={profile.name} value={profile.name}>
-                  {profileLabel(profile.name)}
-                </SelectOption>
-              ))}
-            </Select>
-          </div>
-        </div>
-
-        {jobs.length === 0 && (
-          <Card>
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              {t.cron.noJobs}
-            </CardContent>
-          </Card>
-        )}
-
-        {jobs.map((job) => {
-          const state = getJobState(job);
-          const promptText = getJobPrompt(job);
-          const title = getJobTitle(job);
-          const hasName = Boolean(getJobName(job));
-          const deliver = asText(job.deliver);
-          const profile = getJobProfile(job);
-          const jobKey = getJobKey(job);
-          const mode = getJobMode(job);
-          const modelDisplay = getModelDisplay(job);
-          const toolsets = Array.isArray(job.enabled_toolsets)
-            ? job.enabled_toolsets.filter(Boolean)
-            : [];
-
-          return (
-            <Card key={jobKey}>
-              <CardContent className="flex items-start gap-4 py-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-sm truncate">
-                      {title}
-                    </span>
-                    <Badge tone={STATUS_TONE[state] ?? "secondary"}>
-                      {state}
-                    </Badge>
-                    <Badge tone="outline">{profileLabel(profile)}</Badge>
-                    {deliver && deliver !== "local" && (
-                      <Badge tone="outline">{deliver}</Badge>
-                    )}
-                    {Array.isArray(job.skills) && job.skills.length > 0 && (
-                      <Badge tone="outline" title={job.skills.join(", ")}>
-                        {job.skills.length === 1
-                          ? job.skills[0]
-                          : `${job.skills.length} skills`}
-                      </Badge>
-                    )}
-                    {mode !== "agent" && (
-                      <Badge tone="outline">{mode}</Badge>
-                    )}
-                    {modelDisplay && (
-                      <Badge tone="outline" title={modelDisplay}>
-                        model
-                      </Badge>
-                    )}
-                    {toolsets.length > 0 && (
-                      <Badge tone="outline" title={toolsets.join(", ")}>
-                        {toolsets.length} toolsets
-                      </Badge>
-                    )}
-                  </div>
-                  {hasName && promptText && (
-                    <p className="text-xs text-muted-foreground truncate mb-1">
-                      {truncateText(promptText, 100)}
-                    </p>
-                  )}
-                  <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                    <span className="font-mono-ui">
-                      {getJobScheduleDisplay(job, scheduleDescribeStrings)}
-                    </span>
-                    <span>repeat: {getRepeatDisplay(job)}</span>
-                    <span>
-                      {t.cron.last}: {formatTime(job.last_run_at)}
-                    </span>
-                    <span>
-                      {t.cron.next}: {formatTime(job.next_run_at)}
-                    </span>
-                  </div>
-                  {job.last_delivery_error && (
-                    <p className="text-xs text-destructive mt-1">
-                      delivery: {job.last_delivery_error}
-                    </p>
-                  )}
-                  {job.last_error && (
-                    <p className="text-xs text-destructive mt-1">
-                      {job.last_error}
-                    </p>
-                  )}
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    ghost
-                    size="icon"
-                    title={state === "paused" ? t.cron.resume : t.cron.pause}
-                    aria-label={
-                      state === "paused" ? t.cron.resume : t.cron.pause
-                    }
-                    onClick={() => handlePauseResume(job)}
-                    className={
-                      state === "paused" ? "text-success" : "text-warning"
-                    }
-                  >
-                    {state === "paused" ? <Play /> : <Pause />}
-                  </Button>
-
-                  <Button
-                    ghost
-                    size="icon"
-                    title={t.cron.triggerNow}
-                    aria-label={t.cron.triggerNow}
-                    onClick={() => handleTrigger(job)}
-                  >
-                    <Zap />
-                  </Button>
-
-                  <Button
-                    ghost
-                    size="icon"
-                    title="Edit job"
-                    aria-label="Edit job"
-                    onClick={() => openEditModal(job)}
-                  >
-                    <Pencil />
-                  </Button>
-
-                  <Button
-                    ghost
-                    destructive
-                    size="icon"
-                    title={t.common.delete}
-                    aria-label={t.common.delete}
-                    onClick={() => jobDelete.requestDelete(jobKey)}
-                  >
-                    <Trash2 />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
       )}
 
       <PluginSlot name="cron:bottom" />

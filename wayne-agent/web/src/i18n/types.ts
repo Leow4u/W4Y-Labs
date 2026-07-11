@@ -714,6 +714,26 @@ export interface Translations {
     pause: string;
     resume: string;
     triggerNow: string;
+    routines: string;
+    routinesSubtitle: string;
+    newRoutine: string;
+    composerPlaceholder: string;
+    createRoutine: string;
+    noRoutines: string;
+    startFromTemplate: string;
+    viewCalendar: string;
+    today: string;
+    allAgents: string;
+    agent: string;
+    configure: string;
+    scheduleIt: string;
+    stateScheduled: string;
+    statePaused: string;
+    stateError: string;
+    stateDone: string;
+    chip1: string;
+    chip2: string;
+    chip3: string;
     delivery: {
       local: string;
       telegram: string;
