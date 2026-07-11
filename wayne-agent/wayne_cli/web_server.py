@@ -1847,6 +1847,47 @@ async def create_managed_directory(payload: ManagedDirectoryCreate, request: Req
     }
 
 
+# Entradas de TOPO do WAYNE_HOME que sustentam o runtime — apagar qualquer
+# uma quebra o tenant (venv sem Python, sessions sem histórico, profiles sem
+# agentes, config.yaml/*.db sem estado). O dashboard já esconde tudo isso do
+# usuário comum; esta guarda é a defesa em profundidade: recusa a exclusão no
+# servidor mesmo via API direta ou visão interna (?full=1). Só protege as
+# entradas do NÍVEL RAIZ do home — arquivos individuais lá dentro seguem
+# apagáveis (limpeza pontual de admin).
+_PROTECTED_ROOT_ENTRIES = frozenset({
+    "cron", "hooks", "logs", "lsp", "memories", "pairing", "plans", "platforms",
+    "plugins", "profiles", "sandboxes", "sessions", "skills", "skins",
+    "spawn-trees", "spawn_trees", "workspace", "kanban", "home",
+    "image_cache", "audio_cache", "video_cache", "document_cache",
+    "lazy-packages", "lazy_packages", "node_modules", "node", "go",
+    "bin", "lib", "lib64", "share", "include", "cache",
+    "config.yaml", "auth.json", "channel_directory.json", "gateway_state.json",
+})
+_PROTECTED_ROOT_SUFFIXES = (".db", ".db-litestream", ".db-shm", ".db-wal")
+
+
+def _is_protected_managed_entry(policy: "ManagedFilesPolicy", target: Path) -> bool:
+    """A entrada é uma pasta/arquivo de sistema do NÍVEL RAIZ do home?"""
+    root = policy.locked_root
+    if root is None:
+        return False  # instalação sem raiz travada (dev) — sem guarda
+    try:
+        if target.parent != root:
+            return False  # só protege o nível de topo
+    except Exception:
+        return False
+    name = target.name
+    if name.startswith("."):
+        return True  # dotfiles/dotfolders (.venv, .config, .state.db-litestream…)
+    if name in _PROTECTED_ROOT_ENTRIES:
+        return True
+    if name.startswith("venv") or name == "config.yaml" or name.startswith("config.yaml."):
+        return True
+    if any(name.endswith(s) for s in _PROTECTED_ROOT_SUFFIXES):
+        return True
+    return False
+
+
 @app.delete("/api/files")
 async def delete_managed_file(payload: ManagedFileDelete, request: Request):
     policy, target, display_path = _resolve_managed_path(payload.path, request)
@@ -1854,6 +1895,8 @@ async def delete_managed_file(payload: ManagedFileDelete, request: Request):
         raise HTTPException(status_code=400, detail="Cannot delete the managed files root")
     if target.parent == target:
         raise HTTPException(status_code=400, detail="Cannot delete the filesystem root")
+    if _is_protected_managed_entry(policy, target):
+        raise HTTPException(status_code=403, detail="This is a system item and can't be deleted")
     if not target.exists():
         raise HTTPException(status_code=404, detail="Path not found")
 

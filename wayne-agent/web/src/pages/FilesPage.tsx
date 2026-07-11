@@ -26,7 +26,6 @@ import {
   LayoutGrid,
   List as ListIcon,
   RefreshCw,
-  Settings2,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -112,7 +111,6 @@ export default function FilesPage() {
   const [folderName, setFolderName] = useState("");
   const [pendingDelete, setPendingDelete] = useState<ManagedFileEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showSystem, setShowSystem] = useState(false);
   const [view, setView] = useState<"grid" | "list">(() => {
     try {
       return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "grid";
@@ -142,7 +140,6 @@ export default function FilesPage() {
         setListing(result);
         setCurrentPath(result.path);
         setPathInput(result.path);
-        setShowSystem(false);
       } catch (e) {
         setError(String(e));
       } finally {
@@ -295,15 +292,14 @@ export default function FilesPage() {
     void uploadFiles(e.dataTransfer.files);
   };
 
-  // Partição: usuário vs sistema (visão interna mostra tudo cru).
-  const { user, system } = useMemo(() => {
+  // Só o conteúdo do usuário. A visão interna (?full=1) mostra tudo cru; a
+  // normal esconde as pastas de sistema (curadoria) — nem exibe, nem alcança.
+  const user = useMemo(() => {
     const entries = listing?.entries ?? [];
-    if (internal) return { user: sortEntries(entries), system: [] as ManagedFileEntry[] };
-    const p = partitionEntries(entries);
-    return { user: sortEntries(p.user), system: sortEntries(p.system) };
+    return sortEntries(internal ? entries : partitionEntries(entries).user);
   }, [listing?.entries, internal]);
 
-  const isEmpty = !loading && listing && user.length === 0 && system.length === 0;
+  const isEmpty = !loading && listing && user.length === 0;
 
   return (
     <div
@@ -443,35 +439,15 @@ export default function FilesPage() {
         </div>
       ) : (
         <>
+          {/* Só o conteúdo do usuário. As pastas de sistema NÃO são exibidas nem
+              alcançáveis pela UI normal (evita apagar o runtime sem querer) —
+              a visão interna ?full=1 é a única que mostra tudo (partição acima
+              coloca tudo em `user` quando internal). O backend ainda recusa
+              apagar caminhos críticos como defesa extra. */}
           {view === "grid" ? (
             <FileGrid entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} />
           ) : (
             <FileList entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} />
-          )}
-
-          {/* Seção Sistema — recolhida, só quando há ruído (e não no interno). */}
-          {system.length > 0 && (
-            <div className="mt-1">
-              <button
-                type="button"
-                onClick={() => setShowSystem((v) => !v)}
-                className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <ChevronRight className={cn("h-4 w-4 transition-transform", showSystem && "rotate-90")} />
-                <Settings2 className="h-3.5 w-3.5" />
-                {tf.system} · {tf.systemCount.replace("{n}", String(system.length))}
-              </button>
-              {showSystem &&
-                (view === "grid" ? (
-                  <div className="mt-3">
-                    <FileGrid entries={system} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} muted />
-                  </div>
-                ) : (
-                  <div className="mt-3">
-                    <FileList entries={system} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} muted />
-                  </div>
-                ))}
-            </div>
           )}
         </>
       )}

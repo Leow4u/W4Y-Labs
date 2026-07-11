@@ -1,0 +1,10 @@
+# Overlay FINO: SPA (web_dist) + web_server.py sobre a base fly já bootável.
+# Usado quando a mudança inclui backend Python do dashboard (ex.: guarda de
+# exclusão de arquivos de sistema em DELETE /api/files). NUNCA reconstruir a
+# base do HEAD (lição fly128: s6-overlay pid-1 → crash-loop → 502). O
+# web_server.py copiado DEVE ser a versão da base + só o delta (verificado via
+# docker create/cp/diff == 0). Contexto de build = wayne-agent/.
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly130
+FROM ${BASE_IMAGE}
+COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+COPY wayne_cli/web_server.py /opt/wayne/wayne_cli/web_server.py
