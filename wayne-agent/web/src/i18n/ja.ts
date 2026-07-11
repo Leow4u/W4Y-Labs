@@ -67,6 +67,7 @@ export const ja: Translations = {
       stopped: "停止",
     },
     nav: {
+      connectors: "コネクタ",
       analytics: "分析",
       channels: "チャンネル",
       chat: "新しいセッション",
@@ -571,6 +572,24 @@ export const ja: Translations = {
     noLogLines: "ログ行が見つかりません",
   },
 
+  connectors: {
+    scopeGlobal: "グローバル — 全エージェント",
+    agent: "エージェント",
+    all: "すべて",
+    searchPlaceholder: "コネクタを検索",
+    connect: "接続",
+    connecting: "接続中…",
+    connected: "接続済み",
+    reconnect: "再接続",
+    included: "利用可能",
+    disconnect: "切断",
+    connectedToast: "{name} を接続しました",
+    disconnectedToast: "切断しました",
+    openedToast: "開いたウィンドウで承認してください",
+    connectFailed: "接続できませんでした",
+    toolsCount: "{n} 個のツール",
+    empty: "該当するコネクタがありません。",
+  },
   files: {
     home: "ホーム",
     back: "戻る",

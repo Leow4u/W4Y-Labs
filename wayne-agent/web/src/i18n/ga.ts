@@ -67,6 +67,7 @@ export const ga: Translations = {
       stopped: "Stoptha",
     },
     nav: {
+      connectors: "Nascóirí",
       analytics: "Anailís",
       channels: "Cainéil",
       chat: "Seisiún nua",
@@ -571,6 +572,24 @@ export const ga: Translations = {
     noLogLines: "Níor aimsíodh línte loga",
   },
 
+  connectors: {
+    scopeGlobal: "Domhanda — gach gníomhaire",
+    agent: "Gníomhaire",
+    all: "Uile",
+    searchPlaceholder: "Cuardaigh nascóirí",
+    connect: "Nasc",
+    connecting: "Ag nascadh…",
+    connected: "Nasctha",
+    reconnect: "Athnasc",
+    included: "Ar fáil",
+    disconnect: "Dínasc",
+    connectedToast: "{name} nasctha",
+    disconnectedToast: "Dínasctha",
+    openedToast: "Údaraigh san fhuinneog a osclaíodh",
+    connectFailed: "Níorbh fhéidir nascadh",
+    toolsCount: "{n} uirlis",
+    empty: "Níor aimsíodh nascóirí.",
+  },
   files: {
     home: "Baile",
     back: "Ar ais",

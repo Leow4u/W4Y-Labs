@@ -67,6 +67,7 @@ export const ko: Translations = {
       stopped: "중지됨",
     },
     nav: {
+      connectors: "커넥터",
       analytics: "분석",
       channels: "채널",
       chat: "새 세션",
@@ -571,6 +572,24 @@ export const ko: Translations = {
     noLogLines: "로그 줄을 찾을 수 없습니다",
   },
 
+  connectors: {
+    scopeGlobal: "전역 — 모든 에이전트",
+    agent: "에이전트",
+    all: "전체",
+    searchPlaceholder: "커넥터 검색",
+    connect: "연결",
+    connecting: "연결 중…",
+    connected: "연결됨",
+    reconnect: "다시 연결",
+    included: "사용 가능",
+    disconnect: "연결 해제",
+    connectedToast: "{name} 연결됨",
+    disconnectedToast: "연결 해제됨",
+    openedToast: "열린 창에서 승인하세요",
+    connectFailed: "연결할 수 없습니다",
+    toolsCount: "{n}개 도구",
+    empty: "일치하는 커넥터가 없습니다.",
+  },
   files: {
     home: "홈",
     back: "뒤로",

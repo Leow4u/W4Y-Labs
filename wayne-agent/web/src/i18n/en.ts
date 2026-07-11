@@ -70,6 +70,7 @@ export const en: Translations = {
       stopped: "Stopped",
     },
     nav: {
+      connectors: "Connectors",
       analytics: "Analytics",
       channels: "Channels",
       chat: "New session",
@@ -586,6 +587,24 @@ export const en: Translations = {
     noLogLines: "No log lines found",
   },
 
+  connectors: {
+    scopeGlobal: "Global — all agents",
+    agent: "Agent",
+    all: "All",
+    searchPlaceholder: "Search connectors",
+    connect: "Connect",
+    connecting: "Connecting…",
+    connected: "Connected",
+    reconnect: "Reconnect",
+    included: "Available",
+    disconnect: "Disconnect",
+    connectedToast: "{name} connected",
+    disconnectedToast: "Disconnected",
+    openedToast: "Authorize in the window that opened",
+    connectFailed: "Couldn't connect",
+    toolsCount: "{n} tools",
+    empty: "No connectors match.",
+  },
   files: {
     home: "Home",
     back: "Back",

@@ -66,6 +66,7 @@ export const zh: Translations = {
       stopped: "已停止",
     },
     nav: {
+      connectors: "连接器",
       analytics: "分析",
       channels: "频道",
       chat: "新会话",
@@ -569,6 +570,24 @@ export const zh: Translations = {
     noLogLines: "未找到日志记录",
   },
 
+  connectors: {
+    scopeGlobal: "全局 — 所有智能体",
+    agent: "智能体",
+    all: "全部",
+    searchPlaceholder: "搜索连接器",
+    connect: "连接",
+    connecting: "连接中…",
+    connected: "已连接",
+    reconnect: "重新连接",
+    included: "可用",
+    disconnect: "断开",
+    connectedToast: "{name} 已连接",
+    disconnectedToast: "已断开",
+    openedToast: "请在打开的窗口中授权",
+    connectFailed: "无法连接",
+    toolsCount: "{n} 个工具",
+    empty: "没有匹配的连接器。",
+  },
   files: {
     home: "主页",
     back: "返回",

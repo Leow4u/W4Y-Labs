@@ -67,6 +67,7 @@ export const zhHant: Translations = {
       stopped: "已停止",
     },
     nav: {
+      connectors: "連接器",
       analytics: "分析",
       channels: "頻道",
       chat: "新工作階段",
@@ -571,6 +572,24 @@ export const zhHant: Translations = {
     noLogLines: "找不到日誌記錄",
   },
 
+  connectors: {
+    scopeGlobal: "全域 — 所有代理",
+    agent: "代理",
+    all: "全部",
+    searchPlaceholder: "搜尋連接器",
+    connect: "連接",
+    connecting: "連接中…",
+    connected: "已連接",
+    reconnect: "重新連接",
+    included: "可用",
+    disconnect: "中斷連接",
+    connectedToast: "{name} 已連接",
+    disconnectedToast: "已中斷連接",
+    openedToast: "請在開啟的視窗中授權",
+    connectFailed: "無法連接",
+    toolsCount: "{n} 個工具",
+    empty: "沒有符合的連接器。",
+  },
   files: {
     home: "首頁",
     back: "返回",

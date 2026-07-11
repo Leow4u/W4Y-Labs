@@ -67,6 +67,7 @@ export const af: Translations = {
       stopped: "Gestop",
     },
     nav: {
+      connectors: "Koppelaars",
       analytics: "Analise",
       channels: "Kanale",
       chat: "Nuwe sessie",
@@ -571,6 +572,24 @@ export const af: Translations = {
     noLogLines: "Geen logreëls gevind nie",
   },
 
+  connectors: {
+    scopeGlobal: "Globaal — alle agente",
+    agent: "Agent",
+    all: "Almal",
+    searchPlaceholder: "Soek koppelaars",
+    connect: "Koppel",
+    connecting: "Koppel tans…",
+    connected: "Gekoppel",
+    reconnect: "Herkoppel",
+    included: "Beskikbaar",
+    disconnect: "Ontkoppel",
+    connectedToast: "{name} gekoppel",
+    disconnectedToast: "Ontkoppel",
+    openedToast: "Magtig in die venster wat oopgemaak het",
+    connectFailed: "Kon nie koppel nie",
+    toolsCount: "{n} gereedskap",
+    empty: "Geen koppelaars gevind nie.",
+  },
   files: {
     home: "Tuis",
     back: "Terug",

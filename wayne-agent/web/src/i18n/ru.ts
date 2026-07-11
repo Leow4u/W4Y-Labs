@@ -67,6 +67,7 @@ export const ru: Translations = {
       stopped: "Остановлен",
     },
     nav: {
+      connectors: "Коннекторы",
       analytics: "Аналитика",
       channels: "Каналы",
       chat: "Новая сессия",
@@ -571,6 +572,24 @@ export const ru: Translations = {
     noLogLines: "Записи журнала не найдены",
   },
 
+  connectors: {
+    scopeGlobal: "Глобально — все агенты",
+    agent: "Агент",
+    all: "Все",
+    searchPlaceholder: "Поиск коннекторов",
+    connect: "Подключить",
+    connecting: "Подключение…",
+    connected: "Подключено",
+    reconnect: "Переподключить",
+    included: "Доступно",
+    disconnect: "Отключить",
+    connectedToast: "{name} подключён",
+    disconnectedToast: "Отключено",
+    openedToast: "Авторизуйтесь в открывшемся окне",
+    connectFailed: "Не удалось подключить",
+    toolsCount: "{n} инструментов",
+    empty: "Коннекторы не найдены.",
+  },
   files: {
     home: "Главная",
     back: "Назад",

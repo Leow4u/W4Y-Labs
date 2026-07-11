@@ -67,6 +67,7 @@ export const hu: Translations = {
       stopped: "Leállítva",
     },
     nav: {
+      connectors: "Csatlakozók",
       analytics: "Analitika",
       channels: "Csatornák",
       chat: "Új munkamenet",
@@ -571,6 +572,24 @@ export const hu: Translations = {
     noLogLines: "Nem található naplóbejegyzés",
   },
 
+  connectors: {
+    scopeGlobal: "Globális — minden ügynök",
+    agent: "Ügynök",
+    all: "Mind",
+    searchPlaceholder: "Csatlakozók keresése",
+    connect: "Csatlakoztatás",
+    connecting: "Csatlakozás…",
+    connected: "Csatlakoztatva",
+    reconnect: "Újracsatlakozás",
+    included: "Elérhető",
+    disconnect: "Leválasztás",
+    connectedToast: "{name} csatlakoztatva",
+    disconnectedToast: "Leválasztva",
+    openedToast: "Engedélyezd a megnyílt ablakban",
+    connectFailed: "Nem sikerült csatlakozni",
+    toolsCount: "{n} eszköz",
+    empty: "Nincs találat.",
+  },
   files: {
     home: "Kezdőlap",
     back: "Vissza",

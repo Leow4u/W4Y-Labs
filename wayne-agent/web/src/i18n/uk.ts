@@ -67,6 +67,7 @@ export const uk: Translations = {
       stopped: "Зупинено",
     },
     nav: {
+      connectors: "Конектори",
       analytics: "Аналітика",
       channels: "Канали",
       chat: "Нова сесія",
@@ -571,6 +572,24 @@ export const uk: Translations = {
     noLogLines: "Записів журналу не знайдено",
   },
 
+  connectors: {
+    scopeGlobal: "Глобально — всі агенти",
+    agent: "Агент",
+    all: "Усі",
+    searchPlaceholder: "Пошук конекторів",
+    connect: "Підключити",
+    connecting: "Підключення…",
+    connected: "Підключено",
+    reconnect: "Перепідключити",
+    included: "Доступно",
+    disconnect: "Відключити",
+    connectedToast: "{name} підключено",
+    disconnectedToast: "Відключено",
+    openedToast: "Авторизуйтесь у відкритому вікні",
+    connectFailed: "Не вдалося підключити",
+    toolsCount: "{n} інструментів",
+    empty: "Конекторів не знайдено.",
+  },
   files: {
     home: "Головна",
     back: "Назад",

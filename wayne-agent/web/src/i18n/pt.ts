@@ -67,6 +67,7 @@ export const pt: Translations = {
       stopped: "Parado",
     },
     nav: {
+      connectors: "Conectores",
       analytics: "Análise",
       channels: "Canais",
       chat: "Nova sessão",
@@ -571,6 +572,24 @@ export const pt: Translations = {
     noLogLines: "Não foram encontradas linhas de registro",
   },
 
+  connectors: {
+    scopeGlobal: "Global — todos os agentes",
+    agent: "Agente",
+    all: "Todos",
+    searchPlaceholder: "Procurar conectores",
+    connect: "Conectar",
+    connecting: "Conectando…",
+    connected: "Conectado",
+    reconnect: "Reconectar",
+    included: "Disponível",
+    disconnect: "Desconectar",
+    connectedToast: "{name} conectado",
+    disconnectedToast: "Desconectado",
+    openedToast: "Autorize na janela que abriu",
+    connectFailed: "Não foi possível conectar",
+    toolsCount: "{n} ferramentas",
+    empty: "Nenhum conector encontrado.",
+  },
   files: {
     home: "Início",
     back: "Voltar",

@@ -67,6 +67,7 @@ export const tr: Translations = {
       stopped: "Durduruldu",
     },
     nav: {
+      connectors: "Bağlayıcılar",
       analytics: "Analiz",
       channels: "Kanallar",
       chat: "Yeni oturum",
@@ -571,6 +572,24 @@ export const tr: Translations = {
     noLogLines: "Günlük satırı bulunamadı",
   },
 
+  connectors: {
+    scopeGlobal: "Global — tüm ajanlar",
+    agent: "Ajan",
+    all: "Tümü",
+    searchPlaceholder: "Bağlayıcı ara",
+    connect: "Bağlan",
+    connecting: "Bağlanıyor…",
+    connected: "Bağlı",
+    reconnect: "Yeniden bağlan",
+    included: "Kullanılabilir",
+    disconnect: "Bağlantıyı kes",
+    connectedToast: "{name} bağlandı",
+    disconnectedToast: "Bağlantı kesildi",
+    openedToast: "Açılan pencerede yetkilendirin",
+    connectFailed: "Bağlanılamadı",
+    toolsCount: "{n} araç",
+    empty: "Eşleşen bağlayıcı yok.",
+  },
   files: {
     home: "Ana sayfa",
     back: "Geri",

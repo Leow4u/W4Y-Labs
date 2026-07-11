@@ -87,6 +87,7 @@ export interface Translations {
       stopped: string;
     };
     nav: {
+      connectors: string;
       analytics: string;
       channels: string;
       chat: string;
@@ -613,6 +614,24 @@ export interface Translations {
   };
 
   // ── Files page (desktop-like, Onda 1) ──
+  connectors: {
+    scopeGlobal: string;
+    agent: string;
+    all: string;
+    searchPlaceholder: string;
+    connect: string;
+    connecting: string;
+    connected: string;
+    reconnect: string;
+    included: string;
+    disconnect: string;
+    connectedToast: string;
+    disconnectedToast: string;
+    openedToast: string;
+    connectFailed: string;
+    toolsCount: string;
+    empty: string;
+  };
   files: {
     home: string;
     back: string;
