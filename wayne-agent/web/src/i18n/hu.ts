@@ -606,6 +606,13 @@ export const hu: Translations = {
     unfavorite: "Eltávolítás a kedvencekből",
     noFavorites: "Még nincs kedvenc",
     previewUnavailable: "Nincs előnézet — töltsd le a megnyitáshoz.",
+    open: "Megnyitás",
+    rename: "Átnevezés",
+    delete: "Törlés",
+    renamed: "Átnevezve",
+    renameFailed: "Az átnevezés nem sikerült",
+    moved: "Áthelyezve",
+    moveFailed: "Az áthelyezés nem sikerült",
   },
   cron: {
     confirmDeleteMessage:

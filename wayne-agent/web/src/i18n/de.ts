@@ -606,6 +606,13 @@ export const de: Translations = {
     unfavorite: "Aus Favoriten entfernen",
     noFavorites: "Noch keine Favoriten",
     previewUnavailable: "Keine Vorschau — zum Öffnen herunterladen.",
+    open: "Öffnen",
+    rename: "Umbenennen",
+    delete: "Löschen",
+    renamed: "Umbenannt",
+    renameFailed: "Umbenennen fehlgeschlagen",
+    moved: "Verschoben",
+    moveFailed: "Verschieben fehlgeschlagen",
   },
   cron: {
     confirmDeleteMessage:

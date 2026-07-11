@@ -604,6 +604,13 @@ export const zh: Translations = {
     unfavorite: "取消收藏",
     noFavorites: "还没有收藏",
     previewUnavailable: "无预览 — 下载后打开。",
+    open: "打开",
+    rename: "重命名",
+    delete: "删除",
+    renamed: "已重命名",
+    renameFailed: "无法重命名",
+    moved: "已移动",
+    moveFailed: "无法移动",
   },
   cron: {
     confirmDeleteMessage: "将从此计划移除该任务，此操作无法撤销。",

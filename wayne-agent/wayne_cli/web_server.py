@@ -885,6 +885,12 @@ class ManagedFileDelete(BaseModel):
     recursive: bool = False
 
 
+class ManagedFileMove(BaseModel):
+    path: str
+    dest: str
+    overwrite: bool = False
+
+
 _AUDIO_MIME_EXTENSIONS: Dict[str, str] = {
     "audio/aac": ".aac",
     "audio/flac": ".flac",
@@ -1913,6 +1919,55 @@ async def delete_managed_file(payload: ManagedFileDelete, request: Request):
         raise HTTPException(status_code=status_code, detail=f"Could not delete path: {exc}")
 
     return {"ok": True, "path": display_path, **_managed_response_meta(policy)}
+
+
+@app.post("/api/files/move")
+async def move_managed_file(payload: ManagedFileMove, request: Request):
+    """Mover OU renomear (renomear = mover no mesmo diretório) uma entrada.
+
+    Origem tem de existir; destino é caminho de escrita (pode não existir).
+    Mesma blindagem do delete: nem a origem nem o destino podem ser entradas
+    críticas de topo do WAYNE_HOME — não deixa renomear/mover .venv, sessions,
+    config.yaml… nem sobrepor um item de sistema criando algo com esse nome.
+    """
+    policy, source, _src_display = _resolve_managed_path(payload.path, request)
+    _policy2, dest, dest_display = _resolve_managed_path(payload.dest, request, for_write=True)
+
+    root = policy.locked_root
+    if root is not None and source == root:
+        raise HTTPException(status_code=400, detail="Cannot move the managed files root")
+    if source.parent == source:
+        raise HTTPException(status_code=400, detail="Cannot move the filesystem root")
+    if _is_protected_managed_entry(policy, source) or _is_protected_managed_entry(policy, dest):
+        raise HTTPException(status_code=403, detail="This is a system item and can't be moved")
+    if _is_sensitive_filename(source.name) or _is_sensitive_filename(dest.name):
+        raise HTTPException(status_code=403, detail="Access to sensitive files is not allowed")
+
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="Source not found")
+    if source == dest:
+        raise HTTPException(status_code=400, detail="Source and destination are the same")
+    # Não mover uma pasta para dentro dela mesma (destino sob a origem).
+    if source.is_dir() and _path_is_under(source, dest):
+        raise HTTPException(status_code=400, detail="Cannot move a folder into itself")
+    if dest.exists() and not payload.overwrite:
+        raise HTTPException(status_code=409, detail="A file or folder already exists at the destination")
+
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        # os.replace é atômico no mesmo filesystem (todo o /opt/data é o mesmo).
+        os.replace(source, dest)
+    except PermissionError:
+        raise HTTPException(status_code=403, detail="Destination is not writable")
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail=f"Could not move path: {exc}")
+
+    return {
+        "ok": True,
+        "entry": _managed_file_entry(policy, dest),
+        "path": dest_display,
+        **_managed_response_meta(policy),
+    }
 
 
 @app.get("/api/fs/list")

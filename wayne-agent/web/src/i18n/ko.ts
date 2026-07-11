@@ -606,6 +606,13 @@ export const ko: Translations = {
     unfavorite: "즐겨찾기에서 제거",
     noFavorites: "아직 즐겨찾기가 없습니다",
     previewUnavailable: "미리보기 없음 — 열려면 다운로드하세요.",
+    open: "열기",
+    rename: "이름 바꾸기",
+    delete: "삭제",
+    renamed: "이름이 변경됨",
+    renameFailed: "이름을 바꿀 수 없습니다",
+    moved: "이동됨",
+    moveFailed: "이동할 수 없습니다",
   },
   cron: {
     confirmDeleteMessage:

@@ -606,6 +606,13 @@ export const uk: Translations = {
     unfavorite: "Прибрати з обраного",
     noFavorites: "Ще немає обраного",
     previewUnavailable: "Немає перегляду — завантажте, щоб відкрити.",
+    open: "Відкрити",
+    rename: "Перейменувати",
+    delete: "Видалити",
+    renamed: "Перейменовано",
+    renameFailed: "Не вдалося перейменувати",
+    moved: "Переміщено",
+    moveFailed: "Не вдалося перемістити",
   },
   cron: {
     confirmDeleteMessage:

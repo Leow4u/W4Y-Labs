@@ -606,6 +606,13 @@ export const ja: Translations = {
     unfavorite: "お気に入りから削除",
     noFavorites: "まだお気に入りはありません",
     previewUnavailable: "プレビューなし — 開くにはダウンロード。",
+    open: "開く",
+    rename: "名前を変更",
+    delete: "削除",
+    renamed: "名前を変更しました",
+    renameFailed: "名前を変更できませんでした",
+    moved: "移動しました",
+    moveFailed: "移動できませんでした",
   },
   cron: {
     confirmDeleteMessage:

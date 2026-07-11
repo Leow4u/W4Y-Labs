@@ -505,6 +505,13 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path, recursive }),
     }),
+  // Renomear = mover no mesmo diretório. `dest` é o caminho completo de destino.
+  moveFile: (path: string, dest: string, overwrite = false) =>
+    fetchJSON<ManagedFileWriteResponse>("/api/files/move", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, dest, overwrite }),
+    }),
   // ── Git do workspace (dock "Computador do Wayne") — /api/git/*, a MESMA
   //    suíte REST que o desktop usa via web_git.py. `path` = cwd do projeto.
   gitStatus: (path: string) =>

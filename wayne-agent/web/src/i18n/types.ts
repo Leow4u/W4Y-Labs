@@ -652,6 +652,13 @@ export interface Translations {
     unfavorite: string;
     noFavorites: string;
     previewUnavailable: string;
+    open: string;
+    rename: string;
+    delete: string;
+    renamed: string;
+    renameFailed: string;
+    moved: string;
+    moveFailed: string;
   };
 
   // ── Cron page ──

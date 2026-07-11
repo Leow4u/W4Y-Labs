@@ -606,6 +606,13 @@ export const tr: Translations = {
     unfavorite: "Favorilerden çıkar",
     noFavorites: "Henüz favori yok",
     previewUnavailable: "Önizleme yok — açmak için indir.",
+    open: "Aç",
+    rename: "Yeniden adlandır",
+    delete: "Sil",
+    renamed: "Yeniden adlandırıldı",
+    renameFailed: "Yeniden adlandırılamadı",
+    moved: "Taşındı",
+    moveFailed: "Taşınamadı",
   },
   cron: {
     confirmDeleteMessage:

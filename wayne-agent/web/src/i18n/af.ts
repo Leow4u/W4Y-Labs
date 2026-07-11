@@ -606,6 +606,13 @@ export const af: Translations = {
     unfavorite: "Verwyder uit gunstelinge",
     noFavorites: "Nog geen gunstelinge nie",
     previewUnavailable: "Geen voorskou — laai af om oop te maak.",
+    open: "Open",
+    rename: "Hernoem",
+    delete: "Skrap",
+    renamed: "Hernoem",
+    renameFailed: "Kon nie hernoem nie",
+    moved: "Geskuif",
+    moveFailed: "Kon nie skuif nie",
   },
   cron: {
     confirmDeleteMessage:

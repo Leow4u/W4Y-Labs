@@ -606,6 +606,13 @@ export const ru: Translations = {
     unfavorite: "Убрать из избранного",
     noFavorites: "Пока нет избранного",
     previewUnavailable: "Нет предпросмотра — скачайте, чтобы открыть.",
+    open: "Открыть",
+    rename: "Переименовать",
+    delete: "Удалить",
+    renamed: "Переименовано",
+    renameFailed: "Не удалось переименовать",
+    moved: "Перемещено",
+    moveFailed: "Не удалось переместить",
   },
   cron: {
     confirmDeleteMessage:

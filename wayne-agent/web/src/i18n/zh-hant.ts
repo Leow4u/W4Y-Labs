@@ -606,6 +606,13 @@ export const zhHant: Translations = {
     unfavorite: "取消收藏",
     noFavorites: "還沒有收藏",
     previewUnavailable: "無預覽 — 下載後開啟。",
+    open: "開啟",
+    rename: "重新命名",
+    delete: "刪除",
+    renamed: "已重新命名",
+    renameFailed: "無法重新命名",
+    moved: "已移動",
+    moveFailed: "無法移動",
   },
   cron: {
     confirmDeleteMessage:

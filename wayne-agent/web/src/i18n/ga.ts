@@ -606,6 +606,13 @@ export const ga: Translations = {
     unfavorite: "Bain de na ceanáin",
     noFavorites: "Níl aon cheanán fós",
     previewUnavailable: "Gan réamhamharc — íoslódáil chun oscailt.",
+    open: "Oscail",
+    rename: "Athainmnigh",
+    delete: "Scrios",
+    renamed: "Athainmníodh",
+    renameFailed: "Níorbh fhéidir athainmniú",
+    moved: "Bogadh",
+    moveFailed: "Níorbh fhéidir bogadh",
   },
   cron: {
     confirmDeleteMessage:
