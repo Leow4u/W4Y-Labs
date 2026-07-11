@@ -573,6 +573,13 @@ export const uk: Translations = {
   },
 
   connectors: {
+    events: "Події",
+    eventsTitle: "Події {name}",
+    eventsFootnote: "Коли подія спрацьовує, агент обробляє її автоматично.",
+    noEvents: "Немає доступних подій для цього конектора.",
+    eventOn: "{name} увімкнено",
+    eventOff: "{name} вимкнено",
+
     authTitle: "Підключення застосунку",
     authorize: "Авторизувати",
     waiting: "Очікування авторизації…",

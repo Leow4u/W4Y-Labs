@@ -9,7 +9,7 @@
  * técnica antiga (MCP manual + catálogo Nous) segue no ?full=1.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckCircle2, Loader2, Plug, Search, Trash2 } from "lucide-react";
+import { CheckCircle2, Loader2, Plug, Search, Trash2, Zap } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type {
@@ -25,6 +25,7 @@ import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { PluginSlot } from "@/plugins";
+import { ConnectorEventsPanel } from "@/components/connectors/ConnectorEventsPanel";
 
 type ToolkitState = "connected" | "pending" | "broken" | "none";
 
@@ -73,6 +74,8 @@ export default function ConnectorsPage() {
   // slug em processo de conexão (abriu popup; sondando status).
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
+  // toolkit cujo painel de Eventos está aberto (null = fechado).
+  const [eventsFor, setEventsFor] = useState<ConnectorToolkit | null>(null);
   const aliveRef = useRef(true);
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -313,6 +316,15 @@ export default function ConnectorsPage() {
                       </span>
                       <button
                         type="button"
+                        onClick={() => setEventsFor(tk)}
+                        aria-label={tc.events}
+                        title={tc.events}
+                        className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:text-primary"
+                      >
+                        <Zap className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
                         onClick={() => void disconnect(tk)}
                         aria-label={tc.disconnect}
                         title={tc.disconnect}
@@ -343,6 +355,16 @@ export default function ConnectorsPage() {
       )}
 
       <PluginSlot name="connectors:bottom" />
+
+      {eventsFor && (
+        <ConnectorEventsPanel
+          toolkit={eventsFor.slug}
+          toolkitName={eventsFor.name}
+          scope={scope}
+          onClose={() => setEventsFor(null)}
+          onToast={showToast}
+        />
+      )}
     </div>
   );
 }

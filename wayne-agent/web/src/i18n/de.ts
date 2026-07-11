@@ -573,6 +573,13 @@ export const de: Translations = {
   },
 
   connectors: {
+    events: "Ereignisse",
+    eventsTitle: "{name}-Ereignisse",
+    eventsFootnote: "Wenn ein Ereignis ausgelöst wird, bearbeitet der Agent es automatisch.",
+    noEvents: "Keine Ereignisse für diesen Konnektor verfügbar.",
+    eventOn: "{name} an",
+    eventOff: "{name} aus",
+
     authTitle: "App-Verbindung",
     authorize: "Autorisieren",
     waiting: "Warte auf Autorisierung…",

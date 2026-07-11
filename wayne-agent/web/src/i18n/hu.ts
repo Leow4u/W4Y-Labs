@@ -573,6 +573,13 @@ export const hu: Translations = {
   },
 
   connectors: {
+    events: "Események",
+    eventsTitle: "{name} események",
+    eventsFootnote: "Amikor egy esemény bekövetkezik, az ügynök automatikusan kezeli.",
+    noEvents: "Nincs elérhető esemény ehhez a csatlakozóhoz.",
+    eventOn: "{name} be",
+    eventOff: "{name} ki",
+
     authTitle: "Alkalmazás-kapcsolat",
     authorize: "Engedélyezés",
     waiting: "Várakozás az engedélyezésre…",

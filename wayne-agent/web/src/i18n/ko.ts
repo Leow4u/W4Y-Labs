@@ -573,6 +573,13 @@ export const ko: Translations = {
   },
 
   connectors: {
+    events: "이벤트",
+    eventsTitle: "{name} 이벤트",
+    eventsFootnote: "이벤트가 발생하면 에이전트가 자동으로 처리합니다.",
+    noEvents: "이 커넥터에 사용 가능한 이벤트가 없습니다.",
+    eventOn: "{name} 켜짐",
+    eventOff: "{name} 꺼짐",
+
     authTitle: "앱 연결",
     authorize: "승인",
     waiting: "승인 대기 중…",

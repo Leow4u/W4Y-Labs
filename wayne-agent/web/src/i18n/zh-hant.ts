@@ -573,6 +573,13 @@ export const zhHant: Translations = {
   },
 
   connectors: {
+    events: "事件",
+    eventsTitle: "{name} 事件",
+    eventsFootnote: "事件觸發時，代理會自動處理。",
+    noEvents: "此連接器沒有可用事件。",
+    eventOn: "{name} 已開啟",
+    eventOff: "{name} 已關閉",
+
     authTitle: "應用程式連接",
     authorize: "授權",
     waiting: "等待授權…",

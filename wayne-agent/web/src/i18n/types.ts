@@ -615,6 +615,13 @@ export interface Translations {
 
   // ── Files page (desktop-like, Onda 1) ──
   connectors: {
+    events: string;
+    eventsTitle: string;
+    eventsFootnote: string;
+    noEvents: string;
+    eventOn: string;
+    eventOff: string;
+
     authTitle: string;
     authorize: string;
     waiting: string;

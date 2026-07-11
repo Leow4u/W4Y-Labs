@@ -573,6 +573,13 @@ export const af: Translations = {
   },
 
   connectors: {
+    events: "Gebeurtenisse",
+    eventsTitle: "{name}-gebeurtenisse",
+    eventsFootnote: "Wanneer 'n gebeurtenis afgaan, hanteer die agent dit outomaties.",
+    noEvents: "Geen gebeurtenisse vir hierdie koppelaar beskikbaar nie.",
+    eventOn: "{name} aan",
+    eventOff: "{name} af",
+
     authTitle: "Toepassingskoppeling",
     authorize: "Magtig",
     waiting: "Wag vir magtiging…",

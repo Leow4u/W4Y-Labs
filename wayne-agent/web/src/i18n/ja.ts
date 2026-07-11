@@ -573,6 +573,13 @@ export const ja: Translations = {
   },
 
   connectors: {
+    events: "イベント",
+    eventsTitle: "{name} のイベント",
+    eventsFootnote: "イベントが発生すると、エージェントが自動的に処理します。",
+    noEvents: "このコネクタで利用できるイベントはありません。",
+    eventOn: "{name} オン",
+    eventOff: "{name} オフ",
+
     authTitle: "アプリ接続",
     authorize: "承認",
     waiting: "承認を待っています…",

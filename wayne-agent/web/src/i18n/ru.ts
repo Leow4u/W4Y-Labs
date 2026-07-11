@@ -573,6 +573,13 @@ export const ru: Translations = {
   },
 
   connectors: {
+    events: "События",
+    eventsTitle: "События {name}",
+    eventsFootnote: "Когда происходит событие, агент обрабатывает его автоматически.",
+    noEvents: "Нет доступных событий для этого коннектора.",
+    eventOn: "{name} включено",
+    eventOff: "{name} выключено",
+
     authTitle: "Подключение приложения",
     authorize: "Авторизовать",
     waiting: "Ожидание авторизации…",

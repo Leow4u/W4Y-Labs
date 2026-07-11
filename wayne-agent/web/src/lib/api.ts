@@ -1389,6 +1389,30 @@ export const api = {
       `/api/connectors/accounts/${encodeURIComponent(accountId)}`,
       { method: "DELETE" },
     ),
+  // Eventos (triggers) — ligam um gatilho num conector já conectado; cada
+  // evento vira uma tarefa do agente (kanban nativo). Escopo global|<agente>.
+  getConnectorTriggerTypes: (toolkit: string) =>
+    fetchJSON<{ types: ConnectorTriggerType[] }>(
+      `/api/connectors/triggers/types?toolkit=${encodeURIComponent(toolkit)}`,
+    ),
+  getConnectorTriggers: (scope = "global") =>
+    fetchJSON<{ scope: string; triggers: ConnectorTrigger[] }>(
+      `/api/connectors/triggers?scope=${encodeURIComponent(scope)}`,
+    ),
+  createConnectorTrigger: (trigger: string, scope = "global", config?: Record<string, unknown>) =>
+    fetchJSON<{ ok: boolean; scope: string; trigger: string; webhook: string; id?: string }>(
+      "/api/connectors/triggers",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ trigger, scope, config }),
+      },
+    ),
+  deleteConnectorTrigger: (triggerId: string) =>
+    fetchJSON<{ ok: boolean }>(
+      `/api/connectors/triggers/${encodeURIComponent(triggerId)}`,
+      { method: "DELETE" },
+    ),
   previewSkillFromHub: (identifier: string) =>
     fetchJSON<SkillHubPreview>(
       `/api/skills/hub/preview?identifier=${encodeURIComponent(identifier)}`,
@@ -1512,6 +1536,22 @@ export interface ConnectorConnectResponse {
   connected_account_id?: string;
   no_auth?: boolean;
   attached: number;
+}
+
+/** Um tipo de gatilho de um toolkit (ex.: GMAIL_NEW_GMAIL_MESSAGE). */
+export interface ConnectorTriggerType {
+  slug: string;
+  name: string;
+  toolkit?: string | null;
+  description: string;
+}
+
+/** Um gatilho ATIVO no escopo. */
+export interface ConnectorTrigger {
+  id: string;
+  trigger: string;
+  toolkit?: string | null;
+  disabled: boolean;
 }
 
 /** Lock-entry summary for an already-installed hub skill (keyed by identifier). */

@@ -573,6 +573,13 @@ export const tr: Translations = {
   },
 
   connectors: {
+    events: "Olaylar",
+    eventsTitle: "{name} olayları",
+    eventsFootnote: "Bir olay tetiklendiğinde, ajan onu otomatik olarak işler.",
+    noEvents: "Bu bağlayıcı için olay yok.",
+    eventOn: "{name} açık",
+    eventOff: "{name} kapalı",
+
     authTitle: "Uygulama bağlantısı",
     authorize: "Yetkilendir",
     waiting: "Yetkilendirme bekleniyor…",

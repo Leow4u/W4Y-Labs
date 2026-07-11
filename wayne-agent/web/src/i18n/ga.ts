@@ -573,6 +573,13 @@ export const ga: Translations = {
   },
 
   connectors: {
+    events: "Imeachtaí",
+    eventsTitle: "Imeachtaí {name}",
+    eventsFootnote: "Nuair a spreagtar imeacht, láimhseálann an gníomhaire go huathoibríoch é.",
+    noEvents: "Níl aon imeacht ar fáil don nascóir seo.",
+    eventOn: "{name} ann",
+    eventOff: "{name} as",
+
     authTitle: "Nasc feidhmchláir",
     authorize: "Údaraigh",
     waiting: "Ag fanacht le húdarú…",

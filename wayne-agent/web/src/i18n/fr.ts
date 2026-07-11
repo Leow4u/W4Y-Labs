@@ -573,6 +573,13 @@ export const fr: Translations = {
   },
 
   connectors: {
+    events: "Événements",
+    eventsTitle: "Événements {name}",
+    eventsFootnote: "Quand un événement se déclenche, l'agent le traite automatiquement.",
+    noEvents: "Aucun événement disponible pour ce connecteur.",
+    eventOn: "{name} activé",
+    eventOff: "{name} désactivé",
+
     authTitle: "Connexion d'application",
     authorize: "Autoriser",
     waiting: "En attente d'autorisation…",

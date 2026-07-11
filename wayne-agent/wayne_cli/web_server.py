@@ -559,6 +559,16 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
 
 @app.middleware("http")
 async def _dashboard_auth_gate(request: Request, call_next):
+    # Connectors event receiver bypasses the OAuth cookie gate: the Composio
+    # webhook arrives with no cookie, and the secret path token (verified via
+    # secrets.compare_digest in the handler) is the real auth boundary — same
+    # design as /api/cron/fire's JWT. Kept here (not in dashboard_auth's
+    # _GATE_PUBLIC_PREFIXES) so the whole connectors delta stays inside
+    # web_server.py, which the thin overlay Dockerfile is the only file it
+    # copies. Trailing slash so /api/connectors/events/<token> matches but
+    # /api/connectors/eventsX does not.
+    if request.url.path.startswith("/api/connectors/events/"):
+        return await call_next(request)
     from wayne_cli.dashboard_auth.middleware import gated_auth_middleware
     return await gated_auth_middleware(request, call_next)
 
@@ -577,7 +587,10 @@ async def auth_middleware(request: Request, call_next):
     if getattr(request.app.state, "auth_required", False):
         return await call_next(request)
     path = request.url.path
-    if path.startswith("/api/") and path not in _PUBLIC_API_PATHS:
+    # Connectors event receiver: token-in-path is the auth boundary (see the
+    # OAuth gate's _GATE_PUBLIC_PREFIXES). Bypass the loopback session gate too.
+    _events_public = path.startswith("/api/connectors/events/")
+    if path.startswith("/api/") and path not in _PUBLIC_API_PATHS and not _events_public:
         if not _has_valid_session_token(request) and not _has_valid_query_token(request, path):
             return JSONResponse(
                 status_code=401,
@@ -2320,6 +2333,230 @@ async def connectors_disconnect(account_id: str):
     def _run():
         _composio_request("DELETE", f"/api/v3/connected_accounts/{account_id}")
         return {"ok": True}
+
+    return await asyncio.to_thread(_run)
+
+
+# ── Conectores · Eventos (triggers Composio → agente) — Onda 4 ────────
+# "Ouça qualquer coisa": o usuário liga um gatilho (ex.: Gmail e-mail novo)
+# num conector já conectado; a Composio entrega os eventos num webhook POR
+# PROJETO. Assinamos esse webhook UMA vez apontando pra nossa URL pública
+# (token secreto no path — mesma escotilha do /api/files/download e do
+# /api/cron/fire), e cada evento — que carrega o user_id no envelope — vira
+# uma TASK no kanban nativo (dispatcher acorda o agente do escopo). Idempotente
+# pelo id do evento. Zero serviço novo: reusa webhooks + kanban nativos.
+
+
+def _connectors_webhook_token() -> str:
+    """Token do receptor de eventos (gera+persiste no config na 1ª vez)."""
+    from wayne_constants import set_wayne_home_override, reset_wayne_home_override
+    from wayne_cli.config import load_config as _load_cfg, save_config as _save_cfg
+    from wayne_cli.profiles import _get_default_wayne_home
+
+    token = set_wayne_home_override(str(_get_default_wayne_home()))
+    try:
+        cfg = _load_cfg() or {}
+        node = cfg.setdefault("connectors", {})
+        tok = node.get("events_token")
+        if not tok:
+            tok = secrets.token_urlsafe(24)
+            node["events_token"] = tok
+            _save_cfg(cfg)
+        return str(tok)
+    finally:
+        reset_wayne_home_override(token)
+
+
+def _connectors_public_base(request: Request) -> str:
+    """Base HTTPS pública do tenant (pra montar a URL do webhook)."""
+    env = os.environ.get("WAYNE_PUBLIC_URL") or os.environ.get("DASHBOARD_PUBLIC_URL")
+    if env:
+        return env.rstrip("/")
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host") or ""
+    return f"https://{host}" if host else ""
+
+
+class ConnectorTriggerCreate(BaseModel):
+    trigger: str            # slug do trigger type, ex. GMAIL_NEW_GMAIL_MESSAGE
+    scope: str = "global"
+    config: Optional[dict] = None
+
+
+@app.get("/api/connectors/triggers/types")
+async def connector_trigger_types(toolkit: Optional[str] = None):
+    """Tipos de gatilho disponíveis (opcionalmente filtrados por toolkit)."""
+
+    def _run():
+        params: Dict[str, Any] = {"limit": 100}
+        if toolkit:
+            params["toolkit_slugs"] = toolkit
+        data = _composio_request("GET", "/api/v3.1/triggers_types", params=params) or {}
+        out = []
+        for it in data.get("items") or []:
+            out.append(
+                {
+                    "slug": it.get("slug") or it.get("name"),
+                    "name": it.get("name") or it.get("slug"),
+                    "toolkit": (it.get("toolkit") or {}).get("slug")
+                    if isinstance(it.get("toolkit"), dict)
+                    else it.get("toolkit"),
+                    "description": (it.get("description") or "")[:200],
+                }
+            )
+        return {"types": out}
+
+    return await asyncio.to_thread(_run)
+
+
+@app.get("/api/connectors/triggers")
+async def connector_triggers_list(scope: str = "global"):
+    """Gatilhos ativos do escopo."""
+
+    def _run():
+        uid = _connector_user_id(scope)
+        data = _composio_request(
+            "GET", "/api/v3.1/trigger_instances/active", params={"user_ids": uid, "limit": 100}
+        ) or {}
+        out = []
+        for it in data.get("items") or []:
+            out.append(
+                {
+                    "id": it.get("id") or it.get("triggerId") or it.get("trigger_id"),
+                    "trigger": it.get("trigger_name") or it.get("triggerName") or it.get("slug"),
+                    "toolkit": it.get("toolkit"),
+                    "disabled": bool(it.get("disabled")),
+                }
+            )
+        return {"scope": scope, "triggers": out}
+
+    return await asyncio.to_thread(_run)
+
+
+def _ensure_events_webhook(request: Request) -> str:
+    """Garante o webhook do projeto apontando pro nosso receptor. Idempotente
+    pela URL (com o token). Devolve a URL registrada."""
+    base = _connectors_public_base(request)
+    if not base:
+        raise HTTPException(status_code=400, detail="Public URL unavailable to register webhook")
+    url = f"{base}/api/connectors/events/{_connectors_webhook_token()}"
+    existing = _composio_request("GET", "/api/v3.1/webhook_subscriptions") or {}
+    for it in existing.get("items") or []:
+        if str(it.get("webhook_url") or "").rstrip("/") == url:
+            return url
+    # ``composio.trigger.message`` is the actual "a trigger fired" event (the
+    # V3 envelope carries metadata.trigger_slug + metadata.user_id, which the
+    # receiver routes on). Composio rejects a "*" wildcard — the enum is fixed
+    # (message / connected_account.expired / trigger.disabled).
+    _composio_request(
+        "POST",
+        "/api/v3.1/webhook_subscriptions",
+        body={
+            "webhook_url": url,
+            "enabled_events": ["composio.trigger.message"],
+            "version": "V3",
+        },
+    )
+    return url
+
+
+@app.post("/api/connectors/triggers")
+async def connector_trigger_create(body: ConnectorTriggerCreate, request: Request):
+    """Liga um gatilho no escopo e garante o webhook do projeto apontado pra cá."""
+    slug = (body.trigger or "").strip()
+    if not re.fullmatch(r"[A-Za-z0-9_]{2,80}", slug):
+        raise HTTPException(status_code=400, detail="invalid trigger slug")
+    scope = (body.scope or "global").strip() or "global"
+
+    def _run():
+        webhook = _ensure_events_webhook(request)
+        uid = _connector_user_id(scope)
+        payload: Dict[str, Any] = {"user_id": uid}
+        if body.config:
+            payload["trigger_config"] = body.config
+        res = _composio_request(
+            "POST", f"/api/v3.1/trigger_instances/{slug}/upsert", body=payload
+        ) or {}
+        return {
+            "ok": True,
+            "scope": scope,
+            "trigger": slug,
+            "webhook": webhook,
+            "id": res.get("triggerId") or res.get("id"),
+        }
+
+    return await asyncio.to_thread(_run)
+
+
+@app.delete("/api/connectors/triggers/{trigger_id}")
+async def connector_trigger_delete(trigger_id: str):
+    if not re.fullmatch(r"[A-Za-z0-9_-]{4,80}", trigger_id or ""):
+        raise HTTPException(status_code=400, detail="invalid trigger id")
+
+    def _run():
+        _composio_request("DELETE", f"/api/v3.1/trigger_instances/manage/{trigger_id}")
+        return {"ok": True}
+
+    return await asyncio.to_thread(_run)
+
+
+@app.post("/api/connectors/events/{token}")
+async def connector_events_receiver(token: str, request: Request):
+    """Receptor público dos eventos da Composio. Auth = token secreto no path
+    (bypassa o gate do dashboard, como /api/cron/fire). Cada evento vira uma
+    task no kanban do escopo do user_id — o dispatcher acorda o agente."""
+    if not secrets.compare_digest(token, _connectors_webhook_token()):
+        raise HTTPException(status_code=403, detail="invalid events token")
+    try:
+        event = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="invalid JSON")
+
+    def _run():
+        meta = (event or {}).get("metadata") or {}
+        uid = str(meta.get("user_id") or "global")
+        slug = str(meta.get("trigger_slug") or (event or {}).get("type") or "event")
+        event_id = str((event or {}).get("id") or meta.get("log_id") or "")
+        assignee = None if uid == "global" else uid
+        data = (event or {}).get("data") or {}
+        # Resumo curto e legível pro corpo da task (sem despejar o payload cru).
+        preview = ""
+        for k in ("subject", "title", "message", "text", "summary", "name"):
+            v = data.get(k) if isinstance(data, dict) else None
+            if isinstance(v, str) and v.strip():
+                preview = v.strip()[:200]
+                break
+        try:
+            from wayne_cli import kanban_db  # type: ignore
+        except Exception:
+            _log.exception("kanban_db unavailable for connector event")
+            return {"ok": False, "reason": "kanban unavailable"}
+        try:
+            kanban_db.init_db()
+        except Exception:
+            pass
+        conn = kanban_db.connect()
+        try:
+            title = f"Evento: {slug}"
+            body_lines = [f"Gatilho **{slug}** disparou (conector).", f"Usuário/escopo: `{uid}`."]
+            if preview:
+                body_lines.append(f"\n> {preview}")
+            body_lines.append(
+                "\nTrate o evento com as ferramentas do conector já conectado a este escopo."
+            )
+            task_id = kanban_db.create_task(
+                conn,
+                title=title,
+                body="\n".join(body_lines),
+                assignee=assignee,
+                created_by="connector-event",
+                idempotency_key=f"composio:{event_id}" if event_id else None,
+            )
+            return {"ok": True, "task": task_id}
+        except Exception as exc:
+            _log.exception("connector event -> kanban failed")
+            return {"ok": False, "reason": str(exc)[:200]}
+        finally:
+            conn.close()
 
     return await asyncio.to_thread(_run)
 

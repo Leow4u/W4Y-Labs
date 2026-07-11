@@ -588,6 +588,13 @@ export const en: Translations = {
   },
 
   connectors: {
+    events: "Events",
+    eventsTitle: "{name} events",
+    eventsFootnote: "When an event fires, the agent handles it automatically.",
+    noEvents: "No events available for this connector.",
+    eventOn: "{name} on",
+    eventOff: "{name} off",
+
     authTitle: "App connection",
     authorize: "Authorize",
     waiting: "Waiting for authorization…",

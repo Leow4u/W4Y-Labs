@@ -571,6 +571,13 @@ export const zh: Translations = {
   },
 
   connectors: {
+    events: "事件",
+    eventsTitle: "{name} 事件",
+    eventsFootnote: "事件触发时，智能体会自动处理。",
+    noEvents: "该连接器没有可用事件。",
+    eventOn: "{name} 已开启",
+    eventOff: "{name} 已关闭",
+
     authTitle: "应用连接",
     authorize: "授权",
     waiting: "等待授权…",

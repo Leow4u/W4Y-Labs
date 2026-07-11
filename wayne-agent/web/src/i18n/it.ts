@@ -573,6 +573,13 @@ export const it: Translations = {
   },
 
   connectors: {
+    events: "Eventi",
+    eventsTitle: "Eventi di {name}",
+    eventsFootnote: "Quando un evento si attiva, l'agente lo gestisce automaticamente.",
+    noEvents: "Nessun evento disponibile per questo connettore.",
+    eventOn: "{name} attivo",
+    eventOff: "{name} disattivo",
+
     authTitle: "Connessione app",
     authorize: "Autorizza",
     waiting: "In attesa di autorizzazione…",
