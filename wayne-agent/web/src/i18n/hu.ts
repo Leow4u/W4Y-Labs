@@ -573,6 +573,10 @@ export const hu: Translations = {
   },
 
   connectors: {
+    authTitle: "Alkalmazás-kapcsolat",
+    authorize: "Engedélyezés",
+    waiting: "Várakozás az engedélyezésre…",
+
     scopeGlobal: "Globális — minden ügynök",
     agent: "Ügynök",
     all: "Mind",

@@ -573,6 +573,10 @@ export const uk: Translations = {
   },
 
   connectors: {
+    authTitle: "Підключення застосунку",
+    authorize: "Авторизувати",
+    waiting: "Очікування авторизації…",
+
     scopeGlobal: "Глобально — всі агенти",
     agent: "Агент",
     all: "Усі",

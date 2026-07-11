@@ -573,6 +573,10 @@ export const af: Translations = {
   },
 
   connectors: {
+    authTitle: "Toepassingskoppeling",
+    authorize: "Magtig",
+    waiting: "Wag vir magtiging…",
+
     scopeGlobal: "Globaal — alle agente",
     agent: "Agent",
     all: "Almal",

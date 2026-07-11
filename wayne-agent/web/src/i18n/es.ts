@@ -573,6 +573,10 @@ export const es: Translations = {
   },
 
   connectors: {
+    authTitle: "Conexión de aplicación",
+    authorize: "Autorizar",
+    waiting: "Esperando autorización…",
+
     scopeGlobal: "Global — todos los agentes",
     agent: "Agente",
     all: "Todos",

@@ -588,6 +588,10 @@ export const en: Translations = {
   },
 
   connectors: {
+    authTitle: "App connection",
+    authorize: "Authorize",
+    waiting: "Waiting for authorization…",
+
     scopeGlobal: "Global — all agents",
     agent: "Agent",
     all: "All",

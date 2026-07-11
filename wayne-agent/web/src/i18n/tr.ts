@@ -573,6 +573,10 @@ export const tr: Translations = {
   },
 
   connectors: {
+    authTitle: "Uygulama bağlantısı",
+    authorize: "Yetkilendir",
+    waiting: "Yetkilendirme bekleniyor…",
+
     scopeGlobal: "Global — tüm ajanlar",
     agent: "Ajan",
     all: "Tümü",

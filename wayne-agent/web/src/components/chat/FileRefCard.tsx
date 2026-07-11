@@ -254,6 +254,34 @@ const BARE_PATH_RE = new RegExp(
 const unquote = (s: string) => s.replace(/^[`"']+|[`"']+$/g, "").trim();
 const basename = (p: string) => p.split(/[/\\]/).pop() || p;
 
+// ── Connect Links (Conectores / Composio) ─────────────────────────────
+// O agente conecta apps pelo chat (COMPOSIO_MANAGE_CONNECTIONS) e devolve um
+// Connect Link. Aqui ele sai da prosa (markdown ou URL nua, com ou sem o 👉
+// que o agente costuma pôr) e vira um ConnectLinkCard de autorização.
+const CONNECT_URL_SRC =
+  "https?:\\/\\/(?:dashboard|connect|app)\\.composio\\.dev\\/link\\/[A-Za-z0-9_-]+";
+const CONNECT_MD_RE = new RegExp(
+  `(?:👉\\s*)?\\[[^\\]]*\\]\\(\\s*(${CONNECT_URL_SRC})[^)]*\\)`,
+  "gi",
+);
+const CONNECT_BARE_RE = new RegExp(`(?:👉\\s*)?[\`<]?(${CONNECT_URL_SRC})[\`>]?`, "gi");
+
+export function extractConnectLinks(content: string): { text: string; links: string[] } {
+  const links: string[] = [];
+  const push = (u: string) => {
+    if (!links.includes(u)) links.push(u);
+  };
+  let text = content.replace(CONNECT_MD_RE, (_m, u: string) => {
+    push(u);
+    return "";
+  });
+  text = text.replace(CONNECT_BARE_RE, (_m, u: string) => {
+    push(u);
+    return "";
+  });
+  return { text, links };
+}
+
 export function extractFileRefs(content: string): { text: string; files: FileRef[] } {
   const files: FileRef[] = [];
 

@@ -615,6 +615,10 @@ export interface Translations {
 
   // ── Files page (desktop-like, Onda 1) ──
   connectors: {
+    authTitle: string;
+    authorize: string;
+    waiting: string;
+
     scopeGlobal: string;
     agent: string;
     all: string;

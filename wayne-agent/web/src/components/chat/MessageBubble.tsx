@@ -15,7 +15,8 @@ import { useI18n } from "@/i18n";
 import { api } from "@/lib/api";
 import { timeAgo } from "@/lib/utils";
 
-import { FileRefCard, extractFileRefs } from "./FileRefCard";
+import { FileRefCard, extractFileRefs, extractConnectLinks } from "./FileRefCard";
+import { ConnectLinkCard } from "./ConnectLinkCard";
 import { ToolCallCard } from "./ToolCallCard";
 import { ToolLine } from "./ToolLine";
 import type { ChatMessage, TaskStep, ToolCallState } from "./types";
@@ -330,7 +331,8 @@ function TextBlock({
   streaming?: boolean;
   seen?: Set<string>;
 }) {
-  const { text: cleaned, files } = extractFileRefs(text);
+  const { text: cleanedFiles, files } = extractFileRefs(text);
+  const { text: cleaned, links } = extractConnectLinks(cleanedFiles);
   const unique = seen
     ? files.filter((f) => {
         const key = f.path ?? f.url ?? f.name;
@@ -339,13 +341,24 @@ function TextBlock({
         return true;
       })
     : files;
+  const uniqueLinks = seen
+    ? links.filter((u) => {
+        const key = `connect:${u}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      })
+    : links;
   return (
     <div>
       {cleaned && <Markdown content={cleaned} streaming={streaming} />}
-      {unique.length > 0 && (
+      {(unique.length > 0 || uniqueLinks.length > 0) && (
         <div className="mt-2.5 flex flex-wrap gap-2">
           {unique.map((f) => (
             <FileRefCard key={f.path ?? f.url} file={f} />
+          ))}
+          {uniqueLinks.map((u) => (
+            <ConnectLinkCard key={u} url={u} />
           ))}
         </div>
       )}

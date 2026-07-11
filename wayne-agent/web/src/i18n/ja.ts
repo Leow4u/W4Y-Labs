@@ -573,6 +573,10 @@ export const ja: Translations = {
   },
 
   connectors: {
+    authTitle: "アプリ接続",
+    authorize: "承認",
+    waiting: "承認を待っています…",
+
     scopeGlobal: "グローバル — 全エージェント",
     agent: "エージェント",
     all: "すべて",

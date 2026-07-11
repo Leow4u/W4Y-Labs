@@ -573,6 +573,10 @@ export const zhHant: Translations = {
   },
 
   connectors: {
+    authTitle: "應用程式連接",
+    authorize: "授權",
+    waiting: "等待授權…",
+
     scopeGlobal: "全域 — 所有代理",
     agent: "代理",
     all: "全部",

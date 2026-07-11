@@ -573,6 +573,10 @@ export const ko: Translations = {
   },
 
   connectors: {
+    authTitle: "앱 연결",
+    authorize: "승인",
+    waiting: "승인 대기 중…",
+
     scopeGlobal: "전역 — 모든 에이전트",
     agent: "에이전트",
     all: "전체",

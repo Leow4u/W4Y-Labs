@@ -571,6 +571,10 @@ export const zh: Translations = {
   },
 
   connectors: {
+    authTitle: "应用连接",
+    authorize: "授权",
+    waiting: "等待授权…",
+
     scopeGlobal: "全局 — 所有智能体",
     agent: "智能体",
     all: "全部",

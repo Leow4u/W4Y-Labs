@@ -573,6 +573,10 @@ export const ru: Translations = {
   },
 
   connectors: {
+    authTitle: "Подключение приложения",
+    authorize: "Авторизовать",
+    waiting: "Ожидание авторизации…",
+
     scopeGlobal: "Глобально — все агенты",
     agent: "Агент",
     all: "Все",

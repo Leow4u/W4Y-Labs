@@ -35,7 +35,8 @@ import { GlyphSpinner } from "./GlyphSpinner";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 import { useI18n } from "@/i18n";
 
-import { FileRefCard, extractFileRefs } from "./FileRefCard";
+import { FileRefCard, extractFileRefs, extractConnectLinks } from "./FileRefCard";
+import { ConnectLinkCard } from "./ConnectLinkCard";
 import { ToolLine } from "./ToolLine";
 import type { ChatMessage, TaskStep, ToolCallState } from "./types";
 
@@ -147,9 +148,16 @@ function TextWithFiles({
   streaming?: boolean;
   seen: Set<string>;
 }) {
-  const { text: clean, files } = extractFileRefs(text);
+  const { text: cleanFiles, files } = extractFileRefs(text);
+  const { text: clean, links } = extractConnectLinks(cleanFiles);
   const fresh = files.filter((f) => {
     const key = f.path ?? f.url ?? f.name;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const freshLinks = links.filter((u) => {
+    const key = `connect:${u}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -157,10 +165,13 @@ function TextWithFiles({
   return (
     <div key={id} className="space-y-2.5">
       <Markdown content={clean} streaming={streaming} />
-      {fresh.length > 0 && (
+      {(fresh.length > 0 || freshLinks.length > 0) && (
         <div className="flex flex-wrap gap-2 py-1">
           {fresh.map((f) => (
             <FileRefCard key={f.path ?? f.url ?? f.name} file={f} />
+          ))}
+          {freshLinks.map((u) => (
+            <ConnectLinkCard key={u} url={u} />
           ))}
         </div>
       )}

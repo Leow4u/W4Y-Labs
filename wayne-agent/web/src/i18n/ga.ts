@@ -573,6 +573,10 @@ export const ga: Translations = {
   },
 
   connectors: {
+    authTitle: "Nasc feidhmchláir",
+    authorize: "Údaraigh",
+    waiting: "Ag fanacht le húdarú…",
+
     scopeGlobal: "Domhanda — gach gníomhaire",
     agent: "Gníomhaire",
     all: "Uile",
