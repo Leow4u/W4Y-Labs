@@ -644,6 +644,14 @@ export interface Translations {
     confirmDeleteTitle: string;
     confirmDeleteFolder: string;
     confirmDeleteFile: string;
+    // Onda 2: rail, recentes, favoritos, preview.
+    recent: string;
+    quickAccess: string;
+    favorites: string;
+    favorite: string;
+    unfavorite: string;
+    noFavorites: string;
+    previewUnavailable: string;
   };
 
   // ── Cron page ──

@@ -599,6 +599,13 @@ export const ko: Translations = {
     confirmDeleteTitle: "{name}을(를) 삭제할까요?",
     confirmDeleteFolder: "폴더와 그 안의 모든 항목을 삭제합니다.",
     confirmDeleteFile: "이 파일을 삭제합니다.",
+    recent: "최근",
+    quickAccess: "빠른 액세스",
+    favorites: "즐겨찾기",
+    favorite: "즐겨찾기에 추가",
+    unfavorite: "즐겨찾기에서 제거",
+    noFavorites: "아직 즐겨찾기가 없습니다",
+    previewUnavailable: "미리보기 없음 — 열려면 다운로드하세요.",
   },
   cron: {
     confirmDeleteMessage:

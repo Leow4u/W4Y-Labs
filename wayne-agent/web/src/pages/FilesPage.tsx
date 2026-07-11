@@ -1,14 +1,13 @@
 /**
- * FilesPage — a gaveta de arquivos do tenant, com cara de desktop (Onda 1).
+ * FilesPage — o explorador de arquivos do tenant, com cara de desktop.
  *
- * A raiz de /api/files é o HOME persistente (/opt/data), então:
- *   - SEPARA conteúdo do usuário do ruído do sistema (lib/file-curation) — a
- *     infra vai pra uma seção "Sistema" recolhida; ?full=1 mostra tudo cru.
- *   - Cada item ganha ÍCONE DE TIPO estilo desktop (lib/file-icons): pasta
- *     âmbar, X verde do Excel, W azul do Word, P laranja do PPT, PDF vermelho…
- *   - Navegação por TRILHA clicável (breadcrumb) + botão voltar.
- *   - Alterna GRADE (blocos de ícones) ↔ LISTA (linhas detalhadas).
- * Zero backend novo: a API já devolve name/size/mtime/mime_type + path/root.
+ * Onda 1: separa conteúdo do usuário do ruído do sistema (lib/file-curation;
+ * sistema só no ?full=1), ícone de tipo estilo desktop (lib/file-icons),
+ * trilha clicável, grade↔lista.
+ * Onda 2: rail lateral (Acesso rápido/Projetos/Favoritos), faixa "Recentes"
+ * no Início (scan raso por mtime), favoritar (estrela) e pré-visualização
+ * inline (imagem/PDF/texto). Zero backend novo — a API já dá name/size/mtime/
+ * mime_type + path/root, e o readFile dá o data_url pro preview.
  */
 import {
   useCallback,
@@ -26,6 +25,7 @@ import {
   LayoutGrid,
   List as ListIcon,
   RefreshCw,
+  Star,
   Trash2,
   Upload,
 } from "lucide-react";
@@ -47,7 +47,11 @@ import { isInternalView } from "@/lib/internal-view";
 import { api } from "@/lib/api";
 import type { ManagedFileEntry, ManagedFilesResponse } from "@/lib/api";
 import { FileTypeIcon } from "@/lib/file-icons";
-import { partitionEntries, sortEntries } from "@/lib/file-curation";
+import { partitionEntries, sortEntries, isSystemEntry } from "@/lib/file-curation";
+import { prettifyProject } from "@/lib/projects";
+import { isFilePinned, toggleFilePin, onPinnedFilesChange } from "@/lib/pinned-files";
+import { FilesRail, type RailProject } from "@/components/files/FilesRail";
+import { FilePreview, isPreviewable } from "@/components/files/FilePreview";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { PluginSlot } from "@/plugins";
@@ -126,10 +130,18 @@ export default function FilesPage() {
       /* melhor esforço */
     }
   };
+  // Onda 2: preview, projetos do rail, recentes, e re-render ao (des)favoritar.
+  const [preview, setPreview] = useState<ManagedFileEntry | null>(null);
+  const [projects, setProjects] = useState<RailProject[]>([]);
+  const [recents, setRecents] = useState<ManagedFileEntry[]>([]);
+  const [, bumpPins] = useState(0);
+  useEffect(() => onPinnedFilesChange(() => bumpPins((x) => x + 1)), []);
 
   const internal = isInternalView();
   const activePath = listing?.path ?? currentPath ?? "";
   const canUpload = Boolean(activePath) && !uploading;
+  const root = listing?.locked_root ?? listing?.root ?? null;
+  const isAtRoot = Boolean(root) && activePath === root;
 
   const load = useCallback(
     async (path = currentPath) => {
@@ -238,8 +250,12 @@ export default function FilesPage() {
 
   const openEntry = (entry: ManagedFileEntry) => {
     if (entry.is_directory) setCurrentPath(entry.path);
+    else if (isPreviewable(entry.name, entry.mime_type)) setPreview(entry);
     else void downloadFile(entry);
   };
+
+  const togglePin = (entry: ManagedFileEntry) =>
+    toggleFilePin({ path: entry.path, name: entry.name, dir: entry.is_directory });
 
   const downloadFile = async (entry: ManagedFileEntry) => {
     if (entry.is_directory) return;
@@ -301,16 +317,69 @@ export default function FilesPage() {
 
   const isEmpty = !loading && listing && user.length === 0;
 
+  // Rail: pastas de projects/ (nomes bonitos). Uma chamada quando a raiz é
+  // conhecida — independente de onde a navegação está.
+  useEffect(() => {
+    if (!root) return;
+    let dead = false;
+    void api
+      .listFiles(`${root}/projects`)
+      .then((r) => {
+        if (dead) return;
+        setProjects(
+          r.entries
+            .filter((e) => e.is_directory)
+            .map((e) => ({ name: prettifyProject(e.name), path: e.path })),
+        );
+      })
+      .catch(() => {
+        if (!dead) setProjects([]);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [root]);
+
+  // "Recentes" no Início: scan raso (root + até 8 pastas do usuário, 1 nível)
+  // → arquivos mais recentes por mtime. Best-effort; falha = sem faixa.
+  useEffect(() => {
+    if (!listing || !isAtRoot || internal) {
+      setRecents([]);
+      return;
+    }
+    let dead = false;
+    const rootFiles = user.filter((e) => !e.is_directory);
+    const folders = user.filter((e) => e.is_directory).slice(0, 8);
+    void Promise.allSettled(folders.map((f) => api.listFiles(f.path))).then((results) => {
+      if (dead) return;
+      const all = [...rootFiles];
+      for (const r of results) {
+        if (r.status !== "fulfilled") continue;
+        for (const e of r.value.entries) {
+          if (!e.is_directory && !isSystemEntry(e)) all.push(e);
+        }
+      }
+      const top = all
+        .filter((e) => Number.isFinite(e.mtime) && e.mtime > 0)
+        .sort((a, b) => b.mtime - a.mtime)
+        .slice(0, 8);
+      setRecents(top);
+    });
+    return () => {
+      dead = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [listing?.path, isAtRoot, internal]);
+
   return (
     <div
-      className="relative flex min-w-0 max-w-full flex-col gap-4"
+      className="relative flex min-w-0 max-w-full gap-4"
       onDragEnter={onDragEnter}
       onDragOver={onDragOver}
       onDragLeave={onDragLeave}
       onDrop={onDrop}
     >
       <Toast toast={toast} />
-      <PluginSlot name="files:top" />
       <input
         ref={fileInputRef}
         type="file"
@@ -318,6 +387,17 @@ export default function FilesPage() {
         className="hidden"
         onChange={(e) => void uploadFiles(e.currentTarget.files)}
       />
+
+      <FilesRail
+        root={root}
+        activePath={activePath}
+        projects={projects}
+        onNavigate={setCurrentPath}
+        onPreview={setPreview}
+      />
+
+      <div className="flex min-w-0 flex-1 flex-col gap-4">
+      <PluginSlot name="files:top" />
 
       {/* Barra: voltar + trilha (esq) · visão + ações (dir). */}
       <div className="flex min-w-0 flex-wrap items-center gap-2">
@@ -428,6 +508,32 @@ export default function FilesPage() {
         </div>
       )}
 
+      {/* Recentes — só no Início (scan raso por mtime). */}
+      {isAtRoot && recents.length > 0 && (
+        <div>
+          <div className="mb-2 type-caption text-muted-foreground">{tf.recent}</div>
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(11rem,1fr))] gap-2">
+            {recents.map((e) => (
+              <button
+                key={e.path}
+                type="button"
+                onClick={() => openEntry(e)}
+                title={e.name}
+                className="flex min-w-0 items-center gap-2.5 rounded-xl border border-border p-2.5 text-left transition-colors hover:border-foreground/30 hover:bg-card"
+              >
+                <FileTypeIcon name={e.name} isDirectory={false} size="sm" />
+                <div className="min-w-0">
+                  <div className="truncate text-xs text-foreground">{e.name}</div>
+                  <div className="type-micro text-muted-foreground">
+                    {Number.isFinite(e.mtime) ? DATE_FORMAT.format(e.mtime * 1000) : "—"}
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {loading && !listing ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
           <Spinner />
@@ -445,14 +551,17 @@ export default function FilesPage() {
               coloca tudo em `user` quando internal). O backend ainda recusa
               apagar caminhos críticos como defesa extra. */}
           {view === "grid" ? (
-            <FileGrid entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} />
+            <FileGrid entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} onTogglePin={togglePin} tf={tf} />
           ) : (
-            <FileList entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} />
+            <FileList entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} onTogglePin={togglePin} tf={tf} />
           )}
         </>
       )}
 
-      {/* Overlay de drop — aparece só arrastando. */}
+        <PluginSlot name="files:bottom" />
+      </div>
+
+      {/* Overlay de drop — cobre rail+main; aparece só arrastando. */}
       {draggingFiles && (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl border-2 border-dashed border-live bg-live/10">
           <span className="flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-medium text-foreground shadow-card">
@@ -462,7 +571,9 @@ export default function FilesPage() {
         </div>
       )}
 
-      <PluginSlot name="files:bottom" />
+      {preview && (
+        <FilePreview entry={preview} onClose={() => setPreview(null)} onDownload={downloadFile} />
+      )}
 
       <Dialog
         open={createDialogOpen}
@@ -528,50 +639,66 @@ interface ViewProps {
   onOpen: (e: ManagedFileEntry) => void;
   onDelete: (e: ManagedFileEntry) => void;
   onDownload: (e: ManagedFileEntry) => void;
+  onTogglePin: (e: ManagedFileEntry) => void;
   tf: ReturnType<typeof useI18n>["t"]["files"];
   muted?: boolean;
 }
 
-function FileGrid({ entries, onOpen, onDelete, onDownload, tf, muted }: ViewProps) {
+function FileGrid({ entries, onOpen, onDelete, onDownload, onTogglePin, tf, muted }: ViewProps) {
   return (
     <div className={cn("grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5", muted && "opacity-70")}>
-      {entries.map((entry) => (
-        <div
-          key={entry.path}
-          className="group relative flex flex-col items-center gap-2.5 rounded-xl border border-transparent p-3 text-center transition-colors hover:border-border hover:bg-card"
-        >
-          <button
-            type="button"
-            onClick={() => onOpen(entry)}
-            className="flex w-full flex-col items-center gap-2.5"
-            title={entry.name}
+      {entries.map((entry) => {
+        const pinned = isFilePinned(entry.path);
+        return (
+          <div
+            key={entry.path}
+            className="group relative flex flex-col items-center gap-2.5 rounded-xl border border-transparent p-3 text-center transition-colors hover:border-border hover:bg-card"
           >
-            <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="lg" />
-            <span className="line-clamp-2 w-full break-words text-xs leading-snug text-foreground">{entry.name}</span>
-          </button>
-          {/* Ações no hover (canto). */}
-          <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-            {!entry.is_directory && (
-              <button
-                type="button"
-                onClick={() => onDownload(entry)}
-                aria-label={tf.download}
-                className="grid h-6 w-6 place-items-center rounded-md bg-card/90 text-muted-foreground shadow-sm hover:text-foreground"
-              >
-                <Download className="h-3.5 w-3.5" />
-              </button>
-            )}
+            {/* Estrela (favoritar) — sempre visível quando fixado; senão no hover. */}
             <button
               type="button"
-              onClick={() => onDelete(entry)}
-              aria-label={t_delete(tf, entry.name)}
-              className="grid h-6 w-6 place-items-center rounded-md bg-card/90 text-muted-foreground shadow-sm hover:text-destructive"
+              onClick={() => onTogglePin(entry)}
+              aria-label={pinned ? tf.unfavorite : tf.favorite}
+              className={cn(
+                "absolute left-1 top-1 grid h-6 w-6 place-items-center rounded-md transition-opacity",
+                pinned ? "opacity-100 text-live" : "opacity-0 text-muted-foreground group-hover:opacity-100 hover:text-foreground",
+              )}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Star className={cn("h-3.5 w-3.5", pinned && "fill-live")} />
             </button>
+            <button
+              type="button"
+              onClick={() => onOpen(entry)}
+              className="flex w-full flex-col items-center gap-2.5"
+              title={entry.name}
+            >
+              <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="lg" />
+              <span className="line-clamp-2 w-full break-words text-xs leading-snug text-foreground">{entry.name}</span>
+            </button>
+            {/* Ações no hover (canto). */}
+            <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+              {!entry.is_directory && (
+                <button
+                  type="button"
+                  onClick={() => onDownload(entry)}
+                  aria-label={tf.download}
+                  className="grid h-6 w-6 place-items-center rounded-md bg-card/90 text-muted-foreground shadow-sm hover:text-foreground"
+                >
+                  <Download className="h-3.5 w-3.5" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onDelete(entry)}
+                aria-label={t_delete(tf, entry.name)}
+                className="grid h-6 w-6 place-items-center rounded-md bg-card/90 text-muted-foreground shadow-sm hover:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </div>
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -580,50 +707,64 @@ function FileGrid({ entries, onOpen, onDelete, onDownload, tf, muted }: ViewProp
 /* Lista — linhas detalhadas                                           */
 /* ------------------------------------------------------------------ */
 
-function FileList({ entries, onOpen, onDelete, onDownload, tf, muted }: ViewProps) {
+function FileList({ entries, onOpen, onDelete, onDownload, onTogglePin, tf, muted }: ViewProps) {
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border", muted && "opacity-70")}>
-      <div className="grid grid-cols-[minmax(10rem,1fr)_6rem_11rem_4rem] items-center gap-3 border-b border-border bg-muted/40 px-4 py-2 type-micro uppercase tracking-wide text-muted-foreground">
+      <div className="grid grid-cols-[minmax(10rem,1fr)_6rem_11rem_5.5rem] items-center gap-3 border-b border-border bg-muted/40 px-4 py-2 type-micro uppercase tracking-wide text-muted-foreground">
         <span>{tf.colName}</span>
         <span className="text-right">{tf.colSize}</span>
         <span>{tf.colModified}</span>
         <span className="text-right">{tf.colActions}</span>
       </div>
-      {entries.map((entry) => (
-        <div
-          key={entry.path}
-          className="grid grid-cols-[minmax(10rem,1fr)_6rem_11rem_4rem] items-center gap-3 border-b border-border/60 px-4 py-1.5 text-sm last:border-b-0 hover:bg-card"
-        >
-          <button type="button" onClick={() => onOpen(entry)} className="flex min-w-0 items-center gap-2.5 text-left" title={entry.name}>
-            <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="sm" />
-            <span className="truncate text-foreground">{entry.name}</span>
-          </button>
-          <span className="text-right text-xs tabular-nums text-muted-foreground">{formatBytes(entry.size)}</span>
-          <span className="truncate text-xs text-muted-foreground">
-            {Number.isFinite(entry.mtime) ? DATE_FORMAT.format(entry.mtime * 1000) : "—"}
-          </span>
-          <span className="flex justify-end gap-0.5">
-            {!entry.is_directory && (
+      {entries.map((entry) => {
+        const pinned = isFilePinned(entry.path);
+        return (
+          <div
+            key={entry.path}
+            className="group grid grid-cols-[minmax(10rem,1fr)_6rem_11rem_5.5rem] items-center gap-3 border-b border-border/60 px-4 py-1.5 text-sm last:border-b-0 hover:bg-card"
+          >
+            <button type="button" onClick={() => onOpen(entry)} className="flex min-w-0 items-center gap-2.5 text-left" title={entry.name}>
+              <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="sm" />
+              <span className="truncate text-foreground">{entry.name}</span>
+            </button>
+            <span className="text-right text-xs tabular-nums text-muted-foreground">{formatBytes(entry.size)}</span>
+            <span className="truncate text-xs text-muted-foreground">
+              {Number.isFinite(entry.mtime) ? DATE_FORMAT.format(entry.mtime * 1000) : "—"}
+            </span>
+            <span className="flex justify-end gap-0.5">
               <button
                 type="button"
-                onClick={() => onDownload(entry)}
-                aria-label={tf.download}
-                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+                onClick={() => onTogglePin(entry)}
+                aria-label={pinned ? tf.unfavorite : tf.favorite}
+                className={cn(
+                  "grid h-7 w-7 place-items-center rounded-md transition-all",
+                  pinned ? "text-live" : "text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground",
+                )}
               >
-                <Download className="h-4 w-4" />
+                <Star className={cn("h-4 w-4", pinned && "fill-live")} />
               </button>
-            )}
-            <button
-              type="button"
-              onClick={() => onDelete(entry)}
-              aria-label={t_delete(tf, entry.name)}
-              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4" />
-            </button>
-          </span>
-        </div>
-      ))}
+              {!entry.is_directory && (
+                <button
+                  type="button"
+                  onClick={() => onDownload(entry)}
+                  aria-label={tf.download}
+                  className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground opacity-0 transition-all hover:text-foreground group-hover:opacity-100"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => onDelete(entry)}
+                aria-label={t_delete(tf, entry.name)}
+                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground opacity-0 transition-all hover:text-destructive group-hover:opacity-100"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }

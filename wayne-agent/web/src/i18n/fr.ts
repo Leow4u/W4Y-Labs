@@ -599,6 +599,13 @@ export const fr: Translations = {
     confirmDeleteTitle: "Supprimer {name} ?",
     confirmDeleteFolder: "Ceci supprime le dossier et tout son contenu.",
     confirmDeleteFile: "Ceci supprime le fichier.",
+    recent: "Récents",
+    quickAccess: "Accès rapide",
+    favorites: "Favoris",
+    favorite: "Ajouter aux favoris",
+    unfavorite: "Retirer des favoris",
+    noFavorites: "Aucun favori pour l'instant",
+    previewUnavailable: "Pas d'aperçu — téléchargez pour ouvrir.",
   },
   cron: {
     confirmDeleteMessage:

@@ -599,6 +599,13 @@ export const ga: Translations = {
     confirmDeleteTitle: "Scrios {name}?",
     confirmDeleteFolder: "Baineann sé seo an fillteán agus a bhfuil ann.",
     confirmDeleteFile: "Baineann sé seo an comhad.",
+    recent: "Le déanaí",
+    quickAccess: "Rochtain thapa",
+    favorites: "Ceanáin",
+    favorite: "Cuir le ceanáin",
+    unfavorite: "Bain de na ceanáin",
+    noFavorites: "Níl aon cheanán fós",
+    previewUnavailable: "Gan réamhamharc — íoslódáil chun oscailt.",
   },
   cron: {
     confirmDeleteMessage:

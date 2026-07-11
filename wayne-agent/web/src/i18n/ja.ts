@@ -599,6 +599,13 @@ export const ja: Translations = {
     confirmDeleteTitle: "{name} を削除しますか？",
     confirmDeleteFolder: "フォルダとその中身をすべて削除します。",
     confirmDeleteFile: "このファイルを削除します。",
+    recent: "最近",
+    quickAccess: "クイックアクセス",
+    favorites: "お気に入り",
+    favorite: "お気に入りに追加",
+    unfavorite: "お気に入りから削除",
+    noFavorites: "まだお気に入りはありません",
+    previewUnavailable: "プレビューなし — 開くにはダウンロード。",
   },
   cron: {
     confirmDeleteMessage:

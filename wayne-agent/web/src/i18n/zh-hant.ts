@@ -599,6 +599,13 @@ export const zhHant: Translations = {
     confirmDeleteTitle: "刪除 {name}？",
     confirmDeleteFolder: "這將刪除該資料夾及其中的所有內容。",
     confirmDeleteFile: "這將刪除該檔案。",
+    recent: "最近",
+    quickAccess: "快速存取",
+    favorites: "收藏",
+    favorite: "加入收藏",
+    unfavorite: "取消收藏",
+    noFavorites: "還沒有收藏",
+    previewUnavailable: "無預覽 — 下載後開啟。",
   },
   cron: {
     confirmDeleteMessage:

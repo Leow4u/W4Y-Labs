@@ -599,6 +599,13 @@ export const tr: Translations = {
     confirmDeleteTitle: "{name} silinsin mi?",
     confirmDeleteFolder: "Bu, klasörü ve içindeki her şeyi kaldırır.",
     confirmDeleteFile: "Bu, dosyayı kaldırır.",
+    recent: "Son öğeler",
+    quickAccess: "Hızlı erişim",
+    favorites: "Favoriler",
+    favorite: "Favorilere ekle",
+    unfavorite: "Favorilerden çıkar",
+    noFavorites: "Henüz favori yok",
+    previewUnavailable: "Önizleme yok — açmak için indir.",
   },
   cron: {
     confirmDeleteMessage:

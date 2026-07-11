@@ -599,6 +599,13 @@ export const it: Translations = {
     confirmDeleteTitle: "Eliminare {name}?",
     confirmDeleteFolder: "Questo rimuove la cartella e tutto il suo contenuto.",
     confirmDeleteFile: "Questo rimuove il file.",
+    recent: "Recenti",
+    quickAccess: "Accesso rapido",
+    favorites: "Preferiti",
+    favorite: "Aggiungi ai preferiti",
+    unfavorite: "Rimuovi dai preferiti",
+    noFavorites: "Ancora nessun preferito",
+    previewUnavailable: "Nessuna anteprima — scarica per aprire.",
   },
   cron: {
     confirmDeleteMessage:

@@ -599,6 +599,13 @@ export const af: Translations = {
     confirmDeleteTitle: "Skrap {name}?",
     confirmDeleteFolder: "Dit verwyder die vouer en alles daarin.",
     confirmDeleteFile: "Dit verwyder die lêer.",
+    recent: "Onlangs",
+    quickAccess: "Vinnige toegang",
+    favorites: "Gunstelinge",
+    favorite: "Voeg by gunstelinge",
+    unfavorite: "Verwyder uit gunstelinge",
+    noFavorites: "Nog geen gunstelinge nie",
+    previewUnavailable: "Geen voorskou — laai af om oop te maak.",
   },
   cron: {
     confirmDeleteMessage:

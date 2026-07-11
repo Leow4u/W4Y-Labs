@@ -597,6 +597,13 @@ export const zh: Translations = {
     confirmDeleteTitle: "删除 {name}？",
     confirmDeleteFolder: "这将删除该文件夹及其中的所有内容。",
     confirmDeleteFile: "这将删除该文件。",
+    recent: "最近",
+    quickAccess: "快速访问",
+    favorites: "收藏",
+    favorite: "加入收藏",
+    unfavorite: "取消收藏",
+    noFavorites: "还没有收藏",
+    previewUnavailable: "无预览 — 下载后打开。",
   },
   cron: {
     confirmDeleteMessage: "将从此计划移除该任务，此操作无法撤销。",

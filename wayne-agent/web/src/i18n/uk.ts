@@ -599,6 +599,13 @@ export const uk: Translations = {
     confirmDeleteTitle: "Видалити {name}?",
     confirmDeleteFolder: "Це видалить папку та весь її вміст.",
     confirmDeleteFile: "Це видалить файл.",
+    recent: "Нещодавні",
+    quickAccess: "Швидкий доступ",
+    favorites: "Обране",
+    favorite: "Додати в обране",
+    unfavorite: "Прибрати з обраного",
+    noFavorites: "Ще немає обраного",
+    previewUnavailable: "Немає перегляду — завантажте, щоб відкрити.",
   },
   cron: {
     confirmDeleteMessage:

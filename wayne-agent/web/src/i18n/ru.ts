@@ -599,6 +599,13 @@ export const ru: Translations = {
     confirmDeleteTitle: "Удалить {name}?",
     confirmDeleteFolder: "Это удалит папку и всё её содержимое.",
     confirmDeleteFile: "Это удалит файл.",
+    recent: "Недавние",
+    quickAccess: "Быстрый доступ",
+    favorites: "Избранное",
+    favorite: "В избранное",
+    unfavorite: "Убрать из избранного",
+    noFavorites: "Пока нет избранного",
+    previewUnavailable: "Нет предпросмотра — скачайте, чтобы открыть.",
   },
   cron: {
     confirmDeleteMessage:

@@ -599,6 +599,13 @@ export const hu: Translations = {
     confirmDeleteTitle: "Törlöd: {name}?",
     confirmDeleteFolder: "Ez eltávolítja a mappát és a teljes tartalmát.",
     confirmDeleteFile: "Ez eltávolítja a fájlt.",
+    recent: "Legutóbbi",
+    quickAccess: "Gyors elérés",
+    favorites: "Kedvencek",
+    favorite: "Hozzáadás a kedvencekhez",
+    unfavorite: "Eltávolítás a kedvencekből",
+    noFavorites: "Még nincs kedvenc",
+    previewUnavailable: "Nincs előnézet — töltsd le a megnyitáshoz.",
   },
   cron: {
     confirmDeleteMessage:

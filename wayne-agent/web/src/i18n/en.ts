@@ -614,6 +614,13 @@ export const en: Translations = {
     confirmDeleteTitle: "Delete {name}?",
     confirmDeleteFolder: "This removes the folder and everything inside it.",
     confirmDeleteFile: "This removes the file.",
+    recent: "Recent",
+    quickAccess: "Quick access",
+    favorites: "Favorites",
+    favorite: "Add to favorites",
+    unfavorite: "Remove from favorites",
+    noFavorites: "Nothing favorited yet",
+    previewUnavailable: "No preview — download to open.",
   },
   cron: {
     confirmDeleteMessage:
