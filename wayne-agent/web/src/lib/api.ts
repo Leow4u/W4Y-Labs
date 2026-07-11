@@ -1359,6 +1359,36 @@ export const api = {
     fetchJSON<SkillHubCatalogResponse>(
       `/api/skills/hub/catalog${profileQuery(profile)}`,
     ),
+  // ── Conectores (ponte Composio) — catálogo 1000+, conectar (Connect Link),
+  //    status por escopo (global|<agente>) e attach/regeneração da sessão MCP.
+  getConnectorsCatalog: (refresh = false) =>
+    fetchJSON<ConnectorCatalogResponse>(
+      `/api/connectors/catalog${refresh ? "?refresh=true" : ""}`,
+    ),
+  getConnectorsStatus: (scope = "global") =>
+    fetchJSON<ConnectorStatusResponse>(
+      `/api/connectors/status?scope=${encodeURIComponent(scope)}`,
+    ),
+  connectConnector: (toolkit: string, scope = "global") =>
+    fetchJSON<ConnectorConnectResponse>("/api/connectors/connect", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ toolkit, scope }),
+    }),
+  attachConnectors: (scope = "global") =>
+    fetchJSON<{ ok: boolean; scope: string; entry: string; written: number }>(
+      "/api/connectors/attach",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scope }),
+      },
+    ),
+  disconnectConnectorAccount: (accountId: string) =>
+    fetchJSON<{ ok: boolean }>(
+      `/api/connectors/accounts/${encodeURIComponent(accountId)}`,
+      { method: "DELETE" },
+    ),
   previewSkillFromHub: (identifier: string) =>
     fetchJSON<SkillHubPreview>(
       `/api/skills/hub/preview?identifier=${encodeURIComponent(identifier)}`,
@@ -1432,6 +1462,56 @@ export interface SkillHubResult {
 export interface SkillHubCatalogResponse {
   skills: SkillHubResult[];
   installed: Record<string, SkillHubInstalledEntry>;
+}
+
+// ── Conectores (ponte Composio) ─────────────────────────────────────────
+
+/** Um toolkit do catálogo Composio, trimado pro marketplace. */
+export interface ConnectorToolkit {
+  slug: string;
+  name: string;
+  description: string;
+  logo: string | null;
+  categories: string[];
+  no_auth: boolean;
+  managed_auth: boolean;
+  auth_schemes: string[];
+  tools_count: number | null;
+  triggers_count: number | null;
+}
+
+export interface ConnectorCatalogResponse {
+  toolkits: ConnectorToolkit[];
+  total: number;
+}
+
+/** Conta conectada (por escopo) na Composio. */
+export interface ConnectorAccount {
+  id: string;
+  toolkit: string;
+  /** INITIALIZING | INITIATED | ACTIVE | FAILED | EXPIRED | INACTIVE | REVOKED */
+  status: string;
+  created_at?: string | null;
+}
+
+export interface ConnectorStatusResponse {
+  scope: string;
+  user_id: string;
+  accounts: ConnectorAccount[];
+  /** Em quantos configs (homes) a entrada MCP do escopo está anexada. */
+  attached: number;
+  homes: number;
+  entry: string;
+}
+
+export interface ConnectorConnectResponse {
+  scope: string;
+  toolkit: string;
+  /** Link de autorização (página white-label) — ausente p/ toolkits no_auth. */
+  redirect_url?: string;
+  connected_account_id?: string;
+  no_auth?: boolean;
+  attached: number;
 }
 
 /** Lock-entry summary for an already-installed hub skill (keyed by identifier). */

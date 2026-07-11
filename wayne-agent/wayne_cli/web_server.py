@@ -1970,6 +1970,360 @@ async def move_managed_file(payload: ManagedFileMove, request: Request):
     }
 
 
+# ── Conectores — ponte Composio (Onda 1) ─────────────────────────────
+# Liga o dashboard à Composio (Sessions + connected accounts): catálogo dos
+# 1000+ toolkits, iniciar conexão (Connect Link OAuth white-label), status por
+# escopo e attach da sessão MCP nos configs. Escopos: "global" (user_id
+# "global"; a MESMA sessão replicada no default + todos os agentes — fan-out)
+# ou o nome de um profile (user_id = profile; entrada só naquele agente).
+# REST puro, sem SDK (decisão 11/07). O segredo COMPOSIO_API_KEY vive no .env
+# do tenant; nas entradas gravadas vai só o placeholder ${COMPOSIO_API_KEY}.
+# NUNCA logar/retornar valores resolvidos (lição do POC: _get_mcp_servers
+# interpola na leitura — imprimir config resolvido vaza a chave).
+
+_COMPOSIO_BASE = "https://backend.composio.dev"
+_COMPOSIO_TIMEOUT = 30.0
+_COMPOSIO_CATALOG_TTL = 6 * 3600.0
+_composio_catalog_cache: Dict[str, Any] = {"at": 0.0, "data": None}
+_CONNECTOR_ENTRY_GLOBAL = "composio"
+_CONNECTOR_ENTRY_AGENT = "composio_agente"
+
+
+def _composio_key() -> str:
+    """COMPOSIO_API_KEY do tenant, saneada (o POC pegou NBSP de copy-paste)."""
+    try:
+        from wayne_cli.env_loader import load_wayne_dotenv
+        from wayne_cli.profiles import _get_default_wayne_home
+
+        load_wayne_dotenv(wayne_home=str(_get_default_wayne_home()))
+    except Exception:
+        pass
+    raw = os.environ.get("COMPOSIO_API_KEY", "")
+    key = re.sub(r"[\s \"']+", "", raw)
+    if not key:
+        raise HTTPException(
+            status_code=503,
+            detail="COMPOSIO_API_KEY is not configured for this tenant",
+        )
+    return key
+
+
+def _composio_request(
+    method: str,
+    path: str,
+    *,
+    params: Optional[dict] = None,
+    body: Optional[dict] = None,
+) -> Any:
+    """Chamada REST à Composio. Erros viram 502 com corpo truncado (sem chave)."""
+    import httpx
+
+    try:
+        resp = httpx.request(
+            method,
+            _COMPOSIO_BASE + path,
+            params=params,
+            json=body,
+            headers={"x-api-key": _composio_key()},
+            timeout=_COMPOSIO_TIMEOUT,
+        )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Composio unreachable: {exc}")
+    if resp.status_code == 401:
+        raise HTTPException(
+            status_code=502,
+            detail="Composio rejected the API key (401) — check COMPOSIO_API_KEY",
+        )
+    if resp.status_code >= 400:
+        raise HTTPException(
+            status_code=502, detail=f"Composio {resp.status_code}: {resp.text[:300]}"
+        )
+    try:
+        return resp.json()
+    except Exception:
+        raise HTTPException(status_code=502, detail="Composio returned non-JSON")
+
+
+def _connector_user_id(scope: str) -> str:
+    """user_id Composio do escopo: 'global' ou o nome canônico do profile."""
+    scope = (scope or "global").strip() or "global"
+    if scope == "global":
+        return "global"
+    from wayne_cli.profiles import normalize_profile_name
+
+    return normalize_profile_name(scope)
+
+
+def _connector_homes(scope: str) -> List[Path]:
+    """Diretórios de config (WAYNE_HOMEs) que recebem a entrada deste escopo."""
+    from wayne_cli.profiles import (
+        _get_default_wayne_home,
+        get_profile_dir,
+        list_profiles,
+    )
+
+    if scope == "global":
+        homes = [_get_default_wayne_home()]
+        try:
+            for info in list_profiles():
+                name = getattr(info, "name", None) or (
+                    info.get("name") if isinstance(info, dict) else None
+                )
+                if not name or name == "default":
+                    continue
+                homes.append(get_profile_dir(name))
+        except Exception:
+            _log.exception("connector fan-out: profile listing failed")
+        return homes
+    target = get_profile_dir(scope)
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"Profile '{scope}' not found")
+    return [target]
+
+
+def _write_connector_entry(homes: List[Path], entry_name: str, url: str) -> int:
+    """Grava/atualiza a entrada mcp_servers do conector nos homes dados."""
+    from wayne_constants import set_wayne_home_override, reset_wayne_home_override
+    from wayne_cli.config import load_config as _load_cfg, save_config as _save_cfg
+
+    wrote = 0
+    for home in homes:
+        token = set_wayne_home_override(str(home))
+        try:
+            cfg = _load_cfg() or {}
+            cfg.setdefault("mcp_servers", {})[entry_name] = {
+                "url": url,
+                "headers": {"x-api-key": "${COMPOSIO_API_KEY}"},
+                "enabled": True,
+            }
+            _save_cfg(cfg)
+            wrote += 1
+        except Exception:
+            _log.exception("connector entry write failed for %s", home)
+        finally:
+            reset_wayne_home_override(token)
+    return wrote
+
+
+def _connector_session(scope: str) -> str:
+    """Cria uma sessão Composio pro escopo e devolve a URL MCP dela."""
+    uid = _connector_user_id(scope)
+    data = _composio_request(
+        "POST", "/api/v3.1/tool_router/session", body={"user_id": uid}
+    )
+    url = ((data or {}).get("mcp") or {}).get("url")
+    if not url:
+        raise HTTPException(
+            status_code=502, detail="Composio session did not return an MCP URL"
+        )
+    return str(url)
+
+
+def _ensure_auth_config(toolkit: str) -> str:
+    """auth_config gerenciada da toolkit (cria se não existir). Devolve o id."""
+    listing = _composio_request(
+        "GET",
+        "/api/v3/auth_configs",
+        params={"toolkit_slug": toolkit, "is_composio_managed": "true", "limit": 10},
+    )
+    for it in (listing or {}).get("items") or []:
+        cid = it.get("id") or it.get("nanoid")
+        status = str(it.get("status") or "").upper()
+        if cid and status != "DISABLED":
+            return str(cid)
+    created = _composio_request(
+        "POST",
+        "/api/v3/auth_configs",
+        body={
+            "toolkit": {"slug": toolkit},
+            "auth_config": {"type": "use_composio_managed_auth"},
+        },
+    )
+    created = created or {}
+    cid = (
+        (created.get("auth_config") or {}).get("id")
+        or created.get("id")
+        or created.get("nanoid")
+    )
+    if not cid:
+        raise HTTPException(
+            status_code=502, detail="Composio auth config creation returned no id"
+        )
+    return str(cid)
+
+
+@app.get("/api/connectors/catalog")
+async def connectors_catalog(refresh: bool = False):
+    """Catálogo Composio (1000+ toolkits) trimado pro marketplace; cache 6h."""
+
+    def _run():
+        now = time.time()
+        cached = _composio_catalog_cache.get("data")
+        if cached and not refresh and now - _composio_catalog_cache["at"] < _COMPOSIO_CATALOG_TTL:
+            return cached
+        items: List[Dict[str, Any]] = []
+        cursor: Optional[str] = None
+        for _ in range(40):  # ~1047 toolkits / 100 por página + folga
+            params: Dict[str, Any] = {"limit": 100}
+            if cursor:
+                params["cursor"] = cursor
+            page = _composio_request("GET", "/api/v3/toolkits", params=params) or {}
+            for it in page.get("items") or []:
+                meta = it.get("meta") or {}
+                cat_names: List[str] = []
+                for c in meta.get("categories") or []:
+                    if isinstance(c, dict):
+                        cat_names.append(str(c.get("name") or c.get("slug") or "").strip())
+                    elif c:
+                        cat_names.append(str(c).strip())
+                items.append(
+                    {
+                        "slug": it.get("slug"),
+                        "name": it.get("name"),
+                        "description": (meta.get("description") or "")[:240],
+                        "logo": meta.get("logo"),
+                        "categories": [c for c in cat_names if c],
+                        "no_auth": bool(it.get("no_auth")),
+                        "managed_auth": bool(it.get("composio_managed_auth_schemes")),
+                        "auth_schemes": it.get("auth_schemes") or [],
+                        "tools_count": meta.get("tools_count"),
+                        "triggers_count": meta.get("triggers_count"),
+                    }
+                )
+            cursor = page.get("next_cursor")
+            if not cursor:
+                break
+        data = {"toolkits": items, "total": len(items)}
+        _composio_catalog_cache.update(at=now, data=data)
+        return data
+
+    return await asyncio.to_thread(_run)
+
+
+@app.get("/api/connectors/status")
+async def connectors_status(scope: str = "global"):
+    """Contas conectadas do escopo + se a sessão MCP está anexada nos configs."""
+
+    def _run():
+        uid = _connector_user_id(scope)
+        entry = _CONNECTOR_ENTRY_GLOBAL if scope == "global" else _CONNECTOR_ENTRY_AGENT
+        data = _composio_request(
+            "GET",
+            "/api/v3/connected_accounts",
+            params={"user_ids": uid, "limit": 100},
+        ) or {}
+        accounts = []
+        for it in data.get("items") or []:
+            tk = it.get("toolkit") or {}
+            accounts.append(
+                {
+                    "id": it.get("id") or it.get("nanoid"),
+                    "toolkit": tk.get("slug") if isinstance(tk, dict) else str(tk),
+                    "status": it.get("status"),
+                    "created_at": it.get("created_at"),
+                }
+            )
+        from wayne_constants import set_wayne_home_override, reset_wayne_home_override
+        from wayne_cli.config import load_config as _load_cfg
+
+        attached = 0
+        homes = _connector_homes(scope)
+        for home in homes:
+            token = set_wayne_home_override(str(home))
+            try:
+                if entry in ((_load_cfg() or {}).get("mcp_servers") or {}):
+                    attached += 1
+            except Exception:
+                pass
+            finally:
+                reset_wayne_home_override(token)
+        return {
+            "scope": scope,
+            "user_id": uid,
+            "accounts": accounts,
+            "attached": attached,
+            "homes": len(homes),
+            "entry": entry,
+        }
+
+    return await asyncio.to_thread(_run)
+
+
+class ConnectorConnect(BaseModel):
+    toolkit: str
+    scope: str = "global"
+
+
+@app.post("/api/connectors/connect")
+async def connectors_connect(body: ConnectorConnect):
+    """Inicia a conexão de um toolkit no escopo: devolve o Connect Link (OAuth,
+    página white-label) e garante a sessão MCP anexada — pós-autorização os
+    agentes do escopo já enxergam as ferramentas, sem passo extra."""
+
+    toolkit = (body.toolkit or "").strip().lower()
+    if not re.fullmatch(r"[a-z0-9_-]{1,64}", toolkit):
+        raise HTTPException(status_code=400, detail="invalid toolkit slug")
+    scope = (body.scope or "global").strip() or "global"
+
+    def _run():
+        uid = _connector_user_id(scope)
+        entry = _CONNECTOR_ENTRY_GLOBAL if scope == "global" else _CONNECTOR_ENTRY_AGENT
+        out: Dict[str, Any] = {"scope": scope, "toolkit": toolkit}
+        info = _composio_request("GET", f"/api/v3/toolkits/{toolkit}") or {}
+        if info.get("no_auth"):
+            out["no_auth"] = True
+        else:
+            auth_id = _ensure_auth_config(toolkit)
+            link = _composio_request(
+                "POST",
+                "/api/v3/connected_accounts/link",
+                body={"auth_config_id": auth_id, "user_id": uid},
+            ) or {}
+            out["redirect_url"] = link.get("redirect_url")
+            out["connected_account_id"] = link.get("connected_account_id")
+        url = _connector_session(scope)
+        out["attached"] = _write_connector_entry(_connector_homes(scope), entry, url)
+        return out
+
+    return await asyncio.to_thread(_run)
+
+
+class ConnectorAttach(BaseModel):
+    scope: str = "global"
+
+
+@app.post("/api/connectors/attach")
+async def connectors_attach(body: ConnectorAttach):
+    """(Re)cria a sessão Composio do escopo e grava a entrada MCP nos configs
+    (global = default + todos os agentes; agente = só nele). Também serve para
+    regenerar a sessão quando a antiga expira/invalida."""
+
+    scope = (body.scope or "global").strip() or "global"
+
+    def _run():
+        entry = _CONNECTOR_ENTRY_GLOBAL if scope == "global" else _CONNECTOR_ENTRY_AGENT
+        url = _connector_session(scope)
+        wrote = _write_connector_entry(_connector_homes(scope), entry, url)
+        return {"ok": True, "scope": scope, "entry": entry, "written": wrote}
+
+    return await asyncio.to_thread(_run)
+
+
+@app.delete("/api/connectors/accounts/{account_id}")
+async def connectors_disconnect(account_id: str):
+    """Desconecta uma conta (revoga o acesso àquele app no escopo dela)."""
+    if not re.fullmatch(r"[A-Za-z0-9_-]{4,64}", account_id or ""):
+        raise HTTPException(status_code=400, detail="invalid account id")
+
+    def _run():
+        _composio_request("DELETE", f"/api/v3/connected_accounts/{account_id}")
+        return {"ok": True}
+
+    return await asyncio.to_thread(_run)
+
+
 @app.get("/api/fs/list")
 async def fs_list(path: str):
     target = _fs_path(path)
