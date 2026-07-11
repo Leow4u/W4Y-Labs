@@ -1,28 +1,39 @@
+/**
+ * FilesPage — a gaveta de arquivos do tenant, com cara de desktop (Onda 1).
+ *
+ * A raiz de /api/files é o HOME persistente (/opt/data), então:
+ *   - SEPARA conteúdo do usuário do ruído do sistema (lib/file-curation) — a
+ *     infra vai pra uma seção "Sistema" recolhida; ?full=1 mostra tudo cru.
+ *   - Cada item ganha ÍCONE DE TIPO estilo desktop (lib/file-icons): pasta
+ *     âmbar, X verde do Excel, W azul do Word, P laranja do PPT, PDF vermelho…
+ *   - Navegação por TRILHA clicável (breadcrumb) + botão voltar.
+ *   - Alterna GRADE (blocos de ícones) ↔ LISTA (linhas detalhadas).
+ * Zero backend novo: a API já devolve name/size/mtime/mime_type + path/root.
+ */
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type DragEvent as ReactDragEvent,
 } from "react";
 import {
-  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
   Download,
-  FileIcon,
-  Folder,
-  FolderOpen,
   FolderPlus,
+  LayoutGrid,
+  List as ListIcon,
   RefreshCw,
+  Settings2,
   Trash2,
   Upload,
 } from "lucide-react";
-import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -36,23 +47,25 @@ import { usePageHeader } from "@/contexts/usePageHeader";
 import { isInternalView } from "@/lib/internal-view";
 import { api } from "@/lib/api";
 import type { ManagedFileEntry, ManagedFilesResponse } from "@/lib/api";
+import { FileTypeIcon } from "@/lib/file-icons";
+import { partitionEntries, sortEntries } from "@/lib/file-curation";
+import { useI18n } from "@/i18n";
+import { cn } from "@/lib/utils";
 import { PluginSlot } from "@/plugins";
 
-const DATE_FORMAT = new Intl.DateTimeFormat(undefined, {
-  dateStyle: "medium",
-  timeStyle: "short",
-});
+const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
+const VIEW_KEY = "w4y-files-view";
 
 function joinPath(base: string, name: string): string {
   const cleanName = name.trim().replace(/^[\\/]+/, "");
   if (!cleanName) return base;
-  const separator = base.includes("\\") && !base.includes("/") ? "\\" : "/";
+  const sep = base.includes("\\") && !base.includes("/") ? "\\" : "/";
   if (!base || base.endsWith("/") || base.endsWith("\\")) return `${base}${cleanName}`;
-  return `${base}${separator}${cleanName}`;
+  return `${base}${sep}${cleanName}`;
 }
 
 function formatBytes(size: number | null): string {
-  if (size === null) return "-";
+  if (size === null) return "—";
   if (size < 1024) return `${size} B`;
   if (size < 1024 * 1024) return `${(size / 1024).toFixed(1)} KB`;
   if (size < 1024 * 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
@@ -68,30 +81,23 @@ function downloadDataUrl(dataUrl: string, name: string) {
   link.remove();
 }
 
-function displayPath(path: string | null | undefined): string {
-  return path?.trim() || "Files";
-}
-
-// Só o nome da pasta atual (sem expor o caminho absoluto cru do sistema ao
-// usuário-final). O caminho completo continua visível para interno (?full=1).
-function displayFolderName(path: string | null | undefined): string {
-  const trimmed = path?.trim();
-  if (!trimmed) return "Files";
-  const segments = trimmed.split(/[\\/]+/).filter(Boolean);
-  return segments.length ? segments[segments.length - 1] : "Files";
-}
-
 function transferHasFiles(event: ReactDragEvent<HTMLElement>): boolean {
   return Array.from(event.dataTransfer.types).includes("Files");
 }
 
+interface Crumb {
+  label: string;
+  path: string;
+}
+
 export default function FilesPage() {
+  const { t } = useI18n();
+  const tf = t.files;
   const { toast, showToast } = useToast();
   const { setAfterTitle, setEnd } = usePageHeader();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
-  // Deep-link: /files?path=projects/x abre direto naquela pasta (usado pelo
-  // "Ver todos" da tela de projeto do chat). Lazy init — lê a URL uma vez.
+
   const [currentPath, setCurrentPath] = useState<string | undefined>(
     () => new URLSearchParams(window.location.search).get("path") ?? undefined,
   );
@@ -106,15 +112,26 @@ export default function FilesPage() {
   const [folderName, setFolderName] = useState("");
   const [pendingDelete, setPendingDelete] = useState<ManagedFileEntry | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSystem, setShowSystem] = useState(false);
+  const [view, setView] = useState<"grid" | "list">(() => {
+    try {
+      return localStorage.getItem(VIEW_KEY) === "list" ? "list" : "grid";
+    } catch {
+      return "grid";
+    }
+  });
+  const setViewPersist = (v: "grid" | "list") => {
+    setView(v);
+    try {
+      localStorage.setItem(VIEW_KEY, v);
+    } catch {
+      /* melhor esforço */
+    }
+  };
 
+  const internal = isInternalView();
   const activePath = listing?.path ?? currentPath ?? "";
-  const canChangePath = listing?.can_change_path ?? false;
   const canUpload = Boolean(activePath) && !uploading;
-  const rawHeaderPath = listing?.locked_root ?? listing?.path ?? currentPath;
-  // Interno vê o caminho absoluto; usuário-final vê só o nome da pasta atual.
-  const headerPath = isInternalView()
-    ? displayPath(rawHeaderPath)
-    : displayFolderName(rawHeaderPath);
 
   const load = useCallback(
     async (path = currentPath) => {
@@ -125,6 +142,7 @@ export default function FilesPage() {
         setListing(result);
         setCurrentPath(result.path);
         setPathInput(result.path);
+        setShowSystem(false);
       } catch (e) {
         setError(String(e));
       } finally {
@@ -135,61 +153,59 @@ export default function FilesPage() {
   );
 
   useEffect(() => {
-    // Existing dashboard data pages fetch from effects; keep this local and explicit
-    // until the shared lint profile is updated for async page loaders.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(currentPath);
   }, [currentPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Trilha de navegação (breadcrumb) a partir do path absoluto relativo à raiz.
+  const crumbs = useMemo<Crumb[]>(() => {
+    const root = listing?.locked_root ?? listing?.root ?? null;
+    const path = listing?.path ?? "";
+    if (!root || !path) return [];
+    const norm = (s: string) => s.replace(/[\\/]+$/, "");
+    const r = norm(root);
+    if (!path.startsWith(r)) return [{ label: tf.home, path }];
+    const rel = path.slice(r.length).replace(/^[\\/]+/, "");
+    const segs = rel ? rel.split(/[\\/]+/).filter(Boolean) : [];
+    const out: Crumb[] = [{ label: tf.home, path: r }];
+    let acc = r;
+    for (const s of segs) {
+      acc = `${acc}/${s}`;
+      out.push({ label: s, path: acc });
+    }
+    return out;
+  }, [listing?.locked_root, listing?.root, listing?.path, tf.home]);
+
+  // Header: só o refresh (a trilha fica no corpo). Limpa o badge antigo.
   useEffect(() => {
-    setAfterTitle(
-      <Badge tone="outline" className="max-w-[22rem] truncate text-xs" title={headerPath}>
-        {headerPath}
-      </Badge>,
-    );
+    setAfterTitle(null);
     setEnd(
-      <div className="flex items-center gap-2">
-        <Button
-          ghost
-          size="icon"
-          type="button"
-          onClick={() => void load()}
-          disabled={loading}
-          aria-label="Refresh files"
-        >
-          {loading ? <Spinner /> : <RefreshCw />}
-        </Button>
-      </div>,
+      <Button
+        ghost
+        size="icon"
+        type="button"
+        onClick={() => void load()}
+        disabled={loading}
+        aria-label={t.common.refresh}
+      >
+        {loading ? <Spinner /> : <RefreshCw />}
+      </Button>,
     );
     return () => {
       setAfterTitle(null);
       setEnd(null);
     };
-  }, [headerPath, load, loading, setAfterTitle, setEnd]);
+  }, [load, loading, setAfterTitle, setEnd, t.common.refresh]);
 
-  const openDirectory = (entry: ManagedFileEntry) => {
-    if (entry.is_directory) {
-      setCurrentPath(entry.path);
-    }
-  };
-
-  const goToPath = async () => {
-    const nextPath = pathInput.trim();
-    if (!nextPath) {
-      showToast("Path required", "error");
-      return;
-    }
-    await load(nextPath);
+  const goUp = () => {
+    if (listing?.parent) setCurrentPath(listing.parent);
   };
 
   const createDirectory = async () => {
     const name = folderName.trim();
-    if (!activePath) {
-      showToast("Directory unavailable", "error");
-      return;
-    }
+    if (!activePath) return;
     if (!name) {
-      showToast("Folder name required", "error");
+      showToast(tf.folderNameRequired, "error");
       return;
     }
     setCreating(true);
@@ -197,10 +213,10 @@ export default function FilesPage() {
       await api.createDirectory(joinPath(activePath, name));
       setFolderName("");
       setCreateDialogOpen(false);
-      showToast("Folder created", "success");
+      showToast(tf.created, "success");
       await load();
     } catch (e) {
-      showToast(`Create failed: ${e}`, "error");
+      showToast(`${tf.createFailed}: ${e}`, "error");
     } finally {
       setCreating(false);
     }
@@ -213,44 +229,19 @@ export default function FilesPage() {
       for (const file of Array.from(files)) {
         await api.uploadFile(joinPath(activePath, file.name), file, true);
       }
-      showToast(`${files.length} file${files.length === 1 ? "" : "s"} uploaded`, "success");
+      showToast(tf.uploaded.replace("{n}", String(files.length)), "success");
       await load();
     } catch (e) {
-      showToast(`Upload failed: ${e}`, "error");
+      showToast(`${tf.uploadFailed}: ${e}`, "error");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
-  const handleDragEnter = (event: ReactDragEvent<HTMLElement>) => {
-    if (!canUpload || !transferHasFiles(event)) return;
-    event.preventDefault();
-    dragDepthRef.current += 1;
-    setDraggingFiles(true);
-  };
-
-  const handleDragOver = (event: ReactDragEvent<HTMLElement>) => {
-    if (!canUpload || !transferHasFiles(event)) return;
-    event.preventDefault();
-    event.dataTransfer.dropEffect = "copy";
-  };
-
-  const handleDragLeave = (event: ReactDragEvent<HTMLElement>) => {
-    if (!canUpload || !transferHasFiles(event)) return;
-    event.preventDefault();
-    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
-    if (dragDepthRef.current === 0) {
-      setDraggingFiles(false);
-    }
-  };
-
-  const handleDrop = (event: ReactDragEvent<HTMLElement>) => {
-    if (!canUpload) return;
-    event.preventDefault();
-    dragDepthRef.current = 0;
-    setDraggingFiles(false);
-    void uploadFiles(event.dataTransfer.files);
+  const openEntry = (entry: ManagedFileEntry) => {
+    if (entry.is_directory) setCurrentPath(entry.path);
+    else void downloadFile(entry);
   };
 
   const downloadFile = async (entry: ManagedFileEntry) => {
@@ -259,7 +250,7 @@ export default function FilesPage() {
       const file = await api.readFile(entry.path);
       downloadDataUrl(file.data_url, file.name);
     } catch (e) {
-      showToast(`Download failed: ${e}`, "error");
+      showToast(`${tf.downloadFailed}: ${e}`, "error");
     }
   };
 
@@ -268,18 +259,60 @@ export default function FilesPage() {
     setDeleting(true);
     try {
       await api.deleteFile(pendingDelete.path, pendingDelete.is_directory);
-      showToast("Deleted", "success");
+      showToast(tf.deleted, "success");
       setPendingDelete(null);
       await load();
     } catch (e) {
-      showToast(`Delete failed: ${e}`, "error");
+      showToast(`${tf.deleteFailed}: ${e}`, "error");
     } finally {
       setDeleting(false);
     }
   };
 
+  // Drag-drop na área toda.
+  const onDragEnter = (e: ReactDragEvent<HTMLElement>) => {
+    if (!canUpload || !transferHasFiles(e)) return;
+    e.preventDefault();
+    dragDepthRef.current += 1;
+    setDraggingFiles(true);
+  };
+  const onDragOver = (e: ReactDragEvent<HTMLElement>) => {
+    if (!canUpload || !transferHasFiles(e)) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "copy";
+  };
+  const onDragLeave = (e: ReactDragEvent<HTMLElement>) => {
+    if (!canUpload || !transferHasFiles(e)) return;
+    e.preventDefault();
+    dragDepthRef.current = Math.max(0, dragDepthRef.current - 1);
+    if (dragDepthRef.current === 0) setDraggingFiles(false);
+  };
+  const onDrop = (e: ReactDragEvent<HTMLElement>) => {
+    if (!canUpload) return;
+    e.preventDefault();
+    dragDepthRef.current = 0;
+    setDraggingFiles(false);
+    void uploadFiles(e.dataTransfer.files);
+  };
+
+  // Partição: usuário vs sistema (visão interna mostra tudo cru).
+  const { user, system } = useMemo(() => {
+    const entries = listing?.entries ?? [];
+    if (internal) return { user: sortEntries(entries), system: [] as ManagedFileEntry[] };
+    const p = partitionEntries(entries);
+    return { user: sortEntries(p.user), system: sortEntries(p.system) };
+  }, [listing?.entries, internal]);
+
+  const isEmpty = !loading && listing && user.length === 0 && system.length === 0;
+
   return (
-    <div className="flex min-w-0 max-w-full flex-col gap-4">
+    <div
+      className="relative flex min-w-0 max-w-full flex-col gap-4"
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
       <Toast toast={toast} />
       <PluginSlot name="files:top" />
       <input
@@ -287,46 +320,98 @@ export default function FilesPage() {
         type="file"
         multiple
         className="hidden"
-        onChange={(event) => void uploadFiles(event.currentTarget.files)}
+        onChange={(e) => void uploadFiles(e.currentTarget.files)}
       />
 
-      <div className="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-        {isInternalView() &&
-          (canChangePath ? (
-            <form
-              className="flex min-w-0 flex-1 items-center gap-2"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void goToPath();
-              }}
+      {/* Barra: voltar + trilha (esq) · visão + ações (dir). */}
+      <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <Button
+          ghost
+          size="icon"
+          type="button"
+          onClick={goUp}
+          disabled={!listing?.parent}
+          aria-label={tf.back}
+          className="shrink-0"
+        >
+          <ChevronLeft />
+        </Button>
+
+        {internal ? (
+          <form
+            className="flex min-w-0 flex-1 items-center gap-2"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (pathInput.trim()) void load(pathInput.trim());
+            }}
+          >
+            <Input
+              value={pathInput}
+              onChange={(e) => setPathInput(e.target.value)}
+              aria-label="Path"
+              className="h-9 min-w-0 flex-1 font-mono"
+            />
+            <Button type="submit" size="sm" outlined>
+              Go
+            </Button>
+          </form>
+        ) : (
+          <nav className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto text-sm">
+            {crumbs.map((c, i) => (
+              <span key={c.path} className="flex shrink-0 items-center">
+                {i > 0 && <ChevronRight className="mx-0.5 h-3.5 w-3.5 text-muted-foreground" />}
+                <button
+                  type="button"
+                  onClick={() => setCurrentPath(c.path)}
+                  disabled={i === crumbs.length - 1}
+                  className={cn(
+                    "max-w-[14rem] truncate rounded px-1.5 py-0.5 transition-colors",
+                    i === crumbs.length - 1
+                      ? "font-medium text-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted",
+                  )}
+                >
+                  {c.label}
+                </button>
+              </span>
+            ))}
+          </nav>
+        )}
+
+        <div className="flex shrink-0 items-center gap-1">
+          <div className="mr-1 flex items-center rounded-lg border border-border p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewPersist("grid")}
+              aria-label={tf.viewGrid}
+              className={cn(
+                "grid h-7 w-7 place-items-center rounded-md transition-colors",
+                view === "grid" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
             >
-              <Input
-                value={pathInput}
-                onChange={(event) => setPathInput(event.target.value)}
-                aria-label="Path"
-                placeholder="Path"
-                className="h-9 min-w-0 flex-1 font-mono"
-              />
-              <Button type="submit" size="sm" outlined className="uppercase">
-                Go
-              </Button>
-            </form>
-          ) : (
-            <div className="min-w-0 truncate font-mono text-sm text-text-secondary" title={activePath}>
-              {activePath}
-            </div>
-          ))}
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <LayoutGrid className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewPersist("list")}
+              aria-label={tf.viewList}
+              className={cn(
+                "grid h-7 w-7 place-items-center rounded-md transition-colors",
+                view === "list" ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground",
+              )}
+            >
+              <ListIcon className="h-4 w-4" />
+            </button>
+          </div>
           <Button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={!canUpload}
             size="sm"
             outlined
-            className="uppercase"
             prefix={uploading ? <Spinner /> : <Upload />}
           >
-            Upload
+            {tf.upload}
           </Button>
           <Button
             type="button"
@@ -334,151 +419,72 @@ export default function FilesPage() {
             disabled={!activePath}
             size="sm"
             outlined
-            className="uppercase"
             prefix={<FolderPlus />}
           >
-            Create
+            {tf.newFolder}
           </Button>
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={() => canUpload && fileInputRef.current?.click()}
-        onDragEnter={handleDragEnter}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        disabled={!canUpload}
-        aria-label="Upload files"
-        className={`flex min-h-20 w-full min-w-0 items-center justify-between gap-4 border border-dashed px-4 py-3 text-left transition ${
-          draggingFiles
-            ? "border-primary bg-primary/10 text-foreground"
-            : "border-border bg-background/20 text-text-secondary hover:border-text-tertiary hover:bg-background/35"
-        } disabled:cursor-not-allowed disabled:opacity-60`}
-      >
-        <span className="flex min-w-0 items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center border border-border bg-background/45 text-text-tertiary">
-            {uploading ? <Spinner /> : <Upload className="h-4 w-4" />}
-          </span>
-          <span className="min-w-0">
-            <span className="block text-sm font-semibold uppercase tracking-[0.08em] text-foreground">
-              {uploading ? "Uploading" : draggingFiles ? "Release to upload" : "Drop files here"}
-            </span>
-            {isInternalView() ? (
-              <span className="block truncate font-mono text-xs text-text-secondary" title={activePath}>
-                {activePath || "Loading"}
-              </span>
-            ) : (
-              <span className="block truncate text-xs text-text-secondary">
-                {activePath ? displayFolderName(activePath) : "Loading"}
-              </span>
-            )}
-          </span>
-        </span>
-        <span className="hidden shrink-0 text-xs font-semibold uppercase tracking-[0.08em] text-text-tertiary sm:block">
-          Choose files
-        </span>
-      </button>
+      {error && (
+        <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
+          {error}
+        </div>
+      )}
 
-      <Card className="min-w-0 max-w-full overflow-hidden">
-        <CardContent className="overflow-x-auto p-0">
-          {error && (
-            <div className="border-b border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
-              {error}
-            </div>
-          )}
-
-          <div className="grid min-w-[42rem] grid-cols-[minmax(12rem,1fr)_7rem_10rem_5.5rem] items-center gap-3 border-b border-border px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-text-tertiary">
-            <span>Name</span>
-            <span>Size</span>
-            <span>Modified</span>
-            <span className="text-right">Actions</span>
-          </div>
-
-          {listing?.parent && (
-            <button
-              type="button"
-              onClick={() => setCurrentPath(listing.parent ?? undefined)}
-              className="grid w-full min-w-[42rem] grid-cols-[minmax(12rem,1fr)_7rem_10rem_5.5rem] items-center gap-3 border-b border-border/60 px-4 py-2 text-left text-sm transition hover:bg-background/40"
-            >
-              <span className="flex min-w-0 items-center gap-2 font-mono text-text-secondary">
-                <ArrowUp className="h-4 w-4 shrink-0 text-text-tertiary" />
-                ..
-              </span>
-              <span />
-              <span />
-              <span />
-            </button>
-          )}
-
-          {loading && !listing ? (
-            <div className="flex items-center justify-center gap-2 py-12 text-sm text-muted-foreground">
-              <Spinner />
-              Loading files...
-            </div>
-          ) : listing && listing.entries.length === 0 ? (
-            <div className="py-12 text-center text-sm text-muted-foreground">No files</div>
+      {loading && !listing ? (
+        <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
+          <Spinner />
+          {t.common.loading}
+        </div>
+      ) : isEmpty ? (
+        <div className="rounded-xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
+          {tf.empty}
+        </div>
+      ) : (
+        <>
+          {view === "grid" ? (
+            <FileGrid entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} />
           ) : (
-            listing?.entries.map((entry) => (
-              <div
-                key={entry.path}
-                className="grid min-w-[42rem] grid-cols-[minmax(12rem,1fr)_7rem_10rem_5.5rem] items-center gap-3 border-b border-border/60 px-4 py-2 text-sm last:border-b-0 hover:bg-background/35"
-              >
-                <button
-                  type="button"
-                  onClick={() => (entry.is_directory ? openDirectory(entry) : void downloadFile(entry))}
-                  className="flex min-w-0 items-center gap-2 text-left font-mono text-foreground"
-                >
-                  {entry.is_directory ? (
-                    <Folder className="h-4 w-4 shrink-0 text-warning" />
-                  ) : (
-                    <FileIcon className="h-4 w-4 shrink-0 text-text-tertiary" />
-                  )}
-                  <span className="truncate">{entry.name}</span>
-                </button>
-                <span className="text-xs tabular-nums text-text-secondary">{formatBytes(entry.size)}</span>
-                <span className="truncate text-xs text-text-secondary">
-                  {Number.isFinite(entry.mtime) ? DATE_FORMAT.format(entry.mtime * 1000) : "-"}
-                </span>
-                <span className="flex justify-end gap-1">
-                  {entry.is_directory ? (
-                    <Button
-                      ghost
-                      size="icon"
-                      type="button"
-                      onClick={() => openDirectory(entry)}
-                      aria-label={`Open ${entry.name}`}
-                    >
-                      <FolderOpen />
-                    </Button>
-                  ) : (
-                    <Button
-                      ghost
-                      size="icon"
-                      type="button"
-                      onClick={() => void downloadFile(entry)}
-                      aria-label={`Download ${entry.name}`}
-                    >
-                      <Download />
-                    </Button>
-                  )}
-                  <Button
-                    ghost
-                    size="icon"
-                    type="button"
-                    onClick={() => setPendingDelete(entry)}
-                    aria-label={`Delete ${entry.name}`}
-                    className="text-destructive hover:text-destructive"
-                  >
-                    <Trash2 />
-                  </Button>
-                </span>
-              </div>
-            ))
+            <FileList entries={user} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} />
           )}
-        </CardContent>
-      </Card>
+
+          {/* Seção Sistema — recolhida, só quando há ruído (e não no interno). */}
+          {system.length > 0 && (
+            <div className="mt-1">
+              <button
+                type="button"
+                onClick={() => setShowSystem((v) => !v)}
+                className="flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ChevronRight className={cn("h-4 w-4 transition-transform", showSystem && "rotate-90")} />
+                <Settings2 className="h-3.5 w-3.5" />
+                {tf.system} · {tf.systemCount.replace("{n}", String(system.length))}
+              </button>
+              {showSystem &&
+                (view === "grid" ? (
+                  <div className="mt-3">
+                    <FileGrid entries={system} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} muted />
+                  </div>
+                ) : (
+                  <div className="mt-3">
+                    <FileList entries={system} onOpen={openEntry} onDelete={setPendingDelete} onDownload={downloadFile} tf={tf} muted />
+                  </div>
+                ))}
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Overlay de drop — aparece só arrastando. */}
+      {draggingFiles && (
+        <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl border-2 border-dashed border-live bg-live/10">
+          <span className="flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-medium text-foreground shadow-card">
+            <Upload className="h-4 w-4 text-live" />
+            {tf.dropHint}
+          </span>
+        </div>
+      )}
 
       <PluginSlot name="files:bottom" />
 
@@ -492,22 +498,17 @@ export default function FilesPage() {
       >
         <DialogContent className="max-w-sm">
           <DialogHeader>
-            <DialogTitle>Create folder</DialogTitle>
-            <DialogDescription>
-              {isInternalView()
-                ? `Destino: ${activePath || "Loading"}`
-                : `Pasta: ${activePath ? displayFolderName(activePath) : "Loading"}`}
-            </DialogDescription>
+            <DialogTitle>{tf.newFolder}</DialogTitle>
           </DialogHeader>
           <div className="p-4">
             <Input
               autoFocus
               value={folderName}
-              onChange={(event) => setFolderName(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") void createDirectory();
+              onChange={(e) => setFolderName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") void createDirectory();
               }}
-              placeholder="Folder name"
+              placeholder={tf.folderPlaceholder}
               disabled={creating}
             />
           </div>
@@ -521,15 +522,10 @@ export default function FilesPage() {
               }}
               disabled={creating}
             >
-              Cancel
+              {t.common.cancel}
             </Button>
-            <Button
-              type="button"
-              onClick={() => void createDirectory()}
-              disabled={creating}
-              prefix={creating ? <Spinner /> : <FolderPlus />}
-            >
-              Create
+            <Button type="button" onClick={() => void createDirectory()} disabled={creating} prefix={creating ? <Spinner /> : <FolderPlus />}>
+              {t.common.create}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -540,13 +536,122 @@ export default function FilesPage() {
         loading={deleting}
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => void confirmDelete()}
-        title={pendingDelete ? `Delete ${pendingDelete.name}?` : "Delete item?"}
-        description={
-          pendingDelete?.is_directory
-            ? "This removes the folder and everything inside it."
-            : "This removes the file."
-        }
+        title={pendingDelete ? tf.confirmDeleteTitle.replace("{name}", pendingDelete.name) : tf.confirmDeleteTitle}
+        description={pendingDelete?.is_directory ? tf.confirmDeleteFolder : tf.confirmDeleteFile}
       />
     </div>
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* Grade — blocos de ícones (cara de desktop)                          */
+/* ------------------------------------------------------------------ */
+
+interface ViewProps {
+  entries: ManagedFileEntry[];
+  onOpen: (e: ManagedFileEntry) => void;
+  onDelete: (e: ManagedFileEntry) => void;
+  onDownload: (e: ManagedFileEntry) => void;
+  tf: ReturnType<typeof useI18n>["t"]["files"];
+  muted?: boolean;
+}
+
+function FileGrid({ entries, onOpen, onDelete, onDownload, tf, muted }: ViewProps) {
+  return (
+    <div className={cn("grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5", muted && "opacity-70")}>
+      {entries.map((entry) => (
+        <div
+          key={entry.path}
+          className="group relative flex flex-col items-center gap-2.5 rounded-xl border border-transparent p-3 text-center transition-colors hover:border-border hover:bg-card"
+        >
+          <button
+            type="button"
+            onClick={() => onOpen(entry)}
+            className="flex w-full flex-col items-center gap-2.5"
+            title={entry.name}
+          >
+            <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="lg" />
+            <span className="line-clamp-2 w-full break-words text-xs leading-snug text-foreground">{entry.name}</span>
+          </button>
+          {/* Ações no hover (canto). */}
+          <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+            {!entry.is_directory && (
+              <button
+                type="button"
+                onClick={() => onDownload(entry)}
+                aria-label={tf.download}
+                className="grid h-6 w-6 place-items-center rounded-md bg-card/90 text-muted-foreground shadow-sm hover:text-foreground"
+              >
+                <Download className="h-3.5 w-3.5" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onDelete(entry)}
+              aria-label={t_delete(tf, entry.name)}
+              className="grid h-6 w-6 place-items-center rounded-md bg-card/90 text-muted-foreground shadow-sm hover:text-destructive"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Lista — linhas detalhadas                                           */
+/* ------------------------------------------------------------------ */
+
+function FileList({ entries, onOpen, onDelete, onDownload, tf, muted }: ViewProps) {
+  return (
+    <div className={cn("overflow-hidden rounded-xl border border-border", muted && "opacity-70")}>
+      <div className="grid grid-cols-[minmax(10rem,1fr)_6rem_11rem_4rem] items-center gap-3 border-b border-border bg-muted/40 px-4 py-2 type-micro uppercase tracking-wide text-muted-foreground">
+        <span>{tf.colName}</span>
+        <span className="text-right">{tf.colSize}</span>
+        <span>{tf.colModified}</span>
+        <span className="text-right">{tf.colActions}</span>
+      </div>
+      {entries.map((entry) => (
+        <div
+          key={entry.path}
+          className="grid grid-cols-[minmax(10rem,1fr)_6rem_11rem_4rem] items-center gap-3 border-b border-border/60 px-4 py-1.5 text-sm last:border-b-0 hover:bg-card"
+        >
+          <button type="button" onClick={() => onOpen(entry)} className="flex min-w-0 items-center gap-2.5 text-left" title={entry.name}>
+            <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="sm" />
+            <span className="truncate text-foreground">{entry.name}</span>
+          </button>
+          <span className="text-right text-xs tabular-nums text-muted-foreground">{formatBytes(entry.size)}</span>
+          <span className="truncate text-xs text-muted-foreground">
+            {Number.isFinite(entry.mtime) ? DATE_FORMAT.format(entry.mtime * 1000) : "—"}
+          </span>
+          <span className="flex justify-end gap-0.5">
+            {!entry.is_directory && (
+              <button
+                type="button"
+                onClick={() => onDownload(entry)}
+                aria-label={tf.download}
+                className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <Download className="h-4 w-4" />
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onDelete(entry)}
+              aria-label={t_delete(tf, entry.name)}
+              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:text-destructive"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function t_delete(tf: ReturnType<typeof useI18n>["t"]["files"], name: string): string {
+  return tf.confirmDeleteTitle.replace("{name}", name);
 }

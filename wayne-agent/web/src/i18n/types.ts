@@ -612,6 +612,40 @@ export interface Translations {
     noLogLines: string;
   };
 
+  // ── Files page (desktop-like, Onda 1) ──
+  files: {
+    home: string;
+    back: string;
+    upload: string;
+    newFolder: string;
+    viewGrid: string;
+    viewList: string;
+    colName: string;
+    colSize: string;
+    colModified: string;
+    colActions: string;
+    empty: string;
+    dropHint: string;
+    system: string;
+    /** "{n} itens internos". */
+    systemCount: string;
+    download: string;
+    folderPlaceholder: string;
+    folderNameRequired: string;
+    created: string;
+    createFailed: string;
+    /** "{n} enviado(s)". */
+    uploaded: string;
+    uploadFailed: string;
+    deleted: string;
+    deleteFailed: string;
+    downloadFailed: string;
+    /** "Excluir {name}?". */
+    confirmDeleteTitle: string;
+    confirmDeleteFolder: string;
+    confirmDeleteFile: string;
+  };
+
   // ── Cron page ──
   cron: {
     confirmDeleteMessage: string;
