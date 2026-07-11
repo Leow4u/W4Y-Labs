@@ -10,7 +10,8 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { api } from "@/lib/api";
+import { api, type ManagedFileEntry } from "@/lib/api";
+import { FilePreview, isPreviewable } from "@/components/files/FilePreview";
 import { useI18n } from "@/i18n";
 import type { Translations } from "@/i18n/types";
 
@@ -91,6 +92,7 @@ export function FileRefCard({ file }: { file: FileRef }) {
   const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+  const [preview, setPreview] = useState<ManagedFileEntry | null>(null);
   const kind = fileKind(file.name);
 
   // O agente costuma ANUNCIAR o caminho antes de o arquivo existir (visto ao
@@ -101,19 +103,16 @@ export function FileRefCard({ file }: { file: FileRef }) {
     setTimeout(() => setError(false), 2500);
   };
 
-  const activate = async () => {
-    if (file.url) {
-      window.open(file.url, "_blank", "noopener,noreferrer");
-      return;
-    }
-    if (!file.path) return;
+  const download = async (entry?: ManagedFileEntry) => {
+    const path = entry?.path ?? file.path;
+    if (!path) return;
     setLoading(true);
     setError(false);
     try {
-      const res = await api.readFile(file.path);
+      const res = await api.readFile(path);
       const a = document.createElement("a");
       a.href = res.data_url;
-      a.download = res.name || file.name;
+      a.download = res.name || entry?.name || file.name;
       document.body.appendChild(a);
       a.click();
       a.remove();
@@ -124,6 +123,42 @@ export function FileRefCard({ file }: { file: FileRef }) {
     }
   };
 
+  // Mesma lógica dos Arquivos (Onda 2): previsualizável (imagem/pdf/texto) abre
+  // no overlay SEM baixar; o resto baixa; URL remota abre em nova aba.
+  const canPreview = !file.url && Boolean(file.path) && isPreviewable(file.name, null);
+  const asEntry = (): ManagedFileEntry => ({
+    name: file.name,
+    path: file.path as string,
+    is_directory: false,
+    size: null,
+    mtime: 0,
+    mime_type: null,
+  });
+
+  // Clique no CORPO do cartão = ação primária: pré-visualizar / baixar / abrir.
+  const openPrimary = () => {
+    if (file.url) {
+      window.open(file.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (canPreview) {
+      setPreview(asEntry());
+      return;
+    }
+    void download();
+  };
+
+  // Botão à direita: mantém "Baixar" (local) / "Abrir link" (URL) — download
+  // direto, sem passar pela pré-visualização (espelha o botão de baixar dos
+  // Arquivos, e o feedback de 09/07 pedia um botão "Baixar" de verdade).
+  const activate = () => {
+    if (file.url) {
+      window.open(file.url, "_blank", "noopener,noreferrer");
+      return;
+    }
+    void download();
+  };
+
   // Estilo claude.ai (feedback 09/07): cartão HORIZONTAL de largura cheia,
   // nome sem extensão + extensão em CAPS, e um botão "Baixar" de verdade à
   // direita (não um iconezinho). Sempre sans — mesmo dentro da prosa serifada.
@@ -131,43 +166,59 @@ export function FileRefCard({ file }: { file: FileRef }) {
   const displayName = file.name.replace(/\.[A-Za-z0-9]{1,8}$/, "") || file.name;
 
   return (
-    <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3 font-sans shadow-card transition-shadow hover:shadow-pop">
-      <PageGlyph kind={kind} />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate type-body font-medium text-foreground">
-          {displayName}
-        </span>
-        <span className="mt-0.5 block type-caption uppercase tracking-[0.06em] text-muted-foreground">
-          {ext && ext.length <= 5 ? ext : (t.chat[kind.labelKey] as string)}
-        </span>
-      </span>
-      <button
-        type="button"
-        onClick={activate}
-        disabled={loading}
-        className={`shrink-0 rounded-lg border px-4 py-2 type-ui font-medium transition-colors ${
-          error
-            ? "border-destructive/40 text-destructive hover:bg-destructive/5"
-            : "border-border bg-background text-foreground hover:bg-muted"
-        }`}
-      >
-        {loading ? (
-          <Loader2 className="h-4 w-4 animate-spin" />
-        ) : error ? (
-          t.common.retry
-        ) : file.url ? (
-          <span className="flex items-center gap-1.5">
-            <ExternalLink className="h-3.5 w-3.5" />
-            {t.chat.openLink}
+    <>
+      <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3 font-sans shadow-card transition-shadow hover:shadow-pop">
+        <button
+          type="button"
+          onClick={openPrimary}
+          title={file.name}
+          className="flex min-w-0 flex-1 items-center gap-3.5 rounded-lg text-left"
+        >
+          <PageGlyph kind={kind} />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate type-body font-medium text-foreground">
+              {displayName}
+            </span>
+            <span className="mt-0.5 block type-caption uppercase tracking-[0.06em] text-muted-foreground">
+              {ext && ext.length <= 5 ? ext : (t.chat[kind.labelKey] as string)}
+            </span>
           </span>
-        ) : (
-          <span className="flex items-center gap-1.5">
-            <Download className="h-3.5 w-3.5" />
-            {t.chat.downloadFile}
-          </span>
-        )}
-      </button>
-    </div>
+        </button>
+        <button
+          type="button"
+          onClick={activate}
+          disabled={loading}
+          className={`shrink-0 rounded-lg border px-4 py-2 type-ui font-medium transition-colors ${
+            error
+              ? "border-destructive/40 text-destructive hover:bg-destructive/5"
+              : "border-border bg-background text-foreground hover:bg-muted"
+          }`}
+        >
+          {loading ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : error ? (
+            t.common.retry
+          ) : file.url ? (
+            <span className="flex items-center gap-1.5">
+              <ExternalLink className="h-3.5 w-3.5" />
+              {t.chat.openLink}
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5">
+              <Download className="h-3.5 w-3.5" />
+              {t.chat.downloadFile}
+            </span>
+          )}
+        </button>
+      </div>
+      {preview && (
+        <FilePreview
+          entry={preview}
+          onClose={() => setPreview(null)}
+          onDownload={(e) => void download(e)}
+        />
+      )}
+    </>
   );
 }
 
