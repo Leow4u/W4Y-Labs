@@ -47,6 +47,67 @@ async function createOpenRouterKey(tenantId, limitUsd) {
   return { key: j.key, hash: (j.data ?? j).hash };
 }
 
+// ── Conectores · Composio, opção A (projeto DEDICADO por tenant) ──────────
+// Isolamento FÍSICO: cada tenant tem seu próprio projeto Composio + chave.
+// A org-admin key (COMPOSIO_ORG_KEY) vive SÓ aqui no control-plane — NUNCA no
+// VM do tenant (lá vai só a chave do projeto dele). Fecha o resíduo do modelo
+// compartilhado (opção B): um VM comprometido só alcança o próprio projeto.
+const COMPOSIO_BASE = (process.env.COMPOSIO_BASE || "https://backend.composio.dev").replace(/\/$/, "");
+const COMPOSIO_ORG_KEY = process.env.COMPOSIO_ORG_KEY || "";
+const COMPOSIO_LOGO_URL = process.env.COMPOSIO_LOGO_URL || "";
+
+async function composioOrg(method, pathname, body) {
+  const res = await fetch(COMPOSIO_BASE + pathname, {
+    method,
+    headers: { "x-api-key": COMPOSIO_ORG_KEY, "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  const text = await res.text();
+  let j = null;
+  try { j = JSON.parse(text); } catch { /* corpo não-JSON */ }
+  if (!res.ok) throw new Error(`composio ${res.status}: ${text.slice(0, 200)}`);
+  return j;
+}
+
+// Garante o projeto Composio do tenant (nome = app Fly). White-label embutido
+// na criação. Idempotente: se já existe, regenera a chave (a lista NÃO devolve
+// a chave — ela só volta na criação/regeneração). Devolve {projectId, apiKey}.
+async function ensureComposioProject(app) {
+  const name = app.slice(0, 75).replace(/[^a-zA-Z0-9_-]/g, "-");
+  const list = await composioOrg("GET", "/api/v3/org/owner/project/list");
+  const existing = (list?.data || []).find((p) => p.name === name);
+  if (existing) {
+    const r = await composioOrg(
+      "POST", `/api/v3/org/owner/project/${existing.id}/regenerate_api_key`,
+    );
+    return { projectId: existing.id, apiKey: r?.api_key ?? r?.key };
+  }
+  const created = await composioOrg("POST", "/api/v3/org/owner/project/new", {
+    name,
+    should_create_api_key: true,
+    config: {
+      is_2FA_enabled: false,
+      mask_secret_keys_in_connected_account: true,
+      log_visibility_setting: "show_all",
+      display_name: "Work4You",
+      ...(COMPOSIO_LOGO_URL ? { logo_url: COMPOSIO_LOGO_URL } : {}),
+    },
+  });
+  return { projectId: created.id, apiKey: created.api_key };
+}
+
+// Apaga o projeto Composio do tenant no teardown (para custo + limpa dados).
+async function deprovisionComposioProject(app) {
+  if (!COMPOSIO_ORG_KEY) return;
+  try {
+    const list = await composioOrg("GET", "/api/v3/org/owner/project/list");
+    const p = (list?.data || []).find((x) => x.name === app);
+    if (p) await composioOrg("DELETE", `/api/v3/org/owner/project/${p.id}`);
+  } catch (e) {
+    console.error("[provisioner] composio deprovision:", e.message);
+  }
+}
+
 // Executa o provisionamento completo e chama de volta a casca ao terminar.
 async function provision({ tenantId, slug, email, plan, trialUsd }) {
   const app = `wayne-${slug}`;
@@ -69,12 +130,20 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
       `WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD=${dashPass}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_SECRET=${dashSecret}`,
     ];
-    // Conectores (Composio, projeto COMPARTILHADO — Onda 5, opção B): a mesma
-    // project key vai pra todo tenant; o isolamento é o prefixo de tenant no
-    // user_id (FLY_APP_NAME, feito pelo backend do Wayne). Fail-open: sem a
-    // env no provisioner, o tenant nasce sem conectores (dashboard mostra o
-    // aviso de "não configurado") e nada mais quebra.
-    if (process.env.COMPOSIO_API_KEY) {
+    // Conectores (Composio). Opção A (COMPOSIO_ORG_KEY presente): projeto
+    // DEDICADO por tenant — isolamento físico; injeta SÓ a chave do projeto
+    // dele. Senão, opção B (COMPOSIO_API_KEY): chave compartilhada, isolamento
+    // por prefixo de user_id (feito no backend do Wayne). Fail-open: sem
+    // nenhuma das duas, o tenant nasce sem conectores e nada mais quebra.
+    if (COMPOSIO_ORG_KEY) {
+      try {
+        const proj = await ensureComposioProject(app);
+        secrets.push(`COMPOSIO_API_KEY=${proj.apiKey}`);
+        result.composioProjectId = proj.projectId;
+      } catch (e) {
+        console.error("[provisioner] composio project falhou:", e.message);
+      }
+    } else if (process.env.COMPOSIO_API_KEY) {
       secrets.push(`COMPOSIO_API_KEY=${process.env.COMPOSIO_API_KEY}`);
     }
     await fly("secrets", "set", "-a", app, "--stage", ...secrets);
@@ -152,6 +221,7 @@ async function archive({ app }) {
       await fly("volumes", "snapshots", "create", v.id, "-a", app).catch(() => {});
     }
   } catch { /* sem volume — segue para destruir */ }
+  await deprovisionComposioProject(app);
   await fly("apps", "destroy", app, "--yes");
 }
 
