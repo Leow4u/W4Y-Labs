@@ -98,7 +98,11 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
   }, [context]);
 
   const authorize = async () => {
-    window.open(url, "_blank", "noopener");
+    // Guarda o handle da janela (sem "noopener", senão window.open devolve
+    // null) pra fechá-la automaticamente quando a conexão for detectada — a
+    // página de sucesso da Composio ("You can close this window now") não fecha
+    // sozinha, e o opener pode fechar a janela que abriu mesmo cross-origin.
+    const win = window.open(url, "_blank");
     setPhase("waiting");
     let before = new Set<string>();
     try {
@@ -120,6 +124,11 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
           if (fresh) {
             setToolkit(fresh.toolkit);
             setPhase("connected");
+            try {
+              win?.close();
+            } catch {
+              /* janela já fechada pelo usuário */
+            }
             return;
           }
         } catch {

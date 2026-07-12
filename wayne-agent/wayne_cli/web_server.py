@@ -2073,15 +2073,35 @@ def _connector_tenant_id() -> str:
 
 
 def _connector_user_id(scope: str) -> str:
-    """user_id Composio do escopo, SEMPRE prefixado pelo tenant."""
+    """user_id Composio do escopo. Opção A (projeto DEDICADO por tenant): o
+    isolamento é o próprio projeto, então o user_id é só o escopo — "global"
+    (agente principal) ou o nome do profile. SEM prefixo de tenant (era um
+    artefato do projeto compartilhado da opção B, hoje aposentado; o prefixo
+    causava mismatch com sessões MCP criadas sem ele → o card não reconhecia a
+    conexão)."""
     scope = (scope or "global").strip() or "global"
     if scope == "global":
-        suffix = "global"
-    else:
-        from wayne_cli.profiles import normalize_profile_name
+        return "global"
+    from wayne_cli.profiles import normalize_profile_name
 
-        suffix = normalize_profile_name(scope)
-    return f"{_connector_tenant_id()}:{suffix}"
+    return normalize_profile_name(scope)
+
+
+def _connector_event_scope(uid: str) -> Optional[str]:
+    """Mapeia o ``user_id`` de um evento pro escopo do tenant, ou ``None`` se
+    não é nosso. Projeto dedicado (opção A): user_id = "global" / "<profile>".
+    Aceita também o legado "<tenant>:<scope>" (sessões antigas da opção B).
+    Ignora uids estranhos (e-mails, formatos multi-tenant crus da Composio),
+    evitando criar tasks a partir de contas que não são das nossas sessões."""
+    uid = (uid or "").strip()
+    if not uid:
+        return None
+    tenant = _connector_tenant_id()
+    if uid.startswith(f"{tenant}:"):
+        uid = uid.split(":", 1)[1]
+    if uid == "global" or re.fullmatch(r"[a-z0-9_-]{1,64}", uid):
+        return uid
+    return None
 
 
 def _connector_homes(scope: str) -> List[Path]:
@@ -2656,7 +2676,6 @@ async def connector_events_receiver(token: str, request: Request):
         etype = str((event or {}).get("type") or "")
         event_id = str((event or {}).get("id") or meta.get("log_id") or "")
         data = (event or {}).get("data") or {}
-        tenant = _connector_tenant_id()
 
         # Conta expirada (auto-heal): esse evento NÃO traz user_id no metadata
         # — o dono vem da própria conta. Se for nossa, vira task de reconexão.
@@ -2671,9 +2690,9 @@ async def connector_events_receiver(token: str, request: Request):
                     uid = str(acc.get("user_id") or "")
                 except Exception:
                     uid = ""
-            if not uid.startswith(f"{tenant}:"):
-                return {"ok": True, "skipped": "foreign-tenant"}
-            suffix = uid.split(":", 1)[1]
+            scope = _connector_event_scope(uid)
+            if scope is None:
+                return {"ok": True, "skipped": "unknown-scope"}
             tk = data.get("toolkit") or {}
             toolkit = (tk.get("slug") if isinstance(tk, dict) else str(tk)) or "conector"
             return _kanban_task(
@@ -2682,18 +2701,18 @@ async def connector_events_receiver(token: str, request: Request):
                     f"A conexão do **{toolkit}** expirou e precisa ser autorizada de novo.",
                     "Abra Conectores e clique em Reconectar.",
                 ],
-                None if suffix == "global" else suffix,
+                None if scope == "global" else scope,
                 event_id,
             )
 
-        # Evento de gatilho. O projeto Composio é COMPARTILHADO (opção B):
-        # toda subscription do projeto recebe TODOS os eventos — cada tenant
-        # processa só os user_id com o SEU prefixo e descarta o resto com 200
-        # (pra Composio não redisparar).
+        # Evento de gatilho. Projeto DEDICADO (opção A): a subscription só
+        # recebe eventos DESTE tenant; a assinatura HMAC já provou autenticidade.
+        # Mapeia o escopo pelo user_id (ignora uids que não são das nossas
+        # sessões — ver _connector_event_scope).
         uid = str(meta.get("user_id") or "")
-        if not uid.startswith(f"{tenant}:"):
-            return {"ok": True, "skipped": "foreign-tenant"}
-        suffix = uid.split(":", 1)[1]
+        scope = _connector_event_scope(uid)
+        if scope is None:
+            return {"ok": True, "skipped": "unknown-scope"}
         slug = str(meta.get("trigger_slug") or etype or "event")
         # Resumo curto e legível pro corpo da task (sem despejar o payload cru).
         preview = ""
@@ -2704,7 +2723,7 @@ async def connector_events_receiver(token: str, request: Request):
                 break
         body_lines = [
             f"Gatilho **{slug}** disparou (conector).",
-            f"Escopo: `{suffix}`.",
+            f"Escopo: `{scope}`.",
         ]
         if preview:
             body_lines.append(f"\n> {preview}")
@@ -2714,7 +2733,7 @@ async def connector_events_receiver(token: str, request: Request):
         return _kanban_task(
             f"Evento: {slug}",
             body_lines,
-            None if suffix == "global" else suffix,
+            None if scope == "global" else scope,
             event_id,
         )
 
