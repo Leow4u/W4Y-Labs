@@ -59,7 +59,9 @@ const COMPOSIO_LOGO_URL = process.env.COMPOSIO_LOGO_URL || "";
 async function composioOrg(method, pathname, body) {
   const res = await fetch(COMPOSIO_BASE + pathname, {
     method,
-    headers: { "x-api-key": COMPOSIO_ORG_KEY, "Content-Type": "application/json" },
+    // Org-owner endpoints exigem x-org-api-key (não x-api-key, que é a project
+    // key). A chave de PROJETO devolvida vai como x-api-key no tenant.
+    headers: { "x-org-api-key": COMPOSIO_ORG_KEY, "Content-Type": "application/json" },
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await res.text();
