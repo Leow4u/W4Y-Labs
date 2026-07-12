@@ -2,12 +2,12 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "reac
 import {
   AlertTriangle,
   Check,
-  CheckCircle2,
   ExternalLink,
   Info,
+  Mail,
+  MessageSquare,
   PlugZap,
   QrCode,
-  Radio,
   RotateCw,
   Save,
   Settings2,
@@ -106,6 +106,82 @@ function isTerminalTelegramOnboardingError(error: unknown): boolean {
   return /\b410\b/.test(message) && /\b(expired|claimed|gone)\b/i.test(message);
 }
 
+// Curadoria dos canais: só os principais aparecem por padrão (WhatsApp
+// primeiro); o resto fica atrás de "Mostrar mais"; o encanamento técnico
+// (API/webhook/relay internos) some para o usuário — visível só em ?full=1.
+// Mesmo princípio sistema×usuário das outras telas do produto.
+const FEATURED_CHANNELS = [
+  "whatsapp",
+  "telegram",
+  "discord",
+  "slack",
+  "email",
+  "sms",
+  "google_chat",
+  "teams",
+  "whatsapp_cloud",
+] as const;
+
+const SYSTEM_CHANNELS = new Set<string>([
+  "api_server",
+  "webhook",
+  "relay",
+  "raft",
+  "photon",
+  "msgraph_webhook",
+  "wecom_callback",
+]);
+
+// Logo real da marca (CDN de logos da Composio) por canal — só slugs que
+// existem MESMO no catálogo (chute → tile em branco). Cobre todos os canais
+// em destaque. Os de nicho ("Mostrar mais") não têm logo no catálogo e caem
+// no tile de inicial. Email/SMS são protocolos, não marcas → glifo limpo.
+const CHANNEL_LOGO: Record<string, string> = {
+  whatsapp: "whatsapp",
+  whatsapp_cloud: "whatsapp",
+  telegram: "telegram",
+  discord: "discord",
+  slack: "slack",
+  google_chat: "google_chat",
+  teams: "microsoft_teams",
+};
+
+function ChannelLogo({ platform }: { platform: MessagingPlatform }) {
+  const [failed, setFailed] = useState(false);
+  const tile = "grid h-9 w-9 shrink-0 place-items-center rounded-lg";
+  if (platform.id === "email") {
+    return (
+      <span className={cn(tile, "bg-muted text-foreground")}>
+        <Mail className="h-4 w-4" />
+      </span>
+    );
+  }
+  if (platform.id === "sms") {
+    return (
+      <span className={cn(tile, "bg-muted text-foreground")}>
+        <MessageSquare className="h-4 w-4" />
+      </span>
+    );
+  }
+  const slug = CHANNEL_LOGO[platform.id];
+  if (!slug || failed) {
+    return (
+      <span className={cn(tile, "bg-muted text-sm font-semibold text-foreground")}>
+        {(platform.name || "?").charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+  return (
+    <img
+      src={`https://logos.composio.dev/api/${slug}`}
+      alt=""
+      loading="lazy"
+      onError={() => setFailed(true)}
+      className="h-9 w-9 shrink-0 rounded-lg bg-white object-contain p-1"
+    />
+  );
+}
+
 export default function ChannelsPage() {
   const { t } = useI18n();
   const [platforms, setPlatforms] = useState<MessagingPlatform[]>([]);
@@ -122,6 +198,7 @@ export default function ChannelsPage() {
   const [scope, setScope] = useState("global");
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const profileParam = scope === "global" ? undefined : scope;
+  const [showMore, setShowMore] = useState(false);
   const { toast, showToast } = useToast();
   const { setEnd } = usePageHeader();
 
@@ -143,6 +220,30 @@ export default function ChannelsPage() {
   const [restarting, setRestarting] = useState(false);
 
   const gatewayRunning = platforms.length > 0 && platforms[0].gateway_running;
+
+  // Curadoria: destaque (os principais, WhatsApp primeiro) × extra ("Mostrar
+  // mais") × sistema (encanamento técnico, escondido do usuário). Na visão
+  // interna (?full=1) mostramos tudo, sem curadoria — é a superfície de admin.
+  const internal = isInternalView();
+  const { featured, extra } = useMemo(() => {
+    const byId = new Map(platforms.map((p) => [p.id, p]));
+    const featuredList: MessagingPlatform[] = [];
+    for (const id of FEATURED_CHANNELS) {
+      const p = byId.get(id);
+      if (p) {
+        featuredList.push(p);
+        byId.delete(id);
+      }
+    }
+    const extraList: MessagingPlatform[] = [];
+    for (const p of byId.values()) {
+      if (!SYSTEM_CHANNELS.has(p.id)) extraList.push(p);
+    }
+    return { featured: featuredList, extra: extraList };
+  }, [platforms]);
+  const visible = internal
+    ? platforms
+    : [...featured, ...(showMore ? extra : [])];
 
   const load = useCallback(() => {
     return api
@@ -497,31 +598,15 @@ export default function ChannelsPage() {
 
       {/* Platform list */}
       <div className="grid gap-3">
-        {platforms.map((platform) => {
+        {visible.map((platform) => {
           const badge = stateBadge(platform.state);
           const busy = togglingId === platform.id;
-          const StateIcon =
-            platform.state === "connected"
-              ? CheckCircle2
-              : platform.state === "fatal" || platform.state === "startup_failed"
-                ? AlertTriangle
-                : Radio;
           return (
             <Card key={platform.id} className="border-border">
               <CardContent className="flex flex-col gap-4 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-start gap-3 min-w-0">
-                    <StateIcon
-                      className={cn(
-                        "h-5 w-5 shrink-0 mt-0.5",
-                        platform.state === "connected"
-                          ? "text-success"
-                          : platform.state === "fatal" ||
-                              platform.state === "startup_failed"
-                            ? "text-destructive"
-                            : "text-muted-foreground",
-                      )}
-                    />
+                    <ChannelLogo platform={platform} />
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mondwest normal-case text-sm font-medium">
@@ -594,6 +679,19 @@ export default function ChannelsPage() {
           );
         })}
       </div>
+
+      {/* Mostrar mais / menos — só no user-facing (no ?full=1 já vem tudo). */}
+      {!internal && extra.length > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowMore((v) => !v)}
+          className="self-start text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+        >
+          {showMore
+            ? t.chat.showLess
+            : `${t.chat.showMore} (${extra.length})`}
+        </button>
+      )}
     </div>
   );
 }
