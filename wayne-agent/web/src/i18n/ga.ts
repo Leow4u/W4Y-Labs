@@ -197,6 +197,7 @@ export const ga: Translations = {
     toolDelegate: "Ag glaoch ar speisialtóir",
     toolImage: "Ag giniúint meán",
     toolGeneric: "Ag úsáid uirlise",
+    toolConnect: "Ag nascadh",
     fileSheet: "Scarbhileog",
     fileDoc: "Doiciméad",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const ga: Translations = {
   },
 
   connectors: {
+    authSecure: "Údarú slán",
+
     events: "Imeachtaí",
     eventsTitle: "Imeachtaí {name}",
     eventsFootnote: "Nuair a spreagtar imeacht, láimhseálann an gníomhaire go huathoibríoch é.",

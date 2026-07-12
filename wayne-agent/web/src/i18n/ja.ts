@@ -197,6 +197,7 @@ export const ja: Translations = {
     toolDelegate: "スペシャリストを呼び出し中",
     toolImage: "メディアを生成中",
     toolGeneric: "ツールを使用中",
+    toolConnect: "接続中",
     fileSheet: "スプレッドシート",
     fileDoc: "ドキュメント",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const ja: Translations = {
   },
 
   connectors: {
+    authSecure: "安全な認証",
+
     events: "イベント",
     eventsTitle: "{name} のイベント",
     eventsFootnote: "イベントが発生すると、エージェントが自動的に処理します。",

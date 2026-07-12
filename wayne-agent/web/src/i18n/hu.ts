@@ -197,6 +197,7 @@ export const hu: Translations = {
     toolDelegate: "Szakértő bevonása",
     toolImage: "Média generálása",
     toolGeneric: "Eszköz használata",
+    toolConnect: "Csatlakozás",
     fileSheet: "Táblázat",
     fileDoc: "Dokumentum",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const hu: Translations = {
   },
 
   connectors: {
+    authSecure: "Biztonságos engedélyezés",
+
     events: "Események",
     eventsTitle: "{name} események",
     eventsFootnote: "Amikor egy esemény bekövetkezik, az ügynök automatikusan kezeli.",

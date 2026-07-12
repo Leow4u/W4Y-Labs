@@ -197,6 +197,7 @@ export const ru: Translations = {
     toolDelegate: "Подключаю специалиста",
     toolImage: "Создаю медиа",
     toolGeneric: "Использую инструмент",
+    toolConnect: "Подключение",
     fileSheet: "Таблица",
     fileDoc: "Документ",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const ru: Translations = {
   },
 
   connectors: {
+    authSecure: "Безопасная авторизация",
+
     events: "События",
     eventsTitle: "События {name}",
     eventsFootnote: "Когда происходит событие, агент обрабатывает его автоматически.",

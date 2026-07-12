@@ -228,6 +228,8 @@ export interface Translations {
     toolDelegate: string;
     toolImage: string;
     toolGeneric: string;
+
+    toolConnect: string;
     fileSheet: string;
     fileDoc: string;
     filePdf: string;
@@ -615,6 +617,8 @@ export interface Translations {
 
   // ── Files page (desktop-like, Onda 1) ──
   connectors: {
+    authSecure: string;
+
     events: string;
     eventsTitle: string;
     eventsFootnote: string;

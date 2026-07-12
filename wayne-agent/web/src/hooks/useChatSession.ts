@@ -10,6 +10,7 @@ import {
   type TaskStep,
   type ToolCallState,
 } from "@/components/chat/types";
+import { toolGeneratingLabel } from "@/components/chat/ToolLine";
 
 export type { ConnectionState };
 
@@ -481,7 +482,9 @@ export function useChatSession(
     const offToolGenerating = gw.on<ToolGeneratingPayload>("tool.generating", (ev) => {
       if (!acceptsEvent(ev)) return;
       const name = ev.payload?.name;
-      if (name) setStatusText(t.chat.preparingTool.replace("{name}", name));
+      // Nunca vazar o nome técnico cru (ex.: mcp_composio_COMPOSIO_SEARCH_TOOLS)
+      // no status — usa o verbo amigável já traduzido (toolGeneratingLabel).
+      if (name) setStatusText(toolGeneratingLabel(name, t));
     });
 
     // Crew: ciclo de vida dos subagentes (payload rico — modelo, tokens,

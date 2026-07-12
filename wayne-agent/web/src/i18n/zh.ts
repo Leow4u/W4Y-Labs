@@ -195,6 +195,7 @@ export const zh: Translations = {
     toolDelegate: "正在调用专家",
     toolImage: "正在生成媒体",
     toolGeneric: "正在使用工具",
+    toolConnect: "连接中",
     fileSheet: "表格",
     fileDoc: "文档",
     filePdf: "PDF",
@@ -571,6 +572,8 @@ export const zh: Translations = {
   },
 
   connectors: {
+    authSecure: "安全授权",
+
     events: "事件",
     eventsTitle: "{name} 事件",
     eventsFootnote: "事件触发时，智能体会自动处理。",

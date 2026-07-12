@@ -197,6 +197,7 @@ export const uk: Translations = {
     toolDelegate: "Залучаю спеціаліста",
     toolImage: "Створюю медіа",
     toolGeneric: "Використовую інструмент",
+    toolConnect: "Підключення",
     fileSheet: "Таблиця",
     fileDoc: "Документ",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const uk: Translations = {
   },
 
   connectors: {
+    authSecure: "Безпечна авторизація",
+
     events: "Події",
     eventsTitle: "Події {name}",
     eventsFootnote: "Коли подія спрацьовує, агент обробляє її автоматично.",

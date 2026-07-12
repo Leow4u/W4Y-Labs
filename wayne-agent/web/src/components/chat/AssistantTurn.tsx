@@ -171,7 +171,7 @@ function TextWithFiles({
             <FileRefCard key={f.path ?? f.url ?? f.name} file={f} />
           ))}
           {freshLinks.map((u) => (
-            <ConnectLinkCard key={u} url={u} />
+            <ConnectLinkCard key={u} url={u} context={clean} />
           ))}
         </div>
       )}

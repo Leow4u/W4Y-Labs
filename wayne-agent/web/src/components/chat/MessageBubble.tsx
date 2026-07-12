@@ -358,7 +358,7 @@ function TextBlock({
             <FileRefCard key={f.path ?? f.url} file={f} />
           ))}
           {uniqueLinks.map((u) => (
-            <ConnectLinkCard key={u} url={u} />
+            <ConnectLinkCard key={u} url={u} context={cleaned} />
           ))}
         </div>
       )}

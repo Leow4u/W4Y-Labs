@@ -197,6 +197,7 @@ export const zhHant: Translations = {
     toolDelegate: "正在呼叫專家",
     toolImage: "正在生成媒體",
     toolGeneric: "正在使用工具",
+    toolConnect: "連接中",
     fileSheet: "試算表",
     fileDoc: "文件",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const zhHant: Translations = {
   },
 
   connectors: {
+    authSecure: "安全授權",
+
     events: "事件",
     eventsTitle: "{name} 事件",
     eventsFootnote: "事件觸發時，代理會自動處理。",

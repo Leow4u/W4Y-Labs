@@ -197,6 +197,7 @@ export const ko: Translations = {
     toolDelegate: "전문가 호출 중",
     toolImage: "미디어 생성 중",
     toolGeneric: "도구 사용 중",
+    toolConnect: "연결 중",
     fileSheet: "스프레드시트",
     fileDoc: "문서",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const ko: Translations = {
   },
 
   connectors: {
+    authSecure: "보안 인증",
+
     events: "이벤트",
     eventsTitle: "{name} 이벤트",
     eventsFootnote: "이벤트가 발생하면 에이전트가 자동으로 처리합니다.",

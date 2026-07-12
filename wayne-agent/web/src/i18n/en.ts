@@ -212,6 +212,7 @@ export const en: Translations = {
     toolDelegate: "Calling a specialist",
     toolImage: "Generating media",
     toolGeneric: "Using tool",
+    toolConnect: "Connecting",
     fileSheet: "Spreadsheet",
     fileDoc: "Document",
     filePdf: "PDF",
@@ -588,6 +589,8 @@ export const en: Translations = {
   },
 
   connectors: {
+    authSecure: "Secure authorization",
+
     events: "Events",
     eventsTitle: "{name} events",
     eventsFootnote: "When an event fires, the agent handles it automatically.",

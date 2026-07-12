@@ -197,6 +197,7 @@ export const af: Translations = {
     toolDelegate: "Roep 'n spesialis",
     toolImage: "Genereer media",
     toolGeneric: "Gebruik nutsmiddel",
+    toolConnect: "Koppel tans",
     fileSheet: "Sigblad",
     fileDoc: "Dokument",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const af: Translations = {
   },
 
   connectors: {
+    authSecure: "Veilige magtiging",
+
     events: "Gebeurtenisse",
     eventsTitle: "{name}-gebeurtenisse",
     eventsFootnote: "Wanneer 'n gebeurtenis afgaan, hanteer die agent dit outomaties.",

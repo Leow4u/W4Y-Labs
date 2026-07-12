@@ -15,6 +15,7 @@ import {
   Globe,
   Image as ImageIcon,
   Package,
+  Plug,
   Search,
   SquareTerminal,
   Users,
@@ -35,6 +36,8 @@ interface ToolFace {
 }
 
 const CATEGORIES: Array<{ re: RegExp; Icon: LucideIcon; key: keyof Translations["chat"] }> = [
+  // Conectores (Composio): manage_connections / auth / oauth → "Conectando".
+  { re: /manage_connection|connect_account|\boauth\b|authorize_connection/, Icon: Plug, key: "toolConnect" },
   { re: /terminal|bash|shell|exec|command|process|script/, Icon: SquareTerminal, key: "toolRun" },
   { re: /write|edit|replace|patch|apply|save|create_file|mkdir|move|copy|delete/, Icon: FilePenLine, key: "toolEdit" },
   { re: /read|cat|view|open|list|ls\b/, Icon: FileText, key: "toolRead" },
@@ -78,6 +81,14 @@ export function toolFace(tc: ToolCallState, t: Translations): ToolFace {
     verb,
     target: firstLine(tc.argsPreview) ?? (cat ? undefined : prettifyToolName(tc.name)),
   };
+}
+
+/** Status curto e humano pro evento `tool.generating` — nunca o nome técnico
+ *  cru (ex.: mcp_composio_COMPOSIO_SEARCH_TOOLS). Reusa o verbo amigável do
+ *  toolFace (já traduzido nos 16 idiomas). */
+export function toolGeneratingLabel(name: string, t: Translations): string {
+  const { verb } = toolFace({ id: "", name, status: "running" } as ToolCallState, t);
+  return `${verb}…`;
 }
 
 function fmtDuration(s: number): string {

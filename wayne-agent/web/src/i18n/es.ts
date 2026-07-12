@@ -197,6 +197,7 @@ export const es: Translations = {
     toolDelegate: "Llamando a un especialista",
     toolImage: "Generando medios",
     toolGeneric: "Usando herramienta",
+    toolConnect: "Conectando",
     fileSheet: "Hoja de cálculo",
     fileDoc: "Documento",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const es: Translations = {
   },
 
   connectors: {
+    authSecure: "Autorización segura",
+
     events: "Eventos",
     eventsTitle: "Eventos de {name}",
     eventsFootnote: "Cuando se dispara un evento, el agente lo gestiona automáticamente.",

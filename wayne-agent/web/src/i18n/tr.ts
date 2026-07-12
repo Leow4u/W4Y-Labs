@@ -197,6 +197,7 @@ export const tr: Translations = {
     toolDelegate: "Uzman çağrılıyor",
     toolImage: "Medya oluşturuluyor",
     toolGeneric: "Araç kullanılıyor",
+    toolConnect: "Bağlanıyor",
     fileSheet: "Elektronik tablo",
     fileDoc: "Belge",
     filePdf: "PDF",
@@ -573,6 +574,8 @@ export const tr: Translations = {
   },
 
   connectors: {
+    authSecure: "Güvenli yetkilendirme",
+
     events: "Olaylar",
     eventsTitle: "{name} olayları",
     eventsFootnote: "Bir olay tetiklendiğinde, ajan onu otomatik olarak işler.",
