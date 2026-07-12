@@ -23,17 +23,20 @@ import { Label } from "@nous-research/ui/ui/components/label";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Toast } from "@nous-research/ui/ui/components/toast";
+import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { api } from "@/lib/api";
 import type {
   MessagingPlatform,
   MessagingPlatformEnvVar,
   MessagingPlatformUpdate,
+  ProfileInfo,
   TelegramOnboardingStartResponse,
 } from "@/lib/api";
 import { isInternalView } from "@/lib/internal-view";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { usePageHeader } from "@/contexts/usePageHeader";
+import { useI18n } from "@/i18n";
 import { cn, themedBody } from "@/lib/utils";
 
 // State → badge mapping. The backend emits a small, fixed vocabulary plus
@@ -104,12 +107,21 @@ function isTerminalTelegramOnboardingError(error: unknown): boolean {
 }
 
 export default function ChannelsPage() {
+  const { t } = useI18n();
   const [platforms, setPlatforms] = useState<MessagingPlatform[]>([]);
   const [envPath, setEnvPath] = useState("~/.wayne/.env");
   const [gatewayStartCommand, setGatewayStartCommand] = useState(
     "wayne gateway start",
   );
   const [loading, setLoading] = useState(true);
+  // Escopo dos canais: "global" = instalação padrão (agente principal do
+  // tenant) × nome do profile = canais próprios daquele agente. O backend de
+  // messaging já é profile-scoped; aqui só oferecemos a troca. Cada agente tem
+  // seu PRÓPRIO canal (bot/token próprio) — não faz sentido compartilhar
+  // credenciais entre agentes, então isto é seleção de alvo, não fan-out.
+  const [scope, setScope] = useState("global");
+  const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
+  const profileParam = scope === "global" ? undefined : scope;
   const { toast, showToast } = useToast();
   const { setEnd } = usePageHeader();
 
@@ -134,18 +146,27 @@ export default function ChannelsPage() {
 
   const load = useCallback(() => {
     return api
-      .getMessagingPlatforms()
+      .getMessagingPlatforms(profileParam)
       .then((res) => {
         setPlatforms(res.platforms);
         setEnvPath(res.env_path || "~/.wayne/.env");
         setGatewayStartCommand(res.gateway_start_command || "wayne gateway start");
       })
       .catch((e) => showToast(`Error: ${e}`, "error"));
-  }, [showToast]);
+  }, [showToast, profileParam]);
 
   useEffect(() => {
+    setLoading(true);
     load().finally(() => setLoading(false));
   }, [load]);
+
+  // Lista de agentes para o seletor de escopo (default fica de fora — é o "global").
+  useEffect(() => {
+    api
+      .getProfiles()
+      .then((r) => setProfiles(r.profiles))
+      .catch(() => {});
+  }, []);
 
   const openConfig = (platform: MessagingPlatform) => {
     const initial: Record<string, string> = {};
@@ -188,7 +209,7 @@ export default function ChannelsPage() {
     }
     setSaving(true);
     try {
-      const body: MessagingPlatformUpdate = { env, enabled: true };
+      const body: MessagingPlatformUpdate = { env, enabled: true, profile: profileParam };
       await api.updateMessagingPlatform(editing.id, body);
       showToast(`${editing.name} saved`, "success");
       setEditing(null);
@@ -205,7 +226,7 @@ export default function ChannelsPage() {
     const next = !platform.enabled;
     setTogglingId(platform.id);
     try {
-      await api.updateMessagingPlatform(platform.id, { enabled: next });
+      await api.updateMessagingPlatform(platform.id, { enabled: next, profile: profileParam });
       setPlatforms((prev) =>
         prev.map((p) =>
           p.id === platform.id
@@ -224,7 +245,7 @@ export default function ChannelsPage() {
   const handleTest = async (platform: MessagingPlatform) => {
     setTestingId(platform.id);
     try {
-      const res = await api.testMessagingPlatform(platform.id);
+      const res = await api.testMessagingPlatform(platform.id, profileParam);
       showToast(`${platform.name}: ${res.message}`, res.ok ? "success" : "error");
     } catch (e) {
       showToast(`Error: ${e}`, "error");
@@ -287,6 +308,21 @@ export default function ChannelsPage() {
   return (
     <div className="flex flex-col gap-6">
       <Toast toast={toast} />
+
+      {/* Escopo dos canais: sistema (global) × de um agente. Mesmo padrão dos
+          Conectores; o backend de messaging já resolve por profile. */}
+      <div className="flex min-w-[220px] max-w-xs items-center gap-2">
+        <Select value={scope} onValueChange={setScope} aria-label={t.connectors.agent}>
+          <SelectOption value="global">{t.connectors.scopeGlobal}</SelectOption>
+          {profiles
+            .filter((p) => p.name !== "default")
+            .map((p) => (
+              <SelectOption key={p.name} value={p.name}>
+                {t.connectors.agent}: {p.name}
+              </SelectOption>
+            ))}
+        </Select>
+      </div>
 
       {/* Restart banner — encanamento técnico (restart do gateway). Só na
           visão interna (?full=1); para o usuário o restart é nos bastidores. */}
@@ -548,6 +584,7 @@ export default function ChannelsPage() {
                     onChanged={load}
                     onRestartNeeded={() => setRestartNeeded(true)}
                     platform={platform}
+                    profile={profileParam}
                     setRestartNeeded={setRestartNeeded}
                     showToast={showToast}
                   />
@@ -565,12 +602,14 @@ function TelegramOnboardingPanel({
   onChanged,
   onRestartNeeded,
   platform,
+  profile,
   setRestartNeeded,
   showToast,
 }: {
   onChanged: () => Promise<void>;
   onRestartNeeded: () => void;
   platform: MessagingPlatform;
+  profile?: string;
   setRestartNeeded: (needed: boolean) => void;
   showToast: (message: string, type: "success" | "error") => void;
 }) {
@@ -737,6 +776,7 @@ function TelegramOnboardingPanel({
     try {
       const result = await api.applyTelegramOnboarding(setup.pairing_id, {
         allowed_user_ids: allowedIds,
+        profile,
       });
       resetSetup();
       if (result.restart_started) {

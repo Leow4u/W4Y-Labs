@@ -965,9 +965,12 @@ export const api = {
         body: JSON.stringify(body),
       },
     ),
-  testMessagingPlatform: (id: string) =>
+  testMessagingPlatform: (id: string, profile?: string) =>
     fetchJSON<MessagingPlatformTestResult>(
-      `/api/messaging/platforms/${encodeURIComponent(id)}/test`,
+      appendProfileParam(
+        `/api/messaging/platforms/${encodeURIComponent(id)}/test`,
+        profile,
+      ),
       { method: "POST" },
     ),
   startTelegramOnboarding: (body: { bot_name?: string }) =>
@@ -1727,6 +1730,8 @@ export interface MessagingPlatformUpdate {
   enabled?: boolean;
   env?: Record<string, string>;
   clear_env?: string[];
+  /** Escopo: undefined = global (instalação padrão); nome = canais daquele agente. */
+  profile?: string;
 }
 
 export interface MessagingPlatformTestResult {
