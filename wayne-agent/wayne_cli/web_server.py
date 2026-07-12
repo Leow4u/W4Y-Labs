@@ -2059,14 +2059,29 @@ def _composio_request(
         raise HTTPException(status_code=502, detail="Composio returned non-JSON")
 
 
+def _connector_tenant_id() -> str:
+    """Id estável do tenant p/ namespacing no projeto Composio COMPARTILHADO.
+
+    Decisão 11/07 (Onda 5, opção B): a plataforma usa UM projeto Composio; o
+    isolamento entre clientes é o prefixo de tenant no ``user_id``
+    ("wayne-w4y:global", "wayne-acme:vendas"). ``WAYNE_TENANT`` permite
+    override explícito; ``FLY_APP_NAME`` é o padrão nos tenants hospedados;
+    "local" em dev. NUNCA devolver vazio — todo user_id carrega o prefixo.
+    """
+    raw = os.environ.get("WAYNE_TENANT") or os.environ.get("FLY_APP_NAME") or "local"
+    return re.sub(r"[^a-z0-9_-]+", "-", raw.strip().lower()) or "local"
+
+
 def _connector_user_id(scope: str) -> str:
-    """user_id Composio do escopo: 'global' ou o nome canônico do profile."""
+    """user_id Composio do escopo, SEMPRE prefixado pelo tenant."""
     scope = (scope or "global").strip() or "global"
     if scope == "global":
-        return "global"
-    from wayne_cli.profiles import normalize_profile_name
+        suffix = "global"
+    else:
+        from wayne_cli.profiles import normalize_profile_name
 
-    return normalize_profile_name(scope)
+        suffix = normalize_profile_name(scope)
+    return f"{_connector_tenant_id()}:{suffix}"
 
 
 def _connector_homes(scope: str) -> List[Path]:
@@ -2367,6 +2382,82 @@ def _connectors_webhook_token() -> str:
         reset_wayne_home_override(token)
 
 
+def _connectors_store_webhook_secret(secret: str) -> None:
+    """Persiste o signing secret HMAC da subscription do webhook no config.
+
+    É a chave que autentica que um evento veio MESMO da Composio (não de um
+    payload forjado). Capturado ao criar/achar a subscription; a fronteira real
+    de isolamento cross-tenant no projeto compartilhado (opção B).
+    """
+    if not secret:
+        return
+    from wayne_constants import set_wayne_home_override, reset_wayne_home_override
+    from wayne_cli.config import load_config as _load_cfg, save_config as _save_cfg
+    from wayne_cli.profiles import _get_default_wayne_home
+
+    token = set_wayne_home_override(str(_get_default_wayne_home()))
+    try:
+        cfg = _load_cfg() or {}
+        node = cfg.setdefault("connectors", {})
+        if node.get("events_secret") != secret:
+            node["events_secret"] = secret
+            _save_cfg(cfg)
+    finally:
+        reset_wayne_home_override(token)
+
+
+def _connectors_webhook_secret() -> str:
+    """Signing secret HMAC persistido (vazio se ainda não assinamos webhook)."""
+    from wayne_constants import set_wayne_home_override, reset_wayne_home_override
+    from wayne_cli.config import load_config as _load_cfg
+    from wayne_cli.profiles import _get_default_wayne_home
+
+    token = set_wayne_home_override(str(_get_default_wayne_home()))
+    try:
+        cfg = _load_cfg() or {}
+        return str((cfg.get("connectors") or {}).get("events_secret") or "")
+    finally:
+        reset_wayne_home_override(token)
+
+
+def _verify_composio_signature(request: Request, raw: bytes) -> bool:
+    """Verifica a assinatura HMAC-SHA256 do webhook Composio (esquema Svix).
+
+    ``signing = "{webhook-id}.{webhook-timestamp}.{raw_body}"``; compara
+    ``base64(hmac_sha256(secret, signing))`` com a assinatura recebida
+    (header ``webhook-signature`` = "v1,<b64>", possíveis várias separadas por
+    espaço). Rejeita replays (timestamp fora de ±300s). **Falha fechada**: sem
+    secret guardado ou assinatura inválida → False. Esta é a fronteira que
+    impede um payload forjado (com user_id de outro tenant) de criar/despachar
+    tarefa no tenant errado — sem ela o token do path (que vaza pela subscription
+    list do projeto compartilhado) seria a única barreira.
+    """
+    secret = _connectors_webhook_secret()
+    if not secret:
+        _log.warning("connector event rejected: no webhook signing secret stored")
+        return False
+    wid = request.headers.get("webhook-id") or ""
+    wts = request.headers.get("webhook-timestamp") or ""
+    wsig = request.headers.get("webhook-signature") or ""
+    if not (wid and wts and wsig):
+        return False
+    try:
+        if abs(time.time() - float(wts)) > 300:
+            _log.warning("connector event rejected: stale webhook timestamp")
+            return False
+    except ValueError:
+        return False
+    signing = wid.encode() + b"." + wts.encode() + b"." + raw
+    expected = base64.b64encode(
+        hmac.new(secret.encode(), signing, hashlib.sha256).digest()
+    ).decode()
+    for part in wsig.split():
+        received = part.split(",", 1)[1] if "," in part else part
+        if hmac.compare_digest(expected, received):
+            return True
+    return False
+
+
 def _connectors_public_base(request: Request) -> str:
     """Base HTTPS pública do tenant (pra montar a URL do webhook)."""
     env = os.environ.get("WAYNE_PUBLIC_URL") or os.environ.get("DASHBOARD_PUBLIC_URL")
@@ -2442,20 +2533,35 @@ def _ensure_events_webhook(request: Request) -> str:
     existing = _composio_request("GET", "/api/v3.1/webhook_subscriptions") or {}
     for it in existing.get("items") or []:
         if str(it.get("webhook_url") or "").rstrip("/") == url:
+            # Já existe: garante que o signing secret está guardado (subscriptions
+            # criadas antes do fix de assinatura não o tinham). Busca por id.
+            if not _connectors_webhook_secret():
+                sid = it.get("id")
+                if sid:
+                    full = _composio_request(
+                        "GET", f"/api/v3.1/webhook_subscriptions/{sid}"
+                    ) or {}
+                    _connectors_store_webhook_secret(str(full.get("secret") or ""))
             return url
     # ``composio.trigger.message`` is the actual "a trigger fired" event (the
     # V3 envelope carries metadata.trigger_slug + metadata.user_id, which the
     # receiver routes on). Composio rejects a "*" wildcard — the enum is fixed
-    # (message / connected_account.expired / trigger.disabled).
-    _composio_request(
+    # (message / connected_account.expired / trigger.disabled). Também assinamos
+    # ``connected_account.expired`` p/ virar task de reconexão (auto-heal).
+    created = _composio_request(
         "POST",
         "/api/v3.1/webhook_subscriptions",
         body={
             "webhook_url": url,
-            "enabled_events": ["composio.trigger.message"],
+            "enabled_events": [
+                "composio.trigger.message",
+                "composio.connected_account.expired",
+            ],
             "version": "V3",
         },
-    )
+    ) or {}
+    # Captura o signing secret HMAC — a fronteira de autenticidade do receptor.
+    _connectors_store_webhook_secret(str(created.get("secret") or ""))
     return url
 
 
@@ -2501,30 +2607,24 @@ async def connector_trigger_delete(trigger_id: str):
 
 @app.post("/api/connectors/events/{token}")
 async def connector_events_receiver(token: str, request: Request):
-    """Receptor público dos eventos da Composio. Auth = token secreto no path
-    (bypassa o gate do dashboard, como /api/cron/fire). Cada evento vira uma
-    task no kanban do escopo do user_id — o dispatcher acorda o agente."""
+    """Receptor público dos eventos da Composio. Bypassa o gate do dashboard
+    (como /api/cron/fire); a AUTENTICIDADE vem da assinatura HMAC do webhook —
+    o token do path é só pré-filtro de roteamento (não é segredo forte no
+    projeto compartilhado, opção B). Cada evento vira task no kanban do escopo
+    do user_id; o dispatcher acorda o agente."""
     if not secrets.compare_digest(token, _connectors_webhook_token()):
         raise HTTPException(status_code=403, detail="invalid events token")
+    raw = await request.body()
+    if len(raw) > 512 * 1024:  # cap anti-DoS — eventos reais são pequenos
+        raise HTTPException(status_code=413, detail="event too large")
+    if not _verify_composio_signature(request, raw):
+        raise HTTPException(status_code=403, detail="invalid webhook signature")
     try:
-        event = await request.json()
+        event = json.loads(raw)
     except Exception:
         raise HTTPException(status_code=400, detail="invalid JSON")
 
-    def _run():
-        meta = (event or {}).get("metadata") or {}
-        uid = str(meta.get("user_id") or "global")
-        slug = str(meta.get("trigger_slug") or (event or {}).get("type") or "event")
-        event_id = str((event or {}).get("id") or meta.get("log_id") or "")
-        assignee = None if uid == "global" else uid
-        data = (event or {}).get("data") or {}
-        # Resumo curto e legível pro corpo da task (sem despejar o payload cru).
-        preview = ""
-        for k in ("subject", "title", "message", "text", "summary", "name"):
-            v = data.get(k) if isinstance(data, dict) else None
-            if isinstance(v, str) and v.strip():
-                preview = v.strip()[:200]
-                break
+    def _kanban_task(title: str, body_lines: List[str], assignee: Optional[str], event_id: str):
         try:
             from wayne_cli import kanban_db  # type: ignore
         except Exception:
@@ -2536,13 +2636,6 @@ async def connector_events_receiver(token: str, request: Request):
             pass
         conn = kanban_db.connect()
         try:
-            title = f"Evento: {slug}"
-            body_lines = [f"Gatilho **{slug}** disparou (conector).", f"Usuário/escopo: `{uid}`."]
-            if preview:
-                body_lines.append(f"\n> {preview}")
-            body_lines.append(
-                "\nTrate o evento com as ferramentas do conector já conectado a este escopo."
-            )
             task_id = kanban_db.create_task(
                 conn,
                 title=title,
@@ -2557,6 +2650,73 @@ async def connector_events_receiver(token: str, request: Request):
             return {"ok": False, "reason": str(exc)[:200]}
         finally:
             conn.close()
+
+    def _run():
+        meta = (event or {}).get("metadata") or {}
+        etype = str((event or {}).get("type") or "")
+        event_id = str((event or {}).get("id") or meta.get("log_id") or "")
+        data = (event or {}).get("data") or {}
+        tenant = _connector_tenant_id()
+
+        # Conta expirada (auto-heal): esse evento NÃO traz user_id no metadata
+        # — o dono vem da própria conta. Se for nossa, vira task de reconexão.
+        if etype == "composio.connected_account.expired":
+            acc_id = str((data or {}).get("id") or "")
+            uid = ""
+            if acc_id:
+                try:
+                    acc = _composio_request(
+                        "GET", f"/api/v3/connected_accounts/{acc_id}"
+                    ) or {}
+                    uid = str(acc.get("user_id") or "")
+                except Exception:
+                    uid = ""
+            if not uid.startswith(f"{tenant}:"):
+                return {"ok": True, "skipped": "foreign-tenant"}
+            suffix = uid.split(":", 1)[1]
+            tk = data.get("toolkit") or {}
+            toolkit = (tk.get("slug") if isinstance(tk, dict) else str(tk)) or "conector"
+            return _kanban_task(
+                f"Reconectar {toolkit}",
+                [
+                    f"A conexão do **{toolkit}** expirou e precisa ser autorizada de novo.",
+                    "Abra Conectores e clique em Reconectar.",
+                ],
+                None if suffix == "global" else suffix,
+                event_id,
+            )
+
+        # Evento de gatilho. O projeto Composio é COMPARTILHADO (opção B):
+        # toda subscription do projeto recebe TODOS os eventos — cada tenant
+        # processa só os user_id com o SEU prefixo e descarta o resto com 200
+        # (pra Composio não redisparar).
+        uid = str(meta.get("user_id") or "")
+        if not uid.startswith(f"{tenant}:"):
+            return {"ok": True, "skipped": "foreign-tenant"}
+        suffix = uid.split(":", 1)[1]
+        slug = str(meta.get("trigger_slug") or etype or "event")
+        # Resumo curto e legível pro corpo da task (sem despejar o payload cru).
+        preview = ""
+        for k in ("subject", "title", "message", "text", "summary", "name"):
+            v = data.get(k) if isinstance(data, dict) else None
+            if isinstance(v, str) and v.strip():
+                preview = v.strip()[:200]
+                break
+        body_lines = [
+            f"Gatilho **{slug}** disparou (conector).",
+            f"Escopo: `{suffix}`.",
+        ]
+        if preview:
+            body_lines.append(f"\n> {preview}")
+        body_lines.append(
+            "\nTrate o evento com as ferramentas do conector já conectado a este escopo."
+        )
+        return _kanban_task(
+            f"Evento: {slug}",
+            body_lines,
+            None if suffix == "global" else suffix,
+            event_id,
+        )
 
     return await asyncio.to_thread(_run)
 

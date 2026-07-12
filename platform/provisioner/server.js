@@ -62,14 +62,22 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
     const apiKey = token(24);
     const or = await createOpenRouterKey(tenantId, trialUsd);
 
-    await fly(
-      "secrets", "set", "-a", app, "--stage",
+    const secrets = [
       `OPENROUTER_API_KEY=${or.key}`,
       `API_SERVER_KEY=${apiKey}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_USERNAME=${dashUser}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD=${dashPass}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_SECRET=${dashSecret}`,
-    );
+    ];
+    // Conectores (Composio, projeto COMPARTILHADO — Onda 5, opção B): a mesma
+    // project key vai pra todo tenant; o isolamento é o prefixo de tenant no
+    // user_id (FLY_APP_NAME, feito pelo backend do Wayne). Fail-open: sem a
+    // env no provisioner, o tenant nasce sem conectores (dashboard mostra o
+    // aviso de "não configurado") e nada mais quebra.
+    if (process.env.COMPOSIO_API_KEY) {
+      secrets.push(`COMPOSIO_API_KEY=${process.env.COMPOSIO_API_KEY}`);
+    }
+    await fly("secrets", "set", "-a", app, "--stage", ...secrets);
 
     const tomlPath = path.join(os.tmpdir(), `fly.${app}.toml`);
     writeFileSync(tomlPath, tenantToml(app, plan));

@@ -80,6 +80,14 @@ Write-Host "runtime key OpenRouter: limite US`$$TrialUsd (hash $($orHash.Substri
     "WAYNE_DASHBOARD_BASIC_AUTH_SECRET=$dashSecret" | Out-Null
 Write-Host "secrets do tenant staged"
 
+# Conectores (Composio, projeto compartilhado — Onda 5): mesma project key em
+# todo tenant; isolamento = prefixo de tenant no user_id (FLY_APP_NAME).
+# Opcional: sem a env, o tenant nasce sem conectores e nada mais quebra.
+if ($env:COMPOSIO_API_KEY) {
+    & $FLY secrets set -a $APP --stage "COMPOSIO_API_KEY=$($env:COMPOSIO_API_KEY)" | Out-Null
+    Write-Host "conectores: COMPOSIO_API_KEY staged (projeto compartilhado)"
+}
+
 # -- 4. fly.toml do tenant (plano → autostop) ----------------------------------
 $autostop = if ($Plan -eq 'premium') { '"off"' } else { '"suspend"' }
 $minRun = if ($Plan -eq 'premium') { 1 } else { 0 }
