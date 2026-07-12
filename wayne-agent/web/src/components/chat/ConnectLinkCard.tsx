@@ -33,19 +33,32 @@ function loadCatalog(): Promise<ConnectorToolkit[]> {
   return catalogCache;
 }
 
-/** Detecta o app citado no texto — SÓ retorna quando exatamente 1 app conhecido
- *  (nome ≥ 4 chars, palavra inteira) casa. Ambíguo/nenhum → null (genérico). */
+// Nomes que NÃO são o app-alvo — a própria plataforma / provedores de login
+// que aparecem na prosa de autorização ("página da Microsoft/Composio"). Não
+// devem virar o logo do card.
+const APP_DENYLIST = new Set(["composio"]);
+
+/** Detecta o app-alvo citado no texto do agente. O agente sempre nomeia o app
+ *  PRIMEIRO ("Para conectar o seu <App>…"); provedores/plataforma vêm depois.
+ *  Então: casa nomes conhecidos (≥4 chars, palavra inteira; ignora a denylist)
+ *  e devolve o de MENOR posição. Nenhum → null (card genérico). */
 function detectApp(text: string, toolkits: ConnectorToolkit[]): ConnectorToolkit | null {
   if (!text) return null;
   const lower = ` ${text.toLowerCase()} `;
-  const hits = new Map<string, ConnectorToolkit>();
+  let best: ConnectorToolkit | null = null;
+  let bestPos = Infinity;
   for (const tk of toolkits) {
+    if (APP_DENYLIST.has(tk.slug)) continue;
     const name = (tk.name || "").toLowerCase().trim();
     if (name.length < 4) continue;
     const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    if (new RegExp(`\\b${esc}\\b`).test(lower)) hits.set(tk.slug, tk);
+    const pos = lower.search(new RegExp(`\\b${esc}\\b`));
+    if (pos >= 0 && pos < bestPos) {
+      best = tk;
+      bestPos = pos;
+    }
   }
-  return hits.size === 1 ? [...hits.values()][0] : null;
+  return best;
 }
 
 function AppTile({ app }: { app: ConnectorToolkit | null }) {
