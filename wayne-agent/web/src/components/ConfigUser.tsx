@@ -14,7 +14,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { UserCircle, SlidersHorizontal, Sparkles, Shield, LogOut, Package, Plug, Puzzle, Search, Monitor, Bell, Brain, Laptop, HardDrive, Cpu, MemoryStick, Archive, ExternalLink, Gauge, Check } from "lucide-react";
 import SkillsPage from "@/pages/SkillsPage";
-import McpPage from "@/pages/McpPage";
+import ConnectorsPage from "@/pages/ConnectorsPage";
 import PluginsPage from "@/pages/PluginsPage";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Button } from "@nous-research/ui/ui/components/button";
@@ -1213,8 +1213,12 @@ export default function ConfigUser() {
           )}
 
           {/* ---------- PERSONALIZAR (páginas existentes) ---------- */}
+          {/* As MESMAS páginas do Dashboard: Habilidades = SkillsPage (que já
+              cai no marketplace fora do ?full=1), Conectores = ConnectorsPage
+              (o marketplace dos 1.047 apps — não a tela técnica McpPage, que
+              vive só no ?full=1). ConfigUser é a superfície user-facing. */}
           {active === "skills" && <SkillsPage />}
-          {active === "connectors" && <McpPage />}
+          {active === "connectors" && <ConnectorsPage />}
           {active === "plugins" && <PluginsPage />}
         </div>
       </div>
