@@ -1158,6 +1158,7 @@ export interface Translations {
     writeApprovalHint: string;
     skills: string;
     connectors: string;
+    channels: string;
     plugins: string;
     font: string;
     fontThemeDefault: string;

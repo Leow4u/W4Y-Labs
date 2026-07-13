@@ -1072,6 +1072,7 @@ export const hu: Translations = {
     writeApproval: "Új emlékek jóváhagyása",
     writeApprovalHint: "Wayne megerősítést kér, mielőtt bármi újat a memóriába írna.",
     skills: "Készségek",
+    channels: "Csatornák",
     connectors: "Csatlakozók",
     plugins: "Bővítmények",
     font: "Betűtípus",

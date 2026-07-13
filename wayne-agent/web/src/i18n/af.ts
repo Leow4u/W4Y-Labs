@@ -1072,6 +1072,7 @@ export const af: Translations = {
     writeApproval: "Keur nuwe herinneringe goed",
     writeApprovalHint: "Wayne vra jou bevestiging voordat iets nuuts in die geheue gestoor word.",
     skills: "Vaardighede",
+    channels: "Kanale",
     connectors: "Verbinders",
     plugins: "Inproppe",
     font: "Lettertipe",

@@ -1066,6 +1066,7 @@ export const zh: Translations = {
     writeApproval: "批准新记忆",
     writeApprovalHint: "Wayne 在写入新记忆前会征求您的确认。",
     skills: "技能",
+    channels: "频道",
     connectors: "连接器",
     plugins: "插件",
     font: "字体",

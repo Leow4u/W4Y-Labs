@@ -1071,6 +1071,7 @@ export const ja: Translations = {
     writeApproval: "新しい記憶を承認",
     writeApprovalHint: "Wayne が新しい内容を記憶する前に確認を求めます。",
     skills: "スキル",
+    channels: "チャンネル",
     connectors: "コネクタ",
     plugins: "プラグイン",
     font: "フォント",

@@ -1073,6 +1073,7 @@ export const uk: Translations = {
     writeApproval: "Схвалювати нові записи пам'яті",
     writeApprovalHint: "Wayne питає підтвердження, перш ніж записати щось нове в пам'ять.",
     skills: "Навички",
+    channels: "Канали",
     connectors: "Конектори",
     plugins: "Плагіни",
     font: "Шрифт",

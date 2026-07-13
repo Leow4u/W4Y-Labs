@@ -1133,6 +1133,7 @@ export const en: Translations = {
     writeApproval: "Approve new memories",
     writeApprovalHint: "Wayne asks for your confirmation before saving anything new to memory.",
     skills: "Skills",
+    channels: "Channels",
     connectors: "Connectors",
     plugins: "Plugins",
     font: "Font",

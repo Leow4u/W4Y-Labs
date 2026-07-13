@@ -12,9 +12,10 @@
  * Controle de dados=resetMemory + bulkDeleteSessions. Tela técnica: ?full=1.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { UserCircle, SlidersHorizontal, Sparkles, Shield, LogOut, Package, Plug, Puzzle, Search, Monitor, Bell, Brain, Laptop, HardDrive, Cpu, MemoryStick, Archive, ExternalLink, Gauge, Check } from "lucide-react";
+import { UserCircle, SlidersHorizontal, Sparkles, Shield, LogOut, Package, Plug, Puzzle, Radio, Search, Monitor, Bell, Brain, Laptop, HardDrive, Cpu, MemoryStick, Archive, ExternalLink, Gauge, Check } from "lucide-react";
 import SkillsPage from "@/pages/SkillsPage";
 import ConnectorsPage from "@/pages/ConnectorsPage";
+import ChannelsPage from "@/pages/ChannelsPage";
 import PluginsPage from "@/pages/PluginsPage";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Button } from "@nous-research/ui/ui/components/button";
@@ -42,7 +43,7 @@ import { cn } from "@/lib/utils";
 
 type SectionKey =
   | "general" | "account" | "computer" | "planTab" | "notificationsTab" | "memoryTab" | "privacyData"
-  | "skills" | "connectors" | "plugins";
+  | "skills" | "connectors" | "channels" | "plugins";
 type NavItem = { key: SectionKey; icon: React.ComponentType<{ className?: string }> };
 
 // Grupo "Configurações" — Onda A (10/07): estrutura Claude, lastro nativo.
@@ -63,9 +64,10 @@ const SECTIONS: NavItem[] = [
 const PAGES: NavItem[] = [
   { key: "skills", icon: Package },
   { key: "connectors", icon: Plug },
+  { key: "channels", icon: Radio },
   { key: "plugins", icon: Puzzle },
 ];
-const PAGE_KEYS: SectionKey[] = ["skills", "connectors", "plugins"];
+const PAGE_KEYS: SectionKey[] = ["skills", "connectors", "channels", "plugins"];
 
 /** Galeria de temas (benchmark: aba Appearance do Hermes desktop) — cada
  *  card mostra uma MINI-PRÉVIA real do tema (fundo, superfície, texto e
@@ -1219,6 +1221,7 @@ export default function ConfigUser() {
               vive só no ?full=1). ConfigUser é a superfície user-facing. */}
           {active === "skills" && <SkillsPage />}
           {active === "connectors" && <ConnectorsPage />}
+          {active === "channels" && <ChannelsPage />}
           {active === "plugins" && <PluginsPage />}
         </div>
       </div>

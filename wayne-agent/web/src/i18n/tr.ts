@@ -1072,6 +1072,7 @@ export const tr: Translations = {
     writeApproval: "Yeni anıları onayla",
     writeApprovalHint: "Wayne belleğe yeni bir şey kaydetmeden önce onayınızı ister.",
     skills: "Beceriler",
+    channels: "Kanallar",
     connectors: "Bağlayıcılar",
     plugins: "Eklentiler",
     font: "Yazı tipi",

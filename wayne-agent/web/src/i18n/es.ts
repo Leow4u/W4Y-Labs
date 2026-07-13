@@ -1073,6 +1073,7 @@ export const es: Translations = {
     writeApproval: "Aprobar nuevas memorias",
     writeApprovalHint: "Wayne pide tu confirmación antes de guardar algo nuevo en la memoria.",
     skills: "Habilidades",
+    channels: "Canales",
     connectors: "Conectores",
     plugins: "Plugins",
     font: "Fuente",

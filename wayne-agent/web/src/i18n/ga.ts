@@ -1080,6 +1080,7 @@ export const ga: Translations = {
     writeApproval: "Ceadaigh cuimhní nua",
     writeApprovalHint: "Iarrann Wayne do dheimhniú sula sábhálann sé aon rud nua sa chuimhne.",
     skills: "Scileanna",
+    channels: "Cainéil",
     connectors: "Nascóirí",
     plugins: "Breiseáin",
     font: "Cló",

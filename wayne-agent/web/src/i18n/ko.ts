@@ -1071,6 +1071,7 @@ export const ko: Translations = {
     writeApproval: "새 기억 승인",
     writeApprovalHint: "Wayne이 새로운 내용을 기억하기 전에 확인을 요청합니다.",
     skills: "스킬",
+    channels: "채널",
     connectors: "커넥터",
     plugins: "플러그인",
     font: "글꼴",

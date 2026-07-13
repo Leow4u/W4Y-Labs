@@ -1072,6 +1072,7 @@ export const de: Translations = {
     writeApproval: "Neue Erinnerungen freigeben",
     writeApprovalHint: "Wayne fragt nach, bevor etwas Neues ins Gedächtnis geschrieben wird.",
     skills: "Fähigkeiten",
+    channels: "Kanäle",
     connectors: "Konnektoren",
     plugins: "Plugins",
     font: "Schriftart",

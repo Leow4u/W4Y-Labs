@@ -1072,6 +1072,7 @@ export const ru: Translations = {
     writeApproval: "Одобрять новые записи памяти",
     writeApprovalHint: "Wayne спрашивает подтверждение, прежде чем записать что-то новое в память.",
     skills: "Навыки",
+    channels: "Каналы",
     connectors: "Коннекторы",
     plugins: "Плагины",
     font: "Шрифт",
