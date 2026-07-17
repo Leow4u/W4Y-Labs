@@ -92,20 +92,47 @@ export async function requestEnsureKey(
 
 // Pivô desktop: pede ao provisionador uma runtime key OpenRouter POR
 // DISPOSITIVO (nova, separada da key do Fly), com limite = crédito do plano.
-// É o único fluxo em que a chave CRUA transita pela casca — segue direto
-// para o dispositivo do dono (motor local); nunca logar nem persistir a key.
+// S0 conectores: a resposta pode trazer também uma chave Composio ADICIONAL
+// do projeto DEDICADO do tenant (best-effort; null quando a Composio falhou —
+// composioError curto explica). É o único fluxo em que chaves CRUAS transitam
+// pela casca — seguem direto para o dispositivo do dono (motor local); nunca
+// logar nem persistir as keys (o composioKeyId, não-secreto, serve à auditoria).
 export async function requestDeviceKey(opts: {
   app: string | null;
   tenantId: string;
   limitUsd: number;
   deviceLabel?: string;
-}): Promise<{ key: string; hash: string; limitUsd: number; name: string } | null> {
+}): Promise<{
+  key: string;
+  hash: string;
+  limitUsd: number;
+  name: string;
+  composioKey: string | null;
+  composioKeyId: string | null;
+  composioError: string | null;
+} | null> {
   try {
     const r = await call("/device-key", opts);
     if (!r.ok) return null;
-    const j = (await r.json()) as { key?: string; hash?: string; limitUsd?: number; name?: string };
+    const j = (await r.json()) as {
+      key?: string;
+      hash?: string;
+      limitUsd?: number;
+      name?: string;
+      composioKey?: string | null;
+      composioKeyId?: string | null;
+      composioError?: string | null;
+    };
     if (!j.key || !j.hash) return null;
-    return { key: j.key, hash: j.hash, limitUsd: Number(j.limitUsd ?? opts.limitUsd), name: j.name ?? "" };
+    return {
+      key: j.key,
+      hash: j.hash,
+      limitUsd: Number(j.limitUsd ?? opts.limitUsd),
+      name: j.name ?? "",
+      composioKey: typeof j.composioKey === "string" && j.composioKey ? j.composioKey : null,
+      composioKeyId: typeof j.composioKeyId === "string" && j.composioKeyId ? j.composioKeyId : null,
+      composioError: typeof j.composioError === "string" && j.composioError ? j.composioError : null,
+    };
   } catch {
     return null;
   }

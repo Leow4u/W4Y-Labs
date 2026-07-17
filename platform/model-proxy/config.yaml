@@ -1,0 +1,68 @@
+# W4Y model proxy -- LiteLLM in front of OpenRouter (Cursor-style).
+#
+# v1 = TRANSPARENT PASS-THROUGH. The client keeps sending ITS OWN capped
+# OpenRouter key in the Authorization header; the proxy forwards it verbatim
+# and OpenRouter stays the authenticator (per-tenant server-side cap
+# preserved). What we gain: our own observation/cut point in the path.
+#
+# Why pass-through and not router mode: LiteLLM NEVER forwards a client's
+# Authorization header on native router routes (docs/proxy/forward_client_headers
+# -- BYOK there only covers x-api-key / x-goog-api-key / api-key). The generic
+# pass-through endpoint (docs/proxy/pass_through) with forward_headers: true
+# is the supported way to relay the client's own bearer key.
+#
+# GOTCHA (verified in source + live container, litellm main-stable jul/2026,
+# proxy/auth/user_api_key_auth.py::check_api_key_for_custom_headers_or_
+# pass_through_endpoints): the `auth: false` exemption only fires when the
+# request path EXACTLY equals the configured `path`. With `include_subpath:
+# true`, requests to sub-paths get LiteLLM's virtual-key auth applied and the
+# tenant's OpenRouter key is swallowed as a (nonexistent) LiteLLM key.
+# => Each relayed route MUST be declared as an EXACT path below. Do not
+#    "simplify" this back to a single include_subpath entry.
+
+general_settings:
+  # Gates LiteLLM's NATIVE routes (/v1/*, /model/*, admin). Not used by the
+  # pass-throughs below. Set via `fly secrets set LITELLM_MASTER_KEY=...`.
+  master_key: os.environ/LITELLM_MASTER_KEY
+
+  pass_through_endpoints:
+    # OpenAI-compatible surface for ANY OpenRouter model (wildcard by
+    # construction -- the request body is untouched, so `model` can be any
+    # id OpenRouter accepts). Client base_url:
+    #   https://w4y-model-proxy.fly.dev/openrouter/v1
+    # The prefix /openrouter (not bare /v1) is on purpose: LiteLLM's native
+    # /v1/chat/completions route is registered first and would shadow ours.
+    #
+    # forward_headers: true -> incoming Authorization (tenant's capped
+    # OpenRouter key) plus OpenRouter extras (HTTP-Referer, X-Title) reach
+    # OpenRouter untouched. SSE streaming is passed through.
+    # auth: false -> no proxy-side auth here; OpenRouter 401s bad/missing keys.
+    - path: "/openrouter/v1/chat/completions"
+      target: "https://openrouter.ai/api/v1/chat/completions"
+      forward_headers: true
+      auth: false
+      timeout: 600
+
+    # Model catalog (some OpenAI clients list models on startup).
+    - path: "/openrouter/v1/models"
+      target: "https://openrouter.ai/api/v1/models"
+      forward_headers: true
+      auth: false
+      timeout: 60
+
+    # OpenRouter key/limits introspection (runtime usage meter uses it).
+    - path: "/openrouter/v1/key"
+      target: "https://openrouter.ai/api/v1/key"
+      forward_headers: true
+      auth: false
+      timeout: 60
+
+# Router mode intentionally has NO models in v1 (native /v1/chat/completions
+# answers 401 without the master key and has no upstream creds configured).
+# Phase 2 (virtual keys minted by the proxy) would add:
+#
+# model_list:
+#   - model_name: "openrouter/*"
+#     litellm_params:
+#       model: "openrouter/*"
+#       api_key: os.environ/OPENROUTER_API_KEY

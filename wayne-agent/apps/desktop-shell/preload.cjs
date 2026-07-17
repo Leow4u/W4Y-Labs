@@ -46,6 +46,11 @@ if (_isBootPage()) {
   //   onEvent(cb)  → eventos ao vivo do canal "w4y:boot:event"; retorna unsubscribe
   //   submitKey(k) → grava OPENROUTER_API_KEY no .env do motor ({ ok } | { ok:false, error })
   //   skipKey()    → segue sem chave
+  //   login()      → fluxo "Entrar com Work4You" (janela filha + /device/
+  //                  engine-key); resolve só no FIM do fluxo:
+  //                  { ok:true, got:"key"|"no-credit" } | { ok:false, reason }
+  //                  (a chave em si NUNCA cruza este canal)
+  //   loginCancel()→ cancela o fluxo de login (fecha a janela filha)
   //   retry()      → re-roda a sequência de boot após erro
   //   useCloud()   → fallback: carrega o app da nuvem (work4you.ai)
   contextBridge.exposeInMainWorld("w4yBoot", {
@@ -63,6 +68,8 @@ if (_isBootPage()) {
     },
     submitKey: (key) => ipcRenderer.invoke("w4y:boot:key:submit", String(key || "")),
     skipKey: () => ipcRenderer.invoke("w4y:boot:key:skip"),
+    login: () => ipcRenderer.invoke("w4y:boot:login"),
+    loginCancel: () => ipcRenderer.invoke("w4y:boot:login:cancel"),
     retry: () => ipcRenderer.invoke("w4y:boot:retry"),
     useCloud: () => ipcRenderer.invoke("w4y:boot:cloud"),
   });
@@ -100,6 +107,28 @@ if (_isAppOrigin()) {
     // authorized-folders vault — via its file:// URL. Anything else is refused
     // in the main process: { ok:false } (no arbitrary protocols, no shell exec).
     openExternal: (target) => ipcRenderer.invoke("w4y:openExternal", target),
+    // ── Cloud bridge (S1 mini-computer): chat sessions that run on the user's
+    // CLOUD computer from the local-engine app. wsUrl() mints a fresh
+    // single-use WS ticket (re-invoke on every reconnect — tickets expire and
+    // are one-shot); api() is a narrow REST proxy, main-enforced to the app
+    // origin + /api/* paths only (GET/POST, JSON). Cookies never cross here.
+    cloud: {
+      wsUrl: () => ipcRenderer.invoke("w4y:cloud:wsUrl"),
+      api: (path, opts) =>
+        ipcRenderer.invoke("w4y:cloud:api", {
+          path: String(path || ""),
+          method: opts && opts.method === "POST" ? "POST" : "GET",
+          body: opts ? opts.body : undefined,
+        }),
+    },
+    // ── Engine update chip (0.3.4) ────────────────────────────────────────
+    // check() → { available, version } | null (fail-open: offline/cloud mode
+    // simply hide the chip). apply() → restarts the shell; the boot flow
+    // performs the actual refresh with its progress UI.
+    update: {
+      check: () => ipcRenderer.invoke("w4y:update:check"),
+      apply: () => ipcRenderer.invoke("w4y:update:apply"),
+    },
     // ── Desktop-2: fs/git locais (todos confinados ao cofre no main) ──────────
     // Lista os itens de uma pasta do cofre: { entries:[{name,path,isDirectory}] }
     // ou { entries:[], error }.

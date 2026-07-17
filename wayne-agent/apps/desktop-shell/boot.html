@@ -87,18 +87,46 @@
   #stages li.failed { color: var(--err); }
   #stages li.failed .mark { color: var(--err); }
 
-  /* Chave de acesso */
-  #key-form {
+  /* Gate de acesso: login primário + chave manual secundária */
+  #gate {
     border: 1px solid var(--line);
     border-radius: 10px;
     background: var(--panel);
     padding: 18px;
     display: flex;
     flex-direction: column;
+    gap: 14px;
+  }
+  .gate-title { font-size: 13.5px; }
+  .gate-title small { color: var(--muted); display: block; margin-top: 2px; }
+  #btn-login { align-self: flex-start; }
+  #login-wait { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+  #login-wait .spinner { width: 14px; height: 14px; border-width: 2px; }
+  #login-error { color: var(--err); font-size: 12.5px; }
+  #manual-key summary {
+    color: var(--muted);
+    font-size: 12.5px;
+    cursor: pointer;
+    list-style: none;
+  }
+  #manual-key summary::before { content: "▸ "; }
+  #manual-key[open] summary::before { content: "▾ "; }
+  #key-form {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
   }
-  #key-form label { font-size: 13.5px; }
-  #key-form label small { color: var(--muted); display: block; margin-top: 2px; }
+
+  /* Aviso persistente (ex.: plano sem créditos) */
+  #notice {
+    border: 1px solid rgba(217, 119, 87, 0.45);
+    border-radius: 10px;
+    background: rgba(217, 119, 87, 0.08);
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.5;
+  }
   #key-input {
     background: var(--bg);
     border: 1px solid var(--line);
@@ -177,19 +205,36 @@
 
     <ul id="stages" hidden></ul>
 
-    <form id="key-form" hidden>
-      <label for="key-input">
-        Chave de acesso
-        <small>Temporário — em breve você vai entrar com seu login Work4You.</small>
-      </label>
-      <input id="key-input" type="password" autocomplete="off" spellcheck="false"
-             placeholder="sk-or-…" />
-      <div id="key-error"></div>
-      <div class="actions">
-        <button type="submit" class="primary" id="key-save">Continuar</button>
-        <button type="button" class="ghost" id="key-skip">Pular por enquanto</button>
+    <div id="gate" hidden>
+      <div class="gate-title">
+        <span id="gate-title-main">Quase lá — conecte sua conta</span>
+        <small id="gate-title-sub">Entre com o seu login Work4You e a chave de acesso chega sozinha.</small>
       </div>
-    </form>
+      <div class="actions" id="gate-actions">
+        <button type="button" class="primary" id="btn-login">Entrar com Work4You</button>
+        <button type="button" class="ghost" id="btn-gate-later" hidden>Agora não</button>
+      </div>
+      <div id="login-wait" hidden>
+        <div class="spinner"></div>
+        <span>Esperando você entrar na janela que abriu…</span>
+        <button type="button" class="ghost" id="btn-login-cancel">Cancelar</button>
+      </div>
+      <div id="login-error" hidden></div>
+      <details id="manual-key">
+        <summary>ou cole uma chave</summary>
+        <form id="key-form">
+          <input id="key-input" type="password" autocomplete="off" spellcheck="false"
+                 placeholder="sk-or-…" />
+          <div id="key-error"></div>
+          <div class="actions">
+            <button type="submit" class="primary" id="key-save">Continuar</button>
+            <button type="button" class="ghost" id="key-skip">Pular por enquanto</button>
+          </div>
+        </form>
+      </details>
+    </div>
+
+    <div id="notice" hidden></div>
 
     <div id="error-box" hidden>
       <div id="error-text"></div>
@@ -243,6 +288,10 @@
       text: "Instalando o motor local…",
       hint: "A primeira vez leva alguns minutos. Pode deixar rodando — a instalação continua sozinha.",
     },
+    update: {
+      text: "Atualizando o motor…",
+      hint: "Baixando a versão mais nova. Leva pouco tempo — sua configuração fica intacta.",
+    },
     key: { text: "Quase lá.", hint: "" },
     spawn: {
       text: "Iniciando o motor local…",
@@ -256,6 +305,24 @@
   const MARKS = { pending: "·", succeeded: "✓", skipped: "–", failed: "✕" };
   const stageEls = new Map(); // name -> li
   let logCount = 0;
+  // Gate variant (0.3.4): the main sends { gate: { needModel, needComposio } }
+  // with the "key" phase. Model key missing → the classic key gate (login +
+  // manual key). Model present, only Composio missing → the login reads
+  // "connect your apps" and "Agora não" skips (no manual key — there is no
+  // key to paste for connectors). Remembered across the state() replay.
+  let lastGate = null;
+
+  function configureGate() {
+    const composioOnly = Boolean(lastGate && !lastGate.needModel && lastGate.needComposio);
+    $("gate-title-main").textContent = composioOnly
+      ? "Conecte sua conta pra ativar os apps"
+      : "Quase lá — conecte sua conta";
+    $("gate-title-sub").textContent = composioOnly
+      ? "Entre com o seu login Work4You e os aplicativos conectados chegam sozinhos."
+      : "Entre com o seu login Work4You e a chave de acesso chega sozinha.";
+    $("btn-gate-later").hidden = !composioOnly;
+    $("manual-key").hidden = composioOnly;
+  }
 
   function setStatus(phase, message) {
     const meta = PHASES[phase] || PHASES.idle;
@@ -265,13 +332,30 @@
     $("hint").textContent = hint;
     $("hint").hidden = !hint;
     $("spinner").hidden = phase === "error" || phase === "key";
-    $("key-form").hidden = phase !== "key";
+    $("gate").hidden = phase !== "key";
+    if (phase === "key") configureGate();
+    if (phase !== "key") setLoginWaiting(false); // saiu do gate → limpa o estado de espera
     $("error-box").hidden = phase !== "error";
     if (phase === "error") {
       $("error-text").textContent = message || "Algo deu errado ao preparar o motor local.";
       $("stages").hidden = stageEls.size === 0;
     }
-    if (phase === "key") setTimeout(() => $("key-input").focus(), 0);
+    if (phase === "key") setTimeout(() => $("btn-login").focus(), 0);
+  }
+
+  // Estado de espera do login: botão some, linha "esperando…" aparece e o
+  // caminho manual se recolhe (volta tudo quando o fluxo termina/cancela).
+  function setLoginWaiting(waiting) {
+    $("btn-login").hidden = waiting;
+    $("login-wait").hidden = !waiting;
+    if (waiting) {
+      $("btn-gate-later").hidden = true;
+      $("manual-key").hidden = true;
+      $("login-error").hidden = true;
+      $("manual-key").open = false;
+    } else {
+      configureGate(); // restores the variant's own button/manual-key mix
+    }
   }
 
   function buildStages(stages) {
@@ -321,7 +405,13 @@
   function apply(ev) {
     if (!ev || typeof ev !== "object") return;
     if (ev.type === "phase") {
+      if (ev.gate) lastGate = ev.gate;
       setStatus(ev.phase, ev.message);
+      return;
+    }
+    if (ev.type === "notice") {
+      $("notice").textContent = ev.text || "";
+      $("notice").hidden = !ev.text;
       return;
     }
     if (ev.type === "log") {
@@ -350,7 +440,43 @@
     })
     .catch(() => {});
 
-  // ── Chave de acesso ──────────────────────────────────────────────────────
+  // ── Entrar com Work4You (caminho primário do gate) ───────────────────────
+  // login() resolve só no FIM do fluxo: chave gravada / sem crédito (o main
+  // avança a fase nos dois casos), cancelado (janela fechada → volta pro
+  // gate, sem erro) ou falha (mensagem no gate). A chave nunca chega aqui.
+  const LOGIN_ERRORS = {
+    "rate-limited": "Muitas tentativas agora. Espere um minuto e tente de novo.",
+    network: "Não deu pra falar com o work4you.ai. Confira a internet e tente de novo.",
+    "write-failed": "Entrou, mas não consegui gravar a chave. Tente de novo.",
+    "invalid-response": "O login funcionou, mas a resposta veio estranha. Tente de novo — ou cole uma chave.",
+  };
+  let loginPending = false; // debounce: um fluxo por vez a partir desta página
+  $("btn-login").addEventListener("click", async () => {
+    if (loginPending) return;
+    loginPending = true;
+    setLoginWaiting(true);
+    let r = null;
+    try {
+      r = await bridge.login();
+    } catch {
+      r = { ok: false, reason: "network" };
+    } finally {
+      loginPending = false;
+    }
+    if (r && r.ok) return; // o main avança a fase sozinho
+    setLoginWaiting(false);
+    const reason = (r && r.reason) || "";
+    if (reason === "cancelled" || reason === "busy" || reason === "not-waiting") return;
+    const msg = LOGIN_ERRORS[reason];
+    $("login-error").textContent =
+      msg || "Algo deu errado no login. Tente de novo — ou cole uma chave.";
+    $("login-error").hidden = false;
+  });
+  $("btn-login-cancel").addEventListener("click", () => {
+    void bridge.loginCancel(); // o login() pendente resolve "cancelled" e restaura o gate
+  });
+
+  // ── Chave manual (caminho secundário) ────────────────────────────────────
   $("key-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const input = $("key-input");
@@ -374,6 +500,14 @@
   });
   $("key-skip").addEventListener("click", () => {
     void bridge.skipKey();
+  });
+  // "Agora não" (composio-only gate): boots without local connectors — the
+  // gate returns on the next boot while the Composio key is still missing.
+  $("btn-gate-later").addEventListener("click", () => {
+    void bridge.skipKey();
+  });
+  $("manual-key").addEventListener("toggle", () => {
+    if ($("manual-key").open) $("key-input").focus();
   });
 
   // ── Erro: tentar de novo / cair pra nuvem ────────────────────────────────

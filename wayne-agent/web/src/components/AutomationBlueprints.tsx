@@ -30,9 +30,11 @@ import { Label } from "@nous-research/ui/ui/components/label";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { api } from "@/lib/api";
-import type { AutomationBlueprint, AutomationBlueprintField } from "@/lib/api";
+import type { AutomationBlueprint, AutomationBlueprintField, CronJob } from "@/lib/api";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { isLocalEngine } from "@/lib/projects";
+import { cloudBridge, cloudPostJson } from "@/lib/cloudSession";
 
 interface AutomationBlueprintsProps {
   profile: string;
@@ -117,6 +119,35 @@ function BlueprintCard({
     setSubmitting(true);
     setError(null);
     try {
+      // S2 default (local-engine desktop): the routine a blueprint creates
+      // lives on the CLOUD brain — same catalog on both brains, same
+      // /instantiate POST, through the shell bridge. Fail-open: a bridge
+      // refusal (signed out / timeout / unknown key) falls back to the LOCAL
+      // create with an honest note of where it ended up.
+      if (isLocalEngine() && cloudBridge()) {
+        const cloudJob = await cloudPostJson<CronJob>(
+          `/api/cron/blueprints/instantiate?profile=${encodeURIComponent(profile)}`,
+          { blueprint: blueprint.key, values },
+          8000,
+        );
+        if (cloudJob && typeof cloudJob.id === "string" && cloudJob.id) {
+          showToast(`${blueprint.title} — ${t.cron.createdInCloud}`, "success");
+          setOpen(false);
+          setValues(initialValues(blueprint));
+          onCreated?.();
+          return;
+        }
+        const localJob = await api.instantiateAutomationBlueprint(
+          { blueprint: blueprint.key, values },
+          profile,
+        );
+        const localWhen = localJob.schedule_display ? ` — ${localJob.schedule_display}` : "";
+        showToast(`${blueprint.title}${localWhen} — ${t.cron.createdLocalFallback}`, "error");
+        setOpen(false);
+        setValues(initialValues(blueprint));
+        onCreated?.();
+        return;
+      }
       const job = await api.instantiateAutomationBlueprint({ blueprint: blueprint.key, values }, profile);
       const when = job.schedule_display ? ` — ${job.schedule_display}` : "";
       showToast(`${blueprint.title}${when}`, "success");
@@ -129,7 +160,7 @@ function BlueprintCard({
     } finally {
       setSubmitting(false);
     }
-  }, [blueprint, values, profile, showToast, onCreated]);
+  }, [blueprint, values, profile, showToast, onCreated, t]);
 
   return (
     <div className="flex flex-col rounded-2xl border border-border bg-card p-4 transition-shadow hover:shadow-pop">

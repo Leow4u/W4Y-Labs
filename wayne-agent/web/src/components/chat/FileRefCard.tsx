@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 
 import { api, type ManagedFileEntry } from "@/lib/api";
+import { cloudReadFile, isCloudSessionActive } from "@/lib/cloudSession";
 import { isLocalPath, readLocalFileDataUrl } from "@/lib/localFile";
 import { FilePreview, isPreviewable } from "@/components/files/FilePreview";
 import { useI18n } from "@/i18n";
@@ -121,6 +122,14 @@ export function FileRefCard({ file }: { file: FileRef }) {
         if (!local) throw new Error("local read failed");
         dataUrl = local.data_url;
         name = local.name;
+      } else if (isCloudSessionActive()) {
+        // Cloud-target session (S1): the file lives on the user's CLOUD
+        // computer — read it through the shell's cloud bridge; the local
+        // gateway would 404 on the wrong disk.
+        const res = await cloudReadFile(path);
+        if (!res) throw new Error("cloud read failed");
+        dataUrl = res.data_url;
+        name = res.name;
       } else {
         const res = await api.readFile(path);
         dataUrl = res.data_url;
@@ -143,10 +152,14 @@ export function FileRefCard({ file }: { file: FileRef }) {
   // overlay WITHOUT downloading; the rest downloads; a remote URL opens in a new
   // tab. Local (user-machine) paths skip the overlay — FilePreview reads via the
   // server APIs, which cannot reach the user's disk — and download directly.
+  // Cloud sessions also skip the overlay: FilePreview reads via the LOCAL
+  // server APIs, which cannot see the cloud computer's disk — the card
+  // downloads directly (through the cloud bridge) instead.
   const canPreview =
     !file.url &&
     Boolean(file.path) &&
     !isLocalPath(file.path as string) &&
+    !isCloudSessionActive() &&
     isPreviewable(file.name, null);
   const asEntry = (): ManagedFileEntry => ({
     name: file.name,

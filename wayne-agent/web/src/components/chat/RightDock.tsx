@@ -88,6 +88,11 @@ import {
 } from "@/hooks/useChatSession";
 import { GatewayClient, type GatewayEvent } from "@/lib/gatewayClient";
 import {
+  cloudReadFile,
+  cloudReadFileDataUrl,
+  isCloudSessionActive,
+} from "@/lib/cloudSession";
+import {
   desktopOpenExternal,
   isLocalPath,
   normalizeLocalPath,
@@ -168,6 +173,16 @@ async function readDataUrlSmart(path: string): Promise<string | null> {
     const local = await readLocalFileDataUrl(path);
     return local?.data_url ?? null;
   }
+  // Cloud-target session (S1 mini-computer): the file lives on the user's
+  // CLOUD computer — read through the shell's cloud bridge, with no local
+  // fallback (same-origin would read the WRONG machine's disk).
+  if (isCloudSessionActive()) {
+    for (const p of pathCandidates(path)) {
+      const r = await cloudReadFileDataUrl(p);
+      if (r?.data_url) return r.data_url;
+    }
+    return null;
+  }
   for (const p of pathCandidates(path)) {
     try {
       const r = await api.readFileDataUrl(p);
@@ -184,6 +199,13 @@ async function readTextSmart(path: string): Promise<string | null> {
   if (isLocalPath(path)) {
     const local = await readLocalFileDataUrl(path);
     return local?.data_url ? dataUrlToText(local.data_url) : null;
+  }
+  if (isCloudSessionActive()) {
+    for (const p of pathCandidates(path)) {
+      const r = await cloudReadFile(p);
+      if (r?.data_url) return dataUrlToText(r.data_url);
+    }
+    return null;
   }
   for (const p of pathCandidates(path)) {
     try {

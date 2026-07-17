@@ -1,5 +1,28 @@
 /**
- * Work4You Desktop — casca nativa com MOTOR LOCAL (pivô desktop, 0.3.0).
+ * Work4You Desktop — casca nativa com MOTOR LOCAL (pivô desktop, 0.3.x).
+ *
+ * 0.3.2: (1) o gate de chave ganha o caminho primário "Entrar com Work4You" —
+ * janela filha de login na nuvem + POST /device/engine-key com os cookies da
+ * sessão entrega a chave sozinha (o campo manual vira secundário); (2) update
+ * do motor no boot — latest.json do bucket comparado com o engine-source.json
+ * gravado pela casca; divergiu → refresh in-place via estágio `repository`
+ * (fail-open: qualquer erro segue com o motor atual).
+ *
+ * 0.3.3 (S0 conectores): o /device/engine-key pode trazer também a chave
+ * Composio do projeto DEDICADO do tenant (composioKey); quando vem, o mesmo
+ * fluxo grava COMPOSIO_API_KEY no <WAYNE_HOME>\.env — o motor local ganha os
+ * conectores do dono (mesmos user_ids, contas já autorizadas na nuvem).
+ *
+ * 0.3.4: (1) update chip — IPCs w4y:update:{check,apply} let the dashboard
+ * show an "Atualizar" pill (check = manifest × engine-source marker; apply =
+ * relaunch, the existing boot flow performs the refresh with its progress UI);
+ * (2) tray gains "Verificar atualizações" and an explicit engine-killing
+ * "Sair"; (3) the key gate now also opens when COMPOSIO_API_KEY is missing
+ * (login as "connect your apps", skippable); (4) tenant-as-broker — after
+ * login, GET /api/device/connector-bootstrap (with the session cookies)
+ * delivers the Composio key AND a fresh tool-router session URL, written to
+ * .env + <WAYNE_HOME>\config.yaml (mcp_servers.composio) — the local engine
+ * gets working connector TOOLS, not just the key.
  *
  * Default: a casca resolve/instala o motor Wayne local (`wayne serve` em
  * 127.0.0.1) e carrega o dashboard servido por ele — o MESMO web_dist da
@@ -23,9 +46,12 @@ const {
   nativeImage,
   ipcMain,
   dialog,
+  net,
+  session,
 } = require("electron");
 const fs = require("node:fs");
 const os = require("node:os");
+const https = require("node:https");
 const path = require("node:path");
 const crypto = require("node:crypto");
 const { spawn, spawnSync } = require("node:child_process");
@@ -98,6 +124,18 @@ const APP_HOST = (() => {
     return "work4you.ai";
   }
 })();
+const APP_ORIGIN = (() => {
+  try {
+    return new URL(APP_URL).origin;
+  } catch {
+    return "https://work4you.ai";
+  }
+})();
+// Login providers (Google/Microsoft/Firebase) that must open INSIDE the app —
+// the OAuth popup needs postMessage back to its opener. Shared by the main
+// window and the boot login window.
+const AUTH_HOST =
+  /(^|\.)(google\.com|googleusercontent\.com|microsoftonline\.com|microsoft\.com|live\.com|firebaseapp\.com|web\.app)$/i;
 
 // ACELERAÇÃO DE GPU: mantida LIGADA (padrão). Já tentamos DESLIGAR
 // (disableHardwareAcceleration) por causa de um "preto de driver", mas no
@@ -133,13 +171,170 @@ const CLOUD_SHELL = process.env.W4Y_CLOUD_SHELL === "1";
 // o instalador falha com erro claro). ATUALIZAR a cada release do motor.
 // Override pro dev/CI: env W4Y_ENGINE_ZIP_URL (ou WAYNE_SOURCE_ZIP_URL direto).
 const DEFAULT_ENGINE_ZIP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717.zip";
+  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717f.zip";
 function resolveEngineZipUrl() {
   return (
     (process.env.W4Y_ENGINE_ZIP_URL || "").trim() ||
     (process.env.WAYNE_SOURCE_ZIP_URL || "").trim() ||
     DEFAULT_ENGINE_ZIP_URL
   );
+}
+
+// ── Engine update manifest (0.3.2) ─────────────────────────────────────────
+// Published alongside the engine ZIPs: {"version":"YYYYMMDDx","zipUrl":"…"}.
+// Any fetch/parse failure means "no update" — the boot NEVER blocks on this.
+const ENGINE_MANIFEST_URL =
+  (process.env.W4Y_ENGINE_MANIFEST_URL || "").trim() ||
+  "https://storage.googleapis.com/w4y-engine-dist/latest.json";
+
+// Identity of the installed engine source, recorded by THIS shell:
+// <WAYNE_HOME>\engine-source.json = { version, zipUrl, updatedAt }.
+// WHY zipUrl is the comparison key: the ZIP's own `.wayne-engine-version`
+// carries commit/branch/built but NOT the manifest's `version` label, so the
+// only identity both sides share is the zipUrl itself. The shell writes this
+// marker after every successful install/update; when it is absent (pre-0.3.2
+// install) the installed version is unknown → one repository refresh converges
+// to the manifest and writes the marker (in-place refresh is proven cheap and
+// preserves venv/config). Lazy path: WAYNE_HOME is declared further down.
+function engineSourceFile() {
+  return path.join(WAYNE_HOME, "engine-source.json");
+}
+
+function readEngineSource() {
+  try {
+    const j = JSON.parse(fs.readFileSync(engineSourceFile(), "utf8"));
+    return j && typeof j.zipUrl === "string" && j.zipUrl ? j : null;
+  } catch {
+    return null; // absent/corrupt = unknown installed source
+  }
+}
+
+function writeEngineSource(data) {
+  try {
+    fs.mkdirSync(WAYNE_HOME, { recursive: true });
+    fs.writeFileSync(engineSourceFile(), JSON.stringify(data, null, 2) + "\n", "utf8");
+  } catch {
+    /* best-effort — a missing marker just means one extra refresh next boot */
+  }
+}
+
+// Fetch latest.json with a hard 5s budget. Resolves null on ANY problem
+// (offline, HTTP != 200, bad JSON, missing/insecure zipUrl) — fail-open.
+function fetchEngineManifest(timeoutMs = 5000) {
+  return new Promise((resolve) => {
+    let settled = false;
+    const done = (v) => {
+      if (!settled) {
+        settled = true;
+        resolve(v);
+      }
+    };
+    try {
+      const req = https.get(ENGINE_MANIFEST_URL, { timeout: timeoutMs }, (res) => {
+        if (res.statusCode !== 200) {
+          res.resume();
+          done(null);
+          return;
+        }
+        const chunks = [];
+        res.on("data", (c) => chunks.push(c));
+        res.on("end", () => {
+          try {
+            const j = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+            const ok = j && typeof j.zipUrl === "string" && /^https:\/\//i.test(j.zipUrl);
+            done(ok ? j : null);
+          } catch {
+            done(null);
+          }
+        });
+        res.on("error", () => done(null));
+      });
+      req.on("timeout", () => {
+        try {
+          req.destroy();
+        } catch {
+          /* already gone */
+        }
+        done(null);
+      });
+      req.on("error", () => done(null));
+    } catch {
+      done(null);
+    }
+  });
+}
+
+// Boot-time engine update (installed engine only, never the dev checkout).
+// Compares the manifest zipUrl against engine-source.json and, when they
+// differ (or the marker is absent), refreshes in place via the install.ps1
+// `repository` stage with WAYNE_SOURCE_ZIP_URL pointing at the manifest ZIP —
+// the exact flow proven to preserve venv/config. Every failure path falls
+// open: the boot continues on the current engine. A 10-minute cap guards
+// against a hung download; an aborted refresh is self-healing because the
+// marker is only written on success, so the next boot retries the same ZIP
+// (robocopy converges the tree).
+// Returns true when a refresh was actually ATTEMPTED (the tree may have
+// changed even on failure) so the caller knows to re-probe the backend.
+async function maybeUpdateEngine() {
+  try {
+    const manifest = await fetchEngineManifest();
+    if (!manifest || !manifest.zipUrl) return false; // no manifest = no update
+    const current = readEngineSource();
+    if (current && current.zipUrl === manifest.zipUrl) return false; // up to date
+    setPhase("update", "Atualizando o motor…");
+    // The runner's spawn spreads process.env, so this reaches install.ps1.
+    process.env.WAYNE_SOURCE_ZIP_URL = manifest.zipUrl;
+    const emit = (ev) => sendBootEvent({ type: "bootstrap", ev });
+    const scriptInfo = await bootstrapRunner.resolveInstallScript({
+      installStamp: null,
+      sourceRepoRoot:
+        DEV_SOURCE_ROOT || (!app.isPackaged ? path.resolve(__dirname, "..", "..") : null),
+      packagedScriptDir: app.isPackaged ? path.join(process.resourcesPath, "scripts") : null,
+      wayneHome: WAYNE_HOME,
+      emit,
+    });
+    // Dedicated abort: chains the boot abort ("Usar na nuvem"/retry) and adds
+    // the hang cap without ever touching the boot's own controller.
+    const updateAbort = new AbortController();
+    const onBootAbort = () => updateAbort.abort();
+    if (engine.bootAbort) {
+      if (engine.bootAbort.signal.aborted) updateAbort.abort();
+      else engine.bootAbort.signal.addEventListener("abort", onBootAbort, { once: true });
+    }
+    const cap = setTimeout(() => updateAbort.abort(), 10 * 60_000);
+    let ev = null;
+    try {
+      // installStamp stays null on purpose: the ZIP URL is the pin (pin args
+      // like -Tag would fight the WAYNE_SOURCE_ZIP_URL source).
+      ev = await bootstrapRunner.runStage({
+        scriptPath: scriptInfo.path,
+        installerKind: scriptInfo.kind || "powershell",
+        stage: { name: "repository" },
+        emit,
+        wayneHome: WAYNE_HOME,
+        activeRoot: ENGINE_ROOT,
+        abortSignal: updateAbort.signal,
+        installStamp: null,
+      });
+    } finally {
+      clearTimeout(cap);
+      if (engine.bootAbort) {
+        engine.bootAbort.signal.removeEventListener("abort", onBootAbort);
+      }
+    }
+    if (ev && ev.state === "succeeded") {
+      writeEngineSource({
+        version: typeof manifest.version === "string" ? manifest.version : null,
+        zipUrl: manifest.zipUrl,
+        updatedAt: new Date().toISOString(),
+      });
+    }
+    // failed/skipped → fall open: keep the current engine, no marker write.
+    return true;
+  } catch {
+    /* fail-open — never block the boot over an update */
+    return false;
+  }
 }
 
 // WAYNE_HOME do desktop = o MESMO default do install.ps1 e do backend
@@ -175,7 +370,7 @@ const engine = {
   child: null,
   port: 0,
   origin: null, // "http://127.0.0.1:<porta>" quando pronto
-  phase: "idle", // resolve | bootstrap | key | spawn | ready | error | cloud
+  phase: "idle", // resolve | bootstrap | update | key | spawn | ready | error | cloud
   lastError: null,
   booting: false,
   retries: 0,
@@ -195,8 +390,10 @@ const engine = {
 //     (ev.type: manifest | stage | log | complete | failed — ver o cabeçalho
 //      de bootstrap-runner.cjs; manifest.stages traz name/title/category)
 //   { type:"log", line, stream }                 stdout/stderr do motor no boot
+//   { type:"notice", text }                      aviso persistente (ex.: 402)
 // boot.html → main (invoke): w4y:boot:state | w4y:boot:key:submit |
-//   w4y:boot:key:skip | w4y:boot:retry | w4y:boot:cloud
+//   w4y:boot:key:skip | w4y:boot:login | w4y:boot:login:cancel |
+//   w4y:boot:retry | w4y:boot:cloud
 function recordBootEvent(ev) {
   const isLog =
     ev.type === "log" || (ev.type === "bootstrap" && ev.ev && ev.ev.type === "log");
@@ -223,10 +420,10 @@ function sendBootEvent(ev) {
   }
 }
 
-function setPhase(phase, message) {
+function setPhase(phase, message, extra) {
   engine.phase = phase;
   if (phase !== "error") engine.lastError = null;
-  sendBootEvent({ type: "phase", phase, message: message || null });
+  sendBootEvent({ type: "phase", phase, message: message || null, ...(extra || {}) });
 }
 
 function showBootPage() {
@@ -325,11 +522,13 @@ function readInstallStamp() {
 // (credential_pool._get_env_prefer_dotenv). Sem chave lá, o boot.html pede
 // (campo mascarado) ANTES de subir o motor; pular = sobe sem chave (o backend
 // degrada com o erro próprio dele). O VALOR NUNCA é logado nem re-emitido.
-function envHasOpenRouterKey() {
+// 0.3.4: generalized — the gate also opens when COMPOSIO_API_KEY is missing.
+function envHasKey(name) {
   try {
     const content = fs.readFileSync(ENGINE_ENV_FILE, "utf8");
+    const re = new RegExp(`^\\s*(?:export\\s+)?${name}\\s*=\\s*(.*)\\s*$`);
     for (const raw of content.split(/\r?\n/)) {
-      const m = raw.match(/^\s*(?:export\s+)?OPENROUTER_API_KEY\s*=\s*(.*)\s*$/);
+      const m = raw.match(re);
       if (!m) continue;
       let v = m[1].trim();
       if (
@@ -346,7 +545,10 @@ function envHasOpenRouterKey() {
   return false;
 }
 
-function upsertOpenRouterKey(rawKey) {
+// Upsert idempotente de UMA variável no <WAYNE_HOME>\.env (o arquivo que o
+// backend lê via env_loader.load_wayne_dotenv — override=True a cada request,
+// então valor novo vale sem reiniciar o motor). O VALOR nunca é logado.
+function upsertEngineEnvKey(name, rawKey) {
   const key = String(rawKey || "").trim();
   // ASCII imprimível sem espaços: bloqueia quebra de linha/controle (injeção
   // de .env) e valores obviamente corrompidos. Nunca logar nem ecoar o valor.
@@ -361,15 +563,443 @@ function upsertOpenRouterKey(rawKey) {
     } catch {
       /* primeiro .env */
     }
-    const line = `OPENROUTER_API_KEY=${key}`;
-    const re = /^[ \t]*(?:export[ \t]+)?OPENROUTER_API_KEY[ \t]*=.*$/m;
+    const line = `${name}=${key}`;
+    const re = new RegExp(`^[ \\t]*(?:export[ \\t]+)?${name}[ \\t]*=.*$`, "m");
+    // Replacer em função: um "$" no valor da key não pode virar padrão de
+    // substituição ($&, $' …) do String.replace.
     const next = re.test(content)
-      ? content.replace(re, line)
+      ? content.replace(re, () => line)
       : (content ? content.replace(/\n*$/, "\n") : "") + line + "\n";
     fs.writeFileSync(ENGINE_ENV_FILE, next, "utf8");
     return { ok: true };
   } catch {
     return { ok: false, error: "write-failed" };
+  }
+}
+
+function upsertOpenRouterKey(rawKey) {
+  return upsertEngineEnvKey("OPENROUTER_API_KEY", rawKey);
+}
+
+// ── mcp_servers.composio in <WAYNE_HOME>\config.yaml (0.3.4 broker) ────────
+// The engine's connector TOOLS come from this MCP entry, not from the key
+// alone (2nd elo, 17/07): the cloud got it written by its connect flow, the
+// local engine is born without it. Text surgery instead of a YAML library —
+// the shell ships no YAML dep and must NEVER reformat the user's config:
+//   entry exists            → replace ONLY its url line (tool-router session)
+//   mcp_servers, no entry   → insert the composio block as first child
+//   no mcp_servers          → append the whole block at the end
+// CRLF and a leading BOM are preserved; the result is sanity-checked before
+// writing and the previous file is kept as config.yaml.bak. The URL carries
+// no secret (auth rides the ${COMPOSIO_API_KEY} placeholder header, resolved
+// by the engine at read time) — but it is never logged anyway.
+function upsertComposioMcpServer(rawUrl) {
+  const url = String(rawUrl || "").trim();
+  // https + printable ASCII, no quotes/backslash/# — anything else could break
+  // the YAML line or smuggle a comment. YAML-critical ": " cannot occur (no
+  // spaces at all are allowed).
+  if (!/^https:\/\/[\x21-\x7e]+$/.test(url) || /["'#\\]/.test(url)) {
+    return { ok: false, error: "invalid-url" };
+  }
+  try {
+    const file = path.join(WAYNE_HOME, "config.yaml");
+    let raw = "";
+    let existed = false;
+    try {
+      raw = fs.readFileSync(file, "utf8");
+      existed = true;
+    } catch {
+      /* no config yet — the append branch below creates it */
+    }
+    const bom = raw.startsWith("\uFEFF") ? "\uFEFF" : "";
+    const body = bom ? raw.slice(1) : raw;
+    const eol = body.includes("\r\n") ? "\r\n" : "\n";
+    const lines = body.length ? body.split(/\r\n|\n/) : [];
+    const isBlank = (s) => /^\s*(#.*)?$/.test(s);
+    const indentOf = (s) => (s.match(/^[ \t]*/) || [""])[0].length;
+
+    // Top-level "mcp_servers:" (block form only — an inline "{...}" value does
+    // not match and falls through to the append branch; PyYAML resolves the
+    // resulting duplicate top-level key as last-wins).
+    let mcpIdx = -1;
+    for (let i = 0; i < lines.length; i += 1) {
+      if (/^mcp_servers\s*:\s*(#.*)?$/.test(lines[i])) {
+        mcpIdx = i;
+        break;
+      }
+    }
+    let sectionEnd = lines.length;
+    let composioIdx = -1;
+    if (mcpIdx !== -1) {
+      for (let i = mcpIdx + 1; i < lines.length; i += 1) {
+        if (!isBlank(lines[i]) && indentOf(lines[i]) === 0) {
+          sectionEnd = i;
+          break;
+        }
+      }
+      for (let i = mcpIdx + 1; i < sectionEnd; i += 1) {
+        if (/^[ \t]+composio\s*:\s*(#.*)?$/.test(lines[i])) {
+          composioIdx = i;
+          break;
+        }
+      }
+    }
+
+    const out = lines.slice();
+    if (composioIdx !== -1) {
+      // Entry exists → touch ONLY the url line inside the composio block.
+      const cIndent = indentOf(lines[composioIdx]);
+      let blockEnd = sectionEnd;
+      for (let i = composioIdx + 1; i < sectionEnd; i += 1) {
+        if (!isBlank(lines[i]) && indentOf(lines[i]) <= cIndent) {
+          blockEnd = i;
+          break;
+        }
+      }
+      let urlIdx = -1;
+      for (let i = composioIdx + 1; i < blockEnd; i += 1) {
+        if (indentOf(lines[i]) > cIndent && /^[ \t]+url\s*:/.test(lines[i])) {
+          urlIdx = i;
+          break;
+        }
+      }
+      if (urlIdx !== -1) {
+        const keep = (lines[urlIdx].match(/^[ \t]*/) || [""])[0];
+        out[urlIdx] = `${keep}url: ${url}`;
+      } else {
+        out.splice(composioIdx + 1, 0, `${" ".repeat(cIndent + 2)}url: ${url}`);
+      }
+    } else {
+      const blockLines = (indent) => [
+        `${indent}composio:`,
+        `${indent}  url: ${url}`,
+        `${indent}  headers:`,
+        `${indent}    x-api-key: ` + "${COMPOSIO_API_KEY}",
+        `${indent}  enabled: true`,
+      ];
+      if (mcpIdx !== -1) {
+        // Section exists without the entry → first child, sibling indentation.
+        let childIndent = 2;
+        for (let i = mcpIdx + 1; i < sectionEnd; i += 1) {
+          if (!isBlank(lines[i])) {
+            childIndent = indentOf(lines[i]);
+            break;
+          }
+        }
+        out.splice(mcpIdx + 1, 0, ...blockLines(" ".repeat(childIndent)));
+      } else {
+        while (out.length && out[out.length - 1].trim() === "") out.pop();
+        out.push("mcp_servers:", ...blockLines("  "));
+      }
+    }
+
+    const result = bom + out.join(eol) + eol;
+    // Sanity before writing: the fresh session URL landed exactly once, the
+    // composio key line is present, and nothing was dropped. In doubt → abort
+    // (never corrupt the user's YAML; the boot goes on without the entry).
+    const urlCount = result.split(url).length - 1;
+    if (urlCount !== 1 || !/(^|\n)[ \t]+composio\s*:/.test(result) || out.length < lines.length) {
+      return { ok: false, error: "sanity-check-failed" };
+    }
+    if (existed) {
+      try {
+        fs.copyFileSync(file, file + ".bak");
+      } catch {
+        /* backup is best-effort */
+      }
+    }
+    fs.mkdirSync(WAYNE_HOME, { recursive: true });
+    fs.writeFileSync(file, result, "utf8");
+    return { ok: true };
+  } catch {
+    return { ok: false, error: "write-failed" };
+  }
+}
+
+// ── Tenant-as-broker (0.3.4): connector bootstrap after login ──────────────
+// GET /api/device/connector-bootstrap on the tenant, riding the login cookies
+// (the LB routes /api/* to the tenant; the route sits behind the dashboard
+// auth). Delivers the tenant's Composio key AND a FRESH tool-router session
+// URL minted for THIS device (cloud sessions are stateful+single-consumer —
+// never copied). Both are installed locally: key → .env, url →
+// mcp_servers.composio in config.yaml. Best-effort by contract: any failure
+// (404 = tenant without Composio, network, YAML sanity) boots without local
+// connectors. Values are NEVER logged.
+async function bootstrapLocalConnectors() {
+  try {
+    const res = await cloudApiRequest({
+      method: "GET",
+      path: "/api/device/connector-bootstrap",
+    });
+    if (!res.ok || !res.json) return false;
+    const key =
+      typeof res.json.composio_key === "string" ? res.json.composio_key.trim() : "";
+    const mcpUrl = typeof res.json.mcp_url === "string" ? res.json.mcp_url.trim() : "";
+    let wrote = false;
+    if (key) wrote = upsertEngineEnvKey("COMPOSIO_API_KEY", key).ok || wrote;
+    if (mcpUrl) wrote = upsertComposioMcpServer(mcpUrl).ok || wrote;
+    return wrote;
+  } catch {
+    return false;
+  }
+}
+
+// ── "Entrar com Work4You" (0.3.2): login delivers the key ──────────────────
+// Primary path of the key gate. The main opens a child window on the cloud
+// login page (cookies land in session.defaultSession, the shell's standard
+// login partition) and polls POST /device/engine-key WITH those cookies
+// (net.request + useSessionCookies — same pattern as the parked desktop's
+// fetchJsonViaOauthSession). 401 = not logged in yet, keep waiting; 200 =
+// key minted → written to <WAYNE_HOME>\.env via the existing upsert; 429 =
+// wait 60s once; 402 = tenant without credit → clear notice and boot WITHOUT
+// a key (the Grátis tier runs keyless). The key value is NEVER logged, never
+// enters boot events and is never echoed back to the renderer.
+const DEVICE_KEY_URL =
+  (process.env.W4Y_DEVICE_KEY_URL || "").trim() || `${APP_ORIGIN}/device/engine-key`;
+const LOGIN_URL = `${APP_ORIGIN}/login`;
+
+function releaseKeyWaiter() {
+  if (engine.keyWaiter) {
+    const w = engine.keyWaiter;
+    engine.keyWaiter = null;
+    try {
+      w();
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+// One POST to /device/engine-key riding the default session's cookies.
+// Resolves { status, json } (json null when the body is not JSON); rejects
+// only on network error/timeout. Error paths never carry the response body.
+function requestDeviceEngineKey(timeoutMs = 10_000) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const fail = (err) => {
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    };
+    let request;
+    try {
+      request = net.request({
+        method: "POST",
+        url: DEVICE_KEY_URL,
+        session: session.defaultSession,
+        useSessionCookies: true,
+        redirect: "follow",
+      });
+    } catch (err) {
+      fail(err);
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        request.abort();
+      } catch {
+        /* already finished */
+      }
+      fail(new Error("device-key request timed out"));
+    }, timeoutMs);
+    request.setHeader("Content-Type", "application/json");
+    request.setHeader("Accept", "application/json");
+    request.on("response", (res) => {
+      const chunks = [];
+      res.on("data", (c) => chunks.push(Buffer.from(c)));
+      res.on("end", () => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        let json = null;
+        try {
+          json = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        } catch {
+          /* non-JSON body (login redirect HTML etc.) — status decides */
+        }
+        resolve({ status: res.statusCode || 0, json });
+      });
+      res.on("error", (err) => {
+        clearTimeout(timer);
+        fail(err);
+      });
+    });
+    request.on("error", (err) => {
+      clearTimeout(timer);
+      fail(err);
+    });
+    request.write(JSON.stringify({ deviceLabel: os.hostname() }));
+    request.end();
+  });
+}
+
+// Child login window. No preload (the cloud login page needs none of our
+// bridges); popups restricted to the app + login providers, everything else
+// goes to the system browser.
+function openLoginWindow() {
+  const win = new BrowserWindow({
+    width: 480,
+    height: 700,
+    parent: mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined,
+    title: "Entrar — Work4You",
+    autoHideMenuBar: true,
+    backgroundColor: "#0e0e0e",
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  });
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    try {
+      const host = new URL(url).host;
+      if (host === APP_HOST || host.endsWith(".work4you.ai") || AUTH_HOST.test(host)) {
+        return { action: "allow" };
+      }
+      void shell.openExternal(url);
+    } catch {
+      /* unparseable URL → deny */
+    }
+    return { action: "deny" };
+  });
+  void win.loadURL(LOGIN_URL);
+  return win;
+}
+
+// Interruptible sleep: resolves early as soon as stale() turns true.
+function sleepWhileFresh(ms, stale) {
+  return new Promise((resolve) => {
+    const startedAt = Date.now();
+    const tick = () => {
+      if (stale() || Date.now() - startedAt >= ms) {
+        resolve();
+        return;
+      }
+      setTimeout(tick, 500);
+    };
+    tick();
+  });
+}
+
+let loginFlow = null; // { win, cancelled } while the login flow is running
+
+function closeLoginWindow(flow) {
+  const win = flow && flow.win;
+  flow.win = null;
+  try {
+    if (win && !win.isDestroyed()) win.destroy();
+  } catch {
+    /* already gone */
+  }
+}
+
+function cancelLoginFlow() {
+  const flow = loginFlow;
+  if (!flow) return { ok: true };
+  flow.cancelled = true;
+  closeLoginWindow(flow);
+  return { ok: true };
+}
+
+// The whole login→key sequence. Resolves { ok:true, got:"key"|"no-credit" }
+// on success (the key gate is released by then) or { ok:false, reason } —
+// "cancelled" (user closed the login window → back to the gate), "busy",
+// "not-waiting", "rate-limited", "network", "write-failed", "invalid-response".
+async function runLoginFlow() {
+  // A leftover flow (e.g. F5 on boot.html mid-login: the page's invoke died
+  // with it, but the flow keeps running here) is cancelled and superseded —
+  // the fresh click always gets a fresh window. Same-page double-clicks are
+  // debounced in boot.html.
+  if (loginFlow) {
+    cancelLoginFlow();
+    await new Promise((resolve) => setTimeout(resolve, 600)); // let it unwind
+    if (loginFlow) return { ok: false, reason: "busy" };
+  }
+  if (engine.phase !== "key") return { ok: false, reason: "not-waiting" };
+  const flow = { win: null, cancelled: false };
+  loginFlow = flow;
+  const gen = engine.generation;
+  // The flow dies with: explicit cancel, closed login window, a boot
+  // generation change (retry / "Usar na nuvem"), or the gate being released
+  // by another path (manual key / skip moved the phase past "key").
+  const stale = () =>
+    flow.cancelled ||
+    gen !== engine.generation ||
+    engine.usingCloud ||
+    isQuitting ||
+    engine.phase !== "key";
+  try {
+    const win = openLoginWindow();
+    flow.win = win;
+    win.on("closed", () => {
+      flow.win = null;
+      flow.cancelled = true;
+    });
+    let retried429 = false;
+    let softFailures = 0;
+    while (!stale()) {
+      let res;
+      try {
+        res = await requestDeviceEngineKey();
+        softFailures = 0;
+      } catch {
+        softFailures += 1;
+        if (softFailures >= 5) return { ok: false, reason: "network" };
+        await sleepWhileFresh(5_000, stale);
+        continue;
+      }
+      if (stale()) break;
+      if (res.status === 200) {
+        const key = res.json && typeof res.json.key === "string" ? res.json.key : "";
+        if (!key) return { ok: false, reason: "invalid-response" };
+        const r = upsertOpenRouterKey(key);
+        if (!r.ok) return { ok: false, reason: "write-failed" };
+        // S0 conectores (0.3.3): a resposta pode trazer a chave Composio do
+        // projeto dedicado do tenant — grava COMPOSIO_API_KEY no mesmo .env
+        // (mesmo upsert, mesma garantia de não-log). Best-effort: sem ela o
+        // motor sobe normal, só sem conectores locais. Como o gate roda ANTES
+        // do spawn e o backend relê o .env a cada request (load_wayne_dotenv,
+        // override=True), a chave vale já no primeiro /api/connectors.
+        const composioKey =
+          res.json && typeof res.json.composioKey === "string" ? res.json.composioKey : "";
+        if (composioKey) upsertEngineEnvKey("COMPOSIO_API_KEY", composioKey);
+        // 0.3.4 broker: the definitive connector delivery — Composio key +
+        // fresh tool-router session, written to .env/config.yaml BEFORE the
+        // gate releases (the engine spawns right after and reads both).
+        // Best-effort: a failure here never blocks the boot.
+        await bootstrapLocalConnectors();
+        releaseKeyWaiter();
+        return { ok: true, got: "key" };
+      }
+      if (res.status === 401) {
+        // Not logged in yet — keep polling while the user signs in.
+        await sleepWhileFresh(4_000, stale);
+        continue;
+      }
+      if (res.status === 429) {
+        if (retried429) return { ok: false, reason: "rate-limited" };
+        retried429 = true;
+        await sleepWhileFresh(60_000, stale);
+        continue;
+      }
+      if (res.status === 402) {
+        // Tenant without credit: boot proceeds WITHOUT a key (Grátis tier).
+        sendBootEvent({
+          type: "notice",
+          text: "Seu plano está sem créditos — o Wayne vai funcionar no modo Grátis.",
+        });
+        // No credit ≠ no connectors: the login cookies are live, so the
+        // broker bootstrap still runs (best-effort, same as the 200 path).
+        await bootstrapLocalConnectors();
+        releaseKeyWaiter();
+        return { ok: true, got: "no-credit" };
+      }
+      // Unexpected status (5xx, proxy…) — retry a few times, then give up.
+      softFailures += 1;
+      if (softFailures >= 5) return { ok: false, reason: "network" };
+      await sleepWhileFresh(5_000, stale);
+    }
+    return { ok: false, reason: "cancelled" };
+  } finally {
+    closeLoginWindow(flow);
+    loginFlow = null;
   }
 }
 
@@ -539,15 +1169,8 @@ function useCloudShell() {
   } catch {
     /* best-effort */
   }
-  if (engine.keyWaiter) {
-    const w = engine.keyWaiter;
-    engine.keyWaiter = null;
-    try {
-      w();
-    } catch {
-      /* ignore */
-    }
-  }
+  cancelLoginFlow();
+  releaseKeyWaiter();
   killEngine();
   engine.phase = "cloud";
   sendBootEvent({ type: "phase", phase: "cloud", message: null });
@@ -608,11 +1231,38 @@ async function startLocalEngine() {
         );
         return;
       }
+      // Record which ZIP this install came from (the URL handed to install.ps1
+      // above) so the boot-time update check has a baseline to compare against.
+      writeEngineSource({
+        version: null,
+        zipUrl: resolveEngineZipUrl(),
+        updatedAt: new Date().toISOString(),
+      });
+    } else if (backend.root === ENGINE_ROOT) {
+      // Engine already installed (never the dev checkout): boot-time update
+      // check. Fail-open by construction — any manifest/refresh problem just
+      // boots the current engine.
+      const refreshedTree = await maybeUpdateEngine();
+      if (aborted()) return;
+      if (refreshedTree) {
+        // The refresh replaced source files; re-resolve so serve-arg detection
+        // sees the new tree. If the probe unexpectedly fails, keep the previous
+        // candidate (same paths) instead of failing the boot.
+        const refreshed = resolveEngineBackend();
+        if (refreshed.kind !== "bootstrap-needed") backend = refreshed;
+      }
     }
     if (aborted()) return;
 
-    if (!envHasOpenRouterKey()) {
-      setPhase("key");
+    // Gate (0.3.4): opens whenever SOMETHING is missing — the model key OR the
+    // Composio key. With the model key present and only Composio missing, the
+    // boot.html renders the login as "connect your apps" and offers "Agora
+    // não" (skip): a provisional/manual model key must never permanently hide
+    // the login that delivers the connectors.
+    const needModel = !envHasKey("OPENROUTER_API_KEY");
+    const needComposio = !envHasKey("COMPOSIO_API_KEY");
+    if (needModel || needComposio) {
+      setPhase("key", null, { gate: { needModel, needComposio } });
       await new Promise((resolve) => {
         engine.keyWaiter = resolve;
       });
@@ -664,26 +1314,194 @@ function registerBootIpc() {
   ipcMain.handle("w4y:boot:key:submit", (_e, key) => {
     // O valor da chave não é logado, não entra em evento e não é ecoado.
     const r = upsertOpenRouterKey(key);
-    if (r.ok && engine.keyWaiter) {
-      const w = engine.keyWaiter;
-      engine.keyWaiter = null;
-      w();
-    }
+    if (r.ok) releaseKeyWaiter();
     return r;
   });
   ipcMain.handle("w4y:boot:key:skip", () => {
-    if (engine.keyWaiter) {
-      const w = engine.keyWaiter;
-      engine.keyWaiter = null;
-      w();
-    }
+    releaseKeyWaiter();
     return { ok: true };
   });
+  // "Entrar com Work4You": resolves only when the flow ends (key written /
+  // no-credit / cancelled / error). The key value never crosses this channel.
+  ipcMain.handle("w4y:boot:login", () => runLoginFlow());
+  ipcMain.handle("w4y:boot:login:cancel", () => cancelLoginFlow());
   ipcMain.handle("w4y:boot:retry", () => retryLocalBoot());
   ipcMain.handle("w4y:boot:cloud", () => {
     useCloudShell();
     return { ok: true };
   });
+}
+
+// ── Cloud bridge (S1 mini-computer) ────────────────────────────────────────
+// Lets a CHAT SESSION run on the user's CLOUD computer from inside the
+// local-engine app — same screen, same history, only the execution changes.
+// Both IPCs ride the login cookies already living in session.defaultSession
+// (populated by the 0.3.2 "Entrar com Work4You" flow):
+//
+//   w4y:cloud:wsUrl → mints a single-use WS ticket at the cloud gateway
+//     (POST /api/auth/ws-ticket — the parked desktop's mintGatewayWsTicket
+//     pattern, apps/desktop/electron/main.cjs:4641) and returns the READY
+//     wss:// URL (connection-config.cjs buildGatewayWsUrlWithTicket:73).
+//     Tickets are one-shot with a ~30s TTL, so the renderer re-invokes this
+//     before EVERY connect/reconnect. No cookies → { error: "not-logged-in" }.
+//
+//   w4y:cloud:api → narrow REST proxy for the cloud dashboard. Allowlist is
+//     STRICT: only the app origin (https://work4you.ai), only /api/* paths
+//     (checked again after URL normalization so ".." can't escape), only
+//     GET/POST, JSON in/out. Request/response bodies are NEVER logged.
+//
+// The key/cookie material never crosses to the renderer — only the finished
+// WS URL (which the gateway consumes on first use) and parsed JSON bodies.
+function cloudApiRequest(args, timeoutMs = 15_000) {
+  return new Promise((resolve) => {
+    const method = args && args.method === "POST" ? "POST" : "GET";
+    const rawPath = args && typeof args.path === "string" ? args.path : "";
+    // Only "/api/..." — no host, no protocol, no backslashes/whitespace.
+    if (!/^\/api\//.test(rawPath) || /[\s\\]/.test(rawPath)) {
+      resolve({ ok: false, status: 0, error: "bad-path" });
+      return;
+    }
+    let url;
+    try {
+      url = new URL(rawPath, APP_ORIGIN);
+    } catch {
+      resolve({ ok: false, status: 0, error: "bad-path" });
+      return;
+    }
+    // Re-check AFTER normalization: origin pinned, path still under /api/.
+    if (url.origin !== APP_ORIGIN || !url.pathname.startsWith("/api/")) {
+      resolve({ ok: false, status: 0, error: "bad-path" });
+      return;
+    }
+    let settled = false;
+    const done = (v) => {
+      if (!settled) {
+        settled = true;
+        resolve(v);
+      }
+    };
+    let request;
+    try {
+      request = net.request({
+        method,
+        url: url.toString(),
+        session: session.defaultSession,
+        useSessionCookies: true,
+        redirect: "follow",
+      });
+    } catch {
+      done({ ok: false, status: 0, error: "network" });
+      return;
+    }
+    const timer = setTimeout(() => {
+      try {
+        request.abort();
+      } catch {
+        /* already finished */
+      }
+      done({ ok: false, status: 0, error: "timeout" });
+    }, timeoutMs);
+    request.setHeader("Accept", "application/json");
+    request.on("response", (res) => {
+      const chunks = [];
+      res.on("data", (c) => chunks.push(Buffer.from(c)));
+      res.on("end", () => {
+        clearTimeout(timer);
+        let json = null;
+        try {
+          json = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+        } catch {
+          /* non-JSON body (login redirect HTML etc.) — status decides */
+        }
+        const status = res.statusCode || 0;
+        done({ ok: status >= 200 && status < 300, status, json });
+      });
+      res.on("error", () => {
+        clearTimeout(timer);
+        done({ ok: false, status: 0, error: "network" });
+      });
+    });
+    request.on("error", () => {
+      clearTimeout(timer);
+      done({ ok: false, status: 0, error: "network" });
+    });
+    if (method === "POST") {
+      request.setHeader("Content-Type", "application/json");
+      request.write(
+        JSON.stringify(args && args.body !== undefined ? args.body : {}),
+      );
+    }
+    request.end();
+  });
+}
+
+async function mintCloudWsUrl() {
+  const res = await cloudApiRequest(
+    { method: "POST", path: "/api/auth/ws-ticket" },
+    8_000,
+  );
+  if (!res.ok) {
+    // 401 = no live login cookies — the selector shows "sign in", not an error.
+    return {
+      ok: false,
+      error: res.status === 401 ? "not-logged-in" : res.error || "network",
+    };
+  }
+  const ticket =
+    res.json && typeof res.json.ticket === "string" ? res.json.ticket : "";
+  if (!ticket) return { ok: false, error: "network" };
+  const origin = new URL(APP_ORIGIN);
+  const scheme = origin.protocol === "https:" ? "wss" : "ws";
+  return {
+    ok: true,
+    url: `${scheme}://${origin.host}/api/ws?ticket=${encodeURIComponent(ticket)}`,
+  };
+}
+
+function registerCloudIpc() {
+  ipcMain.handle("w4y:cloud:wsUrl", () => mintCloudWsUrl());
+  ipcMain.handle("w4y:cloud:api", (_e, args) => cloudApiRequest(args || {}));
+}
+
+// ── Engine update chip (0.3.4) ─────────────────────────────────────────────
+// check: re-fetch latest.json and compare with the engine-source.json marker
+// (the exact comparison maybeUpdateEngine boots on). Fail-open NULL on any
+// problem — the chip simply doesn't render. Cloud mode has no local engine to
+// update → null as well.
+// apply: relaunch the app — the existing boot flow performs the refresh with
+// its real progress UI (zero new update mechanics). The engine is killed
+// FIRST: app.exit() skips will-quit, and a live python holding files would
+// fight the refresh's robocopy.
+async function checkEngineUpdate() {
+  try {
+    if (CLOUD_SHELL || engine.usingCloud) return null;
+    const manifest = await fetchEngineManifest();
+    if (!manifest || !manifest.zipUrl) return null;
+    const current = readEngineSource();
+    return {
+      available: !current || current.zipUrl !== manifest.zipUrl,
+      version: typeof manifest.version === "string" ? manifest.version : null,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function applyEngineUpdate() {
+  try {
+    isQuitting = true;
+    killEngine();
+    app.relaunch();
+    app.exit(0);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
+  }
+}
+
+function registerUpdateIpc() {
+  ipcMain.handle("w4y:update:check", () => checkEngineUpdate());
+  ipcMain.handle("w4y:update:apply", () => applyEngineUpdate());
 }
 // ══ fim do bloco do motor local ═══════════════════════════════════════════
 
@@ -812,15 +1630,13 @@ function createWindow() {
     });
   }
 
-  // Regra de janelas: o próprio app E os provedores de LOGIN (Google/Microsoft/
-  // Firebase) abrem o pop-up DENTRO do app — o fluxo OAuth do `signInWithPopup`
-  // precisa do postMessage de volta pro opener, o que só funciona se a janelinha
-  // for filha do Electron (não uma aba do navegador). Só links de CONTEÚDO
-  // externo (termos, sites de terceiros) vão pro navegador do sistema.
-  // No modo motor-local, o dashboard em http://127.0.0.1:<porta escolhida>
-  // também é "o próprio app".
-  const AUTH_HOST =
-    /(^|\.)(google\.com|googleusercontent\.com|microsoftonline\.com|microsoft\.com|live\.com|firebaseapp\.com|web\.app)$/i;
+  // Regra de janelas: o próprio app E os provedores de LOGIN (AUTH_HOST, no
+  // topo do arquivo) abrem o pop-up DENTRO do app — o fluxo OAuth do
+  // `signInWithPopup` precisa do postMessage de volta pro opener, o que só
+  // funciona se a janelinha for filha do Electron (não uma aba do navegador).
+  // Só links de CONTEÚDO externo (termos, sites de terceiros) vão pro navegador
+  // do sistema. No modo motor-local, o dashboard em http://127.0.0.1:<porta
+  // escolhida> também é "o próprio app".
   const isLocalEngineHost = (host) => Boolean(engine.origin) && host === `127.0.0.1:${engine.port}`;
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     try {
@@ -879,24 +1695,58 @@ function createWindow() {
 }
 
 // ── Bandeja (system tray) ──────────────────────────────────────────────────
+// Both modes: closing the window hides to the tray (engine + in-app cron stay
+// alive); the tray's "Sair" is the only real quit and takes the engine down
+// with it — no zombie engine for the next launch to reconnect to.
+// "Verificar atualizações" (engine mode only): one check → apply on the spot
+// when an update exists; otherwise a small dialog says so.
+async function trayCheckForUpdates() {
+  const r = await checkEngineUpdate();
+  if (r && r.available) {
+    applyEngineUpdate();
+    return;
+  }
+  try {
+    await dialog.showMessageBox({
+      type: "info",
+      title: "Work4You",
+      message: r
+        ? "Você já está na versão mais recente."
+        : "Não deu para verificar atualizações agora. Tente de novo mais tarde.",
+    });
+  } catch {
+    /* best-effort — the dialog is informative only */
+  }
+}
+
 function createTray() {
   try {
     const img = nativeImage.createFromPath(iconPath());
     tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
     tray.setToolTip("Work4You");
-    tray.setContextMenu(
-      Menu.buildFromTemplate([
-        { label: "Abrir Work4You", click: () => showWindow() },
-        { type: "separator" },
-        {
-          label: "Sair",
-          click: () => {
-            isQuitting = true;
-            app.quit();
-          },
+    const items = [{ label: "Abrir Work4You", click: () => showWindow() }];
+    if (!CLOUD_SHELL) {
+      items.push({
+        label: "Verificar atualizações",
+        click: () => {
+          void trayCheckForUpdates();
         },
-      ]),
+      });
+    }
+    items.push(
+      { type: "separator" },
+      {
+        label: "Sair",
+        click: () => {
+          // Real quit: engine dies here explicitly (will-quit re-runs
+          // killEngine, which is idempotent) — never a resident zombie.
+          isQuitting = true;
+          killEngine();
+          app.quit();
+        },
+      },
     );
+    tray.setContextMenu(Menu.buildFromTemplate(items));
     tray.on("click", () => showWindow());
     tray.on("double-click", () => showWindow());
   } catch {
@@ -975,6 +1825,14 @@ function registerLocalIpc() {
   // (fonte da verdade), não do web. Substitui o env-gate de teste da Onda 2.
   ipcMain.handle("w4y:local:set", (_e, args) => {
     try {
+      // Engine mode: the local gateway already owns this machine's disk and
+      // terminal — an executor arm would register against the CLOUD gateway
+      // (APP_URL origin) and loop forever minting tickets. New web_dists no
+      // longer call this in engine mode; this guard covers OLD web_dists
+      // shipped in earlier engine ZIPs. Answer ok so their UI never blocks.
+      if (!CLOUD_SHELL && engine && !engine.usingCloud) {
+        return { ok: true, noop: "local-engine" };
+      }
       const ws = require("./executor-ws.cjs");
       const { session } = require("electron");
       let origin = "https://work4you.ai";
@@ -1256,6 +2114,8 @@ app.whenReady().then(() => {
   registerLocalIpc();
   registerDesktop2Ipc();
   registerBootIpc();
+  registerCloudIpc();
+  registerUpdateIpc();
   createWindow();
   createTray();
   registerShortcuts();

@@ -90,6 +90,12 @@ export async function registerFolderProject(
   folder: string,
   name?: string,
 ): Promise<ProjectRow | null> {
+  // The desktop's default workspace (~/Work4You) is an EXECUTION directory,
+  // never an organizing project (pivot rule, 17/07). Adopting it as a row made
+  // every free chat group under a phantom "Work4You" project in the sidebar —
+  // refuse here so no caller (vault self-healing, folder picker, auto-node
+  // adoption) can promote it.
+  if (isDesktopDefaultWorkspacePath(folder)) return null;
   try {
     const res = await api.createProject({
       name: (name || "").trim() || pathBaseName(folder),
@@ -162,6 +168,53 @@ export function desktopDefaultWorkspace(): string | null {
 }
 
 /**
+ * True when `p` IS the desktop's default local workspace (~/Work4You) — the
+ * organization rule of the motor-local pivot (17/07): that folder is the
+ * engine's execution directory, NEVER a project (it must not be adopted as a
+ * row nor group sessions in the sidebar; free chats belong in Recents).
+ *
+ * LOCAL-ENGINE ONLY by design: the cloud-shell desktop (0.2.x) keeps its DL-05
+ * behavior untouched (mandate 17/07 — nothing changes off the motor-local
+ * mode), and on the web there is no default workspace at all. Segment-wise and
+ * case-insensitive compare: the path reaches the client from more than one
+ * source (shell bridge, vault list, server tree) and Windows paths compare
+ * case-insensitively.
+ */
+export function isDesktopDefaultWorkspacePath(p: string | null | undefined): boolean {
+  if (!isLocalEngine()) return false;
+  const ws = desktopDefaultWorkspace();
+  if (!ws || !p) return false;
+  const a = ws.split(/[\\/]/).filter(Boolean);
+  const b = p.split(/[\\/]/).filter(Boolean);
+  return (
+    a.length === b.length && a.every((seg, i) => seg.toLowerCase() === b[i].toLowerCase())
+  );
+}
+
+/**
+ * Local-ENGINE mode (desktop 0.3.0 pivot): the shell boots a full local Wayne
+ * gateway and serves this SPA from it — origin http://127.0.0.1:<port>. In this
+ * mode the gateway ALREADY runs on the user's machine: sessions are local by
+ * nature (native cwd on this disk, /api/fs reads this disk), so the whole
+ * Desktop-1 executor wiring (desk.setLocal + local.session.set) must stay OFF —
+ * arming it would mark the session env_type=local-desktop and fail closed
+ * waiting for an executor that has nothing to add.
+ *
+ * Distinguished from the CLOUD-shell desktop (0.2.x behavior, work4you.ai
+ * loaded inside Electron) by the ORIGIN: same isDesktop bridge, but the page
+ * is served from loopback. Plain web (no isDesktop) is never local-engine.
+ */
+export function isLocalEngine(): boolean {
+  if (typeof window === "undefined") return false;
+  const d = (
+    window as unknown as { work4youDesktop?: { isDesktop?: boolean } }
+  ).work4youDesktop;
+  if (!d?.isDesktop) return false;
+  const host = window.location.hostname;
+  return host === "127.0.0.1" || host === "localhost" || host === "[::1]" || host === "::1";
+}
+
+/**
  * The local folder a fresh chat should default to (DL-03). Reused by the chat as
  * the initial `activeLocalFolder`, so the SAME wiring that the picker's
  * `chooseLocal` uses arms Local mode automatically — no modal, no dialog.
@@ -183,6 +236,12 @@ export function desktopDefaultWorkspace(): string | null {
  * unchanged: no folder still means the cloud.
  */
 export function resolveDesktopLocalDefault(): string | null {
+  // Local-engine mode never arms the executor: the default workspace reaches
+  // the session as a NATIVE cwd on session.create (NativeChatPage, DL-01)
+  // because the local gateway simply runs there — no local.session.set, no
+  // desk.setLocal. Returning a folder here would re-arm the Desktop-1 wiring
+  // and fail closed on the first message.
+  if (isLocalEngine()) return null;
   const ws = desktopDefaultWorkspace();
   if (!ws) return null;
   // null = explicit "Executar na nuvem" (the NONE sentinel) → the only opt-out.

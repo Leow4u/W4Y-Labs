@@ -25,18 +25,35 @@ import { WAYNE_BASE_PATH, buildWsAuthParam } from "@/lib/api";
 
 export type { ConnectionState, GatewayEvent, GatewayEventName };
 
+/** Returns a FULL ws(s):// URL, minted fresh per call. Used by cloud-target
+ *  sessions on the local-engine desktop: the shell mints a single-use,
+ *  short-TTL ticket into the URL, so every connect/reconnect must ask again —
+ *  which is why this is a provider, never a stored URL. */
+export type WsUrlProvider = () => Promise<string>;
+
 export class GatewayClient extends JsonRpcGatewayClient {
-  constructor() {
+  private readonly wsUrlProvider?: WsUrlProvider;
+
+  constructor(wsUrlProvider?: WsUrlProvider) {
     super({
       closedErrorMessage: "WebSocket closed",
       connectErrorMessage: "WebSocket connection failed",
       notConnectedErrorMessage: "gateway not connected",
       requestIdPrefix: "w",
     });
+    this.wsUrlProvider = wsUrlProvider;
   }
 
   async connect(token?: string): Promise<void> {
     if (this.connectionState === "open" || this.connectionState === "connecting") {
+      return;
+    }
+
+    // Custom-URL path (cloud-target session): the provider mints a fresh
+    // ticketed URL for THIS connect. WS upgrades don't do CORS, so the
+    // renderer dials the cloud host directly.
+    if (this.wsUrlProvider) {
+      await super.connect(await this.wsUrlProvider());
       return;
     }
 

@@ -8,7 +8,10 @@
 model:
   # Default model to use (can be overridden with --model flag)
   # Both "default" and "model" work as the key name here.
-  default: "anthropic/claude-opus-4.6"
+  # Work4You ships the FREE tier as the factory default: a fresh install's
+  # first message must never 402 on a key with no credits (the paid tiers
+  # are applied by the dashboard's tier picker, not by this template).
+  default: "nvidia/nemotron-3-ultra-550b-a55b:free"
   
   # Inference provider selection:
   #   "auto"         - Auto-detect from credentials (default)

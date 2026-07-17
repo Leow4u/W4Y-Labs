@@ -805,6 +805,10 @@ async function runBootstrap(opts) {
 
 module.exports = {
   runBootstrap,
+  // Single-stage entry: the shell's boot-time engine update runs ONLY the
+  // `repository` stage (in-place refresh driven by WAYNE_SOURCE_ZIP_URL)
+  // through the same spawn/JSON-frame protocol as the full ladder.
+  runStage,
   // Exposed for testability
   parseStageResult,
   resolveLocalInstallScript,

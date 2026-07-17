@@ -28,6 +28,7 @@ import {
   Archive,
   ArchiveRestore,
   Clock,
+  Cloud,
   Copy,
   Download,
   ExternalLink,
@@ -67,11 +68,14 @@ import {
   LOCAL_PATH_RE,
   PROJECTS_DIR,
   getFilesRoot,
+  isDesktopDefaultWorkspacePath,
+  isLocalEngine,
   projectCwd,
   registerFolderProject,
   registerProjectRow,
   slugifyProject,
 } from "@/lib/projects";
+import { cloudBridge, cloudGetJson } from "@/lib/cloudSession";
 import { isPinned, onPinnedChange, togglePin } from "@/lib/pinned-sessions";
 import {
   isProjectPinned,
@@ -247,6 +251,11 @@ export function SidebarTasks({
   const inProjectHome = onChat && searchParams.has("home");
 
   const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
+  // S2 slice 1 ("one product, two computers"): on the local-engine desktop the
+  // CLOUD brain's sessions merge into Recents through the shell bridge. null =
+  // bridge absent / signed out / timed out — the list is local-only and the
+  // screen says nothing (fail-open by contract).
+  const [cloudSessions, setCloudSessions] = useState<SessionInfo[] | null>(null);
   // Server-decided grouping (GET /api/projects/tree): which sessions each
   // project claims (scoped ids) + per-project previews/counts. null = not
   // loaded or failed → the client-side grouping below takes over (plan B).
@@ -462,6 +471,24 @@ export function SidebarTasks({
         if (reqRef.current !== myReq) return;
         setTree(null);
       });
+    // S2: the CLOUD brain's list, same filter options, refreshed on the same
+    // beat (this load() already re-runs on navigation/filter/manual refresh —
+    // that IS the light cache). 5s deadline + null on any failure = the local
+    // list stands alone with zero error on screen.
+    if (isLocalEngine() && cloudBridge()) {
+      const o = FILTER_OPTS[filter];
+      let url = `/api/sessions?limit=${LIMIT}&offset=0&order=recent`;
+      if (o.minMessages) url += `&min_messages=${o.minMessages}`;
+      if (o.source) url += `&source=${encodeURIComponent(o.source)}`;
+      if (o.excludeSources) url += `&exclude_sources=${encodeURIComponent(o.excludeSources)}`;
+      if (o.archived) url += `&archived=${o.archived}`;
+      void cloudGetJson<{ sessions?: SessionInfo[] }>(url, 5000).then((res) => {
+        if (reqRef.current !== myReq) return;
+        setCloudSessions(res?.sessions ?? null);
+      });
+    } else {
+      setCloudSessions(null);
+    }
   }, [filter]);
 
   // Reloads when the filter changes, when navigating between conversations (the
@@ -565,6 +592,17 @@ export function SidebarTasks({
       // A nested session opens with its project's context in the chip.
       const p = proj ? `project=${encodeURIComponent(proj)}&` : "";
       navigate(`/chat?${p}resume=${encodeURIComponent(id)}`);
+    },
+    [navigate, onNavigate],
+  );
+
+  // A CLOUD session opens in the SAME chat UI with the run target pinned to
+  // the cloud brain (?run=cloud): resume + history + approvals ride the S1
+  // bridge/WS contract (NativeChatPage honors run=cloud on resume).
+  const pickCloud = useCallback(
+    (id: string) => {
+      onNavigate?.();
+      navigate(`/chat?resume=${encodeURIComponent(id)}&run=cloud`);
     },
     [navigate, onNavigate],
   );
@@ -793,23 +831,43 @@ export function SidebarTasks({
   // (cloud) and `C:\DEV\Dute` (the user's machine) group identically, because a
   // project is a row that owns paths — not a directory in our filesystem. That
   // is the whole reason one history can cover web and desktop.
-  const folderOwners: { path: string; segs: string[]; slug: string }[] = (projectRows ?? [])
-    .flatMap((r) => r.folders.map((f) => ({ path: f.path, segs: pathSegments(f.path), slug: r.slug })))
+  const folderOwners: {
+    path: string;
+    segs: string[];
+    slug: string;
+    /** The desktop's default workspace (~/Work4You) — never a grouping owner. */
+    isDefaultWs: boolean;
+  }[] = (projectRows ?? [])
+    .flatMap((r) =>
+      r.folders.map((f) => ({
+        path: f.path,
+        segs: pathSegments(f.path),
+        slug: r.slug,
+        isDefaultWs: isDesktopDefaultWorkspacePath(f.path),
+      })),
+    )
     .filter((o) => o.segs.length > 0);
-  const projectOf = (s: SessionInfo): string | null => {
+  const ownerOf = (s: SessionInfo): (typeof folderOwners)[number] | null => {
     if (!s.cwd) return null;
     const segs = pathSegments(s.cwd);
-    let best: string | null = null;
-    let bestDepth = 0;
+    let best: (typeof folderOwners)[number] | null = null;
     for (const o of folderOwners) {
-      if (o.segs.length > segs.length || o.segs.length <= bestDepth) continue;
-      if (o.segs.every((seg, i) => seg === segs[i])) {
-        best = o.slug;
-        bestDepth = o.segs.length;
-      }
+      if (o.segs.length > segs.length || (best && o.segs.length <= best.segs.length))
+        continue;
+      if (o.segs.every((seg, i) => seg === segs[i])) best = o;
     }
     return best;
   };
+  // Desktop pivot rule (17/07): ~/Work4You (the shell's default workspace) is
+  // the ENGINE's execution directory, never an organizing project. A session
+  // that would group under it is a FREE chat and belongs in "Recentes" — even
+  // when a pre-existing user row still owns that folder (installs from before
+  // the rule). The row is the user's, so code never deletes it; the RENDERER
+  // simply refuses to group by that folder — which also voids the server
+  // tree's claim for those sessions (the tree honors explicit rows, so the
+  // defaultWorkspace filter has to live here on the client).
+  const inDefaultWorkspace = (s: SessionInfo, owner: (typeof folderOwners)[number] | null) =>
+    isDesktopDefaultWorkspacePath(s.cwd) || !!owner?.isDefaultWs;
   const knownProjects = new Set(projects ?? []);
   // ── Server-decided grouping (Onda 1): /api/projects/tree claims sessions
   // for explicit projects (scoped ids) and hands each project its previews +
@@ -826,19 +884,44 @@ export function SidebarTasks({
   const byProject = new Map<string, SessionInfo[]>();
   const general: SessionInfo[] = [];
   for (const s of merged) {
-    const slug = projectOf(s);
+    const owner = ownerOf(s);
+    // Free chat at the default workspace → Recents, never a project (see
+    // inDefaultWorkspace above).
+    const freeChat = inDefaultWorkspace(s, owner);
+    const slug = owner && !owner.isDefaultWs ? owner.slug : null;
     // Project deleted → the session goes back to Recents (better visible than gone).
     const owned = slug && knownProjects.has(slug) ? slug : null;
-    if (owned) {
+    if (owned && !freeChat) {
       const arr = byProject.get(owned);
       if (arr) arr.push(s);
       else byProject.set(owned, [s]);
     }
     // Recents = whatever no rendered project claims. Under server grouping
     // the server's claim set is the authority; the client rule still routes
-    // rows the server can't know yet (the optimistic inserts).
-    const claimed = serverGrouping ? scopedIds.has(s.id) || !!owned : !!owned;
+    // rows the server can't know yet (the optimistic inserts) and OVERRULES
+    // claims that ride on the default workspace (freeChat).
+    const claimed = freeChat
+      ? false
+      : serverGrouping
+        ? scopedIds.has(s.id) || !!owned
+        : !!owned;
     if (!claimed) general.push(s);
+  }
+  // S2 merge: the cloud brain's sessions join Recents by recency, each
+  // carrying its origin for the discreet badge. They never belong to a local
+  // project row (their cwd lives on the other computer), so Recents is the
+  // only insertion point — no concept collision. Local wins an id tie.
+  const cloudIds = new Set<string>();
+  const generalMerged: SessionInfo[] = [...general];
+  for (const s of cloudSessions ?? []) {
+    if (merged.some((m) => m.id === s.id)) continue;
+    cloudIds.add(s.id);
+    generalMerged.push(s);
+  }
+  if (cloudIds.size) {
+    generalMerged.sort(
+      (a, b) => (b.last_active || b.started_at) - (a.last_active || a.started_at),
+    );
   }
   // Pinned ones float to the top WITHIN their group — same as the desktop.
   const pinnedFirst = (list: SessionInfo[]) => [
@@ -851,7 +934,7 @@ export function SidebarTasks({
   ];
   // Branch sessions nest under their parent (└ connector) when both are
   // visible — flatten BEFORE slicing so the pair is never split by the fold.
-  const visible = flattenWithBranches(pinnedFirst(general));
+  const visible = flattenWithBranches(pinnedFirst(generalMerged));
   // Collapsed: only the COLLAPSED_COUNT most recent; the rest behind "Mostrar
   // mais X". The optimistic ones stay at the top, so they are never cut off.
   const shown = expanded ? visible : visible.slice(0, COLLAPSED_COUNT);
@@ -897,6 +980,12 @@ export function SidebarTasks({
           const node = serverGrouping
             ? treeNodeByRowId.get(rowBySlug.get(p)?.id ?? "")
             : undefined;
+          // Server previews minus default-workspace free chats — those live in
+          // Recents (the tree honors the row that owns ~/Work4You; the client
+          // does not — see inDefaultWorkspace).
+          const nodePreviews = (node?.previewSessions ?? []).filter(
+            (ps) => !inDefaultWorkspace(ps, ownerOf(ps)),
+          );
           const clientChats = pinnedFirst(byProject.get(p) ?? []);
           const chats = flattenWithBranches(
             (node
@@ -904,9 +993,9 @@ export function SidebarTasks({
                   ...clientChats.filter(
                     (s) =>
                       isOptimistic(s) &&
-                      !node.previewSessions.some((ps) => ps.id === s.id),
+                      !nodePreviews.some((ps) => ps.id === s.id),
                   ),
-                  ...pinnedFirst(node.previewSessions),
+                  ...pinnedFirst(nodePreviews),
                 ]
               : clientChats
             ).slice(0, PROJECT_CHAT_COUNT),
@@ -1077,7 +1166,9 @@ export function SidebarTasks({
             live here (scoped out of Recentes), so nothing is orphaned. */}
         {serverGrouping &&
           (tree?.projects ?? [])
-            .filter((n) => n.isAuto && n.path)
+            // The default workspace never shows as an auto project either (its
+            // free chats are routed to Recents by the exact-cwd rule above).
+            .filter((n) => n.isAuto && n.path && !isDesktopDefaultWorkspacePath(n.path))
             .map((n) => (
               <div key={n.id} className="mb-0.5">
                 <button
@@ -1169,6 +1260,11 @@ export function SidebarTasks({
             const isActive = s.id === activeId;
             const label = rowLabel(s, t.sessions.untitledSession);
             const pinned = isPinned(s.id);
+            // Cloud-brain session (S2): badge + open with ?run=cloud; the "…"
+            // menu stays off — its REST operations (PATCH/DELETE) cannot cross
+            // the bridge (GET/POST allowlist), and a menu that half-works is a
+            // broken promise.
+            const fromCloud = cloudIds.has(s.id);
             const RowIcon = pinned ? Pin : s.source === "cron" ? Clock : MessageSquare;
             const age = timeAgoShort(s.last_active || s.started_at, {
               ageNow: t.chat.ageNow,
@@ -1204,7 +1300,7 @@ export function SidebarTasks({
               >
                 <button
                   type="button"
-                  onClick={() => pick(s.id)}
+                  onClick={() => (fromCloud ? pickCloud(s.id) : pick(s.id))}
                   aria-current={isActive ? "true" : undefined}
                   title={`${label} · ${age}`}
                   className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2.5 text-left text-sm"
@@ -1235,6 +1331,14 @@ export function SidebarTasks({
                   <span className={cn("min-w-0 flex-1 truncate", isActive && "font-medium")}>
                     {label}
                   </span>
+                  {fromCloud && (
+                    <span
+                      title={t.chat.cloudOriginTooltip}
+                      className="grid shrink-0 place-items-center"
+                    >
+                      <Cloud className="h-3 w-3 text-text-tertiary" aria-hidden />
+                    </span>
+                  )}
                 </button>
                 {/* Compact age ("43m"/"2h"/"3d") — disappears on hover, same as
                     the desktop; hidden when the "…" menu is open (the button
@@ -1247,23 +1351,25 @@ export function SidebarTasks({
                     {age}
                   </span>
                 )}
-                <button
-                  type="button"
-                  aria-label="…"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    const r = e.currentTarget.getBoundingClientRect();
-                    setRowMenu({ id: s.id, x: r.right, y: r.bottom + 4 });
-                  }}
-                  className={cn(
-                    "mr-1 shrink-0 rounded p-1 text-text-tertiary transition-all hover:text-foreground",
-                    rowMenu?.id === s.id
-                      ? "opacity-100"
-                      : "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
-                  )}
-                >
-                  <MoreHorizontal className="h-4 w-4" />
-                </button>
+                {!fromCloud && (
+                  <button
+                    type="button"
+                    aria-label="…"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      const r = e.currentTarget.getBoundingClientRect();
+                      setRowMenu({ id: s.id, x: r.right, y: r.bottom + 4 });
+                    }}
+                    className={cn(
+                      "mr-1 shrink-0 rounded p-1 text-text-tertiary transition-all hover:text-foreground",
+                      rowMenu?.id === s.id
+                        ? "opacity-100"
+                        : "opacity-0 focus-visible:opacity-100 group-hover:opacity-100",
+                    )}
+                  >
+                    <MoreHorizontal className="h-4 w-4" />
+                  </button>
+                )}
               </div>
             );
           })

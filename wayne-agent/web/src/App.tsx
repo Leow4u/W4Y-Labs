@@ -61,7 +61,6 @@ import { SelectionSwitcher } from "@nous-research/ui/ui/components/selection-swi
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { cn } from "@/lib/utils";
-import { SidebarFooter } from "@/components/SidebarFooter";
 import { SidebarTasks, NewTaskIcon } from "@/components/SidebarTasks";
 import { SidebarStatusStrip, gatewayLine } from "@/components/SidebarStatusStrip";
 import { useBelowBreakpoint } from "@nous-research/ui/hooks/use-below-breakpoint";
@@ -825,7 +824,6 @@ export default function App() {
               )}
             >
               <AuthWidget onOpenSettings={() => setSettingsOpen(true)} />
-              <SidebarFooter status={sidebarStatus} />
             </div>
           </aside>
 

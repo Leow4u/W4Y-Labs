@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { GatewayClient, type ConnectionState, type GatewayEvent } from "@/lib/gatewayClient";
-import { api } from "@/lib/api";
+import { api, type SessionMessagesResponse } from "@/lib/api";
+import {
+  CLOUD_NOT_LOGGED_IN,
+  cloudGetJson,
+  mintCloudWsUrl,
+  type RunTarget,
+} from "@/lib/cloudSession";
 import { useI18n } from "@/i18n";
 import {
   stitchHistory,
@@ -287,6 +293,14 @@ export function useChatSession(
    *  ahead of it and runs in the cloud). Covers the direct AND the queued
    *  (pendingSend) send paths. Must be idempotent; a no-op when unused. */
   beforeSubmit?: () => Promise<void> | void,
+  /** WHERE this chat runs (S1 mini-computer, local-engine desktop only).
+   *  "cloud" connects the SAME protocol to the user's CLOUD computer: the
+   *  GatewayClient gets a URL provider that asks the shell for a freshly
+   *  ticketed wss:// URL on every connect/reconnect (tickets are single-use
+   *  and short-lived). Everything the chat does — session.create,
+   *  prompt.submit, streaming, approvals, steering — already rides this WS,
+   *  so the whole conversation moves with it. Default "local" = unchanged. */
+  runTarget: RunTarget = "local",
 ) {
   const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -469,12 +483,15 @@ export function useChatSession(
       reconnectTimerRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [freshNonce, resumeId, cwd, agentProfile]);
+  }, [freshNonce, resumeId, cwd, agentProfile, runTarget]);
 
   useEffect(() => {
     if (!enabled) return;
     let cancelled = false;
-    const gw = new GatewayClient();
+    const cloud = runTarget === "cloud";
+    // Cloud target: the client asks the shell for a freshly ticketed cloud WS
+    // URL on every connect (mintCloudWsUrl) — reconnects re-mint, never reuse.
+    const gw = new GatewayClient(cloud ? mintCloudWsUrl : undefined);
     gwRef.current = gw;
     approvalQueueRef.current = [];
 
@@ -915,8 +932,17 @@ export function useChatSession(
         const resumeTarget = resumeId ?? storedSessionIdRef.current;
 
         if (resumeTarget) {
+          // Cloud session: same-origin REST would ask the LOCAL gateway for a
+          // session that lives in the cloud — read the history through the
+          // shell's cloud API bridge instead (null on failure keeps whatever
+          // transcript is already on screen; reconnects never wipe it).
+          const historyPromise = cloud
+            ? cloudGetJson<SessionMessagesResponse>(
+                `/api/sessions/${encodeURIComponent(resumeTarget)}/messages`,
+              )
+            : api.getSessionMessages(resumeTarget).catch(() => null);
           const [history, resumed] = await Promise.all([
-            api.getSessionMessages(resumeTarget).catch(() => null),
+            historyPromise,
             gw.request<SessionResumeResult>("session.resume", { session_id: resumeTarget }),
           ]);
           if (cancelled) return;
@@ -955,6 +981,13 @@ export function useChatSession(
         // Connection/handshake failed (machine still coming up post-deploy?):
         // retries with the same backoff — no F5.
         if (!cancelled) {
+          // Cloud target without a live login: this is a STATE, not a fault.
+          // Show the localized "sign in" line and do NOT schedule reconnects —
+          // hammering the mint endpoint can't sign the user in.
+          if (err instanceof Error && err.message === CLOUD_NOT_LOGGED_IN) {
+            setError(t.chat.runCloudSignIn);
+            return;
+          }
           setError(err instanceof Error ? err.message : String(err));
           const attempt = reconnectAttemptsRef.current++;
           const delay = Math.min(1000 * 2 ** attempt, 15000);
@@ -998,7 +1031,7 @@ export function useChatSession(
       gwRef.current = null;
       sessionIdRef.current = null;
     };
-  }, [resumeId, freshNonce, reconnectNonce, cwd, enabled, overrides, agentProfile, t, acceptsEvent, applyTodos]);
+  }, [resumeId, freshNonce, reconnectNonce, cwd, enabled, overrides, agentProfile, runTarget, t, acceptsEvent, applyTodos]);
 
   const sendMessage = useCallback(
     (text: string, images?: string[]) => {
@@ -1017,8 +1050,12 @@ export function useChatSession(
       // the task shows up under "Tarefas" with the 1st msg as a provisional title
       // (ChatGPT/Manus pattern) — without waiting for the server to auto-title.
       // The real title replaces it via wayne:session-titled. Dedupe by id in the
-      // sidebar.
-      if (!resumeId && !startedDispatchedRef.current && storedSessionId) {
+      // sidebar. Cloud sessions are still SUPPRESSED here: the optimistic event
+      // cannot carry an origin, so the row would resume against the wrong
+      // computer. The merged sidebar (S2) lists them properly — with the cloud
+      // badge and ?run=cloud resume — on its next REST reload (the
+      // wayne:session-titled event right below triggers one).
+      if (!resumeId && !startedDispatchedRef.current && storedSessionId && runTarget !== "cloud") {
         startedDispatchedRef.current = true;
         window.dispatchEvent(
           new CustomEvent("wayne:session-started", {
@@ -1078,7 +1115,7 @@ export function useChatSession(
         }
       })();
     },
-    [busy, pendingPrompt, resumeId, storedSessionId, cwd],
+    [busy, pendingPrompt, resumeId, storedSessionId, cwd, runTarget],
   );
 
   // Session became ready and there is a queued message (sent before connecting)
@@ -1193,14 +1230,21 @@ export function useChatSession(
       await gw.request("session.compress", { session_id: sid });
       const stored = resumeId ?? storedSessionId;
       if (stored) {
-        const history = await api.getSessionMessages(stored).catch(() => null);
+        // Cloud session: the transcript lives on the cloud gateway — reload it
+        // through the shell bridge (null keeps the on-screen transcript).
+        const history =
+          runTarget === "cloud"
+            ? await cloudGetJson<SessionMessagesResponse>(
+                `/api/sessions/${encodeURIComponent(stored)}/messages`,
+              )
+            : await api.getSessionMessages(stored).catch(() => null);
         if (history) setMessages(stitchHistory(history.messages));
       }
       return true;
     } catch {
       return false;
     }
-  }, [resumeId, storedSessionId]);
+  }, [resumeId, storedSessionId, runTarget]);
 
   // ── Composer autocomplete (desktop parity): / and @ ─────────────────
   type CompletionItem = { text: string; display?: string; meta?: string };

@@ -20,7 +20,8 @@
  * page — the page registers on mount and clears on unmount.
  */
 
-import { LOCAL_PATH_RE } from "@/lib/projects";
+import { api } from "@/lib/api";
+import { isLocalEngine, LOCAL_PATH_RE, pathBaseName } from "@/lib/projects";
 
 /** MSYS/git-bash drive spelling: "/c/Users/…" (single drive-letter segment).
  *  A cloud path like /opt/data/x never matches (first segment is a word). */
@@ -83,7 +84,22 @@ export function registerLocalFileReader(r: LocalFileReader | null): void {
  *  RPC itself times out with a clean error). */
 export async function readLocalFileDataUrl(path: string): Promise<LocalFileData | null> {
   const normalized = normalizeLocalPath(path);
-  if (!normalized || !reader) return null;
+  if (!normalized) return null;
+  // Local-engine mode (desktop 0.3.0): the gateway runs ON this machine, so
+  // /api/fs reads the user's disk directly — the executor hop does not exist
+  // (and the chat page never registers a reader here). Every consumer of this
+  // seam (dock preview/code, file cards) thus falls to the server route
+  // naturally, with the SAME response shape.
+  if (isLocalEngine()) {
+    try {
+      const r = await api.readFileDataUrl(normalized);
+      const d = r.dataUrl ?? r.data_url;
+      return d ? { data_url: d, name: pathBaseName(normalized) } : null;
+    } catch {
+      return null;
+    }
+  }
+  if (!reader) return null;
   try {
     const res = await reader(normalized);
     return res?.data_url ? res : null;

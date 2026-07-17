@@ -19,6 +19,7 @@ import { AssistantTurn, type DetailMode } from "@/components/chat/AssistantTurn"
 import { Composer } from "@/components/chat/Composer";
 import { ContextPicker } from "@/components/chat/ContextPicker";
 import { ModePicker, type ApprovalsMode } from "@/components/chat/ModePicker";
+import { RunTargetPicker } from "@/components/chat/RunTargetPicker";
 import { MessageBubble } from "@/components/chat/MessageBubble";
 import { PendingPromptPanel } from "@/components/chat/PendingPromptPanel";
 import { ProjectWorkspace } from "@/components/chat/ProjectWorkspace";
@@ -37,11 +38,19 @@ import { useChatSession } from "@/hooks/useChatSession";
 import { useI18n } from "@/i18n";
 import { api } from "@/lib/api";
 import { applyChatDisplay } from "@/lib/chat-display";
+import {
+  cloudReadFile,
+  cloudRunAvailable,
+  setCloudSessionActive,
+  type RunTarget,
+} from "@/lib/cloudSession";
 import { registerLocalFileReader } from "@/lib/localFile";
 import { isNotifyEnabled } from "@/lib/notify-prefs";
 import {
+  desktopDefaultWorkspace,
   getFilesRoot,
   getLastProject,
+  isLocalEngine,
   projectCwd,
   resolveDesktopLocalDefault,
   setLastProject,
@@ -50,6 +59,12 @@ import { tierFromConfig, tierLabel, type TierKey } from "@/lib/tier-presets";
 import { Bot, ChevronDown, X } from "lucide-react";
 import type { SessionCreateOverrides } from "@/hooks/useChatSession";
 import type { ChatMessage } from "@/components/chat/types";
+
+// Cloud-target sessions send NO per-session overrides: the local desktop's
+// config (free-tier default model) must not silently downgrade the session
+// born on the user's cloud computer — the cloud tenant's own config decides.
+// Module-level so the hook's effect deps see ONE stable reference.
+const CLOUD_NO_OVERRIDES: SessionCreateOverrides = {};
 
 export default function NativeChatPage({ isActive = true }: { isActive?: boolean }) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -180,15 +195,59 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     };
   }, [project]);
 
+  // DL-01, local-ENGINE mode (0.3.0): a session born with no explicit context
+  // (no resume/project/cwd/agent) lands in the desktop's default workspace
+  // (~/Work4You) as a NATIVE cwd — the local gateway simply runs there. No
+  // executor arming, no local.session.set: this is the whole point of the
+  // motor-local pivot. The workspace is an EXECUTION DIRECTORY, not a chosen
+  // context (pivot rule, 17/07): it is NEVER presented as a project and the
+  // NONE sentinel ("sem projeto") does not opt out of it — a free chat always
+  // runs here. (The sentinel used to drop the cwd, silently landing free chats
+  // in the engine's own process cwd — an invisible state the chip could not
+  // distinguish.) Null everywhere else: web and cloud-shell get undefined
+  // here, unchanged.
+  const localEngineDefaultCwd =
+    isLocalEngine() && !resumeId && !cwdParam && !project && !agentParam
+      ? desktopDefaultWorkspace()
+      : null;
+
+  // ── S1 mini-computer: WHERE the chat about to be born runs ──────────────
+  // Local-engine desktop only (cloudRunAvailable). The choice belongs to the
+  // SESSION being created — it resets with every new session context and the
+  // picker locks after the first message (same contract as the cwd: decided
+  // at session.create, never moved after).
+  const [runTarget, setRunTarget] = useState<RunTarget>("local");
+  useEffect(() => {
+    setRunTarget("local");
+  }, [resumeId, freshNonce]);
+  // S2: a CLOUD session reopened from the merged sidebar (?resume=<id>&
+  // run=cloud). S1 wired the CREATE path; resume rides the SAME WsUrlProvider
+  // — session.resume, history (bridge REST) and approvals all target the
+  // cloud brain. Off the local-engine desktop cloudRunAvailable() is false
+  // and the param is inert, so web and cloud-shell behave byte-identically.
+  const cloudResume = !!resumeId && searchParams.get("run") === "cloud" && cloudRunAvailable();
+  const cloudSession =
+    cloudResume || (!resumeId && runTarget === "cloud" && cloudRunAvailable());
+
   // cwd: absolute ?cwd (existing folder) wins; otherwise projects/<slug>.
-  const cwd = cwdParam
-    ? cwdParam
-    : project && projectRoot
-      ? projectCwd(projectRoot, project)
-      : undefined;
+  // A CLOUD session is born with NO cwd on purpose: every folder this page
+  // can name lives on THIS machine (local projects, ~/Work4You), and shipping
+  // one to the cloud gateway would promise a folder that isn't there — the
+  // tenant's own default workspace applies instead.
+  const cwd = cloudSession
+    ? undefined
+    : cwdParam
+      ? cwdParam
+      : project && projectRoot
+        ? projectCwd(projectRoot, project)
+        : localEngineDefaultCwd ?? undefined;
   // Holds the connection until we resolve: (a) the workspace root when there is a
-  // project and (b) the current tier (create overrides) — else the session is born wrong.
-  const sessionEnabled = (!project || cwdParam !== null || projectRoot !== null) && overrides !== null;
+  // project and (b) the current tier (create overrides) — else the session is born
+  // wrong. A cloud session depends on NEITHER (no cwd, no local overrides).
+  const sessionEnabled = cloudSession
+    ? true
+    : (!project || cwdParam !== null || projectRoot !== null) && overrides !== null;
+  const effectiveOverrides = cloudSession ? CLOUD_NO_OVERRIDES : overrides;
 
   // Local-mode SUBMIT GATE (bug fix). The session is born with the CLOUD cwd and
   // only switched to Local by local.session.set — so every prompt.submit MUST be
@@ -238,7 +297,25 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     respondClarify,
     respondSudo,
     respondSecret,
-  } = useChatSession(resumeId, freshNonce, cwd, sessionEnabled, overrides, agentParam, beforeSubmit);
+  } = useChatSession(
+    resumeId,
+    freshNonce,
+    cwd,
+    sessionEnabled,
+    effectiveOverrides,
+    agentParam,
+    beforeSubmit,
+    cloudSession ? "cloud" : "local",
+  );
+
+  // While THIS page owns a live CLOUD session, dock/card file reads route
+  // through the shell's cloud API bridge (lib/cloudSession registry) — the
+  // same registry pattern as the local-file reader below. Cleared on target
+  // change/unmount so no other screen inherits the routing.
+  useEffect(() => {
+    setCloudSessionActive(cloudSession);
+    return () => setCloudSessionActive(false);
+  }, [cloudSession]);
 
   // Active local folder (Local desktop mode). The state lives HERE, not in the
   // ContextPicker (which remounts on hero→conversation and would lose the
@@ -248,6 +325,11 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   // back to the Cloud SILENTLY — writing to the WRONG machine. Now the binding
   // comes back and is re-asserted.
   const [activeLocalFolder, setActiveLocalFolder] = useState<string | null>(() => {
+    // Local-engine mode: sessions are local by NATURE (native cwd on this
+    // machine) — there is no executor to arm, so the Desktop-1 "local folder"
+    // binding never applies. A stored binding from another era must not
+    // resurrect it either.
+    if (isLocalEngine()) return null;
     let stored: string | null = null;
     try {
       stored = window.localStorage.getItem("wayne:local-folder");
@@ -283,6 +365,10 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   // untouched — lib/localFile only routes paths that match the local shapes,
   // and any failure resolves null so the dock falls to its clean error state.
   useEffect(() => {
+    // Local-engine mode: the gateway reads this disk itself (/api/fs), so the
+    // executor reader stays OFF — lib/localFile routes local paths to the
+    // server directly in that mode.
+    if (isLocalEngine()) return;
     registerLocalFileReader((p) => readLocalFile(p));
     return () => registerLocalFileReader(null);
   }, [readLocalFile]);
@@ -292,6 +378,8 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   // leave the session marked "local" with no arm (it now fails closed, and the user
   // would be stuck).
   useEffect(() => {
+    // Local-engine mode: never arm — the session is already local by nature.
+    if (isLocalEngine()) return;
     if (!sessionReady || !activeLocalFolder) return;
     const desk = (
       window as unknown as {
@@ -323,6 +411,8 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   // no active local folder (returns to the cloud unchanged).
   useEffect(() => {
     armLocalRef.current = async () => {
+      // Local-engine mode: the submit gate is a no-op — nothing to arm.
+      if (isLocalEngine()) return;
       if (!activeLocalFolder) return;
       const desk = (
         window as unknown as {
@@ -413,7 +503,13 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
       setAttachError(null);
       try {
         for (const f of files) {
-          if (f.type.startsWith("image/")) {
+          // Cloud session (S1): the image fast-path uploads to the LOCAL
+          // gateway's disk and attaches by path — a path the cloud gateway
+          // cannot see. Route EVERYTHING through file.attach instead: the
+          // bytes ride the WS as a data_url and materialize on the cloud
+          // computer (its designed remote case). Degrade: the image lands as
+          // a readable file, not a vision attachment.
+          if (f.type.startsWith("image/") && !cloudSession) {
             const root = await getFilesRoot();
             if (!root) throw new Error("files root unavailable");
             await api.createDirectory("uploads").catch(() => {});
@@ -447,29 +543,35 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
         setAttaching(false);
       }
     },
-    [attachImage, attachFile, t.status.error],
+    [attachImage, attachFile, cloudSession, t.status.error],
   );
 
   // Pasting a workspace PATH into the field → attaches (Onda 4). Images use
   // image.attach straight on the server path (thumbnail via files/read);
   // the rest are read through /api/files/read → file.attach (data_url).
+  // Cloud session: the pasted path lives on the CLOUD computer — image.attach
+  // already resolves there (it rides the session's WS); the byte reads go
+  // through the shell's cloud bridge instead of the local gateway.
   const handleAttachPath = useCallback(
     async (path: string) => {
       setAttaching(true);
       setAttachError(null);
       const name = path.split(/[/\\]/).pop() || path;
+      const readManaged = async (p: string) =>
+        cloudSession ? await cloudReadFile(p) : await api.readFile(p);
       try {
         if (/\.(png|jpe?g|gif|webp|svg|bmp)$/i.test(path)) {
           const ok = await attachImage(path);
           if (!ok) throw new Error(name);
-          const preview = await api.readFile(path).catch(() => null);
+          const preview = await readManaged(path).catch(() => null);
           setAttached((prev) => [
             ...prev,
             { name, kind: "image", previewUrl: preview?.data_url },
           ]);
           setTaskSources((prev) => [...prev, { name, kind: "image" }]);
         } else {
-          const res = await api.readFile(path);
+          const res = await readManaged(path);
+          if (!res) throw new Error(name);
           const ok = await attachFile(res.name || name, res.data_url);
           if (!ok) throw new Error(name);
           setAttached((prev) => [...prev, { name: res.name || name, kind: "file" }]);
@@ -481,7 +583,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
         setAttaching(false);
       }
     },
-    [attachImage, attachFile, t.status.error],
+    [attachImage, attachFile, cloudSession, t.status.error],
   );
 
   const handleSend = useCallback(
@@ -1055,7 +1157,12 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   // Task actions in the header's TOP RIGHT corner (usage / folder / "…" menu)
   // — only when there is a real conversation on screen.
   useEffect(() => {
-    if (!isActive || emptyHero) {
+    // Cloud session (S1): these actions are REST against the LOCAL gateway
+    // (rename/export/archive/delete/detail) — for a session that lives on the
+    // cloud computer they would hit the wrong machine. Hidden rather than
+    // broken; the WS-borne actions (undo/compress/branch) return with S2's
+    // api routing.
+    if (!isActive || emptyHero || cloudSession) {
       setEnd(null);
       return;
     }
@@ -1076,6 +1183,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   }, [
     isActive,
     emptyHero,
+    cloudSession,
     storedSessionId,
     project,
     usage,
@@ -1107,24 +1215,40 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     <div className="w-full">
       {/* "Code" piece: environment (tenant cloud) + select repo. */}
       <div className="mb-2 flex items-center gap-1.5">
-        <ContextPicker
-          // The folder is chosen when the conversation STARTS, and then it is
-          // settled — same as Codex/Cursor. The backend already works this way:
-          // the cwd ships in session.create and is IGNORED on resume, so a
-          // mid-conversation switch changed the chip and moved nothing. Locking
-          // the picker stops the screen from promising what the server won't do.
-          locked={messages.length > 0}
-          project={project}
-          cwd={cwd ?? null}
-          storedSessionId={storedSessionId}
-          activeLocal={activeLocalFolder}
-          onActiveLocalChange={setActiveLocalFolder}
-          onLocalEnv={localEnv}
-          onSendPrompt={(text) => handleSend(text)}
-          onOpenProjectSettings={() =>
-            setDockSignal((sig) => ({ tab: "project", nonce: (sig?.nonce ?? 0) + 1 }))
-          }
-        />
+        {/* The project/folder chip names places on THIS machine — for a chat
+            running on the cloud computer it would promise folders that are
+            not there, so it yields to the run-target chip alone (S1; the
+            cloud session runs in the tenant's default workspace). */}
+        {!cloudSession && (
+          <ContextPicker
+            // The folder is chosen when the conversation STARTS, and then it is
+            // settled — same as Codex/Cursor. The backend already works this way:
+            // the cwd ships in session.create and is IGNORED on resume, so a
+            // mid-conversation switch changed the chip and moved nothing. Locking
+            // the picker stops the screen from promising what the server won't do.
+            locked={messages.length > 0}
+            project={project}
+            cwd={cwd ?? null}
+            storedSessionId={storedSessionId}
+            activeLocal={activeLocalFolder}
+            onActiveLocalChange={setActiveLocalFolder}
+            onLocalEnv={localEnv}
+            onSendPrompt={(text) => handleSend(text)}
+            onOpenProjectSettings={() =>
+              setDockSignal((sig) => ({ tab: "project", nonce: (sig?.nonce ?? 0) + 1 }))
+            }
+          />
+        )}
+        {/* S1 mini-computer: where this chat runs (local-engine desktop). New
+            sessions choose; a resumed CLOUD session (S2) shows the settled
+            fact as a locked label — same contract as the folder chip. */}
+        {(!resumeId || cloudResume) && cloudRunAvailable() && (
+          <RunTargetPicker
+            value={cloudSession ? "cloud" : runTarget}
+            locked={cloudResume || messages.length > 0}
+            onChange={setRunTarget}
+          />
+        )}
       </div>
 
       {/* Notification nudge (claude.ai parity). */}
@@ -1260,12 +1384,18 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
           }}
           onInterrupt={interrupt}
           modePicker={
-            <ModePicker
-              approvalsMode={approvalsMode}
-              yoloLive={liveInfo?.yolo ?? false}
-              onSetApprovalsMode={handleSetApprovalsMode}
-              onSetSessionYolo={(on) => void setSessionYolo(on)}
-            />
+            // Cloud session (S1): the Manual/Auto choice writes the LOCAL
+            // config (REST), which the cloud computer never reads — hidden
+            // rather than a switch that does nothing. Approvals themselves
+            // still work (they ride the session WS and surface in the panel).
+            cloudSession ? undefined : (
+              <ModePicker
+                approvalsMode={approvalsMode}
+                yoloLive={liveInfo?.yolo ?? false}
+                onSetApprovalsMode={handleSetApprovalsMode}
+                onSetSessionYolo={(on) => void setSessionYolo(on)}
+              />
+            )
           }
           onAttach={(files) => void handleAttach(files)}
           onAttachPath={(p) => void handleAttachPath(p)}
@@ -1442,7 +1572,9 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
           removed={envData.removed}
           changes={dockChanges}
           cwd={cwd ?? null}
-          project={project}
+          // Cloud session: the project panels (files/git) are REST against the
+          // LOCAL gateway — no project context is offered there in S1.
+          project={cloudSession ? null : project}
           openSignal={dockSignal}
           refreshTick={gitTick}
           hero={emptyHero}

@@ -12,9 +12,18 @@
  * Routines are INDEPENDENT per agent (every job has a `profile`); the form
  * always creates aiming at one agent. Technical fields (provider/model/script/…)
  * stay hidden under ?full=1.
+ *
+ * S2 slice 1 (local-engine desktop, "one product, two computers"): the list
+ * merges the CLOUD brain's routines through the shell bridge (fail-open — no
+ * bridge/401/5s timeout leaves the local list alone, zero error on screen).
+ * NEW routines default to the CLOUD (a local routine dies with the app; the
+ * cloud one is the 24/7 story), falling back to a local create with an honest
+ * note when the bridge refuses. Cloud routines support pause/resume/trigger
+ * (bridge POSTs); edit (PUT) and delete (DELETE) cannot cross the GET/POST
+ * bridge allowlist, so those affordances stay hidden on cloud rows.
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
-import { Clock, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
+import { Clock, Cloud, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
@@ -60,6 +69,8 @@ import { PluginSlot } from "@/plugins";
 import { AutomationBlueprints } from "@/components/AutomationBlueprints";
 import { cn, themedBody } from "@/lib/utils";
 import { isInternalView } from "@/lib/internal-view";
+import { isLocalEngine } from "@/lib/projects";
+import { cloudBridge, cloudGetJson, cloudPostJson } from "@/lib/cloudSession";
 
 function formatTime(iso?: string | null): string {
   if (!iso) return "—";
@@ -548,11 +559,14 @@ function RoutineComposer({
 }
 
 /** Claude-style routine card — icon, title, human schedule, next run,
- *  agent chip, status; actions on hover. */
+ *  agent chip, status; actions on hover. Cloud-brain routines (S2) carry a
+ *  discreet cloud badge; affordances the bridge cannot honor (edit/delete)
+ *  arrive as undefined and simply do not render. */
 function RoutineCard({
   job,
   scheduleText,
   stateLabel,
+  cloud,
   onToggle,
   onTrigger,
   onEdit,
@@ -562,10 +576,12 @@ function RoutineCard({
   job: CronJob;
   scheduleText: string;
   stateLabel: string;
+  /** Lives on the user's CLOUD computer (fetched through the shell bridge). */
+  cloud?: boolean;
   onToggle: () => void;
   onTrigger: () => void;
-  onEdit: () => void;
-  onDelete: () => void;
+  onEdit?: () => void;
+  onDelete?: () => void;
   t: ReturnType<typeof useI18n>["t"];
 }) {
   const state = getJobState(job);
@@ -573,15 +589,19 @@ function RoutineCard({
   const profile = getJobProfile(job);
   const paused = state === "paused" || state === "disabled";
   const deliver = asText(job.deliver);
-  return (
-    <div className="group flex items-center gap-3.5 rounded-2xl border border-border bg-card px-4 py-3.5 transition-shadow hover:shadow-pop">
-      <button type="button" onClick={onEdit} title={title} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
+  const body = (
+    <>
       <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-muted text-foreground">
         <Zap className="h-4 w-4" />
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
           <span className="truncate type-body font-medium text-foreground">{title}</span>
+          {cloud && (
+            <span title={t.chat.cloudOriginTooltip} className="grid shrink-0 place-items-center">
+              <Cloud className="h-3.5 w-3.5 text-muted-foreground" aria-hidden />
+            </span>
+          )}
           <StatusPill state={state} label={stateLabel} />
           {deliver && deliver !== "local" && <Badge tone="outline">{deliver}</Badge>}
         </div>
@@ -602,7 +622,19 @@ function RoutineCard({
         </div>
         {job.last_error && <p className="mt-1 type-micro text-destructive">{job.last_error}</p>}
       </div>
-      </button>
+    </>
+  );
+  return (
+    <div className="group flex items-center gap-3.5 rounded-2xl border border-border bg-card px-4 py-3.5 transition-shadow hover:shadow-pop">
+      {onEdit ? (
+        <button type="button" onClick={onEdit} title={title} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
+          {body}
+        </button>
+      ) : (
+        <div title={title} className="flex min-w-0 flex-1 items-center gap-3.5 text-left">
+          {body}
+        </div>
+      )}
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
         <Button
           ghost
@@ -617,16 +649,18 @@ function RoutineCard({
         <Button ghost size="icon" title={t.cron.triggerNow} aria-label={t.cron.triggerNow} onClick={onTrigger}>
           <Zap />
         </Button>
-        <Button
-          ghost
-          destructive
-          size="icon"
-          title={t.common.delete}
-          aria-label={t.common.delete}
-          onClick={onDelete}
-        >
-          <Trash2 />
-        </Button>
+        {onDelete && (
+          <Button
+            ghost
+            destructive
+            size="icon"
+            title={t.common.delete}
+            aria-label={t.common.delete}
+            onClick={onDelete}
+          >
+            <Trash2 />
+          </Button>
+        )}
       </div>
     </div>
   );
@@ -634,6 +668,10 @@ function RoutineCard({
 
 export default function CronPage() {
   const [jobs, setJobs] = useState<CronJob[]>([]);
+  // S2: the CLOUD brain's routines, fetched through the shell bridge on the
+  // local-engine desktop. [] = nothing/failed — the screen shows local only,
+  // no error (fail-open by contract).
+  const [cloudJobs, setCloudJobs] = useState<CronJob[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [selectedProfile, setSelectedProfile] = useState("all");
   const [tab, setTab] = useState<"routines" | "calendar">("routines");
@@ -693,6 +731,19 @@ export default function CronPage() {
       .then(setJobs)
       .catch(() => showToast(t.common.loading, "error"))
       .finally(() => setLoading(false));
+    // S2 merge: the cloud brain's list on the same beat (load/refresh after
+    // every mutation = the light cache). 5s deadline; null/failure clears to
+    // local-only with zero error on screen. Agent filter forwarding is
+    // best-effort — a LOCAL profile name unknown to the cloud simply returns
+    // nothing there ("all" matches both brains).
+    if (isLocalEngine() && cloudBridge()) {
+      void cloudGetJson<CronJob[]>(
+        `/api/cron/jobs?profile=${encodeURIComponent(selectedProfile)}`,
+        5000,
+      ).then((r) => setCloudJobs(Array.isArray(r) ? r : []));
+    } else {
+      setCloudJobs([]);
+    }
   }, [selectedProfile, showToast, t.common.loading]);
 
   useEffect(() => {
@@ -741,8 +792,30 @@ export default function CronPage() {
     }
     setCreating(true);
     try {
-      await api.createCronJob(payload, createProfile);
-      showToast(t.common.create + " ✓", "success");
+      // S2 default: a routine born on the desktop lives on the CLOUD brain —
+      // a local routine dies with the app; the cloud one is the product's
+      // 24/7 story. Fail-open: any bridge refusal (CSRF/shape/timeout/signed
+      // out) falls back to a LOCAL create with an honest note of where it
+      // ended up. Off the local-engine desktop nothing changes.
+      let toastMsg = t.common.create + " ✓";
+      let toastTone: "success" | "error" = "success";
+      if (isLocalEngine() && cloudBridge()) {
+        const created = await cloudPostJson<CronJob>(
+          `/api/cron/jobs?profile=${encodeURIComponent(createProfile)}`,
+          payload,
+          8000,
+        );
+        if (created && typeof created.id === "string" && created.id) {
+          toastMsg = t.cron.createdInCloud;
+        } else {
+          await api.createCronJob(payload, createProfile);
+          toastMsg = t.cron.createdLocalFallback;
+          toastTone = "error";
+        }
+      } else {
+        await api.createCronJob(payload, createProfile);
+      }
+      showToast(toastMsg, toastTone);
       setCreateForm(emptyCronJobForm());
       setCreateModalOpen(false);
       loadJobs();
@@ -777,11 +850,23 @@ export default function CronPage() {
     }
   };
 
-  const handlePauseResume = async (job: CronJob) => {
+  const handlePauseResume = async (job: CronJob, cloud = false) => {
     try {
       const isPaused = getJobState(job) === "paused";
       const profile = getJobProfile(job);
-      if (isPaused) await api.resumeCronJob(job.id, profile);
+      if (cloud) {
+        // Cloud routine (S2): the same pause/resume POST, through the bridge.
+        // Fail-open: null = the cloud didn't confirm — say so, change nothing.
+        const r = await cloudPostJson<CronJob>(
+          `/api/cron/jobs/${encodeURIComponent(job.id)}/${isPaused ? "resume" : "pause"}?profile=${encodeURIComponent(profile)}`,
+          undefined,
+          8000,
+        );
+        if (!r) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+      } else if (isPaused) await api.resumeCronJob(job.id, profile);
       else await api.pauseCronJob(job.id, profile);
       loadJobs();
     } catch (e) {
@@ -789,9 +874,21 @@ export default function CronPage() {
     }
   };
 
-  const handleTrigger = async (job: CronJob) => {
+  const handleTrigger = async (job: CronJob, cloud = false) => {
     try {
-      await api.triggerCronJob(job.id, getJobProfile(job));
+      if (cloud) {
+        const r = await cloudPostJson<CronJob>(
+          `/api/cron/jobs/${encodeURIComponent(job.id)}/trigger?profile=${encodeURIComponent(getJobProfile(job))}`,
+          undefined,
+          8000,
+        );
+        if (!r) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+      } else {
+        await api.triggerCronJob(job.id, getJobProfile(job));
+      }
       showToast(`${t.cron.triggerNow}: "${truncateText(getJobTitle(job), 30)}"`, "success");
       loadJobs();
     } catch (e) {
@@ -858,7 +955,16 @@ export default function CronPage() {
   }
 
   const { user: userJobs } = partitionJobs(jobs);
-  const shown = internal ? jobs : userJobs; // ?full=1 sees everything (incl. system jobs)
+  const { user: userCloudJobs } = partitionJobs(cloudJobs);
+  const shownLocal = internal ? jobs : userJobs; // ?full=1 sees everything (incl. system jobs)
+  const shownCloud = internal ? cloudJobs : userCloudJobs;
+  // Merged view (S2): local first, then the cloud brain's — each row knows its
+  // origin (badge + which actions the bridge can honor). The count sums both.
+  const shown = [
+    ...shownLocal.map((job) => ({ job, cloud: false })),
+    ...shownCloud.map((job) => ({ job, cloud: true })),
+  ];
+  const cloudJobSet = new Set<CronJob>(cloudJobs);
   const pendingJob = jobDelete.pendingId ? jobs.find((j) => getJobKey(j) === jobDelete.pendingId) : null;
 
   const stateLabelOf = (job: CronJob) => {
@@ -875,7 +981,16 @@ export default function CronPage() {
       <Toast toast={toast} />
 
       {tab === "calendar" ? (
-        <RoutineCalendar jobs={shown} strings={scheduleDescribeStrings} locale={locale} onOpen={openEditModal} />
+        <RoutineCalendar
+          jobs={shown.map((entry) => entry.job)}
+          strings={scheduleDescribeStrings}
+          locale={locale}
+          // Cloud routines have no editable form here (the bridge cannot PUT)
+          // — opening one from the calendar stays a no-op rather than a lie.
+          onOpen={(job) => {
+            if (!cloudJobSet.has(job)) openEditModal(job);
+          }}
+        />
       ) : (
         <>
           {/* Composer hero (fiel ao Claude). */}
@@ -918,16 +1033,17 @@ export default function CronPage() {
             </div>
           ) : (
             <div className="grid gap-2.5">
-              {shown.map((job) => (
+              {shown.map(({ job, cloud }) => (
                 <RoutineCard
-                  key={getJobKey(job)}
+                  key={`${cloud ? "cloud:" : ""}${getJobKey(job)}`}
                   job={job}
+                  cloud={cloud}
                   scheduleText={getJobScheduleDisplay(job, scheduleDescribeStrings)}
                   stateLabel={stateLabelOf(job)}
-                  onToggle={() => handlePauseResume(job)}
-                  onTrigger={() => handleTrigger(job)}
-                  onEdit={() => openEditModal(job)}
-                  onDelete={() => jobDelete.requestDelete(getJobKey(job))}
+                  onToggle={() => handlePauseResume(job, cloud)}
+                  onTrigger={() => handleTrigger(job, cloud)}
+                  onEdit={cloud ? undefined : () => openEditModal(job)}
+                  onDelete={cloud ? undefined : () => jobDelete.requestDelete(getJobKey(job))}
                   t={t}
                 />
               ))}

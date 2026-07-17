@@ -2359,6 +2359,49 @@ async def connectors_attach(body: ConnectorAttach):
     return await asyncio.to_thread(_run)
 
 
+@app.get("/api/device/connector-bootstrap")
+async def device_connector_bootstrap():
+    """Connector bootstrap for the desktop's LOCAL engine (tenant-as-broker, 0.3.4).
+
+    The desktop shell calls this right after "Entrar com Work4You", riding the
+    owner's dashboard session cookies (the LB routes ``/api/*`` to the tenant;
+    this route is NOT in the public list, so the standard auth middleware gates
+    it like every other authenticated ``/api/*`` route). It returns everything
+    the local engine needs for working connectors:
+
+    * ``composio_key`` — the tenant's own COMPOSIO_API_KEY (the org-level
+      per-device key mint is walled off by Composio, so the tenant brokers its
+      own key to its logged-in owner);
+    * ``mcp_url`` — a FRESH tool-router session minted for THIS device via the
+      same ``_connector_session("global")`` the cloud uses. Tool-router
+      sessions are stateful and single-consumer: the cloud's own session is
+      never shared (copying it yields "Session terminated");
+    * ``user_id`` — "global", so the device sees the same connected accounts.
+
+    Without COMPOSIO_API_KEY in the tenant environment → clean 404 (the shell
+    treats it as "nothing to bootstrap" and boots on). The response body IS the
+    secret — never log it.
+    """
+
+    def _run():
+        try:
+            from wayne_cli.env_loader import load_wayne_dotenv
+            from wayne_cli.profiles import _get_default_wayne_home
+
+            load_wayne_dotenv(wayne_home=str(_get_default_wayne_home()))
+        except Exception:
+            pass
+        key = re.sub(r"[\s \"']+", "", os.environ.get("COMPOSIO_API_KEY", ""))
+        if not key:
+            # Deliberately NOT _composio_key(): its 503 reads as "broken";
+            # an unconfigured tenant is a normal state → 404.
+            raise HTTPException(status_code=404, detail="Not found")
+        url = _connector_session("global")
+        return {"composio_key": key, "mcp_url": url, "user_id": "global"}
+
+    return await asyncio.to_thread(_run)
+
+
 @app.delete("/api/connectors/accounts/{account_id}")
 async def connectors_disconnect(account_id: str):
     """Desconecta uma conta (revoga o acesso àquele app no escopo dela)."""

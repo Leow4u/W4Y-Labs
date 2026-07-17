@@ -1,0 +1,32 @@
+# W4Y model proxy -- LiteLLM na frente da OpenRouter (estilo Cursor).
+# Deploy: docker build + push em registry.fly.io/w4y-model-proxy:mpN e
+# `fly deploy --image` (ver README-DEPLOY.md).
+# REGRAS: NUNCA reutilizar tag de imagem (mp1, mp2, ...); NAO usar
+# `fly deploy --dockerfile` (gotcha do overlay: reverte pro [build] image cru).
+app = "w4y-model-proxy"
+primary_region = "gru"
+
+[build]
+  image = "registry.fly.io/w4y-model-proxy:mp1"
+
+[env]
+  # Reduz superficie: sem UI de admin do LiteLLM.
+  DISABLE_ADMIN_UI = "True"
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = "suspend"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "45s"
+    method = "GET"
+    path = "/health/liveliness"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "2048mb"

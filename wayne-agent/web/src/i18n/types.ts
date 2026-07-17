@@ -398,6 +398,12 @@ export interface Translations {
     ctxAddLocalFolder: string;
     ctxLockedHint: string;
     ctxRunInCloud: string;
+    runWhereTooltip: string;
+    runLocalOption: string;
+    runCloudOption: string;
+    runLockedHint: string;
+    runCloudSignIn: string;
+    cloudOriginTooltip: string;
     dockLocalDefault: string;
     envDefaultName: string;
     envAddCloud: string;
@@ -805,6 +811,9 @@ export interface Translations {
     statePaused: string;
     stateError: string;
     stateDone: string;
+    createdInCloud: string;
+    createdLocalFallback: string;
+    cloudUnavailable: string;
     chip1: string;
     chip2: string;
     chip3: string;
@@ -1134,6 +1143,8 @@ export interface Translations {
     userProfile: string;
     userProfileHint: string;
     account: string;
+    updateChip: string;
+    updateChipTooltip: string;
     personalization: string;
     identityNote: string;
     logout: string;

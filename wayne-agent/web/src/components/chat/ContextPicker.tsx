@@ -42,6 +42,8 @@ import {
 import { useI18n } from "@/i18n";
 import { api, type ProjectRow } from "@/lib/api";
 import {
+  isDesktopDefaultWorkspacePath,
+  isLocalEngine,
   LOCAL_PATH_RE,
   registerFolderProject,
   setLastProject,
@@ -153,10 +155,18 @@ export function ContextPicker({
       // no row, so it would be missing from this list. Adopt it on sight (the
       // backend does the same the first time a chat runs in it). Without this,
       // merging the two lists into one would make those folders disappear.
+      // EXCEPT the default workspace (~/Work4You): the shell vaults it on every
+      // boot (main.cjs ensureDefaultWorkspace), so adopting vault orphans was
+      // silently minting a "Work4You" project row that swallowed every free
+      // chat — it is an execution directory, never a project (pivot rule 17/07;
+      // registerFolderProject refuses it too, this filter just skips the
+      // pointless POST on every open).
       if (desk) {
         const owned = new Set(list.flatMap((r) => r.folders.map((f) => f.path)));
         const vault = await desk.listFolders().catch(() => [] as string[]);
-        const orphans = vault.filter((f) => !owned.has(f));
+        const orphans = vault.filter(
+          (f) => !owned.has(f) && !isDesktopDefaultWorkspacePath(f),
+        );
         if (orphans.length) {
           await Promise.all(orphans.map((f) => registerFolderProject(f)));
           list = (await api.listProjects()).projects;
@@ -201,11 +211,15 @@ export function ContextPicker({
       setOpen(false);
       setSubmenu(false);
       onActiveLocalChange(null);
-      try {
-        void onLocalEnv?.(false);
-        void desk?.stopLocal();
-      } catch {
-        /* ignore */
+      // Local-ENGINE mode has no executor to disarm (sessions are local by
+      // nature) — poking local.env/stopLocal there is at best a no-op.
+      if (!isLocalEngine()) {
+        try {
+          void onLocalEnv?.(false);
+          void desk?.stopLocal();
+        } catch {
+          /* ignore */
+        }
       }
       setLastProject(slug);
       navigate(slug ? `/chat?project=${encodeURIComponent(slug)}` : "/chat?new=1");
@@ -214,10 +228,18 @@ export function ContextPicker({
   );
 
   // Local folder: turns the machine's executor on (vault) + marks the session.
+  // Local-ENGINE mode is the exception: the gateway IS this machine, so a local
+  // folder is just a native cwd for the next session — navigate with ?cwd=,
+  // exactly like an existing cloud folder, with nothing to arm.
   const chooseLocal = useCallback(
     async (folder: string) => {
       setOpen(false);
       setSubmenu(false);
+      if (isLocalEngine()) {
+        onActiveLocalChange(null);
+        navigate(`/chat?cwd=${encodeURIComponent(folder)}`);
+        return;
+      }
       if (!desk || !storedSessionId) return;
       setBusy(true);
       onActiveLocalChange(folder);
@@ -230,7 +252,7 @@ export function ContextPicker({
         setBusy(false);
       }
     },
-    [desk, storedSessionId, onLocalEnv, onActiveLocalChange],
+    [desk, storedSessionId, onLocalEnv, onActiveLocalChange, navigate],
   );
 
   /** The folder that defines a project — primary if set, else the first. */
@@ -276,10 +298,27 @@ export function ContextPicker({
     }
   }, [desk, foldersList, chooseLocal]);
 
+  // Local-engine mode (0.3.0): the SPA is served by the local gateway itself.
+  // Sessions are local by nature — no executor, no arming.
+  const localEngine = isLocalEngine();
+
   // The desktop's default local workspace (~/Work4You) reads as the brand name,
-  // not the raw folder basename — DL-05/DL-06: the resolved default communicates
-  // "Work4You".
-  const isDefaultLocal = !!activeLocal && !!desk?.defaultWorkspace && activeLocal === desk.defaultWorkspace;
+  // not the raw folder basename — DL-05: the CLOUD-SHELL desktop arms it as the
+  // active local folder, and there it IS the chosen context.
+  const isDefaultLocal =
+    !!activeLocal && !!desk?.defaultWorkspace && activeLocal === desk.defaultWorkspace;
+
+  // Local-ENGINE mode is different (pivot rule, 17/07): the default workspace
+  // reaches the session as a plain execution cwd (DL-01), NOT as a chosen
+  // context — so the chip must read as "no project chosen" (the web's own
+  // not-chosen label/icon), never as a "Work4You" choice. The session still
+  // runs in ~/Work4You underneath (session.create cwd).
+  const isEngineDefaultCwd =
+    localEngine &&
+    !activeLocal &&
+    !project &&
+    !!desk?.defaultWorkspace &&
+    cwd === desk.defaultWorkspace;
 
   // Chip label/icon: the folder in use, whichever machine it lives on.
   const label = activeLocal
@@ -288,7 +327,7 @@ export function ContextPicker({
       : baseName(activeLocal)
     : project
       ? projectDisplayName(project)
-      : cwd
+      : cwd && !isEngineDefaultCwd
         ? baseName(cwd)
         : // Same words as the menu's first item. This used to read "Nuvem",
           // which sold an environment to choose — there is none to choose.
@@ -325,11 +364,11 @@ export function ContextPicker({
           locked ? "cursor-default" : "hover:border-foreground/25",
         )}
       >
-        {activeLocal ? (
+        {activeLocal || isDefaultLocal ? (
           <HardDrive className="h-3.5 w-3.5 text-live" />
         ) : project && getProjectMetaCached(project).icon ? (
           <span className="text-[13px] leading-none">{getProjectMetaCached(project).icon}</span>
-        ) : project || cwd ? (
+        ) : project || (cwd && !isEngineDefaultCwd) ? (
           <Folder className="h-3.5 w-3.5 text-muted-foreground" />
         ) : (
           <MonitorDot className="h-3.5 w-3.5 text-live" />
@@ -346,10 +385,17 @@ export function ContextPicker({
         >
           {/* First item = where the agent runs with no project chosen.
               DL-06 splits by surface:
-                • Desktop → "Run in the cloud" is an EXPLICIT opt-out. The default
-                  here is the local ~/Work4You workspace (armed automatically), so
-                  "no project" is not an environment to offer — only its opposite,
-                  the cloud, is a real choice. Same chooseCloud(null) wiring.
+                • Desktop, local-ENGINE mode (0.3.0) → same "no project" row as
+                  the web: clearing the project just returns the free-chat state
+                  (execution stays in ~/Work4You underneath — an execution
+                  directory, not a choice). The old "open the cloud computer"
+                  window.open was killed here (feedback 17/07: "abre outro
+                  sistema"); the real "where to run" selector is a later wave.
+                • Desktop, cloud shell → "Run in the cloud" is an EXPLICIT
+                  opt-out. The default here is the local ~/Work4You workspace
+                  (armed automatically), so "no project" is not an environment to
+                  offer — only its opposite, the cloud, is a real choice. Same
+                  chooseCloud(null) wiring.
                 • Web → "No project" IS the legitimate default (no folder = cloud),
                   unchanged. */}
           <div
@@ -358,15 +404,17 @@ export function ContextPicker({
             onClick={() => chooseCloud(null)}
             className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 transition-colors hover:bg-muted/60"
           >
-            {desk ? (
+            {desk && !localEngine ? (
               <Cloud className="h-4 w-4 shrink-0 text-live" />
             ) : (
               <MonitorDot className="h-4 w-4 shrink-0 text-live" />
             )}
             <span className="min-w-0 flex-1 type-ui font-medium text-foreground">
-              {desk ? t.chat.ctxRunInCloud : t.chat.projectPickerNone}
+              {desk && !localEngine ? t.chat.ctxRunInCloud : t.chat.projectPickerNone}
             </span>
-            {!activeLocal && !project && !cwd && (
+            {/* Checked when nothing is chosen. In local-engine the default-
+                workspace cwd IS the not-chosen state (isEngineDefaultCwd). */}
+            {!activeLocal && !project && (!cwd || isEngineDefaultCwd) && (
               <Check className="h-3.5 w-3.5 shrink-0 text-foreground" />
             )}
             <button

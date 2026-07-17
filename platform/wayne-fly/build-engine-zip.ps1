@@ -71,7 +71,14 @@ Write-Host "-> Staging engine source from $RepoRoot"
 $xdTopLevel = @(
     (Join-Path $RepoRoot "apps"),
     (Join-Path $RepoRoot "tests"),
-    (Join-Path $RepoRoot "release")
+    (Join-Path $RepoRoot "release"),
+    # UI SOURCES must not ship: the engine serves the prebuilt wayne_cli/web_dist,
+    # and if web/ sources are present the serve startup's mtime staleness check
+    # triggers an npm rebuild that fails on a user machine (no @wayne/shared —
+    # apps/ is excluded — and no dev deps). Real incident: first 0.3.0 install
+    # timed out on boot exactly this way. ui-tui/ ships out for the same reason.
+    (Join-Path $RepoRoot "web"),
+    (Join-Path $RepoRoot "ui-tui")
 )
 $xdAnyDepth = @(
     ".git", "node_modules", "__pycache__", ".venv", "venv",

@@ -227,7 +227,110 @@ na nuvem. Fatos que sustentam o plano (2 investigações 17/07, arquivo:linha no
   continua argumento da NUVEM (híbrido preservado).
 - **v1 NÃO leva:** renderer próprio, pool multi-perfil, updater Tauri, MSI, WSL, VS Code ext.
 
-**L1 ENTREGUE (17/07, casca 0.3.0) — contratos:** modo motor-local é o DEFAULT; escape `W4Y_CLOUD_SHELL=1` (e botão "Usar na nuvem" na tela de erro). `WAYNE_HOME=%LOCALAPPDATA%\wayne`; motor instalado em `<WAYNE_HOME>\wayne-agent` (venv preservado em updates). Fonte do motor: env `WAYNE_SOURCE_ZIP_URL` (setada pelo main.cjs; default `DEFAULT_ENGINE_ZIP_URL` no topo do main.cjs → bucket público `gs://w4y-engine-dist`, ZIP gerado por `platform/wayne-fly/build-engine-zip.ps1` — layout: 1 pasta top-level c/ pyproject+uv.lock+README+`.wayne-engine-version`+web_dist; **rodar `uv lock` antes de gerar release**). Boot: escada W4Y_DEV_SOURCE_ROOT→instalado→bootstrap (install.ps1 empacotado em resources/scripts); spawn `venv\python -m wayne_cli.main serve --host 127.0.0.1 --port 0` c/ `WAYNE_DESKTOP=1`+token+ready-file; prontidão = ready-file × `WAYNE_DASHBOARD_READY port=N` (90s). Chave: `<WAYNE_HOME>\.env` `OPENROUTER_API_KEY` (campo mascarado no boot.html; interim até /device/engine-key da casca ir pro ar). IPC boot: `w4y:boot:event` + invokes state/key/retry/cloud. GOTCHAS ativos: `wayne update` NÃO funciona em instalação ZIP (update = re-rodar estágio repository); `-IncludeDesktop` incompatível c/ ZIP; SOUL.md ainda Nous (rebrand em lockstep c/ default_soul.py, pendente). Provisioner — INCIDENTE REAL confirmado (investigação 17/07, ao vivo no Fly/GCP): o deploy de 11/07 22:24 (opção A Composio, commit 8a8751c) **reutilizou a tag de imagem `p3`** por cima da imagem billing de 07/07 — o `provisioner-w4y` em produção (release v10, digest `2b2dcd74…`) NÃO tem `/ensure-key` desde então. A casca em produção É a feat/billing (Cloud Run digest `61f0fb09…`, go-live 07/07) e o Cloud Scheduler `wayne-reconcile-keys` (ENABLED, `*/5min` → `/internal/reconcile-keys`) segue chamando `/ensure-key` → 404 **silencioso** (a rota devolve 200 c/ `falhas[]`); a injeção de chave capada na ativação Stripe (`webhooks/stripe`) falha igual → tenant pago fica na chave antiga sem teto. CONSERTO: merge `integ/billing-merge` (server.js unificado: /provision /archive /reconfigure /ensure-key /device-key + Composio A + redact + HMAC constant-time); deploy DEVE sair dessa branch. REGRA NOVA: **NUNCA reutilizar tag de imagem** (`p3` 2× = causa-raiz; sempre tag nova `p4, p5…` ou digest; rollback só por digest — a imagem billing do `p3` foi sobrescrita e não existe mais). Pós-deploy: conferir se alguma ativação paga ocorreu entre 11/07 e o fix (`billing_events`/logs).
+**L1 ENTREGUE (17/07, casca 0.3.0) — contratos:** modo motor-local é o DEFAULT; escape `W4Y_CLOUD_SHELL=1` (e botão "Usar na nuvem" na tela de erro). `WAYNE_HOME=%LOCALAPPDATA%\wayne`; motor instalado em `<WAYNE_HOME>\wayne-agent` (venv preservado em updates). Fonte do motor: env `WAYNE_SOURCE_ZIP_URL` (setada pelo main.cjs; default `DEFAULT_ENGINE_ZIP_URL` no topo do main.cjs → bucket público `gs://w4y-engine-dist`, ZIP gerado por `platform/wayne-fly/build-engine-zip.ps1` — layout: 1 pasta top-level c/ pyproject+uv.lock+README+`.wayne-engine-version`+web_dist; **rodar `uv lock` antes de gerar release**). Boot: escada W4Y_DEV_SOURCE_ROOT→instalado→bootstrap (install.ps1 empacotado em resources/scripts); spawn `venv\python -m wayne_cli.main serve --host 127.0.0.1 --port 0` c/ `WAYNE_DESKTOP=1`+token+ready-file; prontidão = ready-file × `WAYNE_DASHBOARD_READY port=N` (90s). Chave: `<WAYNE_HOME>\.env` `OPENROUTER_API_KEY` (campo mascarado no boot.html; interim até /device/engine-key da casca ir pro ar). IPC boot: `w4y:boot:event` + invokes state/key/retry/cloud.
+**Deltas do e2e real (17/07 tarde):** ZIP v2 (`wayne-engine-20260717b.zip`) NÃO leva `web/` nem
+`ui-tui/` — fontes de UI no pacote disparavam rebuild npm no boot (staleness por mtime,
+`_web_ui_build_needed` main.py:4569; sem `web/package.json` o build é pulado limpo, :4827) e o
+rebuild quebrava sem `apps/shared` → timeout de 90s no 1º boot (incidente real). Config de
+fábrica: `cli-config.yaml.example` agora nasce no tier GRÁTIS (`nvidia/nemotron-3-ultra…:free`)
+— o default Opus do upstream dava 402 na 1ª mensagem de chave nova. Update do motor in-place
+PROVADO: `install.ps1 -Stage repository -NonInteractive` c/ `WAYNE_SOURCE_ZIP_URL` novo = 10,8s,
+venv/config preservados (robocopy sem /MIR: órfãos ficam — ui-tui velho é inerte). Casca 0.3.1:
+guard no `w4y:local:set` (modo motor = no-op — web_dist antiga não abre mais executor órfão pra
+nuvem). REGRA DE ARTEFATO (2ª queimadura hoje): subir `version` ANTES do electron-builder —
+build sem bump sobrescreve o .exe anterior com conteúdo novo (mesmo erro da tag p3 em forma de
+arquivo).
+**L2 ENTREGUE (casca 0.3.2 + servidor no ar):** login→chave: boot.html "Entrar com Work4You"
+→ janela filha work4you.ai/login (cookies na defaultSession) → polling `POST /device/engine-key`
+(net.request useSessionCookies; 401=espera, 200=grava .env, 402=segue sem chave no tier Grátis,
+429=1 retry 60s) — campo manual vira secundário. Update do motor no boot: `latest.json` do bucket
+(`{version, zipUrl}`, cache 60s) × marker `<WAYNE_HOME>\engine-source.json` (identidade = zipUrl);
+divergiu → `runStage repository` (exportado do runner) com WAYNE_SOURCE_ZIP_URL do manifesto;
+FAIL-OPEN total (qualquer erro = boot com motor atual); 0.3.0/0.3.1 sem marker fazem 1 refresh de
+convergência. Rate-limit do /device/engine-key em request NÃO-autenticada: se 429 pegar o polling
+pré-login no e2e, trocar detecção pra evento de navegação + POST único (risco anotado).
+**S0+S1 ENTREGUES (17/07 tarde, casca 0.3.3 + motor ZIP d):** S0 = /device-key cria chave Composio
+ADICIONAL por dispositivo (`api_keys/create` — NUNCA regenerate: invalida TODAS as keys do
+projeto, incl. a do Fly; endpoint fora do OpenAPI público, best-effort → composioKey null +
+composioError); user_id local = nuvem (`_connector_user_id` web_server.py:2075 — global/profile,
+SEM prefixo de tenant) → mesmas contas conectadas; motor lê .env POR REQUEST
+(load_wayne_dotenv override=True) → chave nova vale sem restart. Provisioner p5, casca 00029.
+Pendência: tenant legado precisa de projeto Composio nomeado = app (senão project_not_found).
+**⚠️ PAREDES Composio descobertas ao vivo (17/07, sondas de dentro do provisioner):** (1) o
+endpoint de key ADICIONAL não existe sob org-key auth — 404 nas 4 variantes de path (o do
+dashboard exige sessão de navegador); (2) `regenerate_api_key` → **403 "API key regeneration is
+not enabled for this organization"** — a rotação coordenada (fallback p6) está MORTA também.
+Consequência: /device-key entrega SÓ a chave de modelo; composioError informa. **Caminho durável
+(a construir, próxima onda): tenant-as-broker** — endpoint no web_server do TENANT (atrás do
+dashboard auth) devolvendo o próprio COMPOSIO_API_KEY do env pro dono logado; o shell chama
+work4you.ai/api/... com os cookies do login (o LB roteia /api/* pro tenant — mesma origem, zero
+Composio org API). Unblock imediato do Leonardo (17/07): chave transferida tenant→.env local via
+arquivo (nunca exibida), validada HTTP 200. Gate de login do boot: só aparece se OPENROUTER_API_KEY
+falta — com chave provisória presente o login (e a Composio) nunca roda; corrigir na 0.3.4 (gate
+também quando Composio falta + entrada de re-login).
+**2º elo dos conectores locais (achado 17/07): a chave NÃO basta — o agente precisa da entrada
+`mcp_servers.composio` na config** (url = tool-router session `trs_…` + header `${COMPOSIO_API_KEY}`
+placeholder; a página Plugins usa REST/env, as FERRAMENTAS vêm do MCP). Na nuvem ela foi gravada
+pelo fluxo de conectar; o motor local nasce sem. Unblock Leonardo: entrada replicada à mão da
+config do tenant (mesma trs_ URL — compartilhada, keyed por user, auth pela x-api-key). O
+tenant-as-broker da 0.3.4 deve entregar OS DOIS no login: chave + bloco mcp_servers (bootstrap
+completo de conectores no motor local).
+**3º elo (o que fechou o caso, 17/07): sessões do tool-router são STATEFUL e mono-consumidor** —
+copiar a `trs_` URL da nuvem dá "Session terminated" (o motor da nuvem é o dono dela). Cada motor
+precisa da PRÓPRIA sessão: `POST /api/v3.1/tool_router/session {user_id:"global"}` com a x-api-key
+do projeto (mesmo padrão de `_connector_session`, web_server.py:2158) → URL nova no config local.
+Verificado: discover_mcp_tools → 6 ferramentas-mestre (`mcp_composio_COMPOSIO_SEARCH_TOOLS`,
+`MULTI_EXECUTE_TOOL`…), mesmas contas (user_id global). O broker 0.3.4 minta a sessão NOVA no
+login — nunca copia a da nuvem.
+**0.3.4 ENTREGUE (17/07, fly209 + instalador):** (1) CHIP DE UPDATE — pill accent "Atualizar" ao
+lado do nome no rodapé (AuthWidget, ref. ChatGPT), IPC `w4y:update:{check,apply}` (apply = killEngine
+→ app.relaunch+exit → boot aplica); check no mount + 30min; gated isLocalEngine + bridge (casca
+0.3.3 não tem → pill nunca renderiza). (2) BANDEJA no motor-local — fechar=esconder (motor+cron
+vivos), "Sair"=killEngine+quit (mata o zumbi que reconectava no motor velho), "Verificar
+atualizações". (3) GATE estendido — login aparece se falta OPENROUTER **OU** COMPOSIO. (4) BROKER
+`GET /api/device/connector-bootstrap` (web_server.py:2362, gated pelo mesmo middleware; 404 sem
+COMPOSIO_API_KEY) devolve `{composio_key, mcp_url: sessão NOVA, user_id:"global"}`; shell consome no
+login (net.request cookies), grava .env + escreve `mcp_servers.composio` no config.yaml (cirurgia de
+texto testada 28 casos: replace-url/append/insert, CRLF/BOM preservados, .bak, sanity pré-escrita) —
+os 3 elos dos conectores viram bootstrap automático. **⚠️ GALINHA-E-OVO:** o chip vive na CASCA →
+precisa da 0.3.4 instalada 1x pra existir; dali em diante o chip aplica todo update do motor sem
+reinstalar. Riscos abertos: gate só-Composio recorre a cada boot sem "não perguntar de novo"
+(cand. 0.3.5); GET connector-bootstrap minta sessão a cada chamada (sessões órfãs inócuas).
+S1 = mini-computador (RunTargetPicker no composer, gate isLocalEngine+bridge): sessão-nuvem na
+MESMA UI via WS ticketado (`w4y:cloud:wsUrl` minta em /api/auth/ws-ticket com cookies da
+defaultSession; ticket single-use ~30s TTL → GatewayClient ganhou WsUrlProvider, re-mint a cada
+connect) + `w4y:cloud:api` (proxy REST allowlist /api/* GET/POST) pra leituras de arquivo.
+Escolha trava na 1ª mensagem. DEGRADADO no S1 (= backlog S2): sessão-nuvem fora da sidebar,
+TaskHeaderActions/ModePicker ocultos, anexo de imagem vira file.attach (sem visão), dock
+git/Files/projeto vazios, espectador de subagente local-only.
+
+**S2 FATIA 1 ENTREGUE (17/07 noite, motor h + fly211):** desktop motor-local mescla os DOIS
+cérebros via a ponte S1: Recentes = sessões local+nuvem por recência (badge Cloud 3x3 c/ tooltip;
+merge SÓ em Recentes, nunca em projeto — cwd da nuvem não pertence a linha local; dedupe
+local-vence); clique em sessão-nuvem → `/chat?resume=<id>&run=cloud` (resume herda TODO o escopo
+degradado S1 via `cloudSession`); Agenda = rotinas local+nuvem mescladas, CRIAÇÃO vai pra NUVEM
+por padrão (história 24/7; fail-open → cria local + toast honesto), pausar/retomar/disparar da
+nuvem via POST; rodapé mostra IDENTIDADE REAL (`GET /api/auth/me` via ponte; sem login → "Conta").
+Contratos ponte: `GET /api/sessions` (shape idêntico), `GET/POST /api/cron/jobs[+/{id}/ações,
+blueprints/instantiate]` (`?profile=` local encaminhado — desconhecido na nuvem = vazio fail-open),
+`GET /api/auth/me`. **LIMITE → 0.3.5: allowlist da ponte é GET/POST apenas** — sessão-nuvem sem
+menu "…" (renomear/arquivar/apagar = PATCH/DELETE) e rotina-nuvem sem editar/apagar; afordâncias
+OCULTAS. Optimistic-insert de sessão-nuvem nova suprimido (evento sem origem; aparece no reload
+do session-titled).
+
+**L3 ENTREGUE (17/07) — proxy de modelo NO AR, flip DESLIGADO:** app Fly `w4y-model-proxy`
+(tag mp1, LiteLLM main-stable v1.92.0, gru, **2GB — OOM em 512MB E 1024MB, ~850MB RSS no boot**;
+estacionado com suspend/min=0 = custo ~zero; NO FLIP → min=1). Fonte: platform/model-proxy/
+(config+Dockerfile+fly.toml+README-DEPLOY). Modo: pass-through endpoints EXATOS
+(`/openrouter/v1/{chat/completions,models,key}`) com forward_headers — a chave do CLIENTE
+atravessa até a OpenRouter (chaves capadas continuam valendo); rotas nativas trancadas por
+LITELLM_MASTER_KEY (secret Fly). GOTCHA: `auth:false` só com match EXATO de path (include_subpath
+cai na auth de virtual key). PROVAS em produção: chave fake → 401 "User not found" DA OpenRouter
+(passthrough provado); rota nativa sem master → 401 LiteLLM; /models → 200. FLIP (gated pelos
+gatilhos aprovados: abuso real / medidor ao vivo / enterprise): `model.base_url` →
+`https://w4y-model-proxy.fly.dev/openrouter/v1` no cliente — reversão = voltar o base_url.
+Gotcha do flip: base_url fora de openrouter.ai faz o runtime preferir OPENAI_API_KEY antes de
+OPENROUTER_API_KEY (cli.py:3841) — tenant só tem a segunda, fallback ok, conferir antes. GOTCHAS ativos: `wayne update` NÃO funciona em instalação ZIP (update = re-rodar estágio repository); `-IncludeDesktop` incompatível c/ ZIP; SOUL.md ainda Nous (rebrand em lockstep c/ default_soul.py, pendente). Provisioner — INCIDENTE REAL confirmado (investigação 17/07, ao vivo no Fly/GCP): o deploy de 11/07 22:24 (opção A Composio, commit 8a8751c) **reutilizou a tag de imagem `p3`** por cima da imagem billing de 07/07 — o `provisioner-w4y` em produção (release v10, digest `2b2dcd74…`) NÃO tem `/ensure-key` desde então. A casca em produção É a feat/billing (Cloud Run digest `61f0fb09…`, go-live 07/07) e o Cloud Scheduler `wayne-reconcile-keys` (ENABLED, `*/5min` → `/internal/reconcile-keys`) segue chamando `/ensure-key` → 404 **silencioso** (a rota devolve 200 c/ `falhas[]`); a injeção de chave capada na ativação Stripe (`webhooks/stripe`) falha igual → tenant pago fica na chave antiga sem teto. CONSERTO: merge `integ/billing-merge` (server.js unificado: /provision /archive /reconfigure /ensure-key /device-key + Composio A + redact + HMAC constant-time); deploy DEVE sair dessa branch. REGRA NOVA: **NUNCA reutilizar tag de imagem** (`p3` 2× = causa-raiz; sempre tag nova `p4, p5…` ou digest; rollback só por digest — a imagem billing do `p3` foi sobrescrita e não existe mais). Pós-deploy: conferir se alguma ativação paga ocorreu entre 11/07 e o fix (`billing_events`/logs).
 
 ## ⚠️ 24/7 NÃO FUNCIONA HOJE — decisão de custo pendente (verificado 17/07)
 

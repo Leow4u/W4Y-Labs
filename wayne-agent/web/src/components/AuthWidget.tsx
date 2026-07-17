@@ -14,21 +14,55 @@
  * /api/auth/me answers 401/403 and the widget renders nothing. The tenant's
  * "plan" does NOT show up here yet (it lives in the platform, not in the Wayne
  * instance — that is Onda 2 of this reorganization).
+ *
+ * LOCAL-ENGINE mode (desktop 0.3.x pivot): the local gateway authenticates via
+ * the injected session token — there is no cloud identity and /api/auth/me
+ * 401s by design, which used to hide the whole footer. S2 slice 1: the SHELL
+ * holds the user's real login cookies, so the chip asks the CLOUD's
+ * /api/auth/me through the bridge (lib/cloudSession) and renders the same
+ * identity the web shows — name/initials/e-mail. Fail-open: no bridge /
+ * signed out / timeout (5s) keeps the neutral "Account" label (no fetched
+ * identity, no invented name). Settings, Language and "Upgrade plan" (child
+ * window to work4you.ai) stay either way. "Log out" is a CLOUD-session
+ * action and remains omitted locally.
+ *
+ * UPDATE PILL (0.3.4, ChatGPT Desktop pattern): local-engine only. The shell's
+ * `work4youDesktop.update.check()` (manifest × installed-engine marker,
+ * fail-open null) is probed on mount and every 30 min; when an update is
+ * available an accent "Atualizar" pill renders next to the account label
+ * (tooltip carries the version). Click → `update.apply()` — the shell
+ * relaunches and the boot flow installs the update with its progress UI.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, type AuthMeResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { LogOut, Settings, ChevronUp, ChevronRight, Globe, Check, Sparkles } from "lucide-react";
+import { LogOut, Settings, ChevronUp, ChevronRight, Globe, Check, Sparkles, User } from "lucide-react";
 import { useI18n } from "@/i18n/context";
 import { LOCALE_META } from "@/i18n";
 import type { Locale } from "@/i18n";
+import { isLocalEngine } from "@/lib/projects";
+import { cloudGetJson } from "@/lib/cloudSession";
 
 interface AuthWidgetProps {
   className?: string;
   /** Opens the Config screen as an overlay (mounted in App). */
   onOpenSettings?: () => void;
+}
+
+/** Shell bridge for the engine-update chip (0.3.4+ shells; older ones simply
+ *  lack `update` and the pill never renders). */
+interface DesktopUpdateBridge {
+  check: () => Promise<{ available?: boolean; version?: string | null } | null>;
+  apply: () => Promise<unknown>;
+}
+
+function desktopUpdateBridge(): DesktopUpdateBridge | null {
+  if (typeof window === "undefined") return null;
+  const d = (window as unknown as { work4youDesktop?: { update?: DesktopUpdateBridge } })
+    .work4youDesktop;
+  return d?.update ?? null;
 }
 
 function truncateUserId(id: string): string {
@@ -49,10 +83,51 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
-  const { locale, setLocale } = useI18n();
+  const { locale, setLocale, t } = useI18n();
+  // Stable per page load (origin + shell bridge never change mid-session).
+  const localEngine = isLocalEngine();
   const chipRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const langListRef = useRef<HTMLDivElement>(null);
+  // Engine update pill (local-engine only): null = no update / not applicable.
+  const [update, setUpdate] = useState<{ version: string | null } | null>(null);
+  const applyingRef = useRef(false);
+
+  // Update probe: on mount + every 30 min. check() is fail-open (null on any
+  // problem), so offline windows just leave the pill hidden.
+  useEffect(() => {
+    if (!localEngine) return;
+    const bridge = desktopUpdateBridge();
+    if (!bridge) return; // pre-0.3.4 shell — no update surface
+    let cancelled = false;
+    const probe = () => {
+      bridge
+        .check()
+        .then((r) => {
+          if (cancelled) return;
+          setUpdate(
+            r && r.available
+              ? { version: typeof r.version === "string" && r.version ? r.version : null }
+              : null,
+          );
+        })
+        .catch(() => {});
+    };
+    probe();
+    const id = window.setInterval(probe, 30 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [localEngine]);
+
+  // Click = restart-and-update (the shell exits immediately; the guard only
+  // covers the brief teardown window against double-clicks).
+  const applyUpdate = useCallback(() => {
+    if (applyingRef.current) return;
+    applyingRef.current = true;
+    void desktopUpdateBridge()?.apply();
+  }, []);
 
   // Opens the language submenu with the current language in view. Runs ONLY on
   // open (not on every render): an inline callback ref would re-run on
@@ -64,7 +139,29 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
       ?.scrollIntoView({ block: "center" });
   }, [langOpen]);
 
+  // Local-engine identity (S2): the same login the cloud shows, read through
+  // the shell bridge (cookies never reach this renderer). Any failure — no
+  // bridge (≤0.3.2 shell), signed out, 5s deadline — resolves null and the
+  // neutral chip stands; the footer never promises a cloud it can't reach.
   useEffect(() => {
+    if (!localEngine) return;
+    let cancelled = false;
+    void cloudGetJson<AuthMeResponse>("/api/auth/me", 5000).then((data) => {
+      if (!cancelled && data && typeof data.user_id === "string" && data.user_id) {
+        setMe(data);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [localEngine]);
+
+  useEffect(() => {
+    // Local-engine gateway has no cloud identity: /api/auth/me 401s by design,
+    // which would flip `hidden` and remove the footer. Skip the probe entirely
+    // and render the neutral chip instead (the bridge effect above may still
+    // fill the REAL identity in).
+    if (localEngine) return;
     let cancelled = false;
     api
       .getAuthMe()
@@ -76,7 +173,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
         setError("auth status unavailable");
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [localEngine]);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -100,25 +197,35 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     };
   }, [open, close]);
 
-  if (hidden) return null;
+  // Cloud-mode gates only: local-engine never probes, so it renders straight
+  // through with the neutral label below.
+  if (!localEngine) {
+    if (hidden) return null;
 
-  if (error) {
-    return (
-      <div className={cn("px-5 py-2 text-[0.65rem] tracking-[0.05em] text-muted-foreground/70", className)}>
-        {error}
-      </div>
-    );
+    if (error) {
+      return (
+        <div className={cn("px-5 py-2 text-[0.65rem] tracking-[0.05em] text-muted-foreground/70", className)}>
+          {error}
+        </div>
+      );
+    }
+
+    if (!me) {
+      return (
+        <div className={cn("h-11 px-5 py-2 text-[0.65rem] text-muted-foreground/40", className)} aria-busy="true">
+          …
+        </div>
+      );
+    }
   }
 
-  if (!me) {
-    return (
-      <div className={cn("h-11 px-5 py-2 text-[0.65rem] text-muted-foreground/40", className)} aria-busy="true">
-        …
-      </div>
-    );
-  }
-
-  const label = me.display_name || me.email || truncateUserId(me.user_id);
+  // Local-engine without a confirmed cloud identity: neutral "Account" label
+  // (existing i18n key, ×16) + generic icon instead of fabricated initials.
+  // When the bridge confirmed the login, `me` is set and the chip renders the
+  // SAME identity the cloud web shows.
+  const label = me
+    ? me.display_name || me.email || truncateUserId(me.user_id)
+    : t.configUser.account;
   const initials = initialsOf(label);
 
   const menuRow =
@@ -144,11 +251,42 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
           aria-hidden
           className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-midground/15 font-mono text-[0.7rem] font-semibold text-foreground/90"
         >
-          {initials}
+          {me ? initials : <User className="h-3.5 w-3.5" />}
         </span>
-        <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/90" title={me.user_id}>
+        <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/90" title={me?.user_id}>
           {label}
         </span>
+        {/* Engine update pill (ChatGPT Desktop pattern: accent pill next to the
+            account name). Nested interactive: a span[role=button] with
+            stopPropagation so the chip's menu toggle doesn't fire. */}
+        {update && (
+          <span
+            role="button"
+            tabIndex={0}
+            title={
+              update.version
+                ? t.configUser.updateChipTooltip.replace("{version}", update.version)
+                : t.configUser.updateChip
+            }
+            className={cn(
+              "shrink-0 rounded-full bg-live px-2 py-0.5 text-[0.625rem] font-semibold leading-4 text-background",
+              "transition-colors hover:bg-live/85 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-live/60",
+            )}
+            onClick={(e) => {
+              e.stopPropagation();
+              applyUpdate();
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                e.stopPropagation();
+                applyUpdate();
+              }
+            }}
+          >
+            {t.configUser.updateChip}
+          </span>
+        )}
         <ChevronUp className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-transform", !open && "rotate-180")} />
       </button>
 
@@ -242,28 +380,47 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               )}
             </div>
 
-            {/* "Atualizar plano" → deep-link to the subscription page in the shell
-                (same work4you.ai origin; the LB routes /planos to Next).
-                Full-page navigation (leaves the agent SPA) — intentional. */}
-            <a
-              href="/planos"
-              role="menuitem"
-              className={cn(menuRow, "border-t border-current/10")}
-              onClick={() => close()}
-            >
-              <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/80" />
-              Atualizar plano
-            </a>
+            {/* "Atualizar plano" → deep-link to the subscription page. Cloud:
+                same work4you.ai origin, the LB routes /planos to Next —
+                full-page navigation (leaves the agent SPA), intentional.
+                Local-engine: the SPA origin is the loopback gateway, so /planos
+                does not exist here — open work4you.ai/planos as a child window
+                (the shell allows work4you.ai children). */}
+            {localEngine ? (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuRow, "border-t border-current/10")}
+                onClick={() => { close(); window.open("https://work4you.ai/planos"); }}
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                Atualizar plano
+              </button>
+            ) : (
+              <a
+                href="/planos"
+                role="menuitem"
+                className={cn(menuRow, "border-t border-current/10")}
+                onClick={() => close()}
+              >
+                <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/80" />
+                Atualizar plano
+              </a>
+            )}
 
-            <button
-              type="button"
-              role="menuitem"
-              className={cn(menuRow, "border-t border-current/10 text-destructive/90 hover:text-destructive")}
-              onClick={() => { close(); void api.logout(); }}
-            >
-              <LogOut className="h-4 w-4 shrink-0" />
-              Sair
-            </button>
+            {/* "Sair" ends the CLOUD session (POST /auth/logout + /login). The
+                local-engine gateway has neither — omitted there. */}
+            {!localEngine && (
+              <button
+                type="button"
+                role="menuitem"
+                className={cn(menuRow, "border-t border-current/10 text-destructive/90 hover:text-destructive")}
+                onClick={() => { close(); void api.logout(); }}
+              >
+                <LogOut className="h-4 w-4 shrink-0" />
+                Sair
+              </button>
+            )}
           </div>
         );
         return createPortal(menu, document.body);
