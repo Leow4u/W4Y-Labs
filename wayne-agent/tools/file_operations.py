@@ -1330,6 +1330,27 @@ class ShellFileOperations(FileOperations):
         Returns:
             WriteResult with bytes written, lint summary, or error.
         """
+        # ── Local (desktop) — Onda 4: confine the WRITE ───────────────
+        # Routes the NATIVE write to the executor on the user's machine; the
+        # vault (executor.cjs) checks the path is inside an AUTHORIZED folder —
+        # outside it → refused. Reads still go through the shell (less risky;
+        # full confinement = v2). Only LocalDesktopEnvironment has ``_exec_fn``
+        # → Nuvem/docker/ssh/... stay untouched. Keeps the sensitive-path
+        # block; lint/LSP are skipped on the local path (acceptable in v1).
+        _local_exec = getattr(self.env, "_exec_fn", None)
+        if _local_exec is not None:
+            lpath = self._expand_path(path)
+            if _is_write_denied(lpath):
+                return WriteResult(
+                    error=f"Write denied: '{lpath}' is a protected system/credential file."
+                )
+            res = _local_exec("write_file", {"path": lpath, "content": content}, 60) or {}
+            if res.get("ok"):
+                return WriteResult(
+                    bytes_written=len(content.encode("utf-8", errors="replace"))
+                )
+            return WriteResult(error=res.get("error") or "local write failed")
+
         # Expand ~ and other shell paths
         path = self._expand_path(path)
 

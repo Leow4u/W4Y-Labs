@@ -1,12 +1,12 @@
 /**
- * useScheduleText — descreve um agendamento (cron/intervalo/uma-vez) em frase
- * humana LOCALIZADA, reusando a lógica nativa da tela de Cron (lib/schedule).
+ * useScheduleText — describes a schedule (cron/interval/one-off) as a LOCALIZED
+ * human sentence, reusing the native logic of the Cron screen (lib/schedule).
  *
- * Centraliza a montagem das ScheduleDescribeStrings (nomes de dias + ordinais
- * já traduzidos em t.cron.*) pra que o módulo de Agentes NÃO reinvente cron:
- * "30 14 * * 1,3,5" → "Semanalmente Seg, Qua, Sex às 14:30". A função é
- * estável (memoizada por t/locale) pra poder entrar em deps de effect sem
- * disparar re-render em loop.
+ * Centralizes assembling the ScheduleDescribeStrings (day names + ordinals
+ * already translated under t.cron.*) so the Agents module does NOT reinvent
+ * cron: "30 14 * * 1,3,5" → "Semanalmente Seg, Qua, Sex às 14:30". The function
+ * is stable (memoized by t/locale) so it can go into effect deps without
+ * triggering a re-render loop.
  */
 import { useCallback } from "react";
 
@@ -24,7 +24,7 @@ export function useScheduleText() {
       describeSchedule(schedule, fallback, {
         ...t.cron.scheduleDescribe,
         weekdaysShort: t.cron.scheduleModes.weekdaysShort,
-        // Ordinais só o inglês tem sufixo ("1st"); demais idiomas = número cru.
+        // Ordinals: only English has a suffix ("1st"); other languages = raw number.
         ordinal: locale === "en" ? englishOrdinal : (n: number) => String(n),
       }),
     [t, locale],

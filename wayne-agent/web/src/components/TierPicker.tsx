@@ -1,22 +1,23 @@
 /**
- * TierPicker — seletor dos "modelos Work4You" (Flash / Auto / Expert / Crew) na
- * barra do Chat. Esconde as LLMs por trás de 4 tiers; cada um é um preset de
- * (modelo × esforço × multi-agente) — ver lib/tier-presets.ts.
+ * TierPicker — picker for the "Work4You models" (Flash / Auto / Expert / Crew)
+ * in the Chat bar. Hides the LLMs behind 4 tiers; each one is a preset of
+ * (model × effort × multi-agent) — see lib/tier-presets.ts.
  *
- * Aplicar um tier faz DUAS escritas: o modelo pelo caminho canônico
- * (`/api/model/set`, o mesmo do ModelPickerDialog) e o reasoning + delegation
- * pelo read-modify-write da config (o mesmo padrão do ReasoningPicker). Como
- * naqueles, a mudança entra na sessão no próximo /new ou reload — a barra mostra
- * o aviso via onChanged.
+ * Applying a tier does TWO writes: the model through the canonical path
+ * (`/api/model/set`, the same one ModelPickerDialog uses) and reasoning +
+ * delegation through the config read-modify-write (the same pattern as
+ * ReasoningPicker). As in those, the change reaches the session on the next /new
+ * or reload — the bar shows the notice via onChanged.
  *
- * Gating por plano (Expert=Pro, Crew=Business) entra na fase de planos; por ora
- * todos os tiers ficam disponíveis.
+ * Plan gating (Expert=Pro, Crew=Business) lands in the plans phase; for now
+ * all tiers stay available.
  */
 
 import { Check, ChevronDown } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
+import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 import {
   DEFAULT_TIER,
@@ -24,23 +25,25 @@ import {
   TIER_PRESETS,
   type TierKey,
   tierFromConfig,
+  tierLabel,
+  tierSubtitle,
 } from "@/lib/tier-presets";
 
 interface TierPickerProps {
-  /** Modelo atual (dispara re-leitura quando muda por fora). */
+  /** Current model (triggers a re-read when it changes from the outside). */
   currentModel: string;
-  /** Incrementado após salvar modelo/config, p/ re-ler em sincronia. */
+  /** Incremented after saving model/config, to re-read in sync. */
   refreshKey?: number;
-  /** Avisa a barra p/ mostrar o "aplicar no /new ou reload". */
+  /** Tells the bar to show the "applies on /new or reload" notice. */
   onChanged?: (tier: TierKey) => void;
 }
 
-// Valor sentinela p/ "modelo cru fora dos presets" (usuário escolheu no picker
-// avançado). Mostrado como opção informativa, não selecionável de volta.
+// Sentinel value for "raw model outside the presets" (user picked it in the
+// advanced picker). Shown as an informational option, not selectable back.
 const CUSTOM = "__custom__";
 
-// Gating por plano: Expert exige Pro+, Crew exige Max. plan null (desconhecido/
-// carregando) → NÃO trava (fail-open; o teto real é a chave OpenRouter capada).
+// Plan gating: Expert requires Pro+, Crew requires Max. plan null (unknown/
+// loading) → does NOT lock (fail-open; real ceiling is the capped OpenRouter key).
 function tierLocked(plan: string | null, k: TierKey): boolean {
   if (!plan) return false;
   if (k === "expert") return plan !== "pro" && plan !== "max";
@@ -53,6 +56,7 @@ export function TierPicker({
   refreshKey = 0,
   onChanged,
 }: TierPickerProps) {
+  const { t } = useI18n();
   const [tier, setTier] = useState<string>(DEFAULT_TIER);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,8 +65,8 @@ export function TierPicker({
   useMenuDismiss(open, () => setOpen(false), "tier");
   const lastFetchKeyRef = useRef("");
 
-  // Plano do tenant, lido AO VIVO da casca (mesma origem work4you.ai — o cookie
-  // de sessão viaja junto; o LB roteia /planos* para a casca). Alimenta o gating.
+  // Tenant plan, read LIVE from the shell (same work4you.ai origin — the session
+  // cookie rides along; the LB routes /planos* to the shell). Feeds the gating.
   useEffect(() => {
     let cancelled = false;
     fetch("/planos/plan", { credentials: "include" })
@@ -71,7 +75,7 @@ export function TierPicker({
         if (!cancelled && d?.plan) setPlan(String(d.plan));
       })
       .catch(() => {
-        /* casca indisponível → plan fica null → fail-open (sem cadeado) */
+        /* shell unavailable → plan stays null → fail-open (no lock) */
       });
     return () => {
       cancelled = true;
@@ -102,7 +106,7 @@ export function TierPicker({
   const onSelect = useCallback(
     (next: string) => {
       if (next === CUSTOM || next === tier) return;
-      // Tier travado pelo plano → leva ao upgrade em vez de aplicar.
+      // Tier locked by the plan → send to upgrade instead of applying.
       if (tierLocked(plan, next as TierKey)) {
         window.location.href = `/planos?plan=${next === "crew" ? "max" : "pro"}`;
         return;
@@ -110,9 +114,9 @@ export function TierPicker({
       const preset = TIER_PRESETS[next as TierKey];
       if (!preset) return;
       const prev = tier;
-      setTier(next); // otimista
+      setTier(next); // optimistic
       setSaving(true);
-      // 1) modelo pelo caminho canônico; 2) reasoning + delegation via config.
+      // 1) model through the canonical path; 2) reasoning + delegation via config.
       void api
         .setModelAssignment({
           confirm_expensive_model: true,
@@ -140,7 +144,7 @@ export function TierPicker({
           return api.saveConfig({ ...base, agent, delegation });
         })
         .then(() => onChanged?.(next as TierKey))
-        .catch(() => setTier(prev)) // reverte em falha
+        .catch(() => setTier(prev)) // revert on failure
         .finally(() => setSaving(false));
     },
     [tier, onChanged, plan],
@@ -149,11 +153,13 @@ export function TierPicker({
   const currentLabel =
     tier === CUSTOM
       ? "Personalizado"
-      : (TIER_PRESETS[tier as TierKey]?.label ?? "Modelo");
+      : TIER_PRESETS[tier as TierKey]
+        ? tierLabel(t, tier as TierKey)
+        : "Modelo";
 
-  // Pill limpa (só o nome do modo) + dropdown estilo Grok (nome em negrito +
-  // descrição + check), abrindo PRA CIMA em camada própria (fixed via anchor
-  // não é preciso: o composer não recorta o dropdown p/ cima). Sem "modelo"/raio.
+  // Clean pill (mode name only) + Grok-style dropdown (bold name + description
+  // + check), opening UPWARDS in its own layer (fixed via anchor is not needed:
+  // the composer does not clip the dropdown upwards). No "modelo"/bolt.
   return (
     <div className="relative">
       <button
@@ -176,7 +182,6 @@ export function TierPicker({
             className="absolute bottom-full right-0 z-50 mb-2 w-64 rounded-2xl border border-border bg-card p-1.5 shadow-xl"
           >
             {TIER_ORDER.map((k) => {
-              const p = TIER_PRESETS[k];
               const locked = tierLocked(plan, k);
               const active = k === tier;
               return (
@@ -196,11 +201,16 @@ export function TierPicker({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                      {p.label}
+                      {tierLabel(t, k)}
+                      {k === "gratis" && (
+                        <span className="rounded-full bg-live/10 px-1.5 py-px text-[10px] font-medium text-live">
+                          {t.tiers.gratisBadge}
+                        </span>
+                      )}
                       {locked && <span className="text-xs">🔒</span>}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">
-                      {p.subtitle}
+                      {tierSubtitle(t, k)}
                     </span>
                   </span>
                 </button>

@@ -1,11 +1,11 @@
 /**
- * "Fixar" (Pin) — client-side only, exatamente como o desktop: `Pin`/`Unpin`
- * no menu da sessão persiste um array de ids no localStorage (nanostore
- * `persistentAtom`, ver apps/desktop/src/store/layout.ts `$pinnedSessionIds`).
- * NÃO existe RPC/REST de pin no backend — não tem o que reusar lá; a peça
- * reutilizável é o PADRÃO (ids fixados por dispositivo), não um endpoint.
- * Reimplementado aqui com um pub-sub leve (mesmo padrão de voice-playback.ts)
- * em vez de nanostores, pra não adicionar essa dependência ao web.
+ * "Fixar" (Pin) — client-side only, exactly like the desktop: `Pin`/`Unpin`
+ * in the session menu persists an array of ids in localStorage (nanostore
+ * `persistentAtom`, see apps/desktop/src/store/layout.ts `$pinnedSessionIds`).
+ * There is NO pin RPC/REST in the backend — nothing to reuse there; the
+ * reusable piece is the PATTERN (pinned ids per device), not an endpoint.
+ * Reimplemented here with a lightweight pub-sub (same pattern as
+ * voice-playback.ts) instead of nanostores, to avoid adding that dependency to web.
  */
 const STORAGE_KEY = "wayne:pinned-sessions:v1";
 
@@ -23,7 +23,7 @@ function write(ids: string[]) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(ids));
   } catch {
-    /* localStorage indisponível (modo privado/quota) — pin vira no-op, sem crash */
+    /* localStorage unavailable (private mode/quota) — pin becomes a no-op, no crash */
   }
 }
 

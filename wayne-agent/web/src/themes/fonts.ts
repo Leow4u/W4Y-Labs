@@ -68,8 +68,8 @@ export const FONT_CHOICES: FontChoice[] = [
     fontUrl: GF("Inter:wght@400;500;600;700"),
   },
   {
-    // Self-hosted via @font-face em index.css (fonte-padrão do produto) —
-    // sem fontUrl (não busca Google Fonts).
+    // Self-hosted via @font-face in index.css (the product's default font) —
+    // no fontUrl (doesn't fetch Google Fonts).
     id: "ibm-plex-sans",
     label: "IBM Plex Sans",
     category: "sans",

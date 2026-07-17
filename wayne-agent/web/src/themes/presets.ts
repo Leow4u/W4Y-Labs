@@ -3,11 +3,11 @@ import type { DashboardTheme, ThemeTypography, ThemeLayout } from "./types";
 /**
  * Built-in dashboard themes (W4Y set).
  *
- * Reduced from the upstream eight to four on 2026-07-04 (produto W4Y):
- *   white     — modo claro, o PADRÃO da plataforma
- *   mono      — "Black": preto minimalista
- *   cyberpunk — verde neon no preto
- *   rose      — rosa suave
+ * Reduced from the upstream eight to four on 2026-07-04 (W4Y product):
+ *   white     — light mode, the platform DEFAULT
+ *   mono      — "Black": minimalist black
+ *   cyberpunk — neon green on black
+ *   rose      — soft pink
  *
  * Each theme defines its own palette, typography, and layout so switching
  * themes produces visible changes beyond just color — fonts, density, and
@@ -28,11 +28,11 @@ const SYSTEM_MONO =
   'ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace';
 
 const DEFAULT_TYPOGRAPHY: ThemeTypography = {
-  // Design System "Editorial" (Onda 0): Hanken Grotesk é a grotesk quente do
-  // CHROME da UI (papel do Styrene no claude.ai); a prosa do assistente usa a
-  // serifa Source Serif 4 via token global --theme-font-serif (index.css).
-  // Ambas SELF-HOSTED via @font-face (public/fonts) — sem Google Fonts.
-  // A mono de UI/código é a Cascadia Mono (fonte da marca), também vendorizada.
+  // Design System "Editorial" (Onda 0): Hanken Grotesk is the warm grotesk of
+  // the UI CHROME (Styrene's role on claude.ai); the assistant's prose uses the
+  // Source Serif 4 serif via the global --theme-font-serif token (index.css).
+  // Both SELF-HOSTED via @font-face (public/fonts) — no Google Fonts.
+  // The UI/code mono is Cascadia Mono (the brand font), also vendored.
   fontSans: `"Hanken Grotesk", ${SYSTEM_SANS}`,
   fontMono: `"Cascadia Mono", ${SYSTEM_MONO}`,
   baseSize: "15px",
@@ -49,10 +49,10 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 // Themes
 // ---------------------------------------------------------------------------
 
-/** Modo claro EDITORIAL — o tema padrão da W4Y (Onda 0). Creme quente +
- *  tinta quase-preta quente, no espírito do claude.ai: calmo, sofisticado,
- *  prosa serifada (via --theme-font-serif global) e acento terracota para
- *  estados ao vivo. */
+/** EDITORIAL light mode — W4Y's default theme (Onda 0). Warm cream + warm
+ *  near-black ink, in the spirit of claude.ai: calm, sophisticated, serif
+ *  prose (via the global --theme-font-serif) and a terracotta accent for live
+ *  states. */
 export const whiteTheme: DashboardTheme = {
   name: "white",
   label: "White",
@@ -75,7 +75,7 @@ export const whiteTheme: DashboardTheme = {
   swatchColors: ["#1a1915", "#c15f3c", "#faf9f5"],
 };
 
-/** O tema padrão da plataforma (fallback de nomes desconhecidos). */
+/** The platform's default theme (fallback for unknown names). */
 export const defaultTheme: DashboardTheme = whiteTheme;
 
 export const monoTheme: DashboardTheme = {
@@ -100,8 +100,8 @@ export const monoTheme: DashboardTheme = {
     ...DEFAULT_LAYOUT,
     radius: "0",
   },
-  // Os defaults de status (index.css) agora são aquecidos pro canvas claro
-  // editorial; num fundo escuro eles ficam lamacentos — re-acende aqui.
+  // The status defaults (index.css) are now warmed for the editorial light
+  // canvas; on a dark background they go muddy — re-light them here.
   colorOverrides: {
     success: "#4ade80",
     warning: "#ffbd38",

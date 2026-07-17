@@ -34,8 +34,8 @@ import { useVoiceConversation } from "@/hooks/useVoiceConversation";
 export interface ComposerAttachment {
   name: string;
   kind: "image" | "file";
-  /** Miniatura REAL da imagem no chip (Onda 4, paridade desktop) — object URL
-   *  local ou data URL; sem ela o chip cai no ícone. */
+  /** REAL image thumbnail on the chip (Onda 4, desktop parity) — a local object
+   *  URL or data URL; without it the chip falls back to the icon. */
   previewUrl?: string;
 }
 
@@ -45,7 +45,7 @@ interface CompletionItem {
   meta?: string;
 }
 
-/** Token sob o cursor (última "palavra" até um espaço/nova linha). */
+/** Token under the cursor (the last "word" up to a space/newline). */
 function tokenAtCursor(value: string, cursor: number): { token: string; start: number } {
   let start = cursor;
   while (start > 0 && !/\s/.test(value[start - 1])) start--;
@@ -53,14 +53,14 @@ function tokenAtCursor(value: string, cursor: number): { token: string; start: n
 }
 
 /**
- * Composer "nu" — o miolo do cartão de mensagem (textarea + toolbar), no
- * desenho do benchmark E do "+" do DESKTOP (menu ATTACH: Imagens…, Arquivos…,
- * Colar imagem, URL…). Colar uma imagem direto no campo também anexa.
+ * "Bare" Composer — the guts of the message card (textarea + toolbar), in the
+ * benchmark's design AND the DESKTOP's "+" (ATTACH menu: Images…, Files…,
+ * Paste image, URL…). Pasting an image straight into the field also attaches.
  *
- * Durante o turno: Enter entra na FILA (a próxima mensagem, enviada quando o
- * turno acabar — o comportamento esperado). STEER (orientar o turno em
- * andamento sem interromper, session.steer) fica num botão explícito ao lado.
- * O botão principal vira ■ parar.
+ * During the turn: Enter goes into the QUEUE (the next message, sent when the
+ * turn ends — the expected behavior). STEER (guiding the in-progress turn
+ * without interrupting, session.steer) sits in an explicit button next to it.
+ * The main button becomes ■ stop.
  */
 export function Composer({
   disabled,
@@ -79,48 +79,53 @@ export function Composer({
   attachments = [],
   attaching = false,
   focusKey = 0,
+  draft = null,
   placeholder,
   lastReply = null,
   sessionKey = "",
   modePicker,
 }: {
-  /** Trava tudo (prompt bloqueante aberto). */
+  /** Locks everything (a blocking prompt is open). */
   disabled?: boolean;
-  /** Turno rodando — Enter enfileira; botão vira ■ parar. */
+  /** Turn running — Enter queues; the button becomes ■ stop. */
   busy?: boolean;
   onSend: (text: string) => void;
-  /** Enfileirar a próxima mensagem (enviada ao fim do turno). */
+  /** Queue the next message (sent at the end of the turn). */
   onQueue?: (text: string) => void;
-  /** Orientar sem interromper (session.steer) — botão explícito quando busy. */
+  /** Steer without interrupting (session.steer) — explicit button when busy. */
   onSteer?: (text: string) => void;
-  /** Executar um /comando (slash.exec) em vez de mandar como prompt. */
+  /** Run a /command (slash.exec) instead of sending it as a prompt. */
   onSlashSubmit?: (command: string) => void;
-  /** Autocomplete: / (complete.slash) e @ (complete.path). */
+  /** Autocomplete: / (complete.slash) and @ (complete.path). */
   onCompleteSlash?: (text: string) => Promise<CompletionItem[]>;
   onCompletePath?: (word: string) => Promise<CompletionItem[]>;
-  /** Ditado: grava áudio → transcreve (retorna o texto). Ausente = sem mic. */
+  /** Dictation: records audio → transcribes (returns the text). Absent = no mic. */
   onTranscribe?: (dataUrl: string, mimeType: string) => Promise<string>;
   onInterrupt?: () => void;
-  /** Anexar (imagens e/ou arquivos — o chamador roteia por tipo). */
+  /** Attach (images and/or files — the caller routes them by type). */
   onAttach?: (files: File[]) => void;
-  /** Colar um caminho de arquivo do WORKSPACE → anexa (Onda 4). */
+  /** Paste a WORKSPACE file path → attaches (Onda 4). */
   onAttachPath?: (path: string) => void;
-  /** Remover um anexo da fila do próximo prompt (por índice). */
+  /** Remove an attachment from the next prompt's queue (by index). */
   onRemoveAttachment?: (index: number) => void;
-  /** Anexos já na fila do próximo prompt. */
+  /** Attachments already queued for the next prompt. */
   attachments?: ComposerAttachment[];
-  /** Upload/attach em andamento — spinner no botão "+". */
+  /** Upload/attach in progress — spinner on the "+" button. */
   attaching?: boolean;
-  /** Incremente para devolver o foco ao campo (ex.: fim do turno). */
+  /** Increment it to give focus back to the field (e.g. end of the turn). */
   focusKey?: number;
-  /** Placeholder custom (ex.: "Inicie uma tarefa neste projeto"). */
+  /** Seed the field from outside (the dock's Saídas "+"): a new nonce replaces
+   *  the value, focuses and leaves the cursor at the end so the user completes
+   *  the sentence and sends. */
+  draft?: { text: string; nonce: number } | null;
+  /** Custom placeholder (e.g. "Inicie uma tarefa neste projeto"). */
   placeholder?: string;
-  /** Última resposta do assistente (para o modo de voz falar e o auto-fala
-   *  ler) — id/texto/streaming, computado pelo pai a partir de `messages`. */
+  /** The assistant's last reply (for voice mode to speak and auto-speak to
+   *  read) — id/text/streaming, computed by the parent from `messages`. */
   lastReply?: { id: string; text: string; pending: boolean } | null;
-  /** Identifica a conversa atual (rearma o auto-fala ao trocar de sessão). */
+  /** Identifies the current conversation (re-arms auto-speak on session switch). */
   sessionKey?: string | number;
-  /** Chip de MODO de permissões (slot — a página injeta o ModePicker). */
+  /** Permissions MODE chip (slot — the page injects the ModePicker). */
   modePicker?: React.ReactNode;
 }) {
   const { t } = useI18n();
@@ -146,6 +151,21 @@ export function Composer({
   useEffect(() => {
     taRef.current?.focus();
   }, [focusKey]);
+
+  // Outside seed (draft.nonce bumps): replace the value and focus with the
+  // cursor at the end — a start of a sentence the user completes, not a send.
+  const draftNonceRef = useRef(0);
+  useEffect(() => {
+    if (!draft || draft.nonce === draftNonceRef.current) return;
+    draftNonceRef.current = draft.nonce;
+    setValue(draft.text);
+    requestAnimationFrame(() => {
+      const ta = taRef.current;
+      if (!ta) return;
+      ta.focus();
+      ta.setSelectionRange(draft.text.length, draft.text.length);
+    });
+  }, [draft]);
 
   const closeComp = () => setComp(null);
 
@@ -184,8 +204,8 @@ export function Composer({
       if (!comp) return;
       const before = value.slice(0, comp.start);
       const after = value.slice(cursor);
-      // Ref que termina em ":" (ex.: @file:) segue completando o caminho;
-      // senão fecha e adiciona um espaço.
+      // A ref ending in ":" (e.g. @file:) keeps completing the path; otherwise
+      // it closes and adds a space.
       const openEnded = item.text.endsWith(":");
       const insert = openEnded ? item.text : `${item.text} `;
       const next = before + insert + after;
@@ -215,14 +235,14 @@ export function Composer({
   const submit = useCallback(() => {
     const trimmed = value.trim();
     if (!trimmed || disabled) return;
-    // /comando → slash.exec (não vira prompt). Só fora de um turno em andamento.
+    // /command → slash.exec (does NOT become a prompt). Only outside a running turn.
     if (!busy && trimmed.startsWith("/") && onSlashSubmit) {
       onSlashSubmit(trimmed);
       clearField();
       return;
     }
     if (busy) {
-      // Turno rodando → enfileira a próxima mensagem (enviada ao fim).
+      // Turn running → queues the next message (sent at the end).
       if (!onQueue) return;
       onQueue(trimmed);
     } else {
@@ -239,7 +259,7 @@ export function Composer({
   }, [value, onSteer]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
-    // Drawer de autocomplete aberto: setas navegam, Enter/Tab aceitam, Esc fecha.
+    // Autocomplete drawer open: arrows navigate, Enter/Tab accept, Esc closes.
     if (comp && comp.items.length) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -278,7 +298,7 @@ export function Composer({
     refreshCompletions(el.value, el.selectionStart ?? el.value.length);
   };
 
-  // Colar imagem direto no campo (print do desktop: "Paste image").
+  // Paste an image straight into the field (desktop screenshot: "Paste image").
   const handlePaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
     const files = Array.from(e.clipboardData?.files ?? []).filter((f) =>
       f.type.startsWith("image/"),
@@ -288,8 +308,8 @@ export function Composer({
       onAttach(files);
       return;
     }
-    // Colar um CAMINHO de arquivo do workspace → vira anexo (Onda 4, paridade
-    // desktop): uma linha só, absoluto, extensão conhecida. Texto comum passa.
+    // Pasting a workspace file PATH → becomes an attachment (Onda 4, desktop
+    // parity): a single line, absolute, known extension. Plain text passes through.
     if (onAttachPath) {
       const text = e.clipboardData?.getData("text/plain")?.trim() ?? "";
       if (
@@ -323,11 +343,11 @@ export function Composer({
       }
       if (files.length) onAttach(files);
     } catch {
-      /* permissão negada / clipboard vazio — silencioso */
+      /* permission denied / empty clipboard — silent */
     }
   }, [onAttach]);
 
-  // ── Ditado por voz (MediaRecorder → STT) ──────────────────────────────
+  // ── Voice dictation (MediaRecorder → STT) ─────────────────────────────
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const mediaRecRef = useRef<MediaRecorder | null>(null);
@@ -376,7 +396,7 @@ export function Composer({
           const text = await onTranscribe(dataUrl, mr.mimeType || "audio/webm");
           if (text) insertAtCursor(value ? ` ${text}` : text);
         } catch {
-          /* transcrição falhou — silencioso */
+          /* transcription failed — silent */
         } finally {
           setTranscribing(false);
         }
@@ -385,15 +405,15 @@ export function Composer({
       mediaRecRef.current = mr;
       setRecording(true);
     } catch {
-      /* permissão de microfone negada — silencioso */
+      /* microphone permission denied — silent */
     }
   }, [recording, onTranscribe, value]);
 
-  // ── Conversa por voz ao vivo (estilo desktop) ──────────────────────────
-  // Modo "live": ouvir → transcrever → enviar → falar a resposta → ouvir de
-  // novo. Reaproveita o MESMO onTranscribe (dictation) e o endpoint REST de
-  // TTS que o desktop usa (POST /api/audio/speak) — nenhum hardware local
-  // envolvido, funciona igual num tenant remoto (Fly.io) ou local.
+  // ── Live voice conversation (desktop style) ────────────────────────────
+  // "Live" mode: listen → transcribe → send → speak the reply → listen again.
+  // Reuses the SAME onTranscribe (dictation) and the REST TTS endpoint the
+  // desktop uses (POST /api/audio/speak) — no local hardware involved, it works
+  // the same on a remote tenant (Fly.io) or locally.
   const { toast, showToast } = useToast();
   const lastSpokenIdRef = useRef<string | null>(null);
   const showVoiceError = useCallback(
@@ -454,7 +474,7 @@ export function Composer({
     setUrlValue("");
     setMenuOpen(false);
     if (!url) return;
-    // URL entra no texto do prompt — o agente navega/baixa com as ferramentas.
+    // The URL goes into the prompt text — the agent navigates/downloads with the tools.
     setValue((v) => (v ? `${v}\n${url}` : url));
     taRef.current?.focus();
   }, [urlValue]);
@@ -464,7 +484,7 @@ export function Composer({
 
   return (
     <div className="relative flex flex-col">
-      {/* Drawer de autocomplete (/comandos e @refs) — abre pra cima. */}
+      {/* Autocomplete drawer (/commands and @refs) — opens upwards. */}
       {comp && comp.items.length > 0 && (
         <>
           <div className="fixed inset-0 z-40" onClick={closeComp} aria-hidden />
@@ -668,17 +688,17 @@ export function Composer({
           </>
         )}
 
-        {/* Empurra modelo + mic + enviar pra DIREITA (layout Grok). */}
+        {/* Pushes model + mic + send to the RIGHT (Grok layout). */}
         <div className="min-w-0 flex-1" />
 
         {voiceConversationActive ? (
           <ConversationPill conversation={conversation} disabled={!!disabled} onEnd={endConversation} t={t} />
         ) : (
           <>
-            {/* Seletor de modelo (pill Grok, sem "modelo"/raio). */}
+            {/* Model picker (Grok pill, without "model"/bolt). */}
             <ChatModelBar light />
 
-            {/* Ditado por voz — AO LADO do modelo (mic → transcrição → campo). */}
+            {/* Voice dictation — NEXT TO the model (mic → transcription → field). */}
             {onTranscribe && (
               <button
                 type="button"
@@ -702,8 +722,8 @@ export function Composer({
               </button>
             )}
 
-            {/* Falar respostas em voz alta (TTS puro, sem ouvir) — só faz
-                sentido junto do pipeline de voz (onTranscribe presente). */}
+            {/* Speak replies out loud (pure TTS, no listening) — it only makes
+                sense alongside the voice pipeline (onTranscribe present). */}
             {onTranscribe && (
               <button
                 type="button"
@@ -735,8 +755,8 @@ export function Composer({
               </button>
             ) : busy ? (
               <>
-                {/* Orientar o turno em andamento sem interromper (session.steer) —
-                    aparece quando há texto; Enter enfileira, este botão orienta. */}
+                {/* Steer the in-progress turn without interrupting (session.steer)
+                    — shows up when there is text; Enter queues, this button steers. */}
                 {onSteer && value.trim() && (
                   <button
                     type="button"
@@ -777,9 +797,9 @@ export function Composer({
   );
 }
 
-/** Pílula da conversa por voz ativa — substitui modelo/mic/enviar enquanto
- *  roda (igual ao desktop): mic mudo/ativo, "Parar" (só ao ouvir), "Encerrar"
- *  com barras de nível reagindo ao volume captado / girando enquanto fala. */
+/** Active voice-conversation pill — replaces model/mic/send while it runs (same
+ *  as the desktop): muted/active mic, "Parar" (only while listening), "Encerrar"
+ *  with level bars reacting to the captured volume / spinning while speaking. */
 function ConversationPill({
   conversation,
   disabled,

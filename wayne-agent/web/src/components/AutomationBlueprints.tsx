@@ -1,11 +1,12 @@
 /**
- * Galeria de modelos (blueprints) — a superfície "Ou comece com um modelo" da
- * Agenda, fiel aos template cards do Claude e ao nosso Editorial.
+ * Template (blueprint) gallery — the "Ou comece com um modelo" surface of the
+ * Agenda, faithful to Claude's template cards and to our Editorial.
  *
- * Os blueprints são NATIVOS (/api/cron/blueprints): cada card expande num form
- * (um campo por slot tipado); "Agendar" faz POST /instantiate, que preenche o
- * blueprint e cria o job pelo MESMO caminho de tudo. Instancia no agente
- * (profile) escolhido lá em cima. Zero backend novo — só reskin.
+ * The blueprints are NATIVE (/api/cron/blueprints): each card expands into a
+ * form (one field per typed slot); "Agendar" does a POST /instantiate, which
+ * fills the blueprint and creates the job through the SAME path as everything
+ * else. It instantiates on the agent (profile) picked up top. Zero new backend
+ * — just a reskin.
  */
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -35,11 +36,11 @@ import { cn } from "@/lib/utils";
 
 interface AutomationBlueprintsProps {
   profile: string;
-  /** Chamado após instanciar um blueprint pra o pai atualizar a lista. */
+  /** Called after instantiating a blueprint so the parent refreshes the list. */
   onCreated?: () => void;
 }
 
-/** Ícone por categoria/tema do blueprint (heurística por palavra-chave). */
+/** Icon by blueprint category/theme (keyword heuristic). */
 function iconFor(bp: AutomationBlueprint): LucideIcon {
   const s = `${bp.category} ${bp.key} ${bp.title}`.toLowerCase();
   if (/brief|summary|digest|standup|morning/.test(s)) return Sun;

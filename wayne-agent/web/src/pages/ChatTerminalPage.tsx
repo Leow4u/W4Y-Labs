@@ -68,7 +68,7 @@ function generateChannelId(scope?: string): string {
 const DEFAULT_TERMINAL_BACKGROUND = "#000000";
 const DEFAULT_TERMINAL_FOREGROUND = "#f0e6d2";
 
-// Curadoria do Chat: on a light dashboard theme the terminal should blend into
+// Chat Curadoria: on a light dashboard theme the terminal should blend into
 // the page (no heavy floating "terminal window" shadow); on dark themes it keeps
 // the framed look. Rec.709 luma ≥ 0.6 → treat the terminal background as light.
 function isLightHex(hex: string): boolean {
@@ -1044,11 +1044,11 @@ export default function ChatTerminalPage({ isActive = true }: { isActive?: boole
       <PluginSlot name="chat:top" />
       {mobileModelToolsPortal}
 
-      {/* Curadoria: avisos crus de conexão (tokens, PTY, códigos WS
-          4401/4403/4404/4408/1006, "Open through wayne dashboard") são
-          encanamento técnico. O estado `banner` e toda a lógica de
-          setBanner/reconexão continuam intactos — só a RENDERIZAÇÃO é
-          escondida do usuário-final; suporte/nós veem via ?full=1. */}
+      {/* Curadoria: raw connection warnings (tokens, PTY, WS codes
+          4401/4403/4404/4408/1006, "Open through wayne dashboard") are
+          technical plumbing. The `banner` state and all the
+          setBanner/reconnect logic stay intact — only the RENDERING is
+          hidden from the end user; support/we see it via ?full=1. */}
       {isInternalView() && banner && (
         <div className="border border-warning/50 bg-warning/10 text-warning px-3 py-2 text-xs tracking-wide">
           {banner}
@@ -1056,8 +1056,8 @@ export default function ChatTerminalPage({ isActive = true }: { isActive?: boole
       )}
 
       <div className="flex min-h-0 flex-1 flex-col gap-2 lg:flex-row lg:gap-3">
-        {/* Coluna do terminal + a barra de modelo (tier) logo abaixo do
-            composer — no lugar do seletor de modelo do benchmark do Claude. */}
+        {/* Terminal column + the model (tier) bar right below the composer —
+            in place of the model selector from the Claude benchmark. */}
         <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2">
         <div
           className={cn(
@@ -1066,8 +1066,8 @@ export default function ChatTerminalPage({ isActive = true }: { isActive?: boole
           )}
           style={{
             backgroundColor: terminalBg,
-            // Cola no dashboard em tema claro; mantém a "janela de terminal"
-            // flutuante nos temas escuros (Black/Cyberpunk/Rosé).
+            // Blends into the dashboard on a light theme; keeps the floating
+            // "terminal window" on dark themes (Black/Cyberpunk/Rosé).
             boxShadow: terminalIsLight
               ? "none"
               : "0 8px 32px rgba(0, 0, 0, 0.4)",

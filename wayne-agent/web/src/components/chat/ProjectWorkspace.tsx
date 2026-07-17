@@ -1,23 +1,23 @@
 /**
- * ProjectWorkspace — a tela do projeto (benchmark Manus: manus.im/app/project),
- * renderizada pelo NativeChatPage em `/chat?project=<slug>&home=1` (clique no
- * projeto na sidebar / "Abrir espaço") antes da primeira mensagem — sem o
- * ?home, ?project é só contexto do chat (hero + chip, estilo Codex). TUDO
- * sobre backend existente, nada inventado:
+ * ProjectWorkspace — the project screen (benchmark Manus: manus.im/app/project),
+ * rendered by NativeChatPage at `/chat?project=<slug>&home=1` (clicking the
+ * project in the sidebar / "Abrir espaço") before the first message — without
+ * ?home, ?project is only chat context (hero + chip, Codex style). ALL of it on
+ * existing backend, nothing invented:
  *
- *   Header          nome da pasta + mtime (listFiles(projects/))
- *   Composer        vem do NativeChatPage — session.create {cwd} (fly62)
- *   Tarefas         GET /api/sessions?cwd_prefix=<pasta>
- *   Instruções      projects/<slug>/AGENTS.md — o agente JÁ injeta AGENTS.md
- *                   do cwd em toda sessão (agent/agent_init.py:281; cron idem,
- *                   cron/scheduler.py:2825). Ler: /api/files/read (data_url →
- *                   texto). Salvar: /api/files/upload-stream (File de texto).
- *   Arquivos        listFiles(pasta) + upload + download; "Ver todos" abre a
- *                   pasta na tela Arquivos (deep-link ?path=).
- *   Agendadas       GET /api/cron/jobs filtrado por job.workdir == pasta.
+ *   Header          folder name + mtime (listFiles(projects/))
+ *   Composer        comes from NativeChatPage — session.create {cwd} (fly62)
+ *   Tasks           GET /api/sessions?cwd_prefix=<folder>
+ *   Instructions    projects/<slug>/AGENTS.md — the agent ALREADY injects the
+ *                   cwd's AGENTS.md into every session (agent/agent_init.py:281;
+ *                   cron likewise, cron/scheduler.py:2825). Read: /api/files/read
+ *                   (data_url → text). Save: /api/files/upload-stream (text File).
+ *   Files           listFiles(folder) + upload + download; "Ver todos" opens the
+ *                   folder in the Files screen (deep-link ?path=).
+ *   Scheduled       GET /api/cron/jobs filtered by job.workdir == folder.
  *
- * Conectores/Habilidades do benchmark ficam FORA: no nosso backend são
- * globais/por-agente, não por pasta — sem fingir vínculo que não existe.
+ * The benchmark's Connectors/Skills stay OUT: in our backend they are
+ * global/per-agent, not per folder — no faking a link that does not exist.
  */
 import {
   CalendarClock,
@@ -51,7 +51,7 @@ import { timeAgo } from "@/lib/utils";
 
 const INSTRUCTIONS_FILE = "AGENTS.md";
 
-/** data:…;base64,xxx → texto UTF-8. */
+/** data:…;base64,xxx → UTF-8 text. */
 function dataUrlToText(dataUrl: string): string {
   const b64 = dataUrl.split(",")[1] ?? "";
   try {
@@ -88,7 +88,7 @@ export function ProjectWorkspace({
   composer,
 }: {
   project: string;
-  /** O cartão do composer do NativeChatPage (já ligado ao cwd do projeto). */
+  /** The NativeChatPage composer card (already wired to the project's cwd). */
   composer: ReactNode;
 }) {
   const { t } = useI18n();
@@ -96,8 +96,8 @@ export function ProjectWorkspace({
   const navigate = useNavigate();
 
   const [mtime, setMtime] = useState<number | null>(null);
-  // Workspace absoluto do projeto (root + projects/<slug>) — usado no
-  // deep-link do cron (?workdir=) pra agendar DENTRO do projeto.
+  // Absolute project workspace (root + projects/<slug>) — used in the cron
+  // deep-link (?workdir=) to schedule INSIDE the project.
   const [cwdAbs, setCwdAbs] = useState<string | null>(null);
   const [tasks, setTasks] = useState<SessionInfo[] | null>(null);
   const [files, setFiles] = useState<ManagedFileEntry[] | null>(null);
@@ -109,8 +109,8 @@ export function ProjectWorkspace({
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  // Metadados de exibição (nome/emoji/cor) do sidecar — carrega e re-renderiza
-  // o header quando chegam/mudam (edição na sidebar reflete aqui na hora).
+  // Display metadata (name/emoji/color) from the sidecar — loads and re-renders
+  // the header when it arrives/changes (editing in the sidebar reflects here at once).
   const [, setMetaTick] = useState(0);
   useEffect(() => onProjectMetaChange(() => setMetaTick((n) => n + 1)), []);
   useEffect(() => {
@@ -126,8 +126,8 @@ export function ProjectWorkspace({
       .then((res) =>
         setFiles(
           res.entries.filter(
-            // Esconde os arquivos de sistema do projeto (instruções + sidecar
-            // de metadados) — são curados pela UI, não conteúdo do usuário.
+            // Hides the project's system files (instructions + metadata
+            // sidecar) — they are curated by the UI, not user content.
             (e) =>
               !e.is_directory &&
               e.name !== INSTRUCTIONS_FILE &&
@@ -141,7 +141,7 @@ export function ProjectWorkspace({
   useEffect(() => {
     let cancelled = false;
 
-    // Header: mtime da pasta (vem da listagem do diretório-pai).
+    // Header: folder mtime (comes from the parent directory listing).
     api
       .listFiles(PROJECTS_DIR)
       .then((res) => {
@@ -151,7 +151,7 @@ export function ProjectWorkspace({
       })
       .catch(() => {});
 
-    // Tarefas do projeto (workspace scoping real).
+    // Project tasks (real workspace scoping).
     void getFilesRoot().then((root) => {
       if (cancelled || !root) return;
       setCwdAbs(projectCwd(root, project));
@@ -164,7 +164,7 @@ export function ProjectWorkspace({
           if (!cancelled) setTasks([]);
         });
 
-      // Agendadas do projeto: jobs cujo workdir É a pasta.
+      // Project scheduled jobs: jobs whose workdir IS the folder.
       api
         .getCronJobs("all")
         .then((all) => {
@@ -179,7 +179,7 @@ export function ProjectWorkspace({
 
     loadFiles();
 
-    // Instruções (AGENTS.md da pasta) — 404 = sem instruções ainda.
+    // Instructions (the folder's AGENTS.md) — 404 = no instructions yet.
     api
       .readFile(instructionsPath)
       .then((res) => {
@@ -257,7 +257,7 @@ export function ProjectWorkspace({
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="mx-auto grid w-full max-w-[1100px] gap-6 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_320px]">
-        {/* ── Coluna principal ── */}
+        {/* ── Main column ── */}
         <div className="min-w-0">
           <header className="mb-6 flex items-center gap-4">
             <span
@@ -322,7 +322,7 @@ export function ProjectWorkspace({
           </section>
         </div>
 
-        {/* ── Painéis laterais ── */}
+        {/* ── Side panels ── */}
         <div className="flex min-w-0 flex-col gap-4">
           <Panel
             title={t.chat.instructions}

@@ -1,17 +1,18 @@
 /**
- * Cor estável por agente (profile) — usada no chip da rotina e nos eventos do
- * calendário, pra o olho ligar "esse evento é do agente X". Determinístico:
- * hash do nome → índice numa paleta Editorial (funciona em claro e escuro).
+ * Stable per-agent (profile) color — used on the routine chip and on the
+ * calendar events, so the eye connects "this event belongs to agent X".
+ * Deterministic: name hash → index into an Editorial palette (works in light
+ * and dark).
  */
 const AGENT_PALETTE = [
-  "#C7912B", // âmbar
-  "#2B579A", // azul
-  "#217346", // verde
-  "#7C3AED", // violeta
-  "#D24726", // laranja
+  "#C7912B", // amber
+  "#2B579A", // blue
+  "#217346", // green
+  "#7C3AED", // violet
+  "#D24726", // orange
   "#0E7490", // teal
-  "#BE185D", // rosa
-  "#4D7C0F", // oliva
+  "#BE185D", // pink
+  "#4D7C0F", // olive
 ];
 
 export function agentColorOf(profile: string): string {

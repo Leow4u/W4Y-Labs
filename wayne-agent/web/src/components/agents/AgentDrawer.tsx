@@ -1,18 +1,18 @@
 /**
- * AgentDrawer — o raio-X do funcionário (módulo Agentes, Onda 2).
+ * AgentDrawer — the employee's X-ray (Agents module, Onda 2).
  *
- * Clicar num agente do canvas abre este painel lateral com a estrutura
- * interna dele em abas — benchmark Stack AI ("abrir o agente mostra tudo
- * que ele tem dentro"), executado 100% sobre endpoints nativos ?profile=:
- *   Perfil       especialidade + modelo (TODOS os OpenRouter, não os tiers
- *                do chat) + instruções (SOUL.md) + pulso de custo em créditos
- *   Agenda       rotinas cron DO agente (criar/pausar/disparar/remover)
- *   Habilidades  skills com toggle por agente
- *   Canais       status das conexões do agente (leitura, v1)
+ * Clicking an agent on the canvas opens this side panel with his internal
+ * structure in tabs — benchmark Stack AI ("opening the agent shows everything
+ * it has inside"), done 100% on top of native ?profile= endpoints:
+ *   Profile      specialty + model (ALL of OpenRouter, not the chat tiers)
+ *                + instructions (SOUL.md) + cost pulse in credits
+ *   Schedule     the agent's OWN cron routines (create/pause/trigger/remove)
+ *   Skills       skills with a per-agent toggle
+ *   Channels     status of the agent's connections (read-only, v1)
  *
- * Renderizado via createPortal(document.body): ancestrais com transform
- * (drawer da sidebar) viram containing block de position:fixed — lição do
- * ProjectEditModal.
+ * Rendered via createPortal(document.body): ancestors with transform (the
+ * sidebar drawer) become the containing block for position:fixed — lesson
+ * from ProjectEditModal.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
@@ -43,7 +43,7 @@ import { useI18n } from "@/i18n";
 import { cn, themedBody } from "@/lib/utils";
 
 export interface DrawerAgent {
-  name: string; // slug do profile
+  name: string; // profile slug
   displayName: string;
   monogram: string;
   specialty: string;
@@ -75,13 +75,13 @@ export function AgentDrawer({
 }: {
   agent: DrawerAgent;
   onClose: () => void;
-  /** Algo persistiu (perfil/rotina) — o pai recarrega canvas/extras. */
+  /** Something persisted (profile/routine) — the parent reloads canvas/extras. */
   onChanged: () => void;
   onActivate: (name: string) => void;
   onRequestDelete: (name: string) => void;
   activating: boolean;
   notify: (msg: string, kind: "success" | "error") => void;
-  /** Aba inicial — o workflow (Onda 2.5) abre o raio-X direto no nó clicado. */
+  /** Initial tab — the workflow (Onda 2.5) opens the X-ray straight at the clicked node. */
   initialTab?: AgentDrawerTab;
 }) {
   const { t } = useI18n();
@@ -90,12 +90,12 @@ export function AgentDrawer({
   const modalRef = useModalBehavior({ open: true, onClose });
 
   const [tab, setTab] = useState<Tab>(initialTab ?? "profile");
-  // Clicar noutro nó do workflow com o drawer já aberto troca a aba.
+  // Clicking another workflow node with the drawer already open switches the tab.
   useEffect(() => {
     if (initialTab) setTab(initialTab);
   }, [initialTab]);
 
-  /* ---------------- Perfil ---------------- */
+  /* ---------------- Profile ---------------- */
   const [specialty, setSpecialty] = useState(agent.specialty);
   const [model, setModel] = useState("");
   const [soul, setSoul] = useState("");
@@ -169,7 +169,7 @@ export function AgentDrawer({
     }
   }, [agent.name, agent.displayName, specialty, model, soul, base, notify, onChanged, ag.saved, t.status.error]);
 
-  /* ---------------- Agenda ---------------- */
+  /* ---------------- Schedule ---------------- */
   const describeSchedule = useScheduleText();
   const [jobs, setJobs] = useState<CronJob[] | null>(null);
   const [creating, setCreating] = useState(false);
@@ -240,7 +240,7 @@ export function AgentDrawer({
     [agent.name, notify, loadJobs, onChanged, ag.eqRunNowOk, ag.eqRoutineDeleted, t.status.error],
   );
 
-  /* ---------------- Habilidades ---------------- */
+  /* ---------------- Skills ---------------- */
   const [skills, setSkills] = useState<SkillInfo[] | null>(null);
   const [togglingSkill, setTogglingSkill] = useState<string | null>(null);
 
@@ -280,7 +280,7 @@ export function AgentDrawer({
     [agent.name, notify, t.status.error],
   );
 
-  /* ---------------- Canais ---------------- */
+  /* ---------------- Channels ---------------- */
   const [platforms, setPlatforms] = useState<MessagingPlatform[] | null>(null);
 
   useEffect(() => {
@@ -304,7 +304,7 @@ export function AgentDrawer({
       .catch(() => setMcpServers([]));
   }, [tab, mcpServers, agent.name]);
 
-  /* ---------------- Atividade ---------------- */
+  /* ---------------- Activity ---------------- */
   const [activity, setActivity] = useState<SessionInfo[] | null>(null);
 
   useEffect(() => {
@@ -340,7 +340,7 @@ export function AgentDrawer({
         ref={modalRef}
         className="absolute inset-y-0 right-0 flex w-[min(480px,94vw)] flex-col border-l border-border bg-background shadow-2xl"
       >
-        {/* Header — identidade + ações do funcionário. */}
+        {/* Header — the employee's identity + actions. */}
         <header className="border-b border-border px-5 pb-0 pt-5">
           <div className="flex items-start gap-3">
             <div
@@ -407,7 +407,7 @@ export function AgentDrawer({
             )}
           </div>
 
-          {/* Abas do raio-X. */}
+          {/* X-ray tabs. */}
           <nav className="mt-4 flex gap-5">
             {tabs.map(({ key, label }) => (
               <button
@@ -428,10 +428,10 @@ export function AgentDrawer({
         </header>
 
         <div className="flex-1 overflow-y-auto px-5 py-5">
-          {/* ---------------- Perfil ---------------- */}
+          {/* ---------------- Profile ---------------- */}
           {tab === "profile" && (
             <div className="grid gap-5">
-              {/* Pulso: custo/sessões 30d — créditos, nunca US$. */}
+              {/* Pulse: cost/sessions 30d — credits, never US$. */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-xl border border-border bg-card p-3">
                   <div className="type-micro text-muted-foreground">{ag.eqCost30d}</div>
@@ -500,7 +500,7 @@ export function AgentDrawer({
             </div>
           )}
 
-          {/* ---------------- Agenda ---------------- */}
+          {/* ---------------- Schedule ---------------- */}
           {tab === "schedule" && (
             <div className="grid gap-4">
               {jobs === null ? (
@@ -611,7 +611,7 @@ export function AgentDrawer({
             </div>
           )}
 
-          {/* ---------------- Habilidades ---------------- */}
+          {/* ---------------- Skills ---------------- */}
           {tab === "skills" && (
             <div className="grid gap-4">
               {skills === null ? (
@@ -648,9 +648,9 @@ export function AgentDrawer({
                               aria-checked={s.enabled}
                               disabled={togglingSkill === s.name}
                               onClick={() => toggleSkill(s)}
-                              // Cores/knob vêm do padrão GLOBAL de toggles do produto
-                              // (index.css button[role="switch"], azul iOS !important)
-                              // — mesmo visual das Configurações. Aqui só layout.
+                              // Colors/knob come from the product's GLOBAL toggle pattern
+                              // (index.css button[role="switch"], iOS blue !important)
+                              // — same look as Settings. Layout only here.
                               className={cn(
                                 "relative h-5 w-9 shrink-0 rounded-full transition-colors",
                                 togglingSkill === s.name && "opacity-60",
@@ -673,7 +673,7 @@ export function AgentDrawer({
             </div>
           )}
 
-          {/* ---------------- Canais ---------------- */}
+          {/* ---------------- Channels ---------------- */}
           {tab === "channels" && (
             <div className="grid gap-4">
               {platforms === null ? (
@@ -744,7 +744,7 @@ export function AgentDrawer({
             </div>
           )}
 
-          {/* ---------------- Atividade ---------------- */}
+          {/* ---------------- Activity ---------------- */}
           {tab === "activity" && (
             <div className="grid gap-4">
               <div className="grid grid-cols-2 gap-3">

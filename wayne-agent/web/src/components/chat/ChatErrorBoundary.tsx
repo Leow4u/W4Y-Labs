@@ -1,9 +1,9 @@
 /**
- * ChatErrorBoundary — se qualquer render do chat nativo lançar (ex.: um
- * histórico com payload inesperado), o React desmontaria a árvore inteira e
- * NADA mais responderia a cliques (visto ao vivo na curadoria: "não é
- * possível clicar em Nova tarefa"). Este boundary contém o dano: mostra um
- * cartão de erro com ação de recarregar o chat limpo.
+ * ChatErrorBoundary — if any render of the native chat throws (e.g. a history
+ * with an unexpected payload), React would unmount the whole tree and NOTHING
+ * would respond to clicks anymore (seen live during curation: "não é possível
+ * clicar em Nova tarefa"). This boundary contains the damage: it shows an
+ * error card with an action to reload the chat clean.
  */
 import { Component, type ReactNode } from "react";
 import { RotateCw, TriangleAlert } from "lucide-react";

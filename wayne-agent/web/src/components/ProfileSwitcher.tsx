@@ -6,6 +6,7 @@ import {
 } from "@nous-research/ui/ui/components/select";
 import { useProfileScope } from "@/contexts/useProfileScope";
 import { useI18n } from "@/i18n";
+import { isInternalView } from "@/lib/internal-view";
 import { cn } from "@/lib/utils";
 
 /**
@@ -28,7 +29,11 @@ export function ProfileSwitcher({ collapsed }: ProfileSwitcherProps) {
     [currentProfile, t.app.currentProfileOption],
   );
 
-  if (profiles.length < 2) return null;
+  // The profile selector is Hermes machine-admin plumbing ("this dashboard
+  // (default)"). End users manage agents through the Agentes module, not here —
+  // hide it from them, keep it only in internal mode (?full=1). It used to show
+  // up alone once a 2nd profile (= 1 agent) was created, leaking the raw structure.
+  if (!isInternalView() || profiles.length < 2) return null;
 
   const managed = profile || currentProfile || "default";
   const isOther = !!profile && profile !== currentProfile;

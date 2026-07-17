@@ -1,15 +1,15 @@
 /**
- * SettingsOverlay — Configuração como tela sobreposta (estilo Manus/Claude).
+ * SettingsOverlay — Config as an overlay screen (Manus/Claude style).
  *
- * Aberto pelo menu do chip do usuário (AuthWidget). Por padrão mostra a tela
- * ENXUTA do usuário (ConfigUser — só Geral/Aparência/Memória, curadoria do
- * Bloco 2). A tela técnica completa de config.yaml (ConfigPage) fica atrás da
- * escotilha interna `?full=1`, para nós/suporte.
+ * Opened from the user chip menu (AuthWidget). By default it shows the user's
+ * LEAN screen (ConfigUser — only General/Appearance/Memory, the Bloco 2
+ * curation). The full technical config.yaml screen (ConfigPage) sits behind the
+ * internal `?full=1` hatch, for us/support.
  *
- * Ambas injetam sua barra de ação (Guardar etc.) via usePageHeader().setEnd —
- * por isso o corpo é envolvido num PageHeaderProvider FRESCO aqui dentro (a
- * barra é renderizada dentro do overlay, não na página de fundo). O título do
- * provider é esvaziado; o título + o X ficam na barra própria do overlay.
+ * Both inject their action bar (Save etc.) via usePageHeader().setEnd — that is
+ * why the body is wrapped in a FRESH PageHeaderProvider in here (the bar is
+ * rendered inside the overlay, not on the background page). The provider's title
+ * is blanked out; the title + the X live in the overlay's own bar.
  */
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
@@ -21,8 +21,8 @@ import { usePageHeader } from "@/contexts/usePageHeader";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-/** Escotilha interna (nós/suporte): `?full=1` na URL mostra a tela técnica
- *  completa de config.yaml em vez da tela enxuta do usuário. */
+/** Internal hatch (us/support): `?full=1` in the URL shows the full technical
+ *  config.yaml screen instead of the user's lean screen. */
 export function isFullConfigRequested(): boolean {
   try {
     return new URLSearchParams(window.location.search).get("full") === "1";
@@ -31,8 +31,8 @@ export function isFullConfigRequested(): boolean {
   }
 }
 
-/** Esvazia o título da barra do provider aninhado — o overlay já tem o seu.
- *  (setTitle("") vence o defaultTitle da rota atual, que seria "Chat" etc.) */
+/** Blanks the nested provider's bar title — the overlay already has its own.
+ *  (setTitle("") beats the current route's defaultTitle, which would be "Chat" etc.) */
 function BlankProviderTitle() {
   const { setTitle } = usePageHeader();
   useEffect(() => {
@@ -48,7 +48,7 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
-    // Trava o scroll do fundo enquanto o overlay está aberto.
+    // Locks the background scroll while the overlay is open.
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
@@ -65,22 +65,22 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
 
   return createPortal(
     <div className="fixed inset-0 z-[80] flex items-center justify-center p-3">
-      {/* Fundo escurecido — clique fecha. */}
+      {/* Dimmed backdrop — click closes. */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-[2px]"
         onClick={onClose}
         aria-hidden
       />
 
-      {/* Card do modal, centralizado (estilo Manus/Claude). Altura quase cheia
-          (fica perto do topo e do rodapé do navegador — só ~0,75rem de folga
-          de cada lado, casada com o p-3 do overlay). Conteúdo curto deixa
-          espaço, conteúdo longo rola. `settings-modal` ativa o Title Case
-          interno (ver index.css) para suavizar o MAIÚSCULO do design-system. */}
+      {/* Modal card, centered (Manus/Claude style). Nearly full height (sits
+          close to the browser's top and bottom — only ~0.75rem of slack on each
+          side, matched to the overlay's p-3). Short content leaves space, long
+          content scrolls. `settings-modal` turns on the internal Title Case
+          (see index.css) to soften the design system's UPPERCASE. */}
       <div
         className={cn(
-          // Largura de settings do Hermes desktop (feedback 10/07: "tela
-          // apertada") — quase a janela toda, com teto de 1180px.
+          // Settings width from the Hermes desktop (feedback 10/07: "tela
+          // apertada") — nearly the whole window, capped at 1180px.
           "settings-modal relative flex w-[min(1180px,calc(100vw-1.5rem))] flex-col",
           "h-[calc(100vh-1.5rem)] overflow-hidden rounded-2xl",
           "border border-border bg-background-base",
@@ -90,8 +90,8 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
         aria-modal="true"
         aria-label={title}
       >
-        {/* Sem barra de título (estilo Claude): o X flutua no canto e a busca
-            fica no topo do menu (dentro da ConfigUser). */}
+        {/* No title bar (Claude style): the X floats in the corner and the
+            search sits at the top of the menu (inside ConfigUser). */}
         <button
           type="button"
           onClick={onClose}
@@ -106,12 +106,12 @@ export function SettingsOverlay({ open, onClose }: { open: boolean; onClose: () 
           <X className="h-5 w-5" />
         </button>
 
-        {/* Corpo: tela enxuta (padrão) ou técnica (`?full=1`), rolando dentro
-            do card. `flex flex-col` é essencial: cria o contexto flex que
-            limita a altura do conteúdo (senão ele expande para a altura
-            natural e vaza do modal). `pt-12` reserva uma faixa no topo: evita
-            o conteúdo "esmagado" e deixa o X (canto sup. dir.) livre, sem ficar
-            atrás do "Criar" da tela de Habilidades. */}
+        {/* Body: lean screen (default) or technical (`?full=1`), scrolling
+            inside the card. `flex flex-col` is essential: it creates the flex
+            context that bounds the content's height (otherwise it expands to
+            its natural height and overflows the modal). `pt-12` reserves a band
+            at the top: it avoids "squashed" content and keeps the X (top-right
+            corner) clear, not sitting behind the Skills screen's "Criar". */}
         <div className="flex min-h-0 flex-1 flex-col overflow-hidden pt-12">
           <PageHeaderProvider pluginTabs={[]}>
             <BlankProviderTitle />

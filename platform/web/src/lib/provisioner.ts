@@ -68,6 +68,27 @@ export async function requestReconfigure(app: string, plan: "base" | "premium"):
   }
 }
 
+// Pivô desktop: pede ao provisionador uma runtime key OpenRouter POR
+// DISPOSITIVO (nova, separada da key do Fly), com limite = crédito do plano.
+// É o único fluxo em que a chave CRUA transita pela casca — segue direto
+// para o dispositivo do dono (motor local); nunca logar nem persistir a key.
+export async function requestDeviceKey(opts: {
+  app: string | null;
+  tenantId: string;
+  limitUsd: number;
+  deviceLabel?: string;
+}): Promise<{ key: string; hash: string; limitUsd: number; name: string } | null> {
+  try {
+    const r = await call("/device-key", opts);
+    if (!r.ok) return null;
+    const j = (await r.json()) as { key?: string; hash?: string; limitUsd?: number; name?: string };
+    if (!j.key || !j.hash) return null;
+    return { key: j.key, hash: j.hash, limitUsd: Number(j.limitUsd ?? opts.limitUsd), name: j.name ?? "" };
+  } catch {
+    return null;
+  }
+}
+
 // slug determinístico-ish e válido (^[a-z0-9-]{2,24}$): parte local do
 // e-mail sanitizada + sufixo aleatório curto (evita colisão).
 export function slugFor(email: string): string {

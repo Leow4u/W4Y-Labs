@@ -1,9 +1,9 @@
 /**
- * Preferências de EXIBIÇÃO da conversa (Onda A das Configurações, benchmark
- * Claude Code: "Tamanho do texto da transcrição" + "Largura da transcrição").
- * Client-side por dispositivo (localStorage) — igual ao desktop, que também
- * guarda aparência fora do config.yaml. Aplica via CSS custom properties no
- * :root; o chat (.prose-serif + colunas do NativeChatPage) consome as vars.
+ * Conversation DISPLAY preferences (Settings Onda A, Claude Code benchmark:
+ * "Tamanho do texto da transcrição" + "Largura da transcrição").
+ * Client-side per device (localStorage) — same as the desktop, which also
+ * keeps appearance outside config.yaml. Applied via CSS custom properties on
+ * :root; the chat (.prose-serif + NativeChatPage columns) consumes the vars.
  */
 const STORAGE_KEY = "wayne:chat-display:v1";
 
@@ -17,14 +17,14 @@ export interface ChatDisplayPrefs {
 
 const DEFAULTS: ChatDisplayPrefs = { size: "medium", width: "medium" };
 
-/** Escala da prosa serifada (o padrão 17px é o "medium" do DS Editorial). */
+/** Serif prose scale (the 17px default is the DS Editorial "medium"). */
 const FONT_PX: Record<ChatTextSize, string> = {
   small: "15px",
   medium: "17px",
   large: "19px",
 };
 
-/** Largura máxima da coluna transcript+composer (padrão atual = 840px). */
+/** Max width of the transcript+composer column (current default = 840px). */
 const WIDTH_PX: Record<ChatWidth, string> = {
   narrow: "720px",
   medium: "840px",
@@ -56,14 +56,14 @@ export function onChatDisplayChange(fn: () => void): () => void {
   return () => listeners.delete(fn);
 }
 
-/** Estampa as CSS vars no :root — chamada no boot do chat e a cada mudança. */
+/** Stamps the CSS vars on :root — called on chat boot and on every change. */
 export function applyChatDisplay(): void {
   try {
     const root = document.documentElement;
     root.style.setProperty("--chat-font-size", FONT_PX[cache.size]);
     root.style.setProperty("--chat-max-w", WIDTH_PX[cache.width]);
   } catch {
-    /* SSR/teste — sem DOM */
+    /* SSR/test — no DOM */
   }
 }
 
@@ -72,7 +72,7 @@ export function setChatDisplay(patch: Partial<ChatDisplayPrefs>): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
   } catch {
-    /* modo privado — vale só pra sessão */
+    /* private mode — only lasts for the session */
   }
   applyChatDisplay();
   listeners.forEach((fn) => fn());

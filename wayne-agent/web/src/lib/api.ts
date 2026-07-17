@@ -354,15 +354,15 @@ export const api = {
     offset = 0,
     profile = getManagementProfile(),
     order: "created" | "recent" = "created",
-    // Filtros que o backend JÁ aceita (GET /api/sessions): escopo por origem
-    // (`source`/`exclude_sources`, ex.: cron) e arquivadas (soft-archive).
+    // Filters the backend ALREADY accepts (GET /api/sessions): scoping by
+    // origin (`source`/`exclude_sources`, e.g. cron) and archived (soft-archive).
     opts?: {
       source?: string;
       excludeSources?: string;
       archived?: "exclude" | "only" | "include";
-      /** Workspace scoping (projetos) — o backend já filtra por prefixo. */
+      /** Workspace scoping (projects) — the backend already filters by prefix. */
       cwdPrefix?: string;
-      /** Esconde sessões vazias (min_messages já existia no endpoint). */
+      /** Hides empty sessions (min_messages already existed on the endpoint). */
       minMessages?: number;
     },
   ) => {
@@ -420,8 +420,8 @@ export const api = {
         body: JSON.stringify({ title, profile: profile || undefined }),
       },
     ),
-  // Soft-archive/restaura — o MESMO PATCH do rename; o backend já aceita
-  // `archived` (web_server.py rename_session_endpoint).
+  // Soft-archive/restore — the SAME PATCH as rename; the backend already
+  // accepts `archived` (web_server.py rename_session_endpoint).
   setSessionArchived: (
     id: string,
     archived: boolean,
@@ -478,8 +478,67 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path }),
     }),
-  // Ditado por voz — grava no navegador (MediaRecorder), envia como data_url
-  // e recebe o texto (o mesmo endpoint que o desktop usa; STT do backend).
+  // ── Projects (first-class rows, multi-folder) ──────────────────────────
+  // The store the gateway already drives over JSON-RPC; these hit the REST
+  // bridge because the sidebar lives outside any chat session. A project owns
+  // FOLDER PATHS, so a cloud folder and a folder on the user's own machine are
+  // the same kind of thing — one history covers both.
+  listProjects: (profile = getManagementProfile()) =>
+    fetchJSON<{ projects: ProjectRow[] }>(
+      appendProfileParam("/api/projects", profile),
+    ),
+  createProject: (
+    body: {
+      name: string;
+      slug?: string;
+      folders?: string[];
+      primary_path?: string;
+      description?: string;
+      icon?: string;
+      color?: string;
+    },
+    profile = getManagementProfile(),
+  ) =>
+    fetchJSON<{ project: ProjectRow | null; created: boolean }>("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, profile: profile || undefined }),
+    }),
+  // Display fields live on the ROW (projects_db columns) — this is what
+  // retired the .w4y-project.json sidecar. `id` accepts an id or a slug;
+  // "" clears icon/color, omitted fields stay untouched.
+  updateProject: (
+    id: string,
+    body: { name?: string; description?: string; icon?: string; color?: string },
+    profile = getManagementProfile(),
+  ) =>
+    fetchJSON<{ project: ProjectRow }>(`/api/projects/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...body, profile: profile || undefined }),
+    }),
+  // Row-level archive/delete — the server never touches folders on disk here
+  // (a project may own folders on the USER's machine); cloud-folder cleanup
+  // stays an explicit, separate /api/files call by the caller.
+  archiveProject: (id: string, profile = getManagementProfile()) =>
+    fetchJSON<{ ok: boolean }>(
+      appendProfileParam(`/api/projects/${encodeURIComponent(id)}/archive`, profile),
+      { method: "POST" },
+    ),
+  deleteProject: (id: string, profile = getManagementProfile()) =>
+    fetchJSON<{ ok: boolean }>(
+      appendProfileParam(`/api/projects/${encodeURIComponent(id)}`, profile),
+      { method: "DELETE" },
+    ),
+  // The authoritative sidebar grouping — the SERVER decides which sessions
+  // each project claims (tui_gateway.project_tree over the shared WAYNE_HOME).
+  getProjectsTree: (profile = getManagementProfile()) =>
+    fetchJSON<ProjectsTreeResponse>(
+      appendProfileParam("/api/projects/tree", profile),
+    ),
+  // Voice dictation — records in the browser (MediaRecorder), sends it as a
+  // data_url and gets the text back (the same endpoint the desktop uses;
+  // backend STT).
   transcribeAudio: (dataUrl: string, mimeType: string) =>
     fetchJSON<{ transcript: string }>("/api/audio/transcribe", {
       method: "POST",
@@ -505,15 +564,15 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path, recursive }),
     }),
-  // Renomear = mover no mesmo diretório. `dest` é o caminho completo de destino.
+  // Rename = move within the same directory. `dest` is the full destination path.
   moveFile: (path: string, dest: string, overwrite = false) =>
     fetchJSON<ManagedFileWriteResponse>("/api/files/move", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ path, dest, overwrite }),
     }),
-  // ── Git do workspace (dock "Computador do Wayne") — /api/git/*, a MESMA
-  //    suíte REST que o desktop usa via web_git.py. `path` = cwd do projeto.
+  // ── Workspace git (the "Computador do Wayne" dock) — /api/git/*, the SAME
+  //    REST suite the desktop uses via web_git.py. `path` = the project's cwd.
   gitStatus: (path: string) =>
     fetchJSON<GitRepoStatus | null>(`/api/git/status?path=${encodeURIComponent(path)}`),
   gitBranches: (path: string) =>
@@ -568,8 +627,8 @@ export const api = {
     fetchJSON<{ ghReady: boolean; pr: { url: string; state?: string; number?: number } | null }>(
       `/api/git/review/ship-info?path=${encodeURIComponent(path)}`,
     ),
-  // Conteúdo com mime REAL (iframe de preview) e mídia do cache do agente
-  // (screenshots do navegador). Campo pode vir dataUrl ou data_url.
+  // Content with the REAL mime (preview iframe) and media from the agent's
+  // cache (browser screenshots). The field may come as dataUrl or data_url.
   readFileDataUrl: (path: string) =>
     fetchJSON<{ dataUrl?: string; data_url?: string }>(
       `/api/fs/read-data-url?path=${encodeURIComponent(path)}`,
@@ -578,9 +637,9 @@ export const api = {
     fetchJSON<{ data_url?: string; dataUrl?: string }>(
       `/api/media?path=${encodeURIComponent(path)}`,
     ),
-  // ── Jornada de aprendizado (/journey, Onda 6) — /api/learning/*, os
-  //    MESMOS endpoints que o desktop (starmap) consome. Shape defensivo:
-  //    nodes variam entre skill/memory.
+  // ── Learning journey (/journey, Onda 6) — /api/learning/*, the SAME
+  //    endpoints the desktop (starmap) consumes. Defensive shape: nodes
+  //    vary between skill/memory.
   getLearningGraph: () =>
     fetchJSON<{ nodes?: Array<Record<string, unknown>>; links?: unknown[] }>(
       "/api/learning/graph",
@@ -1096,10 +1155,10 @@ export const api = {
   getMcpServers: (profile?: string) =>
     fetchJSON<{ servers: McpServer[] }>(`/api/mcp/servers${profileQuery(profile)}`),
 
-  // ── Kanban (plugin nativo /api/plugins/kanban) — módulo Operações ──
-  // O board é COMPARTILHADO entre agentes (kanban.db é profile-agnóstico);
-  // assignee = slug do profile. PATCH status:"ready" com assignee acorda o
-  // dispatcher na hora (spawna `wayne -p <assignee>` com o WAYNE_HOME dele).
+  // ── Kanban (native plugin /api/plugins/kanban) — Operações module ──
+  // The board is SHARED across agents (kanban.db is profile-agnostic);
+  // assignee = the profile's slug. PATCH status:"ready" with an assignee wakes
+  // the dispatcher instantly (spawns `wayne -p <assignee>` with its WAYNE_HOME).
   getKanbanBoard: () => fetchJSON<KanbanBoardResponse>("/api/plugins/kanban/board"),
   createKanbanTask: (body: KanbanTaskCreate) =>
     fetchJSON<Record<string, unknown>>("/api/plugins/kanban/tasks", {
@@ -1362,8 +1421,8 @@ export const api = {
     fetchJSON<SkillHubCatalogResponse>(
       `/api/skills/hub/catalog${profileQuery(profile)}`,
     ),
-  // ── Conectores (ponte Composio) — catálogo 1000+, conectar (Connect Link),
-  //    status por escopo (global|<agente>) e attach/regeneração da sessão MCP.
+  // ── Conectores (Composio bridge) — 1000+ catalog, connect (Connect Link),
+  //    status per scope (global|<agent>) and attach/regeneration of the MCP session.
   getConnectorsCatalog: (refresh = false) =>
     fetchJSON<ConnectorCatalogResponse>(
       `/api/connectors/catalog${refresh ? "?refresh=true" : ""}`,
@@ -1392,8 +1451,8 @@ export const api = {
       `/api/connectors/accounts/${encodeURIComponent(accountId)}`,
       { method: "DELETE" },
     ),
-  // Eventos (triggers) — ligam um gatilho num conector já conectado; cada
-  // evento vira uma tarefa do agente (kanban nativo). Escopo global|<agente>.
+  // Events (triggers) — wire a trigger onto an already-connected connector;
+  // each event becomes an agent task (native kanban). Scope global|<agent>.
   getConnectorTriggerTypes: (toolkit: string) =>
     fetchJSON<{ types: ConnectorTriggerType[] }>(
       `/api/connectors/triggers/types?toolkit=${encodeURIComponent(toolkit)}`,
@@ -1416,13 +1475,27 @@ export const api = {
       `/api/connectors/triggers/${encodeURIComponent(triggerId)}`,
       { method: "DELETE" },
     ),
-  previewSkillFromHub: (identifier: string) =>
+  /** Read a skill's SKILL.md + file manifest WITHOUT installing it.
+   *  ``profile`` scopes the resolution to that profile's hub sources (the
+   *  backend already accepts it), matching where an install would pull from. */
+  previewSkillFromHub: (identifier: string, profile?: string) =>
     fetchJSON<SkillHubPreview>(
-      `/api/skills/hub/preview?identifier=${encodeURIComponent(identifier)}`,
+      appendProfileParam(
+        `/api/skills/hub/preview?identifier=${encodeURIComponent(identifier)}`,
+        profile,
+      ),
     ),
-  scanSkillFromHub: (identifier: string) =>
+  /** Run the install-time security scan on a hub skill WITHOUT installing it.
+   *  Downloads + quarantines the bundle, so it is costly — call it on demand,
+   *  never on mount. ``profile`` scopes it to the same hub source router an
+   *  install would resolve against; without it a profile-scoped bundle can
+   *  scan a DIFFERENT artifact than the one that would be installed. */
+  scanSkillFromHub: (identifier: string, profile?: string) =>
     fetchJSON<SkillHubScan>(
-      `/api/skills/hub/scan?identifier=${encodeURIComponent(identifier)}`,
+      appendProfileParam(
+        `/api/skills/hub/scan?identifier=${encodeURIComponent(identifier)}`,
+        profile,
+      ),
     ),
 };
 
@@ -1491,9 +1564,9 @@ export interface SkillHubCatalogResponse {
   installed: Record<string, SkillHubInstalledEntry>;
 }
 
-// ── Conectores (ponte Composio) ─────────────────────────────────────────
+// ── Conectores (Composio bridge) ────────────────────────────────────────
 
-/** Um toolkit do catálogo Composio, trimado pro marketplace. */
+/** A toolkit from the Composio catalog, trimmed for the marketplace. */
 export interface ConnectorToolkit {
   slug: string;
   name: string;
@@ -1512,7 +1585,7 @@ export interface ConnectorCatalogResponse {
   total: number;
 }
 
-/** Conta conectada (por escopo) na Composio. */
+/** A connected account (per scope) on Composio. */
 export interface ConnectorAccount {
   id: string;
   toolkit: string;
@@ -1525,7 +1598,7 @@ export interface ConnectorStatusResponse {
   scope: string;
   user_id: string;
   accounts: ConnectorAccount[];
-  /** Em quantos configs (homes) a entrada MCP do escopo está anexada. */
+  /** In how many configs (homes) the scope's MCP entry is attached. */
   attached: number;
   homes: number;
   entry: string;
@@ -1534,14 +1607,14 @@ export interface ConnectorStatusResponse {
 export interface ConnectorConnectResponse {
   scope: string;
   toolkit: string;
-  /** Link de autorização (página white-label) — ausente p/ toolkits no_auth. */
+  /** Authorization link (white-label page) — absent for no_auth toolkits. */
   redirect_url?: string;
   connected_account_id?: string;
   no_auth?: boolean;
   attached: number;
 }
 
-/** Um tipo de gatilho de um toolkit (ex.: GMAIL_NEW_GMAIL_MESSAGE). */
+/** A toolkit's trigger type (e.g. GMAIL_NEW_GMAIL_MESSAGE). */
 export interface ConnectorTriggerType {
   slug: string;
   name: string;
@@ -1549,7 +1622,7 @@ export interface ConnectorTriggerType {
   description: string;
 }
 
-/** Um gatilho ATIVO no escopo. */
+/** An ACTIVE trigger in the scope. */
 export interface ConnectorTrigger {
   id: string;
   trigger: string;
@@ -1610,6 +1683,8 @@ export interface SkillHubScanFinding {
   category: string;
   file: string;
   line: number;
+  /** The matched snippet. Optional: servers older than fly196 don't send it. */
+  match?: string;
   description: string;
 }
 
@@ -1730,7 +1805,7 @@ export interface MessagingPlatformUpdate {
   enabled?: boolean;
   env?: Record<string, string>;
   clear_env?: string[];
-  /** Escopo: undefined = global (instalação padrão); nome = canais daquele agente. */
+  /** Scope: undefined = global (default install); name = that agent's channels. */
   profile?: string;
 }
 
@@ -1983,7 +2058,7 @@ export interface SessionInfo {
   output_tokens: number;
   preview: string | null;
   parent_session_id?: string | null;
-  /** Workspace da sessão (o SELECT devolve s.* — agrupa a sidebar por projeto). */
+  /** The session's workspace (the SELECT returns s.* — groups the sidebar by project). */
   cwd?: string | null;
   /** Soft-archive (PATCH /api/sessions/{id} {archived}). */
   archived?: boolean;
@@ -2077,7 +2152,7 @@ export interface ManagedFileEntry {
   mime_type: string | null;
 }
 
-/** GET /api/git/status — shape do web_git.repo_status (null = não é repo). */
+/** GET /api/git/status — shape of web_git.repo_status (null = not a repo). */
 export interface GitRepoStatus {
   branch: string | null;
   defaultBranch: string | null;
@@ -2120,6 +2195,77 @@ export interface ManagedFileReadResponse {
   root: string | null;
   locked_root: string | null;
   can_change_path: boolean;
+}
+
+/** A folder owned by a project (wayne_cli/projects_db.ProjectFolder). */
+export interface ProjectFolderRow {
+  path: string;
+  label: string | null;
+  is_primary: boolean;
+  added_at: number;
+}
+
+/**
+ * A first-class project (wayne_cli/projects_db.Project) — a named workspace
+ * that owns N folders. A session belongs to it when its cwd sits under one of
+ * them (longest-prefix). Mirrors Project.to_dict() exactly.
+ */
+export interface ProjectRow {
+  id: string;
+  slug: string;
+  name: string;
+  description: string | null;
+  icon: string | null;
+  color: string | null;
+  board_slug: string | null;
+  primary_path: string | null;
+  archived: boolean;
+  created_at: number;
+  folders: ProjectFolderRow[];
+}
+
+// ── GET /api/projects/tree — the server-decided sidebar grouping ─────────
+// Shapes mirror tui_gateway/project_tree.build_tree output (overview mode:
+// lane `sessions` come back empty; counts + previewSessions carry the data).
+
+/** One lane (branch / linked worktree / kanban bucket) inside a repo node. */
+export interface ProjectTreeLane {
+  id: string;
+  label: string;
+  path: string;
+  isMain: boolean;
+  isKanban: boolean;
+  sessions: SessionInfo[];
+}
+
+export interface ProjectTreeRepo {
+  id: string;
+  label: string;
+  path: string;
+  groups: ProjectTreeLane[];
+  sessionCount: number;
+}
+
+/** A project node: explicit row (id = projects_db id) or auto/discovered
+ *  repo (id = repo root path, isAuto). */
+export interface ProjectTreeNode {
+  id: string;
+  label: string;
+  path: string | null;
+  color: string | null;
+  icon: string | null;
+  isAuto: boolean;
+  sessionCount: number;
+  lastActive: number;
+  repos: ProjectTreeRepo[];
+  previewSessions: SessionInfo[];
+}
+
+export interface ProjectsTreeResponse {
+  projects: ProjectTreeNode[];
+  active_id: string | null;
+  /** Sessions claimed by EXPLICIT projects — "Recentes" = /api/sessions minus these. */
+  scoped_session_ids: string[];
 }
 
 export interface ManagedFileWriteResponse {
@@ -2337,7 +2483,7 @@ export interface AutomationBlueprint {
   appUrl: string;
 }
 
-// ── Kanban (plugin nativo) — módulo Operações ──
+// ── Kanban (native plugin) — Operações module ──
 export interface KanbanTask {
   id: string;
   title: string;
@@ -2347,7 +2493,7 @@ export interface KanbanTask {
   body?: string | null;
   result?: string | null;
   block_reason?: string | null;
-  /** Preview (~200 chars) do último resumo de execução do worker. */
+  /** Preview (~200 chars) of the worker's latest run summary. */
   latest_summary?: string | null;
   tenant?: string | null;
   created_at?: string | null;

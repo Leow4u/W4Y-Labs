@@ -1,18 +1,18 @@
 /**
- * ModePicker — o chip de MODO de permissões do composer (benchmark Claude
- * Code, decisão 09/07: só o que é NATIVO):
+ * ModePicker — the composer's permissions MODE chip (benchmark Claude Code,
+ * decision 09/07: only what is NATIVE):
  *
- *   Manual (1)              → approvals.mode = "manual"   (config global)
- *   Auto (2)                → approvals.mode = "smart"    (config global)
- *   Ignorar permissões (3)  → yolo POR SESSÃO (RPC config.set key=yolo
- *                             scope=session — o Shift+Tab do TUI; nunca toca
- *                             global/cron). Visível pro cliente final
- *                             (decisão: "pessoal quer trabalhar sem
- *                             interrupções"), com confirmação em 2 toques.
+ *   Manual (1)              → approvals.mode = "manual"   (global config)
+ *   Auto (2)                → approvals.mode = "smart"    (global config)
+ *   Ignore permissions (3)  → PER-SESSION yolo (RPC config.set key=yolo
+ *                             scope=session — the TUI's Shift+Tab; never
+ *                             touches global/cron). Visible to the end
+ *                             customer (decision: "pessoal quer trabalhar sem
+ *                             interrupções"), with a 2-tap confirmation.
  *
- * Estado lido de: liveInfo.yolo (session.info, EFETIVO) + approvals.mode
- * (GET /api/config). "Aceitar edições"/"Plano" do Claude ficaram FORA do v1
- * (sem equivalente nativo — não inventamos backend).
+ * State read from: liveInfo.yolo (session.info, EFFECTIVE) + approvals.mode
+ * (GET /api/config). Claude's "Aceitar edições"/"Plano" were left OUT of v1
+ * (no native equivalent — we don't invent backend).
  */
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, ShieldCheck, Zap } from "lucide-react";
@@ -28,9 +28,9 @@ export function ModePicker({
   onSetApprovalsMode,
   onSetSessionYolo,
 }: {
-  /** approvals.mode global atual (manual|smart). */
+  /** Current global approvals.mode (manual|smart). */
   approvalsMode: ApprovalsMode;
-  /** Bypass EFETIVO da sessão (liveInfo.yolo do session.info). */
+  /** The session's EFFECTIVE bypass (liveInfo.yolo from session.info). */
   yoloLive: boolean;
   onSetApprovalsMode: (m: ApprovalsMode) => void;
   onSetSessionYolo: (on: boolean) => void;
@@ -61,14 +61,14 @@ export function ModePicker({
       setArmedYolo(false);
       onSetSessionYolo(true);
     } else {
-      // Sair do yolo da sessão ao escolher um modo com perguntas.
+      // Leave the session's yolo when picking a mode that asks.
       if (yoloLive) onSetSessionYolo(false);
       onSetApprovalsMode(m);
     }
     setOpen(false);
   };
 
-  // Atalhos 1/2/3 com o popover aberto (padrão Claude).
+  // 1/2/3 shortcuts with the popover open (Claude pattern).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {

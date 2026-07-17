@@ -24,10 +24,10 @@ export function timeAgo(ts: number): string {
   return `${Math.floor(delta / 86400)}d ago`;
 }
 
-/** Idade compacta LOCALIZADA ("agora"/"43m"/"2h"/"3d") — o formato curto do
- *  produto (chat + sidebar). Recebe os rótulos `chat.age*` do i18n em vez de
- *  importar o hook (função pura, usável fora de componentes). Substitui o
- *  `timeAgo` inglês-hardcoded acima nas superfícies do usuário final. */
+/** LOCALIZED compact age ("agora"/"43m"/"2h"/"3d") — the product's short
+ *  format (chat + sidebar). Takes the `chat.age*` labels from i18n instead of
+ *  importing the hook (pure function, usable outside components). Replaces the
+ *  hardcoded-English `timeAgo` above on end-user surfaces. */
 export function timeAgoShort(
   epochSeconds: number,
   labels: { ageNow: string; ageMin: string; ageHour: string; ageDay: string },

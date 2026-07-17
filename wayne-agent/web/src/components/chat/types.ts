@@ -50,17 +50,17 @@ export interface ChatMessage {
   toolName?: string;
   streaming?: boolean;
   timestamp?: number;
-  /** Imagens anexadas a esta mensagem do usuário (paths relativos ao root de
-   *  arquivos — renderizadas via /api/files/read). Só no turno ao vivo. */
+  /** Images attached to this user message (paths relative to the files root
+   *  — rendered via /api/files/read). Live turn only. */
   images?: string[];
-  /** Raciocínio do modelo (reasoning/thinking) — bloco colapsável no chat.
-   *  Alimentado por reasoning.delta/thinking.delta/reasoning.available e pelo
-   *  `reasoning` do message.complete (paridade com o desktop). */
+  /** Model reasoning (reasoning/thinking) — collapsible block in the chat.
+   *  Fed by reasoning.delta/thinking.delta/reasoning.available and by the
+   *  `reasoning` of message.complete (parity with the desktop). */
   reasoning?: string;
-  /** Turno terminou sem conteúdo por causa de um erro que o gateway sinalizou
-   *  via status.update "❌ ..." (ex.: HTTP 402 do provedor). Nunca guardamos o
-   *  texto cru do provedor (vaza URL/hash da chave) — só a classe do erro, que
-   *  o MessageBubble mapeia para uma mensagem localizada e segura. */
+  /** Turn ended with no content because of an error the gateway signalled
+   *  via status.update "❌ ..." (e.g. provider HTTP 402). We never store the
+   *  provider's raw text (it leaks the key's URL/hash) — only the error class,
+   *  which MessageBubble maps to a localized, safe message. */
   errorKind?: "billing" | "generic";
 }
 
@@ -122,13 +122,13 @@ export function fromSessionMessage(
 }
 
 /**
- * Converte o histórico persistido COSTURANDO os resultados de ferramenta de
- * volta às suas chamadas: cada `role:"tool"` carrega `tool_call_id` — o
- * resultado entra no `ToolCallState` correspondente da mensagem do assistente
- * (como no turno ao vivo) e a mensagem-resultado some da lista. Sem isto, o
- * transcript retomado despeja JSON/traceback cru como texto de conversa
- * (visto ao vivo na curadoria). Tool sem par fica na lista (vira ToolLine
- * avulsa no render).
+ * Converts the persisted history by STITCHING tool results back onto their
+ * calls: every `role:"tool"` carries a `tool_call_id` — the result goes into
+ * the matching `ToolCallState` of the assistant message (as in the live turn)
+ * and the result message disappears from the list. Without this, a resumed
+ * transcript dumps raw JSON/tracebacks as conversation text (seen live during
+ * curation). An unpaired tool stays in the list (becomes a standalone ToolLine
+ * on render).
  */
 export function stitchHistory(messages: SessionMessage[]): ChatMessage[] {
   const out: ChatMessage[] = [];
@@ -140,7 +140,7 @@ export function stitchHistory(messages: SessionMessage[]): ChatMessage[] {
         if (typeof msg.content === "string" && msg.content) {
           call.result = msg.content;
         }
-        return; // costurado — não vira linha própria no transcript
+        return; // stitched — doesn't become its own line in the transcript
       }
     }
     const cm = fromSessionMessage(msg, index);

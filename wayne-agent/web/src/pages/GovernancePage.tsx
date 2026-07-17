@@ -1,11 +1,11 @@
 /**
- * GovernancePage — Governança (módulo Agentes, Onda 3): visão de dona(o) da
- * operação. Uma tabela da equipe com o que importa: modelo de cada agente,
- * custo 30d em CRÉDITOS (nunca US$ — regra de billing), sessões, rotinas e o
- * MODO DE APROVAÇÃO por agente (Human-in-the-Loop): Manual = pede sua
- * confirmação antes de ações sensíveis; Inteligente = só pede nas arriscadas.
- * Persistência: PUT /api/config?profile= deep-merge {approvals:{mode}} —
- * cada agente tem o próprio config.yaml (WAYNE_HOME isolado).
+ * GovernancePage — Governance (Agents module, Onda 3): the operation owner's
+ * view. A team table with what matters: each agent's model, 30d cost in
+ * CREDITS (never US$ — billing rule), sessions, routines and the per-agent
+ * APPROVAL MODE (Human-in-the-Loop): Manual = asks for your confirmation
+ * before sensitive actions; Smart = only asks on the risky ones.
+ * Persistence: PUT /api/config?profile= deep-merge {approvals:{mode}} —
+ * each agent has its own config.yaml (isolated WAYNE_HOME).
  */
 import { useCallback, useEffect, useState } from "react";
 import { Coins, ShieldCheck } from "lucide-react";
@@ -70,7 +70,7 @@ export default function GovernancePage() {
           approval: null,
         }));
         setRows(base);
-        // Enriquecimento em paralelo, linha a linha (a tabela respira).
+        // Parallel enrichment, row by row (the table breathes).
         for (const p of r.profiles) {
           void Promise.all([
             api.getModelInfo(p.name).catch(() => null),
@@ -113,8 +113,8 @@ export default function GovernancePage() {
     async (name: string, mode: ApprovalMode) => {
       setSavingMode(name);
       try {
-        // Deep-merge no config DO agente (config.set RPC é armadilha — sempre
-        // PUT /api/config?profile=, o caminho validado nas Configurações).
+        // Deep-merge into THE agent's config (config.set RPC is a trap — always
+        // PUT /api/config?profile=, the path validated in Settings).
         await api.saveConfig({ approvals: { mode } }, name);
         setRows((prev) =>
           (prev ?? []).map((r) => (r.name === name ? { ...r, approval: mode } : r)),
@@ -157,7 +157,7 @@ export default function GovernancePage() {
                 <th className="px-4 py-3 text-right type-caption font-medium text-muted-foreground">
                   {ag.govColRoutines}
                 </th>
-                {/* A explicação do HITL vive no hover — nada de legenda na tela. */}
+                {/* The HITL explanation lives in the hover — no caption on screen. */}
                 <th
                   className="px-4 py-3 type-caption font-medium text-muted-foreground"
                   title={ag.govHitlNote}

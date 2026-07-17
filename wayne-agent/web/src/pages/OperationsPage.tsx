@@ -1,13 +1,14 @@
 /**
- * OperationsPage — Operações (módulo Agentes, Onda 3): o quadro de tarefas
- * da equipe, CURADO sobre o plugin kanban nativo (/api/plugins/kanban).
+ * OperationsPage — Operations (Agents module, Onda 3): the team's task board,
+ * CURATED on top of the native kanban plugin (/api/plugins/kanban).
  *
- * O board nativo tem 8 estados (triage/todo/scheduled/ready/running/blocked/
- * review/done); a curadoria agrupa em 5 colunas de produto. O fluxo mágico:
- * criar tarefa com um agente responsável e "Colocar pra rodar" (status→ready)
- * — o dispatcher nativo acorda NA HORA e spawna `wayne -p <assignee>` com o
- * WAYNE_HOME do agente (alma/modelo/skills dele). Revisão → "Aprovar" é o
- * Human-in-the-Loop de verdade. Poll leve mantém o quadro vivo.
+ * The native board has 8 states (triage/todo/scheduled/ready/running/blocked/
+ * review/done); the curation groups them into 5 product columns. The magic
+ * flow: create a task with a responsible agent and "Colocar pra rodar"
+ * (status→ready) — the native dispatcher wakes up RIGHT AWAY and spawns
+ * `wayne -p <assignee>` with the agent's WAYNE_HOME (its soul/model/skills).
+ * Review → "Aprovar" is the real Human-in-the-Loop. A light poll keeps the
+ * board alive.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CircleCheck, Plus, Play, ThumbsUp, X } from "lucide-react";
@@ -32,7 +33,7 @@ function monogram(name: string): string {
   return prettify(name).slice(0, 2).toUpperCase();
 }
 
-/** "há quanto tempo" compacto a partir de idade em segundos (só unidades). */
+/** Compact "time ago" from an age in seconds (units only). */
 function ageShort(seconds: number | null | undefined): string {
   if (seconds == null || !Number.isFinite(seconds)) return "";
   if (seconds < 3600) return `${Math.max(1, Math.round(seconds / 60))}m`;
@@ -40,7 +41,7 @@ function ageShort(seconds: number | null | undefined): string {
   return `${Math.round(seconds / 86400)}d`;
 }
 
-/** Curadoria: 8 estados nativos → 5 colunas de produto. */
+/** Curation: 8 native states → 5 product columns. */
 const COLUMN_MAP: Array<{ key: string; statuses: string[] }> = [
   { key: "backlog", statuses: ["triage", "todo", "scheduled"] },
   { key: "queued", statuses: ["ready"] },
@@ -63,7 +64,7 @@ export default function OperationsPage() {
   const [creating, setCreating] = useState(false);
   const [busyTask, setBusyTask] = useState<string | null>(null);
 
-  // Form da nova tarefa.
+  // New task form.
   const [fTitle, setFTitle] = useState("");
   const [fBody, setFBody] = useState("");
   const [fAssignee, setFAssignee] = useState("default");
@@ -92,7 +93,7 @@ export default function OperationsPage() {
       .catch(() => {});
   }, [load]);
 
-  // Poll leve — o quadro é um organismo vivo (workers mudam status sozinhos).
+  // Light poll — the board is a living organism (workers change status on their own).
   const pollRef = useRef<number | null>(null);
   useEffect(() => {
     pollRef.current = window.setInterval(() => {
@@ -103,7 +104,7 @@ export default function OperationsPage() {
     };
   }, [load]);
 
-  // Botão "Nova tarefa" no header da página.
+  // "Nova tarefa" button in the page header.
   useEffect(() => {
     setEnd(
       <Button size="sm" onClick={() => setCreating(true)}>
@@ -257,7 +258,7 @@ export default function OperationsPage() {
                             {ageShort(task.age?.created_age_seconds)}
                           </span>
                         </div>
-                        {/* Ações de fluxo (curadas por coluna). */}
+                        {/* Flow actions (curated per column). */}
                         {(col.key === "backlog" || blocked) && (
                           <Button
                             ghost
@@ -291,7 +292,7 @@ export default function OperationsPage() {
         </div>
       )}
 
-      {/* Modal: nova tarefa pro time. */}
+      {/* Modal: new task for the team. */}
       {creating && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div

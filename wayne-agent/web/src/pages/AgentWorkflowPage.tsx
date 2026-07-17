@@ -1,17 +1,17 @@
 /**
- * AgentWorkflowPage — o workflow interno do agente (Onda 2.5, benchmark
- * Stack AI "Agentic Workflows"): clicar num agente da Equipe abre ESTA
- * página — a estrutura dele como um fluxo LR de nós REAIS:
+ * AgentWorkflowPage — the agent's internal workflow (Onda 2.5, benchmark
+ * Stack AI "Agentic Workflows"): clicking an agent in the Team opens THIS
+ * page — his structure as an LR flow of REAL nodes:
  *
- *   Gatilhos ─┐
- *   Habilidades ─→ Modelo ─→ Canais
- *   MCP ─────┘        └────→ Resultados
+ *   Triggers ─┐
+ *   Skills ─────→ Model ─→ Channels
+ *   MCP ─────┘      └────→ Results
  *
- * O canvas é um CONFIGURADOR/raio-X (decisão de arquitetura): a execução
- * continua LLM-driven (chat/cron/kanban) — nenhum motor de pipeline rígido.
- * Clicar num nó abre o AgentDrawer direto na aba correspondente, onde a
- * edição de verdade acontece (modelo com TODOS os OpenRouter, rotinas cron,
- * toggles de skills...). Rota: /profiles/agent?name=<slug>.
+ * The canvas is a CONFIGURATOR/X-ray (architecture decision): execution stays
+ * LLM-driven (chat/cron/kanban) — no rigid pipeline engine. Clicking a node
+ * opens the AgentDrawer straight at the matching tab, where the real editing
+ * happens (model with ALL of OpenRouter, cron routines, skill toggles...).
+ * Route: /profiles/agent?name=<slug>.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -64,13 +64,13 @@ function monogram(name: string): string {
 }
 
 /* ------------------------------------------------------------------ */
-/* Nó genérico do workflow                                             */
+/* Generic workflow node                                               */
 /* ------------------------------------------------------------------ */
 
 interface WfNodeData {
   title: string;
   icon: "zap" | "bot" | "package" | "plug" | "radio" | "coins";
-  /** Linhas de conteúdo (label curto à esquerda / valor à direita). */
+  /** Content rows (short label on the left / value on the right). */
   lines: Array<{ label: string; value?: string; on?: boolean }>;
   accent?: boolean;
   [key: string]: unknown;
@@ -148,7 +148,7 @@ function layoutLR(nodes: Node[], edges: Edge[]): Node[] {
 }
 
 /* ------------------------------------------------------------------ */
-/* Página                                                              */
+/* Page                                                                */
 /* ------------------------------------------------------------------ */
 
 interface WfData {
@@ -174,6 +174,15 @@ export default function AgentWorkflowPage() {
   const [searchParams] = useSearchParams();
   const name = (searchParams.get("name") ?? "").trim();
   const displayName = prettify(name);
+
+  // "default" is not an agent — it's the installation (the pre-profile
+  // WAYNE_HOME that owns the model/skills/MCP/channels every agent inherits).
+  // The Team stopped listing it, so this X-ray no longer applies to it; reaching
+  // it by URL used to print the raw on-disk name ("Default"). Its real surfaces
+  // are Plugins/Canais, and the raw admin behind ?full=1.
+  useEffect(() => {
+    if (name === "default") navigate("/profiles", { replace: true });
+  }, [name, navigate]);
 
   const [data, setData] = useState<WfData | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
@@ -216,8 +225,8 @@ export default function AgentWorkflowPage() {
         skillsOn: skills.filter((s) => s.enabled).length,
         skillsTotal: skills.length,
         mcpNames: (mcp.servers ?? []).filter((s) => s.enabled).map((s) => s.name),
-        // Só CONFIGURADOS — "enabled" cru inflava o número (15 plataformas
-        // habilitadas por padrão ≠ canais do agente).
+        // Only CONFIGURED ones — raw "enabled" inflated the number (15
+        // platforms enabled by default ≠ the agent's channels).
         channelNames: (msg.platforms ?? []).filter((c) => c.configured).map((c) => c.name),
         routineCount: jobs.length,
         credits30: usage ? usdToCredits(usd) : null,
@@ -261,7 +270,7 @@ export default function AgentWorkflowPage() {
     ? ag.confirmDeleteMessage.replace("{name}", prettify(agentDelete.pendingId))
     : ag.confirmDeleteMessage;
 
-  /* Grafo — nós com os números REAIS do agente. */
+  /* Graph — nodes with the agent's REAL numbers. */
   const { nodes, edges } = useMemo(() => {
     const d = data;
     const n = (
@@ -331,7 +340,7 @@ export default function AgentWorkflowPage() {
     results: "activity",
   };
 
-  // Sem ?name= não há agente — volta pra Equipe (efeito, não durante render).
+  // With no ?name= there is no agent — back to Team (effect, not during render).
   useEffect(() => {
     if (!name) navigate("/profiles", { replace: true });
   }, [name, navigate]);
@@ -341,7 +350,7 @@ export default function AgentWorkflowPage() {
     <div className="flex h-[calc(100dvh-112px)] min-h-[480px] flex-col px-4 py-3">
       <Toast toast={toast} />
 
-      {/* Cabeçalho do funcionário. */}
+      {/* Employee header. */}
       <div className="mb-3 flex items-center gap-3">
         <Link
           to="/profiles"
@@ -404,7 +413,7 @@ export default function AgentWorkflowPage() {
         )}
       </div>
 
-      {/* O workflow (React Flow LR). */}
+      {/* The workflow (React Flow LR). */}
       <div className="w4y-flow min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-background/60">
         <ReactFlow
           nodes={nodes}

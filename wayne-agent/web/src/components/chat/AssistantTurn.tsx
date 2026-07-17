@@ -1,20 +1,20 @@
 /**
- * AssistantTurn — UM turno inteiro do Wayne (Onda 1 do redesign Editorial).
+ * AssistantTurn — ONE whole Wayne turn (Onda 1 of the Editorial redesign).
  *
- * O gateway emite um message.start/complete por RODADA do loop do agente, o
- * que gerava várias bolhas com header "Wayne" repetido no mesmo turno (a
- * maior fonte de poluição visual). Este componente recebe as mensagens
- * assistant CONSECUTIVAS de um turno e as apresenta como UMA unidade:
+ * The gateway emits a message.start/complete per ROUND of the agent loop,
+ * which produced several bubbles with the "Wayne" header repeated within the
+ * same turn (the biggest source of visual clutter). This component takes the
+ * CONSECUTIVE assistant messages of a turn and presents them as ONE unit:
  *
- *   header (1×) → [Atividade] → — Resposta — → prosa serifada
+ *   header (1×) → [Activity] → — Response — → serif prose
  *
- * A ATIVIDADE (bastidor: raciocínio, ferramentas com trilhos ├─/└─, narração,
- * todo ao vivo, status transitório) fica ABERTA enquanto o turno roda —
- * "o cliente vê tudo acontecendo" — e AUTO-RECOLHE ao terminar numa linha
- * "✓ Trabalhou por 1m 32s · 12 ferramentas" (padrão Claude). A RESPOSTA é o
- * texto após a última ferramenta, em Source Serif 4 (.prose-serif) — a voz
- * do Wayne. Modos de detalhe: escondido / recolhido / expandido (persistidos
- * pela página em localStorage), com override por turno no clique.
+ * The ACTIVITY (backstage: reasoning, tools with ├─/└─ rails, narration, live
+ * todo, transient status) stays OPEN while the turn runs — "the client sees
+ * everything happening" — and AUTO-COLLAPSES when it ends into a line
+ * "✓ Trabalhou por 1m 32s · 12 ferramentas" (Claude pattern). The RESPONSE is
+ * the text after the last tool, in Source Serif 4 (.prose-serif) — Wayne's
+ * voice. Detail modes: hidden / collapsed / expanded (persisted by the page in
+ * localStorage), with a per-turn override on click.
  */
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
@@ -42,7 +42,7 @@ import type { ChatMessage, TaskStep, ToolCallState } from "./types";
 
 export type DetailMode = "hidden" | "collapsed" | "expanded";
 
-/* ── modelo interno do turno ─────────────────────────────────────────── */
+/* ── internal turn model ─────────────────────────────────────────────── */
 
 type TurnItem =
   | { kind: "text"; id: string; text: string; streaming: boolean }
@@ -56,12 +56,11 @@ interface TurnSplit {
   hasError: "billing" | "generic" | null;
 }
 
-/** Achata as mensagens do turno em itens ordenados e divide em
- *  atividade (até a última ferramenta, + raciocínios) vs resposta
- *  (texto depois da última ferramenta). Durante o stream a divisão é
- *  recalculada a cada render — texto após a ferramenta mais recente já
- *  nasce como resposta; se outra ferramenta começar, ele "dobra" de
- *  volta pra atividade (vira narração). */
+/** Flattens the turn's messages into ordered items and splits them into
+ *  activity (up to the last tool, + reasonings) vs response (text after
+ *  the last tool). During the stream the split is recomputed on every
+ *  render — text after the most recent tool is born as response; if
+ *  another tool starts, it "folds" back into activity (becomes narration). */
 function splitTurn(messages: ChatMessage[]): TurnSplit {
   const items: TurnItem[] = [];
   let hasError: TurnSplit["hasError"] = null;
@@ -113,7 +112,7 @@ function splitTurn(messages: ChatMessage[]): TurnSplit {
     else if (it.kind === "text") response.push(it);
     else activity.push(it);
   });
-  // O último texto do stream marca streaming pro caret; os anteriores não.
+  // The last text of the stream marks streaming for the caret; earlier ones don't.
   const lastResp = response[response.length - 1];
   response.forEach((r) => {
     if (r !== lastResp) r.streaming = false;
@@ -133,10 +132,10 @@ function fmtDuration(s: number): string {
   return `${m}m ${String(Math.round(s % 60)).padStart(2, "0")}s`;
 }
 
-/* ── blocos visuais ──────────────────────────────────────────────────── */
+/* ── visual blocks ───────────────────────────────────────────────────── */
 
-/** Um trecho de texto do turno: markdown + cartões de arquivo dedupe-ados
- *  (o extract também LIMPA os tokens MEDIA:/@session: do texto). */
+/** A chunk of the turn's text: markdown + deduped file cards (the extract
+ *  also STRIPS the MEDIA:/@session: tokens from the text). */
 function TextWithFiles({
   id,
   text,
@@ -179,7 +178,7 @@ function TextWithFiles({
   );
 }
 
-/** Prosa serifada da resposta. */
+/** The response's serif prose. */
 function ResponseProse({
   parts,
   seen,
@@ -196,7 +195,7 @@ function ResponseProse({
   );
 }
 
-/** Raciocínio: shimmer "Pensando…" enquanto vivo; recolhido depois. */
+/** Reasoning: "Pensando…" shimmer while live; collapsed afterwards. */
 function ReasoningItem({ text, live }: { text: string; live: boolean }) {
   const { t } = useI18n();
   const [open, setOpen] = useState<boolean | null>(null);
@@ -229,8 +228,8 @@ function ReasoningItem({ text, live }: { text: string; live: boolean }) {
   );
 }
 
-/** Checklist de tarefas AO VIVO do turno (o antigo painel do composer,
- *  agora dentro da atividade — onde o trabalho acontece). */
+/** The turn's LIVE task checklist (the old composer panel, now inside the
+ *  activity — where the work happens). */
 function TodoChecklist({ steps }: { steps: TaskStep[] }) {
   if (steps.length === 0) return null;
   return (
@@ -263,7 +262,7 @@ function TodoChecklist({ steps }: { steps: TaskStep[] }) {
   );
 }
 
-/* ── o componente ────────────────────────────────────────────────────── */
+/* ── the component ───────────────────────────────────────────────────── */
 
 export function AssistantTurn({
   messages,
@@ -277,15 +276,15 @@ export function AssistantTurn({
   onRegenerate,
   onBranch,
 }: {
-  /** Mensagens assistant CONSECUTIVAS deste turno, em ordem. */
+  /** CONSECUTIVE assistant messages of this turn, in order. */
   messages: ChatMessage[];
   isLast?: boolean;
   busy?: boolean;
   detailMode: DetailMode;
   onDetailModeChange?: (m: DetailMode) => void;
-  /** Todo AO VIVO (só o turno ativo recebe). */
+  /** LIVE todo (only the active turn receives it). */
   steps?: TaskStep[];
-  /** Linha de status transitória ("analisando o resultado…"). */
+  /** Transient status line ("analisando o resultado…"). */
   statusText?: string | null;
   onCopy?: (text: string) => void;
   onRegenerate?: () => void;
@@ -297,8 +296,8 @@ export function AssistantTurn({
   const hasActivity = activity.length > 0 || (streaming && steps.length > 0);
   const hasResponse = response.length > 0;
 
-  // Relógio do turno (client-side): começa no primeiro render em streaming,
-  // congela quando o turno termina. Turnos históricos ficam sem duração.
+  // Turn clock (client-side): starts on the first streaming render, freezes
+  // when the turn ends. Historical turns end up with no duration.
   const startedRef = useRef<number | null>(null);
   const [durationS, setDurationS] = useState<number | null>(null);
   const [, forceTick] = useState(0);
@@ -314,7 +313,7 @@ export function AssistantTurn({
     return () => clearInterval(id);
   }, [streaming]);
 
-  // Modo de detalhe: override por turno (clique) vence o padrão global.
+  // Detail mode: the per-turn override (click) beats the global default.
   const [userOpen, setUserOpen] = useState<boolean | null>(null);
   const [modeMenu, setModeMenu] = useState(false);
   useMenuDismiss(modeMenu, () => setModeMenu(false), "turn-eye");
@@ -322,7 +321,7 @@ export function AssistantTurn({
     streaming || (userOpen ?? (detailMode === "expanded" ? true : false));
   const showActivity = hasActivity && (detailMode !== "hidden" || userOpen === true);
 
-  // Copiar = a resposta (ou tudo, se não houver resposta destacada).
+  // Copy = the response (or everything, if there is no separated response).
   const copyText =
     response.map((r) => r.text).join("\n\n") ||
     messages.map((m) => m.content ?? "").filter(Boolean).join("\n\n");
@@ -333,7 +332,7 @@ export function AssistantTurn({
     durationS ??
     (startedRef.current != null ? (Date.now() - startedRef.current) / 1000 : null);
 
-  // Trilhos ├─/└─: índice da última ferramenta pra fechar a árvore.
+  // ├─/└─ rails: index of the last tool so we can close the tree.
   const toolIdxs = activity
     .map((it, i) => (it.kind === "tool" ? i : -1))
     .filter((i) => i >= 0);
@@ -369,8 +368,8 @@ export function AssistantTurn({
   if (showActivity) {
     body = (
       <div className="mb-1 mt-1.5">
-        {/* Linha-resumo: alterna recolhido/expandido; à direita, o seletor
-            de modo (escondido/recolhido/expandido) aparece no hover. */}
+        {/* Summary line: toggles collapsed/expanded; on the right, the mode
+            selector (hidden/collapsed/expanded) shows on hover. */}
         <div className="group/summary relative -mx-2 flex items-center gap-2 rounded-lg px-2 py-1.5 transition-colors hover:bg-muted/50">
           <button
             type="button"
@@ -463,20 +462,20 @@ export function AssistantTurn({
 
   return (
     <div className="group/turn chat-msg-in min-w-0">
-      {/* SEM header (feedback 09/07): como no claude.ai, a resposta do
-          assistente simplesmente começa — o cliente já sabe o modelo (ele
-          escolheu o tier no composer). As ações moram no RODAPÉ, no hover. */}
+      {/* NO header (09/07 feedback): as in claude.ai, the assistant's response
+          simply starts — the client already knows the model (they picked the
+          tier in the composer). The actions live in the FOOTER, on hover. */}
       {body}
 
-      {/* Separação bastidor ↔ resposta é ESPACIAL (padrão Claude/desktop),
-          sem linha rotulada. */}
+      {/* The backstage ↔ response separation is SPATIAL (Claude/desktop
+          pattern), with no labeled line. */}
       {hasResponse && (
         <div className={showActivity ? "mt-3" : undefined}>
           <ResponseProse parts={response} seen={seenFiles} />
         </div>
       )}
 
-      {/* Estados vazios/erro do turno. */}
+      {/* Empty/error states of the turn. */}
       {!hasResponse && streaming && !hasActivity && (
         <span className="text-shimmer type-ui font-medium">{t.chat.thinking}…</span>
       )}
@@ -494,8 +493,8 @@ export function AssistantTurn({
         <span className="type-ui italic text-muted-foreground">{t.chat.noResponse}</span>
       )}
 
-      {/* Rodapé de ações — estilo claude.ai: iconezinhos sob a resposta,
-          revelados no hover do turno. */}
+      {/* Actions footer — claude.ai style: small icons under the response,
+          revealed on turn hover. */}
       {!streaming && (hasResponse || hasActivity) && (
         <div className="mt-2 flex items-center gap-0.5 opacity-0 transition-opacity focus-within:opacity-100 group-hover/turn:opacity-100">
           <button

@@ -1,14 +1,14 @@
 /**
- * agent-templates — o catálogo de agentes PRÉ-CONFIGURADOS do Início rápido
- * (Onda 1; benchmark: galeria "Explorar modelos" do Claude Console, com os
- * badges "Recurring"). Diferencial de produto: plug-and-play — um clique
- * preenche o rascunho (nome, especialidade, alma, modelo, rotinas) e o
- * usuário só revisa e cria.
+ * agent-templates — the catalog of PRE-CONFIGURED agents for "Início rápido"
+ * (Onda 1; benchmark: the "Explorar modelos" gallery of the Claude Console,
+ * with the "Recurring" badges). Product differentiator: plug-and-play — one
+ * click fills in the draft (name, specialty, soul, model, routines) and the
+ * user just reviews and creates.
  *
- * CONTEÚDO de produto em pt-BR (como os subtítulos dos tiers) — o chrome da
- * UI é que vai ao i18n ×16. `premium: true` = gating do plano intermediário
- * (mesma regra do TierPicker: plano null/desconhecido = liberado; o cadeado
- * acende quando a casca informar um plano básico).
+ * Product CONTENT in pt-BR (like the tier subtitles) — it's the UI chrome
+ * that goes to i18n ×16. `premium: true` = gating for the intermediate plan
+ * (same rule as TierPicker: null/unknown plan = unlocked; the padlock lights
+ * up once the shell reports a basic plan).
  */
 import type { AgentDraft } from "@/lib/agent-draft";
 import { DEFAULT_SCHEDULE_STATE } from "@/lib/schedule";
@@ -16,7 +16,7 @@ import { DEFAULT_SCHEDULE_STATE } from "@/lib/schedule";
 export interface AgentTemplate {
   key: string;
   emoji: string;
-  /** Tem ao menos uma rotina pré-agendada → badge "Recorrente" no card. */
+  /** Has at least one pre-scheduled routine → "Recorrente" badge on the card. */
   recurring: boolean;
   premium: boolean;
   draft: AgentDraft;

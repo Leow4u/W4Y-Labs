@@ -12,6 +12,7 @@ const NAV = [
   { href: "/clientes", label: "Clientes" },
   { href: "/precos", label: "Preços" },
   { href: "/recursos", label: "Recursos", caret: true },
+  { href: "/baixar", label: "Baixar" },
 ];
 
 export default async function PublicHeader() {

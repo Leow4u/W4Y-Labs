@@ -1,9 +1,9 @@
 /**
- * JourneyPage — a jornada de aprendizado do Wayne (Onda 6; papel do /journey
- * do TUI e do starmap do desktop, na linguagem Editorial). Linha do tempo do
- * que o agente aprendeu — habilidades adquiridas e memórias — agrupada por
- * dia, com detalhe, edição e remoção sobre os MESMOS endpoints REST que o
- * desktop usa (/api/learning/graph|node).
+ * JourneyPage — Wayne's learning journey (Onda 6; the role of the TUI's
+ * /journey and the desktop's starmap, in the Editorial language). A timeline of
+ * what the agent has learned — acquired skills and memories — grouped by day,
+ * with detail, editing and removal over the SAME REST endpoints the desktop
+ * uses (/api/learning/graph|node).
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Package, Pencil, StickyNote, Trash2, X } from "lucide-react";

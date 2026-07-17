@@ -1,10 +1,10 @@
 /**
- * Ideias de partida pro modal de novo projeto — os chips preenchem o campo
- * "Ideia" (salvo em IDEA.md na criação). Ported de
- * apps/desktop/src/lib/project-idea-templates.ts (mesma lista, 18 itens,
- * mesmos emojis), traduzido pra PT-BR. É conteúdo-semente (fixture), não
- * chrome de UI — por isso só em PT, ao contrário dos rótulos do modal que
- * seguem os 16 idiomas como sempre.
+ * Starter ideas for the new-project modal — the chips fill the "Ideia" field
+ * (saved to IDEA.md on creation). Ported from
+ * apps/desktop/src/lib/project-idea-templates.ts (same list, 18 items, same
+ * emojis), translated to PT-BR. This is seed content (fixture), not UI
+ * chrome — hence PT only, unlike the modal's labels, which follow the 16
+ * languages as always.
  */
 export interface ProjectIdeaTemplate {
   emoji: string;
@@ -33,7 +33,7 @@ export const PROJECT_IDEA_TEMPLATES: ProjectIdeaTemplate[] = [
   { emoji: "🔭", label: "Aprender fazendo", idea: "Um projeto pra aprender algo que venho evitando.\n\n- A menor coisa real que ensina aquilo\n- Notas de cada pegadinha\n- Um relato quando funcionar" },
 ];
 
-/** Uma amostra embaralhada do pool — os chips mostrados no momento. */
+/** A shuffled sample of the pool — the chips currently shown. */
 export function randomIdeaTemplates(count = 6): ProjectIdeaTemplate[] {
   const pool = [...PROJECT_IDEA_TEMPLATES];
   for (let i = pool.length - 1; i > 0; i--) {

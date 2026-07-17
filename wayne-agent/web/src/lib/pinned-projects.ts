@@ -1,9 +1,9 @@
 /**
- * "Fixar projeto" — mesmo padrão client-side do pin de sessões
- * (lib/pinned-sessions.ts, espelho do desktop): array de slugs no
- * localStorage + pub-sub leve. O banco de projetos do gateway (projects.*)
- * não tem campo "pinned" — fixar é preferência do dispositivo, não estado
- * do servidor.
+ * "Fixar projeto" — same client-side pattern as the session pin
+ * (lib/pinned-sessions.ts, mirror of the desktop): an array of slugs in
+ * localStorage + a light pub-sub. The gateway's project store (projects.*)
+ * has no "pinned" field — pinning is a device preference, not server
+ * state.
  */
 const STORAGE_KEY = "wayne:pinned-projects:v1";
 
@@ -21,7 +21,7 @@ function write(slugs: string[]) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(slugs));
   } catch {
-    /* localStorage indisponível — pin vira no-op, sem crash */
+    /* localStorage unavailable — pin becomes a no-op, no crash */
   }
 }
 

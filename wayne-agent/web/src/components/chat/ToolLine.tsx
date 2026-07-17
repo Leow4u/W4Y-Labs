@@ -1,9 +1,9 @@
 /**
- * ToolLine — uma ação do agente como o Manus mostra: linha fina com ícone
- * (encaixotado) por categoria, verbo em linguagem natural e o alvo técnico em
- * mono, pulsando enquanto roda. Clique expande o detalhe (args/resultado/erro/
- * diff/duração). Substitui o chip agrupado (ToolCallGroup) no chat nativo; a
- * tela de Sessões continua com o visual "review" próprio.
+ * ToolLine — an agent action the way Manus shows it: thin row with a (boxed)
+ * icon per category, the verb in natural language and the technical target in
+ * mono, pulsing while it runs. Clicking expands the detail (args/result/error/
+ * diff/duration). Replaces the grouped chip (ToolCallGroup) in the native chat;
+ * the Sessions screen keeps its own "review" look.
  */
 import { useState } from "react";
 import {
@@ -31,12 +31,12 @@ import type { ToolCallState } from "./types";
 interface ToolFace {
   Icon: LucideIcon;
   verb: string;
-  /** Alvo curto em mono (comando, arquivo, url…) — 1ª linha do argsPreview. */
+  /** Short target in mono (command, file, url…) — 1st line of argsPreview. */
   target?: string;
 }
 
 const CATEGORIES: Array<{ re: RegExp; Icon: LucideIcon; key: keyof Translations["chat"] }> = [
-  // Conectores (Composio): manage_connections / auth / oauth → "Conectando".
+  // Connectors (Composio): manage_connections / auth / oauth → "Conectando".
   { re: /manage_connection|connect_account|\boauth\b|authorize_connection/, Icon: Plug, key: "toolConnect" },
   { re: /terminal|bash|shell|exec|command|process|script/, Icon: SquareTerminal, key: "toolRun" },
   { re: /write|edit|replace|patch|apply|save|create_file|mkdir|move|copy|delete/, Icon: FilePenLine, key: "toolEdit" },
@@ -48,9 +48,9 @@ const CATEGORIES: Array<{ re: RegExp; Icon: LucideIcon; key: keyof Translations[
   { re: /image|photo|draw|paint|vision|media|video|audio|voice|tts/, Icon: ImageIcon, key: "toolImage" },
 ];
 
-// O context do gateway costuma abrir com um gerúndio em inglês ("Running
-// code …", "Reading skill …") que repete o verbo já traduzido da linha —
-// limpa o prefixo redundante e deixa só o alvo.
+// The gateway context usually opens with an English gerund ("Running
+// code …", "Reading skill …") that repeats the row's already-translated verb —
+// strip the redundant prefix and keep only the target.
 const REDUNDANT_PREFIX_RE =
   /^(?:running code|running|executing|reading|listing|writing|loading)\b[:#\s]*/i;
 
@@ -62,14 +62,26 @@ function firstLine(s: string | undefined, max = 88): string | undefined {
   return trimmed.length > max ? `${trimmed.slice(0, max)}…` : trimmed;
 }
 
-/** Nunca vazar nome técnico cru pra conversa (Onda 1): `mcp__server__acao`
- *  vira "acao" legível; underscores viram espaço; o placeholder literal
- *  "tool" (mensagem órfã sem nome) some. */
+/** Never leak the raw technical name into the conversation (Onda 1):
+ *  `mcp__server__acao` becomes a readable "acao"; underscores become spaces;
+ *  the literal "tool" placeholder (orphan message with no name) disappears. */
 function prettifyToolName(name: string): string | undefined {
   if (!name || name === "tool") return undefined;
   const last = name.includes("__") ? name.split("__").filter(Boolean).pop()! : name;
   const cleaned = last.replace(/[_-]+/g, " ").trim();
   return cleaned || undefined;
+}
+
+/** True when a tool name denotes fetching EXTERNAL / internet context — reuses
+ *  the SAME `toolWeb` category the row icon uses (browser / web / fetch / http /
+ *  navigate / download …), so there is a single source of truth. The dock's
+ *  "Fontes" shows an "Internet" chip when this fires. The `toolSearch` category
+ *  is deliberately NOT included: it also matches LOCAL search (grep / glob /
+ *  session_search), which is not external — and the real web tools
+ *  (web_search / web_extract / browser_*) all carry a web token anyway. */
+export function isWebSourceTool(name: string): boolean {
+  const web = CATEGORIES.find((c) => c.key === "toolWeb");
+  return web ? web.re.test(name.toLowerCase()) : false;
 }
 
 export function toolFace(tc: ToolCallState, t: Translations): ToolFace {
@@ -83,9 +95,9 @@ export function toolFace(tc: ToolCallState, t: Translations): ToolFace {
   };
 }
 
-/** Status curto e humano pro evento `tool.generating` — nunca o nome técnico
- *  cru (ex.: mcp_composio_COMPOSIO_SEARCH_TOOLS). Reusa o verbo amigável do
- *  toolFace (já traduzido nos 16 idiomas). */
+/** Short, human status for the `tool.generating` event — never the raw
+ *  technical name (e.g. mcp_composio_COMPOSIO_SEARCH_TOOLS). Reuses toolFace's
+ *  friendly verb (already translated in the 16 languages). */
 export function toolGeneratingLabel(name: string, t: Translations): string {
   const { verb } = toolFace({ id: "", name, status: "running" } as ToolCallState, t);
   return `${verb}…`;
@@ -97,13 +109,13 @@ function fmtDuration(s: number): string {
   return `${m}m ${Math.round(s % 60)}s`;
 }
 
-// Tira códigos de escape ANSI (cores do terminal) do texto — senão aparece
-// "[0m[32m" cru no resultado (paridade: ansi-text do desktop, sem cores).
+// Strips ANSI escape codes (terminal colors) from the text — otherwise raw
+// "[0m[32m" shows up in the result (parity: desktop's ansi-text, without colors).
 // eslint-disable-next-line no-control-regex
 const ANSI_RE = /\[[0-9;]*m/g;
 const stripAnsi = (s: string) => s.replace(ANSI_RE, "");
 
-/** Diff unificado colorido + cabeçalho +N/−M (paridade: FileDiffPanel). */
+/** Colored unified diff + +N/−M header (parity: FileDiffPanel). */
 export function DiffView({ diff }: { diff: string }) {
   const lines = diff.split("\n");
   let added = 0;
@@ -145,7 +157,7 @@ export function DiffView({ diff }: { diff: string }) {
   );
 }
 
-/** Botãozinho de copiar (canto do painel de detalhe). */
+/** Little copy button (corner of the detail panel). */
 function CopyIconButton({ text, label }: { text: string; label: string }) {
   const [copied, setCopied] = useState(false);
   return (
@@ -172,7 +184,7 @@ export function ToolLine({
   rail,
 }: {
   tool: ToolCallState;
-  /** Trilho de árvore ("├─" | "└─") — prefixo mono do bloco de atividade. */
+  /** Tree rail ("├─" | "└─") — mono prefix of the activity block. */
   rail?: string;
 }) {
   const { t } = useI18n();

@@ -1,12 +1,12 @@
 /**
- * ChatSessionList — a coluna "Tarefas" do chat nativo, no desenho do
- * benchmark (Manus): "Nova tarefa" como item no topo, lista de conversas em
- * linhas de UMA linha (ícone + título truncado), item ativo numa pill
- * discreta, e um spinner azul no item ativo enquanto o agente trabalha.
+ * ChatSessionList — the "Tarefas" column of the native chat, in the design of
+ * the benchmark (Manus): "Nova tarefa" as the item on top, conversation list
+ * in SINGLE-line rows (icon + truncated title), active item in a discreet
+ * pill, and a blue spinner on the active item while the agent works.
  *
- * Continua sendo uma superfície de NAVEGAÇÃO (selecionar / criar) — gestão de
- * sessões (renomear, excluir, exportar) vive na página de Sessões. Selecionar
- * uma linha seta `/chat?resume=<id>`; "Nova tarefa" limpa o resume.
+ * It remains a NAVIGATION surface (select / create) — session management
+ * (rename, delete, export) lives on the Sessões page. Picking a row sets
+ * `/chat?resume=<id>`; "Nova tarefa" clears the resume.
  */
 
 import { Button } from "@nous-research/ui/ui/components/button";
@@ -32,7 +32,7 @@ interface ChatSessionListProps {
   /** Management profile from the dashboard switcher — scopes the listing. */
   profile?: string;
   className?: string;
-  /** Turno rodando na sessão ativa → spinner azul no item (como o Manus). */
+  /** Turn running in the active session → blue spinner on the item (like Manus). */
   activeBusy?: boolean;
   /** Optional callback fired after a row is picked (e.g. close mobile sheet). */
   onPicked?: () => void;

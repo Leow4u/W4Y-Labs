@@ -93,6 +93,7 @@ import AgentsPage from "@/pages/AgentsPage";
 import JourneyPage from "@/pages/JourneyPage";
 import SkillsPage from "@/pages/SkillsPage";
 import PluginsPage from "@/pages/PluginsPage";
+import PluginsHub from "@/pages/PluginsHub";
 import McpPage from "@/pages/McpPage";
 import ConnectorsPage from "@/pages/ConnectorsPage";
 import PairingPage from "@/pages/PairingPage";
@@ -104,17 +105,27 @@ import ConfigUser from "@/components/ConfigUser";
 import { SettingsOverlay, isFullConfigRequested } from "@/components/SettingsOverlay";
 import { useI18n } from "@/i18n";
 
-// Rota /config (deep-link): tela enxuta do usuário por padrão; a técnica
-// completa fica atrás da escotilha interna `?full=1` (nós/suporte).
+// /config route (deep-link): the user's lean screen by default; the full
+// technical one lives behind the internal `?full=1` hatch (us/support).
 function ConfigRoute() {
   return isFullConfigRequested() ? <ConfigPage /> : <ConfigUser />;
 }
 
-// Rota /profiles (curadoria de produto): o usuário final vê a galeria de
-// Agentes; a admin de perfis (wizard de 5 passos, modelo cru, skills, MCP,
-// gateway) fica atrás da escotilha interna `?full=1` — mesmo padrão do Config.
+// /profiles route (product curation): the end user sees the Agents gallery;
+// the profiles admin (5-step wizard, raw model, skills, MCP, gateway) lives
+// behind the internal `?full=1` hatch — same pattern as Config.
 function ProfilesRoute() {
   return isFullConfigRequested() ? <ProfilesPage /> : <AgentsPage />;
+}
+
+// /plugins route (product curation): the end user sees the unified HUB
+// (Connectors + Skills, Manus style — PluginsHub); the technical plugins
+// console (install repo, providers, remove) lives behind the `?full=1` hatch
+// (PluginsPage). Same split as Config/Agents/Connectors — it solves the name
+// collision with no new path (the user on /plugins sees the hub,
+// /plugins?full=1 the admin).
+function PluginsRoute() {
+  return isFullConfigRequested() ? <PluginsPage /> : <PluginsHub />;
 }
 import type { Translations } from "@/i18n/types";
 import { PluginPage, PluginSlot, usePlugins } from "@/plugins";
@@ -125,7 +136,7 @@ import { api } from "@/lib/api";
 import type { StatusResponse, UpdateCheckResponse } from "@/lib/api";
 
 function RootRedirect() {
-  // Entrada do produto = o chat (Nova tarefa). Sessões virou técnica (?full=1).
+  // Product entry point = the chat (Nova tarefa). Sessions became technical (?full=1).
   return <Navigate to="/chat" replace />;
 }
 
@@ -137,11 +148,12 @@ function UnknownRouteFallback({ pluginsLoading }: { pluginsLoading: boolean }) {
   return <Navigate to="/chat" replace />;
 }
 
-// "Nova tarefa" (curadoria estilo Manus): o item de nav do chat É o gesto de
-// começar uma tarefa nova — SEMPRE. O link carrega o gatilho ?new=1: o
-// NativeChatPage o consome (limpa resume/project e força uma sessão fresca),
-// então clicar aqui abre chat novo mesmo voltando de outra página ou já
-// estando numa conversa. O histórico vive na seção Tarefas da sidebar.
+// "Nova tarefa" (Manus-style curation): the chat's nav item IS the gesture of
+// starting a new task — ALWAYS. The link carries the ?new=1 trigger: the
+// NativeChatPage consumes it (clears resume/project and forces a fresh
+// session), so clicking here opens a new chat even when coming back from
+// another page or already inside a conversation. History lives in the sidebar's
+// Tasks section.
 const CHAT_NAV_ITEM: NavItem = {
   path: "/chat",
   to: "/chat?new=1",
@@ -168,7 +180,7 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/logs": LogsPage,
   "/cron": CronPage,
   "/skills": SkillsPage,
-  "/plugins": PluginsPage,
+  "/plugins": PluginsRoute,
   "/mcp": ConnectorsRoute,
   "/pairing": PairingPage,
   "/channels": ChannelsPage,
@@ -227,7 +239,7 @@ const BUILTIN_NAV_REST: NavItem[] = [
     labelKey: "profiles",
     label: "Agents",
     icon: Bot,
-    // Submódulos do módulo Agentes (dropdown estilo Claude Console).
+    // Submodules of the Agents module (Claude Console-style dropdown).
     children: [
       { path: "/profiles/quickstart", getLabel: (tt) => tt.agents.quickTab },
       { path: "/profiles", end: true, getLabel: (tt) => tt.agents.teamTab },
@@ -235,8 +247,8 @@ const BUILTIN_NAV_REST: NavItem[] = [
       { path: "/profiles/governance", getLabel: (tt) => tt.agents.govTab },
     ],
   },
-  // Config saiu da navegação principal — agora abre pelo menu do chip do
-  // usuário, como overlay (rota /config segue existindo para deep-links).
+  // Config left the main navigation — it now opens from the user chip's menu,
+  // as an overlay (the /config route still exists for deep-links).
   { path: "/env", labelKey: "keys", label: "Keys", icon: KeyRound },
   { path: "/system", label: "System", icon: Wrench },
   {
@@ -247,29 +259,33 @@ const BUILTIN_NAV_REST: NavItem[] = [
   },
 ];
 
-// Curadoria (frontend de produto): a navegação do USUÁRIO é curta e focada —
-// só as telas com coração de produto. A visão técnica/admin completa (todas as
-// telas: Analytics, Models, Logs, Plugins, MCP, Webhooks, Pairing, Profiles,
-// Keys, System, Docs) aparece atrás da escotilha interna `?full=1` — o mesmo
-// mecanismo já usado por Config (ConfigUser↔ConfigPage) e Skills (featured↔full).
-// As rotas continuam todas montadas (deep-link admin); só o item de nav some.
+// Curation (product frontend): the USER's navigation is short and focused —
+// only the screens with a product heart. The full technical/admin view (every
+// screen: Analytics, Models, Logs, Plugins, MCP, Webhooks, Pairing, Profiles,
+// Keys, System, Docs) shows up behind the internal `?full=1` hatch — the same
+// mechanism already used by Config (ConfigUser↔ConfigPage) and Skills
+// (featured↔full). All routes stay mounted (admin deep-link); only the nav item
+// disappears.
 const USER_NAV_PATHS = new Set<string>([
   "/chat",
-  // /sessions saiu da nav do usuário: a sidebar "Tarefas" (SidebarTasks) já é o
-  // ponto user-facing das conversas (mesma /api/sessions, curada). Sessões vira
-  // superfície técnica/admin atrás do ?full=1 (plataformas, modelos, cron,
-  // vazias). A rota segue montada p/ deep-link e ações de admin.
+  // /sessions left the user nav: the "Tarefas" sidebar (SidebarTasks) is already
+  // the user-facing point for conversations (same /api/sessions, curated).
+  // Sessions becomes a technical/admin surface behind ?full=1 (platforms, models,
+  // cron, empty ones). The route stays mounted for deep-link and admin actions.
   "/files",
   "/cron",
-  "/skills",
-  "/mcp",
+  // Manus-style merge: Skills (/skills) and Connectors (/mcp) LEFT the user nav
+  // — they became ONE single hub, "Plugins" (/plugins → PluginsHub). The /skills
+  // and /mcp routes stay mounted (deep-link + ?full=1 admin); only the nav item
+  // disappears. The technical plugins console lives at /plugins?full=1 (PluginsPage).
+  "/plugins",
   "/channels",
   "/profiles",
 ]);
 
-// Conectores: o usuário vê o MARKETPLACE (ponte Composio); a tela técnica de
-// MCP (servers manuais + catálogo Nous) segue atrás do ?full=1 — mesmo padrão
-// Config/Skills. Function declaration (hoisted) p/ o mapa de rotas acima.
+// Connectors: the user sees the MARKETPLACE (Composio bridge); the technical MCP
+// screen (manual servers + Nous catalog) stays behind ?full=1 — same
+// Config/Skills pattern. Function declaration (hoisted) for the route map above.
 function ConnectorsRoute() {
   return isFullConfigRequested() ? <McpPage /> : <ConnectorsPage />;
 }
@@ -427,9 +443,9 @@ export default function App() {
   const { theme } = useTheme();
   const [mobileOpen, setMobileOpen] = useState(false);
   const closeMobile = useCallback(() => setMobileOpen(false), []);
-  // Overlay de Configuração (aberto pelo menu do chip do usuário). Fica no
-  // App para que o SettingsOverlay renderize dentro do PageHeaderProvider
-  // (a ConfigPage usa usePageHeader) e a trigger viva na sidebar.
+  // Settings overlay (opened from the user chip's menu). It lives in the App so
+  // the SettingsOverlay renders inside the PageHeaderProvider (ConfigPage uses
+  // usePageHeader) and the trigger lives in the sidebar.
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   const [collapsed, setCollapsed] = useState(() => {
@@ -504,9 +520,9 @@ export default function App() {
     [embeddedChat],
   );
 
-  // Escotilha interna (?full=1) revela a navegação técnica/admin completa —
-  // reusa o mesmo gate de Config/Skills. Sem ela, a sidebar mostra só a nav
-  // curada de produto (USER_NAV_PATHS).
+  // The internal hatch (?full=1) reveals the full technical/admin navigation —
+  // reuses the same Config/Skills gate. Without it, the sidebar shows only the
+  // curated product nav (USER_NAV_PATHS).
   const internalView = isFullConfigRequested();
 
   const builtinNav = useMemo(() => {
@@ -663,7 +679,7 @@ export default function App() {
               >
                 <PluginSlot name="header-left" />
 
-                {/* Logo Work4You — lockup oficial da marca (ícone + wordmark IBM Plex Mono). */}
+                {/* Work4You logo — official brand lockup (icon + IBM Plex Mono wordmark). */}
                 <img
                   src="/brand/work4you-favicon.svg"
                   alt={t.app.brand}
@@ -729,9 +745,9 @@ export default function App() {
                 )}
               </ul>
 
-              {/* Histórico de Tarefas/Sessões na sidebar global (estilo
-                  Manus) — lista real de /api/sessions com filtro + ações.
-                  Some quando a sidebar colapsa em ícones. */}
+              {/* Tasks/Sessions history in the global sidebar (Manus style) —
+                  the real /api/sessions list with filter + actions. It
+                  disappears when the sidebar collapses to icons. */}
               {embeddedChat && (
                 <SidebarTasks
                   collapsed={isDesktopCollapsed}
@@ -772,10 +788,10 @@ export default function App() {
               )}
             </nav>
 
-            {/* Bloco "Sistema" (estado do gateway / Reiniciar gateway)
-                OCULTADO do usuário final — é controle de OPERAÇÃO (nós
-                operamos a plataforma). Preservado atrás de `false &&` para
-                uma visão de admin futura (mantém o código referenciado). */}
+            {/* "Sistema" block (gateway state / Restart gateway) HIDDEN from the
+                end user — it is an OPERATIONS control (we operate the platform).
+                Kept behind `false &&` for a future admin view (keeps the code
+                referenced). */}
             {false && (
               <>
                 <SidebarSystemActions
@@ -790,9 +806,9 @@ export default function App() {
               </>
             )}
 
-            {/* Slot de plugins do rodapé preservado. Tema e Idioma saíram
-                daqui: Tema → Configuração (Aparência); Idioma → menu do chip
-                do usuário (AuthWidget). Container invisível quando vazio. */}
+            {/* Footer plugin slot preserved. Theme and Language left here: Theme
+                → Settings (Appearance); Language → the user chip's menu
+                (AuthWidget). Container invisible when empty. */}
             <div
               className={cn(
                 "flex shrink-0 items-center px-3 empty:hidden",
@@ -814,9 +830,9 @@ export default function App() {
           </aside>
 
           <PageHeaderProvider pluginTabs={pluginTabMeta}>
-            {/* Configuração como overlay em tela cheia (aberta pelo menu do
-                chip). Dentro do PageHeaderProvider para a ConfigPage usar
-                usePageHeader e o overlay exibir o slot `end` (botão Guardar). */}
+            {/* Settings as a full-screen overlay (opened from the chip's menu).
+                Inside the PageHeaderProvider so ConfigPage can use usePageHeader
+                and the overlay can show the `end` slot (Save button). */}
             <SettingsOverlay open={settingsOpen} onClose={() => setSettingsOpen(false)} />
             <div
               className={cn(
@@ -918,11 +934,12 @@ function SidebarNavLink({
   const [hovered, setHovered] = useState(false);
   const [tooltipAnchor, setTooltipAnchor] = useState<HTMLElement | null>(null);
 
-  // "Nova sessão" (o item do /chat) só fica ATIVO na tela de sessão nova —
-  // não no espaço do projeto (?home=1) nem numa conversa retomada (?resume).
-  // Sem isto, o NavLink casa por pathname e ele ficava sempre aceso; e o
-  // projeto ficava destacado junto, dando a sensação estranha que o Leonardo
-  // apontou. Aqui "Nova sessão" acende e o projeto apaga (ver SidebarTasks).
+  // "Nova sessão" (the /chat item) is only ACTIVE on the new-session screen —
+  // not in the project space (?home=1) nor in a resumed conversation (?resume).
+  // Without this, the NavLink matches by pathname and it stayed always lit; and
+  // the project got highlighted alongside, giving the odd feeling Leonardo
+  // pointed out. Here "Nova sessão" lights up and the project goes dark (see
+  // SidebarTasks).
   const location = useLocation();
   const isChatItem = path === "/chat";
   const chatFresh =
@@ -1011,11 +1028,12 @@ function SidebarNavLink({
 }
 
 /**
- * Grupo expansível na nav (dropdown estilo Claude Console): o pai NÃO navega —
- * só abre/fecha; os submódulos são filhos indentados, sentence-case (mesmo
- * padrão dos itens da SidebarTasks). Auto-expande quando a rota atual pertence
- * ao grupo; a escolha manual persiste em localStorage. Colapsada em ícones,
- * o grupo degrada para o SidebarNavLink normal (link + tooltip).
+ * Expandable nav group (Claude Console-style dropdown): the parent does NOT
+ * navigate — it only opens/closes; the submodules are indented children,
+ * sentence-case (same pattern as the SidebarTasks items). Auto-expands when the
+ * current route belongs to the group; the manual choice persists in
+ * localStorage. Collapsed to icons, the group degrades to the normal
+ * SidebarNavLink (link + tooltip).
  */
 function SidebarNavGroup({
   closeMobile,
@@ -1034,11 +1052,11 @@ function SidebarNavGroup({
       const v = localStorage.getItem(storageKey);
       if (v !== null) return v === "1";
     } catch {
-      /* sem storage → padrão aberto */
+      /* no storage → default open */
     }
     return true;
   });
-  // Entrar numa rota do grupo sempre o revela — ninguém navega às cegas.
+  // Entering a route in the group always reveals it — nobody navigates blind.
   useEffect(() => {
     if (inGroup) setOpen(true);
   }, [inGroup]);
@@ -1048,12 +1066,12 @@ function SidebarNavGroup({
       try {
         localStorage.setItem(storageKey, next ? "1" : "0");
       } catch {
-        /* melhor esforço */
+        /* best effort */
       }
       return next;
     });
 
-  // Sidebar em modo ícones: dropdown não cabe — vira o link simples de sempre.
+  // Sidebar in icon mode: a dropdown does not fit — it becomes the usual plain link.
   if (collapsed) {
     return (
       <SidebarNavLink
@@ -1097,7 +1115,7 @@ function SidebarNavGroup({
           aria-hidden
           className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/nav:opacity-5"
         />
-        {/* Grupo fechado com rota ativa dentro: mantém o sinal de onde você está. */}
+        {/* Closed group with an active route inside: keeps the signal of where you are. */}
         {inGroup && !open && (
           <span aria-hidden className="absolute left-0 top-0 bottom-0 w-px bg-midground" />
         )}
@@ -1293,7 +1311,7 @@ function SidebarSystemActions({
       confirmLabel={t.status.restartGateway}
       description={
         t.status.restartGatewayConfirmMessage ??
-        "This restarts the Wayne gateway process. Connected channels and active sessions will reconnect afterward."
+        "This restarts the Work4You gateway process. Connected channels and active sessions will reconnect afterward."
       }
       loading={pendingAction === "restart"}
       onCancel={() => setRestartConfirmOpen(false)}
@@ -1557,8 +1575,8 @@ interface GatewayDotProps {
   tooltipWarmRef: TooltipWarmRef;
 }
 
-/** Sub-item de um grupo de nav (dropdown estilo Claude Console) — sem ícone,
- *  só texto indentado; `end` distingue a rota-índice do grupo dos filhos. */
+/** Sub-item of a nav group (Claude Console-style dropdown) — no icon, just
+ *  indented text; `end` tells the group's index route apart from the children. */
 interface SidebarSubItem {
   path: string;
   end?: boolean;
@@ -1570,12 +1588,13 @@ interface NavItem {
   label: string;
   labelKey?: string;
   path: string;
-  /** Destino real do link quando difere do `path` de identidade (ex.: o item
-   *  "Nova tarefa" navega com um gatilho ?new=1 que força conversa nova). */
+  /** The link's real destination when it differs from the identity `path` (e.g.
+   *  the "Nova tarefa" item navigates with a ?new=1 trigger that forces a new
+   *  conversation). */
   to?: string;
-  /** Presente = o item vira um GRUPO expansível (dropdown) com submódulos —
-   *  padrão Claude Console ("Agentes Gerenciados ⌄"). Pedido do Leonardo
-   *  10/07: submódulos na sidebar, não abas dentro do módulo. */
+  /** Present = the item becomes an expandable GROUP (dropdown) with submodules —
+   *  Claude Console pattern ("Agentes Gerenciados ⌄"). Leonardo's request 10/07:
+   *  submodules in the sidebar, not tabs inside the module. */
   children?: SidebarSubItem[];
 }
 

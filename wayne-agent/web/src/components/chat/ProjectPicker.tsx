@@ -1,19 +1,19 @@
 /**
- * ProjectPicker — o seletor de PROJETO acima do composer (benchmark Codex
- * "Choose project", decisão 10/07: chip SEPARADO do ambiente "Nuvem").
+ * ProjectPicker — the PROJECT selector above the composer (Codex "Choose
+ * project" benchmark, decision 10/07: chip SEPARATE from the "Nuvem" env).
  *
- *   [busca: Pesquisar projetos]
+ *   [search: Pesquisar projetos]
  *   📁 projeto-a  ✓        ← projects/<slug> (folders)
  *   📁 projeto-b
  *   + Novo projeto  ›       ← submenu:
- *       • Começar do zero        (evento → modal rico da SidebarTasks)
- *       • Usar uma pasta existente (navegador de PASTAS SEGURAS na nuvem)
- *       • Clonar repositório      (modal de git — movido do EnvironmentChip)
+ *       • Começar do zero        (event → SidebarTasks' rich modal)
+ *       • Usar uma pasta existente (browser for SAFE FOLDERS in the cloud)
+ *       • Clonar repositório      (git modal — moved from EnvironmentChip)
  *   ✕ Trabalhar sem projeto
  *
- * "Usar pasta existente" restrito a pastas seguras (decisão do Leonardo):
- * só navega dentro de projects/ e uploads/ — nunca expõe config/dbs/.git da
- * raiz. Selecionar → ?cwd=<abs> (ou ?project=<slug> se for projects/<slug>).
+ * "Usar pasta existente" is restricted to safe folders (Leonardo's decision):
+ * it only browses inside projects/ and uploads/ — it NEVER exposes the root's
+ * config/dbs/.git. Selecting → ?cwd=<abs> (or ?project=<slug> for projects/<slug>).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -38,6 +38,7 @@ import { api, type ManagedFileEntry } from "@/lib/api";
 import {
   PROJECTS_DIR,
   getFilesRoot,
+  registerProjectRow,
   setLastProject,
   slugifyProject,
 } from "@/lib/projects";
@@ -49,8 +50,8 @@ import {
 } from "@/lib/project-meta";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 
-// Raízes de trabalho seguras — o navegador de "usar pasta existente" só
-// entra AQUI (nunca /opt/data raiz, com dbs/config/auth/.git de sistema).
+// Safe work roots — the "usar pasta existente" browser only enters HERE
+// (never the /opt/data root, with the system's dbs/config/auth/.git).
 const SAFE_ROOTS = [PROJECTS_DIR, "uploads"];
 
 const GIT_URL_RE = /^(https?:\/\/|git@)[\w.@:\-~/]+$/i;
@@ -63,11 +64,11 @@ export function ProjectPicker({
   cwd,
   onSendPrompt,
 }: {
-  /** Projeto formal ativo (slug de projects/) — null se sem projeto/pasta. */
+  /** Active formal project (projects/ slug) — null when no project/folder. */
   project: string | null;
-  /** cwd absoluto ativo (pasta existente) — pra rotular quando não é projeto. */
+  /** Active absolute cwd (existing folder) — to label it when not a project. */
   cwd: string | null;
-  /** Dispara tarefa na sessão atual (usado pelo Conectar GitHub). */
+  /** Fires a task in the current session (used by Conectar GitHub). */
   onSendPrompt: (text: string) => void;
 }) {
   const { t } = useI18n();
@@ -81,7 +82,7 @@ export function ProjectPicker({
     setSubmenu(false);
   }, "project-picker");
 
-  // Re-render quando o cache de metadados (nome/emoji) chega.
+  // Re-render when the metadata cache (name/emoji) arrives.
   const [, setMetaTick] = useState(0);
   useEffect(() => onProjectMetaChange(() => setMetaTick((n) => n + 1)), []);
 
@@ -97,8 +98,8 @@ export function ProjectPicker({
       .catch(() => setProjects([]));
   }, [open, projects]);
 
-  // Metadado do projeto ATIVO — pra rotular o chip mesmo com o popover fechado
-  // (a lista só carrega ao abrir).
+  // Metadata of the ACTIVE project — to label the chip even with the popover
+  // closed (the list only loads on open).
   useEffect(() => {
     if (project) void loadAllProjectMeta([project]);
   }, [project]);
@@ -119,13 +120,13 @@ export function ProjectPicker({
     (slug: string | null) => {
       setOpen(false);
       setSubmenu(false);
-      setLastProject(slug); // null = "sem projeto" (persiste a escolha)
+      setLastProject(slug); // null = "sem projeto" (persists the choice)
       navigate(slug ? `/chat?project=${encodeURIComponent(slug)}` : "/chat?new=1");
     },
     [navigate],
   );
 
-  // ── Modais ────────────────────────────────────────────────────────────
+  // ── Modals ────────────────────────────────────────────────────────────
   const [folderOpen, setFolderOpen] = useState(false);
   const [repoOpen, setRepoOpen] = useState(false);
 
@@ -153,7 +154,7 @@ export function ProjectPicker({
           data-menu-root="project-picker"
           className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-2xl border border-border bg-card p-1.5 shadow-pop"
         >
-          {/* Busca */}
+          {/* Search */}
           <div className="mb-1 flex items-center gap-2 rounded-xl border border-border bg-background px-2.5 py-1.5">
             <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
             <input
@@ -165,7 +166,7 @@ export function ProjectPicker({
             />
           </div>
 
-          {/* Lista de projetos */}
+          {/* Project list */}
           <div className="max-h-56 overflow-y-auto">
             {projects === null ? (
               <Loader2 className="m-2 h-4 w-4 animate-spin text-muted-foreground/60" />
@@ -217,7 +218,7 @@ export function ProjectPicker({
                   onClick={() => {
                     setOpen(false);
                     setSubmenu(false);
-                    // Reusa o modal rico da SidebarTasks (nome+pastas+ideia).
+                    // Reuses SidebarTasks' rich modal (name+folders+idea).
                     window.dispatchEvent(new CustomEvent("wayne:open-new-project"));
                   }}
                   className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left type-ui text-foreground transition-colors hover:bg-muted/60"
@@ -277,19 +278,19 @@ export function ProjectPicker({
   );
 }
 
-/* ── Navegador de pastas seguras na nuvem (Fase 3) ────────────────────── */
+/* ── Browser for safe folders in the cloud (Phase 3) ──────────────────── */
 
-function FolderBrowser({ onClose }: { onClose: () => void }) {
+export function FolderBrowser({ onClose }: { onClose: () => void }) {
   const { t } = useI18n();
   const navigate = useNavigate();
-  // "" = raiz virtual (só mostra as SAFE_ROOTS); senão o path relativo atual.
+  // "" = virtual root (shows only the SAFE_ROOTS); otherwise the current relative path.
   const [path, setPath] = useState("");
   const [entries, setEntries] = useState<ManagedFileEntry[] | null>(null);
 
   useEffect(() => {
     let cancelled = false;
     if (path === "") {
-      // Raiz virtual: as raízes seguras como "pastas".
+      // Virtual root: the safe roots as "folders".
       setEntries(
         SAFE_ROOTS.map((name) => ({
           name,
@@ -309,8 +310,8 @@ function FolderBrowser({ onClose }: { onClose: () => void }) {
         if (!cancelled)
           setEntries(
             (res.entries ?? [])
-              // Ocultas (.git etc) fora — cliente final não navega em
-              // internals, e selecionar .git como cwd seria desastre.
+              // Hidden ones (.git etc) are out — the end client does not browse
+              // internals, and picking .git as cwd would be a disaster.
               .filter((e) => e.is_directory && !e.name.startsWith("."))
               .sort((a, b) => a.name.localeCompare(b.name)),
           );
@@ -325,15 +326,15 @@ function FolderBrowser({ onClose }: { onClose: () => void }) {
 
   const pick = useCallback(() => {
     onClose();
-    // projects/<slug> exato → usa o modelo de projeto (ganha "último projeto").
+    // Exact projects/<slug> → uses the project model (gains "último projeto").
     const m = path.match(/^projects\/([^/]+)$/);
     if (m) {
       setLastProject(m[1]);
       navigate(`/chat?project=${encodeURIComponent(m[1])}`);
       return;
     }
-    // Pasta arbitrária segura → cwd absoluto (root gerenciado + path
-    // relativo — o path aqui NUNCA é absoluto, ver clique das entradas).
+    // Arbitrary safe folder → absolute cwd (managed root + relative path —
+    // the path here is NEVER absolute, see the entries' click handler).
     void getFilesRoot().then((root) => {
       const base = (root ?? "").replace(/\/$/, "");
       navigate(`/chat?cwd=${encodeURIComponent(base ? `${base}/${path}` : path)}`);
@@ -366,7 +367,7 @@ function FolderBrowser({ onClose }: { onClose: () => void }) {
           </button>
         </div>
 
-        {/* Breadcrumb — nunca sobe além da raiz virtual (pastas seguras). */}
+        {/* Breadcrumb — never goes above the virtual root (safe folders). */}
         <div className="mb-1 flex items-center gap-1 overflow-x-auto type-caption text-muted-foreground">
           <button
             type="button"
@@ -401,9 +402,9 @@ function FolderBrowser({ onClose }: { onClose: () => void }) {
               <button
                 key={e.path}
                 type="button"
-                // Path RELATIVO sempre (path/nome) — e.path da API pode vir
-                // absoluto (/opt/data/...), o que quebrava o match de
-                // projects/<slug> e vazava a raiz no breadcrumb.
+                // ALWAYS a RELATIVE path (path/name) — the API's e.path may come
+                // back absolute (/opt/data/...), which broke the projects/<slug>
+                // match and leaked the root into the breadcrumb.
                 onClick={() => setPath(path ? `${path}/${e.name}` : e.name)}
                 className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left type-ui text-foreground transition-colors hover:bg-muted/60"
               >
@@ -430,9 +431,9 @@ function FolderBrowser({ onClose }: { onClose: () => void }) {
   );
 }
 
-/* ── Modal de clonar repositório (movido do EnvironmentChip) ──────────── */
+/* ── Clone-repository modal (moved from EnvironmentChip) ──────────────── */
 
-function RepoModal({
+export function RepoModal({
   onClose,
   onSendPrompt,
   navigate,
@@ -462,6 +463,7 @@ function RepoModal({
     try {
       const slug = slugifyProject(repoNameFromUrl(u)) || "repo";
       await api.createDirectory(`${PROJECTS_DIR}/${slug}`).catch(() => {});
+      await registerProjectRow(slug, repoNameFromUrl(u));
       setLastProject(slug);
       onClose();
       navigate(`/chat?project=${encodeURIComponent(slug)}&clone=${encodeURIComponent(u)}`);

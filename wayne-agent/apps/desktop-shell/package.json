@@ -1,0 +1,94 @@
+{
+  "name": "work4you-desktop",
+  "productName": "Work4You",
+  "private": true,
+  "version": "0.3.0",
+  "description": "Work4You desktop — native shell for work4you.ai.",
+  "author": "W4Y Labs",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist:win": "electron-builder --win nsis",
+    "dist:mac": "electron-builder --mac dmg",
+    "dist:linux": "electron-builder --linux AppImage"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "electron-builder": "25.1.8"
+  },
+  "build": {
+    "appId": "com.work4you.desktop",
+    "productName": "Work4You",
+    "executableName": "Work4You",
+    "artifactName": "Work4You-${version}-${os}-${arch}.${ext}",
+    "icon": "assets/icon",
+    "afterPack": "./afterPack.cjs",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.cjs",
+      "boot.html",
+      "folders.cjs",
+      "executor.cjs",
+      "executor-ws.cjs",
+      "fs-read-dir.cjs",
+      "git-worktree-ops.cjs",
+      "git-repo-scan.cjs",
+      "git-root.cjs",
+      "hardening.cjs",
+      "backend-command.cjs",
+      "backend-ready.cjs",
+      "backend-probes.cjs",
+      "backend-env.cjs",
+      "bootstrap-runner.cjs",
+      "assets/**",
+      "node_modules/ws/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../../scripts/install.ps1",
+        "to": "scripts/install.ps1"
+      }
+    ],
+    "protocols": [
+      {
+        "name": "Work4You Protocol",
+        "schemes": [
+          "work4you"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false,
+      "shortcutName": "Work4You",
+      "uninstallDisplayName": "Work4You"
+    },
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg"
+      ]
+    },
+    "linux": {
+      "category": "Utility",
+      "target": [
+        "AppImage"
+      ]
+    }
+  },
+  "dependencies": {
+    "ws": "^8.21.0"
+  }
+}

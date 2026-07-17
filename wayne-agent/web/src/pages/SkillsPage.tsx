@@ -135,55 +135,56 @@ function isInternalView(): boolean {
   }
 }
 
-/** Habilidades expostas ao USUÁRIO (curadoria estilo Manus). A biblioteca
- *  importada tem ~70 skills, a maioria de dev/ML/nicho — mostrá-las todas
- *  sobrecarrega e foge da marca. O usuário vê só este conjunto; o resto
- *  continua bundled/disponível ao agente e visível apenas na escotilha interna
- *  (?full=1). Desativar uma skill é soft-toggle (não quebra nada); esconder
- *  aqui é só de apresentação.
+/** Skills exposed to the USER (Manus-style curation). The imported library has
+ *  ~70 skills, most of them dev/ML/niche — showing them all overwhelms and
+ *  strays from the brand. The user sees only this set; the rest stay
+ *  bundled/available to the agent and visible only in the internal hatch
+ *  (?full=1). Disabling a skill is a soft-toggle (breaks nothing); hiding it
+ *  here is presentation only.
  *
- *  Critérios: (a) capacidade/método puro — integração credenciada (Notion,
- *  Airtable, Google…) é CONECTOR (MCP), não skill; (b) RODA no container.
- *  Auditoria completa das 72 + plano em ondas: docs/SKILLS-AUDITORIA.md.
- *  Ondas B+C instaladas via platform/wayne-fly/Dockerfile.deps (openpyxl,
+ *  Criteria: (a) pure capability/method — a credentialed integration (Notion,
+ *  Airtable, Google…) is a CONNECTOR (MCP), not a skill; (b) it RUNS in the
+ *  container. Full audit of the 72 + wave plan: docs/SKILLS-AUDITORIA.md.
+ *  Waves B+C installed via platform/wayne-fly/Dockerfile.deps (openpyxl,
  *  youtube-transcript-api, pymupdf, markitdown[pptx], LibreOffice+poppler) —
- *  por isso excel/youtube/ocr/powerpoint voltaram ao featured. */
+ *  that's why excel/youtube/ocr/powerpoint are back in featured. */
 const FEATURED_SKILLS = new Set<string>([
-  // Produtividade / documentos
+  // Productivity / documents
   "excel-presentations",
   "powerpoint",
   "ocr-and-documents",
   "maps",
   "obsidian",
-  // Criação visual (geram HTML/SVG/JSON com ferramentas nativas do agente)
+  // Visual creation (generate HTML/SVG/JSON with the agent's native tools)
   "architecture-diagram",
   "baoyu-infographic",
   "claude-design",
   "excalidraw",
   "sketch",
-  // Texto
+  // Text
   "humanizer",
-  // Pesquisa
+  // Research
   "web-research-competitive-intelligence",
   "arxiv",
   "research-paper-writing",
   "polymarket",
-  // Mídia
+  // Media
   "youtube-content",
 ]);
 
-/** Ordem fixada no TOPO da grade de Habilidades (pedido do Leonardo). As demais
- *  seguem alfabéticas por nome técnico. Vale na visão do usuário e no ?full=1. */
+/** Order pinned to the TOP of the Habilidades grid (Leonardo's request). The
+ *  rest follow alphabetically by technical name. Applies to the user view and
+ *  to ?full=1. */
 const FEATURED_ORDER = [
-  // Ordem do Leonardo (sem o nano-pdf, reclassificado como conector: o CLI
-  // usa um LLM próprio com API key). OCR cobre a frente de PDF/documentos.
+  // Leonardo's order (without nano-pdf, reclassified as a connector: the CLI
+  // uses its own LLM with an API key). OCR covers the PDF/documents front.
   "youtube-content",
   "excel-presentations",
   "powerpoint",
   "web-research-competitive-intelligence",
 ];
 
-/** Fixadas primeiro (na ordem de FEATURED_ORDER); o resto, alfabético. */
+/** Pinned first (in FEATURED_ORDER order); the rest, alphabetical. */
 function compareSkills(a: SkillInfo, b: SkillInfo): number {
   const ra = FEATURED_ORDER.indexOf(a.name);
   const rb = FEATURED_ORDER.indexOf(b.name);
@@ -270,7 +271,7 @@ export default function SkillsPage() {
   const [detailSkill, setDetailSkill] = useState<string | null>(null);
   // "Criar" dropdown (open/closed).
   const [createMenuOpen, setCreateMenuOpen] = useState(false);
-  // Busca colapsável: fechada = só a lupa; abre a caixa de texto ao clicar.
+  // Collapsible search: closed = just the magnifier; clicking opens the text box.
   const [searchOpen, setSearchOpen] = useState(false);
   const createMenuRef = useRef<HTMLDivElement | null>(null);
   // Hidden file input for "Upload a skill".
@@ -480,9 +481,9 @@ export default function SkillsPage() {
   const lowerSearch = search.toLowerCase();
   const isSearching = search.trim().length > 0;
 
-  // Base da LISTA exibida: usuário vê só as featured (curadoria); a escotilha
-  // interna (?full=1) vê a biblioteca inteira. Toda a grade + chips + contagens
-  // derivam daqui (não de `skills` cru).
+  // Base of the displayed LIST: the user sees only the featured ones
+  // (curation); the internal hatch (?full=1) sees the whole library. The entire
+  // grid + chips + counts derive from here (not from raw `skills`).
   const displaySkills = useMemo(
     () => (isInternal ? skills : skills.filter((s) => FEATURED_SKILLS.has(s.name))),
     [skills, isInternal],
@@ -491,8 +492,8 @@ export default function SkillsPage() {
   const searchMatchedSkills = useMemo(() => {
     if (!isSearching) return [];
     return displaySkills.filter((s) => {
-      // Casa com nome técnico + descrição real E com o rótulo amigável exibido
-      // (assim buscar "gerador" acha "Gerador de Excel", o que o usuário vê).
+      // Matches the technical name + real description AND the displayed friendly
+      // label (so searching "gerador" finds "Gerador de Excel", what the user sees).
       const friendly = t.skillLabels[s.name];
       return (
         s.name.toLowerCase().includes(lowerSearch) ||
@@ -536,8 +537,8 @@ export default function SkillsPage() {
       }));
   }, [displaySkills, t]);
 
-  // Cabeçalho enxuto: sem contador "70/70 ativadas" e sem busca no header.
-  // A busca desceu para a toolbar do corpo (ver abaixo), rotulada "Procurar
+  // Lean header: no "70/70 ativadas" counter and no search in the header.
+  // The search moved down to the body toolbar (see below), labeled "Procurar
   // habilidades".
 
   const filteredToolsets = useMemo(() => {
@@ -550,9 +551,9 @@ export default function SkillsPage() {
     );
   }, [toolsets, search, lowerSearch]);
 
-  // Usuário-final: Habilidades = o MARKETPLACE do catálogo Oficial (as 102
-  // optional-skills), por categoria + filtro. As 72 skills ATIVAS ("do sistema",
-  // não-desativáveis pelo usuário) e os toolsets só aparecem no ?full=1 (nós).
+  // End user: Habilidades = the MARKETPLACE of the Official catalog (the 102
+  // optional-skills), by category + filter. The 72 ACTIVE skills ("system"
+  // ones, not user-disableable) and the toolsets only show in ?full=1 (us).
   if (!isInternal) {
     return (
       <div className="flex flex-col gap-4">
@@ -592,8 +593,8 @@ export default function SkillsPage() {
         }}
       />
 
-      {/* Mini-barra superior: só interno (abas Todas | Conjuntos de ferramentas)
-          ou hub (voltar). Para o usuário em Habilidades ela some. */}
+      {/* Top mini-bar: internal only (tabs "Todas" | "Conjuntos de ferramentas")
+          or hub (back). For the user in Habilidades it disappears. */}
       {(view === "hub" || isInternal) && (
         <div className="flex flex-wrap items-center gap-1">
           {view === "hub" ? (
@@ -632,9 +633,9 @@ export default function SkillsPage() {
         </div>
       )}
 
-      {/* Linha ÚNICA (Habilidades): filtros por categoria à esquerda; à direita
-          a lupa colapsável + "Criar". Fica ACIMA da grade, então persiste
-          durante a busca. */}
+      {/* SINGLE row (Habilidades): category filters on the left; on the right
+          the collapsible magnifier + "Criar". It sits ABOVE the grid, so it
+          persists during the search. */}
       {view === "skills" && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
@@ -656,8 +657,9 @@ export default function SkillsPage() {
           </div>
 
           <div className="flex shrink-0 items-center gap-2">
-            {/* Busca colapsável: lupa → caixa "Procurar habilidades". Ao fechar
-                (X) ou ao sair vazia (blur), volta a ser só a lupa. */}
+            {/* Collapsible search: magnifier → "Procurar habilidades" box. On
+                close (X) or on leaving it empty (blur), it goes back to just
+                the magnifier. */}
             {searchOpen ? (
               <div className="relative w-44 sm:w-56">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
@@ -700,7 +702,7 @@ export default function SkillsPage() {
               </button>
             )}
 
-            {/* "Criar" dropdown (sem o ícone "+"). */}
+            {/* "Criar" dropdown (without the "+" icon). */}
             <div className="relative shrink-0" ref={createMenuRef}>
               <Button
                 size="sm"
@@ -781,7 +783,7 @@ export default function SkillsPage() {
             </div>
           )
         ) : view === "skills" ? (
-          /* Skills — grade de mini-cards (chips + ações já na linha única acima). */
+          /* Skills — mini-card grid (chips + actions already in the single row above). */
           <div className="flex flex-col gap-3">
             {activeSkills.length === 0 ? (
               <Card className="rounded-none">
@@ -914,7 +916,7 @@ export default function SkillsPage() {
           <DialogHeader>
             <DialogTitle>Learn a skill</DialogTitle>
             <DialogDescription>
-              Point Wayne at anything and it will distill a reusable skill —
+              Point Work4You at anything and it will distill a reusable skill —
               following the house authoring standards. Fill in any combination
               below; the agent gathers the sources and writes the skill in chat.
             </DialogDescription>
@@ -1106,9 +1108,9 @@ function SkillCard({
 }: SkillCardProps) {
   const { t } = useI18n();
   const Icon = categoryIcon(skill.category);
-  // Camada de exibição: rótulo amigável (nome + resumo) quando existe; senão
-  // cai no nome técnico + descrição da SKILL.md. Nome amigável usa fonte
-  // legível; o técnico (kebab-case) fica em mono.
+  // Display layer: friendly label (name + summary) when it exists; OTHERWISE
+  // it falls back to the technical name + the SKILL.md description. The
+  // friendly name uses a readable font; the technical one (kebab-case) is mono.
   const friendly = t.skillLabels[skill.name];
   const displayName = friendly?.name || skill.name;
   const displayDesc = friendly?.desc || skill.description || noDescriptionLabel;
@@ -1445,7 +1447,7 @@ function HubBrowser({
                   Featured skills
                 </span>
                 <span className="text-xs text-text-tertiary">
-                  from the Wayne index — search above for thousands more
+                  from the Work4You index — search above for thousands more
                 </span>
               </div>
               {featured.map((r) => (

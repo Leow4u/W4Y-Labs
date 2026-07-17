@@ -1,7 +1,8 @@
 /**
- * ProjectEditModal — editor de exibição do projeto (Estratégia A): nome
- * amigável + emoji + cor, gravados no sidecar `.w4y-project.json` da pasta
- * (lib/project-meta.ts). NÃO renomeia a pasta/slug — só a aparência.
+ * ProjectEditModal — the project's display editor: friendly name + emoji +
+ * color, saved to the project ROW via PATCH /api/projects (lib/project-meta's
+ * saveProjectMeta updates the cache and notifies subscribers). Does NOT
+ * rename the folder/slug — appearance only.
  */
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -25,7 +26,7 @@ export function ProjectEditModal({
 }: {
   slug: string;
   onClose: () => void;
-  /** Toast/refresh a cargo do chamador. */
+  /** Toast/refresh are up to the caller. */
   onSaved?: () => void;
 }) {
   const { t } = useI18n();
@@ -35,7 +36,7 @@ export function ProjectEditModal({
   const [busy, setBusy] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
-  // Preenche com o sidecar atual (cache ou fetch).
+  // Prefill from the current sidecar (cache or fetch).
   useEffect(() => {
     let cancelled = false;
     const apply = (m: { name?: string; icon?: string; color?: string }) => {
@@ -69,9 +70,9 @@ export function ProjectEditModal({
     }
   };
 
-  // Portal pro <body>: a sidebar tem transform (drawer responsivo), que vira
-  // bloco de contenção pro position:fixed — sem o portal o modal encolhe na
-  // coluna de ~190px em vez de centralizar no viewport.
+  // Portal to <body>: the sidebar has a transform (responsive drawer), which
+  // becomes the containing block for position:fixed — without the portal the
+  // modal shrinks into the ~190px column instead of centering on the viewport.
   return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 p-6 backdrop-blur-[2px]"
@@ -102,7 +103,7 @@ export function ProjectEditModal({
           </div>
         ) : (
           <>
-            {/* Prévia + nome */}
+            {/* Preview + name */}
             <div className="mb-4 flex items-center gap-3">
               <span
                 className="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-border bg-background text-xl"
@@ -123,7 +124,7 @@ export function ProjectEditModal({
               />
             </div>
 
-            {/* Cor */}
+            {/* Color */}
             <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
               {t.chat.projectColor}
             </span>

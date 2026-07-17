@@ -1,22 +1,22 @@
 /**
- * Curadoria das rotinas (Agenda) — separa jobs INTERNOS do sistema do que o
- * usuário criou, na mesma linha da curadoria dos Arquivos.
+ * Routine (Schedule) curation — separates the system's INTERNAL jobs from what
+ * the user created, along the same lines as the Files curation.
  *
- * Diferente dos Arquivos (60 pastas de sistema), o cron NÃO tem um flag rígido
- * `system` no modelo. O "interno" aqui é, na prática:
- *   1. os campos técnicos do form (provider/model/script/no_agent/toolsets) —
- *      já escondidos no ?full=1 (CronPage);
- *   2. jobs eventualmente criados pela PLATAFORMA (ex.: avisos de billing,
- *      manutenção), que convencionamos marcar por prefixo reservado no nome.
+ * Unlike Files (60 system folders), cron does NOT have a hard `system` flag in
+ * the model. "Internal" here is, in practice:
+ *   1. the form's technical fields (provider/model/script/no_agent/toolsets) —
+ *      already hidden behind ?full=1 (CronPage);
+ *   2. jobs eventually created by the PLATFORM (e.g. billing notices,
+ *      maintenance), which we agreed to mark with a reserved name prefix.
  *
- * Heurística CONSERVADORA: só trata como sistema o que casa um prefixo
- * reservado — nunca esconde um job de usuário por engano. Confirmado ao vivo
- * (se aparecerem jobs de plataforma com outro padrão, é só somar aqui). Na
- * visão ?full=1 (nós/suporte) tudo aparece.
+ * CONSERVATIVE heuristic: only treats as system what matches a reserved
+ * prefix — never hides a user job by mistake. Confirmed live (if platform jobs
+ * show up with another pattern, it's just a matter of adding it here). In the
+ * ?full=1 view (us/support) everything shows.
  */
 import type { CronJob } from "@/lib/api";
 
-// Prefixos de nome reservados a jobs geridos pela plataforma.
+// Name prefixes reserved for platform-managed jobs.
 const SYSTEM_NAME_PREFIXES = ["__", "wayne:", "sys:", "system:", "internal:"];
 
 export function isSystemJob(job: CronJob): boolean {
@@ -25,7 +25,7 @@ export function isSystemJob(job: CronJob): boolean {
   return SYSTEM_NAME_PREFIXES.some((p) => name.startsWith(p));
 }
 
-/** Separa a lista em rotinas do usuário e jobs de sistema. */
+/** Splits the list into user routines and system jobs. */
 export function partitionJobs(jobs: CronJob[]): { user: CronJob[]; system: CronJob[] } {
   const user: CronJob[] = [];
   const system: CronJob[] = [];

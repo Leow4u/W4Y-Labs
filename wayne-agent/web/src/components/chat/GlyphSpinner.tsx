@@ -1,8 +1,8 @@
 /**
- * GlyphSpinner — o spinner de UM caractere do TUI/desktop (unicode-animations),
- * portado (Onda 4): "breathe" pro resumo do turno, "braille" pra linhas densas.
- * Substitui o Loader2 girando genérico nos pontos vivos do chat — a assinatura
- * do terminal na web.
+ * GlyphSpinner — the ONE-character spinner from the TUI/desktop
+ * (unicode-animations), ported (Onda 4): "breathe" for the turn summary,
+ * "braille" for dense lines. Replaces the generic spinning Loader2 at the
+ * chat's live points — the terminal's signature on the web.
  */
 import { useEffect, useState } from "react";
 

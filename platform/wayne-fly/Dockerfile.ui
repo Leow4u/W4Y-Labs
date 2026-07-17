@@ -5,4 +5,10 @@
 # wayne-agent/web).
 ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly2
 FROM ${BASE_IMAGE}
+# APAGA antes de copiar: o COPY do Docker MESCLA na pasta destino, ele não a
+# substitui. Sem este rm, cada overlay soma um index-<hash>.js e nunca remove os
+# anteriores — chegamos a 82 bundles mortos no fly193. Eles são inertes (o
+# index.html referencia só o atual), mas incham a imagem e ENGANAM diagnóstico:
+# um grep por string antiga acha nos bundles mortos e finge que o deploy falhou.
+RUN rm -rf /opt/wayne/wayne_cli/web_dist
 COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist

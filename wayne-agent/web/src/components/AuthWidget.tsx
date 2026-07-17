@@ -1,19 +1,19 @@
 /**
- * AuthWidget — chip do usuário no rodapé da sidebar (Work4You UX).
+ * AuthWidget — user chip at the sidebar footer (Work4You UX).
  *
- * Mostra as iniciais + o nome de exibição do usuário e, ao clicar, abre um
- * menu (para cima, via portal — não é cortado pela sidebar) com:
- *   - Configurações  → abre a tela de Configuração como overlay (onOpenSettings)
- *   - Idioma         → item com submenu lateral no hover (estilo Claude);
- *                      reusa as primitivas de i18n (useI18n + LOCALE_META)
- *   - Sair           → POST /auth/logout + navegação para /login
+ * Shows the user's initials + display name and, on click, opens a menu
+ * (upwards, via portal — not clipped by the sidebar) with:
+ *   - "Configurações"   → opens the Config screen as an overlay (onOpenSettings)
+ *   - "Idioma"          → item with a side submenu on hover (Claude style);
+ *                         reuses the i18n primitives (useI18n + LOCALE_META)
+ *   - "Sair"            → POST /auth/logout + navigation to /login
  *
- * O tema saiu daqui e foi para dentro de Configuração → Aparência.
+ * The theme moved out of here and into Config → Appearance.
  *
- * Reusa /api/auth/me (Fase 7 do dashboard OAuth). Em loopback/--insecure o
- * /api/auth/me responde 401/403 e o widget não renderiza nada. O "plano" do
- * tenant ainda NÃO aparece aqui (vive na plataforma, não na instância Wayne —
- * é a Onda 2 desta reorganização).
+ * Reuses /api/auth/me (Phase 7 of the OAuth dashboard). On loopback/--insecure
+ * /api/auth/me answers 401/403 and the widget renders nothing. The tenant's
+ * "plan" does NOT show up here yet (it lives in the platform, not in the Wayne
+ * instance — that is Onda 2 of this reorganization).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -27,7 +27,7 @@ import type { Locale } from "@/i18n";
 
 interface AuthWidgetProps {
   className?: string;
-  /** Abre a tela de Configuração como overlay (montada no App). */
+  /** Opens the Config screen as an overlay (mounted in App). */
   onOpenSettings?: () => void;
 }
 
@@ -35,8 +35,8 @@ function truncateUserId(id: string): string {
   return id.length <= 14 ? id : `${id.slice(0, 14)}…`;
 }
 
-/** Iniciais para o avatar: primeiras letras das duas primeiras "palavras"
- *  do rótulo (separadas por não-alfanuméricos), maiúsculas. */
+/** Avatar initials: first letters of the label's first two "words"
+ *  (split on non-alphanumerics), uppercased. */
 function initialsOf(label: string): string {
   const parts = label.split(/[^A-Za-z0-9]+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
@@ -54,9 +54,9 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const langListRef = useRef<HTMLDivElement>(null);
 
-  // Abre o submenu de idiomas com o idioma atual à vista. Roda SÓ na
-  // abertura (não a cada render): um callback ref inline re-executaria em
-  // re-renders e desfaria a rolagem manual do usuário no meio do gesto.
+  // Opens the language submenu with the current language in view. Runs ONLY on
+  // open (not on every render): an inline callback ref would re-run on
+  // re-renders and undo the user's manual scrolling mid-gesture.
   useEffect(() => {
     if (!langOpen) return;
     langListRef.current
@@ -83,7 +83,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     setLangOpen(false);
   }, []);
 
-  // Fecha no Escape e no clique fora (mesmo padrão do ThemeSwitcher).
+  // Closes on Escape and on outside click (same pattern as ThemeSwitcher).
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") close(); };
@@ -175,10 +175,10 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               Configurações
             </button>
 
-            {/* Idioma — item com submenu lateral no hover (estilo Claude).
-                O flyout é filho do wrapper e cola nele via padding (pl-1.5),
-                sem gap real: o mouse nunca "sai" do wrapper ao atravessar.
-                Clique também alterna (telas de toque, sem hover). */}
+            {/* "Idioma" — item with a side submenu on hover (Claude style).
+                The flyout is a child of the wrapper and sticks to it via padding
+                (pl-1.5), no real gap: the mouse never "leaves" the wrapper on
+                the way across. Click toggles too (touch screens, no hover). */}
             <div
               role="none"
               className="relative border-t border-current/10"
@@ -203,8 +203,8 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
                   role="none"
                   className={cn(
                     "absolute bottom-0 left-full pl-1.5",
-                    // Em telas estreitas (sidebar quase full-width) não há
-                    // espaço à direita: abre ACIMA do menu, alinhado à direita.
+                    // On narrow screens (sidebar nearly full-width) there is no
+                    // room on the right: opens ABOVE the menu, right-aligned.
                     "max-sm:bottom-full max-sm:left-auto max-sm:right-0 max-sm:pb-1 max-sm:pl-0",
                   )}
                 >
@@ -242,9 +242,9 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               )}
             </div>
 
-            {/* Atualizar plano → deep-link p/ a página de assinatura na casca
-                (mesma origem work4you.ai; o LB roteia /planos para o Next).
-                Navegação de página inteira (sai do SPA do agente) — intencional. */}
+            {/* "Atualizar plano" → deep-link to the subscription page in the shell
+                (same work4you.ai origin; the LB routes /planos to Next).
+                Full-page navigation (leaves the agent SPA) — intentional. */}
             <a
               href="/planos"
               role="menuitem"

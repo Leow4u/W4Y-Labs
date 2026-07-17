@@ -1,15 +1,15 @@
 /**
- * ConfigUser — Configuração ENXUTA do usuário (benchmark: Manus web).
- * Seções: Conta · Geral · Personalização · Privacidade · Controle de dados —
- * só controles com lastro REAL (curadoria em docs/CONFIG-CURADORIA.md).
+ * ConfigUser — the user's LEAN Settings (benchmark: Manus web).
+ * Sections: Conta · Geral · Personalização · Privacidade · Controle de dados —
+ * only controls with REAL backing (curation in docs/CONFIG-CURADORIA.md).
  *
- * Bloco 3 — AUTO-SAVE: não há botão Salvar. Toggles/selects gravam no ato
- * (api.saveConfig); o textarea de Instruções grava ao sair do campo
- * (updateProfileSoul); tema/idioma já persistem nos próprios hooks.
+ * Block 3 — AUTO-SAVE: there is no Save button. Toggles/selects write on the
+ * spot (api.saveConfig); the Instructions textarea writes on blur
+ * (updateProfileSoul); theme/language already persist in their own hooks.
  *
  * Backings: Conta=/api/auth/me + logout · Geral=useI18n/useTheme/config ·
  * Personalização=SOUL.md · Privacidade=memory + privacy.redact_pii ·
- * Controle de dados=resetMemory + bulkDeleteSessions. Tela técnica: ?full=1.
+ * Controle de dados=resetMemory + bulkDeleteSessions. Technical screen: ?full=1.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { UserCircle, SlidersHorizontal, Sparkles, Shield, LogOut, Package, Plug, Puzzle, Radio, Search, Monitor, Bell, Brain, Laptop, HardDrive, Cpu, MemoryStick, Archive, ExternalLink, Gauge, Check } from "lucide-react";
@@ -25,7 +25,14 @@ import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { api, type AuthMeResponse, type SystemStats, type StatusResponse, type AnalyticsResponse } from "@/lib/api";
-import { TIER_ORDER, TIER_PRESETS, tierFromConfig, type TierKey } from "@/lib/tier-presets";
+import {
+  TIER_ORDER,
+  TIER_PRESETS,
+  tierFromConfig,
+  tierLabel,
+  tierSubtitle,
+  type TierKey,
+} from "@/lib/tier-presets";
 import { formatCredits, usdToCredits } from "@/lib/credits";
 import {
   getChatDisplay,
@@ -40,16 +47,17 @@ import type { Locale } from "@/i18n";
 import { useTheme, THEME_DEFAULT_FONT_ID } from "@/themes";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
+import { isInternalView } from "@/lib/internal-view";
 
 type SectionKey =
   | "general" | "account" | "computer" | "planTab" | "notificationsTab" | "memoryTab" | "privacyData"
   | "skills" | "connectors" | "channels" | "plugins";
 type NavItem = { key: SectionKey; icon: React.ComponentType<{ className?: string }> };
 
-// Grupo "Configurações" — Onda A (10/07): estrutura Claude, lastro nativo.
-// Geral absorveu Personalização (instruções); Privacidade+Controle viraram
-// "Privacidade e dados"; Memória ganhou seção própria; Computador e
-// Notificações são novas (benchmark Manus "My Computer" / Claude).
+// "Configurações" group — Onda A (10/07): Claude structure, native backing.
+// Geral absorbed Personalização (instructions); Privacidade+Controle became
+// "Privacidade e dados"; Memória got its own section; Computador and
+// Notificações are new (Manus "My Computer" / Claude benchmark).
 const SECTIONS: NavItem[] = [
   { key: "general", icon: SlidersHorizontal },
   { key: "account", icon: UserCircle },
@@ -59,8 +67,8 @@ const SECTIONS: NavItem[] = [
   { key: "memoryTab", icon: Brain },
   { key: "privacyData", icon: Shield },
 ];
-// Grupo "Personalizar" — reusa as PÁGINAS existentes (mesmo backing/API),
-// montadas aqui no modal como o Claude/Manus fazem. Não são telas novas.
+// "Personalizar" group — reuses the existing PAGES (same backing/API), mounted
+// here in the modal the way Claude/Manus do. They are NOT new screens.
 const PAGES: NavItem[] = [
   { key: "skills", icon: Package },
   { key: "connectors", icon: Plug },
@@ -69,9 +77,9 @@ const PAGES: NavItem[] = [
 ];
 const PAGE_KEYS: SectionKey[] = ["skills", "connectors", "channels", "plugins"];
 
-/** Galeria de temas (benchmark: aba Appearance do Hermes desktop) — cada
- *  card mostra uma MINI-PRÉVIA real do tema (fundo, superfície, texto e
- *  acento, hexes dos presets em themes/presets.ts) + nome + descrição. */
+/** Theme gallery (benchmark: the Hermes desktop's Appearance tab) — each card
+ *  shows a real MINI-PREVIEW of the theme (background, surface, text and
+ *  accent, hexes from the presets in themes/presets.ts) + name + description. */
 const THEME_PREVIEWS: Array<{
   key: string;
   labelKey: "themeLight" | "themeDark" | null;
@@ -106,7 +114,7 @@ function initialsOf(label: string): string {
 const inputCls =
   "h-10 w-full max-w-sm rounded-lg border border-border bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-live/50";
 
-/** Linha de toggle reutilizável (rótulo + descrição + Switch). */
+/** Reusable toggle row (label + description + Switch). */
 function ToggleRow({
   label, hint, checked, onChange, border,
 }: { label: string; hint?: string; checked: boolean; onChange: (v: boolean) => void; border?: boolean }) {
@@ -121,7 +129,7 @@ function ToggleRow({
   );
 }
 
-/** Grupo segmentado (padrão dos botões de tema) — tamanho/largura/orçamento. */
+/** Segmented group (theme-button pattern) — size/width/budget. */
 function Segmented<T extends string>({
   value, options, onChange,
 }: { value: T; options: Array<{ v: T; label: string }>; onChange: (v: T) => void }) {
@@ -146,8 +154,8 @@ function Segmented<T extends string>({
   );
 }
 
-/** Medidor de recurso do Computador (memória/armazenamento/CPU): rótulo,
- *  leitura e barra que esquenta com o uso (verde→âmbar 70%→vermelho 90%). */
+/** Computer resource meter (memory/storage/CPU): label, reading and a bar that
+ *  heats up with usage (green→amber 70%→red 90%). */
 function Meter({
   icon: Icon, label, detail, percent,
 }: { icon: React.ComponentType<{ className?: string }>; label: string; detail: string; percent: number | null }) {
@@ -176,7 +184,7 @@ function Meter({
   );
 }
 
-/** bytes → "1,2 GB" (uma casa até 10 GB, inteiro acima). */
+/** bytes → "1,2 GB" (one decimal up to 10 GB, integer above that). */
 function gb(n: number): string {
   const v = n / 1073741824;
   return `${v >= 10 ? Math.round(v) : v.toFixed(1)} GB`;
@@ -198,14 +206,14 @@ export default function ConfigUser() {
   const [busy, setBusy] = useState(false);
   const [navQuery, setNavQuery] = useState("");
 
-  // Re-render dos controles client-side (transcrição/notificações) — os
-  // valores moram nas libs (localStorage), o tick só força a releitura.
+  // Re-render of the client-side controls (transcript/notifications) — the
+  // values live in the libs (localStorage), the tick only forces the re-read.
   const [, setPrefsTick] = useState(0);
   const bumpPrefs = () => setPrefsTick((n) => n + 1);
 
-  // ── Computador (benchmark Manus "My Computer") — /api/system/stats +
-  // /api/status, carregados ao abrir a seção. Tudo lastro real (RAM/CPU/
-  // disco = o VOLUME /opt/data do tenant, medido por psutil no servidor).
+  // ── Computer (Manus "My Computer" benchmark) — /api/system/stats +
+  // /api/status, loaded when the section opens. All real backing (RAM/CPU/
+  // disk = the tenant's /opt/data VOLUME, measured by psutil on the server).
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [sysStatus, setSysStatus] = useState<StatusResponse | null>(null);
   const [computerTab, setComputerTab] = useState<"cloud" | "local">("cloud");
@@ -218,18 +226,18 @@ export default function ConfigUser() {
       api.getStatus().then((s) => { if (!cancelled) setSysStatus(s); }).catch(() => {});
     };
     load();
-    const iv = window.setInterval(load, 15000); // ao vivo, leve
+    const iv = window.setInterval(load, 15000); // live, lightweight
     return () => { cancelled = true; window.clearInterval(iv); };
   }, [active]);
 
-  // ── Plano & Utilização (Onda C) — consumo em CRÉDITOS (nunca US$; ver
-  // lib/credits.ts) a partir do /api/analytics/usage; tier PADRÃO global
-  // (mesma mecânica do TierPicker: setModelAssignment + reasoning/delegation).
+  // ── Plan & Usage (Onda C) — consumption in CREDITS (NEVER US$; see
+  // lib/credits.ts) from /api/analytics/usage; global DEFAULT tier (same
+  // mechanics as the TierPicker: setModelAssignment + reasoning/delegation).
   const [usage, setUsage] = useState<AnalyticsResponse | null>(null);
   const [tierBusy, setTierBusy] = useState(false);
-  // Medidor do ciclo — RPC usage.account do gateway (percentual da quota da
-  // chave OpenRouter do tenant; nunca $ nem a chave). Client efêmero: abre,
-  // pergunta, fecha — a aba Plano é REST no resto.
+  // Cycle meter — the gateway's usage.account RPC (percentage of the tenant's
+  // OpenRouter key quota; NEVER $ nor the key). Ephemeral client: opens, asks,
+  // closes — the Plan tab is REST for everything else.
   const [cycleMeter, setCycleMeter] = useState<
     { configured: boolean; used_percent: number | null; depleted: boolean } | null
   >(null);
@@ -312,9 +320,15 @@ export default function ConfigUser() {
       .catch(() => {});
   }, []);
 
-  // Nas seções de settings a barra do provider fica limpa (auto-save, sem
-  // toolbar). Nas PÁGINAS (Habilidades/Conectores/Plugins) NÃO limpamos —
-  // elas injetam a própria toolbar (busca/Adicionar) via usePageHeader.
+  // In the settings sections the provider bar stays clean (auto-save, no
+  // toolbar). On the PAGES (Skills/Connectors/Plugins) we do NOT clear it —
+  // they inject their own toolbar (search/Add) via usePageHeader.
+  // Plugins is the RAW extension ENGINE (installing a git repo = executing code,
+  // removing folders, swapping the memory engine). It is not a product surface:
+  // it stays only in the internal hatch (?full=1), like Sessions/Terminal. Skills
+  // and Connectors stay user-facing (they have a curated marketplace). [decision 13/07]
+  const internal = isInternalView();
+
   const isPage = PAGE_KEYS.includes(active);
   useEffect(() => {
     if (isPage) return;
@@ -331,7 +345,7 @@ export default function ConfigUser() {
       showToast(`${t.config.failedToSave}: ${e}`, "error");
     }
   };
-  // Auto-save: grava a config inteira no ato de cada mudança (Bloco 3).
+  // Auto-save: writes the whole config on the spot on every change (Block 3).
   const update = (key: string, v: unknown) => {
     const next = setNestedValue(config ?? {}, key, v) as Record<string, unknown>;
     setConfig(next);
@@ -381,7 +395,7 @@ export default function ConfigUser() {
     }
   };
 
-  // Tier padrão ativo — depende de `val` (config carregada acima).
+  // Active default tier — depends on `val` (the config loaded above).
   const currentTier: TierKey | null = tierFromConfig(
     String(val("model") ?? ""),
     String(val("agent.reasoning_effort") ?? "medium"),
@@ -394,9 +408,9 @@ export default function ConfigUser() {
   );
   const allLocales = Object.entries(LOCALE_META) as Array<[Locale, { name: string }]>;
 
-  // Busca do menu: casa a query com o rótulo da seção E os rótulos dos
-  // controles dentro dela (ex.: "fonte"/"tema"/"idioma" acham "Geral";
-  // "memória"/"perfil" acham "Privacidade"). v1 simples e útil.
+  // Menu search: matches the query against the section label AND the labels of
+  // the controls inside it (e.g. "fonte"/"tema"/"idioma" find "Geral";
+  // "memória"/"perfil" find "Privacidade"). A simple, useful v1.
   const q = navQuery.trim().toLowerCase();
   const searchText = (key: SectionKey): string => {
     const p: string[] = [cu[key]];
@@ -413,7 +427,8 @@ export default function ConfigUser() {
   };
   const matches = (key: SectionKey) => !q || searchText(key).includes(q);
   const visibleSections = SECTIONS.filter((s) => matches(s.key));
-  const visiblePages = PAGES.filter((s) => matches(s.key));
+  const pages = internal ? PAGES : PAGES.filter((s) => s.key !== "plugins");
+  const visiblePages = pages.filter((s) => matches(s.key));
 
   if (!config) {
     return (
@@ -430,7 +445,7 @@ export default function ConfigUser() {
       <Toast toast={toast} />
 
       <div className="flex flex-col gap-4 sm:min-h-0 sm:flex-1 sm:flex-row sm:overflow-hidden">
-        {/* Menu lateral com busca no topo (estilo Claude). */}
+        {/* Side menu with search on top (Claude style). */}
         <aside className="sm:w-52 sm:shrink-0 sm:flex sm:min-h-0 sm:flex-col">
           <div className="relative px-1 pb-2 pt-1">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
@@ -460,7 +475,7 @@ export default function ConfigUser() {
                 <span className="flex-1 truncate">{cu[key]}</span>
               </button>
             ))}
-            {/* Grupo "Personalizar" — páginas existentes montadas no modal. */}
+            {/* "Personalizar" group — existing pages mounted in the modal. */}
             {visiblePages.length > 0 && (
               <div className="hidden px-3 pb-1 pt-4 font-sans text-display text-xs tracking-[0.12em] text-text-tertiary sm:block">
                 {cu.personalize}
@@ -486,9 +501,9 @@ export default function ConfigUser() {
           </div>
         </aside>
 
-        {/* Conteúdo */}
+        {/* Content */}
         <div className="flex min-w-0 flex-1 flex-col gap-4 sm:min-h-0 sm:overflow-y-auto">
-          {/* ---------- CONTA ---------- */}
+          {/* ---------- ACCOUNT ---------- */}
           {active === "account" && (
             <Card>
               <CardHeader className="px-5 py-4">
@@ -522,7 +537,7 @@ export default function ConfigUser() {
             </Card>
           )}
 
-          {/* ---------- GERAL ---------- */}
+          {/* ---------- GENERAL ---------- */}
           {active === "general" && (
             <>
               <Card>
@@ -545,7 +560,7 @@ export default function ConfigUser() {
 
                   <div className="flex flex-col gap-1.5 border-t border-border pt-4">
                     <span className="text-sm">{cu.appearance}</span>
-                    {/* Galeria com mini-prévia real de cada tema (desktop). */}
+                    {/* Gallery with a real mini-preview of each theme (desktop). */}
                     <div className="mt-1 grid grid-cols-2 gap-3 xl:grid-cols-4">
                       {THEME_PREVIEWS.map((tb) => {
                         const activeTheme = themeName === tb.key;
@@ -600,9 +615,9 @@ export default function ConfigUser() {
                     </div>
                   </div>
 
-                  {/* Fonte — reusa o seletor de fonte do useTheme (dashboard.font).
-                      "Padrão do tema" = a fonte do tema ativo (IBM Plex Sans no
-                      tema padrão). As demais persistem mesmo trocando de tema. */}
+                  {/* Font — reuses the useTheme font picker (dashboard.font).
+                      "Padrão do tema" = the active theme's font (IBM Plex Sans on
+                      the default theme). The others persist even across themes. */}
                   <label className="flex flex-col gap-1.5 border-t border-border pt-4">
                     <span className="text-sm">{cu.font}</span>
                     <select className={cn(inputCls, "mt-1")} value={fontId} onChange={(e) => setFont(e.target.value)}>
@@ -623,8 +638,8 @@ export default function ConfigUser() {
                     </select>
                   </label>
 
-                  {/* Transcrição (benchmark Claude Code): tamanho + largura da
-                      conversa, ao vivo via CSS vars (lib/chat-display.ts). */}
+                  {/* Transcript (Claude Code benchmark): conversation size +
+                      width, live via CSS vars (lib/chat-display.ts). */}
                   <div className="flex flex-col gap-1.5 border-t border-border pt-4">
                     <span className="text-sm">{cu.textSize}</span>
                     <Segmented<ChatTextSize>
@@ -668,8 +683,8 @@ export default function ConfigUser() {
             </>
           )}
 
-          {/* Instruções — movidas da antiga "Personalização" pro Geral
-              (como o Claude: perfil + preferências numa aba só). */}
+          {/* Instructions — moved from the old "Personalização" into Geral
+              (like Claude: profile + preferences in a single tab). */}
           {active === "general" && (
             <Card>
               <CardHeader className="px-5 py-4">
@@ -692,7 +707,7 @@ export default function ConfigUser() {
             </Card>
           )}
 
-          {/* ---------- MEMÓRIA (benchmark Claude "Capacidades") ---------- */}
+          {/* ---------- MEMORY (Claude "Capabilities" benchmark) ---------- */}
           {active === "memoryTab" && (
             <Card>
               <CardHeader className="px-5 py-4">
@@ -715,8 +730,8 @@ export default function ConfigUser() {
                   checked={val("memory.user_profile_enabled") !== false}
                   onChange={(v) => update("memory.user_profile_enabled", v)}
                 />
-                {/* Orçamento da memória — memory.memory_char_limit nativo
-                    (2200 = padrão do backend, ~800 tokens). */}
+                {/* Memory budget — native memory.memory_char_limit
+                    (2200 = the backend default, ~800 tokens). */}
                 <div className="flex flex-col gap-1.5 border-t border-border pt-4">
                   <span className="text-sm">{cu.memoryBudget}</span>
                   <span className="text-xs text-text-secondary">{cu.memoryBudgetHint}</span>
@@ -748,7 +763,7 @@ export default function ConfigUser() {
             </Card>
           )}
 
-          {/* ---------- PRIVACIDADE E DADOS ---------- */}
+          {/* ---------- PRIVACY AND DATA ---------- */}
           {active === "privacyData" && (
             <Card>
               <CardHeader className="px-5 py-4">
@@ -764,8 +779,8 @@ export default function ConfigUser() {
                   checked={val("privacy.redact_pii") === true}
                   onChange={(v) => update("privacy.redact_pii", v)}
                 />
-                {/* memory.write_approval — nativo (nem o desktop expõe): o
-                    Wayne pede confirmação antes de gravar memória nova. */}
+                {/* memory.write_approval — native (not even the desktop exposes
+                    it): Wayne asks for confirmation before writing new memory. */}
                 <ToggleRow
                   border
                   label={cu.writeApproval}
@@ -786,10 +801,10 @@ export default function ConfigUser() {
             </Card>
           )}
 
-          {/* ---------- COMPUTADOR (benchmark Manus "My Computer") ---------- */}
+          {/* ---------- COMPUTER (Manus "My Computer" benchmark) ---------- */}
           {active === "computer" && (
             <>
-              {/* Abas Nuvem/Local — fiel ao Manus. */}
+              {/* Cloud/Local tabs — faithful to Manus. */}
               <div className="flex gap-1 border-b border-border px-1">
                 {(["cloud", "local"] as const).map((tab) => (
                   <button
@@ -810,7 +825,7 @@ export default function ConfigUser() {
 
               {computerTab === "cloud" ? (
                 <>
-                  {/* Estado do computador — /api/status */}
+                  {/* Computer state — /api/status */}
                   <Card>
                     <CardContent className="flex flex-wrap items-center gap-x-6 gap-y-2 px-5 py-5">
                       <span className="flex items-center gap-2 text-sm font-medium">
@@ -842,8 +857,8 @@ export default function ConfigUser() {
                     </CardContent>
                   </Card>
 
-                  {/* Recursos — /api/system/stats (RAM/CPU/disco = o volume
-                      /opt/data do tenant, medido no servidor). */}
+                  {/* Resources — /api/system/stats (RAM/CPU/disk = the tenant's
+                      /opt/data volume, measured on the server). */}
                   <Card>
                     <CardHeader className="px-5 py-4">
                       <CardTitle className="font-sans text-[15px] font-semibold">{cu.resourcesTitle}</CardTitle>
@@ -897,8 +912,8 @@ export default function ConfigUser() {
                     </CardContent>
                   </Card>
 
-                  {/* Upsell elegante (Manus) — só sinalização; preços = onda
-                      de billing. Aparece quando o armazenamento aperta. */}
+                  {/* Elegant upsell (Manus) — signalling only; pricing = the
+                      billing wave. Shows up when storage gets tight. */}
                   {stats?.disk && stats.disk.percent >= 70 && (
                     <Card className="border-live/40">
                       <CardContent className="flex items-start gap-3 px-5 py-5">
@@ -911,8 +926,8 @@ export default function ConfigUser() {
                     </Card>
                   )}
 
-                  {/* Segurança — backup completo via /api/ops/backup (zip em
-                      /opt/data/backups, visível na tela Arquivos). */}
+                  {/* Safety — full backup via /api/ops/backup (zip in
+                      /opt/data/backups, visible on the Files screen). */}
                   <Card>
                     <CardHeader className="px-5 py-4">
                       <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
@@ -938,7 +953,7 @@ export default function ConfigUser() {
                   </Card>
                 </>
               ) : (
-                /* Computador local — Em breve (chega com o app desktop). */
+                /* Local computer — Coming soon (arrives with the desktop app). */
                 <Card>
                   <CardContent className="flex items-center gap-3 px-5 py-5">
                     <Laptop className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -957,11 +972,11 @@ export default function ConfigUser() {
             </>
           )}
 
-          {/* ---------- PLANO & UTILIZAÇÃO (Onda C — créditos, nunca US$) ---------- */}
+          {/* ---------- PLAN & USAGE (Onda C — credits, NEVER US$) ---------- */}
           {active === "planTab" && (
             <>
-              {/* Tier PADRÃO da conta — vale pra novas tarefas em todo lugar;
-                  no chat continua dando pra trocar por tarefa (TierPicker). */}
+              {/* The account's DEFAULT tier — applies to new tasks everywhere;
+                  in the chat you can still switch it per task (TierPicker). */}
               <Card>
                 <CardHeader className="px-5 py-4">
                   <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
@@ -971,9 +986,8 @@ export default function ConfigUser() {
                 </CardHeader>
                 <CardContent className="flex flex-col gap-3 px-5 pb-5">
                   <span className="text-xs text-text-secondary">{cu.defaultTierHint}</span>
-                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
                     {TIER_ORDER.map((k) => {
-                      const p = TIER_PRESETS[k];
                       const isCur = currentTier === k;
                       return (
                         <button
@@ -990,10 +1004,15 @@ export default function ConfigUser() {
                           )}
                         >
                           <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                            {p.label}
+                            {tierLabel(t, k)}
+                            {k === "gratis" && (
+                              <span className="rounded-full bg-live/10 px-1.5 py-px text-[10px] font-medium text-live">
+                                {t.tiers.gratisBadge}
+                              </span>
+                            )}
                             {isCur && <Check className="h-3.5 w-3.5 text-live" />}
                           </span>
-                          <span className="text-xs text-text-secondary">{p.subtitle}</span>
+                          <span className="text-xs text-text-secondary">{tierSubtitle(t, k)}</span>
                         </button>
                       );
                     })}
@@ -1001,7 +1020,7 @@ export default function ConfigUser() {
                 </CardContent>
               </Card>
 
-              {/* Utilização — /api/analytics/usage convertido pra CRÉDITOS. */}
+              {/* Usage — /api/analytics/usage converted to CREDITS. */}
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between px-5 py-4">
                   <CardTitle className="font-sans text-[15px] font-semibold">{cu.usageTitle}</CardTitle>
@@ -1058,7 +1077,7 @@ export default function ConfigUser() {
                             <p className="text-xs text-text-tertiary">{cu.noUsage}</p>
                           ) : (
                             <>
-                              {/* Consumo diário (14 dias) — barras CSS puras. */}
+                              {/* Daily consumption (14 days) — pure CSS bars. */}
                               <div>
                                 <div className="flex h-24 items-end gap-1">
                                   {days.map((d) => {
@@ -1092,7 +1111,7 @@ export default function ConfigUser() {
                                 </div>
                               </div>
 
-                              {/* Por modo (Flash·Auto / Expert·Crew) — sem expor LLMs. */}
+                              {/* By mode (Flash·Auto / Expert·Crew) — without exposing LLMs. */}
                               <div className="flex flex-col gap-2 border-t border-border pt-4">
                                 <span className="text-sm">{cu.byTier}</span>
                                 {groups
@@ -1123,9 +1142,9 @@ export default function ConfigUser() {
                 </CardContent>
               </Card>
 
-              {/* Saldo do ciclo — medidor REAL quando a chave do tenant tem
-                  teto (usage.account → percentual; faixas 50/75/90 na cor);
-                  senão, casca honesta até o plano provisionar o teto. */}
+              {/* Cycle balance — a REAL meter when the tenant's key has a cap
+                  (usage.account → percentage; 50/75/90 bands in the color);
+                  otherwise an honest shell until the plan provisions the cap. */}
               {cycleMeter?.configured && cycleMeter.used_percent != null ? (
                 <Card>
                   <CardHeader className="px-5 py-4">
@@ -1170,7 +1189,7 @@ export default function ConfigUser() {
             </>
           )}
 
-          {/* ---------- NOTIFICAÇÕES (browser; espelho do desktop) ---------- */}
+          {/* ---------- NOTIFICATIONS (browser; mirror of the desktop) ---------- */}
           {active === "notificationsTab" && (
             <Card>
               <CardHeader className="px-5 py-4">
@@ -1214,15 +1233,16 @@ export default function ConfigUser() {
             </Card>
           )}
 
-          {/* ---------- PERSONALIZAR (páginas existentes) ---------- */}
-          {/* As MESMAS páginas do Dashboard: Habilidades = SkillsPage (que já
-              cai no marketplace fora do ?full=1), Conectores = ConnectorsPage
-              (o marketplace dos 1.047 apps — não a tela técnica McpPage, que
-              vive só no ?full=1). ConfigUser é a superfície user-facing. */}
+          {/* ---------- PERSONALIZE (existing pages) ---------- */}
+          {/* The SAME pages as the Dashboard: Skills = SkillsPage (which already
+              lands on the marketplace outside ?full=1), Connectors =
+              ConnectorsPage (the marketplace of the 1,047 apps — not the
+              technical McpPage, which lives only in ?full=1). ConfigUser is the
+              user-facing surface. */}
           {active === "skills" && <SkillsPage />}
           {active === "connectors" && <ConnectorsPage />}
           {active === "channels" && <ChannelsPage />}
-          {active === "plugins" && <PluginsPage />}
+          {active === "plugins" && internal && <PluginsPage />}
         </div>
       </div>
 

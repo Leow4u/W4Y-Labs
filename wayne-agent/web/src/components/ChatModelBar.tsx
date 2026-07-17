@@ -1,20 +1,22 @@
 /**
- * ChatModelBar — o seletor de modelo (tier Flash/Auto/Expert/Crew) numa barra
- * fina ABAIXO do terminal, junto ao composer, no mesmo lugar do benchmark do
- * Claude. Antes vivia na barra lateral (ChatSidebar); aqui é AUTO-CONTIDO: lê o
- * próprio model-info (o TierPicker ainda lê a config sozinho no mount, então
- * `currentModel` é só um gatilho) e mostra o aviso de "aplicar no /new" inline.
- * Curadoria do Chat — Etapa B.
+ * ChatModelBar — the model picker (Flash/Auto/Expert/Crew tier) in a thin bar
+ * BELOW the terminal, next to the composer, in the same spot as the Claude
+ * benchmark. It used to live in the sidebar (ChatSidebar); here it is SELF-
+ * CONTAINED: it reads its own model-info (the TierPicker still reads the config
+ * by itself on mount, so `currentModel` is just a trigger) and shows the
+ * "apply on /new" notice inline. Chat curation — Etapa B.
  */
 
 import { useEffect, useState } from "react";
 
 import { TierPicker } from "@/components/TierPicker";
+import { useI18n } from "@/i18n";
 import { api } from "@/lib/api";
-import { TIER_PRESETS, type TierKey } from "@/lib/tier-presets";
+import { tierLabel, type TierKey } from "@/lib/tier-presets";
 import { cn } from "@/lib/utils";
 
 export function ChatModelBar({ light }: { light: boolean }) {
+  const { t } = useI18n();
   const [model, setModel] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -26,15 +28,15 @@ export function ChatModelBar({ light }: { light: boolean }) {
         if (!cancelled && r?.model) setModel(String(r.model));
       })
       .catch(() => {
-        /* best-effort: o TierPicker lê a config sozinho no mount */
+        /* best-effort: the TierPicker reads the config by itself on mount */
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  // Pill de modelo (estilo Grok) — o TierPicker já é a pill + dropdown. O aviso
-  // de "aplica na próxima tarefa" some após alguns segundos p/ não poluir.
+  // Model pill (Grok style) — the TierPicker is already the pill + dropdown. The
+  // "aplica na próxima tarefa" notice fades after a few seconds to avoid clutter.
   useEffect(() => {
     if (!notice) return;
     const id = setTimeout(() => setNotice(null), 4000);
@@ -56,7 +58,7 @@ export function ChatModelBar({ light }: { light: boolean }) {
       <TierPicker
         currentModel={model}
         onChanged={(tier: TierKey) =>
-          setNotice(`${TIER_PRESETS[tier].label} — aplica na próxima tarefa`)
+          setNotice(`${tierLabel(t, tier)} — aplica na próxima tarefa`)
         }
       />
     </div>

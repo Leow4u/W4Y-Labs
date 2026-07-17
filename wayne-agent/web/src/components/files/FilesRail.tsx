@@ -1,8 +1,8 @@
 /**
- * FilesRail — o rail lateral do explorador (Onda 2): Acesso rápido (Início),
- * Projetos (pastas de projects/) e Favoritos (fixados, ao vivo via
- * lib/pinned-files). Cara do painel esquerdo do Windows Explorer, na nossa
- * linguagem Editorial. Presentacional: recebe os projetos + callbacks do pai.
+ * FilesRail — the explorer's side rail (Onda 2): "Acesso rápido" ("Início"),
+ * "Projetos" (folders under projects/) and "Favoritos" (pinned, live via
+ * lib/pinned-files). The look of Windows Explorer's left pane, in our Editorial
+ * language. Presentational: receives the projects + callbacks from the parent.
  */
 import { useEffect, useState } from "react";
 import { Home, Star } from "lucide-react";

@@ -1,10 +1,10 @@
 /**
- * SessionSwitcher — o trocador rápido de sessões (Onda 4, papel do Ctrl+Tab/
- * Ctrl+X do desktop/TUI; na web o atalho é Ctrl+K — Ctrl+Tab é reservado do
- * navegador). Overlay com busca, "+ Nova tarefa" no topo (nasce no tier atual
- * do composer — contrato por-sessão já existente) e as tarefas recentes com
- * o ponto VIVO (trabalhando/esperando você) via wayne:session-activity.
- * ↑/↓ navegam, Enter troca, Esc fecha.
+ * SessionSwitcher — the quick session switcher (Onda 4, the role of Ctrl+Tab/
+ * Ctrl+X on desktop/TUI; on the web the shortcut is Ctrl+K — Ctrl+Tab is
+ * reserved by the browser). Overlay with search, "+ Nova tarefa" on top (born
+ * on the composer's current tier — existing per-session contract) and the
+ * recent tasks with the LIVE dot (working/waiting on you) via
+ * wayne:session-activity. ↑/↓ navigate, Enter switches, Esc closes.
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +23,7 @@ export function SessionSwitcher({
   open: boolean;
   onClose: () => void;
   currentId: string | null;
-  /** Tier atual (Flash/Auto/…): dica na linha "+ Nova tarefa". */
+  /** Current tier (Flash/Auto/…): hint on the "+ Nova tarefa" row. */
   modeBadge?: string | null;
 }) {
   const { t } = useI18n();
@@ -68,7 +68,7 @@ export function SessionSwitcher({
         `${s.title ?? ""} ${s.preview ?? ""}`.toLowerCase().includes(q),
       )
     : sessions;
-  // Linha 0 = "+ Nova tarefa"; 1..N = sessões.
+  // Row 0 = "+ Nova tarefa"; 1..N = sessions.
   const total = filtered.length + 1;
 
   const pick = useCallback(

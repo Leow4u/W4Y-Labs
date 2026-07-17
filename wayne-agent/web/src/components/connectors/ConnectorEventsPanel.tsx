@@ -1,11 +1,12 @@
 /**
- * ConnectorEventsPanel — liga/desliga EVENTOS (triggers) de um conector já
- * conectado (Conectores Onda 4). Um gatilho ativo faz a Composia entregar o
- * evento no nosso webhook; cada evento vira uma tarefa do agente do escopo.
+ * ConnectorEventsPanel — turns EVENTS (triggers) on/off for an already
+ * connected connector (Conectores Onda 4). An active trigger makes Composio
+ * deliver the event to our webhook; each event becomes a task for the scope's
+ * agent.
  *
- * Modal overlay sobre um toolkit: lista os tipos de gatilho do app, cada um
- * com um switch; os já ativos vêm ligados. Sem legendas — o próprio gatilho
- * (nome + descrição curta) se explica.
+ * Modal overlay over a toolkit: lists the app's trigger types, each with a
+ * switch; the already active ones come toggled on. No captions — the trigger
+ * itself (name + short description) explains it.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, X, Zap } from "lucide-react";
@@ -54,7 +55,7 @@ export function ConnectorEventsPanel({
     };
   }, [toolkit, scope]);
 
-  // Um trigger type está ligado se há um ativo com o mesmo slug (case-insensitive).
+  // A trigger type is on if there is an active one with the same slug (case-insensitive).
   const activeBySlug = useMemo(() => {
     const m = new Map<string, ConnectorTrigger>();
     for (const a of active) m.set((a.trigger || "").toUpperCase(), a);

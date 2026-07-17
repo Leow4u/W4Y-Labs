@@ -1,0 +1,14 @@
+# Overlay do "Local (desktop)" (Ondas 0–5) sobre a base fly JÁ bootável.
+# NUNCA reconstruir a base do HEAD (lição fly128: s6-overlay pid-1 → 502).
+# Os 4 .py copiados foram VERIFICADOS = base + só o delta do Local (docker
+# create/cp/diff: únicas linhas base-only = o edit de merge no server.py; zero
+# remoções em terminal_tool/file_operations). Contexto de build = wayne-agent/.
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly182
+FROM ${BASE_IMAGE}
+# Backend Python (canal, environment, factory, write-confinement, RPC).
+COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py
+COPY tools/terminal_tool.py /opt/wayne/tools/terminal_tool.py
+COPY tools/file_operations.py /opt/wayne/tools/file_operations.py
+COPY tools/environments/local_desktop.py /opt/wayne/tools/environments/local_desktop.py
+# SPA (EnvironmentChip novo + hook localEnv).
+COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist

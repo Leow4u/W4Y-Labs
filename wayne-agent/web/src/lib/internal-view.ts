@@ -1,10 +1,10 @@
-// Escotilha interna de curadoria.
+// Curadoria's internal escape hatch.
 //
-// Quando `?full=1` está na URL, revela a camada TÉCNICA/ADMIN (o mesmo gate já
-// usado por Config ConfigUser↔ConfigPage e por Skills featured↔biblioteca).
-// As telas "split" usam isto para ESCONDER o encanamento do usuário-final e
-// manter só o núcleo de produto — sem apagar nada: com ?full=1 (nós/suporte)
-// tudo volta a aparecer.
+// When `?full=1` is in the URL, it reveals the TECHNICAL/ADMIN layer (the same
+// gate already used by Config ConfigUser↔ConfigPage and by Skills
+// featured↔library). The "split" screens use this to HIDE the plumbing from the
+// end user and keep only the product core — without deleting anything: with
+// ?full=1 (us/support) everything shows up again.
 export function isInternalView(): boolean {
   if (typeof window === "undefined") return false;
   try {

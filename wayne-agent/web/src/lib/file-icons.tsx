@@ -1,10 +1,10 @@
 /**
- * file-icons — ícone visual por tipo de arquivo, estilo desktop (Onda 1 da UX
- * de Arquivos). Reaproveita a linguagem de "favicon de marca" que o cartão de
- * arquivo do chat já usa (FileRefCard): quadrado colorido + glifo branco pros
- * apps de Office (X verde do Excel, W azul do Word, P laranja do PowerPoint,
- * PDF vermelho, IMG roxo, ZIP âmbar); ícone lucide colorido pros demais
- * (código, mídia, texto); pasta âmbar. Tudo inline — nenhum asset externo.
+ * file-icons — visual icon per file type, desktop style (Onda 1 of the Files
+ * UX). Reuses the "brand favicon" language the chat's file card already uses
+ * (FileRefCard): colored square + white glyph for the Office apps (Excel's
+ * green X, Word's blue W, PowerPoint's orange P, red PDF, purple IMG, amber
+ * ZIP); colored lucide icon for the rest (code, media, text); amber folder.
+ * All inline — no external asset.
  */
 import {
   File as FileIcon,
@@ -20,19 +20,19 @@ import {
 
 import { cn } from "@/lib/utils";
 
-/** Cor do folder — âmbar quente (a "pasta amarela" clássica). */
+/** Folder color — warm amber (the classic "yellow folder"). */
 const FOLDER_COLOR = "#C7912B";
 
 interface FileKind {
-  /** Glifo de marca (letra curta + fundo). Presente = quadrado colorido. */
+  /** Brand glyph (short letter + background). Present = colored square. */
   glyph?: { text: string; bg: string };
-  /** Ícone lucide de fallback (quando não há glifo de marca). */
+  /** Fallback lucide icon (when there is no brand glyph). */
   Icon: LucideIcon;
-  /** Cor do ícone lucide (só usada quando não há glyph). */
+  /** Lucide icon color (only used when there is no glyph). */
   color: string;
 }
 
-/** Classifica um arquivo pela extensão. `isDirectory` decide antes de tudo. */
+/** Classifies a file by extension. `isDirectory` decides before anything else. */
 export function classifyFile(name: string, isDirectory: boolean): FileKind {
   if (isDirectory) return { Icon: Folder, color: FOLDER_COLOR };
   const ext = (name.split(".").pop() ?? "").toLowerCase();
@@ -50,7 +50,7 @@ export function classifyFile(name: string, isDirectory: boolean): FileKind {
   if (["zip", "rar", "7z", "tar", "gz", "tgz", "bz2"].includes(ext))
     return { glyph: { text: "ZIP", bg: "#D97706" }, Icon: FileArchive, color: "#D97706" };
 
-  // Sem glifo de marca — ícone lucide colorido.
+  // No brand glyph — colored lucide icon.
   if (["mp4", "mov", "webm", "mkv", "avi", "m4v"].includes(ext))
     return { Icon: Film, color: "#DB2777" };
   if (["mp3", "wav", "ogg", "m4a", "flac", "aac"].includes(ext))
@@ -67,9 +67,9 @@ export function classifyFile(name: string, isDirectory: boolean): FileKind {
 }
 
 /**
- * Ícone renderizado — dois tamanhos: `sm` (linha da lista) e `lg` (bloco da
- * grade). Glifo de marca vira quadrado arredondado colorido; o resto é ícone
- * lucide na cor do tipo.
+ * Rendered icon — two sizes: `sm` (list row) and `lg` (grid block). A brand
+ * glyph becomes a colored rounded square; the rest is a lucide icon in the
+ * type's color.
  */
 export function FileTypeIcon({
   name,

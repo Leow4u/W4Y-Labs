@@ -558,8 +558,8 @@ export default function SessionsPage() {
   }, [loading, setAfterTitle, total]);
 
   useEffect(() => {
-    // Curadoria: o botão "Prune old sessions" é manutenção técnica do store —
-    // só injeta no header quando interno (?full=1). Usuário-final não vê.
+    // Curation: the "Prune old sessions" button is technical store maintenance —
+    // only inject it into the header when internal (?full=1). End users don't see it.
     if (!isInternalView()) {
       setEnd(null);
       return;

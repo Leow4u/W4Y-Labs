@@ -1,0 +1,18 @@
+# Camada "gh" — instala o GitHub CLI na imagem do tenant (decisão 09/07:
+# acelerar o vínculo GitHub sem app OAuth próprio; o gh traz o device-flow
+# embutido — `gh auth login --web` — e a ship-bar do dock já detecta ghReady
+# via /api/git/review/ship-info). Camada separada do overlay de UI pra não
+# pagar o download a cada deploy de frontend.
+#
+#   docker build -f platform/wayne-fly/Dockerfile.gh \
+#     --build-arg BASE_IMAGE=registry.fly.io/wayne-w4y:flyN \
+#     -t registry.fly.io/wayne-w4y:flyN+1 .
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly109
+FROM ${BASE_IMAGE}
+
+ADD https://github.com/cli/cli/releases/download/v2.63.2/gh_2.63.2_linux_amd64.tar.gz /tmp/gh.tgz
+RUN tar -xzf /tmp/gh.tgz -C /tmp \
+    && mv /tmp/gh_2.63.2_linux_amd64/bin/gh /usr/local/bin/gh \
+    && chmod +x /usr/local/bin/gh \
+    && rm -rf /tmp/gh.tgz /tmp/gh_2.63.2_linux_amd64 \
+    && gh --version

@@ -243,6 +243,7 @@ export interface Translations {
     showLess: string;
     rename: string;
     openNewTab: string;
+    openInBrowser: string;
     export: string;
     archive: string;
     restore: string;
@@ -322,6 +323,8 @@ export interface Translations {
     envSources: string;
     envChanges: string;
     reconnecting: string;
+
+    turnStalled: string;
     journeyTitle: string;
     journeyEmpty: string;
     journeySkill: string;
@@ -331,6 +334,29 @@ export interface Translations {
     dockCode: string;
     dockProject: string;
     pinSummary: string;
+    dockOutputs: string;
+    dockOutputsHint: string;
+    dockCreateOutput: string;
+    dockCreateDoc: string;
+    dockCreateSlides: string;
+    dockCreateSheet: string;
+    dockCreateSite: string;
+    dockSeedDoc: string;
+    dockSeedSlides: string;
+    dockSeedSheet: string;
+    dockSeedSite: string;
+    dockProjectFiles: string;
+    dockAttachFiles: string;
+    dockConnectApps: string;
+    dockAddSource: string;
+    dockSourceWeb: string;
+    dockSourceApp: string;
+    connectAppPrompt: string;
+    dockPlan: string;
+    dockResults: string;
+    dockAgentsActive: string;
+    dockAgentsDone: string;
+    dockWatchLive: string;
     previewDesktop: string;
     previewMobile: string;
     previewEmptyHint: string;
@@ -357,6 +383,7 @@ export interface Translations {
     unpinProject: string;
     openInFilesApp: string;
     archiveChats: string;
+    archiveProject: string;
     removeProject: string;
     projectNoSessions: string;
     sessionsArchivedToast: string;
@@ -366,6 +393,12 @@ export interface Translations {
     envOnlyDesktop: string;
     comingSoon: string;
     envCloudSection: string;
+    ctxCloudSection: string;
+    ctxLocalSection: string;
+    ctxAddLocalFolder: string;
+    ctxLockedHint: string;
+    ctxRunInCloud: string;
+    dockLocalDefault: string;
     envDefaultName: string;
     envAddCloud: string;
     remoteControl: string;
@@ -602,6 +635,13 @@ export interface Translations {
     toolCalls: string;
     noModelsData: string;
     startSession: string;
+  };
+
+  // ── Work4You model tiers (TierPicker / ChatModelBar / ConfigUser) ──
+  tiers: {
+    gratis: string;
+    gratisSubtitle: string;
+    gratisBadge: string;
   };
 
   // ── Logs page ──
@@ -899,6 +939,7 @@ export interface Translations {
     install: string;
     installed: string;
     installing: string;
+    installFailed: string;
     remove: string;
     removing: string;
     skillCount: string;
@@ -914,6 +955,37 @@ export interface Translations {
     profileSelector?: string;
     currentProfile?: string;
     managingProfile?: string;
+    /** On-demand hub security scan (GET /api/skills/hub/scan). Mirrors the
+     *  ScanResult / should_allow_install contract exactly — every label here
+     *  maps to a value the backend actually returns. */
+    scan: {
+      /** Triggers the scan. Hub source only; the bundle download is costly,
+       *  so it never runs automatically. */
+      run: string;
+      rerun: string;
+      running: string;
+      /** Endpoint failure; the real status + detail renders next to it. */
+      failed: string;
+      /** ScanResult.verdict. */
+      verdictSafe: string;
+      verdictCaution: string;
+      verdictDangerous: string;
+      /** `policy` = should_allow_install decision (force=False). */
+      policyAllow: string;
+      policyAsk: string;
+      policyBlock: string;
+      /** ScanResult.trust_level. */
+      trustBuiltin: string;
+      trustTrusted: string;
+      trustCommunity: string;
+      trustAgentCreated: string;
+      /** Finding.severity. */
+      sevCritical: string;
+      sevHigh: string;
+      sevMedium: string;
+      sevLow: string;
+      noFindings: string;
+    };
   };
 
   // ── Rótulos amigáveis das habilidades em destaque (nome + resumo curto).
@@ -1427,5 +1499,48 @@ export interface Translations {
     workspacePathOptional: string;
     logTruncated: string;
     logAt: string;
+  };
+  pluginsHub: {
+    promptEmail: string;
+    promptCalendar: string;
+    promptSlack: string;
+    promptNotion: string;
+    promptGithub: string;
+    promptSheets: string;
+    ucEmail: string;
+    ucCalendar: string;
+    ucSlack: string;
+    ucNotion: string;
+    ucGithub: string;
+    ucSheets: string;
+    manage: string;
+    create: string;
+    groupConnectors: string;
+    groupSkills: string;
+    customApi: string;
+    customMcp: string;
+    importMcpJson: string;
+    addMcpUrl: string;
+    createSkill: string;
+    uploadSkill: string;
+    importGithub: string;
+    urlTitle: string;
+    addBtn: string;
+    importBtn: string;
+    createWithWayne: string;
+    namePh: string;
+    commandPh: string;
+    argsPh: string;
+    envPh: string;
+    githubPh: string;
+    learnPh: string;
+    searchPh: string;
+    invalidJson: string;
+    nothingToAdd: string;
+    nameUrlRequired: string;
+    nameCommandRequired: string;
+    invalidFile: string;
+    uploadFailed: string;
+    added: string;
   };
 }

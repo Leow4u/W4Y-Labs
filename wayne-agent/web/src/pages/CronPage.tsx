@@ -1,17 +1,17 @@
 /**
- * Agenda / Rotinas — a tela de automações do tenant, fiel ao "Routines" do
- * Claude e ao nosso jeito Editorial.
+ * Agenda / Rotinas — the tenant's automation screen, faithful to Claude's
+ * "Routines" and to our Editorial way.
  *
- * Onda 1: composer "O que você quer automatizar?" + chips → drawer pré-preenchido;
- *   lista de rotinas redesenhada (ícone, agenda humana, chip do AGENTE, próxima
- *   execução, status, ações no hover); empty "Nenhuma rotina ainda"; seletor de
- *   agente; curadoria sistema×usuário (lib/cron-curation) — sistema só no ?full=1.
- * Onda 2: galeria "Ou comece com um modelo" reusa os blueprints nativos.
- * Onda 3: toggle Rotinas↔Calendário (RoutineCalendar, próximas execuções por agente).
+ * Onda 1: composer "O que você quer automatizar?" + chips → pre-filled drawer;
+ *   redesigned routine list (icon, human schedule, AGENT chip, next run, status,
+ *   actions on hover); empty "Nenhuma rotina ainda"; agent picker; system×user
+ *   curation (lib/cron-curation) — system only under ?full=1.
+ * Onda 2: the "Ou comece com um modelo" gallery reuses the native blueprints.
+ * Onda 3: "Rotinas"↔"Calendário" toggle (RoutineCalendar, next runs per agent).
  *
- * Rotinas são INDEPENDENTES por agente (todo job tem `profile`); o form cria
- * sempre mirando um agente. Campos técnicos (provider/model/script/…) seguem
- * escondidos no ?full=1.
+ * Routines are INDEPENDENT per agent (every job has a `profile`); the form
+ * always creates aiming at one agent. Technical fields (provider/model/script/…)
+ * stay hidden under ?full=1.
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Clock, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
@@ -151,9 +151,9 @@ function emptyCronJobForm(): CronJobEditorState {
     no_agent: false,
     context_from: "",
     enabled_toolsets: [],
-    // Deep-link: /cron?workdir=<pasta> pré-preenche o workspace do job novo.
+    // Deep-link: /cron?workdir=<folder> pre-fills the new job's workspace.
     workdir: new URLSearchParams(window.location.search).get("workdir") ?? "",
-    // Rotina = recorrente → começa em "diário às 9h" (não no intervalo de 30min).
+    // Routine = recurring → starts at "daily at 9am" (not the 30min interval).
     scheduleState: { ...DEFAULT_SCHEDULE_STATE, mode: "daily", timeOfDay: "09:00" },
   };
 }
@@ -401,8 +401,9 @@ function CronJobFormFields({ idPrefix, autoFocus, form, resources, onChange }: C
         />
       </div>
 
-      {/* Curadoria: campos técnicos/admin ficam escondidos do usuário-final.
-          A criação segue com os defaults do form. Voltam no ?full=1 (nós/suporte). */}
+      {/* Curation: technical/admin fields stay hidden from the end user.
+          Creation proceeds with the form's defaults. They come back under
+          ?full=1 (us/support). */}
       {isInternalView() && (
         <CronAdvancedFields
           idPrefix={`${idPrefix}-advanced`}
@@ -457,10 +458,10 @@ function splitJobKey(key: string): { profile: string; id: string } {
 }
 
 function profileLabel(profile: string): string {
-  return profile === "default" ? "Wayne" : profile;
+  return profile === "default" ? "Work4You" : profile;
 }
 
-// Ponto colorido do agente (mesma cor no card e no calendário).
+// The agent's colored dot (same color on the card and in the calendar).
 function AgentDot({ profile }: { profile: string }) {
   return (
     <span
@@ -471,7 +472,7 @@ function AgentDot({ profile }: { profile: string }) {
   );
 }
 
-// Selo de status da rotina (bolinha + rótulo traduzido).
+// Routine status pill (dot + translated label).
 function StatusPill({ state, label }: { state: string; label: string }) {
   const tone =
     state === "paused" || state === "disabled"
@@ -489,8 +490,8 @@ function StatusPill({ state, label }: { state: string; label: string }) {
   );
 }
 
-/** Composer estilo Claude: texto livre + chips → cria a rotina (abre o drawer
- *  pré-preenchido). Cmd/Ctrl+Enter envia. */
+/** Claude-style composer: free text + chips → creates the routine (opens the
+ *  pre-filled drawer). Cmd/Ctrl+Enter submits. */
 function RoutineComposer({
   onCreate,
   chips,
@@ -546,8 +547,8 @@ function RoutineComposer({
   );
 }
 
-/** Cartão de rotina estilo Claude — ícone, título, agenda humana, próxima
- *  execução, chip do agente, status; ações no hover. */
+/** Claude-style routine card — icon, title, human schedule, next run,
+ *  agent chip, status; actions on hover. */
 function RoutineCard({
   job,
   scheduleText,
@@ -676,7 +677,7 @@ export default function CronPage() {
     setEditForm(editorFormFromJob(job));
   }, []);
 
-  // Composer / chips / "+ Nova rotina" → abre o drawer pré-preenchido no agente ativo.
+  // Composer / chips / "+ Nova rotina" → opens the drawer pre-filled on the active agent.
   const openCreateWithPrompt = useCallback(
     (prompt: string) => {
       setCreateProfile(selectedProfile === "all" ? "default" : selectedProfile);
@@ -814,7 +815,7 @@ export default function CronPage() {
     ),
   });
 
-  // Cabeçalho: toggle Rotinas↔Calendário + "+ Nova rotina".
+  // Header: "Rotinas"↔"Calendário" toggle + "+ Nova rotina".
   useLayoutEffect(() => {
     setEnd(
       <div className="flex items-center gap-2">
@@ -857,7 +858,7 @@ export default function CronPage() {
   }
 
   const { user: userJobs } = partitionJobs(jobs);
-  const shown = internal ? jobs : userJobs; // ?full=1 vê tudo (incl. jobs de sistema)
+  const shown = internal ? jobs : userJobs; // ?full=1 sees everything (incl. system jobs)
   const pendingJob = jobDelete.pendingId ? jobs.find((j) => getJobKey(j) === jobDelete.pendingId) : null;
 
   const stateLabelOf = (job: CronJob) => {
@@ -888,7 +889,7 @@ export default function CronPage() {
             />
           </div>
 
-          {/* Filtro por agente + contagem. */}
+          {/* Filter by agent + count. */}
           <div className="flex flex-wrap items-center justify-between gap-3">
             <span className="inline-flex items-center gap-2 type-ui text-muted-foreground">
               <Clock className="h-4 w-4" />
@@ -933,7 +934,7 @@ export default function CronPage() {
             </div>
           )}
 
-          {/* Galeria de modelos (blueprints nativos) — Onda 2. */}
+          {/* Template gallery (native blueprints) — Onda 2. */}
           <div className="grid gap-3 pt-2">
             <h3 className="type-ui font-medium text-foreground">{t.cron.startFromTemplate}</h3>
             <AutomationBlueprints

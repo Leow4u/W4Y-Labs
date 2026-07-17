@@ -1,0 +1,31 @@
+# Overlay "projeto = uma linha" (convergência do modelo) + P1..P4, sobre a base
+# fly JÁ bootável. NUNCA reconstruir a base do HEAD (lição fly128: s6-overlay
+# pid-1 → crash-loop → 502). Base = fly188, que já carrega o delta do Local
+# (terminal_tool / file_operations / local_desktop) — esses NÃO voltam aqui
+# porque hoje só mudaram comentários (PT→EN), zero runtime.
+#
+# Delta REAL deste overlay (verificar com docker create/cp/diff se houver dúvida):
+#   server.py       — persiste o cwd da pasta local como workspace da sessão +
+#                     promove a pasta a Project (idempotente) + restaura o cwd
+#                     da nuvem ao desligar o Local.
+#   projects_db.py  — 2 correções de multiplataforma: _normalize_path deixa de
+#                     mutilar caminho Windows em host POSIX (C:\x virava
+#                     /app/C:\x), e project_for_path passa a aceitar os dois
+#                     separadores (nested Windows não casava no Linux).
+#   web_server.py   — ponte REST /api/projects (GET+POST). A sidebar é global,
+#                     vive fora de sessão WS, então não alcança as RPCs
+#                     projects.* do gateway.
+#   web_dist        — SPA: fila por conversa, watchdog de turno, "Principal",
+#                     sidebar no modelo de linha + backfill, PT→EN.
+#
+# Contexto de build = wayne-agent/.
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly188
+FROM ${BASE_IMAGE}
+COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py
+COPY wayne_cli/projects_db.py /opt/wayne/wayne_cli/projects_db.py
+COPY wayne_cli/web_server.py /opt/wayne/wayne_cli/web_server.py
+# APAGA antes de copiar — ver a mesma nota no Dockerfile.ui: o COPY MESCLA, não
+# substitui, e sem isto os bundles antigos se acumulam (82 no fly193) e enganam
+# qualquer grep de diagnóstico.
+RUN rm -rf /opt/wayne/wayne_cli/web_dist
+COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist

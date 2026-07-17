@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Work4You</title>
+<style>
+  /* Paleta alinhada ao shell (#0e0e0e) e ao design editorial (terracota). */
+  :root {
+    --bg: #0e0e0e;
+    --panel: #161513;
+    --line: #2a2723;
+    --text: #ececea;
+    --muted: #9a958e;
+    --live: #d97757;
+    --live-strong: #e08a6d;
+    --ok: #7fb069;
+    --err: #d06a5a;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.5 "Segoe UI", system-ui, -apple-system, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .card {
+    width: min(560px, calc(100vw - 48px));
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .brand {
+    font-family: "Cascadia Mono", "Cascadia Code", Consolas, monospace;
+    font-size: 20px;
+    letter-spacing: 0.02em;
+  }
+  .brand em { color: var(--live); font-style: normal; }
+
+  .status { display: flex; align-items: center; gap: 12px; min-height: 28px; }
+  .spinner {
+    width: 18px; height: 18px; flex: none;
+    border: 2px solid var(--line);
+    border-top-color: var(--live);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #status-text { font-size: 15px; }
+  #hint { color: var(--muted); font-size: 12.5px; margin-top: -12px; }
+
+  /* Estágios da instalação */
+  #stages {
+    list-style: none;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 6px 0;
+    max-height: 240px;
+    overflow-y: auto;
+  }
+  #stages li {
+    display: flex; align-items: center; gap: 10px;
+    padding: 5px 14px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  #stages li .mark {
+    width: 16px; text-align: center; flex: none;
+    font-size: 12px;
+  }
+  #stages li.running { color: var(--text); }
+  #stages li.running .mark {
+    width: 12px; height: 12px; margin: 0 2px;
+    border: 2px solid var(--line);
+    border-top-color: var(--live);
+    border-radius: 50%;
+    animation: spin 0.9s linear infinite;
+  }
+  #stages li.succeeded .mark { color: var(--ok); }
+  #stages li.skipped .mark { color: var(--muted); }
+  #stages li.failed { color: var(--err); }
+  #stages li.failed .mark { color: var(--err); }
+
+  /* Chave de acesso */
+  #key-form {
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: var(--panel);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  #key-form label { font-size: 13.5px; }
+  #key-form label small { color: var(--muted); display: block; margin-top: 2px; }
+  #key-input {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    font: 13px "Cascadia Mono", Consolas, monospace;
+    padding: 9px 12px;
+    outline: none;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  #key-input:focus { border-color: var(--live); }
+  #key-error { color: var(--err); font-size: 12.5px; display: none; }
+  .actions { display: flex; gap: 10px; align-items: center; }
+  button {
+    font: 600 13px "Segoe UI", system-ui, sans-serif;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+    border: 1px solid transparent;
+  }
+  button.primary { background: var(--live); color: #1b120d; }
+  button.primary:hover { background: var(--live-strong); }
+  button.ghost { background: transparent; color: var(--muted); border-color: var(--line); }
+  button.ghost:hover { color: var(--text); border-color: var(--muted); }
+  button:disabled { opacity: 0.5; cursor: default; }
+
+  /* Erro */
+  #error-box {
+    border: 1px solid rgba(208, 106, 90, 0.45);
+    border-radius: 10px;
+    background: rgba(208, 106, 90, 0.08);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  #error-text { font-size: 13.5px; line-height: 1.55; }
+
+  /* Log técnico colapsável */
+  #log-box summary {
+    color: var(--muted);
+    font-size: 12.5px;
+    cursor: pointer;
+    list-style: none;
+  }
+  #log-box summary::before { content: "▸ "; }
+  #log-box[open] summary::before { content: "▾ "; }
+  #log {
+    margin-top: 8px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 12px;
+    max-height: 180px;
+    overflow: auto;
+    font: 11.5px "Cascadia Mono", Consolas, monospace;
+    color: var(--muted);
+    white-space: pre-wrap;
+    word-break: break-all;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="brand">Work<em>4</em>You</div>
+
+    <div class="status">
+      <div class="spinner" id="spinner"></div>
+      <div id="status-text">Preparando…</div>
+    </div>
+    <div id="hint" hidden></div>
+
+    <ul id="stages" hidden></ul>
+
+    <form id="key-form" hidden>
+      <label for="key-input">
+        Chave de acesso
+        <small>Temporário — em breve você vai entrar com seu login Work4You.</small>
+      </label>
+      <input id="key-input" type="password" autocomplete="off" spellcheck="false"
+             placeholder="sk-or-…" />
+      <div id="key-error"></div>
+      <div class="actions">
+        <button type="submit" class="primary" id="key-save">Continuar</button>
+        <button type="button" class="ghost" id="key-skip">Pular por enquanto</button>
+      </div>
+    </form>
+
+    <div id="error-box" hidden>
+      <div id="error-text"></div>
+      <div class="actions">
+        <button type="button" class="primary" id="btn-retry">Tentar de novo</button>
+        <button type="button" class="ghost" id="btn-cloud">Usar na nuvem</button>
+      </div>
+    </div>
+
+    <details id="log-box">
+      <summary>Detalhes técnicos</summary>
+      <pre id="log"></pre>
+    </details>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+  const $ = (id) => document.getElementById(id);
+  const bridge = window.w4yBoot;
+  if (!bridge) {
+    $("status-text").textContent = "Ponte do aplicativo indisponível.";
+    $("spinner").hidden = true;
+    return;
+  }
+
+  // Nomes amigáveis dos estágios do install.ps1 (chave = Name do manifest;
+  // desconhecido cai no Title em inglês vindo do próprio manifest).
+  const STAGE_NAMES = {
+    uv: "Preparando o gerenciador de pacotes",
+    python: "Instalando o Python",
+    git: "Instalando o Git",
+    node: "Verificando o Node.js",
+    "system-packages": "Instalando ferramentas do sistema",
+    repository: "Baixando o motor Work4You",
+    venv: "Criando o ambiente Python",
+    dependencies: "Instalando as dependências",
+    "node-deps": "Preparando a interface",
+    desktop: "Montando o aplicativo",
+    path: "Ajustando o sistema",
+    "config-templates": "Escrevendo a configuração inicial",
+    "platform-sdks": "Instalando integrações de mensagens",
+    "bootstrap-marker": "Finalizando a instalação",
+    configure: "Configuração guiada",
+    gateway: "Gateway de mensagens",
+  };
+
+  const PHASES = {
+    resolve: { text: "Verificando o motor local…", hint: "" },
+    bootstrap: {
+      text: "Instalando o motor local…",
+      hint: "A primeira vez leva alguns minutos. Pode deixar rodando — a instalação continua sozinha.",
+    },
+    key: { text: "Quase lá.", hint: "" },
+    spawn: {
+      text: "Iniciando o motor local…",
+      hint: "O primeiro início pode demorar um pouco (o antivírus verifica os arquivos novos).",
+    },
+    ready: { text: "Tudo pronto — abrindo…", hint: "" },
+    cloud: { text: "Abrindo na nuvem…", hint: "" },
+    idle: { text: "Preparando…", hint: "" },
+  };
+
+  const MARKS = { pending: "·", succeeded: "✓", skipped: "–", failed: "✕" };
+  const stageEls = new Map(); // name -> li
+  let logCount = 0;
+
+  function setStatus(phase, message) {
+    const meta = PHASES[phase] || PHASES.idle;
+    $("status-text").textContent =
+      phase === "error" ? "Não deu pra subir o motor local." : message || meta.text;
+    const hint = meta.hint || "";
+    $("hint").textContent = hint;
+    $("hint").hidden = !hint;
+    $("spinner").hidden = phase === "error" || phase === "key";
+    $("key-form").hidden = phase !== "key";
+    $("error-box").hidden = phase !== "error";
+    if (phase === "error") {
+      $("error-text").textContent = message || "Algo deu errado ao preparar o motor local.";
+      $("stages").hidden = stageEls.size === 0;
+    }
+    if (phase === "key") setTimeout(() => $("key-input").focus(), 0);
+  }
+
+  function buildStages(stages) {
+    const list = $("stages");
+    list.textContent = "";
+    stageEls.clear();
+    for (const s of stages || []) {
+      if (s.needs_user_input) continue; // o instalador pula esses (não mostrar)
+      const li = document.createElement("li");
+      const mark = document.createElement("span");
+      mark.className = "mark";
+      mark.textContent = MARKS.pending;
+      const label = document.createElement("span");
+      label.textContent = STAGE_NAMES[s.name] || s.title || s.name;
+      li.append(mark, label);
+      list.append(li);
+      stageEls.set(s.name, li);
+    }
+    list.hidden = stageEls.size === 0;
+  }
+
+  function setStageState(name, state) {
+    const li = stageEls.get(name);
+    if (!li) return;
+    li.className = state;
+    const mark = li.querySelector(".mark");
+    if (state === "running") {
+      mark.textContent = "";
+      li.scrollIntoView({ block: "nearest" });
+    } else {
+      mark.textContent = MARKS[state] || MARKS.pending;
+    }
+  }
+
+  function appendLog(line) {
+    if (!line) return;
+    const pre = $("log");
+    logCount += 1;
+    if (logCount > 500) {
+      const cut = pre.textContent.indexOf("\n");
+      if (cut !== -1) pre.textContent = pre.textContent.slice(cut + 1);
+    }
+    pre.textContent += line + "\n";
+    if ($("log-box").open) pre.scrollTop = pre.scrollHeight;
+  }
+
+  function apply(ev) {
+    if (!ev || typeof ev !== "object") return;
+    if (ev.type === "phase") {
+      setStatus(ev.phase, ev.message);
+      return;
+    }
+    if (ev.type === "log") {
+      appendLog(ev.line);
+      return;
+    }
+    if (ev.type === "bootstrap" && ev.ev) {
+      const b = ev.ev;
+      if (b.type === "manifest") buildStages(b.stages);
+      else if (b.type === "stage") setStageState(b.name, b.state);
+      else if (b.type === "log") appendLog(b.line);
+      return;
+    }
+  }
+
+  // Replay do estado atual (cobre F5, janela recriada e eventos emitidos antes
+  // de o listener subir), depois assina os eventos ao vivo.
+  bridge.onEvent(apply);
+  bridge
+    .state()
+    .then((s) => {
+      if (!s) return;
+      for (const ev of s.events || []) apply(ev);
+      for (const line of s.logLines || []) appendLog(line);
+      setStatus(s.phase, s.phase === "error" ? s.error : null);
+    })
+    .catch(() => {});
+
+  // ── Chave de acesso ──────────────────────────────────────────────────────
+  $("key-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const input = $("key-input");
+    const err = $("key-error");
+    err.style.display = "none";
+    $("key-save").disabled = true;
+    try {
+      const r = await bridge.submitKey(input.value);
+      if (r && r.ok) {
+        input.value = "";
+        return; // o main avança a fase sozinho
+      }
+      err.textContent =
+        r && r.error === "write-failed"
+          ? "Não consegui gravar a chave. Tente de novo."
+          : "Chave inválida — confira e tente de novo.";
+      err.style.display = "block";
+    } finally {
+      $("key-save").disabled = false;
+    }
+  });
+  $("key-skip").addEventListener("click", () => {
+    void bridge.skipKey();
+  });
+
+  // ── Erro: tentar de novo / cair pra nuvem ────────────────────────────────
+  $("btn-retry").addEventListener("click", () => {
+    void bridge.retry();
+  });
+  $("btn-cloud").addEventListener("click", () => {
+    void bridge.useCloud();
+  });
+})();
+</script>
+</body>
+</html>

@@ -1392,6 +1392,45 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
     Returns:
         Environment instance with execute() method
     """
+    # ── "Local (desktop)" — Onda 1 ────────────────────────────────────
+    # When the task has the env_type="local-desktop" override, the session
+    # routes file/shell to the USER'S MACHINE (via the desktop executor + the
+    # gateway channel). GUARDED: only fires on that EXACT override — Cloud/
+    # local/docker/modal/ssh/... stay 100% untouched. Lazy gateway import
+    # (avoids a cycle; only runs in a process with an active gateway). Any
+    # failure → falls back to the default environment below (safe degradation).
+    try:
+        _ov = resolve_task_overrides(task_id)
+    except Exception:
+        _ov = {}
+    if _ov.get("env_type") == "local-desktop":
+        # FAIL CLOSED — NEVER fall back to the cloud environment here.
+        # A session bound to the user's folder that "degrades" to Cloud does
+        # not degrade: it writes to the WRONG MACHINE, silently. The Windows
+        # cwd (C:\...) is discarded by a POSIX gateway (isabs=False), and the
+        # relative edit lands in the CLOUD workspace with no error at all — the
+        # model gets a plausible answer from the wrong place. That is DATA LOSS,
+        # not safe degradation. If the local channel cannot be mounted, stopping
+        # and warning is mandatory.
+        try:
+            from tui_gateway.server import local_exec as _local_exec
+            from tools.environments.local_desktop import LocalDesktopEnvironment
+        except Exception as exc:
+            raise RuntimeError(
+                "Esta conversa está ligada a uma pasta do seu computador, mas o "
+                "canal local não existe neste processo. Nada foi executado (não "
+                "vou rodar na nuvem por engano). Abra o app Work4You e escolha a "
+                "pasta novamente."
+            ) from exc
+
+        _sk = str(_ov.get("session_key") or "")
+        return LocalDesktopEnvironment(
+            lambda tool, args, to: _local_exec(_sk, tool, args, to),
+            session_key=_sk,
+            cwd=cwd,
+            timeout=timeout,
+        )
+
     cc = container_config or {}
     cpu = cc.get("container_cpu", 1)
     memory = cc.get("container_memory", 5120)

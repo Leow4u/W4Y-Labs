@@ -4,10 +4,11 @@
 # Installation script for Windows (PowerShell).
 # Uses uv for fast Python provisioning and package management.
 #
-# Usage:
-#   iex (irm https://hermes-agent.nousresearch.com/install.ps1)
+# Usage (the engine source is distributed as a ZIP package hosted by us):
+#   $env:WAYNE_SOURCE_ZIP_URL = "https://<our-host>/wayne-engine-<date>.zip"
+#   .\install.ps1
 #
-# Or download and run with options:
+# Or with options:
 #   .\install.ps1 -NoVenv -SkipSetup
 #
 # ============================================================================
@@ -136,8 +137,14 @@ foreach ($tmpVar in @('TEMP', 'TMP')) {
 # Configuration
 # ============================================================================
 
-$RepoUrlSsh = "git@github.com:NousResearch/hermes-agent.git"
-$RepoUrlHttps = "https://github.com/NousResearch/hermes-agent.git"
+# Engine source distribution (Work4You). The engine is distributed as a ZIP
+# package hosted by us -- set WAYNE_SOURCE_ZIP_URL to its URL (main path).
+# WAYNE_SOURCE_REPO_URL optionally points at a git remote used as a fallback
+# (default empty = ZIP-only; git is never assumed). There is deliberately NO
+# hardcoded upstream repository: with neither variable set, the repository
+# stage fails with a clear error instead of cloning a third-party repo.
+$SourceZipUrl  = if ($env:WAYNE_SOURCE_ZIP_URL)  { $env:WAYNE_SOURCE_ZIP_URL }  else { "" }
+$SourceRepoUrl = if ($env:WAYNE_SOURCE_REPO_URL) { $env:WAYNE_SOURCE_REPO_URL } else { "" }
 $PythonVersion = "3.11"
 # Minor versions the installer accepts when the requested $PythonVersion isn't
 # available, in preference order.  uv discovers both uv-managed and system
@@ -209,7 +216,7 @@ function Write-Banner {
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
     Write-Host "|             * Wayne Agent Installer                    |" -ForegroundColor Magenta
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
-    Write-Host "|  An open source AI agent by Nous Research.              |" -ForegroundColor Magenta
+    Write-Host "|  Work4You -- your AI digital employee.                  |" -ForegroundColor Magenta
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
     Write-Host ""
 }
@@ -1249,8 +1256,81 @@ function Install-SystemPackages {
 # Installation
 # ============================================================================
 
+# Download the Work4You engine ZIP package ($SourceZipUrl) and materialize it
+# at $InstallDir. Fresh installs move the extracted tree into place; existing
+# installs are refreshed in place (venv\ and user-created files preserved).
+#
+# Layout contract (kept in lockstep with platform/wayne-fly/build-engine-zip.ps1):
+# the archive contains a single top-level folder (any name) with pyproject.toml
+# at its root -- a flat archive with pyproject.toml directly at the ZIP root is
+# accepted too. Throws on any failure; returns $true on success.
+function Get-EngineSourceFromZip {
+    Write-Info "Downloading Wayne engine package..."
+    Write-Info "  $SourceZipUrl"
+    $zipPath = "$env:TEMP\wayne-engine-package.zip"
+    $extractPath = "$env:TEMP\wayne-engine-extract"
+    try {
+        Invoke-WebRequest -Uri $SourceZipUrl -OutFile $zipPath -UseBasicParsing
+        $zipSizeMb = [Math]::Round((Get-Item $zipPath).Length / 1MB, 1)
+        Write-Info "Downloaded $zipSizeMb MB; extracting..."
+
+        if (Test-Path $extractPath) { Remove-Item -Recurse -Force $extractPath }
+        Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
+
+        # Resolve the source root inside the archive (wrapped or flat).
+        $srcRoot = $extractPath
+        if (-not (Test-Path (Join-Path $srcRoot "pyproject.toml"))) {
+            $topDirs = @(Get-ChildItem $extractPath -Directory)
+            if ($topDirs.Count -eq 1 -and (Test-Path (Join-Path $topDirs[0].FullName "pyproject.toml"))) {
+                $srcRoot = $topDirs[0].FullName
+            }
+        }
+        if (-not (Test-Path (Join-Path $srcRoot "pyproject.toml"))) {
+            # User-facing: the package itself is malformed (not a network issue).
+            throw "Pacote ZIP invalido: pyproject.toml nao encontrado na raiz do pacote"
+        }
+
+        if (Test-Path "$InstallDir\pyproject.toml") {
+            # Refresh in place. robocopy merges reliably into an existing tree
+            # (Copy-Item -Recurse nests directories that already exist at the
+            # destination). robocopy exit codes 0-7 all mean success.
+            Write-Info "Refreshing existing installation from the engine package..."
+            & robocopy $srcRoot $InstallDir /E /NFL /NDL /NJH /NJS /NP | Out-Null
+            $rc = $LASTEXITCODE
+            $global:LASTEXITCODE = 0
+            if ($rc -ge 8) { throw "robocopy failed while refreshing the install (exit $rc)" }
+        } else {
+            New-Item -ItemType Directory -Force -Path (Split-Path $InstallDir) -ErrorAction SilentlyContinue | Out-Null
+            if (Test-Path $InstallDir) {
+                # A directory that failed the "looks like an install" checks is
+                # moved aside by Install-Repository before we run; anything
+                # still here was re-created since. Never overwrite it silently.
+                throw "Target directory $InstallDir exists but is not a Wayne install; move it aside and re-run"
+            }
+            Move-Item $srcRoot $InstallDir -Force
+        }
+        Write-Success "Engine source extracted to $InstallDir"
+        return $true
+    } finally {
+        Remove-Item -Force $zipPath -ErrorAction SilentlyContinue
+        if (Test-Path $extractPath) { Remove-Item -Recurse -Force $extractPath -ErrorAction SilentlyContinue }
+    }
+}
+
 function Install-Repository {
     Write-Info "Installing to $InstallDir..."
+
+    # Source resolution (Work4You distribution model): the engine ships as a
+    # ZIP package hosted by us (WAYNE_SOURCE_ZIP_URL, the main path) with an
+    # optional git remote fallback (WAYNE_SOURCE_REPO_URL, default empty =
+    # ZIP-only). Nothing is ever fetched from a hardcoded upstream repo.
+    if (-not $SourceZipUrl -and -not $SourceRepoUrl) {
+        # User-facing error in PT (product language); code stays in English.
+        Write-Err "Fonte de instalacao nao configurada."
+        Write-Info "Defina a variavel de ambiente WAYNE_SOURCE_ZIP_URL (URL do pacote ZIP do motor Work4You)"
+        Write-Info "ou WAYNE_SOURCE_REPO_URL (URL git alternativa) e execute o instalador novamente."
+        throw "Fonte de instalacao nao configurada (defina WAYNE_SOURCE_ZIP_URL ou WAYNE_SOURCE_REPO_URL)"
+    }
 
     $didUpdate = $false
 
@@ -1294,7 +1374,14 @@ function Install-Repository {
             Pop-Location
         }
 
-        if ($repoValid) {
+        if ($SourceZipUrl -and (Test-Path "$InstallDir\pyproject.toml")) {
+            # ZIP-managed install: refreshed in place by the engine ZIP
+            # download below (venv\ and user-created files are preserved).
+            # Takes priority over the git update path -- the ZIP package is
+            # the main distribution channel; git serves only explicit
+            # fallback setups (WAYNE_SOURCE_REPO_URL with no ZIP URL).
+            Write-Info "Existing installation found; refreshing from the engine package..."
+        } elseif ($repoValid) {
             Write-Info "Existing installation found, updating..."
             Push-Location $InstallDir
             # Wrap the entire fetch+checkout block in EAP=Continue so git's
@@ -1452,133 +1539,122 @@ function Install-Repository {
     }
 
     if (-not $didUpdate) {
-        $cloneSuccess = $false
+        $sourceReady = $false
 
-        # Fix Windows git "copy-fd: write returned: Invalid argument" error.
-        # Git for Windows can fail on atomic file operations (hook templates,
-        # config lock files) due to antivirus, OneDrive, or NTFS filter drivers.
-        # The -c flag injects config before any file I/O occurs.
-        Write-Info "Configuring git for Windows compatibility..."
-        $env:GIT_CONFIG_COUNT = "1"
-        $env:GIT_CONFIG_KEY_0 = "windows.appendAtomically"
-        $env:GIT_CONFIG_VALUE_0 = "false"
-        git config --global windows.appendAtomically false 2>$null
-
-        # Try SSH first, then HTTPS, with -c flag for atomic write fix
-        Write-Info "Trying SSH clone..."
-        $env:GIT_SSH_COMMAND = "ssh -o BatchMode=yes -o ConnectTimeout=5"
-        try {
-            Invoke-NativeWithRelaxedErrorAction { git -c windows.appendAtomically=false clone --depth 1 --branch $Branch $RepoUrlSsh $InstallDir }
-            if ($LASTEXITCODE -eq 0) { $cloneSuccess = $true }
-        } catch { }
-        $env:GIT_SSH_COMMAND = $null
-
-        if (-not $cloneSuccess) {
-            if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue }
-            Write-Info "SSH failed, trying HTTPS..."
+        # --- Main path: engine ZIP package hosted by Work4You ---------------
+        # $SourceZipUrl points at a snapshot ZIP we build and host ourselves
+        # (see platform/wayne-fly/build-engine-zip.ps1 for the producer and
+        # Get-EngineSourceFromZip above for the layout contract).
+        if ($SourceZipUrl) {
+            if ($Commit -or $Tag) {
+                Write-Info "Note: -Commit/-Tag apply to git sources; the engine ZIP is already a pinned snapshot."
+            }
             try {
-                Invoke-NativeWithRelaxedErrorAction { git -c windows.appendAtomically=false clone --depth 1 --branch $Branch $RepoUrlHttps $InstallDir }
-                if ($LASTEXITCODE -eq 0) { $cloneSuccess = $true }
-            } catch { }
-        }
-
-        # Fallback: download ZIP archive (bypasses git file I/O issues entirely)
-        if (-not $cloneSuccess) {
-            if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue }
-            Write-Warn "Git clone failed -- downloading ZIP archive instead..."
-            try {
-                # Pick the ZIP URL for the most-specific ref the caller asked
-                # for.  GitHub supports archive URLs for commits, tags, and
-                # branches; we honour Commit > Tag > Branch.
-                if ($Commit) {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/$Commit.zip"
-                    $zipLabel = $Commit
-                } elseif ($Tag) {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/refs/tags/$Tag.zip"
-                    $zipLabel = $Tag
-                } else {
-                    $zipUrl = "https://github.com/NousResearch/hermes-agent/archive/refs/heads/$Branch.zip"
-                    $zipLabel = $Branch
-                }
-                $zipPath = "$env:TEMP\wayne-agent-$zipLabel.zip"
-                $extractPath = "$env:TEMP\wayne-agent-extract"
-
-                Invoke-WebRequest -Uri $zipUrl -OutFile $zipPath -UseBasicParsing
-                if (Test-Path $extractPath) { Remove-Item -Recurse -Force $extractPath }
-                Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
-
-                # GitHub ZIPs extract to repo-branch/ subdirectory
-                $extractedDir = Get-ChildItem $extractPath -Directory | Select-Object -First 1
-                if ($extractedDir) {
-                    New-Item -ItemType Directory -Force -Path (Split-Path $InstallDir) -ErrorAction SilentlyContinue | Out-Null
-                    Move-Item $extractedDir.FullName $InstallDir -Force
-                    Write-Success "Downloaded and extracted"
-
-                    # Initialize git repo so updates work later
-                    Push-Location $InstallDir
-                    git -c windows.appendAtomically=false init 2>$null
-                    git -c windows.appendAtomically=false config windows.appendAtomically false 2>$null
-                    git remote add origin $RepoUrlHttps 2>$null
-                    Pop-Location
-                    Write-Success "Git repo initialized for future updates"
-
-                    $cloneSuccess = $true
-                }
-
-                # Cleanup temp files
-                Remove-Item -Force $zipPath -ErrorAction SilentlyContinue
-                Remove-Item -Recurse -Force $extractPath -ErrorAction SilentlyContinue
+                $sourceReady = Get-EngineSourceFromZip
             } catch {
-                Write-Err "ZIP download also failed: $_"
+                Write-Warn "Engine package download failed: $_"
             }
         }
 
-        if (-not $cloneSuccess) {
-            throw "Failed to download repository (tried git clone SSH, HTTPS, and ZIP)"
+        # --- Fallback: git clone from an explicitly configured remote -------
+        # WAYNE_SOURCE_REPO_URL defaults to empty, so this path only runs when
+        # the caller opted into a git source.
+        if (-not $sourceReady -and $SourceRepoUrl) {
+            if (Test-Path "$InstallDir\pyproject.toml") {
+                # The ZIP path refreshes an existing install in place; git
+                # clone needs an empty target. Never destroy a live install
+                # just to retry over git.
+                throw "Engine package refresh failed; the git fallback cannot clone over the existing installation at $InstallDir"
+            }
+            if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue }
+
+            # Fix Windows git "copy-fd: write returned: Invalid argument" error.
+            # Git for Windows can fail on atomic file operations (hook templates,
+            # config lock files) due to antivirus, OneDrive, or NTFS filter drivers.
+            # The -c flag injects config before any file I/O occurs.
+            Write-Info "Configuring git for Windows compatibility..."
+            $env:GIT_CONFIG_COUNT = "1"
+            $env:GIT_CONFIG_KEY_0 = "windows.appendAtomically"
+            $env:GIT_CONFIG_VALUE_0 = "false"
+            git config --global windows.appendAtomically false 2>$null
+
+            Write-Info "Cloning engine source from $SourceRepoUrl..."
+            if ($SourceRepoUrl -match '^(git@|ssh://)') {
+                # Never hang on an interactive host-key/passphrase prompt
+                # during an unattended install.
+                $env:GIT_SSH_COMMAND = "ssh -o BatchMode=yes -o ConnectTimeout=5"
+            }
+            try {
+                Invoke-NativeWithRelaxedErrorAction { git -c windows.appendAtomically=false clone --depth 1 --branch $Branch $SourceRepoUrl $InstallDir }
+                if ($LASTEXITCODE -eq 0) { $sourceReady = $true }
+            } catch { }
+            $env:GIT_SSH_COMMAND = $null
+
+            if (-not $sourceReady) {
+                if (Test-Path $InstallDir) { Remove-Item -Recurse -Force $InstallDir -ErrorAction SilentlyContinue }
+            }
+        }
+
+        if (-not $sourceReady) {
+            $tried = @()
+            if ($SourceZipUrl)  { $tried += "zip ($SourceZipUrl)" }
+            if ($SourceRepoUrl) { $tried += "git ($SourceRepoUrl)" }
+            throw "Failed to obtain the Wayne engine source. Tried: $($tried -join ', ')"
         }
     }
 
-    # Set per-repo config (harmless if it fails)
-    Push-Location $InstallDir
-    git -c windows.appendAtomically=false config windows.appendAtomically false 2>$null
-    # Pin autocrlf=false on the managed clone so git never renormalizes the
-    # repo's LF text files to CRLF in the working tree. Without this, the very
-    # next `wayne update` checkout aborts on a "dirty" tree the user never
-    # touched (see the update path above).
-    git -c windows.appendAtomically=false config core.autocrlf false 2>$null
-
-    # Post-clone pin: when a clone (or ZIP-fallback init) just landed us on
-    # $Branch's tip, honour the higher-precedence $Commit / $Tag by checking
-    # the exact ref out as a detached HEAD.  Skipped for the in-place update
-    # path (above) since that already routed via the same precedence.
-    if (-not $didUpdate) {
-        # Same EAP=Continue wrap as the update path -- git fetch's 'From <url>'
-        # info line goes to stderr and would terminate the script under the
-        # global EAP=Stop otherwise.  We check $LASTEXITCODE for real errors.
-        $prevEAP = $ErrorActionPreference
-        $ErrorActionPreference = "Continue"
+    # Per-repo git config + Commit/Tag pinning apply only to git-managed
+    # installs. ZIP-managed installs carry no .git metadata -- their source
+    # pin ships inside the package as .wayne-engine-version (written by
+    # platform/wayne-fly/build-engine-zip.ps1, read by Write-BootstrapMarker).
+    if (Test-Path "$InstallDir\.git") {
+        Push-Location $InstallDir
         try {
-            if ($Commit) {
-                Write-Info "Pinning to commit $Commit..."
-                git -c windows.appendAtomically=false fetch origin $Commit
-                git -c windows.appendAtomically=false checkout --detach $Commit
-                if ($LASTEXITCODE -ne 0) {
-                    throw "git checkout $Commit failed (exit $LASTEXITCODE)"
-                }
-            } elseif ($Tag) {
-                Write-Info "Pinning to tag $Tag..."
-                git -c windows.appendAtomically=false fetch origin "refs/tags/${Tag}:refs/tags/${Tag}"
-                git -c windows.appendAtomically=false checkout --detach "refs/tags/$Tag"
-                if ($LASTEXITCODE -ne 0) {
-                    throw "git checkout tag $Tag failed (exit $LASTEXITCODE)"
+            # Set per-repo config (harmless if it fails)
+            git -c windows.appendAtomically=false config windows.appendAtomically false 2>$null
+            # Pin autocrlf=false on the managed clone so git never renormalizes the
+            # repo's LF text files to CRLF in the working tree. Without this, the very
+            # next `wayne update` checkout aborts on a "dirty" tree the user never
+            # touched (see the update path above).
+            git -c windows.appendAtomically=false config core.autocrlf false 2>$null
+
+            # Post-clone pin: when a clone just landed us on $Branch's tip,
+            # honour the higher-precedence $Commit / $Tag by checking the
+            # exact ref out as a detached HEAD.  Skipped for the in-place
+            # update path (above) since that already routed via the same
+            # precedence.
+            if (-not $didUpdate) {
+                # Same EAP=Continue wrap as the update path -- git fetch's 'From <url>'
+                # info line goes to stderr and would terminate the script under the
+                # global EAP=Stop otherwise.  We check $LASTEXITCODE for real errors.
+                $prevEAP = $ErrorActionPreference
+                $ErrorActionPreference = "Continue"
+                try {
+                    if ($Commit) {
+                        Write-Info "Pinning to commit $Commit..."
+                        git -c windows.appendAtomically=false fetch origin $Commit
+                        git -c windows.appendAtomically=false checkout --detach $Commit
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "git checkout $Commit failed (exit $LASTEXITCODE)"
+                        }
+                    } elseif ($Tag) {
+                        Write-Info "Pinning to tag $Tag..."
+                        git -c windows.appendAtomically=false fetch origin "refs/tags/${Tag}:refs/tags/${Tag}"
+                        git -c windows.appendAtomically=false checkout --detach "refs/tags/$Tag"
+                        if ($LASTEXITCODE -ne 0) {
+                            throw "git checkout tag $Tag failed (exit $LASTEXITCODE)"
+                        }
+                    }
+                } finally {
+                    $ErrorActionPreference = $prevEAP
                 }
             }
         } finally {
-            $ErrorActionPreference = $prevEAP
+            Pop-Location
         }
     }
 
-    Write-Success "Repository ready"
+    Write-Success "Engine source ready"
 }
 
 function Install-Venv {
@@ -2108,6 +2184,18 @@ function Write-BootstrapMarker {
             } finally {
                 Pop-Location
             }
+        }
+    }
+
+    if (-not $pinnedCommit) {
+        # ZIP-managed installs carry no .git metadata; the engine package
+        # ships its source pin in .wayne-engine-version (KEY=VALUE lines,
+        # written by platform/wayne-fly/build-engine-zip.ps1).
+        $engineVersionFile = Join-Path $InstallDir ".wayne-engine-version"
+        if (Test-Path $engineVersionFile) {
+            $commitLine = Get-Content $engineVersionFile -ErrorAction SilentlyContinue |
+                Where-Object { $_ -match '^commit=' } | Select-Object -First 1
+            if ($commitLine) { $pinnedCommit = ($commitLine -replace '^commit=', '').Trim() }
         }
     }
 
@@ -3224,7 +3312,7 @@ $InstallStages = @(
     @{ Name = "git";              Title = "Installing Git";                       Category = "prereqs";      NeedsUserInput = $false; Worker = "Stage-Git" }
     @{ Name = "node";             Title = "Detecting Node.js";                    Category = "prereqs";      NeedsUserInput = $false; Worker = "Stage-Node" }
     @{ Name = "system-packages";  Title = "Installing ripgrep and ffmpeg";        Category = "prereqs";      NeedsUserInput = $false; Worker = "Stage-SystemPackages" }
-    @{ Name = "repository";       Title = "Cloning Wayne repository";            Category = "install";      NeedsUserInput = $false; Worker = "Stage-Repository" }
+    @{ Name = "repository";       Title = "Downloading Wayne engine source";     Category = "install";      NeedsUserInput = $false; Worker = "Stage-Repository" }
     @{ Name = "venv";             Title = "Creating Python virtual environment";  Category = "install";      NeedsUserInput = $false; Worker = "Stage-Venv" }
     @{ Name = "dependencies";     Title = "Installing Python dependencies";       Category = "install";      NeedsUserInput = $false; Worker = "Stage-Dependencies" }
     @{ Name = "node-deps";        Title = "Installing Node.js dependencies";      Category = "install";      NeedsUserInput = $false; Worker = "Stage-NodeDeps" }
@@ -3522,8 +3610,7 @@ try {
     Write-Host ""
     Write-Err "Installation failed: $_"
     Write-Host ""
-    Write-Info "If the error is unclear, try downloading and running the script directly:"
-    Write-Host "  Invoke-WebRequest -Uri 'https://hermes-agent.nousresearch.com/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
+    Write-Info "If the error is unclear, re-run the installer script directly:"
     Write-Host "  .\install.ps1" -ForegroundColor Yellow
     Write-Host ""
 }

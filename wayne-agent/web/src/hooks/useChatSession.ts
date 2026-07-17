@@ -22,7 +22,7 @@ export type PendingPrompt =
 
 export type ApprovalChoice = "once" | "session" | "always" | "deny";
 
-/** Um subagente do Crew (delegate_task) — eventos subagent.* do gateway. */
+/** A Crew subagent (delegate_task) — subagent.* events from the gateway. */
 export interface SubagentInfo {
   id: string;
   label: string;
@@ -33,6 +33,10 @@ export interface SubagentInfo {
   tokensIn?: number;
   tokensOut?: number;
   toolCount?: number;
+  /** The child's stored session id (subagent.start carries it — server.py:3579).
+   *  It is the spectator handle: session.resume {lazy:true} on it attaches a
+   *  read-only watch window fed by the gateway's child-session live mirror. */
+  childSessionId?: string;
 }
 
 export interface ChatProgress {
@@ -43,10 +47,10 @@ export interface ChatProgress {
   turnStartedAt: number | null;
   running: boolean;
   toolCount: number;
-  /** Especialistas do Crew ativos/concluídos neste turno. */
+  /** Crew specialists running/finished in this turn. */
   subagents: SubagentInfo[];
-  /** Última atividade do turno (client clock) — detecta "ainda pensando"
-   *  quando o provider fica quieto por alguns segundos. */
+  /** Last activity of the turn (client clock) — detects "still thinking" when
+   *  the provider goes quiet for a few seconds. */
   lastActivityAt: number | null;
 }
 
@@ -59,17 +63,31 @@ export interface ChatUsage {
   calls?: number;
 }
 
-/** Aviso vindo do servidor (notification.show — a "espinha" que o desktop usa
- *  p/ créditos e avisos operacionais). */
+/** How the last turn ENDED — assembled on message.complete (status + usage)
+ *  plus the turn's `review.summary` text when the agent recorded one. Cleared
+ *  when the user sends the next prompt (the new turn wipes the result view). */
+export interface TurnResult {
+  endedAt: number;
+  /** Client-clocked turn duration (message.start → message.complete). */
+  durationS: number | null;
+  status: "complete" | "error" | "interrupted";
+  /** Cumulative session usage at turn end (same payload the header panel uses). */
+  usage: ChatUsage | null;
+  /** The `review.summary` text of this turn, when one arrived. */
+  review: string | null;
+}
+
+/** Notice coming from the server (notification.show — the "backbone" the
+ *  desktop uses for credits and operational notices). */
 export interface ChatNotice {
   key: string;
   text: string;
   level: "info" | "warn" | "error";
 }
 
-/** Overrides POR SESSÃO enviados no session.create — o mesmo contrato do
- *  composer do desktop ("ships model/effort on every session.create",
- *  tui_gateway/server.py:4939). Nunca escreve config global. */
+/** PER-SESSION overrides sent on session.create — the same contract as the
+ *  desktop composer ("ships model/effort on every session.create",
+ *  tui_gateway/server.py:4939). NEVER writes the global config. */
 export interface SessionCreateOverrides {
   model?: string;
   provider?: string;
@@ -154,12 +172,14 @@ interface SessionInfoPayload {
   reasoning_effort?: string;
   service_tier?: string;
   fast?: boolean;
+  /** Where the server says this session runs — the authority on its workspace. */
+  cwd?: string;
 }
 
-/** Campos ao vivo do session.info (refletem troca de modelo/tier na sessão). */
+/** Live fields from session.info (reflect a model/tier switch in the session). */
 export interface SessionLiveInfo {
   model?: string;
-  /** Bypass de aprovações EFETIVO (config off ∨ yolo da sessão) — session.info. */
+  /** EFFECTIVE approvals bypass (config off ∨ session yolo) — session.info. */
   yolo?: boolean;
   provider?: string;
   reasoningEffort?: string;
@@ -207,21 +227,33 @@ let localIdSeq = 0;
 const nextLocalId = () => `local-${++localIdSeq}`;
 
 // ── Block builders (interleaved assistant turn) ───────────────────────
-function appendText(blocks: ChatBlock[], chunk: string): ChatBlock[] {
+// Exported: the subagent spectator (RightDock) builds its mirrored turn with
+// the same primitives, so both transcripts interleave text/tools identically.
+export function appendText(blocks: ChatBlock[], chunk: string): ChatBlock[] {
   const last = blocks[blocks.length - 1];
   if (last && last.kind === "text") {
     return [...blocks.slice(0, -1), { ...last, text: last.text + chunk }];
   }
   return [...blocks, { kind: "text", id: nextLocalId(), text: chunk }];
 }
-function pushTool(blocks: ChatBlock[], tool: ToolCallState): ChatBlock[] {
+export function pushTool(blocks: ChatBlock[], tool: ToolCallState): ChatBlock[] {
   return [...blocks, { kind: "tool", tool }];
 }
-function patchTool(blocks: ChatBlock[], toolId: string, patch: Partial<ToolCallState>): ChatBlock[] {
+export function patchTool(blocks: ChatBlock[], toolId: string, patch: Partial<ToolCallState>): ChatBlock[] {
   return blocks.map((b) =>
     b.kind === "tool" && b.tool.id === toolId ? { kind: "tool", tool: { ...b.tool, ...patch } } : b,
   );
 }
+
+/**
+ * Turn watchdog thresholds. We look at SILENCE (no inbound gateway event at
+ * all), never at elapsed turn time: a healthy long turn keeps streaming deltas
+ * and tool events, so quiet is the only honest signal that it died. The window
+ * is deliberately generous — a single bash tool defaults to a 120s timeout, so
+ * anything under ~2.5min of quiet can still be a legitimate long command.
+ */
+const TURN_STALL_MS = 240_000;
+const TURN_STALL_CHECK_MS = 15_000;
 
 /**
  * Owns the connection + session lifecycle + event reducer for the native chat.
@@ -234,25 +266,33 @@ function patchTool(blocks: ChatBlock[], toolId: string, patch: Partial<ToolCallS
 export function useChatSession(
   resumeId: string | null,
   freshNonce = 0,
-  /** Workspace (projeto) da conversa NOVA — vai no session.create {cwd}; o
-   *  gateway persiste como o workspace da sessão. Ignorado em resume. */
+  /** Workspace (project) of the NEW conversation — goes in session.create
+   *  {cwd}; the gateway persists it as the session workspace. Ignored on resume. */
   cwd?: string,
-  /** Segura a conexão até o chamador resolver dependências (ex.: o root
-   *  absoluto do workspace ou o tier atual) — evita criar a sessão errada. */
+  /** Holds the connection until the caller resolves dependencies (e.g. the
+   *  absolute workspace root or the current tier) — avoids creating the WRONG
+   *  session. */
   enabled = true,
-  /** Modelo/esforço POR SESSÃO (contrato do desktop). O chamador DEVE passar
-   *  uma referência estável (state/memo) — o objeto entra nas deps do effect. */
+  /** PER-SESSION model/effort (desktop contract). The caller MUST pass a stable
+   *  reference (state/memo) — the object goes into the effect deps. */
   overrides?: SessionCreateOverrides | null,
-  /** Agente (profile) dono da conversa NOVA — vai no session.create {profile};
-   *  o gateway re-vincula WAYNE_HOME àquele agente (server.py: session.create
-   *  aceita `profile`). A sessão nasce e vive no state.db DO agente. */
+  /** Agent (profile) owning the NEW conversation — goes in session.create
+   *  {profile}; the gateway re-binds WAYNE_HOME to that agent (server.py:
+   *  session.create accepts `profile`). The session is born and lives in the
+   *  AGENT's state.db. */
   agentProfile?: string | null,
+  /** Awaited right before EVERY prompt.submit — the caller uses it to guarantee
+   *  a side-effect landed on the server first (desktop Local mode: local.session.set
+   *  must switch env_type before the turn runs, or the first hero message races
+   *  ahead of it and runs in the cloud). Covers the direct AND the queued
+   *  (pendingSend) send paths. Must be idempotent; a no-op when unused. */
+  beforeSubmit?: () => Promise<void> | void,
 ) {
   const { t } = useI18n();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
-  // true assim que session.create/resume resolve e sessionIdRef está pronto —
-  // gatilho pra despachar uma mensagem enfileirada (pendingSendRef).
+  // true as soon as session.create/resume resolves and sessionIdRef is ready —
+  // the trigger to dispatch a queued message (pendingSendRef).
   const [sessionReady, setSessionReady] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pendingPrompt, setPendingPrompt] = useState<PendingPrompt | null>(null);
@@ -269,21 +309,48 @@ export function useChatSession(
   const [storedSessionId, setStoredSessionId] = useState<string | null>(null);
   // Cumulative session usage from the last message.complete.
   const [usage, setUsage] = useState<ChatUsage | null>(null);
-  // Especialistas do Crew (subagent.* — Onda B de paridade com o desktop).
+  // Crew specialists (subagent.* — Onda B of desktop parity).
   const [subagents, setSubagents] = useState<SubagentInfo[]>([]);
-  // Modelo/tier AO VIVO do session.info (reflete troca de modelo na sessão).
+  // How the LAST turn ended (dock "Resultados") — built on message.complete,
+  // cleared by the next sendMessage. Refs feed it: the turn start stamp (the
+  // state clears on complete, before we can read it) and the review text
+  // (review.summary arrives before/after complete depending on the loop).
+  const [lastResult, setLastResult] = useState<TurnResult | null>(null);
+  const turnStartedRef = useRef<number | null>(null);
+  const pendingReviewRef = useRef<string | null>(null);
+  // LIVE model/tier from session.info (reflects a model switch in the session).
   const [liveInfo, setLiveInfo] = useState<SessionLiveInfo | null>(null);
-  // Último instante de atividade do turno (ref — não re-renderiza por delta;
-  // lido no render e re-checado pelo ticker do painel de progresso).
+  // Last activity instant of the turn (ref — does not re-render per delta; read
+  // on render and re-checked by the progress panel's ticker).
   const lastActivityRef = useRef<number | null>(null);
-  // Avisos do servidor (notification.show/clear) — créditos, operacional.
+  // Server notices (notification.show/clear) — credits, operational.
   const [notices, setNotices] = useState<ChatNotice[]>([]);
   const noticeTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const noticeSeqRef = useRef(0);
 
-  // Estado VIVO da sessão pro sidebar (Onda 1, padrão desktop): "working" =
-  // ponto pulsando (agente trabalhando), "attention" = âmbar (esperando VOCÊ —
-  // approval/clarify/sudo/secret), "idle" = nada. O SidebarTasks escuta.
+  // Turn watchdog. `busy` is only cleared by message.complete, so a gateway that
+  // hangs (dropped stream, turn looping without ever emitting the terminal
+  // event) left the composer locked on "Thinking" forever — the only escape was
+  // reloading the page. Stamped by gw.onAny below.
+  const lastEventAtRef = useRef<number>(Date.now());
+  useEffect(() => {
+    if (!busy) return;
+    const id = window.setInterval(() => {
+      if (Date.now() - lastEventAtRef.current < TURN_STALL_MS) return;
+      // Release the composer and say so. This does NOT interrupt the turn: if
+      // it is still alive, its answer still lands when it arrives.
+      setBusy(false);
+      setNotices((prev) => [
+        ...prev.filter((n) => n.key !== "turn-stalled"),
+        { key: "turn-stalled", text: t.chat.turnStalled, level: "warn" },
+      ]);
+    }, TURN_STALL_CHECK_MS);
+    return () => window.clearInterval(id);
+  }, [busy, t]);
+
+  // LIVE session state for the sidebar (Onda 1, desktop pattern): "working" =
+  // pulsing dot (agent working), "attention" = amber (waiting on YOU —
+  // approval/clarify/sudo/secret), "idle" = nothing. SidebarTasks listens.
   useEffect(() => {
     if (!storedSessionId) return;
     const state = pendingPrompt ? "attention" : busy ? "working" : "idle";
@@ -296,25 +363,35 @@ export function useChatSession(
 
   const gwRef = useRef<GatewayClient | null>(null);
   const sessionIdRef = useRef<string | null>(null);
-  // ── Reconexão automática (pré-Onda 3) ───────────────────────────────
-  // Deploy/restart derruba o WS e a UI ficava morta até F5 ("gateway not
-  // connected"). Queda inesperada → agenda reconexão com backoff; o effect
-  // de conexão re-roda (reconnectNonce) e RETOMA a mesma sessão via
-  // storedSessionIdRef (espelho — o state não está no closure do onState).
+  // Submit gate (see the `beforeSubmit` param). Held in a ref so sendMessage — a
+  // stable callback — always awaits the latest one without going into its deps.
+  const beforeSubmitRef = useRef(beforeSubmit);
+  useEffect(() => {
+    beforeSubmitRef.current = beforeSubmit;
+  }, [beforeSubmit]);
+  // ── Automatic reconnection (pre-Onda 3) ─────────────────────────────
+  // A deploy/restart drops the WS and the UI stayed dead until F5 ("gateway not
+  // connected"). Unexpected drop → schedules a reconnect with backoff; the
+  // connection effect re-runs (reconnectNonce) and RESUMES the same session via
+  // storedSessionIdRef (mirror — the state is not in the onState closure).
   const [reconnectNonce, setReconnectNonce] = useState(0);
   const storedSessionIdRef = useRef<string | null>(null);
   const reconnectAttemptsRef = useRef(0);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamingIdRef = useRef<string | null>(null);
-  // Classe do último erro sinalizado por status.update "❌ ..." no turno atual.
-  // Se o turno fechar vazio, o message.complete promove isso pra bolha (motivo
-  // localizado) em vez de "(sem resposta)". Resetado em cada message.start.
+  // Class of the last error signalled by a status.update "❌ ..." in the current
+  // turn. If the turn closes empty, message.complete promotes it to the bubble
+  // (localized reason) instead of "(no reply)". Reset on every message.start.
   const turnErrorRef = useRef<"billing" | "generic" | null>(null);
-  // Já avisamos a sidebar (wayne:session-started) sobre ESTA sessão? Evita
-  // inserir a tarefa duas vezes. Resetado quando a sessão muda (reset effect).
+  // The cwd the SERVER reports for this session (session.info). Authoritative:
+  // the `cwd` prop is only what we ASKED for at session.create, and the server
+  // may have moved the session since (Local folder pick, project move).
+  const serverCwdRef = useRef<string | null>(null);
+  // Have we already told the sidebar (wayne:session-started) about THIS session?
+  // Avoids inserting the task twice. Reset when the session changes (reset effect).
   const startedDispatchedRef = useRef(false);
-  // Mensagem enviada ANTES da sessão conectar (session.create ainda pendente):
-  // fica aqui e é despachada assim que a sessão fica pronta — nunca se perde.
+  // Message sent BEFORE the session connected (session.create still pending):
+  // it waits here and is dispatched as soon as the session is ready — never lost.
   const pendingSendRef = useRef<{ text: string; images?: string[] } | null>(null);
   const approvalQueueRef = useRef<ApprovalRequestPayload[]>([]);
   // Client-side per-step timing (the protocol carries none for todos): id →
@@ -349,12 +426,13 @@ export function useChatSession(
     setSteps(next);
   }, []);
 
-  // "Nova tarefa" (freshNonce++) ou trocar de conversa (resumeId muda): LIMPA o
-  // transcript e todo o estado do turno ANTES de conectar/repopular. Sem isto o
-  // chat é montado persistente e o `messages` (estado do componente) sobrevivia
-  // — clicar "Nova tarefa" reapresentava a conversa anterior (só F5 remontava e
-  // limpava). Para resume, o effect de conexão recarrega o histórico logo após.
-  // useLayoutEffect: limpa antes do paint, sem flash da conversa antiga.
+  // "Nova tarefa" (freshNonce++) or switching conversation (resumeId changes):
+  // CLEARS the transcript and all turn state BEFORE connecting/repopulating.
+  // Without this the chat is mounted persistently and `messages` (component
+  // state) survived — clicking "Nova tarefa" re-showed the previous conversation
+  // (only F5 remounted and cleared it). For resume, the connection effect
+  // reloads the history right after.
+  // useLayoutEffect: clears before paint, with no flash of the old conversation.
   useLayoutEffect(() => {
     setMessages([]);
     setTitle(null);
@@ -367,20 +445,23 @@ export function useChatSession(
     setToolCount(0);
     setSubagents([]);
     setUsage(null);
+    setLastResult(null);
     setLiveInfo(null);
     setNotices([]);
     setStoredSessionId(null);
     setSessionReady(false);
     streamingIdRef.current = null;
+    turnStartedRef.current = null;
+    pendingReviewRef.current = null;
     currentStepRef.current = null;
     turnErrorRef.current = null;
     startedDispatchedRef.current = false;
     pendingSendRef.current = null;
     todoTimingRef.current.clear();
     approvalQueueRef.current = [];
-    // Troca REAL de sessão zera a máquina de reconexão (o espelho do id
-    // durável é re-populado pelo connect; um timer pendente da sessão
-    // anterior não pode reconectar a antiga).
+    // A REAL session switch resets the reconnection machine (the durable id
+    // mirror is re-populated by connect; a pending timer from the previous
+    // session must NOT reconnect the old one).
     storedSessionIdRef.current = null;
     reconnectAttemptsRef.current = 0;
     if (reconnectTimerRef.current) {
@@ -399,9 +480,9 @@ export function useChatSession(
 
     const offState = gw.onState((s) => {
       setConnectionState(s);
-      // Queda INESPERADA (deploy/restart do gateway; cleanup seta cancelled
-      // antes de fechar): trava os envios na fila (sid nulo → pendingSendRef)
-      // e agenda a reconexão com backoff exponencial (1s→15s).
+      // UNEXPECTED drop (gateway deploy/restart; the cleanup sets cancelled
+      // before closing): holds sends in the queue (null sid → pendingSendRef)
+      // and schedules the reconnect with exponential backoff (1s→15s).
       if (s === "closed" && !cancelled) {
         setSessionReady(false);
         sessionIdRef.current = null;
@@ -412,6 +493,13 @@ export function useChatSession(
       }
     });
 
+    // Turn watchdog input: stamp every inbound gateway event. We measure
+    // SILENCE, not elapsed time — a legitimately long turn keeps emitting
+    // deltas/tool events, so only total quiet means the turn is hung.
+    const offAny = gw.onAny(() => {
+      lastEventAtRef.current = Date.now();
+    });
+
     const offMessageStart = gw.on("message.start", (ev) => {
       if (!acceptsEvent(ev)) return;
       const id = nextLocalId();
@@ -419,6 +507,7 @@ export function useChatSession(
       turnErrorRef.current = null;
       setBusy(true);
       lastActivityRef.current = Date.now();
+      if (turnStartedRef.current == null) turnStartedRef.current = Date.now();
       setTurnStartedAt((prev) => prev ?? Date.now());
       setMessages((prev) => [
         ...prev,
@@ -441,14 +530,15 @@ export function useChatSession(
       );
     });
 
-    // Raciocínio (reasoning/thinking) — acumula no turno em voo, como o
-    // desktop renderiza (paridade: server emite reasoning.delta/thinking.delta
-    // e o bloco final em reasoning.available / message.complete.reasoning).
+    // Reasoning (reasoning/thinking) — accumulates on the in-flight turn, the
+    // way the desktop renders it (parity: the server emits reasoning.delta/
+    // thinking.delta and the final block in reasoning.available /
+    // message.complete.reasoning).
     const appendReasoning = (chunk: string | undefined, replace = false) => {
       const id = streamingIdRef.current;
       if (!id || !chunk) return;
-      // Raciocínio conta como atividade — senão o "Ainda pensando…" misfira
-      // durante um bloco de reasoning longo (que só emite reasoning.delta).
+      // Reasoning counts as activity — otherwise the "Ainda pensando…" misfires
+      // during a long reasoning block (which only emits reasoning.delta).
       lastActivityRef.current = Date.now();
       setMessages((prev) =>
         prev.map((m) =>
@@ -468,47 +558,56 @@ export function useChatSession(
       if (!acceptsEvent(ev)) return;
       appendReasoning(ev.payload?.text);
     });
-    // `thinking.delta` é o texto de "carinha"/spinner do agente, NÃO raciocínio
-    // real — o desktop ignora de propósito (gateway-event.ts). Nós o mandávamos
-    // pro bloco de Raciocínio e poluía com ruído. Ignorado (paridade).
+    // `thinking.delta` is the agent's "face"/spinner text, NOT real reasoning —
+    // the desktop ignores it on purpose (gateway-event.ts). We were sending it
+    // to the Reasoning block and it polluted it with noise. Ignored (parity).
     const offThinkingDelta = gw.on<ReasoningDeltaPayload>("thinking.delta", () => {});
     const offReasoningAvailable = gw.on<ReasoningDeltaPayload>("reasoning.available", (ev) => {
       if (!acceptsEvent(ev)) return;
       appendReasoning(ev.payload?.text, true);
     });
 
-    // "Preparando ferramenta" — o modelo está montando a chamada (efêmero;
-    // tool.start/status.update substituem em seguida).
+    // "Preparing tool" — the model is building the call (ephemeral;
+    // tool.start/status.update replace it right after).
     const offToolGenerating = gw.on<ToolGeneratingPayload>("tool.generating", (ev) => {
       if (!acceptsEvent(ev)) return;
       const name = ev.payload?.name;
-      // Nunca vazar o nome técnico cru (ex.: mcp_composio_COMPOSIO_SEARCH_TOOLS)
-      // no status — usa o verbo amigável já traduzido (toolGeneratingLabel).
+      // NEVER leak the raw technical name (e.g. mcp_composio_COMPOSIO_SEARCH_TOOLS)
+      // into the status — use the friendly, already-translated verb (toolGeneratingLabel).
       if (name) setStatusText(toolGeneratingLabel(name, t));
     });
 
-    // Crew: ciclo de vida dos subagentes (payload rico — modelo, tokens,
-    // duração; ver tui_gateway/server.py:3464-3526).
+    // Crew: subagent lifecycle (rich payload — model, tokens, duration; see
+    // tui_gateway/server.py:3464-3526).
     type SubagentPayload = {
       subagent_id?: string;
       label?: string;
       task?: string;
+      goal?: string;
       model?: string;
       status?: string;
       duration_seconds?: number;
       input_tokens?: number;
       output_tokens?: number;
       tool_count?: number;
+      child_session_id?: string;
     };
     const offSubStart = gw.on<SubagentPayload>("subagent.start", (ev) => {
       const p = ev.payload;
       const id = p?.subagent_id;
       if (!id) return;
       lastActivityRef.current = Date.now();
-      const label = p?.label || p?.task || p?.model || id;
+      const label = p?.label || p?.task || p?.goal || p?.model || id;
       setSubagents((prev) => [
         ...prev.filter((s) => s.id !== id),
-        { id, label, model: p?.model, status: "running", startedAt: Date.now() },
+        {
+          id,
+          label,
+          model: p?.model,
+          status: "running",
+          startedAt: Date.now(),
+          childSessionId: p?.child_session_id,
+        },
       ]);
     });
     const offSubComplete = gw.on<SubagentPayload>("subagent.complete", (ev) => {
@@ -541,11 +640,11 @@ export function useChatSession(
       );
     });
 
-    // subagent.text — a PROSA que o especialista produz. Em modo Crew, a
-    // resposta pode vir por aqui em vez de message.delta (o agente principal
-    // delega e não re-escreve). Sem tratar isto, o turno ficava VAZIO ("Wayne
-    // Crew" sem conteúdo — o "travou" que o Leonardo viu). Anexamos ao turno
-    // em voo. SEM acceptsEvent: subagent.* podem vir com o session_id do FILHO.
+    // subagent.text — the PROSE the specialist produces. In Crew mode, the reply
+    // can come through here instead of message.delta (the main agent delegates
+    // and does not rewrite). Without handling this, the turn stayed EMPTY ("Wayne
+    // Crew" with no content — the "it froze" Leonardo saw). We append it to the
+    // in-flight turn. NO acceptsEvent: subagent.* may carry the CHILD's session_id.
     const offSubText = gw.on<{ subagent_id?: string; text?: string }>(
       "subagent.text",
       (ev) => {
@@ -567,7 +666,7 @@ export function useChatSession(
       },
     );
 
-    // Avisos do servidor (créditos/operacional) — espinha usada pelo desktop.
+    // Server notices (credits/operational) — the backbone the desktop uses.
     const offNotifShow = gw.on<NotificationShowPayload>("notification.show", (ev) => {
       const p = ev.payload;
       if (!p?.text) return;
@@ -596,9 +695,9 @@ export function useChatSession(
       setNotices((prev) => (key ? prev.filter((n) => n.key !== key) : []));
     });
 
-    // `review.summary` — o agente registra o que aprendeu (memória/skill) ao
-    // fim do turno. O desktop mostra isso como linha de sistema; nós dropávamos
-    // silenciosamente (o usuário nunca sabia). Vira uma linha meta discreta.
+    // `review.summary` — the agent records what it learned (memory/skill) at the
+    // end of the turn. The desktop shows this as a system line; we were dropping
+    // it silently (the user never knew). It becomes a discreet meta line.
     const offReview = gw.on<{ text?: string; summary?: string }>("review.summary", (ev) => {
       if (!acceptsEvent(ev)) return;
       const text = ev.payload?.text ?? ev.payload?.summary;
@@ -607,6 +706,10 @@ export function useChatSession(
         ...prev,
         { id: nextLocalId(), role: "system", content: text, toolCalls: [] },
       ]);
+      // Feed the dock "Resultados": hold for the upcoming message.complete, and
+      // patch the already-built result when the summary lands after it.
+      pendingReviewRef.current = text;
+      setLastResult((prev) => (prev ? { ...prev, review: text } : prev));
     });
 
     const offMessageComplete = gw.on<MessageCompletePayload>("message.complete", (ev) => {
@@ -619,10 +722,10 @@ export function useChatSession(
           prev.map((m) => {
             if (m.id !== id) return m;
             const reasoning = m.reasoning ?? payload?.reasoning;
-            // Turno fechou sem TEXTO final de resposta e um erro foi sinalizado
-            // (ex.: 402)? Marca a classe pra bolha mostrar um motivo localizado.
-            // Cobre tanto a bolha 100% vazia quanto o caso "rodou ferramentas e
-            // depois falhou na síntese" (aí há tools, mas nenhum texto final).
+            // Turn closed with no final reply TEXT and an error was signalled
+            // (e.g. 402)? Mark the class so the bubble shows a localized reason.
+            // Covers both the 100% empty bubble and the "ran tools and then failed
+            // at the synthesis" case (there are tools, but no final text).
             const hasFinalText = !!(m.content && m.content.trim());
             return {
               ...m,
@@ -640,6 +743,18 @@ export function useChatSession(
       setStatusText(null);
       if (payload?.usage) setUsage(payload.usage);
       if (payload?.status === "error" && payload.warning) setError(payload.warning);
+      // Turn-end snapshot for the dock "Resultados" (only for turns that ran
+      // in THIS view — history loads never fire message.complete).
+      const startedAt = turnStartedRef.current;
+      turnStartedRef.current = null;
+      setLastResult({
+        endedAt: Date.now(),
+        durationS: startedAt != null ? (Date.now() - startedAt) / 1000 : null,
+        status: payload?.status ?? "complete",
+        usage: payload?.usage ?? null,
+        review: pendingReviewRef.current,
+      });
+      pendingReviewRef.current = null;
     });
 
     const offToolStart = gw.on<ToolStartPayload>("tool.start", (ev) => {
@@ -702,9 +817,9 @@ export function useChatSession(
       const kind = p?.kind ?? "status";
       if (!p?.text || HIDDEN_STATUS_KINDS.has(kind)) return;
       lastActivityRef.current = Date.now();
-      // Falha de turno chega como status.update "❌ ..." (conversation_loop
-      // _emit_status). É efêmero (some quando o turno fecha), então guardamos a
-      // CLASSE — nunca o texto cru, que carrega a URL/hash da chave do provedor.
+      // A turn failure arrives as a status.update "❌ ..." (conversation_loop
+      // _emit_status). It is ephemeral (gone once the turn closes), so we keep the
+      // CLASS — NEVER the raw text, which carries the provider key's URL/hash.
       if (p.text.startsWith("❌")) {
         turnErrorRef.current = /402|credit|billing|entitlement|exhaust/i.test(p.text)
           ? "billing"
@@ -753,10 +868,16 @@ export function useChatSession(
     const offSessionInfo = gw.on<SessionInfoPayload>("session.info", (ev) => {
       if (!acceptsEvent(ev)) return;
       const p = ev.payload;
+      // The cwd the SERVER says this session runs in. It is the only honest
+      // source: `cwd` here is what WE asked for at session.create, and it goes
+      // stale the moment anything else moves the session (picking a folder on
+      // the user's machine, a project workspace move). Holding the stale value
+      // is what filed a chat under the previous project in the sidebar.
+      if (typeof p?.cwd === "string" && p.cwd) serverCwdRef.current = p.cwd;
       if (p?.title) {
         setTitle(p.title);
-        // A sidebar (SidebarTasks) usa REST e não escuta o gateway — avisa via
-        // evento pra ela recarregar o título auto (paridade: título ao vivo).
+        // The sidebar (SidebarTasks) uses REST and does not listen to the gateway
+        // — tell it via an event to reload the auto title (parity: live title).
         window.dispatchEvent(new CustomEvent("wayne:session-titled"));
       }
       if (
@@ -789,8 +910,8 @@ export function useChatSession(
         await gw.connect();
         if (cancelled) return;
 
-        // Reconexão de uma tarefa NOVA (sem ?resume na URL) retoma a MESMA
-        // sessão pelo id durável espelhado — nunca cria uma segunda sessão.
+        // Reconnecting a NEW task (no ?resume in the URL) resumes the SAME
+        // session via the mirrored durable id — NEVER creates a second session.
         const resumeTarget = resumeId ?? storedSessionIdRef.current;
 
         if (resumeTarget) {
@@ -812,9 +933,9 @@ export function useChatSession(
         } else {
           const created = await gw.request<SessionCreateResult>("session.create", {
             ...(cwd ? { cwd } : {}),
-            // Conversa COM um agente específico: a sessão nasce no WAYNE_HOME dele.
+            // Chat WITH a specific agent: the session is born in ITS WAYNE_HOME.
             ...(agentProfile ? { profile: agentProfile } : {}),
-            // Overrides POR SESSÃO (contrato do desktop) — nunca config global.
+            // PER-SESSION overrides (desktop contract) — NEVER the global config.
             ...(overrides?.model ? { model: overrides.model } : {}),
             ...(overrides?.provider ? { provider: overrides.provider } : {}),
             ...(overrides?.reasoningEffort
@@ -831,8 +952,8 @@ export function useChatSession(
           setSessionReady(true);
         }
       } catch (err) {
-        // Conexão/handshake falhou (máquina ainda subindo pós-deploy?):
-        // tenta de novo com o mesmo backoff — sem F5.
+        // Connection/handshake failed (machine still coming up post-deploy?):
+        // retries with the same backoff — no F5.
         if (!cancelled) {
           setError(err instanceof Error ? err.message : String(err));
           const attempt = reconnectAttemptsRef.current++;
@@ -869,6 +990,7 @@ export function useChatSession(
       offSecret();
       offSessionInfo();
       offError();
+      offAny();
       const timers = noticeTimersRef.current;
       for (const timer of timers.values()) clearTimeout(timer);
       timers.clear();
@@ -884,27 +1006,38 @@ export function useChatSession(
       const sid = sessionIdRef.current;
       const trimmed = text.trim();
       if (!trimmed || busy || pendingPrompt) return;
-      // Sessão ainda conectando (session.create pendente)? Enfileira e despacha
-      // quando ficar pronta — antes isto caía no early-return e a msg sumia
-      // (Composer limpava o texto). Nunca mais perder mensagem por timing.
+      // Session still connecting (session.create pending)? Queue it and dispatch
+      // when it is ready — before, this hit the early-return and the msg vanished
+      // (the Composer cleared the text). NEVER lose a message to timing again.
       if (!gw || !sid) {
         pendingSendRef.current = { text: trimmed, images };
         return;
       }
-      // 1ª mensagem de uma tarefa NOVA (não é resume): avisa a sidebar na hora
-      // pra a tarefa aparecer em "Tarefas" com a 1ª msg como título provisório
-      // (padrão ChatGPT/Manus) — sem esperar o servidor auto-titular. O título
-      // real substitui via wayne:session-titled. Dedupe por id na sidebar.
+      // 1st message of a NEW task (not a resume): tell the sidebar right away so
+      // the task shows up under "Tarefas" with the 1st msg as a provisional title
+      // (ChatGPT/Manus pattern) — without waiting for the server to auto-title.
+      // The real title replaces it via wayne:session-titled. Dedupe by id in the
+      // sidebar.
       if (!resumeId && !startedDispatchedRef.current && storedSessionId) {
         startedDispatchedRef.current = true;
         window.dispatchEvent(
           new CustomEvent("wayne:session-started", {
-            detail: { id: storedSessionId, title: trimmed.slice(0, 140), cwd: cwd ?? null },
+            detail: {
+              id: storedSessionId,
+              title: trimmed.slice(0, 140),
+              // The server's cwd wins over the one we asked for. This row decides
+              // which project the task appears under, and guessing it wrong filed
+              // a local-folder chat under the previous project.
+              cwd: serverCwdRef.current ?? cwd ?? null,
+            },
           }),
         );
       }
       setError(null);
       setBusy(true);
+      // Start the watchdog window from this turn, not from the last event of
+      // the previous one (which could already be minutes old).
+      lastEventAtRef.current = Date.now();
       // Fresh task view per request.
       todoTimingRef.current.clear();
       currentStepRef.current = null;
@@ -912,6 +1045,9 @@ export function useChatSession(
       setStatusText(null);
       setToolCount(0);
       setSubagents([]);
+      // The new turn wipes the previous result (dock "Resultados" hides).
+      setLastResult(null);
+      pendingReviewRef.current = null;
       setMessages((prev) => [
         ...prev,
         {
@@ -922,17 +1058,33 @@ export function useChatSession(
           images: images && images.length > 0 ? images : undefined,
         },
       ]);
-      void gw.request("prompt.submit", { session_id: sid, text: trimmed }).catch((err) => {
-        setBusy(false);
-        setError(err instanceof Error ? err.message : String(err));
-      });
+      // Arm any per-session prerequisite (desktop Local mode: local.session.set)
+      // BEFORE the turn runs — awaited here so it covers the queued (pendingSend)
+      // path too, which dispatches through this callback without going through
+      // handleSend. The optimistic user bubble above already painted, so the UI
+      // stays responsive while the (idempotent, sub-second) gate resolves.
+      void (async () => {
+        try {
+          await beforeSubmitRef.current?.();
+        } catch {
+          /* arming failed — still submit so the message is never lost; the turn
+             may fall back to the cloud and the user can retry. */
+        }
+        try {
+          await gw.request("prompt.submit", { session_id: sid, text: trimmed });
+        } catch (err) {
+          setBusy(false);
+          setError(err instanceof Error ? err.message : String(err));
+        }
+      })();
     },
     [busy, pendingPrompt, resumeId, storedSessionId, cwd],
   );
 
-  // Sessão ficou pronta e há uma mensagem enfileirada (enviada antes de conectar)
-  // → despacha agora. `sendMessage` já tem storedSessionId no closure neste ponto
-  // (setado no mesmo commit que sessionReady), então o insert otimista sai certo.
+  // Session became ready and there is a queued message (sent before connecting)
+  // → dispatch now. `sendMessage` already has storedSessionId in its closure at
+  // this point (set in the same commit as sessionReady), so the optimistic
+  // insert lands right.
   useEffect(() => {
     if (!sessionReady) return;
     const pending = pendingSendRef.current;
@@ -967,9 +1119,9 @@ export function useChatSession(
     }
   }, []);
 
-  // Anexo NÃO-imagem (PDF, doc, csv…) — `file.attach` foi desenhado pro nosso
-  // caso remoto (server.py:9461: "the client uploads data_url bytes and we
-  // materialize the file on the gateway"); vira um @file: que o agente lê.
+  // NON-image attachment (PDF, doc, csv…) — `file.attach` was designed for our
+  // remote case (server.py:9461: "the client uploads data_url bytes and we
+  // materialize the file on the gateway"); it becomes an @file: the agent reads.
   const attachFile = useCallback(
     async (name: string, dataUrl: string): Promise<boolean> => {
       const gw = gwRef.current;
@@ -990,8 +1142,8 @@ export function useChatSession(
     [],
   );
 
-  // Orientar SEM interromper (session.steer): o texto cai no próximo resultado
-  // de ferramenta e o modelo o vê na iteração seguinte — não cria turno novo.
+  // Steer WITHOUT interrupting (session.steer): the text lands in the next tool
+  // result and the model sees it on the next iteration — it creates no new turn.
   const steer = useCallback(async (text: string): Promise<boolean> => {
     const gw = gwRef.current;
     const sid = sessionIdRef.current;
@@ -1013,7 +1165,7 @@ export function useChatSession(
     }
   }, []);
 
-  // Desfaz o último turno (server exige turno parado) e espelha o corte local.
+  // Undoes the last turn (the server requires a stopped turn) and mirrors the cut locally.
   const undoTurn = useCallback(async (): Promise<boolean> => {
     const gw = gwRef.current;
     const sid = sessionIdRef.current;
@@ -1023,7 +1175,7 @@ export function useChatSession(
       setMessages((prev) => {
         const next = [...prev];
         while (next.length && next[next.length - 1].role !== "user") next.pop();
-        if (next.length) next.pop(); // a própria mensagem do usuário
+        if (next.length) next.pop(); // the user message itself
         return next;
       });
       return true;
@@ -1032,7 +1184,7 @@ export function useChatSession(
     }
   }, []);
 
-  // Compacta a conversa e recarrega o transcript persistido (costurado).
+  // Compacts the conversation and reloads the persisted (stitched) transcript.
   const compressChat = useCallback(async (): Promise<boolean> => {
     const gw = gwRef.current;
     const sid = sessionIdRef.current;
@@ -1050,7 +1202,7 @@ export function useChatSession(
     }
   }, [resumeId, storedSessionId]);
 
-  // ── Autocomplete de composer (paridade desktop): / e @ ──────────────
+  // ── Composer autocomplete (desktop parity): / and @ ─────────────────
   type CompletionItem = { text: string; display?: string; meta?: string };
   const completeSlash = useCallback(async (text: string): Promise<CompletionItem[]> => {
     const gw = gwRef.current;
@@ -1076,9 +1228,9 @@ export function useChatSession(
       return [];
     }
   }, []);
-  // Executa um /comando (slash.exec) — eco do comando + saída como linha de
-  // sistema. Alguns comandos já têm botão nativo; isto cobre o resto (/help,
-  // /skills, etc.). Retorna a saída p/ o chamador decidir.
+  // Runs a /command (slash.exec) — echoes the command + the output as a system
+  // line. Some commands already have a native button; this covers the rest
+  // (/help, /skills, etc.). Returns the output for the caller to decide.
   const execSlash = useCallback(async (command: string): Promise<void> => {
     const gw = gwRef.current;
     const sid = sessionIdRef.current;
@@ -1104,8 +1256,8 @@ export function useChatSession(
     }
   }, []);
 
-  // Ocupação da janela de contexto (session.context_breakdown) — o medidor
-  // que o desktop mostra; alimenta o popover de Utilização.
+  // Context window occupancy (session.context_breakdown) — the gauge the
+  // desktop shows; feeds the Usage popover.
   const contextBreakdown = useCallback(async (): Promise<{
     context_percent?: number;
     context_used?: number;
@@ -1121,10 +1273,10 @@ export function useChatSession(
     }
   }, []);
 
-  // Ramifica a conversa numa sessão nova; retorna o id pra navegar.
-  /** Liga/desliga o bypass de aprovações SÓ NESTA SESSÃO (o Shift+Tab do
-   *  TUI) — RPC config.set key=yolo scope=session; nunca toca config global
-   *  nem cron. O session.info reflete (liveInfo.yolo). */
+  // Branches the conversation into a new session; returns the id to navigate to.
+  /** Turns the approvals bypass on/off ONLY IN THIS SESSION (the TUI's
+   *  Shift+Tab) — RPC config.set key=yolo scope=session; NEVER touches the
+   *  global config nor cron. session.info reflects it (liveInfo.yolo). */
   const setSessionYolo = useCallback(async (on: boolean): Promise<boolean> => {
     const gw = gwRef.current;
     const sid = sessionIdRef.current;
@@ -1155,10 +1307,10 @@ export function useChatSession(
       }>("session.branch", { session_id: sid });
       return res?.stored_session_id ?? res?.session_id ?? null;
     } catch (err) {
-      // Antes engolia em silêncio (return null) — quem chamava não tinha como
-      // saber POR QUE falhou (ex.: "nothing to branch — send a message
-      // first" numa sessão recém-resumida). Surfaça no banner de erro já
-      // existente (error ?? attachError em NativeChatPage) em vez de sumir.
+      // It used to swallow this silently (return null) — the caller had no way
+      // to know WHY it failed (e.g. "nothing to branch — send a message
+      // first" on a freshly resumed session). Surface it in the already-existing
+      // error banner (error ?? attachError in NativeChatPage) instead of vanishing.
       setError(err instanceof Error ? err.message : String(err));
       return null;
     }
@@ -1200,6 +1352,42 @@ export function useChatSession(
     void gw.request("secret.respond", { request_id: requestId, value });
   }, []);
 
+  // Turns the "Local (desktop)" environment on/off for this session (Onda 5):
+  // the gateway starts routing file/shell to the executor on the user's machine.
+  const localEnv = useCallback(async (enabled: boolean, cwd?: string) => {
+    const gw = gwRef.current;
+    const sid = sessionIdRef.current;
+    if (!gw || !sid) return;
+    await gw.request("local.session.set", {
+      session_id: sid,
+      enabled,
+      cwd: cwd || "",
+    });
+  }, []);
+
+  // Reads a file from the USER'S MACHINE through the session's desktop
+  // executor (gateway RPC local.fs.read — the same channel Local mode's
+  // file/shell rides). Returns the /api/fs/read-data-url shape ({data_url})
+  // so the dock reuses its decode paths; null when no session is live. RPC
+  // errors (not local mode, executor off, binary, too large) reject — the
+  // lib/localFile seam turns that into a clean null for the UI.
+  const readLocalFile = useCallback(
+    async (
+      path: string,
+    ): Promise<{ data_url: string; mime?: string; size?: number; name?: string } | null> => {
+      const gw = gwRef.current;
+      const sid = sessionIdRef.current;
+      if (!gw || !sid) return null;
+      return await gw.request<{
+        data_url: string;
+        mime?: string;
+        size?: number;
+        name?: string;
+      }>("local.fs.read", { session_id: sid, path });
+    },
+    [],
+  );
+
   const dismissNotice = useCallback((key: string) => {
     setNotices((prev) => prev.filter((n) => n.key !== key));
     const timer = noticeTimersRef.current.get(key);
@@ -1228,12 +1416,17 @@ export function useChatSession(
     error,
     progress,
     usage,
+    /** How the LAST turn ended — null while running or after the next send. */
+    lastResult,
     liveInfo,
     notices,
     dismissNotice,
+    localEnv,
+    /** Read a user-machine file via the session's local executor (Local mode). */
+    readLocalFile,
     storedSessionId,
-    /** true assim que session.create/resume resolve — gatilho seguro pra
-     *  disparar ações que precisam da sessão pronta (ex.: ?branch=1). */
+    /** true as soon as session.create/resume resolves — a safe trigger to fire
+     *  actions that need the session ready (e.g. ?branch=1). */
     sessionReady,
     sendMessage,
     interrupt,

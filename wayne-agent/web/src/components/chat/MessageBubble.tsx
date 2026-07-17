@@ -21,9 +21,9 @@ import { ToolCallCard } from "./ToolCallCard";
 import { ToolLine } from "./ToolLine";
 import type { ChatMessage, TaskStep, ToolCallState } from "./types";
 
-// Ferramentas cujo próprio painel já mostra tudo — a linha de tool no
-// transcript é ruído redundante (ex.: o `clarify` abre o ClarifyPanel com a
-// pergunta + opções; mostrar "Usando ferramenta / Asking … / 5m 0s" só polui).
+// Tools whose own panel already shows everything — the tool line in the
+// transcript is redundant noise (e.g. `clarify` opens the ClarifyPanel with the
+// question + options; showing "Usando ferramenta / Asking … / 5m 0s" only clutters).
 const NOISE_TOOL_RE = /\bclarify\b|ask[_-]?user|ask[_-]?question|request[_-]?clarif/i;
 const isNoiseTool = (name: string | undefined) => !!name && NOISE_TOOL_RE.test(name);
 
@@ -67,7 +67,7 @@ function splitCompactionContent(content: string): CompactionSplit | null {
 
 // ── Chat variant building blocks (Manus look) ─────────────────────────
 
-/** Thumb de imagem anexada pelo usuário — resolve via /api/files/read. */
+/** Thumbnail of a user-attached image — resolved via /api/files/read. */
 function UserImageThumb({ rel }: { rel: string }) {
   const [url, setUrl] = useState<string | null>(null);
   useEffect(() => {
@@ -104,9 +104,9 @@ function LiveDot() {
   );
 }
 
-/** Raciocínio do modelo — disclosure com PREVIEW AO VIVO (paridade com o
- *  desktop, ThinkingDisclosure): auto-abre enquanto o modelo pensa (você vê o
- *  raciocínio fluir), auto-colapsa quando termina. O clique do usuário vence. */
+/** The model's reasoning — a disclosure with a LIVE PREVIEW (parity with the
+ *  desktop, ThinkingDisclosure): auto-opens while the model thinks (you see the
+ *  reasoning flow), auto-collapses when it ends. The user's click wins. */
 function ReasoningBlock({ text, live }: { text: string; live?: boolean }) {
   const { t } = useI18n();
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
@@ -135,7 +135,7 @@ function ReasoningBlock({ text, live }: { text: string; live?: boolean }) {
   );
 }
 
-/** Texto plano de uma mensagem (blocos de texto ou content) — p/ copiar. */
+/** Plain text of a message (text blocks or content) — for copying. */
 function messagePlainText(msg: ChatMessage): string {
   if (msg.blocks && msg.blocks.length) {
     return msg.blocks
@@ -147,9 +147,8 @@ function messagePlainText(msg: ChatMessage): string {
   return (msg.content ?? "").trim();
 }
 
-/** Barra de ações da resposta (hover): copiar · regenerar · ramificar
- *  (paridade: AssistantActionBar do desktop). Regenerar/ramificar só na
- *  última resposta. */
+/** Reply action bar (hover): copy · regenerate · branch (parity: the desktop's
+ *  AssistantActionBar). Regenerate/branch only on the last reply. */
 function MessageActions({
   msg,
   isLast,
@@ -222,15 +221,15 @@ function StepRun({
   const [userToggled, setUserToggled] = useState<boolean | null>(null);
   const anyRunning = tools.some((tc) => tc.status === "running");
 
-  // Rollout interno (paridade com o desktop): a lista de ferramentas nunca
-  // vira paredão — altura limitada com scroll próprio.
+  // Internal rollout (parity with the desktop): the tool list NEVER becomes a
+  // wall — capped height with its own scroll.
   const listCls =
     "ml-[5px] max-h-56 space-y-0.5 overflow-y-auto border-l border-border/60 pl-[18px]";
 
   if (!step) {
-    // Poucas ferramentas → linhas diretas. Muitas → rollout colapsável:
-    // aberto enquanto roda, AUTO-COLAPSA num chip "N ferramentas" ao terminar
-    // (o usuário pode reabrir) — como o desktop faz com o bloco de atividade.
+    // Few tools → plain lines. Many → collapsible rollout: open while running,
+    // AUTO-COLLAPSES into an "N ferramentas" chip when done (the user can
+    // reopen it) — the way the desktop does with the activity block.
     if (tools.length <= 3) {
       return (
         <div className="space-y-0.5">
@@ -319,9 +318,9 @@ function StepRun({
 }
 
 /** Markdown text block + any referenced-file cards it carries.
- *  `seen` dedupe os cards NO NÍVEL DA MENSAGEM: o agente costuma citar o
- *  mesmo arquivo mais de uma vez (anúncio + conclusão do subagente) e cada
- *  citação virava um card repetido (visto ao vivo na curadoria). */
+ *  `seen` dedupes the cards AT THE MESSAGE LEVEL: the agent tends to cite the
+ *  same file more than once (announcement + the subagent's conclusion) and each
+ *  citation turned into a repeated card (seen live during curation). */
 function TextBlock({
   text,
   streaming,
@@ -378,7 +377,7 @@ export function MessageBubble({
 }: {
   msg: ChatMessage;
   highlight?: string;
-  /** Última mensagem da lista — habilita regenerar/ramificar (chat). */
+  /** Last message in the list — enables regenerate/branch (chat). */
   isLast?: boolean;
   onRegenerate?: () => void;
   onBranch?: () => void;
@@ -474,9 +473,9 @@ export function MessageBubble({
       );
     }
 
-    // Resultado de ferramenta órfão (sem par na costura do histórico) —
-    // vira uma ToolLine discreta e expansível, NUNCA texto solto na conversa
-    // (payloads de tool são JSON/traceback gigantes).
+    // Orphan tool result (no pair in the history stitching) — becomes a
+    // discreet, expandable ToolLine, NEVER loose text in the conversation
+    // (tool payloads are giant JSON/tracebacks).
     if (msg.role === "tool" && !isCompaction) {
       return (
         <ToolLine
@@ -517,7 +516,7 @@ export function MessageBubble({
     // render in arrival order; consecutive tools sharing a plan step nest
     // under that step's header line, exactly like the reference.
     const stepById = new Map<string, TaskStep>((steps ?? []).map((s) => [s.id, s]));
-    // Dedupe dos cards de arquivo em TODA a mensagem (recriado a cada render).
+    // Dedupe of the file cards across the WHOLE message (rebuilt on each render).
     const seenFiles = new Set<string>();
     const body: ReactNode[] = [];
 
@@ -540,7 +539,7 @@ export function MessageBubble({
       };
       blocks.forEach((b, i) => {
         if (b.kind === "tool") {
-          if (isNoiseTool(b.tool.name)) return; // clarify → o painel já mostra
+          if (isNoiseTool(b.tool.name)) return; // clarify → the panel already shows it
           if (run.length && b.tool.stepId !== runStep) flush(`s-${i}`);
           runStep = b.tool.stepId;
           run.push(b.tool);
@@ -586,8 +585,8 @@ export function MessageBubble({
     if (body.length === 0 && msg.streaming) {
       body.push(<ThinkingRow key="thinking" label={t.chat.thinking} />);
     } else if (body.length === 0 && !msg.reasoning && !msg.errorKind) {
-      // Turno terminou 100% vazio e sem erro sinalizado — nunca deixar a bolha
-      // VAZIA (parecia "travado"): aviso genérico + botão regenerar.
+      // The turn ended 100% empty with no error signalled — NEVER leave the
+      // bubble EMPTY (it looked "frozen"): generic notice + regenerate button.
       body.push(
         <span key="empty" className="text-sm italic text-muted-foreground">
           {t.chat.noResponse}
@@ -595,9 +594,9 @@ export function MessageBubble({
       );
     }
 
-    // Erro de turno (ex.: 402 do provedor) sinalizado pelo gateway e sem texto
-    // final de resposta — mostra o motivo localizado e SEGURO (nunca o texto
-    // cru, que carrega URL/hash da chave). Anexa mesmo se ferramentas rodaram.
+    // Turn error (e.g. the provider's 402) signalled by the gateway with no
+    // final reply text — shows the localized and SAFE reason (NEVER the raw
+    // text, which carries the key's URL/hash). Appended even if tools ran.
     if (msg.errorKind && !msg.streaming) {
       body.push(
         msg.errorKind === "billing" ? (
@@ -622,7 +621,7 @@ export function MessageBubble({
       <div className="group/msg chat-msg-in min-w-0">
         <div className="mb-2 flex items-center gap-2">
           <img src="/brand/work4you-favicon.svg" alt="" className="h-4 w-4" />
-          <span className="text-sm font-semibold tracking-tight text-foreground">Wayne</span>
+          <span className="text-sm font-semibold tracking-tight text-foreground">Work4You</span>
           {badge && (
             <span className="rounded-md bg-live/10 px-1.5 py-px text-[11px] font-medium text-live">
               {badge}

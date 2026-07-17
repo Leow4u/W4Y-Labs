@@ -1,18 +1,18 @@
 /**
- * TaskHeaderActions — as ações da tarefa aberta, no header do dashboard
- * (benchmark Manus: ícone de utilização + ficheiros + menu "…"). Montado pela
- * NativeChatPage via usePageHeader().setAfterTitle. Tudo sobre endpoints
- * existentes:
+ * TaskHeaderActions — the actions of the open task, in the dashboard header
+ * (benchmark Manus: usage icon + files + "…" menu). Mounted by the
+ * NativeChatPage via usePageHeader().setAfterTitle. All on top of existing
+ * endpoints:
  *
- *   Utilização   usage cumulativo do message.complete (_get_usage) + GET
- *                /api/sessions/{id} (tokens/mensagens/ferramentas/duração —
- *                started_at/last_active em epoch s). Créditos ficam pra onda
- *                do billing (não há endpoint de créditos consultável hoje).
- *   Pasta        /files?path=projects/<slug> (workspace da tarefa) — só com
- *                projeto ativo.
- *   Menu "…"     Renomear (PATCH title) · Exportar (GET /export) · Arquivar
- *                (PATCH archived) · Eliminar (DELETE) — as mesmas APIs da
- *                sidebar de Tarefas.
+ *   Usage        cumulative usage from message.complete (_get_usage) + GET
+ *                /api/sessions/{id} (tokens/messages/tools/duration —
+ *                started_at/last_active in epoch s). Credits are left to the
+ *                billing wave (no queryable credits endpoint exists today).
+ *   Folder       /files?path=projects/<slug> (task workspace) — only with an
+ *                active project.
+ *   Menu "…"     Rename (PATCH title) · Export (GET /export) · Archive
+ *                (PATCH archived) · Delete (DELETE) — the same APIs as the
+ *                Tasks sidebar.
  */
 import {
   Archive,
@@ -88,21 +88,21 @@ export function TaskHeaderActions({
   onBranch,
   onContext,
 }: {
-  /** Id durável da sessão aberta (resume ou stored_session_id do create). */
+  /** Durable id of the open session (resume or stored_session_id from create). */
   storedId: string | null;
-  /** Projeto (workspace) ativo — habilita o atalho da pasta. */
+  /** Active project (workspace) — enables the folder shortcut. */
   project: string | null;
-  /** Usage cumulativo do último message.complete (ao vivo). */
+  /** Cumulative usage from the last message.complete (live). */
   usage: ChatUsage | null;
-  /** Turno rodando — desabilita desfazer/compactar (o server os rejeita). */
+  /** Turn running — disables undo/compress (the server rejects them). */
   busy?: boolean;
-  /** Notifica a página pra atualizar o título local após renomear. */
+  /** Notifies the page to refresh the local title after renaming. */
   onRenamed?: (title: string) => void;
-  /** session.undo / session.compress / session.branch (retornam sucesso). */
+  /** session.undo / session.compress / session.branch (they return success). */
   onUndo?: () => Promise<boolean>;
   onCompress?: () => Promise<boolean>;
   onBranch?: () => Promise<boolean>;
-  /** session.context_breakdown — ocupação da janela de contexto. */
+  /** session.context_breakdown — context window occupancy. */
   onContext?: () => Promise<{
     context_percent?: number;
     context_used?: number;
@@ -117,8 +117,8 @@ export function TaskHeaderActions({
   const [menuOpen, setMenuOpen] = useState(false);
   useMenuDismiss(usageOpen, () => setUsageOpen(false), "hdr-usage");
   useMenuDismiss(menuOpen, () => setMenuOpen(false), "hdr-menu");
-  // Âncora dos popovers (position:fixed — o header clipa conteúdo absolute,
-  // então os painéis abrem PARA BAIXO a partir do rect do botão clicado).
+  // Popover anchor (position:fixed — the header clips absolute content, so
+  // the panels open DOWNWARD from the rect of the clicked button).
   const [anchor, setAnchor] = useState<{ x: number; y: number } | null>(null);
   const [detail, setDetail] = useState<SessionInfo | null>(null);
   const [ctx, setCtx] = useState<{
@@ -222,7 +222,7 @@ export function TaskHeaderActions({
 
   return (
     <span className="relative flex items-center gap-0.5">
-      {/* Utilização */}
+      {/* Usage */}
       <button
         type="button"
         onClick={openUsage}
@@ -233,7 +233,7 @@ export function TaskHeaderActions({
         <BarChart3 className="h-4 w-4" />
       </button>
 
-      {/* Pasta do projeto (workspace da tarefa) */}
+      {/* Project folder (task workspace) */}
       {project && (
         <button
           type="button"
@@ -248,7 +248,7 @@ export function TaskHeaderActions({
         </button>
       )}
 
-      {/* Menu "…" da tarefa */}
+      {/* Task "…" menu */}
       <button
         type="button"
         onClick={(e) => {
@@ -256,7 +256,7 @@ export function TaskHeaderActions({
           setAnchor({ x: r.right, y: r.bottom + 8 });
           setUsageOpen(false);
           setMenuOpen((o) => !o);
-          /* trigger marcado abaixo via data-menu-trigger */
+          /* trigger marked below via data-menu-trigger */
         }}
         aria-label="…"
         className="rounded-md p-1.5 text-text-secondary transition-colors hover:text-foreground"
@@ -327,7 +327,7 @@ export function TaskHeaderActions({
                   value={String(usage.calls)}
                 />
               )}
-              {/* Medidor da janela de contexto (session.context_breakdown). */}
+              {/* Context window meter (session.context_breakdown). */}
               {ctx?.context_percent != null && ctx.context_percent > 0 && (
                 <div className="mt-2 border-t border-border/60 pt-2">
                   <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
@@ -391,8 +391,8 @@ export function TaskHeaderActions({
               {t.chat.rename}
             </button>
           )}
-          {/* Ações de conversa (gateway): desfazer/compactar exigem turno
-              parado; ramificar cria sessão nova a partir desta. */}
+          {/* Conversation actions (gateway): undo/compress require a stopped
+              turn; branch creates a new session from this one. */}
           {onUndo && (
             <button
               type="button"

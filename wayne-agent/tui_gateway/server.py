@@ -191,6 +191,10 @@ _LONG_HANDLERS = frozenset(
         "complete.path",
         "complete.slash",
         "llm.oneshot",
+        # Dock read of a user-machine file: blocks up to the executor timeout
+        # (~15s) waiting for the desktop shell to answer — must not stall the
+        # WS read loop (prompt.submit / interrupt would sit unread meanwhile).
+        "local.fs.read",
         # Pet RPCs hit the network (manifest fetch / spritesheet download) or do
         # per-frame PNG decode/encode (pet.cells): inline they serialize on the
         # reader thread, so picker previews trickle in one at a time and the
@@ -1506,11 +1510,22 @@ def _register_session_cwd(session: dict | None) -> None:
     if not session:
         return
     try:
-        from tools.terminal_tool import register_task_env_overrides
-
-        register_task_env_overrides(
-            session["session_key"], {"cwd": _terminal_task_cwd(session)}
+        from tools.terminal_tool import (
+            register_task_env_overrides,
+            resolve_task_overrides,
         )
+
+        key = session["session_key"]
+        # MERGE (does not replace): preserves a "local-desktop" override the
+        # session may have (Onda 5) — OTHERWISE the cwd refresh would kill Local.
+        merged = dict(resolve_task_overrides(key) or {})
+        # In Local (desktop) mode the cwd is the user's FOLDER (set by
+        # local.session.set) — do NOT overwrite it with the cloud cwd on every
+        # turn, OTHERWISE the machine's executor would get a path that does not
+        # exist on it.
+        if merged.get("env_type") != "local-desktop":
+            merged["cwd"] = _terminal_task_cwd(session)
+        register_task_env_overrides(key, merged)
     except Exception:
         pass
 
@@ -1715,6 +1730,28 @@ def _persist_session_git_meta(session: dict, cwd: str) -> None:
     threading.Thread(target=_run, name="git-meta", daemon=True).start()
 
 
+def _persist_session_cwd(session: dict, cwd: str) -> None:
+    """Write this session's workspace cwd onto its DB row, best-effort.
+
+    The path is taken as given — this never probes the filesystem. Callers that
+    own a path on THIS host validate it themselves before calling; the Local
+    (desktop) caller can't be validated here at all, since its folder lives on
+    the user's machine.
+
+    Only updates an existing row. A session whose row hasn't been created yet
+    (it's created lazily on the first prompt.submit) is still covered:
+    ``_ensure_session_db_row`` reads ``session["explicit_cwd"]`` and stamps the
+    cwd at creation time — so set both on the session dict, not just here.
+    """
+    with _session_db(session) as db:
+        if db is None:
+            return
+        try:
+            db.update_session_cwd(session.get("session_key", ""), cwd)
+        except Exception:
+            logger.debug("failed to persist session cwd", exc_info=True)
+
+
 def _set_session_cwd(session: dict, cwd: str) -> str:
     resolved = os.path.abspath(os.path.expanduser(str(cwd)))
     if not os.path.isdir(resolved):
@@ -1724,12 +1761,7 @@ def _set_session_cwd(session: dict, cwd: str) -> str:
     # lazy row creation persist it too, not the launch-dir fallback).
     session["explicit_cwd"] = True
     _register_session_cwd(session)
-    with _session_db(session) as db:
-        if db is not None:
-            try:
-                db.update_session_cwd(session.get("session_key", ""), resolved)
-            except Exception:
-                logger.debug("failed to persist session cwd", exc_info=True)
+    _persist_session_cwd(session, resolved)
     # Branch/repo-root probes are git subprocesses — capture them off the hot path.
     _persist_session_git_meta(session, resolved)
     try:
@@ -1907,6 +1939,81 @@ def _clear_pending(sid: str | None = None) -> None:
             if sid is None or owner_sid == sid:
                 _answers[rid] = ""
                 ev.set()
+
+
+# ── Local (desktop) executor channel — Onda 0 ────────────────────────
+# The desktop app registers itself as a session's executor "arm" and runs
+# file/shell on the USER'S MACHINE. Reuses the _block/_respond pattern: the
+# gateway pushes down a `local.exec.request` and blocks the agent thread until
+# the desktop answers `local.exec.result` with the serialized result (JSON).
+# The BRAIN never goes down — only the order (see memory architecture-cloud-brain).
+#
+# Difference from a normal _block: since the executor is RESIDENT (its own WS,
+# in the shell's main process), the request goes to the EXECUTOR's transport
+# (captured at register), not to the chat session's transport. Ondas 1+ wire
+# this to a LocalDesktopEnvironment; on its own this block is INERT (nobody
+# calls local_exec yet), so it is 100% additive.
+_local_executors: dict[str, dict] = {}
+_local_exec_lock = threading.Lock()
+
+
+def local_executor_present(session_key: str) -> bool:
+    """True if the session has a desktop executor registered."""
+    with _local_exec_lock:
+        return bool(_local_executors.get(session_key))
+
+
+def local_executor_info(session_key: str) -> dict | None:
+    with _local_exec_lock:
+        info = _local_executors.get(session_key)
+        return dict(info) if info else None
+
+
+def _block_via(transport, event: str, payload: dict, timeout: int = 120) -> str:
+    """Like _block, but emits the event on a SPECIFIC transport (the desktop
+    executor's). Blocks the agent thread until the matching `*.result` comes
+    back with the same request_id."""
+    rid = uuid.uuid4().hex[:8]
+    ev = threading.Event()
+    with _prompt_lock:
+        _pending[rid] = ("", ev)  # empty sid: this is not a chat session
+        payload["request_id"] = rid
+    try:
+        transport.write(
+            {
+                "jsonrpc": "2.0",
+                "method": "event",
+                "params": {"type": event, "payload": payload},
+            }
+        )
+        ev.wait(timeout=timeout)
+    finally:
+        with _prompt_lock:
+            _pending.pop(rid, None)
+    with _prompt_lock:
+        return _answers.pop(rid, "")
+
+
+def local_exec(session_key: str, tool: str, args: dict | None = None,
+               timeout: int = 120) -> dict:
+    """Asks the session's desktop executor to run a local tool and returns the
+    result (dict). The desktop answers `local.exec.result` with a JSON string
+    in `result` (modeled on terminal.read.respond)."""
+    with _local_exec_lock:
+        info = _local_executors.get(session_key)
+    transport = (info or {}).get("transport")
+    if not transport:
+        return {"ok": False, "error": "no local executor connected for this session"}
+    raw = _block_via(
+        transport, "local.exec.request",
+        {"tool": tool, "args": args or {}}, timeout=timeout,
+    )
+    if not raw:
+        return {"ok": False, "error": "local executor did not respond (timeout/disconnected)"}
+    try:
+        return json.loads(raw)
+    except Exception:
+        return {"ok": False, "error": "invalid local.exec.result payload"}
 
 
 # ── Agent factory ────────────────────────────────────────────────────
@@ -3701,12 +3808,7 @@ def _apply_project_workspace(task_id: str, path: str, _name: str = "") -> None:
     session["explicit_cwd"] = True
     _register_session_cwd(session)
 
-    with _session_db(session) as db:
-        if db is not None:
-            try:
-                db.update_session_cwd(session.get("session_key", ""), resolved)
-            except Exception:
-                logger.debug("failed to persist project workspace cwd", exc_info=True)
+    _persist_session_cwd(session, resolved)
 
     _persist_session_git_meta(session, resolved)
 
@@ -9816,6 +9918,295 @@ def _(rid, params: dict) -> dict:
 @method("secret.respond")
 def _(rid, params: dict) -> dict:
     return _respond(rid, params, "value")
+
+
+# ── Local (desktop) executor RPCs — Onda 0 ───────────────────────────
+@method("local.exec.result")
+def _(rid, params: dict) -> dict:
+    # `result` = JSON string {ok, stdout?, stderr?, exit_code?, content?, error?}
+    # que o executor desktop devolve (molde de terminal.read.respond).
+    return _respond(rid, params, "result")
+
+
+@method("local.executor.register")
+def _(rid, params: dict) -> dict:
+    # The desktop app announces it is a session's local executor + the folders
+    # the user authorized. Captures ITS transport (its own WS) so local_exec can
+    # route the requests. (Onda 0: only registers; Onda 1 consumes.)
+    key = str(params.get("session_key") or "").strip()
+    if not key:
+        return _err(rid, 4010, "session_key required")
+    with _local_exec_lock:
+        _local_executors[key] = {
+            "transport": current_transport(),
+            "folders": params.get("folders") or [],
+            "caps": params.get("caps") or ["file", "shell"],
+            "os": params.get("os") or "",
+        }
+    return _ok(rid, {"status": "registered"})
+
+
+@method("local.executor.unregister")
+def _(rid, params: dict) -> dict:
+    key = str(params.get("session_key") or "").strip()
+    with _local_exec_lock:
+        _local_executors.pop(key, None)
+    return _ok(rid, {"status": "unregistered"})
+
+
+def _ensure_local_folder_project(cwd: str) -> None:
+    """Promote a picked local folder to a first-class Project (idempotent).
+
+    The desktop auto-promotes a session's git repo root to a project on its own
+    (project_tree's "auto project" tier). We can't reach that tier: the folder
+    lives on the USER's machine, so this host has no repo to probe. Picking the
+    folder is the explicit signal, so register it here — from then on the SAME
+    grouping engine (longest-prefix over project folders) claims every session
+    that runs in it, and the chat shows up under that folder on the web too, not
+    just on the machine that ran it.
+    """
+    try:
+        from tui_gateway.project_tree import base_name
+        from wayne_cli import projects_db as pdb
+
+        with pdb.connect_closing() as conn:
+            if pdb.project_for_path(conn, cwd, include_archived=True):
+                return
+            pdb.create_project(conn, name=base_name(cwd) or cwd, folders=[cwd])
+    except Exception:
+        # Never block the user from working locally over a bookkeeping failure.
+        logger.debug("failed to promote local folder to project", exc_info=True)
+
+
+@method("local.session.set")
+def _(rid, params: dict) -> dict:
+    # Turns the "Local (desktop)" mode on/off for THIS session (Onda 5). On:
+    # registers the env_type=local-desktop override (+ session_key + the
+    # folder's cwd) → the agent starts routing file/shell to the executor on the
+    # user's machine. Off: removes it → back to Nuvem. The executor itself is
+    # wired separately (the desktop app calls local.executor.register).
+    session, err = _sess(params, rid)
+    if err:
+        return err
+    key = session["session_key"]
+    enabled = bool(params.get("enabled", True))
+    try:
+        from tools.terminal_tool import (
+            register_task_env_overrides,
+            resolve_task_overrides,
+            _active_environments,
+            _env_lock,
+        )
+    except Exception as e:
+        return _err(rid, 5000, f"terminal_tool indisponível: {e}")
+    ov = dict(resolve_task_overrides(key) or {})
+    if enabled:
+        ov["env_type"] = "local-desktop"
+        ov["session_key"] = key
+        cwd = str(params.get("cwd") or "").strip()
+        if cwd:
+            ov["cwd"] = cwd
+            # The chosen folder IS this chat's workspace — persist it like any
+            # explicitly picked one, so the conversation groups under it in the
+            # history sidebar instead of landing nowhere.
+            #
+            # Deliberately NO abspath/isdir: the folder lives on the USER's
+            # machine, not on this host, so validating it here would always fail
+            # and throw the path away. Same reasoning as _terminal_task_cwd (see
+            # its docstring): a cwd that only exists inside the target
+            # environment is still the correct cwd.
+            #
+            # Stash the cloud workspace first so turning Local off restores it —
+            # otherwise the cloud agent would inherit a path that doesn't exist
+            # on this host.
+            if "pre_local_cwd" not in session:
+                session["pre_local_cwd"] = session.get("cwd") or ""
+                session["pre_local_explicit_cwd"] = bool(session.get("explicit_cwd"))
+            session["cwd"] = cwd
+            session["explicit_cwd"] = True
+            _persist_session_cwd(session, cwd)
+            _ensure_local_folder_project(cwd)
+    else:
+        ov.pop("env_type", None)
+        ov.pop("session_key", None)
+        # Back to the cloud: hand the session its cloud workspace back, so the
+        # next turn doesn't try to run in the user's local path.
+        if "pre_local_cwd" in session:
+            restored = str(session.pop("pre_local_cwd") or "")
+            session["explicit_cwd"] = bool(session.pop("pre_local_explicit_cwd", False))
+            if restored:
+                session["cwd"] = restored
+            ov["cwd"] = _terminal_task_cwd(session)
+            if restored and session["explicit_cwd"]:
+                _persist_session_cwd(session, restored)
+    register_task_env_overrides(key, ov)
+    # Invalidates THIS session's cached environment so the next tool-call builds
+    # the right one (Local↔Nuvem). NEVER touches the "default" (shared) one.
+    try:
+        with _env_lock:
+            _active_environments.pop(key, None)
+    except Exception:
+        pass
+
+    # ANNOUNCE the new cwd — same as the project workspace move does. Without
+    # this the client keeps the cwd it knew from session.create and starts
+    # deciding things with a stale value: that is how a chat in a local folder
+    # showed up under the previous PROJECT in the history sidebar. The server
+    # owns the cwd, so the server says when it changes; the client never guesses.
+    try:
+        sid = str(params.get("session_id") or "")
+        agent = session.get("agent")
+        info = (
+            _session_info(agent, session)
+            if agent is not None
+            else {"cwd": _session_cwd(session), "lazy": True}
+        )
+        _emit("session.info", sid, info)
+    except Exception:
+        logger.debug("failed to emit session.info after local env switch", exc_info=True)
+
+    return _ok(rid, {"status": "ok", "local": enabled})
+
+
+# Non-"text/*" mimes the local read channel still serves as text. The executor's
+# only file-read op (apps/desktop-shell/executor.cjs read_file) decodes utf-8
+# TEXT — there is no byte/base64 read in the shell today — so genuinely binary
+# files (png/pdf/zip/office) cannot cross the channel faithfully yet and are
+# refused with a clean error instead of handing the dock corrupted bytes.
+_LOCAL_READ_TEXT_MIMES = frozenset(
+    {
+        "application/json",
+        "application/javascript",
+        "application/x-javascript",
+        "application/xml",
+        "application/xhtml+xml",
+        "application/x-sh",
+        "application/yaml",
+        "application/toml",
+        "image/svg+xml",
+    }
+)
+_LOCAL_READ_MAX_BYTES = 10 * 1024 * 1024
+
+
+@method("local.fs.read")
+def _(rid, params: dict) -> dict:
+    """Read a file from the USER'S MACHINE for the dock (preview/code/download).
+
+    Local (desktop) mode writes land on the user's disk, so /api/fs/read-data-url
+    (which reads THIS host) can never serve them. This proxies the read through
+    the SAME channel the agent's file/shell already rides in Local mode
+    (LocalDesktopEnvironment → local_exec → the shell's resident executor), via
+    the executor's vault-confined ``read_file_b64`` op (0.2.2+) — containment
+    is enforced canonically by the shell (executor.cjs), NOT re-implemented
+    here; the path is forwarded as-is (the executor also normalizes the MSYS
+    "/c/…" spelling). Shells 0.2.1 don't know ``read_file_b64`` and answer the
+    executor's unknown-op error ("ferramenta local desconhecida: …") — that
+    exact answer triggers the legacy fallback: utf-8 ``read_file`` gated to
+    text mimes (binary refused with a clean 4033, as before). Response shape
+    mirrors /api/fs/read-data-url ({data_url}) so the web reuses its existing
+    readers unchanged.
+    """
+    session, err = _sess_nowait(params, rid)
+    if err:
+        return err
+    key = session["session_key"]
+    path = str(params.get("path") or "").strip()
+    if not path:
+        return _err(rid, 4030, "path required")
+    # Only a session actually in Local (desktop) mode may reach the machine —
+    # a cloud session has no business proxying reads to someone's desktop.
+    try:
+        from tools.terminal_tool import resolve_task_overrides
+
+        ov = resolve_task_overrides(key) or {}
+    except Exception:
+        ov = {}
+    if ov.get("env_type") != "local-desktop":
+        return _err(rid, 4031, "session is not in Local (desktop) mode")
+    if not local_executor_present(key):
+        return _err(rid, 4032, "no local executor connected for this session")
+
+    import base64
+    import mimetypes
+
+    name = path.replace("\\", "/").rstrip("/").rsplit("/", 1)[-1]
+
+    # 0.2.2+ shells: binary-capable read (base64 + real mime + stat-first cap).
+    res = local_exec(key, "read_file_b64", {"path": path}, timeout=15)
+    if res.get("ok"):
+        b64 = res.get("b64")
+        if not isinstance(b64, str) or not b64:
+            return _err(rid, 4034, "local read returned no content")
+        try:
+            size = int(res.get("size") or 0)
+        except (TypeError, ValueError):
+            size = 0
+        if size > _LOCAL_READ_MAX_BYTES:
+            # Defensive: the shell already refuses >10MB before reading.
+            return _err(
+                rid, 4035, "file too large for the local read channel (max 10MB)"
+            )
+        effective_mime = str(res.get("mime") or "") or (
+            mimetypes.guess_type(path)[0] or "application/octet-stream"
+        )
+        return _ok(
+            rid,
+            {
+                "ok": True,
+                "data_url": f"data:{effective_mime};base64,{b64}",
+                "mime": effective_mime,
+                "size": size,
+                "name": name,
+            },
+        )
+
+    err_text = str(res.get("error") or "local read failed")
+    # Only the executor's unknown-op answer means "shell is 0.2.1" — any other
+    # failure (outside the vault, too large, io error, timeout) is final and
+    # must NOT fall back (the legacy read would just fail again, slower).
+    if "ferramenta local desconhecida" not in err_text:
+        code = 4035 if "max 10MB" in err_text else 4034
+        return _err(rid, code, err_text)
+
+    # ── Legacy fallback (shell 0.2.1: only utf-8 read_file exists) ──────────
+    # The text-only mime gate lives HERE on purpose: with read_file_b64 gone,
+    # binary content would be corrupted by the utf-8 decode, so it is refused
+    # with the same clean 4033 the pre-0.2.2 flow always returned.
+    mime = mimetypes.guess_type(path)[0]
+    if mime and not mime.startswith("text/") and mime not in _LOCAL_READ_TEXT_MIMES:
+        return _err(
+            rid,
+            4033,
+            f"binary file is not readable over the local channel yet ({mime})",
+        )
+
+    res = local_exec(key, "read_file", {"path": path}, timeout=15)
+    if not res.get("ok"):
+        return _err(rid, 4034, str(res.get("error") or "local read failed"))
+    content = res.get("content")
+    if not isinstance(content, str):
+        return _err(rid, 4034, "local read returned no content")
+    raw = content.encode("utf-8")
+    if len(raw) > _LOCAL_READ_MAX_BYTES:
+        return _err(
+            rid, 4035, "file too large for the local read channel (max 10MB)"
+        )
+
+    effective_mime = mime or "text/plain"
+    data_url = (
+        f"data:{effective_mime};base64,{base64.b64encode(raw).decode('ascii')}"
+    )
+    return _ok(
+        rid,
+        {
+            "ok": True,
+            "data_url": data_url,
+            "mime": effective_mime,
+            "size": len(raw),
+            "name": name,
+        },
+    )
 
 
 @method("approval.respond")

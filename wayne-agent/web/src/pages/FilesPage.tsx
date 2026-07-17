@@ -1,13 +1,13 @@
 /**
- * FilesPage — o explorador de arquivos do tenant, com cara de desktop.
+ * FilesPage — the tenant's file explorer, with a desktop look.
  *
- * Onda 1: separa conteúdo do usuário do ruído do sistema (lib/file-curation;
- * sistema só no ?full=1), ícone de tipo estilo desktop (lib/file-icons),
- * trilha clicável, grade↔lista.
- * Onda 2: rail lateral (Acesso rápido/Projetos/Favoritos), faixa "Recentes"
- * no Início (scan raso por mtime), favoritar (estrela) e pré-visualização
- * inline (imagem/PDF/texto). Zero backend novo — a API já dá name/size/mtime/
- * mime_type + path/root, e o readFile dá o data_url pro preview.
+ * Onda 1: separates user content from system noise (lib/file-curation; system
+ * only in ?full=1), desktop-style type icon (lib/file-icons), clickable
+ * breadcrumb, grid↔list.
+ * Onda 2: side rail (Quick access/Projects/Favorites), "Recentes" strip on Home
+ * (shallow scan by mtime), favoriting (star) and inline preview
+ * (image/PDF/text). Zero new backend — the API already gives name/size/mtime/
+ * mime_type + path/root, and readFile gives the data_url for the preview.
  */
 import {
   useCallback,
@@ -62,8 +62,8 @@ import { PluginSlot } from "@/plugins";
 
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 const VIEW_KEY = "w4y-files-view";
-// Tipo de transferência do arrastar-para-mover INTERNO (distingue do upload de
-// arquivos externos, que carrega o tipo "Files").
+// Transfer type of the INTERNAL drag-to-move (tells it apart from the upload of
+// external files, which carries the "Files" type).
 const MOVE_MIME = "application/x-w4y-move";
 
 function joinPath(base: string, name: string): string {
@@ -134,16 +134,16 @@ export default function FilesPage() {
     try {
       localStorage.setItem(VIEW_KEY, v);
     } catch {
-      /* melhor esforço */
+      /* best effort */
     }
   };
-  // Onda 2: preview, projetos do rail, recentes, e re-render ao (des)favoritar.
+  // Onda 2: preview, rail projects, recents, and re-render on (un)favoriting.
   const [preview, setPreview] = useState<ManagedFileEntry | null>(null);
   const [projects, setProjects] = useState<RailProject[]>([]);
   const [recents, setRecents] = useState<ManagedFileEntry[]>([]);
   const [, bumpPins] = useState(0);
   useEffect(() => onPinnedFilesChange(() => bumpPins((x) => x + 1)), []);
-  // Onda 3: renomear inline, arrastar-para-mover, menu de contexto.
+  // Onda 3: inline rename, drag-to-move, context menu.
   const [renaming, setRenaming] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
   const [dragOverPath, setDragOverPath] = useState<string | null>(null);
@@ -178,7 +178,7 @@ export default function FilesPage() {
     void load(currentPath);
   }, [currentPath]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Trilha de navegação (breadcrumb) a partir do path absoluto relativo à raiz.
+  // Navigation breadcrumb built from the absolute path relative to the root.
   const crumbs = useMemo<Crumb[]>(() => {
     const root = listing?.locked_root ?? listing?.root ?? null;
     const path = listing?.path ?? "";
@@ -197,7 +197,7 @@ export default function FilesPage() {
     return out;
   }, [listing?.locked_root, listing?.root, listing?.path, tf.home]);
 
-  // Header: só o refresh (a trilha fica no corpo). Limpa o badge antigo.
+  // Header: refresh only (the breadcrumb lives in the body). Clears the old badge.
   useEffect(() => {
     setAfterTitle(null);
     setEnd(
@@ -294,7 +294,7 @@ export default function FilesPage() {
     }
   };
 
-  // ── Onda 3: renomear (= mover no mesmo dir) ────────────────────────
+  // ── Onda 3: rename (= move within the same dir) ────────────────────
   const beginRename = (entry: ManagedFileEntry) => {
     setMenu(null);
     setRenaming(entry.path);
@@ -326,7 +326,7 @@ export default function FilesPage() {
     }
   };
 
-  // Mover `src` para dentro de `destDir` (mantendo o nome). No-op se já está lá.
+  // Move `src` into `destDir` (keeping the name). No-op if it is already there.
   const moveEntry = async (src: ManagedFileEntry, destDir: string) => {
     const dest = joinPath(destDir, src.name);
     if (dest === src.path) return;
@@ -350,7 +350,7 @@ export default function FilesPage() {
     setMenu({ x: e.clientX, y: e.clientY, entry });
   };
 
-  // ── Arrastar-para-mover (interno; distinto do upload externo) ───────
+  // ── Drag-to-move (internal; distinct from the external upload) ──────
   const onEntryDragStart = (e: ReactDragEvent<HTMLElement>, entry: ManagedFileEntry) => {
     e.dataTransfer.setData(
       MOVE_MIME,
@@ -358,8 +358,8 @@ export default function FilesPage() {
     );
     e.dataTransfer.effectAllowed = "move";
   };
-  // Realça/permite drop sobre uma pasta-alvo — só p/ drag interno, nunca sobre
-  // a própria origem. (getData só existe no drop; aqui checamos os `types`.)
+  // Highlights/allows a drop on a target folder — internal drag only, NEVER on
+  // the source itself. (getData only exists on drop; here we check the `types`.)
   const allowDrop = (e: ReactDragEvent<HTMLElement>, destPath: string, selfPath?: string) => {
     if (!Array.from(e.dataTransfer.types).includes(MOVE_MIME)) return;
     if (selfPath && destPath === selfPath) return;
@@ -383,7 +383,7 @@ export default function FilesPage() {
         );
       }
     } catch {
-      /* payload inválido — ignora */
+      /* invalid payload — ignore */
     }
   };
 
@@ -406,7 +406,7 @@ export default function FilesPage() {
     dragOverPath,
   };
 
-  // Drag-drop na área toda.
+  // Drag-drop over the whole area.
   const onDragEnter = (e: ReactDragEvent<HTMLElement>) => {
     if (!canUpload || !transferHasFiles(e)) return;
     e.preventDefault();
@@ -432,8 +432,8 @@ export default function FilesPage() {
     void uploadFiles(e.dataTransfer.files);
   };
 
-  // Só o conteúdo do usuário. A visão interna (?full=1) mostra tudo cru; a
-  // normal esconde as pastas de sistema (curadoria) — nem exibe, nem alcança.
+  // User content only. The internal view (?full=1) shows everything raw; the
+  // normal one hides the system folders (curation) — neither shows nor reaches them.
   const user = useMemo(() => {
     const entries = listing?.entries ?? [];
     return sortEntries(internal ? entries : partitionEntries(entries).user);
@@ -441,8 +441,8 @@ export default function FilesPage() {
 
   const isEmpty = !loading && listing && user.length === 0;
 
-  // Rail: pastas de projects/ (nomes bonitos). Uma chamada quando a raiz é
-  // conhecida — independente de onde a navegação está.
+  // Rail: projects/ folders (pretty names). One call once the root is known —
+  // regardless of where the navigation currently is.
   useEffect(() => {
     if (!root) return;
     let dead = false;
@@ -464,8 +464,8 @@ export default function FilesPage() {
     };
   }, [root]);
 
-  // "Recentes" no Início: scan raso (root + até 8 pastas do usuário, 1 nível)
-  // → arquivos mais recentes por mtime. Best-effort; falha = sem faixa.
+  // "Recentes" on Home: shallow scan (root + up to 8 user folders, 1 level)
+  // → the most recent files by mtime. Best-effort; failure = no strip.
   useEffect(() => {
     if (!listing || !isAtRoot || internal) {
       setRecents([]);
@@ -526,7 +526,7 @@ export default function FilesPage() {
       >
       <PluginSlot name="files:top" />
 
-      {/* Barra: voltar + trilha (esq) · visão + ações (dir). */}
+      {/* Bar: back + breadcrumb (left) · view + actions (right). */}
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Button
           ghost
@@ -639,7 +639,7 @@ export default function FilesPage() {
         </div>
       )}
 
-      {/* Recentes — só no Início (scan raso por mtime). */}
+      {/* Recents — only on Home (shallow scan by mtime). */}
       {isAtRoot && recents.length > 0 && (
         <div>
           <div className="mb-2 type-caption text-muted-foreground">{tf.recent}</div>
@@ -676,11 +676,11 @@ export default function FilesPage() {
         </div>
       ) : (
         <>
-          {/* Só o conteúdo do usuário. As pastas de sistema NÃO são exibidas nem
-              alcançáveis pela UI normal (evita apagar o runtime sem querer) —
-              a visão interna ?full=1 é a única que mostra tudo (partição acima
-              coloca tudo em `user` quando internal). O backend ainda recusa
-              apagar caminhos críticos como defesa extra. */}
+          {/* User content only. The system folders are NOT shown nor reachable
+              through the normal UI (avoids deleting the runtime by accident) —
+              the internal ?full=1 view is the only one that shows everything
+              (the partition above puts everything in `user` when internal). The
+              backend still refuses to delete critical paths as an extra defense. */}
           {view === "grid" ? (
             <FileGrid entries={user} ops={ops} tf={tf} />
           ) : (
@@ -692,7 +692,7 @@ export default function FilesPage() {
         <PluginSlot name="files:bottom" />
       </div>
 
-      {/* Overlay de drop — cobre rail+main; aparece só arrastando. */}
+      {/* Drop overlay — covers rail+main; only shows up while dragging. */}
       {draggingFiles && (
         <div className="pointer-events-none absolute inset-0 z-10 grid place-items-center rounded-xl border-2 border-dashed border-live bg-live/10">
           <span className="flex items-center gap-2 rounded-lg bg-card px-4 py-2 text-sm font-medium text-foreground shadow-card">
@@ -780,7 +780,7 @@ export default function FilesPage() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Grade — blocos de ícones (cara de desktop)                          */
+/* Grid — icon blocks (desktop look)                                   */
 /* ------------------------------------------------------------------ */
 
 interface FileOps {
@@ -809,9 +809,9 @@ interface ViewProps {
   muted?: boolean;
 }
 
-/** Campo de renomear inline (grade e lista). Enter confirma, Esc cancela, sair
- *  (blur) confirma — comportamento de Explorer. Para os cliques/duplo-clique/
- *  menu-de-contexto no próprio campo (pra deixar colar/selecionar). */
+/** Inline rename field (grid and list). Enter commits, Esc cancels, leaving
+ *  (blur) commits — Explorer behavior. Stops the click/double-click/context-menu
+ *  on the field itself (so paste/select still work). */
 function RenameInput({
   value,
   onChange,
@@ -870,7 +870,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
               isDrop && "border-live bg-live/10 ring-2 ring-live",
             )}
           >
-            {/* Estrela (favoritar) — sempre visível quando fixado; senão no hover. */}
+            {/* Star (favorite) — always visible when pinned; otherwise on hover. */}
             <button
               type="button"
               onClick={() => ops.onTogglePin(entry)}
@@ -910,7 +910,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
                 <span className="line-clamp-2 w-full break-words text-xs leading-snug text-foreground">{entry.name}</span>
               </button>
             )}
-            {/* Ações no hover (canto). */}
+            {/* Actions on hover (corner). */}
             {!isRenaming && (
               <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                 {!entry.is_directory && (
@@ -1064,7 +1064,7 @@ function t_delete(tf: ReturnType<typeof useI18n>["t"]["files"], name: string): s
 }
 
 /* ------------------------------------------------------------------ */
-/* Menu de contexto (botão direito) — item ou área vazia               */
+/* Context menu (right click) — an item or empty area                  */
 /* ------------------------------------------------------------------ */
 
 function FileContextMenu({

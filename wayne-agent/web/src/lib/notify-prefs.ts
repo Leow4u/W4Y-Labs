@@ -1,13 +1,13 @@
 /**
- * Preferências de NOTIFICAÇÃO do navegador (Onda A das Configurações).
- * Espelha o padrão do desktop (que também é client-side, localStorage
- * hermes:native-notifications): tipos ligáveis individualmente.
+ * Browser NOTIFICATION preferences (Onda A of "Configurações").
+ * Mirrors the desktop pattern (which is also client-side, localStorage
+ * hermes:native-notifications): kinds that can be toggled individually.
  *
- *   turnDone — o Wayne terminou uma resposta (aba em segundo plano)
- *   needsYou — o Wayne está pedindo aprovação ou uma resposta sua
+ *   turnDone — Wayne finished a response (tab in the background)
+ *   needsYou — Wayne is asking for approval or an answer from you
  *
- * A PERMISSÃO do navegador é ortogonal (Notification.permission) — o nudge
- * do chat e o botão nas Configurações pedem; aqui é só a preferência.
+ * The browser PERMISSION is orthogonal (Notification.permission) — the chat
+ * nudge and the "Configurações" button ask for it; here it's just the preference.
  */
 const STORAGE_KEY = "wayne:notify-prefs:v1";
 
@@ -42,7 +42,7 @@ export function setNotifyKind(kind: NotifyKind, enabled: boolean): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(cache));
   } catch {
-    /* modo privado */
+    /* private mode */
   }
   listeners.forEach((fn) => fn());
 }

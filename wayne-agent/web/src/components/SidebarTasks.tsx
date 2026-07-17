@@ -1,28 +1,28 @@
 /**
- * SidebarTasks — Projetos + Recentes da SIDEBAR GLOBAL (estrutura do Hermes
- * desktop, decisão 10/07): cada projeto lista as PRÓPRIAS sessões aninhadas
- * (agrupadas pelo cwd que o GET /api/sessions já devolve em cada linha), com
- * menu "…" do projeto (fixar/abrir em Arquivos/arquivar sessões/remover) e
- * menu reduzido por sessão aninhada (fixar/arquivar). "Recentes" = sessões
- * sem projeto, com o menu completo e o filtro.
+ * SidebarTasks — Projects + Recents of the GLOBAL SIDEBAR (Hermes desktop
+ * structure, decision 10/07): each project lists its OWN nested sessions
+ * (grouped by the cwd that GET /api/sessions already returns on every row),
+ * with a project "…" menu (pin/open in Files/archive sessions/remove) and a
+ * reduced menu per nested session (pin/archive). "Recentes" = sessions with
+ * no project, with the full menu and the filter.
  *
- * Regra da curadoria: TUDO aqui opera sobre endpoints que o backend JÁ tem —
- * nada inventado:
- *   listar/filtrar  GET  /api/sessions (order=recent, source, exclude_sources,
- *                        archived=only — soft-archive já existia p/ o desktop)
- *   renomear        PATCH /api/sessions/{id} {title}
- *   arquivar        PATCH /api/sessions/{id} {archived}
- *   exportar        GET  /api/sessions/{id}/export (mesmo fluxo da SessionsPage)
- *   eliminar        DELETE /api/sessions/{id}
- *   abrir em aba    window.open(/chat?resume=…) — frontend puro
- *   ramificar       session.branch (RPC) — via /chat?resume=…&branch=1, o
- *                   NativeChatPage dispara ao conectar (não há gateway aqui)
- *   fixar           client-side só (localStorage) — igual ao desktop
- *                   (apps/desktop `$pinnedSessionIds`, um `persistentAtom`);
- *                   não existe pin no backend, não tem o que reusar lá
- * Compartilhar-link/Mover para projeto NÃO existem no backend → fora.
+ * Curation rule: EVERYTHING here runs on endpoints the backend ALREADY has —
+ * nothing invented:
+ *   list/filter     GET  /api/sessions (order=recent, source, exclude_sources,
+ *                        archived=only — soft-archive already existed for desktop)
+ *   rename          PATCH /api/sessions/{id} {title}
+ *   archive         PATCH /api/sessions/{id} {archived}
+ *   export          GET  /api/sessions/{id}/export (same flow as SessionsPage)
+ *   delete          DELETE /api/sessions/{id}
+ *   open in a tab   window.open(/chat?resume=…) — pure frontend
+ *   branch          session.branch (RPC) — via /chat?resume=…&branch=1, the
+ *                   NativeChatPage fires on connect (there is no gateway here)
+ *   pin             client-side only (localStorage) — same as the desktop
+ *                   (apps/desktop `$pinnedSessionIds`, a `persistentAtom`);
+ *                   there is no pin in the backend, nothing to reuse there
+ * Share-link/Move to project do NOT exist in the backend → out.
  *
- * O menu usa position:fixed pra escapar do overflow-y-auto da sidebar.
+ * The menu uses position:fixed to escape the sidebar's overflow-y-auto.
  */
 import {
   Archive,
@@ -32,6 +32,7 @@ import {
   Download,
   ExternalLink,
   FolderClosed,
+  FolderGit2,
   FolderOpen,
   GitBranch,
   ListFilter,
@@ -56,11 +57,19 @@ import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { useI18n } from "@/i18n";
-import { api, type SessionInfo } from "@/lib/api";
 import {
+  api,
+  type ProjectRow,
+  type ProjectsTreeResponse,
+  type SessionInfo,
+} from "@/lib/api";
+import {
+  LOCAL_PATH_RE,
   PROJECTS_DIR,
   getFilesRoot,
   projectCwd,
+  registerFolderProject,
+  registerProjectRow,
   slugifyProject,
 } from "@/lib/projects";
 import { isPinned, onPinnedChange, togglePin } from "@/lib/pinned-sessions";
@@ -82,10 +91,59 @@ import { cn, timeAgoShort } from "@/lib/utils";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 
 const LIMIT = 60;
-/** Tarefas visíveis antes do "Mostrar mais X" (padrão Claude). */
+/** Tasks visible before "Mostrar mais X" (Claude pattern). */
 const COLLAPSED_COUNT = 10;
-/** Sessões aninhadas visíveis por projeto (benchmark Hermes desktop). */
+/** Nested sessions visible per project (Hermes desktop benchmark). */
 const PROJECT_CHAT_COUNT = 3;
+
+/**
+ * Split a path on EITHER separator — the same rule the backend's grouping index
+ * uses (tui_gateway/project_tree._segments). Comparing segments instead of raw
+ * strings is what lets one rule match a POSIX cloud path and a Windows path
+ * from the user's machine without knowing which is which.
+ */
+const pathSegments = (path: string): string[] =>
+  (path || "").replace(/[\\/]+$/, "").split(/[\\/]/).filter(Boolean);
+
+/** A session row + its nesting depth (0 = flat, 1+ = branch under its parent). */
+interface SessionEntry {
+  session: SessionInfo;
+  depth: number;
+}
+
+/**
+ * Nest branch/fork children under their parent when BOTH sit in the same
+ * visible list — the Hermes desktop pattern (flattenSessionsWithBranches):
+ * a child whose parent is absent from the list renders flat, never orphaned
+ * with a dangling connector. Children keep the list's (recency) order.
+ */
+function flattenWithBranches(list: SessionInfo[]): SessionEntry[] {
+  const ids = new Set(list.map((s) => s.id));
+  const children = new Map<string, SessionInfo[]>();
+  for (const s of list) {
+    const pid = s.parent_session_id;
+    if (pid && pid !== s.id && ids.has(pid)) {
+      const arr = children.get(pid);
+      if (arr) arr.push(s);
+      else children.set(pid, [s]);
+    }
+  }
+  const claimed = new Set<string>();
+  children.forEach((kids) => kids.forEach((k) => claimed.add(k.id)));
+  const out: SessionEntry[] = [];
+  const emitted = new Set<string>();
+  const append = (s: SessionInfo, depth: number) => {
+    if (emitted.has(s.id)) return;
+    emitted.add(s.id);
+    out.push({ session: s, depth });
+    for (const kid of children.get(s.id) ?? []) append(kid, depth + 1);
+  };
+  for (const s of list) if (!claimed.has(s.id)) append(s, 0);
+  // Parent cycles (corrupt data) would leave every member "claimed" — emit
+  // them flat rather than dropping rows.
+  for (const s of list) if (!emitted.has(s.id)) out.push({ session: s, depth: 0 });
+  return out;
+}
 
 type TaskFilter = "none" | "scheduled" | "archived";
 
@@ -93,8 +151,9 @@ const FILTER_OPTS: Record<
   TaskFilter,
   { source?: string; excludeSources?: string; archived?: "only"; minMessages?: number }
 > = {
-  // "Nenhum" = recentes limpos — mesmo escopo do desktop (exclui cron) e sem
-  // sessões vazias (abrir o /chat cria sessão; ela só vira "tarefa" ao falar).
+  // "Nenhum" = clean recents — same scope as the desktop (excludes cron) and no
+  // empty sessions (opening /chat creates a session; it only becomes a "task"
+  // once you speak).
   none: { excludeSources: "cron", minMessages: 1 },
   scheduled: { source: "cron", minMessages: 1 },
   archived: { archived: "only" },
@@ -108,8 +167,8 @@ function rowLabel(s: SessionInfo, untitled: string): string {
   return untitled;
 }
 
-// Idade compacta localizada: agora compartilhada em lib/utils.timeAgoShort
-// (Onda 0) — o chat usa a mesma.
+// Localized compact age: now shared in lib/utils.timeAgoShort (Onda 0) — the
+// chat uses the same one.
 
 interface Anchor {
   id: string;
@@ -117,7 +176,7 @@ interface Anchor {
   y: number;
 }
 
-/** Rascunho do modal "Novo projeto" — nome + subpastas opcionais + ideia. */
+/** Draft of the "Novo projeto" modal — name + optional subfolders + idea. */
 interface NewProjectDraft {
   name: string;
   folders: string[];
@@ -167,9 +226,9 @@ export function SidebarTasks({
   collapsed,
   onNavigate,
 }: {
-  /** Sidebar desktop colapsada (só ícones) — a seção some. */
+  /** Collapsed desktop sidebar (icons only) — the section disappears. */
   collapsed: boolean;
-  /** Fecha o drawer mobile após navegar. */
+  /** Closes the mobile drawer after navigating. */
   onNavigate?: () => void;
 }) {
   const { t } = useI18n();
@@ -179,45 +238,57 @@ export function SidebarTasks({
   const [searchParams] = useSearchParams();
   const onChat = location.pathname === "/chat";
   const activeId = onChat ? searchParams.get("resume") : null;
-  // Projeto selecionado (workspace) — vive na URL do chat (?project=…).
+  // Selected project (workspace) — lives in the chat URL (?project=…).
   const activeProject = onChat ? searchParams.get("project") : null;
-  // Só DESTACA o projeto na sidebar quando estamos no ESPAÇO dele (?home=1).
-  // No hero de "Nova sessão" (?project=X sem home) quem acende é o item
-  // "Nova sessão" da nav — senão o projeto ficava aceso e passava a sensação
-  // estranha que o Leonardo apontou (10/07).
+  // Only HIGHLIGHT the project in the sidebar when we are in ITS SPACE (?home=1).
+  // On the "Nova sessão" hero (?project=X without home) the one that lights up
+  // is the nav's "Nova sessão" item — otherwise the project stayed lit and gave
+  // the odd feeling Leonardo pointed out (10/07).
   const inProjectHome = onChat && searchParams.has("home");
 
   const [sessions, setSessions] = useState<SessionInfo[] | null>(null);
+  // Server-decided grouping (GET /api/projects/tree): which sessions each
+  // project claims (scoped ids) + per-project previews/counts. null = not
+  // loaded or failed → the client-side grouping below takes over (plan B).
+  const [tree, setTree] = useState<ProjectsTreeResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<TaskFilter>("none");
   const [reloadNonce, setReloadNonce] = useState(0);
-  // Colapsa a lista: mostra só as N mais recentes; o resto atrás de "Mostrar
-  // mais X" (padrão Claude). Reseta ao trocar filtro/projeto.
+  // Collapses the list: shows only the N most recent; the rest behind "Mostrar
+  // mais X" (Claude pattern). Resets when the filter/project changes.
   const [expanded, setExpanded] = useState(false);
-  // Tarefas recém-iniciadas (inserção OTIMISTA): aparecem na hora que o usuário
-  // envia a 1ª msg (evento wayne:session-started), antes do servidor persistir/
-  // titular — padrão ChatGPT/Manus. Some quando o REST recarrega e traz a real.
+  // Just-started tasks (OPTIMISTIC insert): they show up the moment the user
+  // sends the 1st msg (wayne:session-started event), before the server persists/
+  // titles it — ChatGPT/Manus pattern. It goes away when REST reloads and brings
+  // the real one.
   const [optimistic, setOptimistic] = useState<SessionInfo[]>([]);
-  // Fixadas — client-side (localStorage), ver lib/pinned-sessions.ts. O tick
-  // força re-render/re-ordenação da lista quando o conjunto muda (isPinned()
-  // lê o cache do módulo direto, sem estado React — só precisa re-renderizar).
+  // Pinned — client-side (localStorage), see lib/pinned-sessions.ts. The tick
+  // forces a re-render/re-ordering of the list when the set changes (isPinned()
+  // reads the module cache directly, with no React state — it only needs a
+  // re-render).
   const [, setPinTick] = useState(0);
   useEffect(() => onPinnedChange(() => setPinTick((n) => n + 1)), []);
   useEffect(() => onProjectPinnedChange(() => setPinTick((n) => n + 1)), []);
-  // Metadados de exibição (nome/emoji/cor) do sidecar — mesmo tick força
-  // re-render quando o cache chega/muda. Ver lib/project-meta.ts.
+  // Display metadata (name/emoji/color) from the sidecar — the same tick forces
+  // a re-render when the cache arrives/changes. See lib/project-meta.ts.
   useEffect(() => onProjectMetaChange(() => setPinTick((n) => n + 1)), []);
-  // Projeto sendo editado (modal emoji+nome+cor).
+  // Project being edited (emoji+name+color modal).
   const [editingProject, setEditingProject] = useState<string | null>(null);
 
-  // ── Projetos = pastas reais em projects/ (ver lib/projects.ts) ───────
+  // ── Projects = first-class ROWS that own folder paths (the Hermes model,
+  // wayne_cli/projects_db). A cloud project's folder lives under projects/; a
+  // Local (desktop) project's folder lives on the user's machine. Same object,
+  // one list, one history — the folder decides where the agent runs, so there
+  // is nothing else to pick.
+  const [projectRows, setProjectRows] = useState<ProjectRow[] | null>(null);
+  /** Slugs, in row order — what the rows below render and the meta sidecar keys on. */
   const [projects, setProjects] = useState<string[] | null>(null);
   const [projRoot, setProjRoot] = useState<string | null>(null);
   const [creatingProject, setCreatingProject] = useState(false);
   const [creatingProjectBusy, setCreatingProjectBusy] = useState(false);
-  // Modal "Novo projeto" (paridade com o desktop): nome + subpastas opcionais
-  // (mkdir dentro do projeto — nosso modelo não tem o seletor de pasta nativa
-  // do Electron nem multi-root) + ideia (opcional, salva em IDEA.md).
+  // "Novo projeto" modal (parity with the desktop): name + optional subfolders
+  // (mkdir inside the project — our model has neither Electron's native folder
+  // picker nor multi-root) + idea (optional, saved in IDEA.md).
   const [newProject, setNewProject] = useState<NewProjectDraft>(EMPTY_PROJECT_DRAFT);
   const [projectTemplates, setProjectTemplates] = useState<ProjectIdeaTemplate[]>(
     () => randomIdeaTemplates(),
@@ -229,8 +300,8 @@ export function SidebarTasks({
     setCreatingProject(true);
   }, []);
 
-  // "Começar do zero" do ProjectPicker (acima do composer) reusa ESTE modal
-  // rico (nome+pastas+ideia) — sem duplicar. Ver ProjectPicker.tsx.
+  // The ProjectPicker's "Começar do zero" (above the composer) reuses THIS rich
+  // modal (name+folders+idea) — no duplication. See ProjectPicker.tsx.
   useEffect(() => {
     const onOpen = () => openNewProject();
     window.addEventListener("wayne:open-new-project", onOpen);
@@ -243,18 +314,45 @@ export function SidebarTasks({
   }, []);
 
   const loadProjects = useCallback(() => {
-    void getFilesRoot().then((r) => setProjRoot(r));
-    api
-      .listFiles(PROJECTS_DIR)
-      .then((res) => {
-        const slugs = res.entries.filter((e) => e.is_directory).map((e) => e.name);
+    void (async () => {
+      const root = await getFilesRoot();
+      setProjRoot(root);
+      try {
+        // A project is a ROW that owns folder paths — the Hermes model. That is
+        // what makes a cloud folder and a folder on the user's own machine the
+        // same kind of thing, so one history covers both. The folders under
+        // projects/ are just the cloud ones' storage.
+        let rows = (await api.listProjects()).projects;
+
+        // Self-healing backfill: projects born before the row model existed have
+        // a folder but no row. Adopt them on sight — POST /api/projects hands
+        // back the incumbent when a folder is already owned, so this is safe to
+        // repeat and converges after the first load.
+        if (root) {
+          const owned = new Set(rows.flatMap((r) => r.folders.map((f) => f.path)));
+          const folders = await api
+            .listFiles(PROJECTS_DIR)
+            .then((res) => res.entries.filter((e) => e.is_directory).map((e) => e.name))
+            // projects/ may not exist yet — it is created on the 1st "+".
+            .catch(() => [] as string[]);
+          const orphans = folders.filter((slug) => !owned.has(projectCwd(root, slug)));
+          if (orphans.length) {
+            await Promise.all(orphans.map((slug) => registerProjectRow(slug)));
+            rows = (await api.listProjects()).projects;
+          }
+        }
+
+        setProjectRows(rows);
+        const slugs = rows.map((r) => r.slug);
         setProjects(slugs);
-        // Pré-carrega nome/emoji/cor de cada projeto (sidecar) — notifica
-        // sozinho quando chega e re-renderiza a lista já personalizada.
+        // Preloads each project's name/emoji/color (sidecar) — it notifies on
+        // its own when it arrives and re-renders the list already personalized.
         void loadAllProjectMeta(slugs);
-      })
-      // Pasta projects/ ainda não existe → sem projetos (criada no 1º "+").
-      .catch(() => setProjects([]));
+      } catch {
+        setProjectRows([]);
+        setProjects([]);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -265,17 +363,17 @@ export function SidebarTasks({
   const pickProject = useCallback(
     (name: string) => {
       onNavigate?.();
-      // Abre o ESPAÇO do projeto (?home=1). A tela de chat novo com o chip
-      // fica por conta do ProjectPicker/Nova tarefa (?project sem home).
+      // Opens the project SPACE (?home=1). The new-chat screen with the chip is
+      // up to the ProjectPicker/Nova tarefa (?project without home).
       navigate(`/chat?project=${encodeURIComponent(name)}&home=1`);
     },
     [navigate, onNavigate],
   );
 
-  // Cria o projeto (mkdir), subpastas opcionais (mkdir dentro dele) e grava
-  // IDEA.md se a ideia foi preenchida — paridade com o fluxo do desktop
-  // (nome + pastas + ideia), tudo em cima de endpoints REST já existentes
-  // (createDirectory/uploadFile), sem RPC/infra nova.
+  // Creates the project (mkdir), optional subfolders (mkdir inside it) and
+  // writes IDEA.md if the idea was filled in — parity with the desktop flow
+  // (name + folders + idea), all on top of already-existing REST endpoints
+  // (createDirectory/uploadFile), with no new RPC/infra.
   const submitNewProject = useCallback(async () => {
     const slug = slugifyProject(newProject.name);
     if (!slug || creatingProjectBusy) return;
@@ -286,6 +384,7 @@ export function SidebarTasks({
         const sub = slugifyProject(folder);
         if (sub) await api.createDirectory(`${PROJECTS_DIR}/${slug}/${sub}`).catch(() => {});
       }
+      await registerProjectRow(slug, newProject.name);
       const idea = newProject.idea.trim();
       if (idea) {
         const body = idea.endsWith("\n") ? idea : `${idea}\n`;
@@ -314,20 +413,20 @@ export function SidebarTasks({
     t.status.error,
   ]);
 
-  // Menus (fixed pra escapar do overflow da sidebar).
+  // Menus (fixed, to escape the sidebar's overflow).
   const [rowMenu, setRowMenu] = useState<Anchor | null>(null);
   const [filterMenuAt, setFilterMenuAt] = useState<{ x: number; y: number } | null>(null);
-  // Menus da seção Projetos: "…" do projeto (id = slug) e "…" da sessão
-  // ANINHADA (menu reduzido: fixar/arquivar — decisão 10/07, espelho Hermes).
+  // Projects section menus: the project's "…" (id = slug) and the NESTED
+  // session's "…" (reduced menu: pin/archive — decision 10/07, Hermes mirror).
   const [projMenu, setProjMenu] = useState<Anchor | null>(null);
   const [chatMenu, setChatMenu] = useState<Anchor | null>(null);
-  // Clique fora/Esc fecham (listener global — backdrops não cobrem o chat).
+  // Click outside/Esc close them (global listener — backdrops do not cover the chat).
   useMenuDismiss(!!rowMenu, () => setRowMenu(null), "sb-row");
   useMenuDismiss(!!filterMenuAt, () => setFilterMenuAt(null), "sb-filter");
   useMenuDismiss(!!projMenu, () => setProjMenu(null), "sb-proj");
   useMenuDismiss(!!chatMenu, () => setChatMenu(null), "sb-chat");
 
-  // Renomear inline.
+  // Inline rename.
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState("");
 
@@ -335,9 +434,9 @@ export function SidebarTasks({
   const load = useCallback(() => {
     const myReq = ++reqRef.current;
     setLoading(true);
-    // Lista ÚNICA global — cada linha traz o cwd; o agrupamento por projeto
-    // é client-side (as sessões de projeto aninham na seção Projetos, o
-    // resto cai em "Recentes"). O escopo por pasta via cwd_prefix saiu.
+    // SINGLE global list — every row carries the cwd. The grouping AUTHORITY
+    // is the server tree (fetched below); the client rule only covers
+    // optimistic rows and the tree-request-failed fallback.
     api
       .getSessions(LIMIT, 0, "", "recent", FILTER_OPTS[filter])
       .then((res) => {
@@ -351,26 +450,38 @@ export function SidebarTasks({
       .finally(() => {
         if (reqRef.current === myReq) setLoading(false);
       });
+    // The server-decided tree, refreshed in the same beat so both lists stay
+    // consistent. Failure → null → the client grouping fallback kicks in.
+    api
+      .getProjectsTree()
+      .then((res) => {
+        if (reqRef.current !== myReq) return;
+        setTree(res);
+      })
+      .catch(() => {
+        if (reqRef.current !== myReq) return;
+        setTree(null);
+      });
   }, [filter]);
 
-  // Recarrega ao trocar filtro, ao navegar entre conversas (o título da nova
-  // tarefa materializa no servidor) e no gatilho manual.
+  // Reloads when the filter changes, when navigating between conversations (the
+  // new task's title materializes on the server) and on the manual trigger.
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load, reloadNonce, activeId]);
 
-  // O chat auto-titula a sessão no 1º turno (session.info) e dispara este
-  // evento — recarregamos pra o título vivo aparecer sem trocar de aba.
+  // The chat auto-titles the session on the 1st turn (session.info) and fires
+  // this event — we reload so the live title shows up without switching tabs.
   useEffect(() => {
     const onTitled = () => setReloadNonce((n) => n + 1);
     window.addEventListener("wayne:session-titled", onTitled);
     return () => window.removeEventListener("wayne:session-titled", onTitled);
   }, []);
 
-  // 1º envio de uma tarefa nova (wayne:session-started, disparado pelo hook do
-  // chat): insere a sessão AGORA com a 1ª msg como título provisório. Leva o
-  // cwd junto — o agrupamento aninha no projeto certo (ou em Recentes).
+  // 1st send of a new task (wayne:session-started, fired by the chat hook):
+  // inserts the session NOW with the 1st msg as a provisional title. It carries
+  // the cwd along — the grouping nests it in the right project (or in Recents).
   useEffect(() => {
     const onStarted = (e: Event) => {
       const d = (e as CustomEvent).detail as {
@@ -409,9 +520,9 @@ export function SidebarTasks({
     return () => window.removeEventListener("wayne:session-started", onStarted);
   }, []);
 
-  // Estado VIVO por sessão (Onda 1, padrão desktop): "working" = ponto pulsando
-  // no lugar do ícone (agente trabalhando), "attention" = âmbar (esperando o
-  // usuário responder approval/clarify). Emitido pelo useChatSession.
+  // LIVE per-session state (Onda 1, desktop pattern): "working" = pulsing dot in
+  // place of the icon (agent working), "attention" = amber (waiting for the user
+  // to answer approval/clarify). Emitted by useChatSession.
   const [liveState, setLiveState] = useState<Record<string, "working" | "attention">>({});
   useEffect(() => {
     const onActivity = (e: Event) => {
@@ -433,14 +544,14 @@ export function SidebarTasks({
     return () => window.removeEventListener("wayne:session-activity", onActivity);
   }, []);
 
-  // Quando o REST recarrega e já traz a tarefa (agora persistida/titulada),
-  // dropa a versão otimista (mesmo id) — a real assume, com o título de verdade.
+  // When REST reloads and already brings the task (now persisted/titled), drops
+  // the optimistic version (same id) — the real one takes over, with the real title.
   useEffect(() => {
     if (sessions) setOptimistic((prev) => prev.filter((o) => !sessions.some((s) => s.id === o.id)));
   }, [sessions]);
 
-  // Trocar de filtro muda o escopo → zera as otimistas (a lista real do novo
-  // escopo assume) e recolhe a lista.
+  // Switching the filter changes the scope → clears the optimistic ones (the real
+  // list of the new scope takes over) and collapses the list.
   useEffect(() => {
     setOptimistic([]);
     setExpanded(false);
@@ -451,14 +562,14 @@ export function SidebarTasks({
   const pick = useCallback(
     (id: string, proj?: string | null) => {
       onNavigate?.();
-      // Sessão aninhada abre com o contexto do projeto dela no chip.
+      // A nested session opens with its project's context in the chip.
       const p = proj ? `project=${encodeURIComponent(proj)}&` : "";
       navigate(`/chat?${p}resume=${encodeURIComponent(id)}`);
     },
     [navigate, onNavigate],
   );
 
-  // ── Ações do menu (todas em endpoints existentes) ────────────────────
+  // ── Menu actions (all on existing endpoints) ─────────────────────────
   const openInNewTab = useCallback((id: string) => {
     window.open(`/chat?resume=${encodeURIComponent(id)}`, "_blank", "noopener");
   }, []);
@@ -473,10 +584,10 @@ export function SidebarTasks({
     [showToast, t.chat.idCopied, t.chat.copyIdFailed],
   );
 
-  // Ramificar uma sessão que não está necessariamente aberta agora: a RPC
-  // session.branch precisa de uma conexão de gateway ao vivo (esta sidebar é
-  // REST-only) — então navega pro resume com ?branch=1, e o NativeChatPage
-  // dispara branchChat() assim que conecta (mesmo padrão do ?new=1).
+  // Branching a session that is not necessarily open right now: the
+  // session.branch RPC needs a live gateway connection (this sidebar is
+  // REST-only) — so it navigates to the resume with ?branch=1, and the
+  // NativeChatPage fires branchChat() as soon as it connects (same ?new=1 pattern).
   const branchSession = useCallback(
     (id: string) => {
       onNavigate?.();
@@ -489,7 +600,7 @@ export function SidebarTasks({
   const exportSession = useCallback(
     async (id: string) => {
       try {
-        // Mesmo fluxo da SessionsPage: fetch autenticado → blob → download.
+        // Same flow as the SessionsPage: authenticated fetch → blob → download.
         const res = await fetch(api.exportSessionUrl(id), {
           credentials: "include",
           headers: {
@@ -541,42 +652,76 @@ export function SidebarTasks({
     ),
   });
 
-  // "Arquivar sessões" do projeto — soft-archive em LOTE (PATCH nativo por
-  // sessão; não existe bulk no backend). 200 cobre qualquer projeto real.
-  const archiveProjectChats = useCallback(
+  /** A project owning a folder on the USER's machine (Windows/UNC path): row
+   *  operations only — the server must NEVER touch that folder or its chats. */
+  const isLocalProject = useCallback(
+    (slug: string): boolean => {
+      const row = projectRows?.find((r) => r.slug === slug);
+      return !!row && row.folders.some((f) => LOCAL_PATH_RE.test(f.path));
+    },
+    [projectRows],
+  );
+
+  // BULK soft-archive of a project's cloud sessions (native PATCH per session;
+  // there is no bulk in the backend). 200 covers any real project.
+  const archiveSessionsUnder = useCallback(async (cwdPrefix: string) => {
+    const res = await api.getSessions(200, 0, "", "recent", { cwdPrefix });
+    await Promise.all(
+      (res.sessions ?? []).map((s) => api.setSessionArchived(s.id, true).catch(() => {})),
+    );
+  }, []);
+
+  // The project's "Arquivar" — archives the ROW (POST /api/projects/{id}/
+  // archive), so the project leaves the sidebar on every surface. Cloud
+  // projects keep the previous behavior on top: their sessions are
+  // soft-archived so they don't fall back into "Recentes". Local-folder
+  // projects get the row operation ONLY.
+  const archiveProjectRow = useCallback(
     async (slug: string) => {
-      if (!projRoot) return;
       try {
-        const res = await api.getSessions(200, 0, "", "recent", {
-          cwdPrefix: projectCwd(projRoot, slug),
-        });
-        await Promise.all(
-          (res.sessions ?? []).map((s) => api.setSessionArchived(s.id, true).catch(() => {})),
-        );
-        showToast(t.chat.sessionsArchivedToast, "success");
+        const row = projectRows?.find((r) => r.slug === slug);
+        if (row && !isLocalProject(slug)) {
+          for (const f of row.folders) await archiveSessionsUnder(f.path);
+        }
+        await api.archiveProject(row?.id ?? slug);
+        showToast(t.chat.archived, "success");
+        loadProjects();
         reload();
+        if (activeProject === slug) navigate("/chat?new=1");
       } catch (e) {
         showToast(`${t.status.error}: ${e}`, "error");
       }
     },
-    [projRoot, reload, showToast, t.chat.sessionsArchivedToast, t.status.error],
+    [
+      projectRows,
+      isLocalProject,
+      archiveSessionsUnder,
+      loadProjects,
+      reload,
+      activeProject,
+      navigate,
+      showToast,
+      t.chat.archived,
+      t.status.error,
+    ],
   );
 
-  // Remover projeto = arquiva as sessões dele + apaga a pasta (recursivo).
-  // Sem isso as sessões ficariam órfãs poluindo "Recentes".
+  // Removing a project = deletes the ROW (DELETE /api/projects/{id}). Cloud
+  // projects also archive their sessions + delete the projects/<slug> folder
+  // (previous behavior — otherwise orphaned sessions pollute "Recentes").
+  // Local-folder projects: row only — the folder lives on the user's machine.
   const projectDelete = useConfirmDelete<string>({
     onDelete: useCallback(
       async (slug: string) => {
         try {
-          if (projRoot) {
-            const res = await api.getSessions(200, 0, "", "recent", {
-              cwdPrefix: projectCwd(projRoot, slug),
-            });
-            await Promise.all(
-              (res.sessions ?? []).map((s) => api.setSessionArchived(s.id, true).catch(() => {})),
-            );
+          const row = projectRows?.find((r) => r.slug === slug);
+          if (!isLocalProject(slug)) {
+            if (projRoot) await archiveSessionsUnder(projectCwd(projRoot, slug));
+            // The cloud folder may not exist (row-first projects) — the row
+            // is the identity now, so a missing folder must not block removal.
+            await api.deleteFile(`${PROJECTS_DIR}/${slug}`, true).catch(() => {});
           }
-          await api.deleteFile(`${PROJECTS_DIR}/${slug}`, true);
+          if (row) await api.deleteProject(row.id);
           loadProjects();
           reload();
           if (activeProject === slug) navigate("/chat?new=1");
@@ -585,7 +730,18 @@ export function SidebarTasks({
           throw e;
         }
       },
-      [projRoot, loadProjects, reload, activeProject, navigate, showToast, t.status.error],
+      [
+        projectRows,
+        isLocalProject,
+        archiveSessionsUnder,
+        projRoot,
+        loadProjects,
+        reload,
+        activeProject,
+        navigate,
+        showToast,
+        t.status.error,
+      ],
     ),
   });
 
@@ -619,34 +775,72 @@ export function SidebarTasks({
     archived: t.chat.filterArchived,
   };
 
-  // Lista renderizada = otimistas (só na visão "recentes") no topo + as reais do
-  // REST, sem duplicar id. Otimistas já persistidas foram dropadas no effect.
+  // Rendered list = optimistic ones (only in the "recents" view) at the top + the
+  // real ones from REST, with no duplicate id. Optimistic ones already persisted
+  // were dropped in the effect.
   const base = sessions ?? [];
   const merged =
     filter === "none"
       ? [...optimistic, ...base.filter((s) => !optimistic.some((o) => o.id === s.id))]
       : base;
 
-  // ── Agrupamento por projeto (estrutura Hermes desktop): cada linha traz o
-  // cwd — as de projects/<slug> aninham no projeto; o resto cai em Recentes.
-  const projPrefix = projRoot ? `${projRoot.replace(/\/$/, "")}/${PROJECTS_DIR}/` : null;
+  // ── Grouping by project — the Hermes rule, verbatim: a session belongs to a
+  // project when its cwd IS one of the project's folders or sits under it, and
+  // the DEEPEST matching folder wins (nested projects resolve to the innermost).
+  // Ported from wayne_cli/projects_db.project_for_path + project_tree._FolderIndex.
+  //
+  // This is deliberately blind to WHERE the folder lives. `/opt/data/projects/x`
+  // (cloud) and `C:\DEV\Dute` (the user's machine) group identically, because a
+  // project is a row that owns paths — not a directory in our filesystem. That
+  // is the whole reason one history can cover web and desktop.
+  const folderOwners: { path: string; segs: string[]; slug: string }[] = (projectRows ?? [])
+    .flatMap((r) => r.folders.map((f) => ({ path: f.path, segs: pathSegments(f.path), slug: r.slug })))
+    .filter((o) => o.segs.length > 0);
   const projectOf = (s: SessionInfo): string | null => {
-    if (!s.cwd || !projPrefix || !s.cwd.startsWith(projPrefix)) return null;
-    return s.cwd.slice(projPrefix.length).split("/")[0] || null;
+    if (!s.cwd) return null;
+    const segs = pathSegments(s.cwd);
+    let best: string | null = null;
+    let bestDepth = 0;
+    for (const o of folderOwners) {
+      if (o.segs.length > segs.length || o.segs.length <= bestDepth) continue;
+      if (o.segs.every((seg, i) => seg === segs[i])) {
+        best = o.slug;
+        bestDepth = o.segs.length;
+      }
+    }
+    return best;
   };
   const knownProjects = new Set(projects ?? []);
+  // ── Server-decided grouping (Onda 1): /api/projects/tree claims sessions
+  // for explicit projects (scoped ids) and hands each project its previews +
+  // counts. Only the default view uses it — the scheduled/archived filters
+  // list session classes the tree deliberately excludes. When the tree failed
+  // to load, the ported client rule above is the whole grouping (plan B).
+  const serverGrouping = tree !== null && filter === "none";
+  const scopedIds = new Set(tree?.scoped_session_ids ?? []);
+  const treeNodeByRowId = new Map(
+    (tree?.projects ?? []).map((n) => [n.id, n] as const),
+  );
+  const rowBySlug = new Map((projectRows ?? []).map((r) => [r.slug, r] as const));
+  const isOptimistic = (s: SessionInfo) => optimistic.some((o) => o.id === s.id);
   const byProject = new Map<string, SessionInfo[]>();
   const general: SessionInfo[] = [];
   for (const s of merged) {
     const slug = projectOf(s);
-    // Projeto apagado → a sessão volta pra Recentes (melhor visível que sumida).
-    if (slug && knownProjects.has(slug)) {
-      const arr = byProject.get(slug);
+    // Project deleted → the session goes back to Recents (better visible than gone).
+    const owned = slug && knownProjects.has(slug) ? slug : null;
+    if (owned) {
+      const arr = byProject.get(owned);
       if (arr) arr.push(s);
-      else byProject.set(slug, [s]);
-    } else general.push(s);
+      else byProject.set(owned, [s]);
+    }
+    // Recents = whatever no rendered project claims. Under server grouping
+    // the server's claim set is the authority; the client rule still routes
+    // rows the server can't know yet (the optimistic inserts).
+    const claimed = serverGrouping ? scopedIds.has(s.id) || !!owned : !!owned;
+    if (!claimed) general.push(s);
   }
-  // Fixadas flutuam pro topo DENTRO do seu grupo — igual ao desktop.
+  // Pinned ones float to the top WITHIN their group — same as the desktop.
   const pinnedFirst = (list: SessionInfo[]) => [
     ...list.filter((s) => isPinned(s.id)),
     ...list.filter((s) => !isPinned(s.id)),
@@ -655,12 +849,21 @@ export function SidebarTasks({
     ...(projects ?? []).filter((p) => isProjectPinned(p)),
     ...(projects ?? []).filter((p) => !isProjectPinned(p)),
   ];
-  const visible = pinnedFirst(general);
-  // Colapsada: só as COLLAPSED_COUNT mais recentes; o resto atrás de "Mostrar
-  // mais X". As otimistas ficam no topo, então nunca são cortadas.
+  // Branch sessions nest under their parent (└ connector) when both are
+  // visible — flatten BEFORE slicing so the pair is never split by the fold.
+  const visible = flattenWithBranches(pinnedFirst(general));
+  // Collapsed: only the COLLAPSED_COUNT most recent; the rest behind "Mostrar
+  // mais X". The optimistic ones stay at the top, so they are never cut off.
   const shown = expanded ? visible : visible.slice(0, COLLAPSED_COUNT);
   const hiddenCount = visible.length - shown.length;
-  const chatMenuSession = chatMenu ? merged.find((s) => s.id === chatMenu.id) : undefined;
+  // Nested-chat menu target: server previews may list sessions beyond the
+  // /api/sessions page, so look them up in the tree too.
+  const chatMenuSession = chatMenu
+    ? (merged.find((s) => s.id === chatMenu.id) ??
+      tree?.projects
+        .flatMap((n) => n.previewSessions)
+        .find((s) => s.id === chatMenu.id))
+    : undefined;
 
   return (
     <div
@@ -669,7 +872,7 @@ export function SidebarTasks({
         collapsed && "lg:hidden",
       )}
     >
-      {/* ── Projetos (workspaces reais — pastas em projects/) ── */}
+      {/* ── Projects (real workspaces — folders in projects/) ── */}
       <div className="flex items-center justify-between gap-1 px-5 pb-1">
         <span className="font-sans text-display text-xs tracking-[0.12em] text-text-tertiary">
           {t.chat.projects}
@@ -687,10 +890,30 @@ export function SidebarTasks({
       <div className="px-2 pb-2">
         {orderedProjects.map((p) => {
           const isActive = p === activeProject;
-          const chats = pinnedFirst(byProject.get(p) ?? []).slice(0, PROJECT_CHAT_COUNT);
+          // Server grouping: this row's previews come from its tree node;
+          // optimistic rows (which the server hasn't persisted yet) are
+          // prepended via the client rule so a just-started task shows
+          // instantly. Fallback (tree failed / other filters): client rule.
+          const node = serverGrouping
+            ? treeNodeByRowId.get(rowBySlug.get(p)?.id ?? "")
+            : undefined;
+          const clientChats = pinnedFirst(byProject.get(p) ?? []);
+          const chats = flattenWithBranches(
+            (node
+              ? [
+                  ...clientChats.filter(
+                    (s) =>
+                      isOptimistic(s) &&
+                      !node.previewSessions.some((ps) => ps.id === s.id),
+                  ),
+                  ...pinnedFirst(node.previewSessions),
+                ]
+              : clientChats
+            ).slice(0, PROJECT_CHAT_COUNT),
+          );
           return (
             <div key={p} className="mb-0.5">
-              {/* Linha do projeto + "…" (fixar/Arquivos/arquivar/remover) */}
+              {/* Project row + "…" (pin/Files/archive/remove) */}
               <div
                 className={cn(
                   "group relative flex items-center rounded-lg transition-colors",
@@ -706,7 +929,7 @@ export function SidebarTasks({
                   title={projectDisplayName(p)}
                   className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2.5 text-left text-sm"
                 >
-                  {/* Emoji do sidecar, senão o ícone de pasta; cor = tinta. */}
+                  {/* Sidecar emoji, otherwise the folder icon; color = tint. */}
                   {getProjectMetaCached(p).icon ? (
                     <span className="grid h-4 w-4 shrink-0 place-items-center text-[13px] leading-none">
                       {getProjectMetaCached(p).icon}
@@ -750,8 +973,8 @@ export function SidebarTasks({
                 </button>
               </div>
 
-              {/* Sessões do projeto, aninhadas (idade visível; "…" no hover
-                  com menu reduzido fixar/arquivar — espelho Hermes desktop) */}
+              {/* Project sessions, nested (age visible; "…" on hover with the
+                  reduced pin/archive menu — Hermes desktop mirror) */}
               {chats.length === 0 ? (
                 sessions !== null && (
                   <div className="py-1 pl-9 pr-2.5 text-xs text-text-tertiary/80">
@@ -759,7 +982,7 @@ export function SidebarTasks({
                   </div>
                 )
               ) : (
-                chats.map((s) => {
+                chats.map(({ session: s, depth }) => {
                   const isActiveRow = s.id === activeId;
                   const label = rowLabel(s, t.sessions.untitledSession);
                   const age = timeAgoShort(s.last_active || s.started_at, {
@@ -784,7 +1007,18 @@ export function SidebarTasks({
                         aria-current={isActiveRow ? "true" : undefined}
                         title={`${label} · ${age}`}
                         className="flex min-w-0 flex-1 items-center gap-2 py-2 pl-9 pr-14 text-left text-[13px]"
+                        // Branch sessions indent under their parent (desktop's
+                        // └ connector). pl-9 = 36px base.
+                        style={depth ? { paddingLeft: `${36 + depth * 14}px` } : undefined}
                       >
+                        {depth > 0 && (
+                          <span
+                            aria-hidden
+                            className="shrink-0 font-mono text-[10px] leading-none text-text-tertiary"
+                          >
+                            └
+                          </span>
+                        )}
                         {liveState[s.id] === "working" ? (
                           <span className="relative grid h-3.5 w-3.5 shrink-0 place-items-center">
                             <span className="absolute h-2 w-2 animate-ping rounded-full bg-live/40" />
@@ -835,6 +1069,58 @@ export function SidebarTasks({
             </div>
           );
         })}
+
+        {/* Auto-promoted repo roots (the Hermes desktop pattern: project_tree's
+            tier-2 nodes, isAuto=true). They have no row yet, so no meta/menu —
+            clicking the header ADOPTS the folder as a real project (idempotent
+            projects.create) and enters it. Until adopted, their sessions still
+            live here (scoped out of Recentes), so nothing is orphaned. */}
+        {serverGrouping &&
+          (tree?.projects ?? [])
+            .filter((n) => n.isAuto && n.path)
+            .map((n) => (
+              <div key={n.id} className="mb-0.5">
+                <button
+                  type="button"
+                  title={n.path ?? undefined}
+                  onClick={() =>
+                    void (async () => {
+                      const row = await registerFolderProject(n.path as string, n.label);
+                      if (!row) return;
+                      showToast(t.chat.projectCreated, "success");
+                      loadProjects();
+                      reload();
+                      pickProject(row.slug);
+                    })()
+                  }
+                  className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2.5 text-left text-sm text-text-secondary transition-colors hover:bg-midground/5 hover:text-foreground"
+                >
+                  <FolderGit2 className="h-4 w-4 shrink-0 opacity-60" />
+                  <span className="min-w-0 flex-1 truncate">{n.label}</span>
+                  <Plus className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
+                </button>
+                {flattenWithBranches(n.previewSessions.slice(0, PROJECT_CHAT_COUNT)).map(
+                  ({ session: s, depth }) => (
+                    <button
+                      key={s.id}
+                      type="button"
+                      onClick={() => pick(s.id)}
+                      className="flex w-full items-center gap-2 py-2 pr-3 text-left text-[13px] text-text-secondary transition-colors hover:bg-midground/5 hover:text-foreground"
+                      style={{ paddingLeft: `${2.25 + depth * 0.9}rem` }}
+                    >
+                      {depth > 0 && (
+                        <span aria-hidden className="shrink-0 text-text-tertiary/70">
+                          └
+                        </span>
+                      )}
+                      <span className="min-w-0 flex-1 truncate">
+                        {rowLabel(s, t.sessions.untitledSession)}
+                      </span>
+                    </button>
+                  ),
+                )}
+              </div>
+            ))}
       </div>
 
       <div className="mt-3 flex items-center justify-between gap-1 px-5 pb-1">
@@ -879,7 +1165,7 @@ export function SidebarTasks({
             {t.sessions.noSessions}
           </div>
         ) : (
-          shown.map((s) => {
+          shown.map(({ session: s, depth }) => {
             const isActive = s.id === activeId;
             const label = rowLabel(s, t.sessions.untitledSession);
             const pinned = isPinned(s.id);
@@ -922,7 +1208,18 @@ export function SidebarTasks({
                   aria-current={isActive ? "true" : undefined}
                   title={`${label} · ${age}`}
                   className="flex min-w-0 flex-1 items-center gap-2.5 px-2.5 py-2.5 text-left text-sm"
+                  // Branch sessions indent under their parent (desktop's └
+                  // connector). px-2.5 = 10px base.
+                  style={depth ? { paddingLeft: `${10 + depth * 14}px` } : undefined}
                 >
+                  {depth > 0 && (
+                    <span
+                      aria-hidden
+                      className="shrink-0 font-mono text-[10px] leading-none text-text-tertiary"
+                    >
+                      └
+                    </span>
+                  )}
                   {liveState[s.id] === "working" ? (
                     <span className="relative grid h-4 w-4 shrink-0 place-items-center">
                       <span className="absolute h-2 w-2 animate-ping rounded-full bg-live/40" />
@@ -939,9 +1236,9 @@ export function SidebarTasks({
                     {label}
                   </span>
                 </button>
-                {/* Idade compacta ("43m"/"2h"/"3d") — some no hover, igual ao
-                    desktop; escondida quando o menu "…" está aberto (o botão
-                    ocupa o mesmo canto). */}
+                {/* Compact age ("43m"/"2h"/"3d") — disappears on hover, same as
+                    the desktop; hidden when the "…" menu is open (the button
+                    takes the same corner). */}
                 {rowMenu?.id !== s.id && (
                   <span
                     aria-hidden
@@ -972,8 +1269,8 @@ export function SidebarTasks({
           })
         )}
 
-        {/* "Mostrar mais X" / "Mostrar menos" (padrão Claude) — só quando há
-            mais tarefas do que o teto colapsado. */}
+        {/* "Mostrar mais X" / "Mostrar menos" (Claude pattern) — only when there
+            are more tasks than the collapsed cap. */}
         {visible.length > COLLAPSED_COUNT && (
           <button
             type="button"
@@ -985,7 +1282,7 @@ export function SidebarTasks({
         )}
       </div>
 
-      {/* ── Menu "…" da tarefa ── */}
+      {/* ── Task "…" menu ── */}
       {rowMenu && menuSession && (
         <>
           <div
@@ -1083,7 +1380,7 @@ export function SidebarTasks({
         </>
       )}
 
-      {/* ── Menu "…" do PROJETO (fixar/Arquivos/arquivar sessões/remover) ── */}
+      {/* ── PROJECT "…" menu (pin/Files/archive sessions/remove) ── */}
       {projMenu && (
         <>
           <div
@@ -1130,11 +1427,11 @@ export function SidebarTasks({
             />
             <MenuItem
               icon={Archive}
-              label={t.chat.archiveChats}
+              label={t.chat.archiveProject}
               onClick={() => {
                 const slug = projMenu.id;
                 setProjMenu(null);
-                void archiveProjectChats(slug);
+                void archiveProjectRow(slug);
               }}
             />
             <div className="mx-2 my-1 h-px bg-border" />
@@ -1152,7 +1449,7 @@ export function SidebarTasks({
         </>
       )}
 
-      {/* ── Menu "…" da sessão ANINHADA — só fixar/arquivar (Hermes) ── */}
+      {/* ── NESTED session "…" menu — pin/archive only (Hermes) ── */}
       {chatMenu && chatMenuSession && (
         <>
           <div
@@ -1203,7 +1500,7 @@ export function SidebarTasks({
         </>
       )}
 
-      {/* ── Menu do filtro ── */}
+      {/* ── Filter menu ── */}
       {filterMenuAt && (
         <>
           <div
@@ -1243,7 +1540,7 @@ export function SidebarTasks({
         </>
       )}
 
-      {/* ── Modal "Novo projeto" (paridade com o desktop) ── */}
+      {/* ── "Novo projeto" modal (parity with the desktop) ── */}
       {creatingProject && (
         <>
           <div className="fixed inset-0 z-40 bg-black/40" onClick={closeNewProject} aria-hidden />
@@ -1443,5 +1740,5 @@ export function SidebarTasks({
   );
 }
 
-/** Ícone do item de nav "Nova tarefa" — exportado p/ o App montar o item. */
+/** Icon of the "Nova tarefa" nav item — exported so the App can build the item. */
 export const NewTaskIcon = SquarePen;

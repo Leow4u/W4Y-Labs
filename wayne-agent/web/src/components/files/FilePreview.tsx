@@ -1,9 +1,9 @@
 /**
- * FilePreview — abre imagem / PDF / texto SEM baixar (Onda 2 dos Arquivos).
- * Reusa `api.readFile` (já devolve mime_type + data_url base64). Overlay via
- * portal (ancestrais com transform viram containing block — lição do
- * ProjectEditModal). Tipos não-previsualizáveis caem num estado com botão
- * baixar.
+ * FilePreview — opens image / PDF / text WITHOUT downloading (Onda 2 of Files).
+ * Reuses `api.readFile` (already returns mime_type + base64 data_url). Overlay
+ * via portal (ancestors with transform become the containing block — lesson
+ * from ProjectEditModal). Non-previewable types fall back to a state with a
+ * download button.
  */
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -151,7 +151,7 @@ export function FilePreview({
   );
 }
 
-/** Um arquivo é previsualizável (abre no overlay em vez de baixar)? */
+/** Is a file previewable (opens in the overlay instead of downloading)? */
 export function isPreviewable(name: string, mime: string | null): boolean {
   return previewKind(name, mime) !== "none";
 }

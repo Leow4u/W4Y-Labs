@@ -1,16 +1,16 @@
 /**
- * ConnectLinkCard — o Connect Link da Composio vira um CARD de autorização no
- * chat (Conectores Onda 3), em vez de um link solto na prosa.
+ * ConnectLinkCard — Composio's Connect Link becomes an authorization CARD in
+ * the chat (Conectores Onda 3), instead of a loose link in the prose.
  *
- * Fluxo: Autorizar → abre a página white-label (popup) → o card sonda
- * /api/connectors/status até uma conta NOVA ficar ACTIVE → "Conectado ✓".
- * Sem reload de sessão: as ferramentas Composio executam server-side, então
- * a conta ativada já vale na conversa em andamento (provado na Onda 0/1).
+ * Flow: Authorize → opens the white-label page (popup) → the card polls
+ * /api/connectors/status until a NEW account goes ACTIVE → "Conectado ✓".
+ * No session reload: Composio tools run server-side, so the activated account
+ * already counts in the ongoing conversation (proven in Onda 0/1).
  *
- * Identidade do app (logo + nome): detectada do PRÓPRIO texto do agente
- * (`context`) casando com o catálogo de conectores. Regra CONSERVADORA — só
- * mostra o app quando exatamente UM app conhecido é citado; senão cai no card
- * genérico. Numa tela de autorização OAuth não podemos mostrar um app errado.
+ * App identity (logo + name): detected from the agent's OWN text (`context`)
+ * matched against the connectors catalog. CONSERVATIVE rule — it only shows
+ * the app when exactly ONE known app is cited; otherwise it falls back to the
+ * generic card. On an OAuth authorization screen we cannot show a wrong app.
  */
 import { useEffect, useRef, useState } from "react";
 import { CheckCircle2, Loader2, Plug } from "lucide-react";
@@ -21,9 +21,11 @@ import { useI18n } from "@/i18n";
 
 type Phase = "idle" | "waiting" | "connected";
 
-// Catálogo carregado uma vez por sessão de página (backend já cacheia 6h).
+// Catalog loaded once per page session (the backend already caches for 6h).
+// Exported: the RightDock "Fontes" block shares the same cache (app logos +
+// the connect-apps menu).
 let catalogCache: Promise<ConnectorToolkit[]> | null = null;
-function loadCatalog(): Promise<ConnectorToolkit[]> {
+export function loadCatalog(): Promise<ConnectorToolkit[]> {
   if (!catalogCache) {
     catalogCache = api
       .getConnectorsCatalog()
@@ -33,15 +35,15 @@ function loadCatalog(): Promise<ConnectorToolkit[]> {
   return catalogCache;
 }
 
-// Nomes que NÃO são o app-alvo — a própria plataforma / provedores de login
-// que aparecem na prosa de autorização ("página da Microsoft/Composio"). Não
-// devem virar o logo do card.
+// Names that are NOT the target app — the platform itself / login providers
+// that show up in the authorization prose ("página da Microsoft/Composio").
+// They must not become the card's logo.
 const APP_DENYLIST = new Set(["composio"]);
 
-/** Detecta o app-alvo citado no texto do agente. O agente sempre nomeia o app
- *  PRIMEIRO ("Para conectar o seu <App>…"); provedores/plataforma vêm depois.
- *  Então: casa nomes conhecidos (≥4 chars, palavra inteira; ignora a denylist)
- *  e devolve o de MENOR posição. Nenhum → null (card genérico). */
+/** Detects the target app cited in the agent's text. The agent always names the
+ *  app FIRST ("Para conectar o seu <App>…"); providers/platform come later.
+ *  So: match known names (≥4 chars, whole word; skip the denylist) and return
+ *  the one at the LOWEST position. None → null (generic card). */
 function detectApp(text: string, toolkits: ConnectorToolkit[]): ConnectorToolkit | null {
   if (!text) return null;
   const lower = ` ${text.toLowerCase()} `;
@@ -98,7 +100,7 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
     };
   }, []);
 
-  // Detecta o app do texto do agente (conservador — ver detectApp).
+  // Detects the app from the agent's text (conservative — see detectApp).
   useEffect(() => {
     if (!context) return;
     let alive = true;
@@ -111,10 +113,10 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
   }, [context]);
 
   const authorize = async () => {
-    // Guarda o handle da janela (sem "noopener", senão window.open devolve
-    // null) pra fechá-la automaticamente quando a conexão for detectada — a
-    // página de sucesso da Composio ("You can close this window now") não fecha
-    // sozinha, e o opener pode fechar a janela que abriu mesmo cross-origin.
+    // Keep the window handle (no "noopener", OTHERWISE window.open returns
+    // null) so we can close it automatically once the connection is detected —
+    // Composio's success page ("You can close this window now") does not close
+    // itself, and an opener may close the window it opened even cross-origin.
     const win = window.open(url, "_blank");
     setPhase("waiting");
     let before = new Set<string>();
@@ -124,7 +126,7 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
         st.accounts.filter((a) => a.status === "ACTIVE").map((a) => a.id),
       );
     } catch {
-      /* segue sem snapshot */
+      /* carry on without a snapshot */
     }
     const poll = (tries: number) => {
       if (!aliveRef.current) return;
@@ -140,12 +142,12 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
             try {
               win?.close();
             } catch {
-              /* janela já fechada pelo usuário */
+              /* window already closed by the user */
             }
             return;
           }
         } catch {
-          /* tenta de novo */
+          /* try again */
         }
         if (tries < 34) poll(tries + 1);
         else if (aliveRef.current) setPhase("idle");
@@ -154,8 +156,8 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
     poll(0);
   };
 
-  // Título: nome do app detectado > toolkit conectado > genérico. Numa tela de
-  // autorização, o nome reflete o que o agente escreveu (mesma fonte).
+  // Title: detected app name > connected toolkit > generic. On an authorization
+  // screen, the name reflects what the agent wrote (same source).
   const title =
     app?.name ?? (phase === "connected" && toolkit ? toolkit : tc.authTitle);
 

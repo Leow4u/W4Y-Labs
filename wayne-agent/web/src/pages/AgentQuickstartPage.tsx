@@ -1,16 +1,17 @@
 /**
- * AgentQuickstartPage — "Início rápido" do módulo Agentes (Onda 1 + reforma
- * UX 10/07). Benchmark: Claude Console → Agentes Gerenciados → Início rápido,
- * com o acabamento pedido pelo Leonardo: stepper no topo, pergunta no CENTRO
- * da tela, composer ancorado na base e os modelos prontos num PAINEL DIREITO
- * expansível (não mais um grid que esmaga a tela). Submódulos viraram
- * dropdown na sidebar (App.tsx SidebarNavGroup) — sem abas internas.
+ * AgentQuickstartPage — the Agents module's "Início rápido" (Onda 1 + the
+ * 10/07 UX rework). Benchmark: Claude Console → Managed Agents → Quickstart,
+ * with the finish Leonardo asked for: stepper at the top, question in the
+ * CENTER of the screen, composer anchored at the bottom and the ready-made
+ * templates in an expandable RIGHT PANEL (no longer a grid that crushes the
+ * screen). Submodules became a sidebar dropdown (App.tsx SidebarNavGroup) —
+ * no internal tabs.
  *
- * Criar CONVERSANDO, mas devolvendo LINGUAGEM NATURAL em campos editáveis
- * (nunca YAML): descreva em uma frase → draft LLM (lib/agent-draft, sessão
- * descartável) → formulário Nome/Especialidade/Modelo (TODOS os OpenRouter)/
- * Instruções/Rotina → "Criar este agente" | "Continuar refinando".
- * Templates = presets plug-and-play com gating Pro (plano intermediário).
+ * Create by TALKING, but returning NATURAL LANGUAGE in editable fields (never
+ * YAML): describe it in one sentence → LLM draft (lib/agent-draft, throwaway
+ * session) → Name/Specialty/Model (ALL of OpenRouter)/Instructions/Routine
+ * form → "Criar este agente" | "Continuar refinando".
+ * Templates = plug-and-play presets with Pro gating (mid-tier plan).
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -38,7 +39,7 @@ import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
 
-/** "Redator Financeiro" → "redator-financeiro" (id válido de profile). */
+/** "Redator Financeiro" → "redator-financeiro" (valid profile id). */
 function slugify(s: string): string {
   return s
     .normalize("NFD")
@@ -72,7 +73,7 @@ export default function AgentQuickstartPage() {
   const [refineText, setRefineText] = useState("");
   const lastRequestRef = useRef("");
 
-  // Painel direito de modelos prontos (expansível, persiste a escolha).
+  // Right panel of ready-made templates (expandable, persists the choice).
   const [tplOpen, setTplOpen] = useState<boolean>(() => {
     try {
       return localStorage.getItem(TPL_PANEL_KEY) !== "0";
@@ -86,19 +87,19 @@ export default function AgentQuickstartPage() {
       try {
         localStorage.setItem(TPL_PANEL_KEY, next ? "1" : "0");
       } catch {
-        /* melhor esforço */
+        /* best effort */
       }
       return next;
     });
   const [tplQuery, setTplQuery] = useState("");
 
-  // Título bonito no header da página ("Início rápido", não o path cru).
+  // Pretty title in the page header ("Início rápido", not the raw path).
   useEffect(() => {
     setTitle(ag.quickTab);
     return () => setTitle(null);
   }, [setTitle, ag.quickTab]);
 
-  // Plano do tenant (gating dos templates premium) — regra do TierPicker.
+  // Tenant plan (gating for the premium templates) — TierPicker's rule.
   const [plan, setPlan] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
@@ -114,8 +115,8 @@ export default function AgentQuickstartPage() {
   }, []);
   const premiumLocked = plan !== null && plan !== "pro" && plan !== "max";
 
-  // Catálogo OpenRouter pro datalist do campo Modelo (todos os modelos —
-  // decisão: agentes NÃO ficam presos aos tiers do chat).
+  // OpenRouter catalog for the Model field's datalist (all models —
+  // decision: agents are NOT locked to the chat tiers).
   const [modelOptions, setModelOptions] = useState<string[]>([]);
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +161,7 @@ export default function AgentQuickstartPage() {
   const patchDraft = (patch: Partial<AgentDraft>) =>
     setDraft((d) => (d ? { ...d, ...patch } : d));
 
-  // Rotinas do agente (várias — contextos diferentes).
+  // The agent's routines (several — different contexts).
   const addRoutine = () =>
     setDraft((d) =>
       d
@@ -180,14 +181,14 @@ export default function AgentQuickstartPage() {
     if (!slug) return;
     setPhase("creating");
     try {
-      // Clone do default = herda .env (chave OpenRouter) — sem isso o agente
-      // nasce sem acesso a modelo. Depois personaliza alma/descrição/modelo.
+      // Cloning default = inherits .env (OpenRouter key) — without this the
+      // agent is born with no model access. Then customize soul/description/model.
       await api.createProfile({ name: slug, clone_from: "default", description: draft.specialty });
       await api.updateProfileSoul(slug, draft.soul);
       if (draft.model) {
         await api.setProfileModel(slug, "openrouter", draft.model).catch(() => {});
       }
-      // Uma rotina = um cron job próprio (contextos diferentes).
+      // One routine = its own cron job (different contexts).
       for (const r of draft.routines) {
         const schedule = buildScheduleString(r.schedule);
         if (schedule && r.prompt.trim()) {
@@ -210,7 +211,7 @@ export default function AgentQuickstartPage() {
     return (draft?.name ?? "??").slice(0, 2).toUpperCase();
   }, [draft?.name]);
 
-  // Passo a passo do topo (benchmark Claude, em linguagem de produto).
+  // Top stepper (Claude benchmark, in product language).
   const step: 1 | 2 | 3 = phase === "editing" ? 2 : phase === "creating" ? 3 : 1;
   const steps = [ag.stepDescribe, ag.stepReview, ag.stepJoin];
 
@@ -227,17 +228,17 @@ export default function AgentQuickstartPage() {
   const showTplPanel = phase === "idle" || phase === "drafting";
 
   return (
-    // Altura EXPLÍCITA (padrão AgentsPage): o wrapper das rotas é um block
-    // (`w-full pb-8`), então `flex-1` aqui não estica — sem isto a coluna
-    // central colapsava na altura do conteúdo e o hero perdia a centralização
-    // quando o painel de modelos era recolhido. `relative` ancora o handle
-    // do painel recolhido na borda direita.
+    // EXPLICIT height (AgentsPage pattern): the routes wrapper is a block
+    // (`w-full pb-8`), so `flex-1` here doesn't stretch — without this the
+    // center column collapsed to the content's height and the hero lost its
+    // centering when the templates panel was collapsed. `relative` anchors the
+    // collapsed panel's handle to the right edge.
     <div className="relative flex h-[calc(100dvh-112px)] min-h-[480px] flex-col overflow-hidden lg:flex-row">
       <Toast toast={toast} />
 
-      {/* ─────────── Coluna central ─────────── */}
+      {/* ─────────── Center column ─────────── */}
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        {/* Passo a passo (1 Descrever · 2 Revisar · 3 Entra pro time). */}
+        {/* Stepper (1 Descrever · 2 Revisar · 3 Entra pro time). */}
         <div className="flex items-center justify-center gap-0 px-6 pb-2 pt-6">
           {steps.map((label, i) => {
             const n = i + 1;
@@ -273,11 +274,11 @@ export default function AgentQuickstartPage() {
 
         {(phase === "idle" || phase === "drafting") && (
           <>
-            {/* Pergunta no CENTRO da tela (padrão Claude). */}
+            {/* Question in the CENTER of the screen (Claude pattern). */}
             <div className="grid min-h-0 flex-1 content-center px-6">
               <div className="mx-auto w-full max-w-[640px] text-center">
-                {/* Só o título — o exemplo vive no placeholder do composer
-                    (feedback 10/07: legenda + exemplo = redundância infantil). */}
+                {/* Title only — the example lives in the composer's placeholder
+                    (10/07 feedback: caption + example = childish redundancy). */}
                 <h1
                   className="mb-2 text-[2.1rem] font-medium tracking-tight text-foreground"
                   style={{ fontFamily: "var(--theme-font-serif)", textWrap: "balance" }}
@@ -304,7 +305,7 @@ export default function AgentQuickstartPage() {
               </div>
             </div>
 
-            {/* Composer ancorado na base da coluna (padrão Claude). */}
+            {/* Composer anchored at the bottom of the column (Claude pattern). */}
             <div className="px-6 pb-7 pt-3">
               <div className="mx-auto w-full max-w-[720px] rounded-[24px] border border-border bg-card p-3 shadow-card">
                 <textarea
@@ -341,7 +342,7 @@ export default function AgentQuickstartPage() {
           </>
         )}
 
-        {/* ── Formulário editável (o "YAML" virou linguagem natural) ── */}
+        {/* ── Editable form (the "YAML" became natural language) ── */}
         {(phase === "editing" || phase === "creating") && draft && (
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <div className="mx-auto w-full max-w-[720px]">
@@ -401,8 +402,8 @@ export default function AgentQuickstartPage() {
                     />
                   </label>
 
-                  {/* Rotinas — agenda(s) nativa(s) do agente (cron ?profile).
-                      Várias permitidas: contextos/horários diferentes. */}
+                  {/* Routines — the agent's native schedule(s) (cron ?profile).
+                      Several allowed: different contexts/times. */}
                   <div className="rounded-xl border border-border bg-background p-4">
                     <span className="flex items-center gap-2 text-sm font-medium">
                       <CalendarClock className="h-4 w-4 text-live" />
@@ -452,7 +453,7 @@ export default function AgentQuickstartPage() {
                   </div>
                 </div>
 
-                {/* Ações — os 2 botões do benchmark. */}
+                {/* Actions — the benchmark's 2 buttons. */}
                 <div className="mt-6 flex flex-wrap items-center gap-2">
                   <button
                     type="button"
@@ -518,11 +519,11 @@ export default function AgentQuickstartPage() {
         )}
       </div>
 
-      {/* ─────────── Painel direito: modelos prontos (expansível) ─────────── */}
+      {/* ─────────── Right panel: ready-made templates (expandable) ─────────── */}
       {showTplPanel &&
         (tplOpen ? (
           <aside className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-border lg:w-[400px] lg:border-l lg:border-t-0">
-            {/* Handle na borda (padrão Claude) — clique recolhe. Sem botão. */}
+            {/* Handle on the edge (Claude pattern) — click collapses. No button. */}
             <button
               type="button"
               onClick={toggleTpl}
@@ -612,7 +613,7 @@ export default function AgentQuickstartPage() {
             </div>
           </aside>
         ) : (
-          /* Recolhido: só o handle encostado na borda direita — clique expande. */
+          /* Collapsed: just the handle against the right edge — click expands. */
           <button
             type="button"
             onClick={toggleTpl}

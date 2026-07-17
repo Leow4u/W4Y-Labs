@@ -1,20 +1,20 @@
 /**
- * Projetos (curadoria estilo Manus) = WORKSPACES reais do backend, zero
- * endpoint novo:
- *   - um projeto é uma PASTA em `projects/<slug>` sob o root de arquivos
- *     gerenciados (criada via POST /api/files/mkdir);
- *   - novas tarefas do projeto nascem com `session.create {cwd}` — o gateway
- *     já persiste o cwd explícito como o workspace da sessão
+ * Projects (Manus-style curation) = real backend WORKSPACES, zero new
+ * endpoints:
+ *   - a project is a FOLDER at `projects/<slug>` under the managed files
+ *     root (created via POST /api/files/mkdir);
+ *   - the project's new tasks are born with `session.create {cwd}` — the
+ *     gateway already persists the explicit cwd as the session's workspace
  *     (tui_gateway/server.py, session.create);
- *   - a lista de tarefas do projeto usa o filtro `cwd_prefix` que o
- *     GET /api/sessions já aceita.
- * Arquivos do projeto ficam juntos na pasta — visíveis na tela Arquivos.
+ *   - the project's task list uses the `cwd_prefix` filter that
+ *     GET /api/sessions already accepts.
+ * Project files stay together in the folder — visible on the Files screen.
  */
-import { api } from "@/lib/api";
+import { api, type ProjectRow } from "@/lib/api";
 
 export const PROJECTS_DIR = "projects";
 
-/** "Cliente Itaú" → "cliente-itau" (nome de pasta seguro). */
+/** "Cliente Itaú" → "cliente-itau" (safe folder name). */
 export function slugifyProject(s: string): string {
   return s
     .normalize("NFD")
@@ -26,14 +26,14 @@ export function slugifyProject(s: string): string {
     .slice(0, 48);
 }
 
-/** "cliente-itau" → "Cliente Itau" (exibição). */
+/** "cliente-itau" → "Cliente Itau" (display). */
 export function prettifyProject(name: string): string {
   const s = name.replace(/[-_]+/g, " ").trim();
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-// Root absoluto dos arquivos gerenciados (ex.: /opt/data) — vem na resposta
-// da listagem; memoizado por sessão de página (não muda em runtime).
+// Absolute root of the managed files (e.g. /opt/data) — comes in the listing
+// response; memoized per page session (doesn't change at runtime).
 let cachedRoot: string | null = null;
 
 export async function getFilesRoot(): Promise<string | null> {
@@ -47,20 +47,83 @@ export async function getFilesRoot(): Promise<string | null> {
   return cachedRoot;
 }
 
-/** Caminho absoluto (no servidor) do workspace de um projeto. */
+/** Absolute path (on the server) of a project's workspace. */
 export function projectCwd(root: string, project: string): string {
   const base = root.endsWith("/") ? root.slice(0, -1) : root;
   return `${base}/${PROJECTS_DIR}/${project}`;
 }
 
-// ── Último projeto (Fase 1 do project picker, decisão 10/07) ───────────
-// Todo chat novo abre no ÚLTIMO projeto trabalhado (não vazio), como o
-// Codex/Claude. localStorage guarda: um slug, ou o sentinela NONE quando o
-// usuário escolheu "trabalhar sem projeto" (distinto de "nunca escolheu").
+/**
+ * Register a cloud project as a first-class project ROW, owning its folder.
+ *
+ * Convergence, slice 1 (task #101). The folder at `projects/<slug>` stays the
+ * source of truth for the UI *today* — nothing reads these rows yet, so this
+ * cannot break the screens. What it does is make the row exist from the moment
+ * the project is born, so the later switch to the row model is a change of
+ * READER, not a data migration.
+ *
+ * It also puts a cloud project and a folder on the user's own machine into the
+ * SAME store — which is what one history across web and desktop rests on.
+ *
+ * Best-effort by design: a bookkeeping failure must never stop someone from
+ * creating a project. The backfill picks up whatever is missed here.
+ */
+/** A path on the USER's machine: Windows-absolute (C:\…) or a UNC share (\\srv\…). */
+export const LOCAL_PATH_RE = /^(?:[A-Za-z]:[\\/]|\\\\)/;
+
+/** Last segment of a path, for either separator. */
+export function pathBaseName(p: string): string {
+  const segs = p.split(/[\\/]/).filter(Boolean);
+  return segs[segs.length - 1] || p;
+}
+
+/**
+ * Adopt a folder path as a project ROW — a folder on the user's machine
+ * (Local mode) or a repo root the tree auto-promoted on the server.
+ *
+ * The same call either way: the row model owns PATHS without touching them,
+ * so the folder groups its chats in history on every surface. Idempotent:
+ * POST /api/projects returns the incumbent when the folder is already owned.
+ * Returns the row so callers can navigate to the adopted project's slug.
+ */
+export async function registerFolderProject(
+  folder: string,
+  name?: string,
+): Promise<ProjectRow | null> {
+  try {
+    const res = await api.createProject({
+      name: (name || "").trim() || pathBaseName(folder),
+      folders: [folder],
+    });
+    return res.project;
+  } catch {
+    /* silent: bookkeeping must never block the user from working */
+    return null;
+  }
+}
+
+export async function registerProjectRow(slug: string, displayName?: string): Promise<void> {
+  try {
+    const root = await getFilesRoot();
+    if (!root) return;
+    await api.createProject({
+      name: (displayName || "").trim() || prettifyProject(slug),
+      slug,
+      folders: [projectCwd(root, slug)],
+    });
+  } catch {
+    /* silent: the row is bookkeeping, the folder is what the UI reads today */
+  }
+}
+
+// ── Last project (Phase 1 of the project picker, decision 10/07) ───────
+// Every new chat opens in the LAST project worked on (not empty), like
+// Codex/Claude. localStorage holds: a slug, or the NONE sentinel when the
+// user chose "trabalhar sem projeto" (distinct from "never chose").
 const LAST_PROJECT_KEY = "wayne:last-project";
 const NONE = "__none__";
 
-/** slug (projeto) · null ("sem projeto" explícito) · undefined (nunca escolheu). */
+/** slug (project) · null (explicit "sem projeto") · undefined (never chose). */
 export function getLastProject(): string | null | undefined {
   try {
     const v = window.localStorage.getItem(LAST_PROJECT_KEY);
@@ -75,6 +138,53 @@ export function setLastProject(project: string | null): void {
   try {
     window.localStorage.setItem(LAST_PROJECT_KEY, project ?? NONE);
   } catch {
-    /* modo privado */
+    /* private mode */
   }
+}
+
+// ── Desktop default workspace (DL-01/DL-03) ────────────────────────────
+// On the desktop the shell hands the renderer the absolute path of ~/Work4You
+// (window.work4youDesktop.defaultWorkspace) and flags isDesktop. This is the
+// inverted rule: a desktop chat with NO project chosen runs in that LOCAL folder
+// (executor on the user's machine), not in the cloud. On the web there is no such
+// folder — no project means the cloud, unchanged.
+
+/** Absolute path of the desktop's default local workspace (~/Work4You), or null
+ *  off the desktop / when the shell did not provide it. */
+export function desktopDefaultWorkspace(): string | null {
+  if (typeof window === "undefined") return null;
+  const d = (
+    window as unknown as {
+      work4youDesktop?: { isDesktop?: boolean; defaultWorkspace?: string };
+    }
+  ).work4youDesktop;
+  return d?.isDesktop && d.defaultWorkspace ? d.defaultWorkspace : null;
+}
+
+/**
+ * The local folder a fresh chat should default to (DL-03). Reused by the chat as
+ * the initial `activeLocalFolder`, so the SAME wiring that the picker's
+ * `chooseLocal` uses arms Local mode automatically — no modal, no dialog.
+ *
+ * On the desktop this is the DEFAULT for any session with no context of its own:
+ * a blank/new chat lands in ~/Work4You. The ONLY opt-out is an explicit "Run in
+ * the cloud" (getLastProject() === null, the NONE sentinel). It used to also bail
+ * when the user had ever chosen anything (getLastProject() !== undefined), which
+ * meant that a returning user — anyone with `wayne:last-project` filled — never
+ * got the local default and every new session opened "Sem projeto" on the cloud
+ * (bug). A last cloud-project slug is a *convenience to reopen*, not a standing
+ * choice to run in the cloud, so it no longer suppresses the local default; the
+ * caller keeps the two from contradicting by not re-pinning that project on the
+ * desktop while this default is in force. DL-01 persistence still rides on
+ * `wayne:local-folder`: once armed, the folder is remembered for the next session
+ * directly.
+ *
+ * Off the desktop (no defaultWorkspace) this returns null, so the web is
+ * unchanged: no folder still means the cloud.
+ */
+export function resolveDesktopLocalDefault(): string | null {
+  const ws = desktopDefaultWorkspace();
+  if (!ws) return null;
+  // null = explicit "Executar na nuvem" (the NONE sentinel) → the only opt-out.
+  return getLastProject() === null ? null : ws;
 }

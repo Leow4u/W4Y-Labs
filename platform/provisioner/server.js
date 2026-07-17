@@ -1,8 +1,9 @@
 // Serviço provisionador da Work4You (Fase 3+): as "mãos no Fly" da
 // plataforma. A casca (Cloud Run) não roda flyctl; este app (Fly, sempre
 // aceso, org token) executa as operações de frota:
-//   POST /provision {tenantId, slug, email, plan, trialUsd}  (async → callback)
-//   POST /archive   {app, tenantId}                          (snapshot+destroy)
+//   POST /provision  {tenantId, slug, email, plan, trialUsd}  (async → callback)
+//   POST /archive    {app, tenantId}                           (snapshot+destroy)
+//   POST /device-key {app, tenantId, limitUsd, deviceLabel?}   (key OpenRouter por dispositivo)
 //   GET  /healthz
 // Não toca no banco: a CASCA é dona do registry. O /provision devolve o
 // resultado por callback assinado (HMAC) em CASCA_URL/onboarding/complete.
@@ -36,15 +37,30 @@ function sign(body) {
   return crypto.createHmac("sha256", SECRET).update(body).digest("hex");
 }
 
-async function createOpenRouterKey(tenantId, limitUsd) {
+async function createOpenRouterKey(name, limitUsd) {
   const res = await fetch("https://openrouter.ai/api/v1/keys", {
     method: "POST",
     headers: { Authorization: `Bearer ${OR_PROV}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ name: `tenant:${tenantId}`, limit: limitUsd }),
+    body: JSON.stringify({ name, limit: limitUsd }),
   });
   const j = await res.json();
   if (!res.ok) throw new Error(`openrouter: ${JSON.stringify(j).slice(0, 200)}`);
   return { key: j.key, hash: (j.data ?? j).hash };
+}
+
+// ── Pivô desktop · chave de modelo POR DISPOSITIVO ────────────────────────
+// Cria uma runtime key OpenRouter NOVA e SEPARADA da key do Fly, com o mesmo
+// limite do plano do tenant (limitUsd vem da casca, dona do registry). É a
+// ÚNICA rota onde a chave CRUA sai deste serviço — por design: ela vai para
+// o dispositivo do dono gravar em ~/.wayne/.env (motor local). Uma key por
+// dispositivo = revogação granular sem tocar na key da nuvem.
+// ATENÇÃO: nunca logar a key nem o corpo da resposta desta rota.
+async function createDeviceKey({ tenantId, limitUsd }) {
+  const suffix = crypto.randomBytes(3).toString("hex"); // 6 chars fixos
+  const safeTenant = String(tenantId).replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 40);
+  const name = `w4y-${safeTenant}-device-${suffix}`;
+  const { key, hash } = await createOpenRouterKey(name, limitUsd);
+  return { key, hash, name };
 }
 
 // ── Conectores · Composio, opção A (projeto DEDICADO por tenant) ──────────
@@ -123,7 +139,7 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
     const dashPass = token(24);
     const dashSecret = token(32);
     const apiKey = token(24);
-    const or = await createOpenRouterKey(tenantId, trialUsd);
+    const or = await createOpenRouterKey(`tenant:${tenantId}`, trialUsd);
 
     const secrets = [
       `OPENROUTER_API_KEY=${or.key}`,
@@ -260,6 +276,25 @@ const server = http.createServer(async (req, res) => {
     try { await reconfigure(body); res.writeHead(200); res.end(JSON.stringify({ ok: true })); }
     catch (e) { res.writeHead(500); res.end(JSON.stringify({ error: String(e.message) })); }
     return;
+  }
+  if (req.url === "/device-key") {
+    // Pivô desktop: runtime key OpenRouter por DISPOSITIVO, mesma auth HMAC
+    // das demais rotas. Síncrono (uma chamada REST). A resposta carrega a
+    // chave crua — vai direto para o dispositivo do dono; NUNCA logar.
+    const limitUsd = Number(body.limitUsd);
+    if (!body.tenantId || !Number.isFinite(limitUsd) || limitUsd <= 0) {
+      res.writeHead(400); return res.end(JSON.stringify({ error: "bad_request" }));
+    }
+    try {
+      const dk = await createDeviceKey({ tenantId: body.tenantId, limitUsd });
+      // log de auditoria sem segredo: só nome/hash identificam a key
+      console.log(`[provisioner] device-key tenant=${body.tenantId} app=${body.app || "?"} name=${dk.name} limit=${limitUsd}`);
+      res.writeHead(200, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ ok: true, key: dk.key, hash: dk.hash, limitUsd, name: dk.name }));
+    } catch (e) {
+      res.writeHead(502, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ error: "openrouter_failed", detail: String(e.message || e).slice(0, 300) }));
+    }
   }
   res.writeHead(404); res.end();
 });

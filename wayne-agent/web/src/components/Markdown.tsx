@@ -18,9 +18,9 @@ export function Markdown({
   highlightTerms?: string[];
   streaming?: boolean;
 }) {
-  // Códigos ANSI (cores de terminal) vazam quando o modelo cola saída de
-  // comando na resposta — mesmo strip do ToolLine, com ESC opcional
-  // (String.fromCharCode(27) evita um ESC literal no código-fonte).
+  // ANSI codes (terminal colors) leak through when the model pastes command
+  // output into the answer — same strip as ToolLine, with an optional ESC
+  // (String.fromCharCode(27) avoids a literal ESC in the source).
   const clean = useMemo(
     () =>
       content.replace(
@@ -33,8 +33,8 @@ export function Markdown({
   const caret = streaming ? <StreamingCaret /> : null;
 
   return (
-    // Sem tamanho fixo aqui (Onda 1) — o WRAPPER decide a voz: prosa serifada
-    // da resposta (.prose-serif), narração type-body, review. Só ritmo e cor.
+    // No fixed size here (Onda 1) — the WRAPPER decides the voice: the answer's
+    // serif prose (.prose-serif), type-body narration, review. Rhythm and color only.
     <div className="text-foreground space-y-2.5">
       {blocks.map((block, i) => (
         <Block
@@ -65,7 +65,7 @@ type BlockNode =
   | { type: "table"; header: string[]; rows: string[][] }
   | { type: "paragraph"; content: string };
 
-/** `| a | b |` → ["a", "b"] (tolerante a pipes de borda ausentes). */
+/** `| a | b |` → ["a", "b"] (tolerates missing edge pipes). */
 function splitTableRow(line: string): string[] {
   return line
     .trim()
@@ -75,7 +75,7 @@ function splitTableRow(line: string): string[] {
     .map((c) => c.trim());
 }
 
-/** Linha separadora de tabela GFM: | --- | :---: | ---: | */
+/** GFM table separator row: | --- | :---: | ---: | */
 function isTableSeparator(line: string | undefined): boolean {
   if (!line) return false;
   const t = line.trim();
@@ -251,8 +251,8 @@ function Block({
 
     case "heading": {
       const Tag = `h${Math.min(block.level, 4)}` as "h1" | "h2" | "h3" | "h4";
-      // Em-based: os títulos escalam com a voz do wrapper (serifa 16px na
-      // resposta, 15px na narração/review) em vez de travar em rem.
+      // Em-based: headings scale with the wrapper's voice (16px serif in the
+      // response, 15px in narration/review) instead of being pinned to rem.
       const sizes: Record<string, string> = {
         h1: "text-[1.3em] font-semibold tracking-tight",
         h2: "text-[1.15em] font-semibold tracking-tight",
@@ -317,9 +317,9 @@ type InlineNode =
 function parseInline(text: string): InlineNode[] {
   const nodes: InlineNode[] = [];
   // Pattern priority: code > link > bold > italic > bare URL > line break
-  // HTML inline básico (<b>/<strong>/<i>/<em>) entra no parse — modelos às
-  // vezes emitem essas tags no lugar de markdown e o React escaparia o texto
-  // cru na tela (visto ao vivo: "<i>Olá!</i>" literal na conversa).
+  // Basic inline HTML (<b>/<strong>/<i>/<em>) is part of the parse — models
+  // sometimes emit these tags instead of markdown and React would escape the
+  // raw text on screen (seen live: literal "<i>Olá!</i>" in the conversation).
   const pattern =
     /(`[^`]+`)|(\[([^\]]+)\]\(([^)]+)\))|(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(<(?:b|strong)>([\s\S]*?)<\/(?:b|strong)>)|(<(?:i|em)>([\s\S]*?)<\/(?:i|em)>)|(\bhttps?:\/\/[^\s<>)\]]+)|(\n)/g;
   let lastIndex = 0;

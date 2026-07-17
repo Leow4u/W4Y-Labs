@@ -11549,6 +11549,9 @@ async def scan_skill_hub(identifier: str = "", profile: Optional[str] = None):
                 "category": f.category,
                 "file": f.file,
                 "line": f.line,
+                # The matched snippet itself — coordinates alone made the user
+                # take the scanner's word for it; the snippet lets them judge.
+                "match": f.match,
                 "description": f.description,
             }
             for f in result.findings
@@ -11850,6 +11853,337 @@ def _disable_unselected_skills(profile_dir: Path, keep: List[str]) -> int:
     finally:
         reset_wayne_home_override(token)
     return disabled_count
+
+
+# ---------------------------------------------------------------------------
+# Projects (first-class, multi-folder) — REST bridge over wayne_cli.projects_db
+#
+# The gateway already exposes this store over JSON-RPC (projects.list/create/
+# tree/...), but those RPCs need a live WS session. The sidebar is global — it
+# renders outside any chat — so it speaks REST. These routes are that bridge;
+# they add NO logic of their own, they just call the same projects_db the RPCs
+# call, so both surfaces agree on what a project is.
+#
+# Why this matters: a project here is a ROW that owns N folder paths, matched to
+# a session by longest-prefix on its cwd. That model is host-agnostic — a folder
+# on the USER's machine (Local desktop) is a project exactly like a cloud one,
+# which is what lets one history cover both.
+# ---------------------------------------------------------------------------
+
+
+def _projects_conn(profile: Optional[str]):
+    """Open the projects DB of the given profile (context-manager)."""
+    from wayne_cli import projects_db as pdb
+
+    _name, home = _cron_profile_home(profile)
+    return pdb.connect_closing(db_path=home / "projects.db")
+
+
+class ProjectCreate(BaseModel):
+    name: str
+    slug: Optional[str] = None
+    folders: Optional[List[str]] = None
+    primary_path: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    profile: Optional[str] = None
+
+
+@app.get("/api/projects")
+async def list_projects_endpoint(profile: Optional[str] = None, include_archived: bool = False):
+    from wayne_cli import projects_db as pdb
+
+    def _run():
+        with _projects_conn(profile) as conn:
+            return [p.to_dict() for p in pdb.list_projects(conn, include_archived=include_archived)]
+
+    loop = asyncio.get_running_loop()
+    return {"projects": await loop.run_in_executor(None, _run)}
+
+
+@app.post("/api/projects")
+async def create_project_endpoint(body: ProjectCreate):
+    """Create a project, or return the one that already owns the folder.
+
+    Idempotent on purpose: the caller is the "Novo projeto" flow, which may run
+    again for a folder that is already claimed (retry, double click, a project
+    re-created over an existing folder). Returning the incumbent keeps one folder
+    owned by exactly one project instead of silently forking history in two.
+    """
+    from wayne_cli import projects_db as pdb
+
+    def _run():
+        with _projects_conn(body.profile) as conn:
+            folders = [f for f in (body.folders or []) if str(f or "").strip()]
+            for folder in folders:
+                existing = pdb.project_for_path(conn, folder, include_archived=True)
+                if existing is not None:
+                    return {"project": existing.to_dict(), "created": False}
+            pid = pdb.create_project(
+                conn,
+                name=body.name,
+                slug=body.slug,
+                folders=folders,
+                primary_path=body.primary_path,
+                description=body.description,
+                icon=body.icon,
+                color=body.color,
+            )
+            proj = pdb.get_project(conn, pid)
+            return {"project": proj.to_dict() if proj else None, "created": True}
+
+    loop = asyncio.get_running_loop()
+    try:
+        return await loop.run_in_executor(None, _run)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+class ProjectUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+    profile: Optional[str] = None
+
+
+@app.patch("/api/projects/{project_id}")
+async def update_project_endpoint(project_id: str, body: ProjectUpdate):
+    """Patch display fields (name/description/icon/color) on the project ROW.
+
+    This is what retires the web's sidecar file (.w4y-project.json): the
+    columns already exist on projects_db rows, so appearance lives with the
+    project identity and every surface (gateway RPCs, REST, desktop) reads
+    the same values. ``project_id`` accepts an id or a slug (get_project
+    resolves both). Per update_project's contract, ``""`` clears icon/color
+    while omitted fields stay untouched.
+    """
+    from wayne_cli import projects_db as pdb
+
+    def _run():
+        with _projects_conn(body.profile) as conn:
+            proj = pdb.get_project(conn, project_id)
+            if proj is None:
+                return None
+            pdb.update_project(
+                conn,
+                proj.id,
+                name=body.name,
+                description=body.description,
+                icon=body.icon,
+                color=body.color,
+            )
+            updated = pdb.get_project(conn, proj.id)
+            return updated.to_dict() if updated else None
+
+    loop = asyncio.get_running_loop()
+    try:
+        project = await loop.run_in_executor(None, _run)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"project": project}
+
+
+@app.post("/api/projects/{project_id}/archive")
+async def archive_project_endpoint(project_id: str, profile: Optional[str] = None):
+    """Soft-archive the project ROW (folders on disk and sessions untouched).
+
+    Row-only on purpose: a project may own folders on the USER's machine
+    (Local desktop) that this server must never touch. Any cloud-side session
+    curation is the caller's decision, via the session endpoints.
+    """
+    from wayne_cli import projects_db as pdb
+
+    def _run():
+        with _projects_conn(profile) as conn:
+            proj = pdb.get_project(conn, project_id)
+            if proj is None:
+                return False
+            return pdb.archive_project(conn, proj.id)
+
+    loop = asyncio.get_running_loop()
+    ok = await loop.run_in_executor(None, _run)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"ok": True}
+
+
+@app.delete("/api/projects/{project_id}")
+async def delete_project_endpoint(project_id: str, profile: Optional[str] = None):
+    """Hard-delete the project ROW (cascades to its folder links only).
+
+    Same row-only rule as archive: folder paths may live on the user's own
+    machine, so nothing on disk is removed here. Cleaning up cloud storage
+    under projects/<slug> stays a separate, explicit /api/files call.
+    """
+    from wayne_cli import projects_db as pdb
+
+    def _run():
+        with _projects_conn(profile) as conn:
+            proj = pdb.get_project(conn, project_id)
+            if proj is None:
+                return False
+            return pdb.delete_project(conn, proj.id)
+
+    loop = asyncio.get_running_loop()
+    ok = await loop.run_in_executor(None, _run)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"ok": True}
+
+
+# Sources excluded from the project tree (mirrors the gateway's
+# _PROJECT_TREE_EXCLUDED_SOURCES): cron runs are not user conversations.
+_PROJECT_TREE_EXCLUDED_SOURCES = ["cron"]
+
+
+def _project_tree_session_row(r: dict) -> dict:
+    """Project a SessionDB row to the minimal shape the sidebar renders.
+
+    Field-for-field copy of the gateway's projection (tui_gateway/server.py,
+    ``_project_tree_row``). The dashboard and the gateway are separate
+    processes sharing WAYNE_HOME, and importing tui_gateway.server here would
+    drag in live gateway state — so the thin projection is replicated instead
+    of imported. Keep the two in sync.
+    """
+    return {
+        "id": r.get("id"),
+        "_lineage_root_id": r.get("_lineage_root_id"),
+        # The sidebar nests branch/fork sessions under their parent; without
+        # this, rows can't draw the L-connector the desktop shows.
+        "parent_session_id": r.get("parent_session_id"),
+        "title": r.get("title"),
+        "preview": r.get("preview"),
+        "started_at": r.get("started_at") or 0,
+        "ended_at": r.get("ended_at"),
+        "last_active": r.get("last_active") or r.get("started_at") or 0,
+        "source": r.get("source"),
+        "archived": bool(r.get("archived")),
+        "message_count": r.get("message_count") or 0,
+        "tool_call_count": r.get("tool_call_count") or 0,
+        "input_tokens": r.get("input_tokens") or 0,
+        "output_tokens": r.get("output_tokens") or 0,
+        "model": r.get("model"),
+        "is_active": False,
+        "cwd": r.get("cwd"),
+        "git_branch": r.get("git_branch"),
+        "git_repo_root": r.get("git_repo_root"),
+    }
+
+
+def _project_tree_junk_root(home: Path):
+    """``is_junk_root`` for build_tree — mirrors tui_gateway.server._is_repo_junk:
+    the bare home dir and the profile's WAYNE_HOME subtree are config/state,
+    never a workspace, so they must not surface as auto projects."""
+    user_home = os.path.realpath(os.path.expanduser("~"))
+    wayne_home = os.path.realpath(str(home))
+
+    def _junk(root: str) -> bool:
+        if not root:
+            return True
+        real = os.path.realpath(root)
+        return real == user_home or real == wayne_home or real.startswith(wayne_home + os.sep)
+
+    return _junk
+
+
+@app.get("/api/projects/tree")
+async def get_projects_tree(
+    profile: Optional[str] = None,
+    preview_limit: int = 3,
+    session_limit: int = 2000,
+):
+    """Authoritative project tree for the sidebar — the SERVER decides grouping.
+
+    Same engine as the gateway's ``projects.tree`` RPC: session rows + project
+    rows + cached discovered repos go through tui_gateway.project_tree
+    (a PURE module — importing it pulls no gateway state). Two deliberate
+    differences from the gateway path:
+
+    - ``resolve=None``: no git probing from this REST process. build_tree
+      falls back to the persisted ``git_repo_root`` column (written by the
+      gateway), which already covers grouping; probing here would spawn git
+      subprocesses per distinct cwd on every sidebar refresh, in a process
+      that may not even see the repos (local folders live on the user's
+      machine).
+    - Discovered repos come only from what projects.db already recorded
+      (``list_discovered_repos``) — no active filesystem scan.
+
+    ``scoped_session_ids`` covers every project node the tree returns —
+    explicit rows AND auto-promoted repo roots — because the sidebar renders
+    both (auto nodes as adoptable rows, the Hermes desktop pattern). A session
+    scoped here always has a visible home outside "Recentes".
+    """
+    from tui_gateway import project_tree
+    from wayne_cli import projects_db as pdb
+
+    def _run():
+        _name, home = _cron_profile_home(profile)
+        db = _open_session_db_for_profile(profile)
+        try:
+            rows = db.list_sessions_rich(
+                limit=session_limit,
+                offset=0,
+                order_by_last_active=True,
+                min_message_count=1,
+                include_children=False,
+                exclude_sources=_PROJECT_TREE_EXCLUDED_SOURCES,
+                include_archived=False,
+            )
+        finally:
+            db.close()
+        sessions = [_project_tree_session_row(r) for r in rows]
+
+        with _projects_conn(profile) as conn:
+            projects = [p.to_dict() for p in pdb.list_projects(conn)]
+            active_id = pdb.get_active_id(conn)
+            discovered = [
+                {
+                    "root": r["root"],
+                    "label": r["label"],
+                    "sessions": 0,
+                    "last_active": r["last_seen"],
+                }
+                for r in pdb.list_discovered_repos(conn)
+            ]
+
+        # hydrate=True so lanes carry session rows long enough to split the
+        # scoped ids by tier (build_tree's own flat list mixes explicit and
+        # auto claims); the payload is thinned back to overview shape
+        # (counts + previews only) before returning.
+        tree = project_tree.build_tree(
+            projects,
+            sessions,
+            discovered,
+            None,
+            preview_limit=preview_limit,
+            hydrate=True,
+            is_junk_root=_project_tree_junk_root(home),
+        )
+        scoped: List[str] = []
+        for node in tree["projects"]:
+            for repo in node.get("repos") or []:
+                for group in repo.get("groups") or []:
+                    scoped.extend(
+                        s["id"] for s in group.get("sessions") or [] if s.get("id")
+                    )
+                    group["sessions"] = []
+        return {
+            "projects": tree["projects"],
+            "active_id": active_id,
+            "scoped_session_ids": scoped,
+        }
+
+    loop = asyncio.get_running_loop()
+    try:
+        return await loop.run_in_executor(None, _run)
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.get("/api/profiles")

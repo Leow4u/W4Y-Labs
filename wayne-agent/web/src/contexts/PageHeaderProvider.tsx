@@ -48,10 +48,10 @@ export function PageHeaderProvider({
     [],
   );
 
-  // Colapsa o cabeçalho quando não há NADA para mostrar (título vazio +
-  // sem toolbar). Só acontece no modal de Configuração (a ConfigUser esvazia
-  // o título e não injeta toolbar nas seções) — nas rotas normais o título
-  // sempre existe, então o header nunca some ali. Elimina a faixa vazia.
+  // Collapses the header when there is NOTHING to show (empty title + no
+  // toolbar). Only happens in the Configuração modal (ConfigUser empties the
+  // title and injects no toolbar in the sections) — on normal routes the title
+  // always exists, so the header never vanishes there. Kills the empty strip.
   const showHeader = Boolean(displayTitle || afterTitle || end);
 
   return (

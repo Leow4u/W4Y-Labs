@@ -1,8 +1,8 @@
 /**
- * ClarifyPanel — a pergunta do agente no padrão Claude/desktop (Onda 3):
- * opções com BADGE DE LETRA A/B/C… que dobram como atalho de teclado
- * (paridade com o ClarifyTool do desktop, letterFor + KeyBadge); a letra
- * seguinte é "Outro" (campo livre). Clique ou tecla respondem na hora.
+ * ClarifyPanel — the agent's question in the Claude/desktop pattern (Onda 3):
+ * options with a LETTER BADGE A/B/C… that double as a keyboard shortcut
+ * (parity with the desktop ClarifyTool, letterFor + KeyBadge); the next letter
+ * is "Outro" (free-form field). Click or key answers right away.
  */
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
@@ -47,7 +47,7 @@ export function ClarifyPanel({
     onRespond(prompt.requestId, trimmed);
   };
 
-  // Teclas A/B/C… respondem na hora; a letra seguinte abre "Outro".
+  // Keys A/B/C… answer right away; the next letter opens "Outro".
   useEffect(() => {
     if (typing || !hasChoices) return;
     const onKey = (e: KeyboardEvent) => {

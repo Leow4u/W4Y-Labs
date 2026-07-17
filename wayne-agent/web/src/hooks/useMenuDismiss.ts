@@ -1,17 +1,17 @@
 import { useEffect } from "react";
 
 /**
- * Fecha um menu/popover ao clicar FORA dele (ou Esc) — via listener GLOBAL
- * de pointerdown no document (fase de captura).
+ * Closes a menu/popover on a click OUTSIDE it (or Esc) — via a GLOBAL
+ * pointerdown listener on the document (capture phase).
  *
- * Por que não só o backdrop `fixed inset-0`? O /chat é montado persistente
- * fora do <Routes> com stacking context próprio ACIMA do z-40 — cliques nele
- * nunca alcançavam o backdrop (feedback 09/07: "clicar em qualquer local da
- * tela não fecha o dropdown"). O listener no document é imune a stacking.
+ * Why not just the `fixed inset-0` backdrop? /chat is mounted persistently
+ * outside <Routes> with its own stacking context ABOVE z-40 — clicks on it
+ * never reached the backdrop (feedback 09/07: "clicking anywhere on the
+ * screen doesn't close the dropdown"). A document listener is immune to stacking.
  *
- * Marque o menu com data-menu-root={key} e o(s) botão(ões) gatilho com
- * data-menu-trigger={key} — pointerdown neles é ignorado (o próprio onClick
- * do gatilho/backdrop cuida do toggle, sem corrida fecha-e-reabre).
+ * Mark the menu with data-menu-root={key} and the trigger button(s) with
+ * data-menu-trigger={key} — pointerdown on them is ignored (the trigger's/
+ * backdrop's own onClick handles the toggle, with no close-and-reopen race).
  */
 export function useMenuDismiss(open: boolean, onClose: () => void, key: string) {
   useEffect(() => {

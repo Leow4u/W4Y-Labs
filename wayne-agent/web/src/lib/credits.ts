@@ -1,15 +1,15 @@
 /**
- * Créditos Work4You (Onda C — docs/BILLING-ARQUITETURA.md §3): o usuário vê
- * CRÉDITOS, nunca dólar. `créditos = custo-real × taxa`, onde a taxa embute a
- * margem e esconde a volatilidade do preço de LLM.
+ * Work4You credits (Onda C — docs/BILLING-ARQUITETURA.md §3): the user sees
+ * CREDITS, never dollars. `credits = real-cost × rate`, where the rate embeds
+ * the margin and hides LLM price volatility.
  *
- * CREDITS_PER_USD = 100 é a taxa OFICIAL do catálogo implementado no épico de
- * billing (commit 503485a: "créditos exibidos, 1 cr = $0,01" — Starter/Pro/Max
- * na casca/Stripe). Trocar aqui reprecifica toda a UI de utilização de uma vez
- * — mas precisa andar JUNTO com o catálogo da casca.
+ * CREDITS_PER_USD = 100 is the OFFICIAL rate of the catalog implemented in the
+ * billing epic (commit 503485a: "créditos exibidos, 1 cr = $0,01" — Starter/
+ * Pro/Max in the shell/Stripe). Changing it here reprices the whole usage UI at
+ * once — but it must move TOGETHER with the shell's catalog.
  *
- * SEGURANÇA: nenhum valor em US$ pode vazar pra UI do cliente — sempre passar
- * pelo usdToCredits antes de renderizar.
+ * SECURITY: no US$ value may leak into the customer UI — always go through
+ * usdToCredits before rendering.
  */
 export const CREDITS_PER_USD = 100;
 
@@ -17,7 +17,7 @@ export function usdToCredits(usd: number): number {
   return Math.round((usd || 0) * CREDITS_PER_USD);
 }
 
-/** 12345 → "12.345" (separador do locale ativo do navegador). */
+/** 12345 → "12.345" (separator of the browser's active locale). */
 export function formatCredits(n: number): string {
   try {
     return new Intl.NumberFormat().format(n);

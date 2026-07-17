@@ -1,19 +1,20 @@
 /**
- * EnvironmentCard — o "computador do Wayne" (Onda 2, referência Manus/Codex).
+ * EnvironmentCard — "Wayne's computer" (Onda 2, Manus/Codex reference).
  *
- * Card flutuante no canto do transcript mostrando o AMBIENTE da tarefa em
- * tempo real, tudo derivado de dados que já chegam pela conexão da sessão
- * (zero backend novo):
+ * Floating card in the transcript's corner showing the task's ENVIRONMENT in
+ * real time, all derived from data that already arrives over the session
+ * connection (zero new backend):
  *
- *   Tarefas      progress.steps (o todo vivo do turno)
- *   Subagentes   progress.subagents (subagent.* — Crew)
- *   Navegador    URLs extraídas das ferramentas web/browser
- *   Fontes       domínios únicos consultados (chips)
- *   Alterações   +N −M agregado dos inline_diff das ferramentas de edição
+ *   Tasks        progress.steps (the turn's live todo)
+ *   Subagents    progress.subagents (subagent.* — Crew)
+ *   Browser      URLs extracted from the web/browser tools
+ *   Sources      unique domains visited (chips)
+ *   Changes      +N −M aggregated from the edit tools' inline_diff
  *
- * Recolhe num chip ("Ambiente · resumo"); expande num painel. Preferência
- * do usuário em localStorage; sem preferência, auto-abre quando o turno
- * está rodando E há conteúdo — "ver tudo acontecendo" sem poluir o chat.
+ * Collapses into a chip ("Ambiente · resumo"); expands into a panel. The
+ * user's preference in localStorage; with no preference, auto-opens when the
+ * turn is running AND there is content — "see everything happening" without
+ * polluting the chat.
  */
 import { useEffect, useRef, useState } from "react";
 import {
@@ -81,8 +82,8 @@ export function EnvironmentCard({
   const hasContent =
     steps.length > 0 || subagents.length > 0 || urls.length > 0 || files.length > 0;
 
-  // Preferência: "open" | "chip" (localStorage). Sem preferência, auto-abre
-  // na 1ª vez que o turno roda com conteúdo.
+  // Preference: "open" | "chip" (localStorage). With no preference, auto-opens
+  // the 1st time the turn runs with content.
   const [open, setOpen] = useState<boolean>(() => {
     try {
       return window.localStorage.getItem(PREF_KEY) === "open";
@@ -97,7 +98,7 @@ export function EnvironmentCard({
     try {
       stored = window.localStorage.getItem(PREF_KEY);
     } catch {
-      /* modo privado */
+      /* private mode */
     }
     if (stored === null) {
       autoOpenedRef.current = true;
@@ -109,13 +110,13 @@ export function EnvironmentCard({
     try {
       window.localStorage.setItem(PREF_KEY, v ? "open" : "chip");
     } catch {
-      /* modo privado */
+      /* private mode */
     }
   };
 
-  // Painel completo de subagentes (Onda 6) — overlay a partir da seção.
+  // Full subagents panel (Onda 6) — overlay opened from the section.
   const [agentsOpen, setAgentsOpen] = useState(false);
-  // Relógio 1s pros tempos vivos dos subagentes.
+  // 1s clock for the subagents' live times.
   const [, tick] = useState(0);
   const anyRunning = subagents.some((s) => s.status === "running");
   useEffect(() => {
@@ -124,7 +125,7 @@ export function EnvironmentCard({
     return () => clearInterval(id);
   }, [anyRunning]);
 
-  // ── Overlay completo de subagentes (Onda 6) ──────────────────────
+  // ── Full subagents overlay (Onda 6) ──────────────────────────────
   const agentsOverlay = agentsOpen ? (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/20 p-6 backdrop-blur-[2px]"
@@ -188,7 +189,7 @@ export function EnvironmentCard({
 
   if (!hasContent && !busy) return null;
 
-  // ── Chip recolhido ────────────────────────────────────────────────
+  // ── Collapsed chip ────────────────────────────────────────────────
   if (!open) {
     const bits: string[] = [];
     if (subagents.length > 0) bits.push(`${subagents.length} ${t.chat.envAgents.toLowerCase()}`);
@@ -222,7 +223,7 @@ export function EnvironmentCard({
   }
 
 
-  // ── Card expandido ────────────────────────────────────────────────
+  // ── Expanded card ─────────────────────────────────────────────────
   const shownAgents = subagents.slice(0, 6);
   const lastUrl = urls[urls.length - 1];
   const olderUrls = urls.slice(0, -1).slice(-3).reverse();
@@ -256,7 +257,7 @@ export function EnvironmentCard({
       </div>
 
       <div className="min-h-0 space-y-3.5 overflow-y-auto px-3.5 py-3">
-        {/* Tarefas (todo vivo) */}
+        {/* Tasks (live todo) */}
         {steps.length > 0 && (
           <section className="space-y-1.5">
             <SectionTitle icon={Check} label={t.chat.envTasks} />
@@ -289,7 +290,7 @@ export function EnvironmentCard({
           </section>
         )}
 
-        {/* Subagentes (Crew) — o título abre o painel completo (Onda 6). */}
+        {/* Subagents (Crew) — the title opens the full panel (Onda 6). */}
         {subagents.length > 0 && (
           <section className="space-y-1.5">
             <button
@@ -329,7 +330,7 @@ export function EnvironmentCard({
           </section>
         )}
 
-        {/* Navegador — a última página que o agente olhou + anteriores */}
+        {/* Browser — the last page the agent looked at + earlier ones */}
         {lastUrl && (
           <section className="space-y-1.5">
             <SectionTitle icon={Globe} label={t.chat.envBrowser} />
@@ -360,7 +361,7 @@ export function EnvironmentCard({
           </section>
         )}
 
-        {/* Fontes — domínios únicos consultados */}
+        {/* Sources — unique domains visited */}
         {domains.length > 1 && (
           <section className="space-y-1.5">
             <SectionTitle icon={Globe} label={t.chat.envSources} />
@@ -382,7 +383,7 @@ export function EnvironmentCard({
           </section>
         )}
 
-        {/* Alterações — +N −M dos diffs */}
+        {/* Changes — +N −M from the diffs */}
         {files.length > 0 && (
           <section className="space-y-1.5">
             <SectionTitle icon={FileDiff} label={t.chat.envChanges} />
@@ -398,7 +399,7 @@ export function EnvironmentCard({
                   <span className="min-w-0 flex-1 truncate font-mono text-muted-foreground">
                     {f.path.split(/[/\\]/).pop()}
                   </span>
-                  {/* diffs sem formato +/− (ex. write inteiro) ficam sem números */}
+                  {/* diffs with no +/− format (e.g. a whole write) get no numbers */}
                   {f.added + f.removed > 0 && (
                     <span className="shrink-0 tabular-nums">
                       <span className="text-success">+{f.added}</span>{" "}

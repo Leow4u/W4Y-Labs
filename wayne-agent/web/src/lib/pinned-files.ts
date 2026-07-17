@@ -1,7 +1,8 @@
 /**
- * "Favoritar arquivo/pasta" — preferência do dispositivo (localStorage +
- * pub-sub leve), mesmo padrão de lib/pinned-projects.ts. Guarda o suficiente
- * pra renderizar no rail sem re-buscar: caminho absoluto, nome e se é pasta.
+ * "Favoritar arquivo/pasta" — device preference (localStorage + lightweight
+ * pub-sub), same pattern as lib/pinned-projects.ts. Stores just enough to
+ * render in the rail without re-fetching: absolute path, name and whether it
+ * is a folder.
  */
 export interface PinnedFile {
   path: string;
@@ -29,7 +30,7 @@ function write(items: PinnedFile[]) {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   } catch {
-    /* localStorage indisponível — favorito vira no-op, sem crash */
+    /* localStorage unavailable — pinning becomes a no-op, no crash */
   }
 }
 
@@ -58,7 +59,7 @@ export function toggleFilePin(item: PinnedFile) {
   notify();
 }
 
-/** Remove um favorito órfão (o alvo sumiu do disco). */
+/** Removes an orphaned pin (the target vanished from disk). */
 export function removePinnedFile(path: string) {
   if (!cache.some((f) => f.path === path)) return;
   cache = cache.filter((f) => f.path !== path);

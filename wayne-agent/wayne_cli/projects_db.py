@@ -139,9 +139,28 @@ def _now() -> int:
     return int(time.time())
 
 
+# A path that is already absolute on Windows: a drive letter (``C:\``, ``C:/``)
+# or a UNC share (``\\server\share``).
+_WIN_ABS_RE = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\)")
+
+
 def _normalize_path(path: str) -> str:
-    """Absolute, user-expanded, separator-normalized path (no trailing sep)."""
-    p = os.path.abspath(os.path.expanduser(str(path).strip()))
+    """Absolute, user-expanded, separator-normalized path (no trailing sep).
+
+    A Windows-absolute path is taken as already absolute even when this process
+    runs on POSIX. That case is real for us: with the Local (desktop)
+    environment the folder lives on the USER's machine while the agent runs on a
+    Linux host, so ``os.path.abspath`` would see ``C:\\DEV\\x`` as relative and
+    prepend this host's cwd — producing ``/app/C:\\DEV\\x``, which then matches
+    no session and silently drops the folder out of its project.
+
+    Paths local to this host keep the previous behaviour exactly (on Windows
+    ``abspath`` was already a no-op for these; on POSIX they don't match the
+    pattern).
+    """
+    p = os.path.expanduser(str(path).strip())
+    if not _WIN_ABS_RE.match(p):
+        p = os.path.abspath(p)
     return p.rstrip("/\\") or p
 
 
@@ -697,8 +716,14 @@ def project_for_path(
     best_len = -1
     for row in conn.execute(sql).fetchall():
         folder = row["folder"]
-        if target == folder or target.startswith(folder.rstrip("/\\") + os.sep) or \
-                target.startswith(folder.rstrip("/\\") + "/"):
+        stem = folder.rstrip("/\\")
+        # Accept BOTH separators regardless of the host: a Local (desktop)
+        # folder is a Windows path even when this process runs on Linux, where
+        # ``os.sep`` alone would never match its nested paths. Mirrors the
+        # grouping index in project_tree, which already splits on both — without
+        # this the two disagree about who owns a nested local path.
+        nested = any(target.startswith(stem + sep) for sep in (os.sep, "/", "\\"))
+        if target == folder or nested:
             if len(folder) > best_len:
                 best_len = len(folder)
                 best_pid = row["pid"]

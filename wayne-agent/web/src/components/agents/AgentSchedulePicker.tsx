@@ -1,14 +1,14 @@
 /**
- * AgentSchedulePicker — o compositor de agenda das rotinas do agente.
+ * AgentSchedulePicker — the schedule composer for the agent's routines.
  *
- * Feedback 10/07 ("a rotina quem escolhe é o usuário; ele pode escolher o
- * horário, dia que quiser"): não são 3 presets fixos — o usuário compõe
- * livremente frequência + horário + dia. Reusa a lógica nativa da tela de
- * Cron (lib/schedule: ScheduleBuilderState + buildScheduleString) e os rótulos
- * já traduzidos ×16 (t.cron.scheduleModes, com os nomes de dias) — zero i18n
- * novo. Estilo Editorial pra casar com o form do agente; sem a escotilha de
- * cron cru (isso vive no chat em linguagem natural) e sem "uma vez" (rotina =
- * recorrente). Controlado: o pai é dono do ScheduleBuilderState.
+ * Feedback 10/07 ("the user is the one who chooses the routine; they can pick
+ * whatever time and day they want"): it isn't 3 fixed presets — the user
+ * freely composes frequency + time + day. Reuses the native logic from the
+ * Cron screen (lib/schedule: ScheduleBuilderState + buildScheduleString) and
+ * the labels already translated ×16 (t.cron.scheduleModes, with the day names)
+ * — zero new i18n. Editorial style to match the agent's form; no raw-cron
+ * escape hatch (that lives in the chat in natural language) and no "uma vez"
+ * (routine = recurring). Controlled: the parent owns the ScheduleBuilderState.
  */
 import { useI18n } from "@/i18n";
 import {
@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const inputCls =
   "rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-live/50";
 
-// Modos que fazem sentido pra uma rotina de agente (sem "once"/"custom").
+// Modes that make sense for an agent routine (no "once"/"custom").
 const MODES: ScheduleMode[] = ["daily", "weekly", "monthly", "interval"];
 
 export function AgentSchedulePicker({
@@ -43,7 +43,7 @@ export function AgentSchedulePicker({
       weekdays: on ? value.weekdays.filter((x) => x !== d) : [...value.weekdays, d],
     });
   };
-  // Se veio um agendamento exótico (parse caiu em once/custom), mostra como diário.
+  // If an exotic schedule came in (parse landed on once/custom), show it as daily.
   const mode = MODES.includes(value.mode) ? value.mode : "daily";
   const hasTime = mode === "daily" || mode === "weekly" || mode === "monthly";
 

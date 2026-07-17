@@ -106,10 +106,10 @@ function isTerminalTelegramOnboardingError(error: unknown): boolean {
   return /\b410\b/.test(message) && /\b(expired|claimed|gone)\b/i.test(message);
 }
 
-// Curadoria dos canais: só os principais aparecem por padrão (WhatsApp
-// primeiro); o resto fica atrás de "Mostrar mais"; o encanamento técnico
-// (API/webhook/relay internos) some para o usuário — visível só em ?full=1.
-// Mesmo princípio sistema×usuário das outras telas do produto.
+// Channel curation: only the main ones show by default (WhatsApp first); the
+// rest sits behind "Mostrar mais"; the technical plumbing (internal
+// API/webhook/relay) disappears for the user — visible only under ?full=1.
+// Same system×user principle as the product's other screens.
 const FEATURED_CHANNELS = [
   "whatsapp",
   "telegram",
@@ -132,10 +132,10 @@ const SYSTEM_CHANNELS = new Set<string>([
   "wecom_callback",
 ]);
 
-// Logo real da marca (CDN de logos da Composio) por canal — só slugs que
-// existem MESMO no catálogo (chute → tile em branco). Cobre todos os canais
-// em destaque. Os de nicho ("Mostrar mais") não têm logo no catálogo e caem
-// no tile de inicial. Email/SMS são protocolos, não marcas → glifo limpo.
+// Real brand logo (Composio's logo CDN) per channel — only slugs that REALLY
+// exist in the catalog (a guess → blank tile). Covers every featured channel.
+// The niche ones ("Mostrar mais") have no logo in the catalog and fall back to
+// the initial tile. Email/SMS are protocols, not brands → clean glyph.
 const CHANNEL_LOGO: Record<string, string> = {
   whatsapp: "whatsapp",
   whatsapp_cloud: "whatsapp",
@@ -190,11 +190,11 @@ export default function ChannelsPage() {
     "wayne gateway start",
   );
   const [loading, setLoading] = useState(true);
-  // Escopo dos canais: "global" = instalação padrão (agente principal do
-  // tenant) × nome do profile = canais próprios daquele agente. O backend de
-  // messaging já é profile-scoped; aqui só oferecemos a troca. Cada agente tem
-  // seu PRÓPRIO canal (bot/token próprio) — não faz sentido compartilhar
-  // credenciais entre agentes, então isto é seleção de alvo, não fan-out.
+  // Channel scope: "global" = default install (the tenant's main agent) ×
+  // profile name = that agent's own channels. The messaging backend is already
+  // profile-scoped; here we only offer the switch. Each agent has its OWN
+  // channel (its own bot/token) — sharing credentials between agents makes no
+  // sense, so this is target selection, not fan-out.
   const [scope, setScope] = useState("global");
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const profileParam = scope === "global" ? undefined : scope;
@@ -221,9 +221,9 @@ export default function ChannelsPage() {
 
   const gatewayRunning = platforms.length > 0 && platforms[0].gateway_running;
 
-  // Curadoria: destaque (os principais, WhatsApp primeiro) × extra ("Mostrar
-  // mais") × sistema (encanamento técnico, escondido do usuário). Na visão
-  // interna (?full=1) mostramos tudo, sem curadoria — é a superfície de admin.
+  // Curation: featured (the main ones, WhatsApp first) × extra ("Mostrar
+  // mais") × system (technical plumbing, hidden from the user). In the internal
+  // view (?full=1) we show everything, uncurated — it is the admin surface.
   const internal = isInternalView();
   const { featured, extra } = useMemo(() => {
     const byId = new Map(platforms.map((p) => [p.id, p]));
@@ -261,7 +261,7 @@ export default function ChannelsPage() {
     load().finally(() => setLoading(false));
   }, [load]);
 
-  // Lista de agentes para o seletor de escopo (default fica de fora — é o "global").
+  // Agent list for the scope picker (default is left out — it is the "global").
   useEffect(() => {
     api
       .getProfiles()
@@ -371,9 +371,9 @@ export default function ChannelsPage() {
   };
 
   useLayoutEffect(() => {
-    // Curadoria: o botão "Restart gateway" é encanamento técnico — só aparece
-    // na visão interna (?full=1). Para o usuário-final o restart acontece nos
-    // bastidores após salvar.
+    // Curation: the "Restart gateway" button is technical plumbing — it only
+    // shows in the internal view (?full=1). For the end user the restart
+    // happens behind the scenes after saving.
     if (!isInternalView()) {
       setEnd(null);
       return () => setEnd(null);
@@ -410,8 +410,8 @@ export default function ChannelsPage() {
     <div className="flex flex-col gap-6">
       <Toast toast={toast} />
 
-      {/* Escopo dos canais: sistema (global) × de um agente. Mesmo padrão dos
-          Conectores; o backend de messaging já resolve por profile. */}
+      {/* Channel scope: system (global) × a specific agent's. Same pattern as
+          Connectors; the messaging backend already resolves per profile. */}
       <div className="flex min-w-[220px] max-w-xs items-center gap-2">
         <Select value={scope} onValueChange={setScope} aria-label={t.connectors.agent}>
           <SelectOption value="global">{t.connectors.scopeGlobal}</SelectOption>
@@ -425,8 +425,8 @@ export default function ChannelsPage() {
         </Select>
       </div>
 
-      {/* Restart banner — encanamento técnico (restart do gateway). Só na
-          visão interna (?full=1); para o usuário o restart é nos bastidores. */}
+      {/* Restart banner — technical plumbing (gateway restart). Internal view
+          (?full=1) only; for the user the restart is behind the scenes. */}
       {isInternalView() && restartNeeded && (
         <Card className="border-warning/50">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -449,8 +449,9 @@ export default function ChannelsPage() {
         </Card>
       )}
 
-      {/* Banner "gateway não está rodando" com o comando CLI — jargão técnico,
-          escondido do usuário-final e visível só na visão interna (?full=1). */}
+      {/* "Gateway is not running" banner with the CLI command — technical
+          jargon, hidden from the end user and visible only in the internal
+          view (?full=1). */}
       {isInternalView() && !gatewayRunning && !restartNeeded && (
         <Card className="border-border">
           <CardContent className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
@@ -617,8 +618,8 @@ export default function ChannelsPage() {
                       <span className="text-xs text-muted-foreground">
                         {platform.description}
                       </span>
-                      {/* Mensagem de erro crua do runtime (startup_failed/fatal)
-                          — encanamento técnico, só na visão interna (?full=1). */}
+                      {/* Raw runtime error message (startup_failed/fatal) —
+                          technical plumbing, internal view (?full=1) only. */}
                       {isInternalView() && platform.error_message && (
                         <span className="text-xs text-destructive">
                           {platform.error_message}
@@ -680,7 +681,7 @@ export default function ChannelsPage() {
         })}
       </div>
 
-      {/* Mostrar mais / menos — só no user-facing (no ?full=1 já vem tudo). */}
+      {/* Show more / less — user-facing only (under ?full=1 everything is already there). */}
       {!internal && extra.length > 0 && (
         <button
           type="button"
@@ -800,7 +801,7 @@ function TelegramOnboardingPanel({
     setDetectedOwnerId(null);
     setNewAllowedId("");
     try {
-      const res = await api.startTelegramOnboarding({ bot_name: "Wayne Agent" });
+      const res = await api.startTelegramOnboarding({ bot_name: "Work4You" });
       const dataUrl = await QRCode.toDataURL(res.qr_payload, {
         errorCorrectionLevel: "M",
         margin: 1,

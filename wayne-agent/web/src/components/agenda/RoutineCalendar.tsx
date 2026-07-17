@@ -1,13 +1,13 @@
 /**
- * RoutineCalendar — a visão "Agenda" de verdade (Onda 3): uma grade de MÊS com
- * as próximas execuções das rotinas plotadas nos dias em que rodam, coloridas
- * por AGENTE. Clicar num evento abre a rotina.
+ * RoutineCalendar — the real "Agenda" view (Onda 3): a MONTH grid with the
+ * routines' next runs plotted on the days they run, colored by AGENT. Clicking
+ * an event opens the routine.
  *
- * Projeção client-side a partir do schedule (reusa lib/schedule):
- *   - diário → todo dia · semanal → nos dias marcados · mensal → no dia do mês;
- *   - intervalo curto (min/h) → marca todo dia com "↻";
- *   - intervalo em dias / uma-vez / cron exótico → um ponto no next_run_at.
- * Sem backend novo.
+ * Client-side projection from the schedule (reuses lib/schedule):
+ *   - daily → every day · weekly → on the checked days · monthly → on the day of the month;
+ *   - short interval (min/h) → marks every day with "↻";
+ *   - interval in days / once / exotic cron → a single dot on next_run_at.
+ * No new backend.
  */
 import { useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Repeat } from "lucide-react";
@@ -57,7 +57,7 @@ function planFor(job: CronJob): Plan {
 
 interface DayEvent {
   job: CronJob;
-  time: string; // "" quando é intervalo curto
+  time: string; // "" when it's a short interval
   repeat: boolean;
 }
 
@@ -98,7 +98,7 @@ export function RoutineCalendar({
     [cursor, locale],
   );
 
-  // Grade de 6 semanas começando no domingo da semana do dia 1.
+  // 6-week grid starting on the Sunday of the week containing the 1st.
   const cells = useMemo(() => {
     const first = new Date(cursor.getFullYear(), cursor.getMonth(), 1);
     const start = new Date(first.getFullYear(), first.getMonth(), 1 - first.getDay());
@@ -119,7 +119,7 @@ export function RoutineCalendar({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      {/* Barra do mês. */}
+      {/* Month bar. */}
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -147,7 +147,7 @@ export function RoutineCalendar({
         </button>
       </div>
 
-      {/* Cabeçalho dos dias da semana. */}
+      {/* Weekday header. */}
       <div className="grid grid-cols-7 gap-px">
         {strings.weekdaysShort.map((d, i) => (
           <div key={i} className="px-2 py-1 type-micro uppercase tracking-wide text-muted-foreground">
@@ -156,7 +156,7 @@ export function RoutineCalendar({
         ))}
       </div>
 
-      {/* Grade. */}
+      {/* Grid. */}
       <div className="grid flex-1 grid-cols-7 grid-rows-6 gap-px overflow-hidden rounded-xl border border-border bg-border">
         {cells.map((date, i) => {
           const inMonth = date.getMonth() === cursor.getMonth();

@@ -1,14 +1,14 @@
 /**
- * TeamCanvas — a Equipe como um organograma vivo (módulo Agentes, Onda 2).
+ * TeamCanvas — the Team as a living org chart (Agents module, Onda 2).
  *
- * Benchmark: Google Cloud Agent Designer (canvas hierárquico raiz → agentes)
- * com a nossa curadoria Editorial. O canvas é um CONFIGURADOR/raio-X — nunca
- * um motor de pipeline: a execução continua LLM-driven (delegate/kanban/cron).
+ * Benchmark: Google Cloud Agent Designer (hierarchical root → agents canvas)
+ * with our Editorial curation. The canvas is a CONFIGURATOR/X-ray — never a
+ * pipeline engine: execution stays LLM-driven (delegate/kanban/cron).
  *
- * Hierarquia v1: o agente principal (default) no topo; os demais como time
- * direto. Reposicionar/re-parentear (sidecar team.json) fica pra Onda 2.5.
- * Cada card mostra o pulso operacional do funcionário: custo 30d em créditos
- * (nunca US$ — regra de billing) e a próxima rotina agendada.
+ * Hierarchy v1: the main agent (default) at the top; the rest as its direct
+ * team. Repositioning/re-parenting (team.json sidecar) is left for Onda 2.5.
+ * Each card shows the employee's operational pulse: 30d cost in credits
+ * (never US$ — billing rule) and the next scheduled routine.
  */
 import { useEffect, useMemo } from "react";
 import dagre from "dagre";
@@ -32,18 +32,17 @@ import { cn } from "@/lib/utils";
 import { formatCredits } from "@/lib/credits";
 import { useI18n } from "@/i18n";
 
-/** O que o canvas precisa saber de cada agente pra desenhar o card. */
+/** What the canvas needs to know about each agent to draw the card. */
 export interface TeamAgentCard {
-  /** slug do profile (id). */
+  /** profile slug (id). */
   name: string;
   displayName: string;
   monogram: string;
   specialty: string;
   isActive: boolean;
-  isDefault: boolean;
-  /** Custo 30d em créditos; null = ainda carregando. */
+  /** 30d cost in credits; null = still loading. */
   credits30: number | null;
-  /** Próxima rotina (display humano do schedule); null = sem rotina. */
+  /** Next routine (human display of the schedule); null = no routine. */
   nextRun: string | null;
   routineCount: number | null;
 }
@@ -56,7 +55,7 @@ const NODE_H = 148;
 const ADD_H = 96;
 
 /* ------------------------------------------------------------------ */
-/* Nós customizados (Editorial DS)                                     */
+/* Custom nodes (Editorial DS)                                        */
 /* ------------------------------------------------------------------ */
 
 function AgentNode({ data }: NodeProps<AgentNodeType>) {
@@ -96,7 +95,7 @@ function AgentNode({ data }: NodeProps<AgentNodeType>) {
           </p>
         </div>
       </div>
-      {/* Pulso operacional: custo (créditos) + rotina. */}
+      {/* Operational pulse: cost (credits) + routine. */}
       <div className="mt-3 flex items-center gap-2 border-t border-border/70 pt-2.5">
         <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
           <Coins className="h-3 w-3" />
@@ -127,7 +126,7 @@ function AddNode({ data }: NodeProps<AddNodeType>) {
   );
 }
 
-// Fora do componente — React Flow exige referência estável.
+// Outside the component — React Flow requires a stable reference.
 const nodeTypes: NodeTypes = { agent: AgentNode, add: AddNode };
 
 /* ------------------------------------------------------------------ */
@@ -166,7 +165,6 @@ export function TeamCanvas({
   const { t } = useI18n();
 
   const { builtNodes, builtEdges, teamKey } = useMemo(() => {
-    const root = agents.find((a) => a.isDefault) ?? agents[0];
     const nodes: Node[] = agents.map((a) => ({
       id: a.name,
       type: "agent" as const,
@@ -179,29 +177,19 @@ export function TeamCanvas({
       position: { x: 0, y: 0 },
       data: { label: t.agents.newAgent },
     });
+    // NO edges: agents have no hierarchy. list_profiles() returns a FLAT list —
+    // nothing in the backend makes one agent the parent of another (delegation
+    // runs inside a profile; cross-agent work is orchestrated by the kanban).
+    // The old org chart hung every agent off the "default" profile, which is not
+    // an agent at all but the installation itself — so the drawing invented a
+    // boss that does not exist, and forced the account's own root onto the
+    // screen just to have somewhere for the lines to start.
+    // With no edges dagre ranks every node together: one honest row of peers.
     const edges: Edge[] = [];
-    if (root) {
-      for (const a of agents) {
-        if (a.name === root.name) continue;
-        edges.push({
-          id: `e-${root.name}-${a.name}`,
-          source: root.name,
-          target: a.name,
-          type: "smoothstep",
-        });
-      }
-      edges.push({
-        id: `e-${root.name}-__add`,
-        source: root.name,
-        target: "__add",
-        type: "smoothstep",
-        style: { strokeDasharray: "5 4" },
-      });
-    }
     return {
       builtNodes: layoutNodes(nodes, edges),
       builtEdges: edges,
-      // Identidade da equipe: mudou a composição → re-layout; só dados → preserva drag.
+      // Team identity: composition changed → re-layout; data only → preserves drag.
       teamKey: agents.map((a) => a.name).join("|"),
     };
   }, [agents, t.agents.newAgent]);
@@ -214,9 +202,9 @@ export function TeamCanvas({
     setNodes((prev) => {
       const sameTeam =
         prev.length === builtNodes.length && builtNodes.every((n) => prev.some((p) => p.id === n.id));
-      if (!sameTeam) return builtNodes; // equipe mudou → layout novo
-      // Mesma equipe (ex.: custo/rotina chegaram) → troca só os dados,
-      // preservando qualquer arrasto que o usuário fez.
+      if (!sameTeam) return builtNodes; // team changed → new layout
+      // Same team (e.g. cost/routine arrived) → swap only the data,
+      // preserving any dragging the user did.
       return prev.map((p) => {
         const next = builtNodes.find((n) => n.id === p.id);
         return next ? { ...p, data: next.data } : p;

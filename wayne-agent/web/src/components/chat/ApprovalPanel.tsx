@@ -1,16 +1,16 @@
 /**
- * ApprovalPanel — pedido de permissão no formato do Claude Code (Onda 3):
- * a descrição, o comando SEMPRE visível num bloco mono, e as opções como
- * LISTA com atalhos numéricos:
+ * ApprovalPanel — permission request in the Claude Code format (Onda 3):
+ * the description, the command ALWAYS visible in a mono block, and the options
+ * as a LIST with numeric shortcuts:
  *
  *   [1] Sim, executar                (Enter / Ctrl+Enter)
  *   [2] Sim, permitir nesta sessão
- *   [3] Sempre permitir              (2 toques — grava permanente)
+ *   [3] Sempre permitir              (2 taps — writes permanently)
  *   [Esc] Não
  *
- * Teclado global enquanto o painel está montado (o composer fica desativado
- * durante prompts bloqueantes). "Sempre permitir" exige confirmação dupla
- * porque persiste no config do agente.
+ * Global keyboard while the panel is mounted (the composer is disabled during
+ * blocking prompts). "Sempre permitir" requires double confirmation because it
+ * persists in the agent's config.
  */
 import { useEffect, useState } from "react";
 import { ShieldAlert } from "lucide-react";
@@ -68,7 +68,7 @@ export function ApprovalPanel({
   onRespond: (choice: ApprovalChoice) => void;
 }) {
   const { t } = useI18n();
-  // "Sempre permitir" grava no config — exige o 2º toque.
+  // "Sempre permitir" writes to the config — requires the 2nd tap.
   const [armAlways, setArmAlways] = useState(false);
 
   useEffect(() => {

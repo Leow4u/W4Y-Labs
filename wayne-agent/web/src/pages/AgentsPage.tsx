@@ -1,15 +1,15 @@
 /**
- * AgentsPage — a Equipe (módulo Agentes): o organograma vivo dos funcionários
- * de IA. Benchmark Google Cloud Agent Designer com curadoria Editorial:
- * canvas React Flow (agente principal → time), cada card com o pulso
- * operacional (custo 30d em créditos + próxima rotina). Clicar num agente
- * abre a PÁGINA de workflow dele (AgentWorkflowPage, benchmark Stack AI) —
- * o raio-X profundo com nós Gatilhos/Modelo/Habilidades/MCP/Canais/Resultados.
+ * AgentsPage — the Team (Agents module): the living org chart of the AI
+ * employees. Benchmark Google Cloud Agent Designer with Editorial curation:
+ * React Flow canvas (main agent → team), each card with the operational pulse
+ * (30d cost in credits + next routine). Clicking an agent opens its workflow
+ * PAGE (AgentWorkflowPage, benchmark Stack AI) — the deep X-ray with
+ * Triggers/Model/Skills/MCP/Channels/Results nodes.
  *
- * Curadoria de produto: em vez de "perfis" (jargão: SOUL.md, gateway, MCP),
- * o usuário vê AGENTES. Reaproveita 100% os endpoints /api/profiles + ?profile=
- * (sem backend novo). A página admin completa continua atrás de `?full=1`.
- * Submódulos vivem no dropdown da sidebar (SidebarNavGroup) — sem abas.
+ * Product curation: instead of "profiles" (jargon: SOUL.md, gateway, MCP),
+ * the user sees AGENTS. Reuses the /api/profiles + ?profile= endpoints 100%
+ * (no new backend). The full admin page stays behind `?full=1`.
+ * Submodules live in the sidebar dropdown (SidebarNavGroup) — no tabs.
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -26,20 +26,20 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 
-/** "redator-financeiro" → "Redator Financeiro" (nome de exibição). */
+/** "redator-financeiro" → "Redator Financeiro" (display name). */
 function prettify(name: string): string {
   const s = name.replace(/[-_]+/g, " ").trim();
   return s.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-/** Iniciais para o avatar do card. */
+/** Initials for the card's avatar. */
 function monogram(name: string): string {
   const parts = prettify(name).split(/\s+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return prettify(name).slice(0, 2).toUpperCase();
 }
 
-/** Pulso operacional por agente, carregado em segundo plano. */
+/** Operational pulse per agent, loaded in the background. */
 interface AgentExtras {
   credits30: number;
   nextRun: string | null;
@@ -72,10 +72,10 @@ export default function AgentsPage() {
     load();
   }, [load]);
 
-  // Agenda em frase humana localizada (reusa a lógica da tela de Cron).
+  // Schedule as a localized human sentence (reuses the Cron screen's logic).
   const describeSchedule = useScheduleText();
 
-  // Pulso operacional (custo 30d + rotinas) — em paralelo, sem travar o canvas.
+  // Operational pulse (30d cost + routines) — in parallel, without blocking the canvas.
   const loadExtras = useCallback(
     (names: string[]) => {
       for (const name of names) {
@@ -116,7 +116,7 @@ export default function AgentsPage() {
     [activeName],
   );
 
-  // Botão "Novo agente" no header — o funil de criação é o Início rápido.
+  // "Novo agente" button in the header — the creation funnel is the quick start.
   useEffect(() => {
     setEnd(
       <Button size="sm" onClick={() => navigate("/profiles/quickstart")}>
@@ -127,25 +127,35 @@ export default function AgentsPage() {
     return () => setEnd(null);
   }, [setEnd, t.agents.newAgent, navigate]);
 
+  // The Team shows the agents the user CREATED — nothing else.
+  //
+  // The "default" profile is not an agent: it IS the installation. Natively it's
+  // the "default (pre-profile) WAYNE_HOME" (wayne_cli/profiles.py) — the account
+  // root that owns the model, the skills, the MCP servers and the channels every
+  // real agent inherits. list_profiles() only synthesizes a card for it so tools
+  // have something to point at. Showing it here invited the user to edit or
+  // delete the account's own foundation. It stays reachable in the internal
+  // profiles admin (?full=1), where that's the point.
   const cards: TeamAgentCard[] = useMemo(
     () =>
-      profiles.map((p) => ({
-        name: p.name,
-        displayName: prettify(p.name),
-        monogram: monogram(p.name),
-        specialty: p.description?.trim() ?? "",
-        isActive: isActive(p),
-        isDefault: Boolean(p.is_default),
-        credits30: extras[p.name]?.credits30 ?? null,
-        nextRun: extras[p.name]?.nextRun ?? null,
-        routineCount: extras[p.name]?.routineCount ?? null,
-      })),
+      profiles
+        .filter((p) => !p.is_default)
+        .map((p) => ({
+          name: p.name,
+          displayName: prettify(p.name),
+          monogram: monogram(p.name),
+          specialty: p.description?.trim() ?? "",
+          isActive: isActive(p),
+          credits30: extras[p.name]?.credits30 ?? null,
+          nextRun: extras[p.name]?.nextRun ?? null,
+          routineCount: extras[p.name]?.routineCount ?? null,
+        })),
     [profiles, extras, isActive],
   );
 
-  // Sem legenda didática e sem max-width: a tela É o canvas (feedback 10/07 —
-  // sistema profissional se explica sozinho e usa o espaço todo). Sem flex-1
-  // no holder: flex-basis 0% derrota o height inline no eixo do flex.
+  // No didactic caption and no max-width: the screen IS the canvas (feedback
+  // 10/07 — a professional system explains itself and uses the whole space). No
+  // flex-1 on the holder: flex-basis 0% defeats the inline height on the flex axis.
   return (
     <div className="w-full px-3 py-3">
       {loading ? (
