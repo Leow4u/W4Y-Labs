@@ -68,6 +68,28 @@ export async function requestReconfigure(app: string, plan: "base" | "premium"):
   }
 }
 
+// Garante a chave capada na máquina do tenant: o provisionador CRIA a runtime
+// key OpenRouter (limite = teto) E a injeta como secret OPENROUTER_API_KEY,
+// atomicamente, devolvendo só o hash (a key crua nunca trafega). Usado na
+// ativação de plano quando é preciso uma chave nova; sem isso a instância
+// seguiria na chave antiga (sem o teto rígido). Re-limites reusam a mesma chave
+// (via provisionTenantKey) e não passam por aqui. Retorna o hash ou null (falha
+// → o reconciliador repara).
+export async function requestEnsureKey(
+  app: string,
+  tenantId: string,
+  limitUsd: number,
+): Promise<string | null> {
+  try {
+    const r = await call("/ensure-key", { app, tenantId, limitUsd });
+    if (!r.ok) return null;
+    const j = (await r.json().catch(() => null)) as { hash?: string } | null;
+    return j?.hash ?? null;
+  } catch {
+    return null;
+  }
+}
+
 // Pivô desktop: pede ao provisionador uma runtime key OpenRouter POR
 // DISPOSITIVO (nova, separada da key do Fly), com limite = crédito do plano.
 // É o único fluxo em que a chave CRUA transita pela casca — segue direto

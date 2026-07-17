@@ -9,32 +9,91 @@
 import "server-only";
 
 // ---- catálogo de planos (price IDs criados no Stripe em modo teste) --------
-export type Plan = "free" | "plus" | "super" | "ultra";
+export type Plan = "free" | "starter" | "pro" | "max";
+export type BillingInterval = "month" | "year";
 
 export interface PlanDef {
   key: Plan;
   label: string;
-  priceBrlMonth: number; // exibição
-  creditsUsd: number; // limite da runtime key OpenRouter
-  stripePriceId: string | null; // null = Free (sem checkout)
+  priceUsdMonth: number; // exibição (US$/mês)
+  priceUsdYear: number; // cobrança anual (≈ 10× mensal = ~2 meses grátis)
+  creditsUsd: number; // limite da runtime key OpenRouter (custo/teto real)
+  stripePriceIdMonth: string | null; // null = sem checkout (Free ou price não configurado)
+  stripePriceIdYear: string | null;
   rolloverUsd: number;
+  trialDays: number; // dias de trial grátis na 1ª assinatura (0 = sem trial)
 }
 
+// Unidade "créditos" exibida ao usuário: 1 crédito = US$ 0,01. Esconde o custo
+// financeiro real (US$) atrás de uma contagem de créditos (estilo Manus/Grok).
+export const CREDIT_USD = 0.01;
+export function creditsForDisplay(usd: number): number {
+  return Math.round(usd / CREDIT_USD);
+}
+
+// Allowance do trial gratuito (Free): um "gostinho" com teto pequeno na chave
+// OpenRouter, dado no onboarding antes de assinar um plano pago.
+export const FREE_TRIAL_USD = 3;
+
+// Trial de lançamento: 7 dias por US$ 0 na 1ª assinatura paga (isca de entrada,
+// modelo Grok "Experimente por $0.00"). Vai em subscription_data.trial_period_days.
+export const DEFAULT_TRIAL_DAYS = 7;
+
+// price ID de env (criado como price de teste na Stripe no go-live); "" → null.
+function envPrice(name: string): string | null {
+  return process.env[name]?.trim() || null;
+}
+
+// Catálogo de planos INDIVIDUAIS (preço em US$ — decisão do Leonardo 2026-07-07).
+// creditsUsd = teto de gasto da runtime key (custo máximo); crédito exibido =
+// creditsForDisplay(creditsUsd). Anual ≈ 10× mensal (2 meses grátis). Price IDs
+// vêm do ambiente — null desabilita o checkout até configurá-los no go-live.
 export const PLANS: Record<Plan, PlanDef> = {
-  free: { key: "free", label: "Free", priceBrlMonth: 0, creditsUsd: 0, stripePriceId: null, rolloverUsd: 0 },
-  plus: { key: "plus", label: "Plus", priceBrlMonth: 20, creditsUsd: 4, stripePriceId: "price_1TpffiCn608ngT3WedTcDajk", rolloverUsd: 2 },
-  super: { key: "super", label: "Super", priceBrlMonth: 100, creditsUsd: 22, stripePriceId: "price_1TpffjCn608ngT3Wc7U646sw", rolloverUsd: 10 },
-  ultra: { key: "ultra", label: "Ultra", priceBrlMonth: 200, creditsUsd: 45, stripePriceId: "price_1TpfflCn608ngT3Wbg5HQLTa", rolloverUsd: 20 },
+  free: {
+    key: "free", label: "Free", priceUsdMonth: 0, priceUsdYear: 0, creditsUsd: 0,
+    stripePriceIdMonth: null, stripePriceIdYear: null, rolloverUsd: 0, trialDays: 0,
+  },
+  starter: {
+    key: "starter", label: "Starter", priceUsdMonth: 19, priceUsdYear: 190, creditsUsd: 6,
+    stripePriceIdMonth: envPrice("STRIPE_PRICE_STARTER"), stripePriceIdYear: envPrice("STRIPE_PRICE_STARTER_YEAR"),
+    rolloverUsd: 3, trialDays: DEFAULT_TRIAL_DAYS,
+  },
+  pro: {
+    key: "pro", label: "Pro", priceUsdMonth: 49, priceUsdYear: 490, creditsUsd: 16,
+    stripePriceIdMonth: envPrice("STRIPE_PRICE_PRO"), stripePriceIdYear: envPrice("STRIPE_PRICE_PRO_YEAR"),
+    rolloverUsd: 8, trialDays: DEFAULT_TRIAL_DAYS,
+  },
+  max: {
+    key: "max", label: "Max", priceUsdMonth: 99, priceUsdYear: 990, creditsUsd: 38,
+    stripePriceIdMonth: envPrice("STRIPE_PRICE_MAX"), stripePriceIdYear: envPrice("STRIPE_PRICE_MAX_YEAR"),
+    rolloverUsd: 19, trialDays: DEFAULT_TRIAL_DAYS,
+  },
 };
 
-export function planByPriceId(priceId: string): PlanDef | undefined {
-  return Object.values(PLANS).find((p) => p.stripePriceId === priceId);
+// Preço e price ID por intervalo (mensal/anual) — usados pela UI e pelo checkout.
+export function planPrice(def: PlanDef, interval: BillingInterval): number {
+  return interval === "year" ? def.priceUsdYear : def.priceUsdMonth;
+}
+export function planPriceId(def: PlanDef, interval: BillingInterval): string | null {
+  return interval === "year" ? def.stripePriceIdYear : def.stripePriceIdMonth;
 }
 
-// Regime da máquina Fly por plano: Super/Ultra = sempre-acesa (canais
-// persistentes/"funcionário 24h"); Free/Plus = dorme ociosa (suspend).
+// Conta empresarial (aba "Empresas"): Business por assento + Enterprise (contato).
+// O billing por assento + gestão de equipe é FASE PRÓPRIA — aqui só o dado de
+// exibição do card (o "Criar equipe" ainda não faz checkout por assento).
+export const TEAM_SEAT_USD_MONTH = 39;
+
+export function planByPriceId(priceId: string): PlanDef | undefined {
+  if (!priceId) return undefined; // não casar contra planos sem price configurado
+  return Object.values(PLANS).find(
+    (p) => p.stripePriceIdMonth === priceId || p.stripePriceIdYear === priceId,
+  );
+}
+
+// Regime da máquina Fly por plano: Pro/Max = sempre-acesa (canais persistentes/
+// "funcionário 24h"); Free/Starter = dorme ociosa (suspend).
 export function planRegime(plan: Plan): "base" | "premium" {
-  return plan === "super" || plan === "ultra" ? "premium" : "base";
+  return plan === "pro" || plan === "max" ? "premium" : "base";
 }
 
 // ---- segredos: env (Secret Manager em prod; .env.local em dev) -------------
@@ -49,11 +108,17 @@ const STRIPE_WEBHOOK_SECRET = () => readSecret("STRIPE_WEBHOOK_SECRET");
 const OPENROUTER_PROVISIONING_KEY = () => readSecret("OPENROUTER_PROVISIONING_KEY");
 
 // ---- Stripe: chamadas via REST (sem SDK — reuse mínimo, x-www-form) --------
+// Pin da versão da API: o default da conta já descontinuou ui_mode="embedded"
+// (virou "embedded_page"), que o <EmbeddedCheckout> do @stripe/react-stripe-js
+// NÃO renderiza. Pinamos numa versão que ainda aceita "embedded" e casa com o
+// Stripe.js do componente. (Webhooks chegam na versão da conta — não afetados.)
+const STRIPE_API_VERSION = "2025-03-31.basil";
 async function stripe(path: string, method: "GET" | "POST", form?: Record<string, string>) {
   const res = await fetch(`https://api.stripe.com/v1/${path}`, {
     method,
     headers: {
       Authorization: `Bearer ${STRIPE_KEY()}`,
+      "Stripe-Version": STRIPE_API_VERSION,
       ...(form ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
     },
     body: form ? new URLSearchParams(form).toString() : undefined,
@@ -64,30 +129,76 @@ async function stripe(path: string, method: "GET" | "POST", form?: Record<string
   return json;
 }
 
-// Cria a sessão de Checkout hospedada da Stripe (assinatura mensal). O cartão
-// é digitado no domínio da Stripe — nunca tocamos em dados de cartão.
-export async function createCheckoutSession(opts: {
+// Campos comuns às duas sessões (hospedada e embedded). O cartão é sempre
+// digitado no iframe/domínio da Stripe — nunca tocamos em dados de cartão.
+function checkoutBase(opts: {
   plan: Plan;
+  interval: BillingInterval;
   tenantId: string;
   email: string;
-  origin: string;
-}): Promise<string> {
+}): Record<string, string> {
   const def = PLANS[opts.plan];
-  if (!def.stripePriceId) throw new Error("plano sem checkout (free)");
-  const session = await stripe("checkout/sessions", "POST", {
+  const priceId = planPriceId(def, opts.interval);
+  if (!priceId) throw new Error("plano sem checkout (free ou price não configurado)");
+  return {
     mode: "subscription",
-    "line_items[0][price]": def.stripePriceId,
+    "line_items[0][price]": priceId,
     "line_items[0][quantity]": "1",
     customer_email: opts.email,
     client_reference_id: opts.tenantId,
     "metadata[tenant_id]": opts.tenantId,
     "metadata[plan]": opts.plan,
+    "metadata[interval]": opts.interval,
     "subscription_data[metadata][tenant_id]": opts.tenantId,
     "subscription_data[metadata][plan]": opts.plan,
+    ...(def.trialDays ? { "subscription_data[trial_period_days]": String(def.trialDays) } : {}),
+  };
+}
+
+// Checkout HOSPEDADO (fallback/legado): redireciona ao domínio da Stripe.
+export async function createCheckoutSession(opts: {
+  plan: Plan;
+  interval?: BillingInterval;
+  tenantId: string;
+  email: string;
+  origin: string;
+}): Promise<string> {
+  const session = await stripe("checkout/sessions", "POST", {
+    ...checkoutBase({ ...opts, interval: opts.interval ?? "month" }),
     success_url: `${opts.origin}/instancias?assinatura=ok`,
-    cancel_url: `${opts.origin}/precos?assinatura=cancelada`,
+    cancel_url: `${opts.origin}/planos?assinatura=cancelada`,
   });
   return session.url as string;
+}
+
+// Checkout EMBEDDED (in-app, fluxo principal): o formulário de pagamento
+// renderiza DENTRO do Work4You (ui_mode=embedded) — assina sem sair da
+// plataforma. Retorna o client_secret que o <EmbeddedCheckout> monta no
+// cliente; o cartão segue 100% no iframe da Stripe (PCI).
+export async function createEmbeddedCheckoutSession(opts: {
+  plan: Plan;
+  interval: BillingInterval;
+  tenantId: string;
+  email: string;
+  origin: string;
+}): Promise<string> {
+  const session = await stripe("checkout/sessions", "POST", {
+    ...checkoutBase(opts),
+    // embedded (in-app; client_secret p/ o <EmbeddedCheckout>). A versão da API
+    // é pinada em STRIPE_API_VERSION pra "embedded" continuar aceito.
+    ui_mode: "embedded",
+    return_url: `${opts.origin}/planos/retorno?session_id={CHECKOUT_SESSION_ID}`,
+  });
+  return session.client_secret as string;
+}
+
+// Status de uma sessão de checkout (usado na página de retorno do embedded).
+// "complete" = concluída (a ativação real vem pelo webhook checkout.session.completed).
+export async function getCheckoutSessionStatus(
+  sessionId: string,
+): Promise<{ status: string; paymentStatus: string }> {
+  const s = await stripe(`checkout/sessions/${encodeURIComponent(sessionId)}`, "GET");
+  return { status: String(s.status ?? ""), paymentStatus: String(s.payment_status ?? "") };
 }
 
 // Verifica a assinatura HMAC do webhook Stripe (t=...,v1=...) sem SDK.

@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { getDevSession } from "@/lib/dev-auth";
-import { type Plan } from "@/lib/billing";
 
 export const dynamic = "force-dynamic";
 
@@ -15,14 +14,16 @@ export const dynamic = "force-dynamic";
 // no LB do domínio único, /api/* é roteado ao Wayne.
 //
 // Contrato (ditado pelo TierPicker — tierLocked lê estes valores):
-//   { plan: "free"|"plus"|"pro"|"max", status: "inactive"|"active"|"past_due"|"canceled" }
-//   · "pro"  → desbloqueia Expert          (registry: super)
-//   · "max"  → desbloqueia Expert + Crew   (registry: ultra)
-//   · demais → Expert/Crew travados        (registry: free/plus, repassados crus)
-// O vocabulário do registry (free/plus/super/ultra) é traduzido AQUI para o
-// do picker (Expert=Pro+, Crew=Business — docs/BILLING-ARQUITETURA.md §2);
-// mudar o gating de plano = mudar só este mapa.
-const TIER_PLAN: Partial<Record<Plan, string>> = { super: "pro", ultra: "max" };
+//   { plan: "free"|"starter"|"pro"|"max", status: "inactive"|"active"|"past_due"|"canceled" }
+//   · "pro"  → desbloqueia Expert
+//   · "max"  → desbloqueia Expert + Crew
+//   · demais → Expert/Crew travados (repassados crus)
+// Desde o go-live da billing (07/07) o registry grava o vocabulário novo
+// (free/starter/pro/max), que já bate 1:1 com o do picker. O mapa abaixo só
+// traduz linhas LEGADAS pré-07/07 (plus/super/ultra) — Record<string,string>
+// de propósito: essas chaves não existem mais no type Plan do catálogo.
+// Mudar o gating de plano = mudar só este mapa.
+const TIER_PLAN: Record<string, string> = { super: "pro", ultra: "max" };
 
 export async function GET() {
   const session = await getDevSession();
@@ -34,7 +35,7 @@ export async function GET() {
     );
     // Sem linha em billing = tenant nunca assinou → Free.
     const row = r.rows[0] ?? { plan: "free", status: "inactive" };
-    const plan = TIER_PLAN[row.plan as Plan] ?? row.plan;
+    const plan = TIER_PLAN[row.plan] ?? row.plan;
     return NextResponse.json(
       { plan, status: row.status },
       // Cache curto no navegador (private: por usuário) — o TierPicker busca a

@@ -1,0 +1,373 @@
+"use client";
+
+import { EmbeddedCheckout, EmbeddedCheckoutProvider } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import { useCallback, useEffect, useMemo, useState } from "react";
+
+import type { BillingInterval, Plan } from "@/lib/billing";
+
+// Dado de exibição de um plano individual (montado no server a partir de PLANS —
+// billing.ts é server-only, não pode ser importado aqui).
+export interface PlanCard {
+  key: Plan;
+  label: string;
+  priceMonth: number;
+  priceYear: number;
+  credits: number;
+  trialDays: number;
+}
+
+interface PlansViewProps {
+  plans: PlanCard[]; // starter, pro, max (nessa ordem)
+  teamSeatUsd: number;
+  current: { plan: string; status: string };
+  publishableKey: string | null; // NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY (null = checkout desabilitado)
+  loggedIn: boolean; // deslogado → CTA manda pro cadastro guardando a escolha
+  initialPlan?: Plan | null; // intenção vinda da querystring (?plan=) — auto-abre o checkout
+  initialInterval?: BillingInterval;
+}
+
+// Copy das features (estático, client-side). Créditos aparecem em destaque à parte.
+const FEATURES: Record<string, string[]> = {
+  starter: [
+    "Todos os modelos essenciais (Flash e Auto)",
+    "Chat e habilidades sem limite de recursos",
+    "Sua instância pessoal do Wayne",
+    "Suporte por e-mail",
+  ],
+  pro: [
+    "Tudo do Starter",
+    "Modo Expert (Claude) para tarefas difíceis",
+    "Instância sempre-ativa — funcionário 24h",
+    "Respostas com prioridade",
+  ],
+  max: [
+    "Tudo do Pro",
+    "Modo Crew — time de agentes em paralelo",
+    "Limites de uso mais altos",
+    "Suporte prioritário",
+  ],
+};
+
+const BUSINESS_FEATURES = [
+  "Tudo do Max para cada assento",
+  "Compartilhamento e colaboração",
+  "Cobrança e faturas centralizadas",
+  "Gestão de assentos da equipe",
+  "Relatórios e análise de uso",
+  "Verificação de domínio",
+  "Excluído do treino por padrão",
+];
+
+const ENTERPRISE_FEATURES = [
+  "Usuários ilimitados",
+  "Logon único (SSO)",
+  "Sincronização de diretório (SCIM)",
+  "Controles de acesso personalizados",
+  "Retenção de dados customizada",
+  "Suporte e integração dedicados",
+];
+
+const CONTACT_MAILTO = "mailto:contato@work4you.ai?subject=Work4You%20Business";
+
+function priceEquivMonth(card: PlanCard): string {
+  const perMonth = card.priceYear / 12;
+  return `$${perMonth.toFixed(2).replace(/\.00$/, "")}`;
+}
+
+export function PlansView({
+  plans,
+  teamSeatUsd,
+  current,
+  publishableKey,
+  loggedIn,
+  initialPlan = null,
+  initialInterval,
+}: PlansViewProps) {
+  const [tab, setTab] = useState<"individual" | "empresas">("individual");
+  const [interval, setBillingInterval] = useState<BillingInterval>(initialInterval ?? "month");
+  const [checkoutPlan, setCheckoutPlan] = useState<Plan | null>(null);
+
+  const stripePromise = useMemo(
+    () => (publishableKey ? loadStripe(publishableKey) : null),
+    [publishableKey],
+  );
+  const checkoutEnabled = !!stripePromise;
+
+  const fetchClientSecret = useCallback(async () => {
+    const r = await fetch("/planos/checkout/embedded", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ plan: checkoutPlan, interval }),
+    });
+    const j = (await r.json().catch(() => ({}))) as { clientSecret?: string; error?: string };
+    if (!r.ok || !j.clientSecret) throw new Error(j.error || "checkout_failed");
+    return j.clientSecret;
+  }, [checkoutPlan, interval]);
+
+  // Resume pós-cadastro: se veio com ?plan= e o usuário está logado + checkout
+  // habilitado, abre o checkout daquele plano automaticamente.
+  useEffect(() => {
+    if (loggedIn && initialPlan && checkoutEnabled) setCheckoutPlan(initialPlan);
+  }, [loggedIn, initialPlan, checkoutEnabled]);
+
+  // CTA de um plano individual: logado → checkout embedded; deslogado → cadastro
+  // guardando a escolha (?plan=&interval=) para retomar o checkout após o login.
+  const onPickPlan = useCallback(
+    (key: Plan) => {
+      if (!loggedIn) {
+        const intent = `/planos?plan=${key}&interval=${interval}`;
+        window.location.href = `/login?next=${encodeURIComponent(intent)}`;
+        return;
+      }
+      if (checkoutEnabled) setCheckoutPlan(key);
+    },
+    [loggedIn, interval, checkoutEnabled],
+  );
+
+  return (
+    <>
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
+        <a href="/" className="font-brand text-xl font-semibold">Work4You</a>
+        {loggedIn ? (
+          <a
+            href="/chat"
+            className="text-sm font-medium text-neutral-500 transition hover:text-neutral-800 dark:hover:text-neutral-200"
+          >
+            Ir para o app →
+          </a>
+        ) : (
+          <a
+            href="/login"
+            className="font-brand rounded-full bg-neutral-100 px-4 py-1.5 text-sm font-semibold text-neutral-800 transition hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-100"
+          >
+            Entrar
+          </a>
+        )}
+      </header>
+
+      <main className="mx-auto max-w-6xl px-5 pb-12 pt-4">
+        {/* Cabeçalho */}
+        <div className="text-center">
+          <h1 className="font-brand text-3xl font-semibold sm:text-4xl">Assine o Work4You</h1>
+          <p className="mt-2 text-sm text-neutral-500">
+            Experimente <span className="font-semibold text-neutral-800 dark:text-neutral-200">7 dias por $0</span>.
+            Cancele quando quiser
+            {loggedIn && (
+              <>
+                {" "}· plano atual: <strong className="font-brand uppercase">{current.plan}</strong>
+                {current.status === "active" && " · ativo"}
+              </>
+            )}
+            .
+          </p>
+        </div>
+
+        {/* Abas Individual / Empresas */}
+        <div className="mt-7 flex justify-center">
+          <div className="inline-flex rounded-full bg-neutral-100 p-1 dark:bg-neutral-800">
+            {(["individual", "empresas"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={`rounded-full px-5 py-1.5 text-sm font-medium capitalize transition ${
+                  tab === t
+                    ? "bg-white text-neutral-900 shadow-sm dark:bg-neutral-950 dark:text-white"
+                    : "text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
+                }`}
+              >
+                {t === "individual" ? "Individual" : "Empresas"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {tab === "individual" ? (
+          <>
+            <div className="mt-8 grid gap-5 lg:grid-cols-3">
+              {plans.map((card) => {
+                const destaque = card.key === "pro";
+                const ativo = loggedIn && current.plan === card.key && current.status === "active";
+                const price = interval === "year" ? card.priceYear : card.priceMonth;
+                const disabled = ativo || (loggedIn && !checkoutEnabled);
+                const cta = ativo
+                  ? "Plano atual"
+                  : loggedIn && !checkoutEnabled
+                    ? "Em breve"
+                    : card.trialDays
+                      ? `Começar — ${card.trialDays} dias por $0`
+                      : `Assinar ${card.label}`;
+                return (
+                  <div
+                    key={card.key}
+                    className={`relative flex flex-col rounded-2xl border p-6 ${
+                      destaque
+                        ? "border-neutral-900 shadow-[0_16px_50px_-20px_rgba(0,0,0,0.25)] dark:border-white"
+                        : "border-neutral-200 dark:border-neutral-800"
+                    }`}
+                  >
+                    {destaque && (
+                      <span className="absolute -top-3 left-6 rounded-full bg-neutral-900 px-3 py-1 text-xs font-medium text-white dark:bg-white dark:text-neutral-900">
+                        Mais popular
+                      </span>
+                    )}
+                    <h2 className="font-brand text-lg font-semibold">{card.label}</h2>
+                    <div className="mt-1 flex items-baseline gap-1">
+                      <span className="text-3xl font-semibold">${price}</span>
+                      <span className="text-sm text-neutral-500">
+                        /{interval === "year" ? "ano" : "mês"}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 text-xs text-neutral-400">
+                      {interval === "year"
+                        ? `${priceEquivMonth(card)}/mês · 2 meses grátis`
+                        : `${card.credits.toLocaleString("pt-BR")} créditos/mês`}
+                    </p>
+                    {interval === "year" && (
+                      <p className="text-xs text-neutral-400">
+                        {card.credits.toLocaleString("pt-BR")} créditos/mês
+                      </p>
+                    )}
+
+                    <button
+                      onClick={() => !disabled && onPickPlan(card.key)}
+                      disabled={disabled}
+                      className={`font-brand mt-5 w-full rounded-full px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                        destaque
+                          ? "bg-neutral-900 text-white hover:opacity-85 dark:bg-white dark:text-neutral-900"
+                          : "bg-neutral-100 text-neutral-800 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-100"
+                      }`}
+                    >
+                      {cta}
+                    </button>
+
+                    <ul className="mt-6 flex flex-1 flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300">
+                      <li className="flex items-start gap-2">
+                        <Check />
+                        <span>
+                          <strong>{card.credits.toLocaleString("pt-BR")}</strong> créditos por mês
+                        </span>
+                      </li>
+                      {(FEATURES[card.key] ?? []).map((f) => (
+                        <li key={f} className="flex items-start gap-2">
+                          <Check />
+                          <span>{f}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Toggle anual */}
+            <div className="mt-8 flex items-center justify-center gap-3">
+              <span className="text-sm text-neutral-500">Economize com cobrança anual</span>
+              <button
+                role="switch"
+                aria-checked={interval === "year"}
+                onClick={() => setBillingInterval((i) => (i === "year" ? "month" : "year"))}
+                className={`relative h-6 w-11 rounded-full transition ${
+                  interval === "year" ? "bg-neutral-900 dark:bg-white" : "bg-neutral-300 dark:bg-neutral-700"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition dark:bg-neutral-900 ${
+                    interval === "year" ? "left-[22px]" : "left-0.5"
+                  }`}
+                />
+              </button>
+            </div>
+          </>
+        ) : (
+          // Aba Empresas — Business (por assento) + Enterprise (contato).
+          <div className="mx-auto mt-8 grid max-w-4xl gap-5 md:grid-cols-2">
+            <div className="flex flex-col rounded-2xl border border-neutral-200 p-6 dark:border-neutral-800">
+              <h2 className="font-brand text-lg font-semibold">Business</h2>
+              <div className="mt-1 flex items-baseline gap-1">
+                <span className="text-3xl font-semibold">${teamSeatUsd}</span>
+                <span className="text-sm text-neutral-500">/assento · mês</span>
+              </div>
+              <a
+                href={CONTACT_MAILTO}
+                className="font-brand mt-5 w-full rounded-full bg-neutral-900 px-4 py-2.5 text-center text-sm font-semibold text-white hover:opacity-85 dark:bg-white dark:text-neutral-900"
+              >
+                Criar equipe
+              </a>
+              <ul className="mt-6 flex flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300">
+                {BUSINESS_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <Check />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            <div className="flex flex-col rounded-2xl border border-neutral-200 p-6 dark:border-neutral-800">
+              <h2 className="font-brand text-lg font-semibold">Enterprise</h2>
+              <div className="mt-1 text-3xl font-semibold">Vamos conversar</div>
+              <a
+                href="mailto:contato@work4you.ai?subject=Work4You%20Enterprise"
+                className="font-brand mt-5 w-full rounded-full bg-neutral-100 px-4 py-2.5 text-center text-sm font-semibold text-neutral-800 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-100"
+              >
+                Entre em contato
+              </a>
+              <ul className="mt-6 flex flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300">
+                {ENTERPRISE_FEATURES.map((f) => (
+                  <li key={f} className="flex items-start gap-2">
+                    <Check />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
+
+        {/* Overlay do checkout embedded */}
+        {checkoutPlan && stripePromise && (
+          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8">
+            <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-2xl dark:bg-neutral-950">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="font-brand text-sm font-semibold">Finalizar assinatura</span>
+                <button
+                  onClick={() => setCheckoutPlan(null)}
+                  className="rounded-full px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  aria-label="Fechar"
+                >
+                  ✕
+                </button>
+              </div>
+              <EmbeddedCheckoutProvider
+                key={`${checkoutPlan}-${interval}`}
+                stripe={stripePromise}
+                options={{ fetchClientSecret }}
+              >
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          </div>
+        )}
+
+        <p className="mt-10 text-center text-xs text-neutral-400">
+          Pagamento processado com segurança pela Stripe. Você pode cancelar quando quiser.
+        </p>
+      </main>
+    </>
+  );
+}
+
+function Check() {
+  return (
+    <svg
+      className="mt-0.5 h-4 w-4 shrink-0 text-neutral-800 dark:text-neutral-200"
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+    >
+      <path d="M5 10l3.5 3.5L15 6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

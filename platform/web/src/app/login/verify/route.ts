@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { setDevSession } from "@/lib/dev-auth";
 import { isEmailAllowed } from "@/lib/allowlist";
 import { requestProvision, slugFor } from "@/lib/provisioner";
-import { PLANS } from "@/lib/billing";
+import { FREE_TRIAL_USD } from "@/lib/billing";
 import { verifyTurnstile } from "@/lib/turnstile";
 
 export const dynamic = "force-dynamic";
@@ -95,7 +95,13 @@ export async function POST(req: NextRequest) {
   }
 
   await setDevSession(email, tenantId);
-  const target = next === "/admin" || next === "/instancias" ? next : "/login/enter";
+  // Whitelist de destinos pós-login: /admin, /instancias, ou /planos* (retoma o
+  // checkout do funil público de preços — só paths relativos, sem open redirect);
+  // qualquer outro cai no SSO do Wayne (/login/enter → /chat).
+  const target =
+    next === "/admin" || next === "/instancias" || next.startsWith("/planos")
+      ? next
+      : "/login/enter";
   return NextResponse.json({ ok: true, next: target });
 }
 
@@ -106,7 +112,7 @@ async function autoProvision(email: string): Promise<string | null> {
     const database = db();
     const slug = slugFor(email);
     const tenantId = `t-${slug}`;
-    const plusCredits = PLANS.plus.creditsUsd; // trial de entrada = crédito do Plus
+    const trialCredits = FREE_TRIAL_USD; // trial de entrada gratuito (Free)
     await database.execute(sql`INSERT INTO users (email, tenant_id, role) VALUES (${email}, ${tenantId}, 'admin') ON CONFLICT (email) DO NOTHING`);
     await database.execute(sql`
       INSERT INTO instances (tenant_id, name, url, fly_app, status, notes)
@@ -114,9 +120,9 @@ async function autoProvision(email: string): Promise<string | null> {
     `);
     await database.execute(sql`
       INSERT INTO billing (tenant_id, plan, status, monthly_credits_usd)
-      VALUES (${tenantId}, 'free', 'active', ${plusCredits}) ON CONFLICT (tenant_id) DO NOTHING
+      VALUES (${tenantId}, 'free', 'active', ${trialCredits}) ON CONFLICT (tenant_id) DO NOTHING
     `);
-    const started = await requestProvision({ tenantId, slug, email, plan: "base", trialUsd: plusCredits });
+    const started = await requestProvision({ tenantId, slug, email, plan: "base", trialUsd: trialCredits });
     if (!started) {
       await database.execute(sql`UPDATE instances SET status='failed' WHERE tenant_id=${tenantId}`);
       return null;

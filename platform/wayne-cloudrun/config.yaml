@@ -13,6 +13,13 @@ model:
   default: "anthropic/claude-sonnet-4.6"
   provider: openrouter
 
+# Geração de imagem roteia pela chave OpenRouter do tenant (nano-banana) por
+# padrão — imagem no chat sem GPU, cobrando do crédito capado. Só afeta tenants
+# NOVOS (seed-if-missing); os existentes mantêm o config do volume.
+image_gen:
+  provider: openrouter
+  model: "google/gemini-2.5-flash-image"
+
 platforms:
   api_server:
     enabled: true
