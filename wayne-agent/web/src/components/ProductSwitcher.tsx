@@ -33,13 +33,13 @@ export function ProductSwitcher() {
         aria-label={t.desktop.productSwitcher}
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "flex items-center gap-1.5 rounded px-2 py-1",
-          "font-mono text-sm text-foreground/90 transition-colors",
+          "flex items-center gap-1 rounded px-1.5 py-0.5",
+          "font-mono text-[15px] font-bold text-foreground transition-colors",
           "hover:bg-current/5 hover:text-midground",
           "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
         )}
       >
-        <span>Work4You</span>
+        <span className="tracking-tight">Work4You</span>
         <ChevronDown
           className={cn(
             "h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-transform",
