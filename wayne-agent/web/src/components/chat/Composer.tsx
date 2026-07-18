@@ -18,8 +18,6 @@ import {
   MicOff,
   Plus,
   Square,
-  Volume2,
-  VolumeX,
   X,
 } from "lucide-react";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
@@ -28,7 +26,6 @@ import { Toast } from "@nous-research/ui/ui/components/toast";
 import { ChatModelBar } from "@/components/ChatModelBar";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
-import { useAutoSpeakReplies } from "@/hooks/useAutoSpeakReplies";
 import { useVoiceConversation } from "@/hooks/useVoiceConversation";
 
 export interface ComposerAttachment {
@@ -82,7 +79,6 @@ export function Composer({
   draft = null,
   placeholder,
   lastReply = null,
-  sessionKey = "",
   modePicker,
 }: {
   /** Locks everything (a blocking prompt is open). */
@@ -454,14 +450,6 @@ export function Composer({
     consumePendingResponse: markLastReplySpoken,
   });
 
-  const autoSpeak = useAutoSpeakReplies({
-    conversationActive: voiceConversationActive,
-    onError: showVoiceError,
-    markSpoken: markLastReplySpoken,
-    pendingReply: pendingReplyForVoice,
-    sessionKey,
-  });
-
   const startConversation = useCallback(() => setVoiceConversationActive(true), []);
   const endConversation = useCallback(() => {
     setVoiceConversationActive(false);
@@ -719,26 +707,6 @@ export function Composer({
                 ) : (
                   <Mic className="h-4 w-4" />
                 )}
-              </button>
-            )}
-
-            {/* Speak replies out loud (pure TTS, no listening) — it only makes
-                sense alongside the voice pipeline (onTranscribe present). */}
-            {onTranscribe && (
-              <button
-                type="button"
-                onClick={autoSpeak.toggle}
-                disabled={disabled}
-                title={autoSpeak.enabled ? t.chat.stopSpeakingReplies : t.chat.speakReplies}
-                aria-label={autoSpeak.enabled ? t.chat.stopSpeakingReplies : t.chat.speakReplies}
-                aria-pressed={autoSpeak.enabled}
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                  autoSpeak.enabled
-                    ? "bg-foreground/10 text-foreground"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {autoSpeak.enabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
               </button>
             )}
 
