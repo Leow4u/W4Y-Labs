@@ -32,6 +32,22 @@
  * skipped) and the tray gains "Entrar com Work4You" (same login flow, run
  * outside the boot via runLoginFlow({external})).
  *
+ * 0.3.8 (shell self-update): the SHELL updates itself via electron-updater
+ * (generic provider, our own bucket — feed baked into app-update.yml from
+ * build.publish; shell-updater.cjs). The SAME chip IPCs cover both layers,
+ * zero web changes: w4y:update:check now checks the SHELL first (feed) and
+ * only then the engine (existing flow) — response keeps the {available,
+ * version} contract, the kind is remembered main-side. w4y:update:apply
+ * routes on that memory: shell → killEngine + download (autoDownload OFF,
+ * bytes only move on apply) + quitAndInstall(silent, forceRun) — NSIS
+ * installs and relaunches, the fresh boot handles the engine as always;
+ * engine → existing relaunch flow. The tray "Verificar atualizações" rides
+ * the same unified path. Fail-open TOTAL: any updater problem degrades to
+ * the engine-only behavior (a failed shell apply falls back to a plain
+ * relaunch); the updater never runs at boot. Unsigned→unsigned works on
+ * Windows: with no publisherName configured, NsisUpdater skips signature
+ * verification (see shell-updater.cjs header for sources).
+ *
  * 0.3.7 (Codex-style chrome): the window goes FRAMELESS (titleBarStyle
  * hidden + titleBarOverlay on Windows) and the web renders its own top bar
  * (sidebar toggle + back/forward + File/Edit/View/Help menus — gated on the
@@ -89,6 +105,8 @@ const backendReady = require("./backend-ready.cjs");
 const backendProbes = require("./backend-probes.cjs");
 const backendEnvMod = require("./backend-env.cjs");
 const bootstrapRunner = require("./bootstrap-runner.cjs");
+// 0.3.8: shell self-update (electron-updater atrás de um seam fail-open).
+const shellUpdater = require("./shell-updater.cjs");
 // Desktop-2: fs/git locais portados do Hermes (módulos git/fs puros). O executor
 // reexporta a contenção do cofre (`resolveWithinVault`) — UMA guarda pros dois.
 const executor = require("./executor.cjs");
@@ -1596,9 +1614,70 @@ function applyEngineUpdate() {
   }
 }
 
+// ── Unified update chip (0.3.8): SHELL first, then engine ──────────────────
+// The same two IPCs now cover BOTH layers. check: shell (electron-updater
+// against our bucket feed) first; found → {available:true, version:<shell>}
+// and the kind is remembered HERE (never sent to the web — the renderer
+// contract stays exactly {available, version}). No shell update → the engine
+// check runs unchanged. apply routes on the remembered kind: shell → kill the
+// engine (a live python must never fight the installer/relaunch), download if
+// not yet downloaded (autoDownload is OFF — bytes only move when the user
+// applies), quitAndInstall (silent NSIS + relaunch; the fresh boot handles
+// the engine as always). Any shell failure falls back to the engine-style
+// relaunch, which brings the CURRENT shell + engine back — fail-open total.
+const unifiedUpdate = { kind: null }; // "shell" | "engine" | null
+
+function updaterLog(line) {
+  // engine.log-style, same file: greppable next to the engine's own lines.
+  // Event names + versions only — the feed is public, no tokens/signed URLs.
+  try {
+    fs.appendFileSync(
+      engineLogPath(),
+      `[shell-update ${new Date().toISOString()}] ${line}\n`,
+    );
+  } catch {
+    /* best-effort */
+  }
+}
+
+async function checkUnifiedUpdate() {
+  const shellRes = await shellUpdater.check(); // null = fail-open (offline/dev)
+  if (shellRes && shellRes.available) {
+    unifiedUpdate.kind = "shell";
+    return { available: true, version: shellRes.version };
+  }
+  unifiedUpdate.kind = "engine";
+  return checkEngineUpdate();
+}
+
+async function applyUnifiedUpdate() {
+  if (unifiedUpdate.kind === "shell" && shellUpdater.hasPending()) {
+    try {
+      killEngine();
+      const r = await shellUpdater.apply({
+        beforeQuit: () => {
+          // The close→hide-to-tray interception must not fight the
+          // installer's quit (same latch the tray's "Sair" uses).
+          isQuitting = true;
+        },
+      });
+      if (r && r.ok) return { ok: true }; // process dies inside quitAndInstall
+      updaterLog(`apply fell back to relaunch: ${(r && r.error) || "unknown"}`);
+    } catch (e) {
+      updaterLog(`apply fell back to relaunch: ${String((e && e.message) || e)}`);
+    }
+    // Fail-open: the shell install didn't happen — the engine-style relaunch
+    // restores the current shell (and its engine). isQuitting may already be
+    // true; applyEngineUpdate sets it again, harmless.
+    return applyEngineUpdate();
+  }
+  return applyEngineUpdate();
+}
+
 function registerUpdateIpc() {
-  ipcMain.handle("w4y:update:check", () => checkEngineUpdate());
-  ipcMain.handle("w4y:update:apply", () => applyEngineUpdate());
+  shellUpdater.init({ log: updaterLog });
+  ipcMain.handle("w4y:update:check", () => checkUnifiedUpdate());
+  ipcMain.handle("w4y:update:apply", () => applyUnifiedUpdate());
 }
 // ══ fim do bloco do motor local ═══════════════════════════════════════════
 
@@ -1971,7 +2050,8 @@ function createWindow() {
 // alive); the tray's "Sair" is the only real quit and takes the engine down
 // with it — no zombie engine for the next launch to reconnect to.
 // "Verificar atualizações" (engine mode only): one check → apply on the spot
-// when an update exists; otherwise a small dialog says so.
+// when an update exists; otherwise a small dialog says so. Since 0.3.8 the
+// check/apply are the UNIFIED ones (shell first, then engine).
 // Tray "Entrar com Work4You" (0.3.5): the SAME login flow of the boot gate,
 // run while the engine is up (runLoginFlow external mode) — for whoever hit
 // "Agora não"/snoozed the composio gate and wants to connect later. The model
@@ -2021,9 +2101,10 @@ async function trayLoginToWork4You() {
 }
 
 async function trayCheckForUpdates() {
-  const r = await checkEngineUpdate();
+  // 0.3.8: unified path — shell first, then engine (same as the web chip).
+  const r = await checkUnifiedUpdate();
   if (r && r.available) {
-    applyEngineUpdate();
+    void applyUnifiedUpdate();
     return;
   }
   try {

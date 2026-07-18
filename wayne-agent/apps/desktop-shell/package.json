@@ -2,7 +2,7 @@
   "name": "work4you-desktop",
   "productName": "Work4You",
   "private": true,
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Work4You desktop — native shell for work4you.ai.",
   "author": "W4Y Labs",
   "main": "main.cjs",
@@ -22,6 +22,13 @@
     "productName": "Work4You",
     "executableName": "Work4You",
     "artifactName": "Work4You-${version}-${os}-${arch}.${ext}",
+    "publish": [
+      {
+        "provider": "generic",
+        "url": "https://storage.googleapis.com/w4y-engine-dist",
+        "useMultipleRangeRequest": false
+      }
+    ],
     "icon": "assets/icon",
     "afterPack": "./afterPack.cjs",
     "directories": {
@@ -44,8 +51,9 @@
       "backend-probes.cjs",
       "backend-env.cjs",
       "bootstrap-runner.cjs",
+      "shell-updater.cjs",
       "assets/**",
-      "node_modules/ws/**/*",
+      "node_modules/**/*",
       "package.json"
     ],
     "extraResources": [
@@ -89,6 +97,7 @@
     }
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "ws": "^8.21.0"
   }
 }
