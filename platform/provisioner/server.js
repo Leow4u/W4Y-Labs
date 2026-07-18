@@ -213,6 +213,12 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
 
     const secrets = [
       `OPENROUTER_API_KEY=${or.key}`,
+      // Model proxy ON (Cursor-style): route model calls through our LiteLLM
+      // pass-through. The capped key rides through unchanged; we gain the
+      // observation + kill-switch checkpoint. Revert = drop this env (falls
+      // back to the openrouter.ai direct default). config.model.base_url would
+      // override this, but tenants don't set it — this env is the flip lever.
+      `OPENROUTER_BASE_URL=https://w4y-model-proxy.fly.dev/openrouter/v1`,
       `API_SERVER_KEY=${apiKey}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_USERNAME=${dashUser}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD=${dashPass}`,

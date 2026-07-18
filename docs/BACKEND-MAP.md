@@ -340,7 +340,36 @@ carrega `cloud:true` (useChatSession sabe o runTarget) → sidebar insere otimis
 ?run=cloud na hora; linha otimista-nuvem nunca agrupa em projeto local e é absorvida quando a
 lista da nuvem recarrega.
 
-**L3 ENTREGUE (17/07) — proxy de modelo NO AR, flip DESLIGADO:** app Fly `w4y-model-proxy`
+**0.3.8 ENTREGUE (17/07 noite) — AUTO-UPDATE DA CASCA (fim das instalações manuais):**
+electron-updater provider `generic` no bucket (`latest.yml` + exe + blockmap na raiz de
+w4y-engine-dist; exe com versão no nome = imutável; latest.yml = ponteiro, cache no-cache).
+Chip UNIFICADO: check casca PRIMEIRO (shell-updater.cjs, fail-open 15s) → depois motor; apply
+casca = killEngine→download→quitAndInstall(true,true), falha → fallback pro relaunch de motor.
+Unsigned→unsigned OK (NsisUpdater pula verificação com publisherName null — provado no fonte;
+NUNCA adicionar publisherName sem certificado junto). RELEASE DE CASCA = (1) bump versão
+OBRIGATÓRIO (semver compare; mesma versão nunca dispara), (2) `dist:win`, (3) sanity
+`win-unpacked/resources/app-update.yml` existe, (4) subir exe+blockmap+latest.yml, (5) NÃO
+apagar exe/blockmap da versão anterior (differential). Override de feed p/ teste:
+W4Y_UPDATE_FEED_URL. build.files agora `node_modules/**/*` (devDeps auto-excluídas — provado
+via asar: só ws+electron-updater+árvore). Cache de download do updater:
+%LOCALAPPDATA%\work4you-desktop-updater. Risco aceito: UI escura durante download do apply
+(motor morre antes; inverter = 3 linhas se incomodar).
+
+**⚡ FLIP LIGADO (18/07) — proxy de modelo agora NO CAMINHO (decisão do Leonardo):** todo tráfego
+de modelo passa pelo `w4y-model-proxy`. De-risking antes de virar a chave: (1) proxy provado com
+CONCLUSÃO REAL (chave capada de teste → free model → 200, não só erro de chave falsa); (2)
+OPENAI_API_KEY AUSENTE nas duas superfícies (desktop .env + secrets do tenant) → o gotcha
+cli.py:3844 cai no fallback OPENROUTER_API_KEY (seguro). Superfícies flipadas + VERIFICADAS:
+desktop (config.yaml `model.base_url`=proxy + restart), tenant nuvem wayne-w4y
+(`OPENROUTER_BASE_URL` env, chamada real com a chave DELE → 200 no log do proxy), novos tenants
+(provisioner p7 injeta o env), default de fábrica desktop (cli-config.yaml.example — vale só p/
+instalações NOVAS, chega no próximo installer/engine; instalações existentes flipam por config).
+Proxy agora SEMPRE-ACESO (min=1, ~$6-7/mês shared-cpu-1x 2GB — custo novo aceito com o "ligar").
+Prova viva: log `POST /openrouter/v1/chat/completions 200`. REVERSÃO: desktop = tirar base_url do
+config; nuvem = `fly secrets unset OPENROUTER_BASE_URL`; novos tenants = tirar do provisioner.
+Backup do config desktop: config.yaml.prebak. Fase 2 (chaves virtuais/spend por token) segue FORA.
+
+**L3 ENTREGUE (17/07) — proxy de modelo construído:** app Fly `w4y-model-proxy`
 (tag mp1, LiteLLM main-stable v1.92.0, gru, **2GB — OOM em 512MB E 1024MB, ~850MB RSS no boot**;
 estacionado com suspend/min=0 = custo ~zero; NO FLIP → min=1). Fonte: platform/model-proxy/
 (config+Dockerfile+fly.toml+README-DEPLOY). Modo: pass-through endpoints EXATOS
