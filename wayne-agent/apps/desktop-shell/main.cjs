@@ -215,7 +215,7 @@ const CLOUD_SHELL = process.env.W4Y_CLOUD_SHELL === "1";
 // o instalador falha com erro claro). ATUALIZAR a cada release do motor.
 // Override pro dev/CI: env W4Y_ENGINE_ZIP_URL (ou WAYNE_SOURCE_ZIP_URL direto).
 const DEFAULT_ENGINE_ZIP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717k.zip";
+  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717l.zip";
 function resolveEngineZipUrl() {
   return (
     (process.env.W4Y_ENGINE_ZIP_URL || "").trim() ||
