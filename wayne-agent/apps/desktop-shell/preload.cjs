@@ -141,6 +141,33 @@ if (_isAppOrigin()) {
       check: () => ipcRenderer.invoke("w4y:update:check"),
       apply: () => ipcRenderer.invoke("w4y:update:apply"),
     },
+    // ── Window chrome (0.3.7, Codex-style frameless) ──────────────────────
+    // The web's top bar gates its whole render on THIS group existing —
+    // shells ≤0.3.6 (framed windows) lack it, so the bar never promises an
+    // IPC the shell can't honor. Edit roles and zoom are allowlisted in the
+    // main; onMenuAction delivers the window-scoped accelerators the main
+    // can't resolve alone (new session, open folder).
+    windowChrome: {
+      newWindow: () => ipcRenderer.invoke("w4y:window:new"),
+      closeWindow: () => ipcRenderer.invoke("w4y:window:close"),
+      quit: () => ipcRenderer.invoke("w4y:app:quit"),
+      editRole: (role) => ipcRenderer.invoke("w4y:edit:role", String(role || "")),
+      zoom: (dir) => ipcRenderer.invoke("w4y:view:zoom", String(dir || "reset")),
+      toggleFullscreen: () => ipcRenderer.invoke("w4y:view:fullscreen"),
+      reload: () => ipcRenderer.invoke("w4y:view:reload"),
+      appInfo: () => ipcRenderer.invoke("w4y:app:info"),
+      onMenuAction: (cb) => {
+        const listener = (_e, payload) => {
+          try {
+            cb(payload && payload.action ? String(payload.action) : "");
+          } catch {
+            /* a renderer handler must never break the bridge */
+          }
+        };
+        ipcRenderer.on("w4y:menu:action", listener);
+        return () => ipcRenderer.removeListener("w4y:menu:action", listener);
+      },
+    },
     // ── Desktop-2: fs/git locais (todos confinados ao cofre no main) ──────────
     // Lista os itens de uma pasta do cofre: { entries:[{name,path,isDirectory}] }
     // ou { entries:[], error }.

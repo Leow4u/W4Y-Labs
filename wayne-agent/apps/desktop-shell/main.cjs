@@ -32,6 +32,24 @@
  * skipped) and the tray gains "Entrar com Work4You" (same login flow, run
  * outside the boot via runLoginFlow({external})).
  *
+ * 0.3.7 (Codex-style chrome): the window goes FRAMELESS (titleBarStyle
+ * hidden + titleBarOverlay on Windows) and the web renders its own top bar
+ * (sidebar toggle + back/forward + File/Edit/View/Help menus — gated on the
+ * `windowChrome` preload group, so older web_dists keep the framed look they
+ * were designed for is moot: they simply have no bar and the boot.html strip
+ * plus the overlay remain the drag surfaces). New IPC surface
+ * (registerChromeIpc): w4y:window:new (extra window on the current target),
+ * w4y:window:close (hide-to-tray path via win.close), w4y:app:quit (REAL
+ * quit, same path as the tray's "Sair"), w4y:edit:role (webContents roles
+ * undo/redo/cut/copy/paste/selectAll — allowlisted), w4y:view:zoom
+ * (in/out/reset), w4y:view:fullscreen, w4y:view:reload, w4y:app:info (shell
+ * version + engine-source.json version for the About dialog). Window-scoped
+ * accelerators ride before-input-event per window (never OS-global):
+ * Ctrl+Shift+N / Ctrl+N / Ctrl+O / Ctrl+W / Ctrl+Q; Ctrl+N and Ctrl+O are
+ * forwarded to the renderer ("w4y:menu:action") because their flows (new
+ * session, add local folder) live in the web app. Both shell modes get the
+ * chrome (same web_dist, IPCs registered unconditionally).
+ *
  * Default: a casca resolve/instala o motor Wayne local (`wayne serve` em
  * 127.0.0.1) e carrega o dashboard servido por ele — o MESMO web_dist da
  * nuvem, com o token de sessão injetado pelo próprio servidor no index.html
@@ -179,7 +197,7 @@ const CLOUD_SHELL = process.env.W4Y_CLOUD_SHELL === "1";
 // o instalador falha com erro claro). ATUALIZAR a cada release do motor.
 // Override pro dev/CI: env W4Y_ENGINE_ZIP_URL (ou WAYNE_SOURCE_ZIP_URL direto).
 const DEFAULT_ENGINE_ZIP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717i.zip";
+  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717k.zip";
 function resolveEngineZipUrl() {
   return (
     (process.env.W4Y_ENGINE_ZIP_URL || "").trim() ||
@@ -1630,9 +1648,213 @@ function ensureDefaultWorkspace() {
 }
 
 function iconPath() {
-  // PNG 1024 do favicon oficial (make-icon.cjs). Serve pra janela e bandeja;
-  // o instalador embute o ícone via electron-builder (build.icon).
+  // PNG 1024 do favicon oficial (variante 3D, decisão de marca 17/07). Serve
+  // pra janela e bandeja; o instalador embute o ícone via electron-builder
+  // (build.icon → assets/icon.ico multi-size com 256px, exigência do builder).
   return path.join(__dirname, "assets", "icon.png");
+}
+
+// ── Frameless chrome (0.3.7, Codex Desktop reference) ──────────────────────
+// titleBarStyle hidden + titleBarOverlay: the native window controls float
+// over the web's own 36px top bar (WindowChrome component; boot.html carries
+// its own drag strip at the same height). Overlay colors track the shell's
+// fixed dark palette. Applied to BOTH shell modes — the web bar is gated on
+// the preload's `windowChrome` group, so the pairing is always consistent.
+const TITLEBAR_HEIGHT = 36;
+function framelessWindowOptions() {
+  return {
+    titleBarStyle: "hidden",
+    titleBarOverlay: {
+      color: "#0e0e0e",
+      symbolColor: "#ececea",
+      height: TITLEBAR_HEIGHT,
+    },
+  };
+}
+
+// Real quit — the ONE path that takes the engine down with the app (tray
+// "Sair", Ctrl+Q, File → Sair). will-quit re-runs killEngine (idempotent).
+function quitForReal() {
+  isQuitting = true;
+  killEngine();
+  app.quit();
+}
+
+// Window-open + navigation policy shared by the main window and the
+// secondary "Nova janela" windows (extracted from createWindow in 0.3.7 —
+// byte-for-byte the same rules; see the comments at the original site).
+function applyWindowOpenPolicy(win) {
+  const wc = win.webContents;
+  const isLocalEngineHost = (host) =>
+    Boolean(engine.origin) && host === `127.0.0.1:${engine.port}`;
+  wc.setWindowOpenHandler(({ url }) => {
+    try {
+      const host = new URL(url).host;
+      const isApp = host === APP_HOST || host.endsWith(".work4you.ai");
+      if (isApp || isLocalEngineHost(host) || AUTH_HOST.test(host)) {
+        return { action: "allow" };
+      }
+      void shell.openExternal(url);
+      return { action: "deny" };
+    } catch {
+      return { action: "allow" };
+    }
+  });
+  if (!CLOUD_SHELL) {
+    wc.on("will-navigate", (e, url) => {
+      try {
+        const u = new URL(url);
+        if (u.protocol === "file:") return; // boot.html local
+        const host = u.host;
+        const isApp = host === APP_HOST || host.endsWith(".work4you.ai");
+        if (isApp || isLocalEngineHost(host) || AUTH_HOST.test(host)) return;
+        e.preventDefault();
+        if (u.protocol === "http:" || u.protocol === "https:") {
+          void shell.openExternal(u.toString());
+        }
+      } catch {
+        /* URL ilegível — deixa o Chromium decidir */
+      }
+    });
+  }
+}
+
+// ── Window-scoped accelerators (0.3.7) ─────────────────────────────────────
+// before-input-event fires only while THIS window is focused — the right
+// pattern for app shortcuts (globalShortcut would steal OS-wide keys; the
+// only OS-global one stays the pre-existing Ctrl+Alt+W). Clipboard/zoom/
+// fullscreen/reload accelerators are NOT duplicated here: the hidden
+// application menu (buildAppMenu) already provides them via native roles.
+// Ctrl+N and Ctrl+O forward to the renderer ("w4y:menu:action") because
+// their flows (new session, add local folder) live in the web app.
+function attachChromeShortcuts(win) {
+  win.webContents.on("before-input-event", (event, input) => {
+    if (input.type !== "keyDown") return;
+    const mod = process.platform === "darwin" ? input.meta : input.control;
+    if (!mod || input.alt) return;
+    const key = String(input.key || "").toLowerCase();
+    let handled = true;
+    if (key === "n" && input.shift) {
+      createSecondaryWindow();
+    } else if (key === "n") {
+      win.webContents.send("w4y:menu:action", { action: "new-session" });
+    } else if (key === "o" && !input.shift) {
+      win.webContents.send("w4y:menu:action", { action: "open-folder" });
+    } else if (key === "w" && !input.shift) {
+      win.close(); // main window: hide-to-tray; secondary window: real close
+    } else if (key === "q" && !input.shift) {
+      quitForReal();
+    } else {
+      handled = false;
+    }
+    if (handled) event.preventDefault();
+  });
+}
+
+// ── Secondary windows ("Nova janela", 0.3.7) ───────────────────────────────
+// Same preload/policies/chrome as the main window, pointed at the SAME target
+// (local dashboard or cloud app). Plain windows: closing one just closes it —
+// no tray hide, no window-state persistence (that file stays the main
+// window's). Refused while the boot hasn't produced a target yet.
+const secondaryWindows = new Set();
+
+function currentAppUrl() {
+  if (CLOUD_SHELL || engine.usingCloud) return APP_URL;
+  return engine.origin && engine.child ? engine.origin : null;
+}
+
+function createSecondaryWindow() {
+  const target = currentAppUrl();
+  if (!target) return { ok: false, error: "not-ready" };
+  const win = new BrowserWindow({
+    width: 1280,
+    height: 832,
+    minWidth: 640,
+    minHeight: 480,
+    title: "Work4You",
+    backgroundColor: "#0e0e0e",
+    autoHideMenuBar: true,
+    icon: iconPath(),
+    ...framelessWindowOptions(),
+    webPreferences: {
+      preload: path.join(__dirname, "preload.cjs"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      spellcheck: true,
+      additionalArguments: [`--w4y-default-workspace=${defaultWorkspace}`],
+    },
+  });
+  applyWindowOpenPolicy(win);
+  attachChromeShortcuts(win);
+  secondaryWindows.add(win);
+  win.on("closed", () => secondaryWindows.delete(win));
+  void win.loadURL(target);
+  return { ok: true };
+}
+
+// ── Chrome IPC (0.3.7) — main half of the web top bar ──────────────────────
+// Every handler is window/webContents-scoped via the event sender, so the
+// same surface serves the main window and any secondary one. The edit roles
+// are allowlisted (never an arbitrary method name from the renderer).
+const EDIT_ROLES = new Set(["undo", "redo", "cut", "copy", "paste", "selectAll"]);
+
+function registerChromeIpc() {
+  ipcMain.handle("w4y:window:new", () => createSecondaryWindow());
+  ipcMain.handle("w4y:window:close", (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (win && !win.isDestroyed()) win.close();
+    return { ok: true };
+  });
+  ipcMain.handle("w4y:app:quit", () => {
+    quitForReal();
+    return { ok: true };
+  });
+  ipcMain.handle("w4y:edit:role", (e, role) => {
+    const r = String(role || "");
+    if (!EDIT_ROLES.has(r)) return { ok: false, error: "bad-role" };
+    try {
+      e.sender[r]();
+      return { ok: true };
+    } catch {
+      return { ok: false, error: "failed" };
+    }
+  });
+  ipcMain.handle("w4y:view:zoom", (e, dir) => {
+    try {
+      const wc = e.sender;
+      const d = String(dir || "");
+      if (d === "reset") wc.setZoomLevel(0);
+      else if (d === "in") wc.setZoomLevel(Math.min(wc.getZoomLevel() + 0.5, 5));
+      else if (d === "out") wc.setZoomLevel(Math.max(wc.getZoomLevel() - 0.5, -5));
+      else return { ok: false, error: "bad-dir" };
+      return { ok: true, level: wc.getZoomLevel() };
+    } catch {
+      return { ok: false, error: "failed" };
+    }
+  });
+  ipcMain.handle("w4y:view:fullscreen", (e) => {
+    const win = BrowserWindow.fromWebContents(e.sender);
+    if (!win || win.isDestroyed()) return { ok: false };
+    win.setFullScreen(!win.isFullScreen());
+    return { ok: true, fullscreen: win.isFullScreen() };
+  });
+  ipcMain.handle("w4y:view:reload", (e) => {
+    try {
+      e.sender.reload();
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    }
+  });
+  // About dialog data: shell version + installed-engine version (the
+  // engine-source.json label; null in dev checkouts / pre-0.3.2 installs —
+  // the dialog renders a dash). No secrets, no paths.
+  ipcMain.handle("w4y:app:info", () => ({
+    shellVersion: app.getVersion(),
+    engineVersion: (readEngineSource() || {}).version || null,
+    cloudShell: CLOUD_SHELL || engine.usingCloud,
+    platform: process.platform,
+  }));
 }
 
 // Traz a janela pra frente (recria se foi destruída).
@@ -1659,6 +1881,9 @@ function createWindow() {
     backgroundColor: "#0e0e0e",
     autoHideMenuBar: true,
     icon: iconPath(),
+    // 0.3.7: frameless — the web top bar (and boot.html's drag strip) become
+    // the title bar; native window controls ride the overlay.
+    ...framelessWindowOptions(),
     webPreferences: {
       preload: path.join(__dirname, "preload.cjs"),
       contextIsolation: true,
@@ -1670,6 +1895,7 @@ function createWindow() {
       additionalArguments: [`--w4y-default-workspace=${defaultWorkspace}`],
     },
   });
+  attachChromeShortcuts(mainWindow);
 
   // Diagnóstico: registra falha/sucesso de carga e erros do processo de render
   // em desktop.log (userData) — ajuda a distinguir "página não carregou" de
@@ -1715,44 +1941,11 @@ function createWindow() {
   // funciona se a janelinha for filha do Electron (não uma aba do navegador).
   // Só links de CONTEÚDO externo (termos, sites de terceiros) vão pro navegador
   // do sistema. No modo motor-local, o dashboard em http://127.0.0.1:<porta
-  // escolhida> também é "o próprio app".
-  const isLocalEngineHost = (host) => Boolean(engine.origin) && host === `127.0.0.1:${engine.port}`;
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    try {
-      const host = new URL(url).host;
-      const isApp = host === APP_HOST || host.endsWith(".work4you.ai");
-      if (isApp || isLocalEngineHost(host) || AUTH_HOST.test(host)) {
-        return { action: "allow" };
-      }
-      void shell.openExternal(url);
-      return { action: "deny" };
-    } catch {
-      return { action: "allow" };
-    }
-  });
-
-  // Guarda de navegação do frame principal (só no modo motor-local; o modo
-  // nuvem fica IDÊNTICO ao 0.2.x). Dentro do app: dashboard local, work4you.ai
-  // (fallback nuvem) e provedores de login. Qualquer outro http(s) vai pro
-  // navegador do sistema. loadURL/loadFile do main não disparam will-navigate,
-  // então o boot e as trocas de modo não passam por aqui.
-  if (!CLOUD_SHELL) {
-    wc.on("will-navigate", (e, url) => {
-      try {
-        const u = new URL(url);
-        if (u.protocol === "file:") return; // boot.html local
-        const host = u.host;
-        const isApp = host === APP_HOST || host.endsWith(".work4you.ai");
-        if (isApp || isLocalEngineHost(host) || AUTH_HOST.test(host)) return;
-        e.preventDefault();
-        if (u.protocol === "http:" || u.protocol === "https:") {
-          void shell.openExternal(u.toString());
-        }
-      } catch {
-        /* URL ilegível — deixa o Chromium decidir */
-      }
-    });
-  }
+  // escolhida> também é "o próprio app". A guarda de navegação do frame
+  // principal (só no modo motor-local; o modo nuvem fica IDÊNTICO ao 0.2.x)
+  // vive junto — extraídas pra applyWindowOpenPolicy (0.3.7) porque as
+  // janelas secundárias ("Nova janela") seguem as MESMAS regras.
+  applyWindowOpenPolicy(mainWindow);
 
   const persist = () => saveWindowState(mainWindow);
   mainWindow.on("resize", persist);
@@ -1883,13 +2076,10 @@ function createTray() {
       { type: "separator" },
       {
         label: "Sair",
-        click: () => {
-          // Real quit: engine dies here explicitly (will-quit re-runs
-          // killEngine, which is idempotent) — never a resident zombie.
-          isQuitting = true;
-          killEngine();
-          app.quit();
-        },
+        // Real quit: engine dies explicitly (will-quit re-runs killEngine,
+        // which is idempotent) — never a resident zombie. Same path as
+        // Ctrl+Q / File → Sair (quitForReal, 0.3.7).
+        click: () => quitForReal(),
       },
     );
     tray.setContextMenu(Menu.buildFromTemplate(items));
@@ -2262,6 +2452,7 @@ app.whenReady().then(() => {
   registerBootIpc();
   registerCloudIpc();
   registerUpdateIpc();
+  registerChromeIpc();
   createWindow();
   createTray();
   registerShortcuts();

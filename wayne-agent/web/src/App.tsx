@@ -63,6 +63,9 @@ import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { cn } from "@/lib/utils";
 import { SidebarTasks, NewTaskIcon } from "@/components/SidebarTasks";
 import { SidebarStatusStrip, gatewayLine } from "@/components/SidebarStatusStrip";
+import { WindowChrome } from "@/components/WindowChrome";
+import { ProductSwitcher } from "@/components/ProductSwitcher";
+import { isDesktopApp, windowChromeBridge } from "@/lib/desktopChrome";
 import { useBelowBreakpoint } from "@nous-research/ui/hooks/use-below-breakpoint";
 import { useSidebarStatus } from "@/hooks/useSidebarStatus";
 import { AuthWidget } from "@/components/AuthWidget";
@@ -465,6 +468,17 @@ export default function App() {
   }, []);
   const isMobile = useBelowBreakpoint(1024);
   const isDesktopCollapsed = collapsed && !isMobile;
+  // Desktop shell gates (stable per page load — the preload bridge never
+  // changes mid-session). `desktopApp` = any shell (product switcher);
+  // `desktopChrome` = 0.3.7+ frameless shell (top bar + moved sidebar
+  // toggle). The plain web in a browser has neither and keeps its layout.
+  const desktopApp = isDesktopApp();
+  const desktopChrome = desktopApp && windowChromeBridge() !== null;
+  // The bar's sidebar toggle: drawer on narrow windows, collapse on wide.
+  const chromeToggleSidebar = useCallback(() => {
+    if (window.matchMedia("(max-width: 1023px)").matches) setMobileOpen(true);
+    else toggleCollapsed();
+  }, [toggleCollapsed]);
   const tooltipWarmRef = useRef(0);
   const sidebarStatus = useSidebarStatus();
   const isDocsRoute = pathname === "/docs" || pathname === "/docs/";
@@ -587,6 +601,12 @@ export default function App() {
     >
       <SelectionSwitcher />
 
+      {/* Frameless desktop (0.3.7): the web-rendered title bar. Gated on the
+          shell's windowChrome bridge — never on the plain web. */}
+      {desktopChrome && (
+        <WindowChrome collapsed={isDesktopCollapsed} onToggleSidebar={chromeToggleSidebar} />
+      )}
+
       <div
         aria-hidden
         className="pointer-events-none fixed inset-0 z-0"
@@ -596,7 +616,8 @@ export default function App() {
 
       <header
         className={cn(
-          "lg:hidden fixed top-0 left-0 right-0 z-40 min-h-14",
+          "lg:hidden fixed left-0 right-0 z-40 min-h-14",
+          desktopChrome ? "top-9" : "top-0",
           "flex items-center gap-2 px-4 py-2",
           "border-b border-current/20",
           "bg-background-base",
@@ -648,7 +669,12 @@ export default function App() {
             id="app-sidebar"
             aria-label={t.app.navigation}
             className={cn(
-              "fixed top-0 left-0 z-50 flex h-dvh max-h-dvh w-[280px] min-h-0 flex-col font-sans",
+              "fixed left-0 z-50 flex w-[280px] min-h-0 flex-col font-sans",
+              // Under the frameless chrome the bar owns the top 36px — the
+              // fixed (mobile-drawer) sidebar starts below it.
+              desktopChrome
+                ? "top-9 h-[calc(100dvh-2.25rem)] max-h-[calc(100dvh-2.25rem)]"
+                : "top-0 h-dvh max-h-dvh",
               "border-r border-current/20",
               "bg-background-base",
               "transition-[transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
@@ -678,13 +704,19 @@ export default function App() {
               >
                 <PluginSlot name="header-left" />
 
-                {/* Work4You logo — official brand lockup (icon + IBM Plex Mono wordmark). */}
-                <img
-                  src="/brand/work4you-favicon.svg"
-                  alt={t.app.brand}
-                  className="h-10 w-auto select-none"
-                  draggable={false}
-                />
+                {/* Desktop (0.3.7, Codex ref): the logo slot becomes the
+                    product switcher ("Work4You ⌄"). The plain web keeps the
+                    official brand lockup it always had. */}
+                {desktopApp ? (
+                  <ProductSwitcher />
+                ) : (
+                  <img
+                    src="/brand/work4you-favicon.svg"
+                    alt={t.app.brand}
+                    className="h-10 w-auto select-none"
+                    draggable={false}
+                  />
+                )}
               </div>
 
               <Button
@@ -697,21 +729,25 @@ export default function App() {
                 <X />
               </Button>
 
-              <Button
-                ghost
-                size="icon"
-                onClick={toggleCollapsed}
-                aria-label={
-                  collapsed ? t.common.expand : t.common.collapse
-                }
-                className="hidden lg:flex text-text-secondary hover:text-midground"
-              >
-                {collapsed ? (
-                  <PanelLeftOpen className="h-4 w-4" />
-                ) : (
-                  <PanelLeftClose className="h-4 w-4" />
-                )}
-              </Button>
+              {/* Collapse toggle: under the frameless chrome it MOVED to the
+                  top bar (Codex ref) — hidden here to avoid two toggles. */}
+              {!desktopChrome && (
+                <Button
+                  ghost
+                  size="icon"
+                  onClick={toggleCollapsed}
+                  aria-label={
+                    collapsed ? t.common.expand : t.common.collapse
+                  }
+                  className="hidden lg:flex text-text-secondary hover:text-midground"
+                >
+                  {collapsed ? (
+                    <PanelLeftOpen className="h-4 w-4" />
+                  ) : (
+                    <PanelLeftClose className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
             </div>
 
             <ProfileSwitcher collapsed={isDesktopCollapsed} />

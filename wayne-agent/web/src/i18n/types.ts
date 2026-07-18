@@ -119,6 +119,47 @@ export interface Translations {
     managingProfileBanner?: string;
   };
 
+  // ── Desktop chrome (0.3.7 frameless shell: top bar + product switcher).
+  //    Rendered ONLY inside the desktop app (WindowChrome/ProductSwitcher);
+  //    the plain web never shows these strings. ──
+  desktop: {
+    back: string;
+    forward: string;
+    menuFile: string;
+    menuEdit: string;
+    menuView: string;
+    menuHelp: string;
+    fileNewWindow: string;
+    fileNewSession: string;
+    fileOpenFolder: string;
+    fileClose: string;
+    fileQuit: string;
+    editUndo: string;
+    editRedo: string;
+    editCut: string;
+    editCopy: string;
+    editPaste: string;
+    editSelectAll: string;
+    viewZoomIn: string;
+    viewZoomOut: string;
+    viewZoomReset: string;
+    viewFullscreen: string;
+    viewReload: string;
+    helpAbout: string;
+    helpCheckUpdates: string;
+    helpSite: string;
+    aboutTitle: string;
+    aboutAppVersion: string;
+    aboutEngineVersion: string;
+    updateChecking: string;
+    updateUpToDate: string;
+    updateCheckFailed: string;
+    /** aria-label of the "Work4You ⌄" chip. */
+    productSwitcher: string;
+    /** Badge on the disabled Code4You entry. */
+    productCode4YouSoon: string;
+  };
+
   // ── Status page ──
   status: {
     actionFailed: string;
