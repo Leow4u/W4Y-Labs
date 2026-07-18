@@ -1846,9 +1846,18 @@ async function trayCheckForUpdates() {
   }
 }
 
+function trayIconPath() {
+  // Windows renders a 1024px PNG tray icon as a BLANK (invisible) slot — the
+  // tray exists but the user sees nothing. The multi-size .ico is the fix;
+  // macOS/Linux keep the PNG.
+  return process.platform === "win32"
+    ? path.join(__dirname, "assets", "icon.ico")
+    : iconPath();
+}
+
 function createTray() {
   try {
-    const img = nativeImage.createFromPath(iconPath());
+    const img = nativeImage.createFromPath(trayIconPath());
     tray = new Tray(img.isEmpty() ? nativeImage.createEmpty() : img);
     tray.setToolTip("Work4You");
     const items = [{ label: "Abrir Work4You", click: () => showWindow() }];
