@@ -294,8 +294,9 @@ login (net.request cookies), grava .env + escreve `mcp_servers.composio` no conf
 texto testada 28 casos: replace-url/append/insert, CRLF/BOM preservados, .bak, sanity pré-escrita) —
 os 3 elos dos conectores viram bootstrap automático. **⚠️ GALINHA-E-OVO:** o chip vive na CASCA →
 precisa da 0.3.4 instalada 1x pra existir; dali em diante o chip aplica todo update do motor sem
-reinstalar. Riscos abertos: gate só-Composio recorre a cada boot sem "não perguntar de novo"
-(cand. 0.3.5); GET connector-bootstrap minta sessão a cada chamada (sessões órfãs inócuas).
+reinstalar. Riscos abertos: ~~gate só-Composio recorre a cada boot sem "não perguntar de novo"~~
+(RESOLVIDO 0.3.5 — snooze persistido); GET connector-bootstrap minta sessão a cada chamada
+(sessões órfãs inócuas).
 S1 = mini-computador (RunTargetPicker no composer, gate isLocalEngine+bridge): sessão-nuvem na
 MESMA UI via WS ticketado (`w4y:cloud:wsUrl` minta em /api/auth/ws-ticket com cookies da
 defaultSession; ticket single-use ~30s TTL → GatewayClient ganhou WsUrlProvider, re-mint a cada
@@ -313,10 +314,31 @@ por padrão (história 24/7; fail-open → cria local + toast honesto), pausar/r
 nuvem via POST; rodapé mostra IDENTIDADE REAL (`GET /api/auth/me` via ponte; sem login → "Conta").
 Contratos ponte: `GET /api/sessions` (shape idêntico), `GET/POST /api/cron/jobs[+/{id}/ações,
 blueprints/instantiate]` (`?profile=` local encaminhado — desconhecido na nuvem = vazio fail-open),
-`GET /api/auth/me`. **LIMITE → 0.3.5: allowlist da ponte é GET/POST apenas** — sessão-nuvem sem
-menu "…" (renomear/arquivar/apagar = PATCH/DELETE) e rotina-nuvem sem editar/apagar; afordâncias
-OCULTAS. Optimistic-insert de sessão-nuvem nova suprimido (evento sem origem; aparece no reload
+`GET /api/auth/me`. **LIMITE (RESOLVIDO no bloco 0.3.5 abaixo): allowlist da ponte era GET/POST
+apenas** — sessão-nuvem sem menu "…" (renomear/arquivar/apagar = PATCH/DELETE) e rotina-nuvem sem
+editar/apagar; afordâncias ficavam OCULTAS (e continuam ocultas em casca ≤0.3.4 via `canMutate`). Optimistic-insert de sessão-nuvem nova suprimido (evento sem origem; aparece no reload
 do session-titled).
+
+**0.3.5 ENTREGUE (17/07 noite, casca 0.3.5 — só código; instalador NÃO buildado):** (1) ponte
+`w4y:cloud:api` agora GET/POST/PATCH/PUT/DELETE (guardas intactas: origem pinada, /api/* re-checado
+pós-normalização, JSON, corpo nunca logado; POST mantém corpo `{}` default, demais verbos só enviam
+corpo se fornecido). ⚠️ CONTRATO NOVO: preload expõe `cloud.canMutate:true` — cascas ≤0.3.4
+coagiam verbo desconhecido pra GET (um DELETE virava GET "que funciona"), então TODA afordância
+mutante de nuvem no web é gated em `cloudMutateAvailable()` (lib/cloudSession.ts, junto de
+`cloudMutateJson`). Desocultado: SidebarTasks — menu "…" de sessão-nuvem reduzido a
+renomear/arquivar-restaurar (PATCH /api/sessions/{id}) + apagar (DELETE); pin/copiar-id/nova-aba/
+ramificar/exportar continuam ocultos com motivo comentado no JSX. CronPage — rotina-nuvem ganha
+editar (PUT /api/cron/jobs/{id} {updates}) + apagar (DELETE …?profile=), calendário abre editor de
+rotina-nuvem; chave de delete de nuvem = prefixo `cloud:` antes do `profile:id`. (2) Gate
+só-Composio: checkbox "não perguntar de novo" no "Agora não" → `login-gate.json
+{composioSnoozed:true}` em userData; gate de MODELO nunca é pulado (condição `needModel ||
+(needComposio && !snoozed)` + skip-IPC valida `engine.lastGate`). Bandeja ganha "Entrar com
+Work4You" = `runLoginFlow({external:true})` (mesmo fluxo do gate, sem depender da fase "key";
+staleness só cancel/quit); chave vale ao vivo (.env por request), conectores gravados oferecem
+"Reiniciar agora" (mesmo relaunch do chip). (3) Badge instantâneo: `wayne:session-started` agora
+carrega `cloud:true` (useChatSession sabe o runTarget) → sidebar insere otimista COM badge +
+?run=cloud na hora; linha otimista-nuvem nunca agrupa em projeto local e é absorvida quando a
+lista da nuvem recarrega.
 
 **L3 ENTREGUE (17/07) — proxy de modelo NO AR, flip DESLIGADO:** app Fly `w4y-model-proxy`
 (tag mp1, LiteLLM main-stable v1.92.0, gru, **2GB — OOM em 512MB E 1024MB, ~850MB RSS no boot**;

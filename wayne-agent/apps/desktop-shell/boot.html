@@ -102,6 +102,17 @@
   #btn-login { align-self: flex-start; }
   #login-wait { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
   #login-wait .spinner { width: 14px; height: 14px; border-width: 2px; }
+  /* Discreet "não perguntar de novo" (composio-only gate). */
+  #gate-snooze {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    cursor: pointer;
+    margin-top: -6px;
+  }
+  #gate-snooze input { accent-color: var(--live); cursor: pointer; }
   #login-error { color: var(--err); font-size: 12.5px; }
   #manual-key summary {
     color: var(--muted);
@@ -214,6 +225,10 @@
         <button type="button" class="primary" id="btn-login">Entrar com Work4You</button>
         <button type="button" class="ghost" id="btn-gate-later" hidden>Agora não</button>
       </div>
+      <label id="gate-snooze" hidden>
+        <input type="checkbox" id="gate-snooze-check" />
+        <span>não perguntar de novo</span>
+      </label>
       <div id="login-wait" hidden>
         <div class="spinner"></div>
         <span>Esperando você entrar na janela que abriu…</span>
@@ -321,6 +336,9 @@
       ? "Entre com o seu login Work4You e os aplicativos conectados chegam sozinhos."
       : "Entre com o seu login Work4You e a chave de acesso chega sozinha.";
     $("btn-gate-later").hidden = !composioOnly;
+    // "não perguntar de novo" rides ONLY the composio-only variant — the main
+    // ignores the flag anyway when the model key is missing (defense in depth).
+    $("gate-snooze").hidden = !composioOnly;
     $("manual-key").hidden = composioOnly;
   }
 
@@ -350,6 +368,7 @@
     $("login-wait").hidden = !waiting;
     if (waiting) {
       $("btn-gate-later").hidden = true;
+      $("gate-snooze").hidden = true;
       $("manual-key").hidden = true;
       $("login-error").hidden = true;
       $("manual-key").open = false;
@@ -502,9 +521,12 @@
     void bridge.skipKey();
   });
   // "Agora não" (composio-only gate): boots without local connectors — the
-  // gate returns on the next boot while the Composio key is still missing.
+  // gate returns on the next boot while the Composio key is still missing,
+  // UNLESS "não perguntar de novo" is checked (persisted snooze; the tray's
+  // "Entrar com Work4You" remains the way back). The model-key gate never
+  // reaches this button, and the main double-checks anyway.
   $("btn-gate-later").addEventListener("click", () => {
-    void bridge.skipKey();
+    void bridge.skipKey({ snoozeComposio: $("gate-snooze-check").checked });
   });
   $("manual-key").addEventListener("toggle", () => {
     if ($("manual-key").open) $("key-input").focus();

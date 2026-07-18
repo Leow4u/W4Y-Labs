@@ -1050,12 +1050,11 @@ export function useChatSession(
       // the task shows up under "Tarefas" with the 1st msg as a provisional title
       // (ChatGPT/Manus pattern) — without waiting for the server to auto-title.
       // The real title replaces it via wayne:session-titled. Dedupe by id in the
-      // sidebar. Cloud sessions are still SUPPRESSED here: the optimistic event
-      // cannot carry an origin, so the row would resume against the wrong
-      // computer. The merged sidebar (S2) lists them properly — with the cloud
-      // badge and ?run=cloud resume — on its next REST reload (the
-      // wayne:session-titled event right below triggers one).
-      if (!resumeId && !startedDispatchedRef.current && storedSessionId && runTarget !== "cloud") {
+      // sidebar. Cloud sessions (0.3.5) now ride the SAME event carrying their
+      // origin (`cloud`) — this hook KNOWS the run target, so the sidebar can
+      // badge the row instantly and resume it with ?run=cloud instead of
+      // waiting for the first titled reload.
+      if (!resumeId && !startedDispatchedRef.current && storedSessionId) {
         startedDispatchedRef.current = true;
         window.dispatchEvent(
           new CustomEvent("wayne:session-started", {
@@ -1066,6 +1065,9 @@ export function useChatSession(
               // which project the task appears under, and guessing it wrong filed
               // a local-folder chat under the previous project.
               cwd: serverCwdRef.current ?? cwd ?? null,
+              // Origin of the session: true = born on the user's CLOUD computer
+              // (the sidebar shows the badge and resumes with ?run=cloud).
+              cloud: runTarget === "cloud",
             },
           }),
         );

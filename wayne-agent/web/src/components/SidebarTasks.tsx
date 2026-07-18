@@ -75,7 +75,12 @@ import {
   registerProjectRow,
   slugifyProject,
 } from "@/lib/projects";
-import { cloudBridge, cloudGetJson } from "@/lib/cloudSession";
+import {
+  cloudBridge,
+  cloudGetJson,
+  cloudMutateAvailable,
+  cloudMutateJson,
+} from "@/lib/cloudSession";
 import { isPinned, onPinnedChange, togglePin } from "@/lib/pinned-sessions";
 import {
   isProjectPinned,
@@ -271,6 +276,13 @@ export function SidebarTasks({
   // titles it — ChatGPT/Manus pattern. It goes away when REST reloads and brings
   // the real one.
   const [optimistic, setOptimistic] = useState<SessionInfo[]>([]);
+  // Ids among the optimistic rows that were born on the CLOUD computer
+  // (wayne:session-started now carries the origin — 0.3.5): they get the
+  // cloud badge + ?run=cloud resume INSTANTLY, and never group under a local
+  // project (their cwd lives on the other computer).
+  const [optimisticCloudIds, setOptimisticCloudIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   // Pinned — client-side (localStorage), see lib/pinned-sessions.ts. The tick
   // forces a re-render/re-ordering of the list when the set changes (isPinned()
   // reads the module cache directly, with no React state — it only needs a
@@ -515,9 +527,19 @@ export function SidebarTasks({
         id?: string;
         title?: string;
         cwd?: string | null;
+        /** Session born on the user's CLOUD computer (S1 run target). */
+        cloud?: boolean;
       };
       const id = d?.id;
       if (!id) return;
+      if (d.cloud) {
+        setOptimisticCloudIds((prev) => {
+          if (prev.has(id)) return prev;
+          const next = new Set(prev);
+          next.add(id);
+          return next;
+        });
+      }
       const now = Date.now();
       setOptimistic((prev) =>
         prev.some((s) => s.id === id)
@@ -577,10 +599,20 @@ export function SidebarTasks({
     if (sessions) setOptimistic((prev) => prev.filter((o) => !sessions.some((s) => s.id === o.id)));
   }, [sessions]);
 
+  // Same handover for CLOUD-born optimistic rows: the cloud brain's list is
+  // the one that eventually carries them (they never appear in the local
+  // /api/sessions). The id stays in optimisticCloudIds — harmless, and it
+  // keeps isCloudSessionId stable across the swap.
+  useEffect(() => {
+    if (cloudSessions)
+      setOptimistic((prev) => prev.filter((o) => !cloudSessions.some((s) => s.id === o.id)));
+  }, [cloudSessions]);
+
   // Switching the filter changes the scope → clears the optimistic ones (the real
   // list of the new scope takes over) and collapses the list.
   useEffect(() => {
     setOptimistic([]);
+    setOptimisticCloudIds(new Set());
     setExpanded(false);
   }, [filter]);
 
@@ -662,31 +694,82 @@ export function SidebarTasks({
     [showToast, t.status.error],
   );
 
+  // A row that lives on the CLOUD brain (S2 merge / cloud-born optimistic).
+  // Local wins an id tie — same dedupe rule as the merged list below.
+  const isCloudSessionId = useCallback(
+    (id: string) =>
+      (optimisticCloudIds.has(id) || (cloudSessions?.some((s) => s.id === id) ?? false)) &&
+      !(sessions?.some((s) => s.id === id) ?? false),
+    [optimisticCloudIds, cloudSessions, sessions],
+  );
+
   const setArchived = useCallback(
     async (id: string, archived: boolean) => {
       try {
-        await api.setSessionArchived(id, archived);
+        if (isCloudSessionId(id)) {
+          // Cloud row (0.3.5): the SAME PATCH the local api.ts uses
+          // (/api/sessions/{id} {archived}), through the shell bridge.
+          // Fail-open: null = the cloud didn't confirm — say so, change nothing.
+          const r = await cloudMutateJson<{ ok?: boolean }>(
+            `/api/sessions/${encodeURIComponent(id)}`,
+            "PATCH",
+            { archived },
+            8000,
+          );
+          if (!r) {
+            showToast(t.cron.cloudUnavailable, "error");
+            return;
+          }
+        } else {
+          await api.setSessionArchived(id, archived);
+        }
         showToast(archived ? t.chat.archived : t.chat.restored, "success");
         reload();
       } catch (e) {
         showToast(`${t.status.error}: ${e}`, "error");
       }
     },
-    [showToast, t.chat.archived, t.chat.restored, t.status.error, reload],
+    [
+      isCloudSessionId,
+      showToast,
+      t.chat.archived,
+      t.chat.restored,
+      t.cron.cloudUnavailable,
+      t.status.error,
+      reload,
+    ],
   );
 
   const taskDelete = useConfirmDelete<string>({
     onDelete: useCallback(
       async (id: string) => {
         try {
-          await api.deleteSession(id);
+          if (isCloudSessionId(id)) {
+            // Cloud row (0.3.5): DELETE /api/sessions/{id} via the bridge —
+            // the same path/verb the local api.deleteSession uses. Fail-open:
+            // no confirmation = toast + throw (the dialog stays consistent).
+            const r = await cloudMutateJson<{ ok?: boolean }>(
+              `/api/sessions/${encodeURIComponent(id)}`,
+              "DELETE",
+              undefined,
+              8000,
+            );
+            if (!r) {
+              showToast(t.cron.cloudUnavailable, "error");
+              throw new Error("cloud-unavailable");
+            }
+          } else {
+            await api.deleteSession(id);
+          }
           reload();
         } catch (e) {
-          showToast(`${t.status.error}: ${e}`, "error");
+          if (!(e instanceof Error && e.message === "cloud-unavailable")) {
+            showToast(`${t.status.error}: ${e}`, "error");
+          }
           throw e;
         }
       },
-      [reload, showToast, t.status.error],
+      [isCloudSessionId, reload, showToast, t.cron.cloudUnavailable, t.status.error],
     ),
   });
 
@@ -797,15 +880,46 @@ export function SidebarTasks({
     const title = renameValue.trim();
     setRenamingId(null);
     try {
-      await api.renameSession(id, title);
+      if (isCloudSessionId(id)) {
+        // Cloud row (0.3.5): the SAME PATCH the local api.renameSession uses
+        // (/api/sessions/{id} {title}), through the shell bridge. Fail-open.
+        const r = await cloudMutateJson<{ ok?: boolean }>(
+          `/api/sessions/${encodeURIComponent(id)}`,
+          "PATCH",
+          { title },
+          8000,
+        );
+        if (!r) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+      } else {
+        await api.renameSession(id, title);
+      }
       showToast(t.chat.renamed, "success");
       reload();
     } catch (e) {
       showToast(`${t.status.error}: ${e}`, "error");
     }
-  }, [renamingId, renameValue, reload, showToast, t.chat.renamed, t.status.error]);
+  }, [
+    renamingId,
+    renameValue,
+    isCloudSessionId,
+    reload,
+    showToast,
+    t.chat.renamed,
+    t.cron.cloudUnavailable,
+    t.status.error,
+  ]);
 
-  const menuSession = rowMenu ? sessions?.find((s) => s.id === rowMenu.id) : undefined;
+  // The "…" target may be a local row, a cloud-brain row or a cloud-born
+  // optimistic one — the cloud variants get the REDUCED menu below.
+  const menuSession = rowMenu
+    ? (sessions?.find((s) => s.id === rowMenu.id) ??
+      cloudSessions?.find((s) => s.id === rowMenu.id) ??
+      optimistic.find((s) => s.id === rowMenu.id))
+    : undefined;
+  const menuIsCloud = rowMenu ? isCloudSessionId(rowMenu.id) : false;
 
   const FILTER_LABEL: Record<TaskFilter, string> = {
     none: t.chat.filterNone,
@@ -884,6 +998,13 @@ export function SidebarTasks({
   const byProject = new Map<string, SessionInfo[]>();
   const general: SessionInfo[] = [];
   for (const s of merged) {
+    // Cloud-born optimistic row (0.3.5): its cwd lives on the OTHER computer
+    // — never a local project's child. Straight to Recents, where the merged
+    // cloud rows land anyway.
+    if (optimisticCloudIds.has(s.id)) {
+      general.push(s);
+      continue;
+    }
     const owner = ownerOf(s);
     // Free chat at the default workspace → Recents, never a project (see
     // inDefaultWorkspace above).
@@ -917,6 +1038,11 @@ export function SidebarTasks({
     if (merged.some((m) => m.id === s.id)) continue;
     cloudIds.add(s.id);
     generalMerged.push(s);
+  }
+  // Cloud-born optimistic rows carry the badge + ?run=cloud resume from the
+  // very first render (0.3.5) — they are already in `general` via `merged`.
+  for (const id of optimisticCloudIds) {
+    if (merged.some((m) => m.id === id)) cloudIds.add(id);
   }
   if (cloudIds.size) {
     generalMerged.sort(
@@ -1260,10 +1386,11 @@ export function SidebarTasks({
             const isActive = s.id === activeId;
             const label = rowLabel(s, t.sessions.untitledSession);
             const pinned = isPinned(s.id);
-            // Cloud-brain session (S2): badge + open with ?run=cloud; the "…"
-            // menu stays off — its REST operations (PATCH/DELETE) cannot cross
-            // the bridge (GET/POST allowlist), and a menu that half-works is a
-            // broken promise.
+            // Cloud-brain session (S2): badge + open with ?run=cloud. Since
+            // 0.3.5 the "…" menu is back for cloud rows — reduced to the
+            // actions whose PATCH/DELETE now cross the bridge — but only on
+            // shells that ferry those verbs (cloudMutateAvailable; older
+            // shells coerced them to GET, so the menu stays off there).
             const fromCloud = cloudIds.has(s.id);
             const RowIcon = pinned ? Pin : s.source === "cron" ? Clock : MessageSquare;
             const age = timeAgoShort(s.last_active || s.started_at, {
@@ -1351,7 +1478,7 @@ export function SidebarTasks({
                     {age}
                   </span>
                 )}
-                {!fromCloud && (
+                {(!fromCloud || cloudMutateAvailable()) && (
                   <button
                     type="button"
                     aria-label="…"
@@ -1405,22 +1532,41 @@ export function SidebarTasks({
               top: Math.min(rowMenu.y, window.innerHeight - 360),
             }}
           >
-            <MenuItem
-              icon={Pin}
-              label={isPinned(menuSession.id) ? t.chat.unpin : t.chat.pin}
-              onClick={() => {
-                setRowMenu(null);
-                togglePin(menuSession.id);
-              }}
-            />
-            <MenuItem
-              icon={Copy}
-              label={t.chat.copyId}
-              onClick={() => {
-                setRowMenu(null);
-                copySessionId(menuSession.id);
-              }}
-            />
+            {/* Cloud rows (0.3.5): ONLY the actions whose verbs the cloud
+                dashboard REST accepts cross the bridge — rename + archive/
+                restore (PATCH /api/sessions/{id}) and delete (DELETE
+                /api/sessions/{id}), the same paths api.ts uses locally.
+                Deliberately hidden on cloud rows, each with its reason:
+                - pin: client-side localStorage — a pin that doesn't follow
+                  the account would look synced when it isn't;
+                - copy id / open in new tab: window.open("/chat?resume=…")
+                  without ?run=cloud resumes against the WRONG computer, and
+                  the shell routes _blank to the external browser (no bridge
+                  there at all);
+                - branch: session.branch is a gateway RPC — the ?branch=1
+                  resume fires it on the LOCAL gateway connection, and the
+                  ticketed cloud-WS path hasn't been verified for it;
+                - export: a blob download can't cross the JSON-only bridge. */}
+            {!menuIsCloud && (
+              <>
+                <MenuItem
+                  icon={Pin}
+                  label={isPinned(menuSession.id) ? t.chat.unpin : t.chat.pin}
+                  onClick={() => {
+                    setRowMenu(null);
+                    togglePin(menuSession.id);
+                  }}
+                />
+                <MenuItem
+                  icon={Copy}
+                  label={t.chat.copyId}
+                  onClick={() => {
+                    setRowMenu(null);
+                    copySessionId(menuSession.id);
+                  }}
+                />
+              </>
+            )}
             <MenuItem
               icon={Pencil}
               label={t.chat.rename}
@@ -1429,30 +1575,34 @@ export function SidebarTasks({
                 startRename(menuSession);
               }}
             />
-            <MenuItem
-              icon={ExternalLink}
-              label={t.chat.openNewTab}
-              onClick={() => {
-                setRowMenu(null);
-                openInNewTab(menuSession.id);
-              }}
-            />
-            <MenuItem
-              icon={GitBranch}
-              label={t.chat.branchChat}
-              onClick={() => {
-                setRowMenu(null);
-                branchSession(menuSession.id);
-              }}
-            />
-            <MenuItem
-              icon={Download}
-              label={t.chat.export}
-              onClick={() => {
-                setRowMenu(null);
-                void exportSession(menuSession.id);
-              }}
-            />
+            {!menuIsCloud && (
+              <>
+                <MenuItem
+                  icon={ExternalLink}
+                  label={t.chat.openNewTab}
+                  onClick={() => {
+                    setRowMenu(null);
+                    openInNewTab(menuSession.id);
+                  }}
+                />
+                <MenuItem
+                  icon={GitBranch}
+                  label={t.chat.branchChat}
+                  onClick={() => {
+                    setRowMenu(null);
+                    branchSession(menuSession.id);
+                  }}
+                />
+                <MenuItem
+                  icon={Download}
+                  label={t.chat.export}
+                  onClick={() => {
+                    setRowMenu(null);
+                    void exportSession(menuSession.id);
+                  }}
+                />
+              </>
+            )}
             {filter === "archived" ? (
               <MenuItem
                 icon={ArchiveRestore}

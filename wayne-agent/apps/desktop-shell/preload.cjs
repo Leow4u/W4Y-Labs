@@ -45,7 +45,9 @@ if (_isBootPage()) {
   //   state()      → { phase, cloudShell, error, events[], logLines[] } (replay)
   //   onEvent(cb)  → eventos ao vivo do canal "w4y:boot:event"; retorna unsubscribe
   //   submitKey(k) → grava OPENROUTER_API_KEY no .env do motor ({ ok } | { ok:false, error })
-  //   skipKey()    → segue sem chave
+  //   skipKey(opts)→ segue sem chave; opts.snoozeComposio persiste o "não
+  //                  perguntar de novo" (só vale no gate SÓ-Composio — o main
+  //                  ignora a flag quando falta a chave de modelo)
   //   login()      → fluxo "Entrar com Work4You" (janela filha + /device/
   //                  engine-key); resolve só no FIM do fluxo:
   //                  { ok:true, got:"key"|"no-credit" } | { ok:false, reason }
@@ -67,7 +69,10 @@ if (_isBootPage()) {
       return () => ipcRenderer.removeListener("w4y:boot:event", listener);
     },
     submitKey: (key) => ipcRenderer.invoke("w4y:boot:key:submit", String(key || "")),
-    skipKey: () => ipcRenderer.invoke("w4y:boot:key:skip"),
+    skipKey: (opts) =>
+      ipcRenderer.invoke("w4y:boot:key:skip", {
+        snoozeComposio: !!(opts && opts.snoozeComposio),
+      }),
     login: () => ipcRenderer.invoke("w4y:boot:login"),
     loginCancel: () => ipcRenderer.invoke("w4y:boot:login:cancel"),
     retry: () => ipcRenderer.invoke("w4y:boot:retry"),
@@ -111,13 +116,20 @@ if (_isAppOrigin()) {
     // CLOUD computer from the local-engine app. wsUrl() mints a fresh
     // single-use WS ticket (re-invoke on every reconnect — tickets expire and
     // are one-shot); api() is a narrow REST proxy, main-enforced to the app
-    // origin + /api/* paths only (GET/POST, JSON). Cookies never cross here.
+    // origin + /api/* paths only (GET/POST/PATCH/PUT/DELETE since 0.3.5,
+    // JSON). Cookies never cross here. Unknown methods fall back to GET in
+    // the main — the allowlist is enforced there, this is just the ferry.
     cloud: {
       wsUrl: () => ipcRenderer.invoke("w4y:cloud:wsUrl"),
+      // Capability marker for the web: THIS shell ferries PATCH/PUT/DELETE.
+      // Shells ≤0.3.4 lack the flag AND coerced unknown methods to GET — a
+      // DELETE through them would silently turn into a harmless-looking GET
+      // that "succeeds", so the web MUST gate mutations on this marker.
+      canMutate: true,
       api: (path, opts) =>
         ipcRenderer.invoke("w4y:cloud:api", {
           path: String(path || ""),
-          method: opts && opts.method === "POST" ? "POST" : "GET",
+          method: opts && typeof opts.method === "string" ? opts.method : "GET",
           body: opts ? opts.body : undefined,
         }),
     },

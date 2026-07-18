@@ -19,8 +19,11 @@
  * NEW routines default to the CLOUD (a local routine dies with the app; the
  * cloud one is the 24/7 story), falling back to a local create with an honest
  * note when the bridge refuses. Cloud routines support pause/resume/trigger
- * (bridge POSTs); edit (PUT) and delete (DELETE) cannot cross the GET/POST
- * bridge allowlist, so those affordances stay hidden on cloud rows.
+ * (bridge POSTs) and — since shell 0.3.5 widened the bridge allowlist to
+ * PATCH/PUT/DELETE — edit (PUT /api/cron/jobs/{id}, the same verb/path
+ * api.updateCronJob uses) and delete (DELETE /api/cron/jobs/{id}). Both are
+ * gated on cloudMutateAvailable(): older shells coerced those verbs to GET,
+ * so there the affordances stay hidden as before.
  */
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
 import { Clock, Cloud, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
@@ -70,7 +73,13 @@ import { AutomationBlueprints } from "@/components/AutomationBlueprints";
 import { cn, themedBody } from "@/lib/utils";
 import { isInternalView } from "@/lib/internal-view";
 import { isLocalEngine } from "@/lib/projects";
-import { cloudBridge, cloudGetJson, cloudPostJson } from "@/lib/cloudSession";
+import {
+  cloudBridge,
+  cloudGetJson,
+  cloudMutateAvailable,
+  cloudMutateJson,
+  cloudPostJson,
+} from "@/lib/cloudSession";
 
 function formatTime(iso?: string | null): string {
   if (!iso) return "—";
@@ -468,6 +477,11 @@ function splitJobKey(key: string): { profile: string; id: string } {
   return { profile: key.slice(0, idx) || "default", id: key.slice(idx + 1) };
 }
 
+/** Delete keys of CLOUD rows carry this prefix so the confirm flow knows
+ *  which brain to hit; strip it BEFORE splitJobKey (which splits on the
+ *  first ":" and would read "cloud" as the profile). */
+const CLOUD_JOB_KEY_PREFIX = "cloud:";
+
 function profileLabel(profile: string): string {
   return profile === "default" ? "Work4You" : profile;
 }
@@ -699,6 +713,9 @@ export default function CronPage() {
   const [creating, setCreating] = useState(false);
 
   const [editJob, setEditJob] = useState<CronJob | null>(null);
+  // The job being edited lives on the CLOUD brain (0.3.5): save goes through
+  // the bridge PUT instead of the local api.updateCronJob.
+  const [editJobCloud, setEditJobCloud] = useState(false);
   const [editForm, setEditForm] = useState<CronJobEditorState>(emptyCronJobForm);
   const [saving, setSaving] = useState(false);
   const closeEditModal = useCallback(() => setEditJob(null), []);
@@ -710,8 +727,9 @@ export default function CronPage() {
 
   const resourceProfile = editJob ? getJobProfile(editJob) : createProfile;
 
-  const openEditModal = useCallback((job: CronJob) => {
+  const openEditModal = useCallback((job: CronJob, cloud = false) => {
     setEditJob(job);
+    setEditJobCloud(cloud);
     setEditForm(editorFormFromJob(job));
   }, []);
 
@@ -839,7 +857,23 @@ export default function CronPage() {
     }
     setSaving(true);
     try {
-      await api.updateCronJob(editJob.id, payload, getJobProfile(editJob));
+      if (editJobCloud) {
+        // Cloud routine (0.3.5): the SAME PUT api.updateCronJob issues
+        // locally (/api/cron/jobs/{id} {updates}), through the bridge.
+        // Fail-open: no confirmation → toast, keep the modal open to retry.
+        const r = await cloudMutateJson<CronJob>(
+          `/api/cron/jobs/${encodeURIComponent(editJob.id)}?profile=${encodeURIComponent(getJobProfile(editJob))}`,
+          "PUT",
+          { updates: payload },
+          8000,
+        );
+        if (!r) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+      } else {
+        await api.updateCronJob(editJob.id, payload, getJobProfile(editJob));
+      }
       showToast("Saved ✓", "success");
       setEditJob(null);
       loadJobs();
@@ -899,16 +933,37 @@ export default function CronPage() {
   const jobDelete = useConfirmDelete({
     onDelete: useCallback(
       async (key: string) => {
-        const { profile, id } = splitJobKey(key);
+        const cloud = key.startsWith(CLOUD_JOB_KEY_PREFIX);
+        const { profile, id } = splitJobKey(
+          cloud ? key.slice(CLOUD_JOB_KEY_PREFIX.length) : key,
+        );
         try {
-          await api.deleteCronJob(id, profile);
+          if (cloud) {
+            // Cloud routine (0.3.5): the SAME DELETE api.deleteCronJob issues
+            // locally, through the bridge. Fail-open: no confirmation → toast
+            // + throw (nothing changes, the dialog state stays consistent).
+            const r = await cloudMutateJson<{ ok?: boolean }>(
+              `/api/cron/jobs/${encodeURIComponent(id)}?profile=${encodeURIComponent(profile)}`,
+              "DELETE",
+              undefined,
+              8000,
+            );
+            if (!r) {
+              showToast(t.cron.cloudUnavailable, "error");
+              throw new Error("cloud-unavailable");
+            }
+          } else {
+            await api.deleteCronJob(id, profile);
+          }
           loadJobs();
         } catch (e) {
-          showToast(`${t.status.error}: ${e}`, "error");
+          if (!(e instanceof Error && e.message === "cloud-unavailable")) {
+            showToast(`${t.status.error}: ${e}`, "error");
+          }
           throw e;
         }
       },
-      [loadJobs, showToast, t.status.error],
+      [loadJobs, showToast, t.cron.cloudUnavailable, t.status.error],
     ),
   });
 
@@ -965,7 +1020,13 @@ export default function CronPage() {
     ...shownCloud.map((job) => ({ job, cloud: true })),
   ];
   const cloudJobSet = new Set<CronJob>(cloudJobs);
-  const pendingJob = jobDelete.pendingId ? jobs.find((j) => getJobKey(j) === jobDelete.pendingId) : null;
+  // The confirm dialog's subject may be a local key or a "cloud:"-prefixed one.
+  const pendingKey = jobDelete.pendingId;
+  const pendingJob = pendingKey
+    ? pendingKey.startsWith(CLOUD_JOB_KEY_PREFIX)
+      ? cloudJobs.find((j) => getJobKey(j) === pendingKey.slice(CLOUD_JOB_KEY_PREFIX.length))
+      : jobs.find((j) => getJobKey(j) === pendingKey)
+    : null;
 
   const stateLabelOf = (job: CronJob) => {
     const s = getJobState(job);
@@ -985,10 +1046,11 @@ export default function CronPage() {
           jobs={shown.map((entry) => entry.job)}
           strings={scheduleDescribeStrings}
           locale={locale}
-          // Cloud routines have no editable form here (the bridge cannot PUT)
-          // — opening one from the calendar stays a no-op rather than a lie.
+          // Cloud routines open the editor too since 0.3.5 (bridge PUT) —
+          // still a no-op on older shells that can't ferry the verb.
           onOpen={(job) => {
-            if (!cloudJobSet.has(job)) openEditModal(job);
+            const cloud = cloudJobSet.has(job);
+            if (!cloud || cloudMutateAvailable()) openEditModal(job, cloud);
           }}
         />
       ) : (
@@ -1042,8 +1104,22 @@ export default function CronPage() {
                   stateLabel={stateLabelOf(job)}
                   onToggle={() => handlePauseResume(job, cloud)}
                   onTrigger={() => handleTrigger(job, cloud)}
-                  onEdit={cloud ? undefined : () => openEditModal(job)}
-                  onDelete={cloud ? undefined : () => jobDelete.requestDelete(getJobKey(job))}
+                  // Cloud rows regained edit (bridge PUT) and delete (bridge
+                  // DELETE) in 0.3.5 — gated on the shell actually ferrying
+                  // those verbs (older shells keep them hidden, as before).
+                  onEdit={
+                    cloud && !cloudMutateAvailable()
+                      ? undefined
+                      : () => openEditModal(job, cloud)
+                  }
+                  onDelete={
+                    cloud && !cloudMutateAvailable()
+                      ? undefined
+                      : () =>
+                          jobDelete.requestDelete(
+                            cloud ? CLOUD_JOB_KEY_PREFIX + getJobKey(job) : getJobKey(job),
+                          )
+                  }
                   t={t}
                 />
               ))}

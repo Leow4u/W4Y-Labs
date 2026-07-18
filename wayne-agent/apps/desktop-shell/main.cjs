@@ -24,6 +24,14 @@
  * .env + <WAYNE_HOME>\config.yaml (mcp_servers.composio) — the local engine
  * gets working connector TOOLS, not just the key.
  *
+ * 0.3.5: (1) the cloud bridge (w4y:cloud:api) allowlist grows to
+ * GET/POST/PATCH/PUT/DELETE — cloud sessions/routines regain their mutating
+ * affordances in the merged UI (all other guards intact: pinned origin,
+ * /api/* only, JSON, bodies never logged); (2) the composio-ONLY gate gains
+ * "não perguntar de novo" (login-gate.json snooze; the model gate is never
+ * skipped) and the tray gains "Entrar com Work4You" (same login flow, run
+ * outside the boot via runLoginFlow({external})).
+ *
  * Default: a casca resolve/instala o motor Wayne local (`wayne serve` em
  * 127.0.0.1) e carrega o dashboard servido por ele — o MESMO web_dist da
  * nuvem, com o token de sessão injetado pelo próprio servidor no index.html
@@ -171,7 +179,7 @@ const CLOUD_SHELL = process.env.W4Y_CLOUD_SHELL === "1";
 // o instalador falha com erro claro). ATUALIZAR a cada release do motor.
 // Override pro dev/CI: env W4Y_ENGINE_ZIP_URL (ou WAYNE_SOURCE_ZIP_URL direto).
 const DEFAULT_ENGINE_ZIP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717f.zip";
+  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717i.zip";
 function resolveEngineZipUrl() {
   return (
     (process.env.W4Y_ENGINE_ZIP_URL || "").trim() ||
@@ -378,6 +386,10 @@ const engine = {
   keyWaiter: null,
   bootAbort: null,
   usingCloud: false,
+  // The gate variant currently on screen ({ needModel, needComposio } | null).
+  // The skip IPC consults it so "não perguntar de novo" can only ever snooze
+  // the composio-ONLY gate — never the model-key one.
+  lastGate: null,
   // Replay pro boot.html (F5 / janela recriada): eventos estruturais + cauda
   // do log. O boot.html chama w4y:boot:state no load e re-aplica tudo.
   events: [],
@@ -543,6 +555,38 @@ function envHasKey(name) {
     /* sem .env ainda = sem chave */
   }
   return false;
+}
+
+// ── Login-gate snooze (0.3.5) ──────────────────────────────────────────────
+// <userData>\login-gate.json = { composioSnoozed: true }. Written when the
+// user checks "não perguntar de novo" on the composio-ONLY gate ("Agora não").
+// It ONLY silences the connect-your-apps variant: the model-key gate is never
+// snoozeable (without a key the engine is useless), which the gate condition
+// enforces by construction — needModel always opens it. The tray keeps an
+// explicit "Entrar com Work4You" entry for whoever snoozed and regrets it.
+function loginGateFile() {
+  return path.join(app.getPath("userData"), "login-gate.json");
+}
+
+function readLoginGate() {
+  try {
+    const j = JSON.parse(fs.readFileSync(loginGateFile(), "utf8"));
+    return j && typeof j === "object" ? j : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeLoginGate(patch) {
+  try {
+    fs.writeFileSync(
+      loginGateFile(),
+      JSON.stringify({ ...readLoginGate(), ...patch }),
+      "utf8",
+    );
+  } catch {
+    /* best-effort — worst case the gate asks again next boot */
+  }
 }
 
 // Upsert idempotente de UMA variável no <WAYNE_HOME>\.env (o arquivo que o
@@ -898,11 +942,19 @@ function cancelLoginFlow() {
   return { ok: true };
 }
 
-// The whole login→key sequence. Resolves { ok:true, got:"key"|"no-credit" }
-// on success (the key gate is released by then) or { ok:false, reason } —
-// "cancelled" (user closed the login window → back to the gate), "busy",
-// "not-waiting", "rate-limited", "network", "write-failed", "invalid-response".
-async function runLoginFlow() {
+// The whole login→key sequence. Resolves { ok:true, got:"key"|"no-credit",
+// wroteConnectors } on success (the key gate is released by then) or
+// { ok:false, reason } — "cancelled" (user closed the login window → back to
+// the gate), "busy", "not-waiting", "rate-limited", "network", "write-failed",
+// "invalid-response".
+// 0.3.5: opts.external = the SAME flow invoked outside the boot gate (tray's
+// "Entrar com Work4You"). It skips the phase gating (the engine is already
+// running) and its staleness ignores boot generations — only an explicit
+// cancel/closed window/quit ends it. The written key applies live (the engine
+// re-reads .env per request); the connector MCP entry needs an engine restart,
+// which the tray caller offers.
+async function runLoginFlow(opts) {
+  const external = !!(opts && opts.external);
   // A leftover flow (e.g. F5 on boot.html mid-login: the page's invoke died
   // with it, but the flow keeps running here) is cancelled and superseded —
   // the fresh click always gets a fresh window. Same-page double-clicks are
@@ -912,19 +964,19 @@ async function runLoginFlow() {
     await new Promise((resolve) => setTimeout(resolve, 600)); // let it unwind
     if (loginFlow) return { ok: false, reason: "busy" };
   }
-  if (engine.phase !== "key") return { ok: false, reason: "not-waiting" };
+  if (!external && engine.phase !== "key") return { ok: false, reason: "not-waiting" };
   const flow = { win: null, cancelled: false };
   loginFlow = flow;
   const gen = engine.generation;
-  // The flow dies with: explicit cancel, closed login window, a boot
-  // generation change (retry / "Usar na nuvem"), or the gate being released
-  // by another path (manual key / skip moved the phase past "key").
+  // The flow dies with: explicit cancel, closed login window, quit — and, on
+  // the boot-gate path only, a boot generation change (retry / "Usar na
+  // nuvem") or the gate being released by another path (manual key / skip
+  // moved the phase past "key").
   const stale = () =>
     flow.cancelled ||
-    gen !== engine.generation ||
-    engine.usingCloud ||
     isQuitting ||
-    engine.phase !== "key";
+    (!external &&
+      (gen !== engine.generation || engine.usingCloud || engine.phase !== "key"));
   try {
     const win = openLoginWindow();
     flow.win = win;
@@ -964,9 +1016,9 @@ async function runLoginFlow() {
         // fresh tool-router session, written to .env/config.yaml BEFORE the
         // gate releases (the engine spawns right after and reads both).
         // Best-effort: a failure here never blocks the boot.
-        await bootstrapLocalConnectors();
+        const wroteConnectors = await bootstrapLocalConnectors();
         releaseKeyWaiter();
-        return { ok: true, got: "key" };
+        return { ok: true, got: "key", wroteConnectors };
       }
       if (res.status === 401) {
         // Not logged in yet — keep polling while the user signs in.
@@ -987,9 +1039,9 @@ async function runLoginFlow() {
         });
         // No credit ≠ no connectors: the login cookies are live, so the
         // broker bootstrap still runs (best-effort, same as the 200 path).
-        await bootstrapLocalConnectors();
+        const wroteConnectors = await bootstrapLocalConnectors();
         releaseKeyWaiter();
-        return { ok: true, got: "no-credit" };
+        return { ok: true, got: "no-credit", wroteConnectors };
       }
       // Unexpected status (5xx, proxy…) — retry a few times, then give up.
       softFailures += 1;
@@ -1259,14 +1311,20 @@ async function startLocalEngine() {
     // boot.html renders the login as "connect your apps" and offers "Agora
     // não" (skip): a provisional/manual model key must never permanently hide
     // the login that delivers the connectors.
+    // 0.3.5: the composio-ONLY variant respects the persisted "não perguntar
+    // de novo" snooze (login-gate.json). The model gate is NEVER skipped —
+    // needModel bypasses the snooze by construction.
     const needModel = !envHasKey("OPENROUTER_API_KEY");
     const needComposio = !envHasKey("COMPOSIO_API_KEY");
-    if (needModel || needComposio) {
+    const composioSnoozed = readLoginGate().composioSnoozed === true;
+    if (needModel || (needComposio && !composioSnoozed)) {
+      engine.lastGate = { needModel, needComposio };
       setPhase("key", null, { gate: { needModel, needComposio } });
       await new Promise((resolve) => {
         engine.keyWaiter = resolve;
       });
       engine.keyWaiter = null;
+      engine.lastGate = null;
       if (aborted()) return;
     }
 
@@ -1317,7 +1375,19 @@ function registerBootIpc() {
     if (r.ok) releaseKeyWaiter();
     return r;
   });
-  ipcMain.handle("w4y:boot:key:skip", () => {
+  ipcMain.handle("w4y:boot:key:skip", (_e, opts) => {
+    // 0.3.5 "não perguntar de novo": persists ONLY when the gate on screen is
+    // the composio-only variant — a snooze can never silence the model-key
+    // gate (lastGate.needModel true → ignored even if the renderer lied).
+    if (
+      opts &&
+      opts.snoozeComposio === true &&
+      engine.lastGate &&
+      !engine.lastGate.needModel &&
+      engine.lastGate.needComposio
+    ) {
+      writeLoginGate({ composioSnoozed: true });
+    }
     releaseKeyWaiter();
     return { ok: true };
   });
@@ -1348,13 +1418,18 @@ function registerBootIpc() {
 //   w4y:cloud:api → narrow REST proxy for the cloud dashboard. Allowlist is
 //     STRICT: only the app origin (https://work4you.ai), only /api/* paths
 //     (checked again after URL normalization so ".." can't escape), only
-//     GET/POST, JSON in/out. Request/response bodies are NEVER logged.
+//     GET/POST/PATCH/PUT/DELETE (0.3.5 — the dashboard REST mutates with
+//     PATCH sessions / PUT cron / DELETE both, and hiding those affordances
+//     on cloud rows was the S2 slice-1 limit), JSON in/out. Request/response
+//     bodies are NEVER logged.
 //
 // The key/cookie material never crosses to the renderer — only the finished
 // WS URL (which the gateway consumes on first use) and parsed JSON bodies.
+const CLOUD_API_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE"]);
 function cloudApiRequest(args, timeoutMs = 15_000) {
   return new Promise((resolve) => {
-    const method = args && args.method === "POST" ? "POST" : "GET";
+    const rawMethod = args && typeof args.method === "string" ? args.method : "GET";
+    const method = CLOUD_API_METHODS.has(rawMethod) ? rawMethod : "GET";
     const rawPath = args && typeof args.path === "string" ? args.path : "";
     // Only "/api/..." — no host, no protocol, no backslashes/whitespace.
     if (!/^\/api\//.test(rawPath) || /[\s\\]/.test(rawPath)) {
@@ -1425,11 +1500,15 @@ function cloudApiRequest(args, timeoutMs = 15_000) {
       clearTimeout(timer);
       done({ ok: false, status: 0, error: "network" });
     });
-    if (method === "POST") {
-      request.setHeader("Content-Type", "application/json");
-      request.write(
-        JSON.stringify(args && args.body !== undefined ? args.body : {}),
-      );
+    if (method !== "GET") {
+      // POST keeps its historical "always a JSON body" contract ({} default);
+      // PATCH/PUT/DELETE send a body only when the caller provided one (the
+      // dashboard's DELETE endpoints take none).
+      const body = args && args.body !== undefined ? args.body : method === "POST" ? {} : undefined;
+      if (body !== undefined) {
+        request.setHeader("Content-Type", "application/json");
+        request.write(JSON.stringify(body));
+      }
     }
     request.end();
   });
@@ -1700,6 +1779,54 @@ function createWindow() {
 // with it — no zombie engine for the next launch to reconnect to.
 // "Verificar atualizações" (engine mode only): one check → apply on the spot
 // when an update exists; otherwise a small dialog says so.
+// Tray "Entrar com Work4You" (0.3.5): the SAME login flow of the boot gate,
+// run while the engine is up (runLoginFlow external mode) — for whoever hit
+// "Agora não"/snoozed the composio gate and wants to connect later. The model
+// key applies live (the engine re-reads .env per request); the connector MCP
+// entry (config.yaml) only loads on engine start, so a successful connector
+// bootstrap offers an immediate restart (same relaunch path as the update
+// chip). Every message here is informative — a refusal changes nothing.
+async function trayLoginToWork4You() {
+  showWindow(); // the child login window anchors on the main window
+  const r = await runLoginFlow({ external: true });
+  if (!r || !r.ok) {
+    // Cancels/busy are the user's own actions — no dialog nagging.
+    if (r && (r.reason === "cancelled" || r.reason === "busy")) return;
+    try {
+      await dialog.showMessageBox({
+        type: "info",
+        title: "Work4You",
+        message: "Não deu pra concluir o login agora. Tente de novo mais tarde.",
+      });
+    } catch {
+      /* best-effort */
+    }
+    return;
+  }
+  try {
+    if (r.wroteConnectors) {
+      const { response } = await dialog.showMessageBox({
+        type: "info",
+        title: "Work4You",
+        message:
+          "Conta conectada. Pra ativar seus aplicativos conectados, o motor precisa reiniciar.",
+        buttons: ["Reiniciar agora", "Depois"],
+        defaultId: 0,
+        cancelId: 1,
+      });
+      if (response === 0) applyEngineUpdate(); // kill engine + relaunch (boot re-reads everything)
+      return;
+    }
+    await dialog.showMessageBox({
+      type: "info",
+      title: "Work4You",
+      message: "Conta conectada ao Work4You.",
+    });
+  } catch {
+    /* best-effort — the login itself already succeeded */
+  }
+}
+
 async function trayCheckForUpdates() {
   const r = await checkEngineUpdate();
   if (r && r.available) {
@@ -1726,12 +1853,22 @@ function createTray() {
     tray.setToolTip("Work4You");
     const items = [{ label: "Abrir Work4You", click: () => showWindow() }];
     if (!CLOUD_SHELL) {
-      items.push({
-        label: "Verificar atualizações",
-        click: () => {
-          void trayCheckForUpdates();
+      items.push(
+        {
+          // 0.3.5: login outside the boot gate — the path back for whoever
+          // snoozed the composio-only gate ("não perguntar de novo").
+          label: "Entrar com Work4You",
+          click: () => {
+            void trayLoginToWork4You();
+          },
         },
-      });
+        {
+          label: "Verificar atualizações",
+          click: () => {
+            void trayCheckForUpdates();
+          },
+        },
+      );
     }
     items.push(
       { type: "separator" },

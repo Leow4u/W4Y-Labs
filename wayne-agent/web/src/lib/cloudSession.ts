@@ -13,10 +13,13 @@
  *     one-shot with a ~30s TTL — mint FRESH before every connect/reconnect,
  *     which is why the GatewayClient takes a provider, not a URL.
  *
- *   cloud.api(path) → GET/POST against the cloud dashboard REST with those
- *     same cookies (main-enforced allowlist: app origin + /api/* only). Used
- *     for the dock/card file reads of a cloud session — same-origin fetches
- *     would read the WRONG computer (this machine's gateway).
+ *   cloud.api(path) → GET/POST/PATCH/PUT/DELETE against the cloud dashboard
+ *     REST with those same cookies (main-enforced allowlist: app origin +
+ *     /api/* only; shells ≤0.3.4 coerce non-GET/POST to GET — see
+ *     cloudMutateJson). Used for the dock/card file reads of a cloud session
+ *     — same-origin fetches would read the WRONG computer (this machine's
+ *     gateway) — and, since 0.3.5, for the cloud rows' own mutations
+ *     (rename/archive/delete sessions, edit/delete routines).
  *
  * The registry mirrors lib/localFile.ts: the chat page marks the cloud
  * session active while it owns the live view; consumers (dock preview/code,
@@ -32,11 +35,16 @@ export const CLOUD_NOT_LOGGED_IN = "cloud-not-logged-in";
 
 interface CloudBridge {
   wsUrl: () => Promise<{ ok?: boolean; url?: string; error?: string }>;
+  /** 0.3.5+ marker: the shell ferries PATCH/PUT/DELETE. Older shells lack it
+   *  AND coerced unknown methods to GET — mutations MUST gate on this. */
+  canMutate?: boolean;
   api: (
     path: string,
-    opts?: { method?: "GET" | "POST"; body?: unknown },
+    opts?: { method?: CloudMethod; body?: unknown },
   ) => Promise<{ ok?: boolean; status?: number; json?: unknown; error?: string }>;
 }
+
+type CloudMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 
 /** The shell's cloud bridge, or null off the desktop / on older shells (≤0.3.2)
  *  that don't expose it — callers gate the UI on this, so the screen never
@@ -106,14 +114,14 @@ export function isCloudSessionActive(): boolean {
  *  (dock/file cards) keep the shell's own 15s budget — no deadline. */
 async function cloudRequestJson<T>(
   path: string,
-  method: "GET" | "POST",
+  method: CloudMethod,
   body?: unknown,
   timeoutMs?: number,
 ): Promise<T | null> {
   const c = cloudBridge();
   if (!c) return null;
   try {
-    const call = c.api(path, method === "POST" ? { method, body } : undefined);
+    const call = c.api(path, method === "GET" ? undefined : { method, body });
     const r = timeoutMs
       ? await Promise.race([
           call,
@@ -134,14 +142,34 @@ export async function cloudGetJson<T>(path: string, timeoutMs?: number): Promise
 
 /** POST to a cloud dashboard JSON endpoint via the shell bridge (S2 —
  *  routine create/pause/resume/trigger on the cloud brain). Null on ANY
- *  failure so callers can degrade honestly. NOTE the bridge allowlist is
- *  GET/POST only — PUT/PATCH/DELETE cloud operations do not exist here. */
+ *  failure so callers can degrade honestly. */
 export async function cloudPostJson<T>(
   path: string,
   body?: unknown,
   timeoutMs?: number,
 ): Promise<T | null> {
   return cloudRequestJson<T>(path, "POST", body, timeoutMs);
+}
+
+/** The shell can ferry mutating verbs (PATCH/PUT/DELETE): 0.3.5+ marker.
+ *  Surfaces gate the mutating affordances of cloud rows on this — an older
+ *  shell coerced those verbs to GET, so offering them would be a lie. */
+export function cloudMutateAvailable(): boolean {
+  return cloudBridge()?.canMutate === true;
+}
+
+/** PATCH/PUT/DELETE on a cloud dashboard JSON endpoint (0.3.5 bridge —
+ *  session rename/archive/delete, routine edit/delete). Null on ANY failure
+ *  AND on pre-0.3.5 shells (never mis-ship the verb as a GET); callers show
+ *  the existing `cloudUnavailable` toast and change nothing. */
+export async function cloudMutateJson<T>(
+  path: string,
+  method: "PATCH" | "PUT" | "DELETE",
+  body?: unknown,
+  timeoutMs?: number,
+): Promise<T | null> {
+  if (!cloudMutateAvailable()) return null;
+  return cloudRequestJson<T>(path, method, body, timeoutMs);
 }
 
 /** Cloud-session read of /api/fs/read-data-url (real mime — dock preview). */
