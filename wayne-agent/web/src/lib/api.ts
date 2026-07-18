@@ -1415,11 +1415,15 @@ export const api = {
     fetchJSON<SkillHubSourcesResponse>(
       `/api/skills/hub/sources${profileQuery(profile)}`,
     ),
-  /** Full local "official" catalog (102 optional-skills) for the browse
-   *  marketplace — no query, no network, grouped by category. */
-  getSkillHubCatalog: (profile?: string) =>
+  /** Curated local "official" catalog for the browse marketplace — no query,
+   *  no network, grouped by category. Without ``full`` the user sees only the
+   *  ~10 featured skills; ``full`` (the internal ?full=1 hatch) returns the
+   *  whole optional-skills catalog for support / power users. */
+  getSkillHubCatalog: (profile?: string, full = false) =>
     fetchJSON<SkillHubCatalogResponse>(
-      `/api/skills/hub/catalog${profileQuery(profile)}`,
+      `/api/skills/hub/catalog${profileQuery(profile)}${
+        full ? `${profileQuery(profile) ? "&" : "?"}full=1` : ""
+      }`,
     ),
   // ── Conectores (Composio bridge) — 1000+ catalog, connect (Connect Link),
   //    status per scope (global|<agent>) and attach/regeneration of the MCP session.
@@ -1555,13 +1559,21 @@ export interface SkillHubResult {
   tags: string[];
   /** Category, present on catalog listings (grouping the browse view). */
   category?: string;
+  /** True when this skill is part of the curated user-facing set (catalog only). */
+  featured?: boolean;
 }
 
-/** GET /api/skills/hub/catalog — full local "official" catalog for the browse
- *  marketplace (no query, no network; grouped by category). */
+/** GET /api/skills/hub/catalog — curated local "official" catalog for the
+ *  browse marketplace (no query, no network; grouped by category). ``skills``
+ *  is the featured subset for users, or the whole catalog when fetched with
+ *  ``full``; ``total`` is always the full catalog size. */
 export interface SkillHubCatalogResponse {
   skills: SkillHubResult[];
   installed: Record<string, SkillHubInstalledEntry>;
+  /** Full catalog size (the count reachable behind the ?full=1 hatch). */
+  total?: number;
+  /** Whether this response is the full catalog (?full=1) or the curated set. */
+  full?: boolean;
 }
 
 // ── Conectores (Composio bridge) ────────────────────────────────────────

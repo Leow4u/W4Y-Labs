@@ -8,6 +8,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { SkillHubInstalledEntry, SkillHubResult } from "@/lib/api";
 
+/** Internal/support view flag — mirrors SettingsOverlay's `?full=1` hatch,
+ *  inlined here (like SkillsPage's isInternalView) to keep the hook free of a
+ *  UI import. When set, the marketplace requests the WHOLE optional-skills
+ *  catalog instead of just the curated ~10 featured skills. */
+function isFullCatalogRequested(): boolean {
+  try {
+    return new URLSearchParams(window.location.search).get("full") === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Client-side filter by search (name/description/tags) + category. */
 export function filterSkills(
   skills: SkillHubResult[],
@@ -37,7 +49,10 @@ function lastLogLine(lines: string[]): string {
   return "";
 }
 
-export function useSkillHub(profile?: string) {
+export function useSkillHub(profile?: string, full?: boolean) {
+  // The user marketplace shows the curated set; the internal ?full=1 hatch
+  // shows the whole catalog. Callers can force it, else we read the hatch.
+  const showFull = full ?? isFullCatalogRequested();
   const [skills, setSkills] = useState<SkillHubResult[]>([]);
   const [installed, setInstalled] = useState<Record<string, SkillHubInstalledEntry>>({});
   const [loading, setLoading] = useState(true);
@@ -58,7 +73,7 @@ export function useSkillHub(profile?: string) {
   const load = useCallback(() => {
     setLoading(true);
     return api
-      .getSkillHubCatalog(profile)
+      .getSkillHubCatalog(profile, showFull)
       .then((r) => {
         if (!aliveRef.current) return;
         setSkills(r.skills);
@@ -66,7 +81,7 @@ export function useSkillHub(profile?: string) {
       })
       .catch(() => {})
       .finally(() => aliveRef.current && setLoading(false));
-  }, [profile]);
+  }, [profile, showFull]);
 
   useEffect(() => {
     void load();
@@ -74,7 +89,7 @@ export function useSkillHub(profile?: string) {
 
   const refetchInstalled = () => {
     api
-      .getSkillHubCatalog(profile)
+      .getSkillHubCatalog(profile, showFull)
       .then((r) => aliveRef.current && setInstalled(r.installed))
       .catch(() => {});
   };

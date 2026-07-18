@@ -29,3 +29,9 @@ COPY wayne_cli/web_server.py /opt/wayne/wayne_cli/web_server.py
 # qualquer grep de diagnóstico.
 RUN rm -rf /opt/wayne/wayne_cli/web_dist
 COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+# Curadoria de skills: 4 nativas movidas p/ bundled (skills/) + catálogo enxuto
+# (optional-skills/). rm antes p/ o COPY substituir de verdade (não mesclar) —
+# senão as skills movidas ficam duplicadas nas duas pastas.
+RUN rm -rf /opt/wayne/skills /opt/wayne/optional-skills
+COPY skills /opt/wayne/skills
+COPY optional-skills /opt/wayne/optional-skills

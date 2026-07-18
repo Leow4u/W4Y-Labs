@@ -11422,14 +11422,45 @@ async def search_skills_hub(
         raise HTTPException(status_code=502, detail=f"Hub search failed: {exc}")
 
 
+# Curated user-facing marketplace (Leonardo's decision, 17/07): the end user
+# sees only these ~10 "featured" optional skills, not the whole optional-skills/
+# catalog. Everything else stays in the repo and is installable, but only surfaces
+# behind the internal ?full=1 hatch (isFullConfigRequested → &full=1) for us /
+# power users — the same pattern that hides the bundled "system" skills.
+#
+# THIS is the single source of truth for the curation: the web UI only forwards
+# the `full` flag and renders whatever this endpoint returns (it holds no
+# allowlist of its own). Model gateways (grok, blackbox, openhands,
+# antigravity-cli, inference-sh-cli, parallel-cli) are simply absent from this
+# set, so the allowlist hides them automatically. Keyed by IDENTIFIER
+# (official/<category>/<slug>), which is stable regardless of the SKILL.md name.
+FEATURED_OPTIONAL_SKILL_IDS = frozenset({
+    "official/email/agentmail",
+    "official/productivity/shopify",
+    "official/productivity/telephony",
+    "official/research/osint-investigation",
+    "official/finance/3-statement-model",
+    "official/finance/stocks",
+    "official/research/qmd",
+    "official/creative/creative-ideation",
+    "official/communication/one-three-one-rule",
+    "official/creative/hyperframes",
+})
+
+
 @app.get("/api/skills/hub/catalog")
-async def catalog_skills_hub(profile: Optional[str] = None):
-    """Full OFFICIAL optional-skills catalog (local, no network) para um
+async def catalog_skills_hub(profile: Optional[str] = None, full: bool = False):
+    """Curated OFFICIAL optional-skills catalog (local, no network) para um
     marketplace navegável por CATEGORIA — não precisa de query nem do
     wayne-index. Lê optional-skills/ do disco via a mesma OptionalSkillSource
     que o hub instala; devolve nome/descrição/tags ORIGINAIS + categoria
     (de meta.extra['category'] ou do identifier ``official/<cat>/<skill>``).
     ``installed`` marca o que já está no perfil.
+
+    ``full``: the user marketplace (``full=0``, the default) shows ONLY the
+    curated FEATURED_OPTIONAL_SKILL_IDS; the internal hatch (``full=1``, from
+    isFullConfigRequested) returns the entire catalog for support / power users.
+    ``total`` is always the full catalog size (the count behind the hatch).
     """
 
     def _run():
@@ -11452,9 +11483,19 @@ async def catalog_skills_hub(profile: Optional[str] = None):
                 if len(parts) >= 3:
                     cat = parts[1]
             payload["category"] = cat or "general"
+            payload["featured"] = m.identifier in FEATURED_OPTIONAL_SKILL_IDS
             out.append(payload)
+        total = len(out)
+        # Curated by default; the whole catalog only behind the ?full=1 hatch.
+        if not full:
+            out = [p for p in out if p.get("featured")]
         out.sort(key=lambda p: (p.get("category", ""), str(p.get("name", "")).lower()))
-        return {"skills": out, "installed": _installed_hub_identifiers(profile)}
+        return {
+            "skills": out,
+            "installed": _installed_hub_identifiers(profile),
+            "total": total,
+            "full": bool(full),
+        }
 
     try:
         return await asyncio.to_thread(_run)
