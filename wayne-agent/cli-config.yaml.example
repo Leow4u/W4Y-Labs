@@ -46,11 +46,7 @@ model:
   
   # API configuration (falls back to OPENROUTER_API_KEY env var)
   # api_key: "your-key-here"  # Uncomment to set here instead of .env
-  # Work4You model proxy (Cursor-style): a transparent LiteLLM pass-through in
-  # front of OpenRouter. The tenant's capped key rides through unchanged; the
-  # cap still enforces server-side at OpenRouter. Gives Work4You the observation
-  # + kill-switch checkpoint. Revert to https://openrouter.ai/api/v1 to go direct.
-  base_url: "https://w4y-model-proxy.fly.dev/openrouter/v1"
+  base_url: "https://openrouter.ai/api/v1"
 
   # Azure Foundry keyless auth example:
   # provider: "azure-foundry"

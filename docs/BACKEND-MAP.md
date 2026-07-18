@@ -355,19 +355,19 @@ via asar: só ws+electron-updater+árvore). Cache de download do updater:
 %LOCALAPPDATA%\work4you-desktop-updater. Risco aceito: UI escura durante download do apply
 (motor morre antes; inverter = 3 linhas se incomodar).
 
-**⚡ FLIP LIGADO (18/07) — proxy de modelo agora NO CAMINHO (decisão do Leonardo):** todo tráfego
-de modelo passa pelo `w4y-model-proxy`. De-risking antes de virar a chave: (1) proxy provado com
-CONCLUSÃO REAL (chave capada de teste → free model → 200, não só erro de chave falsa); (2)
-OPENAI_API_KEY AUSENTE nas duas superfícies (desktop .env + secrets do tenant) → o gotcha
-cli.py:3844 cai no fallback OPENROUTER_API_KEY (seguro). Superfícies flipadas + VERIFICADAS:
-desktop (config.yaml `model.base_url`=proxy + restart), tenant nuvem wayne-w4y
-(`OPENROUTER_BASE_URL` env, chamada real com a chave DELE → 200 no log do proxy), novos tenants
-(provisioner p7 injeta o env), default de fábrica desktop (cli-config.yaml.example — vale só p/
-instalações NOVAS, chega no próximo installer/engine; instalações existentes flipam por config).
-Proxy agora SEMPRE-ACESO (min=1, ~$6-7/mês shared-cpu-1x 2GB — custo novo aceito com o "ligar").
-Prova viva: log `POST /openrouter/v1/chat/completions 200`. REVERSÃO: desktop = tirar base_url do
-config; nuvem = `fly secrets unset OPENROUTER_BASE_URL`; novos tenants = tirar do provisioner.
-Backup do config desktop: config.yaml.prebak. Fase 2 (chaves virtuais/spend por token) segue FORA.
+**⚡ FLIP TESTADO E REVERTIDO NO MESMO DIA (18/07) — latência quebrou a UX:** liguei o proxy em
+todas as superfícies (desktop config.base_url, tenant nuvem OPENROUTER_BASE_URL env, provisioner
+p7, cli-config.yaml.example) com de-risking correto (conclusão real → 200; OPENAI ausente →
+fallback seguro; log `POST .../chat/completions 200` provando a observação). MAS o 1º uso real do
+Leonardo no desktop "pensou um tempão" → ele mandou desligar na hora. REVERTIDO TUDO: desktop
+config (config.yaml.prebak), `fly secrets unset OPENROUTER_BASE_URL -a wayne-w4y`, provisioner
+p8 (sem env), example de volta pra openrouter.ai direto, proxy de volta a dormir (suspend/min=0).
+**LIÇÃO:** o +1 hop do LiteLLM em gru NÃO é "dezenas de ms" na prática — somou latência sensível
+ao TTFB (ou o modelo Grátis Nemotron, já notado lento antes, ficou pior com o hop). **Antes de
+re-ligar por gatilho real: medir TTFB direto×proxy com modelo PAGO (Auto/Expert), não o Grátis,
+e considerar região do proxy = região do tenant.** O proxy segue no ar (mp1, dormindo) como
+opção. Fase 2 (chaves virtuais) e o flip ficam GATED de novo — só com gatilho + medição de
+latência aceitável.
 
 **L3 ENTREGUE (17/07) — proxy de modelo construído:** app Fly `w4y-model-proxy`
 (tag mp1, LiteLLM main-stable v1.92.0, gru, **2GB — OOM em 512MB E 1024MB, ~850MB RSS no boot**;
