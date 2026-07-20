@@ -140,8 +140,15 @@ skills (12 + expandir); DelegateObjective (lib/delegate-draft.ts = draft LLM des
 preview DAG → aprovar = kanban tasks REAIS com parents[] em ordem topológica, raízes nascem ready
 e TRABALHAM; recorrente vira cron do assignee); Operações ao vivo (workers 8s, Aprovar/Refazer na
 revisão, rail de fatos do board); Governança = inbox + editor de teto (saveConfig limits ?profile).
-**Vocabulário: zero "contratar".** Corte honesto registrado: overlay de trace por nó (tempos por
-etapa) NÃO entrou — precisa de endpoint de trace de sessão; nada na UI finge isso.
+**Vocabulário: zero "contratar".**
+**Follow-ups fechados (20/07, engine 20260720b + fly220):** (1) `GET /api/agent-trace?profile=`
+— timeline de tools da última sessão (state.db; duração ≈ gap desde a mensagem anterior; role=
+'tool' tem tool_name+timestamp) + custo; Estúdio mostra pill "Última execução" (clica → aba
+Atividade) e contagem mcp no nó. (2) PDF no Conhecimento: pypdf 6.1.3 lazy (pyproject+uv.lock;
+desktop venv via `uv pip install --python <venv>` — venv uv NÃO tem pip; imagem fly idem, tem
+`/usr/local/bin/uv`). (3) Esquadrão: `AgentDraft.team` → template composto cria principal +
+papéis no team.json (premium). **GOTCHA:** build-engine-zip.ps1 no PowerShell 5 gera zip com
+CONTRABARRAS nos entry names (quebra unzip POSIX) — sempre pwsh 7.
 **LIÇÃO decompose (19/07):** decompose nativo NÃO tem dry-run e `recompute_ready` promove filho
 sem-pai a ready A CADA tick do dispatcher (auto_promote_children=false NÃO segura) — por isso o
 preview do Delegar é LLM especulativo e a criação só acontece no Aprovar.
