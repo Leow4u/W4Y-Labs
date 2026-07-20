@@ -106,6 +106,37 @@
   WhatsApp Cloud, WeCom callback, Composio events) ACORDAM a máquina via HTTP inbound.
 - Polish barato: `whatsapp_cloud` e `msgraph_webhook` sem entrada em `_PLATFORM_OVERRIDES` (rótulo cru).
 
+## ARQUIVOS — o Conhecimento virou superfície (20/07; engine 20260720f + fly224)
+
+**Não existe "nuvem × meu computador" pra unificar.** VERIFICADO ao vivo no motor local:
+a raiz gerenciada JÁ É `C:\Users\leona\Work4You` (a tela reporta `?path=` com esse caminho).
+Uma fonte "Meu computador" separada listaria a MESMA pasta duas vezes, e a segunda sem
+tamanho/data (a ponte do Electron devolve só `{name,path,isDirectory}`). No navegador puro
+ela não existe. **Não reabrir esse eixo** — ver [[one-project-model]].
+
+**Não existe índice de "arquivo produzido pelo agente".** A única lista de artefatos do repo
+está dentro de `task_events.payload` (só tarefas do kanban), sem rota de leitura; o vínculo
+sessão→arquivo é inferência por prefixo de cwd. Por isso a tela se chama **Arquivos**, não
+"Artefatos": o nome prometia procedência que nenhuma tabela prova.
+
+**O que unificou de verdade:** `web/src/lib/file-sources.ts` — uma SUPERFÍCIE = contrato de
+listagem + `FileCaps`. Grade/lista/menu RENDERIZAM por capacidade (o antigo prop `muted` só
+aplicava opacity e o botão continuava clicável). `cloud` = tudo; `knowledge` = só enviar e
+apagar, porque é só isso que /api/knowledge tem (sem leitura → sem baixar/pré-visualizar;
+sem pin → Favoritos não ganha caminho `knowledge://` impossível de reabrir).
+
+**Reingestão:** subir o mesmo documento duas vezes DUPLICAVA os fatos em silêncio.
+`lib/knowledge-upload.ts` faz DELETE antes do POST. Verificado no disco: manifest com UMA
+entrada e `facts: 1` após dois envios.
+
+**Erros:** `api.ts` agora lança `ApiError` com o status. Nunca casar a prosa INGLESA do
+backend — 404/403/409/413/422 têm cada um uma frase (os quatro 403 diferentes viram UMA só;
+pro dono significam a mesma coisa).
+
+**`knowledge/` protegido no servidor** (`_PROTECTED_ROOT_ENTRIES`): apagar pela API de
+arquivos deixava manifest e fatos órfãos, e o agente seguia respondendo de conhecimento
+fantasma. Esconder na curadoria do front não é proteção (?full=1 e a API crua alcançam).
+
 ## AUDITORIA DE UX — ondas 0/1/2 (20/07; engine 20260720e + fly223)
 
 **`default` NÃO é agente — é a instalação.** Regra do dono: não pode aparecer em lugar nenhum
