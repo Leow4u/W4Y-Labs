@@ -19,7 +19,7 @@
 #                     sidebar no modelo de linha + backfill, PT→EN.
 #
 # Contexto de build = wayne-agent/.
-ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly188
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly221
 FROM ${BASE_IMAGE}
 COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py
 COPY wayne_cli/projects_db.py /opt/wayne/wayne_cli/projects_db.py
@@ -34,10 +34,15 @@ COPY tools/mcp_tool.py /opt/wayne/tools/mcp_tool.py
 COPY wayne_cli/budget.py /opt/wayne/wayne_cli/budget.py
 COPY wayne_cli/knowledge.py /opt/wayne/wayne_cli/knowledge.py
 COPY wayne_cli/kanban_db.py /opt/wayne/wayne_cli/kanban_db.py
+# UX audit 20/07: the installation ("default") is not an agent. The engine-side
+# floor lives in these two — decompose keeps it out of the roster / off the
+# default-assignee slot, kanban_db refuses to spawn it with a visible reason.
+COPY wayne_cli/kanban_decompose.py /opt/wayne/wayne_cli/kanban_decompose.py
 COPY cron/scheduler.py /opt/wayne/cron/scheduler.py
 # Knowledge K1: PDF extraction dep (lazy import in knowledge.py). The base
-# image venv predates the pyproject bump, so install it directly here.
-RUN /opt/wayne/.venv/bin/python -m pip install --no-cache-dir pypdf==6.1.3
+# image venv predates the pyproject bump; it has NO pip (uv-built), so
+# install with the image's uv against the venv python.
+RUN uv pip install --python /opt/wayne/.venv/bin/python pypdf==6.1.3
 # APAGA antes de copiar — ver a mesma nota no Dockerfile.ui: o COPY MESCLA, não
 # substitui, e sem isto os bundles antigos se acumulam (82 no fly193) e enganam
 # qualquer grep de diagnóstico.
