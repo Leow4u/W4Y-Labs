@@ -1201,6 +1201,8 @@ export const zhHant: Translations = {
     account: "帳戶",
     updateChip: "更新",
     updateChipTooltip: "新版本 {version} 可用 — 重新啟動並更新。",
+    updateChipStalled: "更新未完成",
+    updateChipStalledTooltip: "我們沒能完成更新。點擊重試。",
     personalization: "個人化",
     identityNote: "這些資訊來自你的登入，無法在此編輯。",
     logout: "登出",

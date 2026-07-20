@@ -1202,6 +1202,8 @@ export const af: Translations = {
     account: "Rekening",
     updateChip: "Werk by",
     updateChipTooltip: "Weergawe {version} beskikbaar — herbegin en werk by.",
+    updateChipStalled: "Opdatering hangend",
+    updateChipStalledTooltip: "Ons kon nie die opdatering voltooi nie. Klik om weer te probeer.",
     personalization: "Personalisering",
     identityNote: "Hierdie inligting kom van jou aanmelding en kan nie hier geredigeer word nie.",
     logout: "Meld af",

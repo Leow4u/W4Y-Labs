@@ -1210,6 +1210,8 @@ export const ga: Translations = {
     account: "Cuntas",
     updateChip: "Nuashonraigh",
     updateChipTooltip: "Leagan {version} ar fáil — atosóidh agus nuashonróidh sé.",
+    updateChipStalled: "Nuashonrú ar feitheamh",
+    updateChipStalledTooltip: "Níorbh fhéidir linn an nuashonrú a chríochnú. Cliceáil chun triail eile a bhaint as.",
     personalization: "Pearsantú",
     identityNote: "Tagann na sonraí seo ó do logáil isteach agus ní féidir iad a chur in eagar anseo.",
     logout: "Logáil amach",

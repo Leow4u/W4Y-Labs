@@ -1196,6 +1196,8 @@ export const zh: Translations = {
     account: "账户",
     updateChip: "更新",
     updateChipTooltip: "新版本 {version} 可用 — 重启并更新。",
+    updateChipStalled: "更新未完成",
+    updateChipStalledTooltip: "我们没能完成更新。点击重试。",
     personalization: "个性化",
     identityNote: "这些信息来自你的登录，无法在此编辑。",
     logout: "退出登录",

@@ -1202,6 +1202,8 @@ export const it: Translations = {
     account: "Account",
     updateChip: "Aggiorna",
     updateChipTooltip: "Versione {version} disponibile — riavvia e aggiorna.",
+    updateChipStalled: "Aggiornamento in sospeso",
+    updateChipStalledTooltip: "Non siamo riusciti a completare l'aggiornamento. Clicca per riprovare.",
     personalization: "Personalizzazione",
     identityNote: "Questi dati provengono dal tuo accesso e non sono modificabili qui.",
     logout: "Esci",

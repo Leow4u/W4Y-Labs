@@ -105,6 +105,8 @@ const backendReady = require("./backend-ready.cjs");
 const backendProbes = require("./backend-probes.cjs");
 const backendEnvMod = require("./backend-env.cjs");
 const bootstrapRunner = require("./bootstrap-runner.cjs");
+const engineSlots = require("./engine-slots.cjs");
+const updateState = require("./engine-update-state.cjs");
 // 0.3.8: shell self-update (electron-updater atrás de um seam fail-open).
 const shellUpdater = require("./shell-updater.cjs");
 // Desktop-2: fs/git locais portados do Hermes (módulos git/fs puros). O executor
@@ -319,6 +321,130 @@ function fetchEngineManifest(timeoutMs = 5000) {
 // (robocopy converges the tree).
 // Returns true when a refresh was actually ATTEMPTED (the tree may have
 // changed even on failure) so the caller knows to re-probe the backend.
+// The boot no longer installs anything. Set W4Y_ENGINE_BOOT_UPDATE=1 to bring
+// the old blocking path back for one release if the staged flow misbehaves.
+const BOOT_UPDATE_ESCAPE_HATCH = process.env.W4Y_ENGINE_BOOT_UPDATE === "1";
+
+// Where a background install parks its result until the next boot.
+function stagedFile() {
+  return path.join(WAYNE_HOME, "engine-staged.json");
+}
+
+function readStaged() {
+  try {
+    const j = JSON.parse(fs.readFileSync(stagedFile(), "utf8"));
+    return j && typeof j.root === "string" && j.root ? j : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearStaged() {
+  try {
+    fs.rmSync(stagedFile(), { force: true });
+  } catch {
+    /* best effort */
+  }
+}
+
+/**
+ * Switch to an engine that finished installing in the background.
+ *
+ * Runs at the very top of the boot, with the engine provably dead (nothing has
+ * spawned yet), and does only metadata work: adopt the real tree into a slot
+ * the first time, repoint the junction, rewrite the marker. Milliseconds.
+ *
+ * Every failure aborts BEFORE mutating anything, so the worst case is "we did
+ * not update this time" — never a half-switched install.
+ */
+function promoteStagedEngine() {
+  let staged = null;
+  try {
+    staged = readStaged();
+    if (!staged) return false;
+    if (!engineSlots.isComplete(staged.root)) {
+      // Install died before finishing: drop the claim, let the background pass
+      // rebuild it from scratch (freshSlot moves the debris aside).
+      clearStaged();
+      updateState.writeState(WAYNE_HOME, { phase: "idle" });
+      return false;
+    }
+    if (!engineSlots.junctionsSupported(WAYNE_HOME)) {
+      updateState.writeState(WAYNE_HOME, {
+        phase: "failed",
+        lastError: "this filesystem does not support junctions",
+        lastErrorStage: "promote",
+      });
+      clearStaged();
+      return false;
+    }
+
+    const previous = readEngineSource();
+    let previousRoot = previous && previous.root ? previous.root : null;
+
+    // First promotion on this machine: wayne-agent is still a REAL directory.
+    // Rename it into a slot (metadata-only, works with mapped .pyd) so the
+    // canonical path can become a junction. If this fails, nothing has been
+    // touched yet and we simply do not update.
+    if (engineSlots.exists(ENGINE_ROOT) && !engineSlots.isLink(ENGINE_ROOT)) {
+      previousRoot = engineSlots.adoptRealTree(WAYNE_HOME, ENGINE_ROOT);
+    }
+
+    engineSlots.pointJunction(ENGINE_ROOT, staged.root);
+    writeEngineSource({
+      version: staged.version ?? null,
+      zipUrl: staged.zipUrl,
+      updatedAt: new Date().toISOString(),
+      root: staged.root,
+      previousRoot,
+      previousZipUrl: previous ? previous.zipUrl : null,
+    });
+    clearStaged();
+    // Not "idle" yet: only a successful loadURL proves the new engine boots.
+    updateState.writeState(WAYNE_HOME, { phase: "promoted-pending-verify" });
+    return true;
+  } catch (err) {
+    updateState.writeState(WAYNE_HOME, {
+      phase: "failed",
+      lastError: String((err && err.message) || err),
+      lastErrorStage: "promote",
+    });
+    return false;
+  }
+}
+
+/**
+ * Undo a promotion whose engine refused to start.
+ *
+ * Called from the boot's catch. Points the junction back at the tree that was
+ * working an hour ago and restores its marker, so the next boot is the old
+ * engine and the user sees why instead of a dead app.
+ */
+function rollbackPromotion() {
+  try {
+    const current = readEngineSource();
+    if (!current || !current.previousRoot) return false;
+    if (!engineSlots.exists(current.previousRoot)) return false;
+    engineSlots.pointJunction(ENGINE_ROOT, current.previousRoot);
+    writeEngineSource({
+      version: null,
+      zipUrl: current.previousZipUrl || current.zipUrl,
+      updatedAt: new Date().toISOString(),
+      root: current.previousRoot,
+      previousRoot: null,
+      previousZipUrl: null,
+    });
+    updateState.writeState(WAYNE_HOME, {
+      phase: "rolled-back",
+      lastError: "the new engine did not start",
+      lastErrorStage: "verify",
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function maybeUpdateEngine() {
   try {
     const manifest = await fetchEngineManifest();
@@ -1282,6 +1408,10 @@ async function startLocalEngine() {
   const aborted = () => gen !== engine.generation || engine.usingCloud || isQuitting;
   engine.bootAbort = new AbortController();
   try {
+    // A version installed in the background on a previous run is switched on
+    // HERE, and switching is only a junction repoint — no download, no
+    // install, no waiting. This is why the update screen is gone.
+    promoteStagedEngine();
     setPhase("resolve", "Verificando o motor local…");
     let backend = resolveEngineBackend();
 
@@ -1326,16 +1456,16 @@ async function startLocalEngine() {
         zipUrl: resolveEngineZipUrl(),
         updatedAt: new Date().toISOString(),
       });
-    } else if (backend.root === ENGINE_ROOT) {
-      // Engine already installed (never the dev checkout): boot-time update
-      // check. Fail-open by construction — any manifest/refresh problem just
-      // boots the current engine.
+    } else if (backend.root === ENGINE_ROOT && BOOT_UPDATE_ESCAPE_HATCH) {
+      // Legacy blocking path, now OFF by default (W4Y_ENGINE_BOOT_UPDATE=1 to
+      // bring it back for one release). It downloaded and installed the engine
+      // HERE, before the window could show anything — the black "Atualizando o
+      // motor…" screen the owner rightly refused. The replacement is:
+      // promoteStagedEngine() above (milliseconds) + a background install after
+      // the app is already on screen.
       const refreshedTree = await maybeUpdateEngine();
       if (aborted()) return;
       if (refreshedTree) {
-        // The refresh replaced source files; re-resolve so serve-arg detection
-        // sees the new tree. If the probe unexpectedly fails, keep the previous
-        // candidate (same paths) instead of failing the boot.
         const refreshed = resolveEngineBackend();
         if (refreshed.kind !== "bootstrap-needed") backend = refreshed;
       }
@@ -1386,13 +1516,183 @@ async function startLocalEngine() {
     if (mainWindow && !mainWindow.isDestroyed()) {
       await mainWindow.loadURL(engine.origin);
     }
+    // The app is on screen. Only now is a promotion proven good, and only now
+    // may we spend bandwidth on the next one.
+    verifyPromotion();
+    scheduleBackgroundEngineUpdate();
   } catch (err) {
     if (!aborted()) {
       killEngine();
-      bootFail(`O motor local não subiu: ${(err && err.message) || err}`);
+      // A promotion that cannot boot is undone here rather than leaving the
+      // user with a dead app: next start is the engine that worked.
+      const undone = rollbackPromotion();
+      bootFail(
+        undone
+          ? "Voltamos para a versão anterior do motor porque a nova não iniciou. Reabra o aplicativo."
+          : `O motor local não subiu: ${(err && err.message) || err}`,
+      );
     }
   } finally {
     engine.booting = false;
+  }
+}
+
+/**
+ * A promotion is only trustworthy once the window actually loaded from the new
+ * engine. That is what makes the previous slot disposable.
+ */
+function verifyPromotion() {
+  try {
+    const state = updateState.readState(WAYNE_HOME);
+    if (state.phase !== "promoted-pending-verify") return;
+    updateState.writeState(WAYNE_HOME, {
+      phase: "idle",
+      attempts: 0,
+      lastError: null,
+      lastErrorStage: null,
+    });
+    const current = readEngineSource();
+    if (current && current.previousRoot) {
+      // Keep it one more session as a cheap safety net; the boot GC collects it.
+      writeEngineSource({ ...current, previousRoot: current.previousRoot });
+    }
+  } catch {
+    /* verification is an optimisation, never a boot blocker */
+  }
+}
+
+/**
+ * Install the next engine version WHILE the current one keeps serving.
+ *
+ * Safe because install.ps1 only kills processes when the target already has a
+ * `venv\` — a virgin slot skips that block entirely, so the running engine is
+ * never touched. Deliberately delayed: the first minute after launch belongs
+ * to the user, not to our downloads.
+ */
+function scheduleBackgroundEngineUpdate() {
+  if (engine.updateTimer) return;
+  const FIRST_DELAY = 40_000;
+  const EVERY = 4 * 60 * 60 * 1000;
+  engine.updateTimer = setTimeout(function run() {
+    void runBackgroundEngineUpdate().finally(() => {
+      engine.updateTimer = setTimeout(run, EVERY);
+    });
+  }, FIRST_DELAY);
+}
+
+async function runBackgroundEngineUpdate() {
+  if (CLOUD_SHELL || isQuitting || engine.updating) return;
+  try {
+    const manifest = await fetchEngineManifest();
+    updateState.writeState(WAYNE_HOME, { lastCheckAt: new Date().toISOString() });
+    if (!manifest || !manifest.zipUrl) return;
+
+    const current = readEngineSource();
+    if (current && current.zipUrl === manifest.zipUrl) return; // already on it
+    const staged = readStaged();
+    if (staged && staged.zipUrl === manifest.zipUrl) return; // already waiting
+
+    if (!engineSlots.junctionsSupported(WAYNE_HOME)) {
+      updateState.writeState(WAYNE_HOME, {
+        phase: "failed",
+        attempts: (updateState.readState(WAYNE_HOME).attempts || 0) + 1,
+        lastError: "this filesystem does not support junctions",
+        lastErrorStage: "prepare",
+        lastAttemptAt: new Date().toISOString(),
+      });
+      notifyUpdateState();
+      return;
+    }
+
+    engine.updating = true;
+    updateState.writeState(WAYNE_HOME, {
+      zipUrl: manifest.zipUrl,
+      version: manifest.version ?? null,
+      phase: "installing",
+      lastAttemptAt: new Date().toISOString(),
+    });
+
+    const target = engineSlots.freshSlot(WAYNE_HOME, manifest.zipUrl);
+    process.env.WAYNE_SOURCE_ZIP_URL = manifest.zipUrl;
+    const scriptInfo = await bootstrapRunner.resolveInstallScript({
+      installStamp: null,
+      sourceRepoRoot:
+        DEV_SOURCE_ROOT || (!app.isPackaged ? path.resolve(__dirname, "..", "..") : null),
+      packagedScriptDir: app.isPackaged ? path.join(process.resourcesPath, "scripts") : null,
+      wayneHome: WAYNE_HOME,
+      emit: () => {},
+    });
+
+    const abort = new AbortController();
+    const cap = setTimeout(() => abort.abort(), 30 * 60_000);
+    let ev = null;
+    try {
+      ev = await bootstrapRunner.runStage({
+        scriptPath: scriptInfo.path,
+        installerKind: scriptInfo.kind || "powershell",
+        stage: { name: "repository" },
+        emit: () => {},
+        wayneHome: WAYNE_HOME,
+        activeRoot: target,
+        installDir: target,
+        abortSignal: abort.signal,
+        installStamp: null,
+      });
+    } finally {
+      clearTimeout(cap);
+    }
+
+    if (ev && ev.state === "succeeded" && engineSlots.isComplete(target)) {
+      fs.writeFileSync(
+        stagedFile(),
+        JSON.stringify(
+          {
+            root: target,
+            zipUrl: manifest.zipUrl,
+            version: manifest.version ?? null,
+            stagedAt: new Date().toISOString(),
+          },
+          null,
+          2,
+        ) + "\n",
+        "utf8",
+      );
+      updateState.writeState(WAYNE_HOME, {
+        phase: "staged",
+        attempts: 0,
+        lastError: null,
+        lastErrorStage: null,
+      });
+    } else {
+      updateState.writeState(WAYNE_HOME, {
+        phase: "failed",
+        attempts: (updateState.readState(WAYNE_HOME).attempts || 0) + 1,
+        lastError: (ev && ev.error) || "the installer did not finish",
+        lastErrorStage: (ev && ev.stage) || "repository",
+      });
+    }
+    notifyUpdateState();
+  } catch (err) {
+    updateState.writeState(WAYNE_HOME, {
+      phase: "failed",
+      attempts: (updateState.readState(WAYNE_HOME).attempts || 0) + 1,
+      lastError: String((err && err.message) || err),
+      lastErrorStage: "background",
+    });
+    notifyUpdateState();
+  } finally {
+    engine.updating = false;
+  }
+}
+
+/** Push the current update state to the window so the pill can react at once. */
+function notifyUpdateState() {
+  try {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send("w4y:update:event", { type: "engine-state" });
+    }
+  } catch {
+    /* window gone */
   }
 }
 
@@ -1587,18 +1887,52 @@ function registerCloudIpc() {
 // its real progress UI (zero new update mechanics). The engine is killed
 // FIRST: app.exit() skips will-quit, and a live python holding files would
 // fight the refresh's robocopy.
+/**
+ * What the pill should say — read from local state, not from the network.
+ *
+ * It used to answer "available" the moment latest.json differed, which meant
+ * the chip appeared BEFORE anything had been downloaded and clicking it walked
+ * into the blocking install. Now "available" means the bytes are already on
+ * disk and restarting is instant. A repeatedly failing update gets its own,
+ * louder answer instead of pretending nothing is happening.
+ */
 async function checkEngineUpdate() {
   try {
     if (CLOUD_SHELL || engine.usingCloud) return null;
-    const manifest = await fetchEngineManifest();
-    if (!manifest || !manifest.zipUrl) return null;
-    const current = readEngineSource();
-    return {
-      available: !current || current.zipUrl !== manifest.zipUrl,
-      version: typeof manifest.version === "string" ? manifest.version : null,
-    };
+    const staged = readStaged();
+    if (staged && engineSlots.isComplete(staged.root)) {
+      return { available: true, version: staged.version || null, kind: "ready" };
+    }
+    const state = updateState.readState(WAYNE_HOME);
+    if (updateState.isStalled(state)) {
+      return {
+        available: true,
+        version: state.version || null,
+        kind: "stalled",
+        attempts: state.attempts || 0,
+        stage: state.lastErrorStage || null,
+        reason: state.lastError || null,
+      };
+    }
+    return null;
   } catch {
     return null;
+  }
+}
+
+/** Let the user retry a stalled update on demand (resets the backoff). */
+function retryEngineUpdate() {
+  try {
+    updateState.writeState(WAYNE_HOME, {
+      phase: "idle",
+      attempts: 0,
+      lastError: null,
+      lastErrorStage: null,
+    });
+    void runBackgroundEngineUpdate();
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: String((e && e.message) || e) };
   }
 }
 
@@ -1647,10 +1981,19 @@ async function checkUnifiedUpdate() {
     return { available: true, version: shellRes.version };
   }
   unifiedUpdate.kind = "engine";
-  return checkEngineUpdate();
+  const res = await checkEngineUpdate();
+  // Remembered main-side so apply() knows whether clicking means "restart into
+  // the version already on disk" or "try the download again".
+  unifiedUpdate.engineKind = res ? res.kind || "ready" : null;
+  return res;
 }
 
 async function applyUnifiedUpdate() {
+  // A stalled engine update has nothing staged — restarting would land on the
+  // same version and look like the click did nothing. Retry instead.
+  if (unifiedUpdate.kind === "engine" && unifiedUpdate.engineKind === "stalled") {
+    return retryEngineUpdate();
+  }
   if (unifiedUpdate.kind === "shell" && shellUpdater.hasPending()) {
     try {
       killEngine();

@@ -1202,6 +1202,8 @@ export const tr: Translations = {
     account: "Hesap",
     updateChip: "Güncelle",
     updateChipTooltip: "Sürüm {version} mevcut — yeniden başlatır ve günceller.",
+    updateChipStalled: "Güncelleme bekliyor",
+    updateChipStalledTooltip: "Güncellemeyi tamamlayamadık. Yeniden denemek için tıklayın.",
     personalization: "Kişiselleştirme",
     identityNote: "Bu bilgiler girişinizden gelir ve burada düzenlenemez.",
     logout: "Çıkış yap",

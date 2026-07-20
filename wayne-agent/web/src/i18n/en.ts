@@ -1263,6 +1263,8 @@ export const en: Translations = {
     account: "Account",
     updateChip: "Update",
     updateChipTooltip: "Version {version} available — restarts and updates.",
+    updateChipStalled: "Update pending",
+    updateChipStalledTooltip: "We couldn't finish the update. Click to try again.",
     personalization: "Personalization",
     identityNote: "This comes from your login and can't be edited here.",
     logout: "Log out",

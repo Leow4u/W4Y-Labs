@@ -1201,6 +1201,8 @@ export const ja: Translations = {
     account: "アカウント",
     updateChip: "アップデート",
     updateChipTooltip: "バージョン {version} が利用可能 — 再起動して更新します。",
+    updateChipStalled: "更新が未完了",
+    updateChipStalledTooltip: "更新を完了できませんでした。クリックして再試行します。",
     personalization: "パーソナライズ",
     identityNote: "これらの情報はログインから取得され、ここでは編集できません。",
     logout: "ログアウト",

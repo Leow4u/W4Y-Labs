@@ -1302,6 +1302,8 @@ export interface Translations {
     account: string;
     updateChip: string;
     updateChipTooltip: string;
+    updateChipStalled: string;
+    updateChipStalledTooltip: string;
     personalization: string;
     identityNote: string;
     logout: string;

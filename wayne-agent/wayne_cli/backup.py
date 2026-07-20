@@ -48,6 +48,11 @@ logger = logging.getLogger(__name__)
 # restorable user skills that must survive a backup.
 _EXCLUDED_DIRS = {
     "wayne-agent",     # the codebase repo — re-clone instead
+    "e",                # engine slots (desktop 0.3.9): the installed engine
+                        # trees the shell switches between via a junction at
+                        # wayne-agent/. Same reasoning as wayne-agent itself —
+                        # re-downloadable code, and backing it up would double
+                        # or triple the archive for nothing.
     "__pycache__",      # bytecode caches — regenerated on import
     ".git",             # nested git dirs (profiles shouldn't have these, but safety)
     "node_modules",     # js deps — reinstalled on demand

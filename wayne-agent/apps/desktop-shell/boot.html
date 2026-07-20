@@ -323,9 +323,13 @@
       text: "Instalando o motor local…",
       hint: "A primeira vez leva alguns minutos. Pode deixar rodando — a instalação continua sozinha.",
     },
+    // 0.3.9: only reachable on a FIRST install (no engine yet), where waiting
+    // is honest because there is nothing to serve behind it. For anyone who
+    // already has an engine, updates now install in the background while the
+    // app is open — this screen never shows up again.
     update: {
-      text: "Atualizando o motor…",
-      hint: "Baixando a versão mais nova. Leva pouco tempo — sua configuração fica intacta.",
+      text: "Instalando o motor…",
+      hint: "Só na primeira vez. Depois, as atualizações acontecem sozinhas com o app aberto.",
     },
     key: { text: "Quase lá.", hint: "" },
     spawn: {

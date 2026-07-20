@@ -27,11 +27,16 @@
  * action and remains omitted locally.
  *
  * UPDATE PILL (0.3.4, ChatGPT Desktop pattern): local-engine only. The shell's
- * `work4youDesktop.update.check()` (manifest × installed-engine marker,
- * fail-open null) is probed on mount and every 30 min; when an update is
- * available an accent "Atualizar" pill renders next to the account label
- * (tooltip carries the version). Click → `update.apply()` — the shell
- * relaunches and the boot flow installs the update with its progress UI.
+ * `work4youDesktop.update.check()` (fail-open null) is probed on mount and
+ * every 30 min.
+ *
+ * 0.3.9 changed what "available" MEANS. It used to fire the moment the remote
+ * manifest differed — so clicking walked into a blocking install behind a black
+ * screen. Now the engine downloads in the background while the app is open, and
+ * the pill only appears once the bytes are on disk: clicking restarts into a
+ * version that is already there. `kind` carries the two states apart — "ready"
+ * (accent, restart is instant) and "stalled" (warning, the install keeps
+ * failing and the click retries it instead of restarting).
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -55,7 +60,12 @@ interface AuthWidgetProps {
 /** Shell bridge for the engine-update chip (0.3.4+ shells; older ones simply
  *  lack `update` and the pill never renders). */
 interface DesktopUpdateBridge {
-  check: () => Promise<{ available?: boolean; version?: string | null } | null>;
+  check: () => Promise<{
+    available?: boolean;
+    version?: string | null;
+    /** "ready" (already downloaded) | "stalled" (install keeps failing). */
+    kind?: string;
+  } | null>;
   apply: () => Promise<unknown>;
 }
 
@@ -92,7 +102,12 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const langListRef = useRef<HTMLDivElement>(null);
   // Engine update pill (local-engine only): null = no update / not applicable.
-  const [update, setUpdate] = useState<{ version: string | null } | null>(null);
+  // `kind` (shell 0.3.9): "ready" = the engine is already downloaded and a
+  // restart is instant; "stalled" = the background install keeps failing and
+  // the click means "try again", not "restart".
+  const [update, setUpdate] = useState<{ version: string | null; kind?: string } | null>(
+    null,
+  );
   const applyingRef = useRef(false);
 
   // Update probe: on mount + every 30 min. check() is fail-open (null on any
@@ -109,7 +124,10 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
           if (cancelled) return;
           setUpdate(
             r && r.available
-              ? { version: typeof r.version === "string" && r.version ? r.version : null }
+              ? {
+                  version: typeof r.version === "string" && r.version ? r.version : null,
+                  kind: typeof r.kind === "string" ? r.kind : undefined,
+                }
               : null,
           );
         })
@@ -266,13 +284,21 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
             role="button"
             tabIndex={0}
             title={
-              update.version
-                ? t.configUser.updateChipTooltip.replace("{version}", update.version)
-                : t.configUser.updateChip
+              update.kind === "stalled"
+                ? t.configUser.updateChipStalledTooltip
+                : update.version
+                  ? t.configUser.updateChipTooltip.replace("{version}", update.version)
+                  : t.configUser.updateChip
             }
             className={cn(
-              "shrink-0 rounded-full bg-live px-2 py-0.5 text-[0.625rem] font-semibold leading-4 text-background",
-              "transition-colors hover:bg-live/85 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-live/60",
+              "shrink-0 rounded-full px-2 py-0.5 text-[0.625rem] font-semibold leading-4",
+              "transition-colors focus-visible:outline-none focus-visible:ring-1",
+              // Two meanings, two looks: the engine is ready to switch to
+              // (accent) vs. the update keeps failing and needs a nudge
+              // (warning). Same pill, never the same promise.
+              update.kind === "stalled"
+                ? "bg-warning/15 text-warning ring-warning/40 hover:bg-warning/25 focus-visible:ring-warning/60"
+                : "bg-live text-background hover:bg-live/85 focus-visible:ring-live/60",
             )}
             onClick={(e) => {
               e.stopPropagation();
@@ -286,7 +312,9 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               }
             }}
           >
-            {t.configUser.updateChip}
+            {update.kind === "stalled"
+              ? t.configUser.updateChipStalled
+              : t.configUser.updateChip}
           </span>
         )}
         <ChevronUp className={cn("h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform", !open && "rotate-180")} />

@@ -1202,6 +1202,8 @@ export const hu: Translations = {
     account: "Fiók",
     updateChip: "Frissítés",
     updateChipTooltip: "Elérhető a(z) {version} verzió — újraindul és frissül.",
+    updateChipStalled: "Frissítés függőben",
+    updateChipStalledTooltip: "Nem tudtuk befejezni a frissítést. Kattintson az újrapróbáláshoz.",
     personalization: "Személyre szabás",
     identityNote: "Ezek az adatok a bejelentkezésedből származnak, és itt nem szerkeszthetők.",
     logout: "Kijelentkezés",

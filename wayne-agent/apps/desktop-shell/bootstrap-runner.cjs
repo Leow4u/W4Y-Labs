@@ -593,7 +593,11 @@ function parseStageResult(stdout) {
   return null
 }
 
-async function runStage({ scriptPath, installerKind, stage, emit, wayneHome, activeRoot, abortSignal, installStamp }) {
+// `installDir` (0.3.9) targets a tree OTHER than the canonical one, which is
+// how the background update installs a new engine while the current one is
+// still serving: install.ps1 only kills processes when the target already has
+// a `venv\`, so a virgin slot never touches the running engine.
+async function runStage({ scriptPath, installerKind, stage, emit, wayneHome, activeRoot, abortSignal, installStamp, installDir }) {
   const startedAt = Date.now()
   emit({ type: 'stage', name: stage.name, state: 'running' })
 
@@ -606,7 +610,14 @@ async function runStage({ scriptPath, installerKind, stage, emit, wayneHome, act
         '--json',
         ...buildPosixPinArgs({ installStamp, activeRoot, wayneHome })
       ]
-    : ['-Stage', stage.name, '-NonInteractive', '-Json', ...buildPinArgs(installStamp)]
+    : [
+        '-Stage',
+        stage.name,
+        '-NonInteractive',
+        '-Json',
+        ...(installDir ? ['-InstallDir', installDir] : []),
+        ...buildPinArgs(installStamp)
+      ]
   const result = await (isPosix ? spawnBash : spawnPowerShell)(scriptPath, args, {
     emit,
     stageName: stage.name,
