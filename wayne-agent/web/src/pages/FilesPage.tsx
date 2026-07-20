@@ -19,6 +19,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -48,10 +49,19 @@ import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { isInternalView } from "@/lib/internal-view";
-import { api } from "@/lib/api";
-import type { ManagedFileEntry, ManagedFilesResponse } from "@/lib/api";
+import { api, httpStatus } from "@/lib/api";
+import type { KnowledgeDoc, ManagedFileEntry, ManagedFilesResponse } from "@/lib/api";
 import { FileTypeIcon } from "@/lib/file-icons";
 import { partitionEntries, sortEntries, isSystemEntry } from "@/lib/file-curation";
+import {
+  capsFor,
+  knowledgeToEntry,
+  parseKnowledgePath,
+  type FileCaps,
+  type FileSourceId,
+} from "@/lib/file-sources";
+import { uploadKnowledgeDocument } from "@/lib/knowledge-upload";
+import { agentLabel, realAgents } from "@/lib/agents";
 import { prettifyProject } from "@/lib/projects";
 import { isFilePinned, toggleFilePin, removePinnedFile, onPinnedFilesChange } from "@/lib/pinned-files";
 import { FilesRail, type RailProject } from "@/components/files/FilesRail";
@@ -100,17 +110,55 @@ interface Crumb {
   path: string;
 }
 
+/**
+ * A failed file operation, said in the owner's words.
+ *
+ * Reads the HTTP status (api.ApiError), never the backend's English prose —
+ * that prose is not a contract. The four different 403s the server can raise
+ * (outside the root, system item, unreadable directory, sensitive name) all
+ * collapse into ONE sentence on purpose: to the person looking at the screen
+ * they mean exactly the same thing.
+ */
+function describeFileError(
+  e: unknown,
+  tf: ReturnType<typeof useI18n>["t"]["files"],
+  fallback?: string,
+): string {
+  switch (httpStatus(e)) {
+    case 404:
+      return tf.notFound;
+    case 403:
+      return tf.forbidden;
+    case 409:
+      return tf.conflict;
+    case 413:
+      return tf.tooLarge;
+    case 422:
+      return tf.unsupportedFormat;
+    default:
+      return fallback ? `${fallback}: ${e}` : String(e);
+  }
+}
+
 export default function FilesPage() {
   const { t } = useI18n();
   const tf = t.files;
   const { toast, showToast } = useToast();
   const { setAfterTitle, setEnd } = usePageHeader();
+  const routeLocation = useLocation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
 
   const [currentPath, setCurrentPath] = useState<string | undefined>(
     () => new URLSearchParams(window.location.search).get("path") ?? undefined,
   );
+  // Which surface the explorer is showing. "knowledge" = one agent's documents.
+  const [source, setSource] = useState<FileSourceId>("cloud");
+  const [activeAgent, setActiveAgent] = useState<string | null>(null);
+  const [agents, setAgents] = useState<Array<{ slug: string; name: string }>>([]);
+  const [knowledgeDocs, setKnowledgeDocs] = useState<KnowledgeDoc[]>([]);
+  const [knowledgeProvider, setKnowledgeProvider] = useState<string | null>(null);
+  const [knowledgeLoading, setKnowledgeLoading] = useState(false);
   const [pathInput, setPathInput] = useState("");
   const [listing, setListing] = useState<ManagedFilesResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -150,10 +198,21 @@ export default function FilesPage() {
   const [menu, setMenu] = useState<{ x: number; y: number; entry: ManagedFileEntry | null } | null>(null);
 
   const internal = isInternalView();
+  const onKnowledge = source === "knowledge" && activeAgent !== null;
+  const caps: FileCaps = capsFor(onKnowledge ? "knowledge" : "cloud");
   const activePath = listing?.path ?? currentPath ?? "";
-  const canUpload = Boolean(activePath) && !uploading;
+  const canUpload = onKnowledge
+    ? !uploading
+    : Boolean(activePath) && !uploading;
   const root = listing?.locked_root ?? listing?.root ?? null;
-  const isAtRoot = Boolean(root) && activePath === root;
+  const isAtRoot = Boolean(root) && activePath === root && !onKnowledge;
+
+  /** Go back to the cloud surface (used by every "Início" affordance). */
+  const goCloud = useCallback((path?: string) => {
+    setSource("cloud");
+    setActiveAgent(null);
+    if (path !== undefined) setCurrentPath(path);
+  }, []);
 
   const load = useCallback(
     async (path = currentPath) => {
@@ -165,7 +224,7 @@ export default function FilesPage() {
         setCurrentPath(result.path);
         setPathInput(result.path);
       } catch (e) {
-        setError(String(e));
+        setError(describeFileError(e, tf));
       } finally {
         setLoading(false);
       }
@@ -174,9 +233,91 @@ export default function FilesPage() {
   );
 
   useEffect(() => {
+    if (onKnowledge) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load(currentPath);
-  }, [currentPath]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentPath, onKnowledge]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** The agents that can own knowledge — the installation is not one of them. */
+  useEffect(() => {
+    let dead = false;
+    void api
+      .getProfiles()
+      .then((r) => {
+        if (dead) return;
+        setAgents(
+          realAgents(r.profiles).map((p) => ({ slug: p.name, name: agentLabel(p.name) })),
+        );
+      })
+      .catch(() => {
+        if (!dead) setAgents([]);
+      });
+    return () => {
+      dead = true;
+    };
+  }, []);
+
+  const loadKnowledge = useCallback(
+    async (slug: string) => {
+      setKnowledgeLoading(true);
+      setError(null);
+      try {
+        const r = await api.getKnowledge(slug);
+        setKnowledgeDocs(r.documents ?? []);
+        setKnowledgeProvider(r.provider ?? null);
+      } catch (e) {
+        setKnowledgeDocs([]);
+        setError(describeFileError(e, tf));
+      } finally {
+        setKnowledgeLoading(false);
+      }
+    },
+    [tf],
+  );
+
+  useEffect(() => {
+    if (!onKnowledge || !activeAgent) return;
+    void loadKnowledge(activeAgent);
+  }, [onKnowledge, activeAgent, loadKnowledge]);
+
+  // Deep link, three keys: ?path (cloud) or ?src=knowledge&agent=<slug>.
+  // Reactive to location.search instead of read-once at mount — that is what
+  // makes the five EXISTING deep links into this page (project workspace, task
+  // header, sidebar, backups) actually change the folder, which they never did.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("src") === "knowledge") {
+      const slug = q.get("agent");
+      if (slug) {
+        setSource("knowledge");
+        setActiveAgent(slug);
+        return;
+      }
+    }
+    setSource("cloud");
+    setActiveAgent(null);
+    const path = q.get("path");
+    if (path) setCurrentPath(path);
+  }, [routeLocation.search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // …and write it back, so F5 lands where the user is.
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    if (onKnowledge && activeAgent) {
+      q.delete("path");
+      q.set("src", "knowledge");
+      q.set("agent", activeAgent);
+    } else {
+      q.delete("src");
+      q.delete("agent");
+      if (activePath) q.set("path", activePath);
+      else q.delete("path");
+    }
+    const next = `${window.location.pathname}${q.toString() ? `?${q}` : ""}`;
+    if (next !== window.location.pathname + window.location.search) {
+      window.history.replaceState(null, "", next);
+    }
+  }, [onKnowledge, activeAgent, activePath]);
 
   // Navigation breadcrumb built from the absolute path relative to the root.
   const crumbs = useMemo<Crumb[]>(() => {
@@ -237,7 +378,7 @@ export default function FilesPage() {
       showToast(tf.created, "success");
       await load();
     } catch (e) {
-      showToast(`${tf.createFailed}: ${e}`, "error");
+      showToast(describeFileError(e, tf, tf.createFailed), "error");
     } finally {
       setCreating(false);
     }
@@ -247,13 +388,29 @@ export default function FilesPage() {
     if (!files?.length) return;
     setUploading(true);
     try {
-      for (const file of Array.from(files)) {
-        await api.uploadFile(joinPath(activePath, file.name), file, true);
+      if (onKnowledge && activeAgent) {
+        // Knowledge ingest is not a plain file write: re-uploading the same
+        // name has to REPLACE, or the agent ends up with the document learned
+        // twice (see lib/knowledge-upload).
+        let replaced = false;
+        for (const file of Array.from(files)) {
+          const r = await uploadKnowledgeDocument(file, activeAgent, knowledgeDocs);
+          replaced = replaced || r.replaced;
+        }
+        showToast(
+          replaced ? tf.knowledgeReplaced : tf.uploaded.replace("{n}", String(files.length)),
+          "success",
+        );
+        await loadKnowledge(activeAgent);
+      } else {
+        for (const file of Array.from(files)) {
+          await api.uploadFile(joinPath(activePath, file.name), file, true);
+        }
+        showToast(tf.uploaded.replace("{n}", String(files.length)), "success");
+        await load();
       }
-      showToast(tf.uploaded.replace("{n}", String(files.length)), "success");
-      await load();
     } catch (e) {
-      showToast(`${tf.uploadFailed}: ${e}`, "error");
+      showToast(describeFileError(e, tf, tf.uploadFailed), "error");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -275,7 +432,7 @@ export default function FilesPage() {
       const file = await api.readFile(entry.path);
       downloadDataUrl(file.data_url, file.name);
     } catch (e) {
-      showToast(`${tf.downloadFailed}: ${e}`, "error");
+      showToast(describeFileError(e, tf, tf.downloadFailed), "error");
     }
   };
 
@@ -283,12 +440,20 @@ export default function FilesPage() {
     if (!pendingDelete) return;
     setDeleting(true);
     try {
-      await api.deleteFile(pendingDelete.path, pendingDelete.is_directory);
-      showToast(tf.deleted, "success");
-      setPendingDelete(null);
-      await load();
+      const known = parseKnowledgePath(pendingDelete.path);
+      if (known) {
+        await api.deleteKnowledge(known.name, known.slug);
+        showToast(tf.deleted, "success");
+        setPendingDelete(null);
+        await loadKnowledge(known.slug);
+      } else {
+        await api.deleteFile(pendingDelete.path, pendingDelete.is_directory);
+        showToast(tf.deleted, "success");
+        setPendingDelete(null);
+        await load();
+      }
     } catch (e) {
-      showToast(`${tf.deleteFailed}: ${e}`, "error");
+      showToast(describeFileError(e, tf, tf.deleteFailed), "error");
     } finally {
       setDeleting(false);
     }
@@ -322,7 +487,7 @@ export default function FilesPage() {
       cancelRename();
       await load();
     } catch (e) {
-      showToast(`${tf.renameFailed}: ${e}`, "error");
+      showToast(describeFileError(e, tf, tf.renameFailed), "error");
     }
   };
 
@@ -340,7 +505,7 @@ export default function FilesPage() {
       showToast(tf.moved, "success");
       await load();
     } catch (e) {
-      showToast(`${tf.moveFailed}: ${e}`, "error");
+      showToast(describeFileError(e, tf, tf.moveFailed), "error");
     }
   };
 
@@ -435,11 +600,21 @@ export default function FilesPage() {
   // User content only. The internal view (?full=1) shows everything raw; the
   // normal one hides the system folders (curation) — neither shows nor reaches them.
   const user = useMemo(() => {
+    if (onKnowledge && activeAgent) {
+      // Same row shape as a file, so the four columns stay filled and true.
+      return knowledgeDocs.map((d) => knowledgeToEntry(d, activeAgent));
+    }
     const entries = listing?.entries ?? [];
-    return sortEntries(internal ? entries : partitionEntries(entries).user);
-  }, [listing?.entries, internal]);
+    return sortEntries(
+      internal
+        ? entries
+        : partitionEntries(entries, { atRoot: isAtRoot }).user,
+    );
+  }, [listing?.entries, internal, isAtRoot, onKnowledge, activeAgent, knowledgeDocs]);
 
-  const isEmpty = !loading && listing && user.length === 0;
+  const isEmpty = onKnowledge
+    ? !knowledgeLoading && user.length === 0
+    : !loading && listing && user.length === 0;
 
   // Rail: projects/ folders (pretty names). One call once the root is known —
   // regardless of where the navigation currently is.
@@ -514,10 +689,17 @@ export default function FilesPage() {
 
       <FilesRail
         root={root}
-        activePath={activePath}
+        activePath={onKnowledge ? "" : activePath}
         projects={projects}
-        onNavigate={setCurrentPath}
+        onNavigate={goCloud}
         onPreview={setPreview}
+        agents={agents}
+        activeAgent={onKnowledge ? activeAgent : null}
+        onSelectAgent={(slug) => {
+          setSource("knowledge");
+          setActiveAgent(slug);
+          setPreview(null);
+        }}
       />
 
       <div
@@ -560,22 +742,31 @@ export default function FilesPage() {
           </form>
         ) : (
           <nav className="flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto text-sm">
-            {crumbs.map((c, i) => (
-              <span key={c.path} className="flex shrink-0 items-center">
+            {(onKnowledge
+              ? [
+                  { label: tf.home, path: "" },
+                  { label: agents.find((a) => a.slug === activeAgent)?.name ?? "", path: "" },
+                ]
+              : crumbs
+            ).map((c, i, arr) => (
+              // On the knowledge surface the trail is exactly [Início › agent]:
+              // "Início" leaves the surface, the agent is the leaf, and neither
+              // accepts a drop (caps.move is false there).
+              <span key={`${i}-${c.path}`} className="flex shrink-0 items-center">
                 {i > 0 && <ChevronRight className="mx-0.5 h-3.5 w-3.5 text-muted-foreground" />}
                 <button
                   type="button"
-                  onClick={() => setCurrentPath(c.path)}
-                  disabled={i === crumbs.length - 1}
-                  onDragOver={i < crumbs.length - 1 ? (e) => allowDrop(e, c.path) : undefined}
-                  onDragLeave={i < crumbs.length - 1 ? ops.onDragLeaveDir : undefined}
-                  onDrop={i < crumbs.length - 1 ? (e) => dropOnDir(e, c.path) : undefined}
+                  onClick={() => (onKnowledge ? goCloud(root ?? undefined) : setCurrentPath(c.path))}
+                  disabled={i === arr.length - 1}
+                  onDragOver={caps.move && i < arr.length - 1 ? (e) => allowDrop(e, c.path) : undefined}
+                  onDragLeave={caps.move && i < arr.length - 1 ? ops.onDragLeaveDir : undefined}
+                  onDrop={caps.move && i < arr.length - 1 ? (e) => dropOnDir(e, c.path) : undefined}
                   className={cn(
                     "max-w-[14rem] truncate rounded px-1.5 py-0.5 transition-colors",
-                    i === crumbs.length - 1
+                    i === arr.length - 1
                       ? "font-medium text-foreground"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted",
-                    dragOverPath === c.path && i < crumbs.length - 1 && "bg-live/15 ring-1 ring-live",
+                    dragOverPath === c.path && i < arr.length - 1 && "bg-live/15 ring-1 ring-live",
                   )}
                 >
                   {c.label}
@@ -610,32 +801,45 @@ export default function FilesPage() {
               <ListIcon className="h-4 w-4" />
             </button>
           </div>
-          <Button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={!canUpload}
-            size="sm"
-            outlined
-            prefix={uploading ? <Spinner /> : <Upload />}
-          >
-            {tf.upload}
-          </Button>
-          <Button
-            type="button"
-            onClick={() => setCreateDialogOpen(true)}
-            disabled={!activePath}
-            size="sm"
-            outlined
-            prefix={<FolderPlus />}
-          >
-            {tf.newFolder}
-          </Button>
+          {caps.upload && (
+            <Button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!canUpload}
+              size="sm"
+              outlined
+              prefix={uploading ? <Spinner /> : <Upload />}
+            >
+              {tf.upload}
+            </Button>
+          )}
+          {caps.mkdir && (
+            <Button
+              type="button"
+              onClick={() => setCreateDialogOpen(true)}
+              disabled={!activePath}
+              size="sm"
+              outlined
+              prefix={<FolderPlus />}
+            >
+              {tf.newFolder}
+            </Button>
+          )}
         </div>
       </div>
 
       {error && (
         <div className="rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-sm text-destructive">
           {error}
+        </div>
+      )}
+
+      {/* The documents are on disk but the agent is not reading them: its memory
+          provider is something else, so nothing here reaches an answer. Stating
+          it beats a list that silently does nothing. */}
+      {onKnowledge && knowledgeProvider && knowledgeProvider !== "holographic" && (
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-3 text-sm text-warning">
+          {tf.knowledgeInert}
         </div>
       )}
 
@@ -665,14 +869,14 @@ export default function FilesPage() {
         </div>
       )}
 
-      {loading && !listing ? (
+      {(onKnowledge ? knowledgeLoading && user.length === 0 : loading && !listing) ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted-foreground">
           <Spinner />
           {t.common.loading}
         </div>
       ) : isEmpty ? (
         <div className="rounded-xl border border-dashed border-border py-16 text-center text-sm text-muted-foreground">
-          {tf.empty}
+          {onKnowledge ? tf.knowledgeEmpty : tf.empty}
         </div>
       ) : (
         <>
@@ -682,9 +886,9 @@ export default function FilesPage() {
               (the partition above puts everything in `user` when internal). The
               backend still refuses to delete critical paths as an extra defense. */}
           {view === "grid" ? (
-            <FileGrid entries={user} ops={ops} tf={tf} />
+            <FileGrid entries={user} ops={ops} tf={tf} caps={caps} />
           ) : (
-            <FileList entries={user} ops={ops} tf={tf} />
+            <FileList entries={user} ops={ops} tf={tf} caps={caps} />
           )}
         </>
       )}
@@ -721,6 +925,7 @@ export default function FilesPage() {
           onUpload={() => fileInputRef.current?.click()}
           onNewFolder={() => setCreateDialogOpen(true)}
           tf={tf}
+          caps={caps}
         />
       )}
 
@@ -806,6 +1011,9 @@ interface ViewProps {
   entries: ManagedFileEntry[];
   ops: FileOps;
   tf: ReturnType<typeof useI18n>["t"]["files"];
+  /** What this surface actually supports. An action outside caps is not
+   *  rendered at all — dimming it (the old `muted`) still let it be clicked. */
+  caps: FileCaps;
   muted?: boolean;
 }
 
@@ -849,7 +1057,7 @@ function RenameInput({
   );
 }
 
-function FileGrid({ entries, ops, tf, muted }: ViewProps) {
+function FileGrid({ entries, ops, tf, caps, muted }: ViewProps) {
   return (
     <div className={cn("grid grid-cols-[repeat(auto-fill,minmax(9rem,1fr))] gap-2.5", muted && "opacity-70")}>
       {entries.map((entry) => {
@@ -859,11 +1067,11 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
         return (
           <div
             key={entry.path}
-            draggable={!isRenaming}
-            onDragStart={(e) => ops.onDragStart(e, entry)}
-            onDragOver={entry.is_directory ? (e) => ops.onAllowDrop(e, entry.path) : undefined}
-            onDragLeave={entry.is_directory ? ops.onDragLeaveDir : undefined}
-            onDrop={entry.is_directory ? (e) => ops.onDropDir(e, entry.path) : undefined}
+            draggable={caps.move && !isRenaming}
+            onDragStart={caps.move ? (e) => ops.onDragStart(e, entry) : undefined}
+            onDragOver={caps.move && entry.is_directory ? (e) => ops.onAllowDrop(e, entry.path) : undefined}
+            onDragLeave={caps.move && entry.is_directory ? ops.onDragLeaveDir : undefined}
+            onDrop={caps.move && entry.is_directory ? (e) => ops.onDropDir(e, entry.path) : undefined}
             onContextMenu={(e) => ops.onContextMenu(e, entry)}
             className={cn(
               "group relative flex flex-col items-center gap-2.5 rounded-xl border border-transparent p-3 text-center transition-colors hover:border-border hover:bg-card",
@@ -871,6 +1079,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
             )}
           >
             {/* Star (favorite) — always visible when pinned; otherwise on hover. */}
+            {caps.pin && (
             <button
               type="button"
               onClick={() => ops.onTogglePin(entry)}
@@ -882,6 +1091,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
             >
               <Star className={cn("h-3.5 w-3.5", pinned && "fill-live")} />
             </button>
+            )}
             {isRenaming ? (
               <div className="flex w-full flex-col items-center gap-2.5">
                 <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="lg" />
@@ -896,14 +1106,15 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
             ) : (
               <button
                 type="button"
+                disabled={!caps.preview && !caps.navigate}
                 onClick={() => ops.onOpen(entry)}
                 onKeyDown={(e) => {
-                  if (e.key === "F2") {
+                  if (e.key === "F2" && caps.rename) {
                     e.preventDefault();
                     ops.onBeginRename(entry);
                   }
                 }}
-                className="flex w-full flex-col items-center gap-2.5"
+                className="flex w-full flex-col items-center gap-2.5 disabled:cursor-default"
                 title={entry.name}
               >
                 <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="lg" />
@@ -913,7 +1124,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
             {/* Actions on hover (corner). */}
             {!isRenaming && (
               <div className="absolute right-1 top-1 flex gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-                {!entry.is_directory && (
+                {caps.download && !entry.is_directory && (
                   <button
                     type="button"
                     onClick={() => ops.onDownload(entry)}
@@ -923,6 +1134,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
                     <Download className="h-3.5 w-3.5" />
                   </button>
                 )}
+                {caps.rename && (
                 <button
                   type="button"
                   onClick={() => ops.onBeginRename(entry)}
@@ -931,6 +1143,8 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
+                )}
+                {caps.delete && (
                 <button
                   type="button"
                   onClick={() => ops.onDelete(entry)}
@@ -939,6 +1153,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                 </button>
+                )}
               </div>
             )}
           </div>
@@ -952,7 +1167,7 @@ function FileGrid({ entries, ops, tf, muted }: ViewProps) {
 /* Lista — linhas detalhadas                                           */
 /* ------------------------------------------------------------------ */
 
-function FileList({ entries, ops, tf, muted }: ViewProps) {
+function FileList({ entries, ops, tf, caps, muted }: ViewProps) {
   const cols = "grid-cols-[minmax(10rem,1fr)_6rem_11rem_7.5rem]";
   return (
     <div className={cn("overflow-hidden rounded-xl border border-border", muted && "opacity-70")}>
@@ -969,11 +1184,11 @@ function FileList({ entries, ops, tf, muted }: ViewProps) {
         return (
           <div
             key={entry.path}
-            draggable={!isRenaming}
-            onDragStart={(e) => ops.onDragStart(e, entry)}
-            onDragOver={entry.is_directory ? (e) => ops.onAllowDrop(e, entry.path) : undefined}
-            onDragLeave={entry.is_directory ? ops.onDragLeaveDir : undefined}
-            onDrop={entry.is_directory ? (e) => ops.onDropDir(e, entry.path) : undefined}
+            draggable={caps.move && !isRenaming}
+            onDragStart={caps.move ? (e) => ops.onDragStart(e, entry) : undefined}
+            onDragOver={caps.move && entry.is_directory ? (e) => ops.onAllowDrop(e, entry.path) : undefined}
+            onDragLeave={caps.move && entry.is_directory ? ops.onDragLeaveDir : undefined}
+            onDrop={caps.move && entry.is_directory ? (e) => ops.onDropDir(e, entry.path) : undefined}
             onContextMenu={(e) => ops.onContextMenu(e, entry)}
             className={cn(
               "group grid items-center gap-3 border-b border-border/60 px-4 py-1.5 text-sm last:border-b-0 hover:bg-card",
@@ -995,14 +1210,15 @@ function FileList({ entries, ops, tf, muted }: ViewProps) {
             ) : (
               <button
                 type="button"
+                disabled={!caps.preview && !caps.navigate}
                 onClick={() => ops.onOpen(entry)}
                 onKeyDown={(e) => {
-                  if (e.key === "F2") {
+                  if (e.key === "F2" && caps.rename) {
                     e.preventDefault();
                     ops.onBeginRename(entry);
                   }
                 }}
-                className="flex min-w-0 items-center gap-2.5 text-left"
+                className="flex min-w-0 items-center gap-2.5 text-left disabled:cursor-default"
                 title={entry.name}
               >
                 <FileTypeIcon name={entry.name} isDirectory={entry.is_directory} size="sm" />
@@ -1014,6 +1230,7 @@ function FileList({ entries, ops, tf, muted }: ViewProps) {
               {Number.isFinite(entry.mtime) ? DATE_FORMAT.format(entry.mtime * 1000) : "—"}
             </span>
             <span className="flex justify-end gap-0.5">
+              {caps.pin && (
               <button
                 type="button"
                 onClick={() => ops.onTogglePin(entry)}
@@ -1025,6 +1242,8 @@ function FileList({ entries, ops, tf, muted }: ViewProps) {
               >
                 <Star className={cn("h-4 w-4", pinned && "fill-live")} />
               </button>
+              )}
+              {caps.rename && (
               <button
                 type="button"
                 onClick={() => ops.onBeginRename(entry)}
@@ -1033,7 +1252,8 @@ function FileList({ entries, ops, tf, muted }: ViewProps) {
               >
                 <Pencil className="h-4 w-4" />
               </button>
-              {!entry.is_directory && (
+              )}
+              {caps.download && !entry.is_directory && (
                 <button
                   type="button"
                   onClick={() => ops.onDownload(entry)}
@@ -1043,6 +1263,7 @@ function FileList({ entries, ops, tf, muted }: ViewProps) {
                   <Download className="h-4 w-4" />
                 </button>
               )}
+              {caps.delete && (
               <button
                 type="button"
                 onClick={() => ops.onDelete(entry)}
@@ -1051,6 +1272,7 @@ function FileList({ entries, ops, tf, muted }: ViewProps) {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+              )}
             </span>
           </div>
         );
@@ -1081,6 +1303,7 @@ function FileContextMenu({
   onUpload,
   onNewFolder,
   tf,
+  caps,
 }: {
   x: number;
   y: number;
@@ -1095,6 +1318,7 @@ function FileContextMenu({
   onUpload: () => void;
   onNewFolder: () => void;
   tf: ReturnType<typeof useI18n>["t"]["files"];
+  caps: FileCaps;
 }) {
   useEffect(() => {
     const close = () => onClose();
@@ -1134,44 +1358,58 @@ function FileContextMenu({
     >
       {entry ? (
         <>
-          <button type="button" className={item} onClick={run(onOpenEntry)}>
-            <FolderOpen className="h-4 w-4 text-muted-foreground" />
-            {tf.open}
-          </button>
-          {!entry.is_directory && (
+          {(caps.preview || caps.navigate) && (
+            <button type="button" className={item} onClick={run(onOpenEntry)}>
+              <FolderOpen className="h-4 w-4 text-muted-foreground" />
+              {tf.open}
+            </button>
+          )}
+          {caps.download && !entry.is_directory && (
             <button type="button" className={item} onClick={run(onDownload)}>
               <Download className="h-4 w-4 text-muted-foreground" />
               {tf.download}
             </button>
           )}
-          <button type="button" className={item} onClick={run(onRename)}>
-            <Pencil className="h-4 w-4 text-muted-foreground" />
-            {tf.rename}
-          </button>
-          <button type="button" className={item} onClick={run(onTogglePin)}>
-            <Star className={cn("h-4 w-4", pinned ? "fill-live text-live" : "text-muted-foreground")} />
-            {pinned ? tf.unfavorite : tf.favorite}
-          </button>
-          <div className="my-1 h-px bg-border" />
-          <button
-            type="button"
-            className={cn(item, "text-destructive hover:bg-destructive/10")}
-            onClick={run(onDelete)}
-          >
-            <Trash2 className="h-4 w-4" />
-            {tf.delete}
-          </button>
+          {caps.rename && (
+            <button type="button" className={item} onClick={run(onRename)}>
+              <Pencil className="h-4 w-4 text-muted-foreground" />
+              {tf.rename}
+            </button>
+          )}
+          {caps.pin && (
+            <button type="button" className={item} onClick={run(onTogglePin)}>
+              <Star className={cn("h-4 w-4", pinned ? "fill-live text-live" : "text-muted-foreground")} />
+              {pinned ? tf.unfavorite : tf.favorite}
+            </button>
+          )}
+          {caps.delete && (
+            <>
+              <div className="my-1 h-px bg-border" />
+              <button
+                type="button"
+                className={cn(item, "text-destructive hover:bg-destructive/10")}
+                onClick={run(onDelete)}
+              >
+                <Trash2 className="h-4 w-4" />
+                {tf.delete}
+              </button>
+            </>
+          )}
         </>
       ) : (
         <>
-          <button type="button" className={item} onClick={run(onUpload)}>
-            <Upload className="h-4 w-4 text-muted-foreground" />
-            {tf.upload}
-          </button>
-          <button type="button" className={item} onClick={run(onNewFolder)}>
-            <FolderPlus className="h-4 w-4 text-muted-foreground" />
-            {tf.newFolder}
-          </button>
+          {caps.upload && (
+            <button type="button" className={item} onClick={run(onUpload)}>
+              <Upload className="h-4 w-4 text-muted-foreground" />
+              {tf.upload}
+            </button>
+          )}
+          {caps.mkdir && (
+            <button type="button" className={item} onClick={run(onNewFolder)}>
+              <FolderPlus className="h-4 w-4 text-muted-foreground" />
+              {tf.newFolder}
+            </button>
+          )}
         </>
       )}
     </div>,

@@ -9,11 +9,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { BookOpen, FileText, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { uploadKnowledgeDocument } from "@/lib/knowledge-upload";
 import type { KnowledgeDoc } from "@/lib/api";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 
-const ACCEPT = ".txt,.md,.markdown,.csv,.json,.log,.docx,.xlsx,.ipynb";
+// PDF is accepted since the engine bundled pypdf (20/07) — the picker was
+// still refusing the most common document people actually have.
+const ACCEPT = ".txt,.md,.markdown,.csv,.json,.log,.docx,.xlsx,.ipynb,.pdf";
 
 export function KnowledgePanel({
   profile,
@@ -51,7 +54,9 @@ export function KnowledgePanel({
       setBusy(true);
       setError(null);
       try {
-        await api.uploadKnowledge(file, profile);
+        // Replace-on-same-name: plain upload would ingest the document TWICE
+        // (see lib/knowledge-upload).
+        await uploadKnowledgeDocument(file, profile, docs ?? []);
         reload();
         onChanged?.();
       } catch (e) {
@@ -65,7 +70,7 @@ export function KnowledgePanel({
         setBusy(false);
       }
     },
-    [profile, reload, onChanged, ag.studioKnowledgeUnsupported],
+    [profile, reload, onChanged, docs, ag.studioKnowledgeUnsupported],
   );
 
   const remove = useCallback(
@@ -150,7 +155,7 @@ export function KnowledgePanel({
                   {d.name}
                 </div>
                 {d.facts != null && (
-                  <div className="text-[10.5px] text-muted-foreground">
+                  <div className="text-xs text-muted-foreground">
                     {ag.studioKnowledgeDocs.replace("{count}", String(d.facts))}
                     {d.ingested_at ? ` · ${d.ingested_at.slice(0, 10)}` : ""}
                   </div>

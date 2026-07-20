@@ -186,9 +186,36 @@ export async function fetchJSON<T>(
   }
   if (!res.ok) {
     const text = await res.text().catch(() => res.statusText);
-    throw new Error(`${res.status}: ${text}`);
+    throw new ApiError(res.status, text);
   }
   return res.json();
+}
+
+/**
+ * A failed request, carrying the HTTP status as data.
+ *
+ * The message is byte-identical to the plain `Error` this replaced, so every
+ * caller that interpolates the error (`${t.failed}: ${e}`) keeps working. What
+ * changes is that a screen can now branch on 404 vs 403 vs 409 WITHOUT matching
+ * the backend's English prose — the prose is not a contract, the status is.
+ */
+export class ApiError extends Error {
+  // Plain fields, not constructor parameter properties: the project builds with
+  // `erasableSyntaxOnly`, which forbids syntax that emits runtime code.
+  readonly status: number;
+  readonly body: string;
+
+  constructor(status: number, body: string) {
+    super(`${status}: ${body}`);
+    this.name = "ApiError";
+    this.status = status;
+    this.body = body;
+  }
+}
+
+/** The HTTP status behind a rejected api call, or null when it wasn't one. */
+export function httpStatus(e: unknown): number | null {
+  return e instanceof ApiError ? e.status : null;
 }
 
 /** Encode a plugin registry key for URL paths (preserves `/` segment separators). */

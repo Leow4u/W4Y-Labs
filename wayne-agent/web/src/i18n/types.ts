@@ -887,6 +887,15 @@ export interface Translations {
     renameFailed: string;
     moved: string;
     moveFailed: string;
+    knowledgeSection: string;
+    knowledgeEmpty: string;
+    knowledgeInert: string;
+    knowledgeReplaced: string;
+    notFound: string;
+    forbidden: string;
+    conflict: string;
+    tooLarge: string;
+    unsupportedFormat: string;
   };
 
   // ── Cron page ──

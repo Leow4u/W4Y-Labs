@@ -1903,6 +1903,12 @@ _PROTECTED_ROOT_ENTRIES = frozenset({
     "lazy-packages", "lazy_packages", "node_modules", "node", "go",
     "bin", "lib", "lib64", "share", "include", "cache",
     "config.yaml", "auth.json", "channel_directory.json", "gateway_state.json",
+    # The agent's knowledge store. Deleting it through the files API leaves the
+    # manifest AND the ingested facts orphaned — the agent goes on answering
+    # from documents that no longer exist, with nothing on screen to reveal it.
+    # Hiding it in the UI curation is not protection: ?full=1 and the raw API
+    # both still reach it. Fail closed here instead.
+    "knowledge",
 })
 _PROTECTED_ROOT_SUFFIXES = (".db", ".db-litestream", ".db-shm", ".db-wal")
 

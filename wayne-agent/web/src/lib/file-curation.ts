@@ -62,13 +62,31 @@ export function isSystemEntry(entry: ManagedFileEntry): boolean {
 }
 
 /** Splits the listing into user content and system noise. */
-export function partitionEntries(entries: ManagedFileEntry[]): {
+/**
+ * Names that are system-owned AT THE ROOT and ordinary anywhere else.
+ *
+ * `knowledge/` is the agent's document store: deleting it from the explorer
+ * leaves the manifest and the learned facts orphaned, and the agent keeps
+ * answering from knowledge whose source is gone. But a folder a user creates
+ * inside their own project and happens to name "knowledge" is just a folder —
+ * so this is anchored, not global.
+ */
+const ROOT_ONLY_SYSTEM_NAMES = new Set<string>(["knowledge"]);
+
+export function partitionEntries(
+  entries: ManagedFileEntry[],
+  opts?: { atRoot?: boolean },
+): {
   user: ManagedFileEntry[];
   system: ManagedFileEntry[];
 } {
   const user: ManagedFileEntry[] = [];
   const system: ManagedFileEntry[] = [];
-  for (const e of entries) (isSystemEntry(e) ? system : user).push(e);
+  for (const e of entries) {
+    const rootOnly =
+      Boolean(opts?.atRoot) && ROOT_ONLY_SYSTEM_NAMES.has(e.name.toLowerCase());
+    (isSystemEntry(e) || rootOnly ? system : user).push(e);
+  }
   return { user, system };
 }
 
