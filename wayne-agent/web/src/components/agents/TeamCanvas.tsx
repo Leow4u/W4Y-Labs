@@ -84,7 +84,7 @@ function AgentNode({ data }: NodeProps<AgentNodeType>) {
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-semibold text-foreground">{c.displayName}</h3>
             {c.isActive && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-foreground">
                 <Check className="h-3 w-3" />
                 {t.agents.active}
               </span>
@@ -97,13 +97,13 @@ function AgentNode({ data }: NodeProps<AgentNodeType>) {
       </div>
       {/* Operational pulse: cost (credits) + routine. */}
       <div className="mt-3 flex items-center gap-2 border-t border-border/70 pt-2.5">
-        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
           <Coins className="h-3 w-3" />
           {c.credits30 === null ? "…" : `${formatCredits(c.credits30)} · 30d`}
         </span>
         {c.routineCount !== null && c.routineCount > 0 && (
           <span
-            className="inline-flex min-w-0 items-center gap-1 rounded-full bg-live/10 px-2 py-0.5 text-[11px] text-live"
+            className="inline-flex min-w-0 items-center gap-1 rounded-full bg-live/10 px-2 py-0.5 text-xs text-live"
             title={c.nextRun ?? undefined}
           >
             <CalendarClock className="h-3 w-3 shrink-0" />

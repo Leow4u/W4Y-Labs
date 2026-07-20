@@ -1279,7 +1279,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
               setNotifyTick((n) => n + 1);
             }}
             aria-label={t.common.close}
-            className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
+            className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
           </button>
@@ -1348,7 +1348,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
               key={i}
               className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 px-3 py-2 text-xs text-muted-foreground"
             >
-              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide">
+              <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-xs font-medium uppercase tracking-wide">
                 {t.chat.queuedLabel}
               </span>
               <span className="min-w-0 flex-1 truncate">{q}</span>
@@ -1457,7 +1457,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
         )}
       </div>
 
-      <p className="pt-2.5 text-center text-xs text-muted-foreground/60">
+      <p className="pt-2.5 text-center text-xs text-text-tertiary">
         {t.chat.disclaimer}
       </p>
     </div>

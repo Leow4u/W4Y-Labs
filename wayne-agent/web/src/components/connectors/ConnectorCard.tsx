@@ -85,7 +85,7 @@ export function ConnectorCard({
           {tk.description}
         </p>
         {typeof tk.tools_count === "number" && tk.tools_count > 0 && (
-          <p className="mt-1 type-micro text-muted-foreground/70">
+          <p className="mt-1 type-micro text-text-tertiary">
             {tc.toolsCount.replace("{n}", String(tk.tools_count))}
           </p>
         )}

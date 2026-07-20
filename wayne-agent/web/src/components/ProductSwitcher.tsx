@@ -42,7 +42,7 @@ export function ProductSwitcher() {
         <span className="tracking-tight">Work4You</span>
         <ChevronDown
           className={cn(
-            "h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-transform",
+            "h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform",
             open && "rotate-180",
           )}
         />
@@ -63,7 +63,7 @@ export function ProductSwitcher() {
             aria-checked="true"
             onClick={close}
             className={cn(
-              "flex w-full items-center gap-2 px-3 py-1.5 text-left font-mono text-xs",
+              "flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs",
               "font-semibold text-foreground transition-colors",
               "hover:bg-current/10 focus-visible:outline-none focus-visible:bg-current/10",
             )}
@@ -75,7 +75,7 @@ export function ProductSwitcher() {
             role="menuitemradio"
             aria-checked="false"
             aria-disabled="true"
-            className="flex w-full cursor-default items-center gap-2 px-3 py-1.5 text-left font-mono text-xs text-text-disabled"
+            className="flex w-full cursor-default items-center gap-2 px-3 py-1.5 text-left text-xs text-text-disabled"
           >
             <span className="truncate">Code4You</span>
             <span className="ml-auto shrink-0 rounded-full bg-current/10 px-1.5 py-px font-sans text-[0.625rem] leading-4 text-muted-foreground">

@@ -126,11 +126,11 @@ export function DiffView({ diff }: { diff: string }) {
   }
   return (
     <div className="overflow-hidden rounded-md border border-border">
-      <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-2 py-1 text-[11px] tabular-nums">
+      <div className="flex items-center gap-2 border-b border-border bg-muted/50 px-2 py-1 text-xs tabular-nums">
         <span className="text-success">+{added}</span>
         <span className="text-destructive">−{removed}</span>
       </div>
-      <pre className="max-h-56 overflow-auto font-mono text-[11px] leading-relaxed">
+      <pre className="max-h-56 overflow-auto font-mono text-xs leading-relaxed">
         {lines.map((l, i) => {
           const isAdd = l.startsWith("+") && !l.startsWith("+++");
           const isDel = l.startsWith("-") && !l.startsWith("---");
@@ -172,7 +172,7 @@ function CopyIconButton({ text, label }: { text: string; label: string }) {
           setTimeout(() => setCopied(false), 1500);
         });
       }}
-      className="rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+      className="rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
     >
       {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
     </button>
@@ -205,7 +205,7 @@ export function ToolLine({
         {rail && (
           <span
             aria-hidden
-            className="shrink-0 select-none font-mono type-micro leading-none text-muted-foreground/40"
+            className="shrink-0 select-none font-mono type-micro leading-none text-text-tertiary"
           >
             {rail}
           </span>
@@ -219,7 +219,7 @@ export function ToolLine({
         </span>
         <span className="shrink-0 text-[13px] text-muted-foreground">{verb}</span>
         {target && (
-          <span className="min-w-0 truncate font-mono text-xs text-muted-foreground/70">
+          <span className="min-w-0 truncate font-mono text-xs text-text-tertiary">
             {target}
           </span>
         )}
@@ -227,7 +227,7 @@ export function ToolLine({
           <span className="shrink-0 text-xs text-destructive">{t.status.error}</span>
         )}
         {!running && tool.durationS != null && (
-          <span className="ml-auto shrink-0 pl-2 text-[11px] tabular-nums text-muted-foreground/0 transition-colors group-hover:text-muted-foreground/70">
+          <span className="ml-auto shrink-0 pl-2 text-xs tabular-nums text-muted-foreground/0 transition-colors group-hover:text-text-tertiary">
             {fmtDuration(tool.durationS)}
           </span>
         )}
@@ -261,7 +261,7 @@ export function ToolLine({
             )
           )}
           {tool.durationS != null && (
-            <div className="text-[11px] tabular-nums text-muted-foreground/70">
+            <div className="text-xs tabular-nums text-text-tertiary">
               {fmtDuration(tool.durationS)}
             </div>
           )}

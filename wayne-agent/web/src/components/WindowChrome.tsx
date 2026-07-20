@@ -368,7 +368,7 @@ export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) 
                 >
                   <span className="truncate">{item.label}</span>
                   {item.hint && (
-                    <span className="shrink-0 font-mono text-[0.625rem] text-muted-foreground/60">
+                    <span className="shrink-0 font-mono text-[0.625rem] text-text-tertiary">
                       {item.hint}
                     </span>
                   )}

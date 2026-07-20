@@ -1635,7 +1635,7 @@ function HubResultCard({
           aria-label={`Open ${result.name}`}
         >
           <div className="flex flex-wrap items-center gap-2 mb-0.5">
-            <span className="font-mono-ui text-sm hover:underline">
+            <span className="text-sm hover:underline">
               {result.name}
             </span>
             <Badge tone={trust.tone} className="text-xs">
@@ -1657,7 +1657,7 @@ function HubResultCard({
             {result.tags.slice(0, 5).map((tag) => (
               <span
                 key={tag}
-                className="text-[0.65rem] font-mono text-text-tertiary border border-border px-1 py-px"
+                className="text-xs font-mono text-text-tertiary border border-border px-1 py-px"
               >
                 {tag}
               </span>
@@ -1843,7 +1843,7 @@ function SkillDetailDialog({
                     {preview.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="text-[0.65rem] font-mono text-text-tertiary border border-border px-1 py-px"
+                        className="text-xs font-mono text-text-tertiary border border-border px-1 py-px"
                       >
                         {tag}
                       </span>

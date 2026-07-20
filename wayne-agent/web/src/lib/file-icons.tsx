@@ -89,7 +89,7 @@ export function FileTypeIcon({
         aria-hidden
         className={cn(
           "grid shrink-0 place-items-center rounded-md font-semibold text-white",
-          lg ? "h-10 w-10 rounded-lg text-sm" : "h-6 w-6 text-[10px]",
+          lg ? "h-10 w-10 rounded-lg text-sm" : "h-6 w-6 text-xs",
         )}
         style={{ backgroundColor: kind.glyph.bg }}
       >

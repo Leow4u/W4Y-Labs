@@ -37,26 +37,59 @@ import { isInternalView } from "@/lib/internal-view";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useI18n } from "@/i18n";
+import type { Translations } from "@/i18n";
 import { cn, themedBody } from "@/lib/utils";
+
+type ChannelCopy = Translations["channels"];
+type BadgeTone = "success" | "warning" | "destructive" | "secondary" | "outline";
 
 // State → badge mapping. The backend emits a small, fixed vocabulary plus
 // whatever the live gateway runtime reports (connected/disconnected/fatal).
-const STATE_BADGE: Record<
-  string,
-  { tone: "success" | "warning" | "destructive" | "secondary" | "outline"; label: string }
-> = {
-  connected: { tone: "success", label: "Connected" },
-  pending_restart: { tone: "warning", label: "Restart to apply" },
-  gateway_stopped: { tone: "warning", label: "Gateway stopped" },
-  startup_failed: { tone: "destructive", label: "Start failed" },
-  disconnected: { tone: "warning", label: "Disconnected" },
-  not_configured: { tone: "outline", label: "Not configured" },
-  disabled: { tone: "secondary", label: "Disabled" },
-  fatal: { tone: "destructive", label: "Error" },
+// Tone carries the semantics; "connected" additionally gets the explicit
+// success token so it always reads green rather than inheriting the
+// terracotta accent from the design system's default badge surface.
+const STATE_TONE: Record<string, BadgeTone> = {
+  connected: "success",
+  pending_restart: "warning",
+  gateway_stopped: "warning",
+  startup_failed: "destructive",
+  disconnected: "warning",
+  not_configured: "outline",
+  disabled: "secondary",
+  fatal: "destructive",
 };
 
-function stateBadge(state: string) {
-  return STATE_BADGE[state] ?? { tone: "outline" as const, label: state };
+const SUCCESS_BADGE_CLASS = "bg-success/12 text-success border-success/30";
+
+function stateBadge(state: string, c: ChannelCopy) {
+  const labels: Record<string, string> = {
+    connected: c.stateConnected,
+    pending_restart: c.statePendingRestart,
+    gateway_stopped: c.stateGatewayStopped,
+    startup_failed: c.stateStartFailed,
+    disconnected: c.stateDisconnected,
+    not_configured: c.stateNotConfigured,
+    disabled: c.stateDisabled,
+    fatal: c.stateError,
+  };
+  return {
+    tone: STATE_TONE[state] ?? ("outline" as BadgeTone),
+    label: labels[state] ?? state,
+    className: state === "connected" ? SUCCESS_BADGE_CLASS : undefined,
+  };
+}
+
+// Card name + description come from OUR copy, keyed by platform id, so the
+// customer never reads the backend's raw English. Platforms we haven't
+// written copy for fall back to whatever the catalog reports.
+function platformCopy(platform: MessagingPlatform, c: ChannelCopy) {
+  const entry = (c.platformCopy as Record<string, { name: string; desc: string } | undefined>)[
+    platform.id
+  ];
+  return {
+    name: entry?.name || platform.name,
+    description: entry?.desc || platform.description,
+  };
 }
 
 const TELEGRAM_USER_ID_RE = /^\d+$/;
@@ -66,13 +99,19 @@ const SLACK_TOKEN_PREFIXES: Record<string, string> = {
   SLACK_APP_TOKEN: "xapp-",
 };
 
-function validateMessagingEnvField(field: MessagingPlatformEnvVar, value: string): string | null {
+function validateMessagingEnvField(
+  field: MessagingPlatformEnvVar,
+  value: string,
+  c: ChannelCopy,
+): string | null {
   const trimmed = value.trim();
   if (!trimmed) return null;
 
   const expectedPrefix = SLACK_TOKEN_PREFIXES[field.key];
   if (expectedPrefix && !trimmed.startsWith(expectedPrefix)) {
-    return `${field.prompt || field.key} must start with ${expectedPrefix}`;
+    return c.errPrefix
+      .replace("{field}", field.prompt || field.key)
+      .replace("{prefix}", expectedPrefix);
   }
 
   if (field.key === "SLACK_ALLOWED_USERS") {
@@ -85,16 +124,18 @@ function validateMessagingEnvField(field: MessagingPlatformEnvVar, value: string
       .filter(Boolean);
     const invalid = parts.find((part) => part !== "*" && !SLACK_MEMBER_ID_RE.test(part));
     if (invalid) {
-      return `${invalid} does not look like a Slack member ID. Use IDs like U01ABC2DEF3.`;
+      return c.errSlackId.replace("{value}", invalid);
     }
   }
 
   return null;
 }
 
-function formatExpiry(expiresAt: string): string {
+// Returns the remaining "m:ss", or null once the pairing window has closed —
+// the caller renders the localized "expired" label for null.
+function formatExpiry(expiresAt: string): string | null {
   const ms = Date.parse(expiresAt) - Date.now();
-  if (!Number.isFinite(ms) || ms <= 0) return "expired";
+  if (!Number.isFinite(ms) || ms <= 0) return null;
   const seconds = Math.ceil(ms / 1000);
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
@@ -107,11 +148,15 @@ function isTerminalTelegramOnboardingError(error: unknown): boolean {
 }
 
 // Channel curation: only the main ones show by default (WhatsApp first); the
-// rest sits behind "Mostrar mais"; the technical plumbing (internal
-// API/webhook/relay) disappears for the user — visible only under ?full=1.
-// Same system×user principle as the product's other screens.
+// rest sits behind the "see all channels" toggle; the technical plumbing
+// (internal API/webhook/relay) disappears for the user — visible only under
+// ?full=1. Same system×user principle as the product's other screens.
+//
+// Order here IS the render order of the default view, so the two WhatsApp
+// flavors sit next to each other rather than at opposite ends of the list.
 const FEATURED_CHANNELS = [
   "whatsapp",
+  "whatsapp_cloud",
   "telegram",
   "discord",
   "slack",
@@ -119,7 +164,6 @@ const FEATURED_CHANNELS = [
   "sms",
   "google_chat",
   "teams",
-  "whatsapp_cloud",
 ] as const;
 
 const SYSTEM_CHANNELS = new Set<string>([
@@ -134,8 +178,8 @@ const SYSTEM_CHANNELS = new Set<string>([
 
 // Real brand logo (Composio's logo CDN) per channel — only slugs that REALLY
 // exist in the catalog (a guess → blank tile). Covers every featured channel.
-// The niche ones ("Mostrar mais") have no logo in the catalog and fall back to
-// the initial tile. Email/SMS are protocols, not brands → clean glyph.
+// The niche ones (behind "see all channels") have no logo in the catalog and
+// fall back to the initial tile. Email/SMS are protocols, not brands → glyph.
 const CHANNEL_LOGO: Record<string, string> = {
   whatsapp: "whatsapp",
   whatsapp_cloud: "whatsapp",
@@ -184,6 +228,7 @@ function ChannelLogo({ platform }: { platform: MessagingPlatform }) {
 
 export default function ChannelsPage() {
   const { t } = useI18n();
+  const c = t.channels;
   const [platforms, setPlatforms] = useState<MessagingPlatform[]>([]);
   const [envPath, setEnvPath] = useState("~/.wayne/.env");
   const [gatewayStartCommand, setGatewayStartCommand] = useState(
@@ -253,8 +298,8 @@ export default function ChannelsPage() {
         setEnvPath(res.env_path || "~/.wayne/.env");
         setGatewayStartCommand(res.gateway_start_command || "wayne gateway start");
       })
-      .catch((e) => showToast(`Error: ${e}`, "error"));
-  }, [showToast, profileParam]);
+      .catch((e) => showToast(c.loadError.replace("{error}", String(e)), "error"));
+  }, [showToast, profileParam, c]);
 
   useEffect(() => {
     setLoading(true);
@@ -288,36 +333,42 @@ export default function ChannelsPage() {
       if (v.trim()) env[k] = v.trim();
     });
     if (Object.keys(env).length === 0) {
-      showToast("Nothing to save — fill in at least one field.", "error");
+      showToast(c.nothingToSave, "error");
       return;
     }
     const missing = editing.env_vars.filter(
       (v) => v.required && !v.is_set && !env[v.key],
     );
     if (missing.length > 0) {
-      showToast(`${missing[0].prompt || missing[0].key} is required`, "error");
+      showToast(
+        c.fieldRequired.replace("{field}", missing[0].prompt || missing[0].key),
+        "error",
+      );
       return;
     }
     const nextFieldErrors: Record<string, string> = {};
     editing.env_vars.forEach((field) => {
-      const message = validateMessagingEnvField(field, draftEnv[field.key] || "");
+      const message = validateMessagingEnvField(field, draftEnv[field.key] || "", c);
       if (message) nextFieldErrors[field.key] = message;
     });
     if (Object.keys(nextFieldErrors).length > 0) {
       setFieldErrors(nextFieldErrors);
-      showToast("Fix the highlighted fields before saving.", "error");
+      showToast(c.fixFields, "error");
       return;
     }
     setSaving(true);
     try {
       const body: MessagingPlatformUpdate = { env, enabled: true, profile: profileParam };
       await api.updateMessagingPlatform(editing.id, body);
-      showToast(`${editing.name} saved`, "success");
+      showToast(
+        c.saved.replace("{name}", platformCopy(editing, c).name),
+        "success",
+      );
       setEditing(null);
       setRestartNeeded(true);
       await load();
     } catch (e) {
-      showToast(`Failed to save: ${e}`, "error");
+      showToast(c.saveFailed.replace("{error}", String(e)), "error");
     } finally {
       setSaving(false);
     }
@@ -337,7 +388,7 @@ export default function ChannelsPage() {
       );
       setRestartNeeded(true);
     } catch (e) {
-      showToast(`Error: ${e}`, "error");
+      showToast(c.toggleFailed.replace("{error}", String(e)), "error");
     } finally {
       setTogglingId(null);
     }
@@ -347,9 +398,12 @@ export default function ChannelsPage() {
     setTestingId(platform.id);
     try {
       const res = await api.testMessagingPlatform(platform.id, profileParam);
-      showToast(`${platform.name}: ${res.message}`, res.ok ? "success" : "error");
+      showToast(
+        `${platformCopy(platform, c).name}: ${res.message}`,
+        res.ok ? "success" : "error",
+      );
     } catch (e) {
-      showToast(`Error: ${e}`, "error");
+      showToast(c.testFailed.replace("{error}", String(e)), "error");
     } finally {
       setTestingId(null);
     }
@@ -359,12 +413,12 @@ export default function ChannelsPage() {
     setRestarting(true);
     try {
       await api.restartGateway();
-      showToast("Gateway restarting…", "success");
+      showToast(c.restarting, "success");
       setRestartNeeded(false);
       // Give the gateway a moment to come up, then refresh status.
       setTimeout(() => void load(), 4000);
     } catch (e) {
-      showToast(`Failed to restart: ${e}`, "error");
+      showToast(c.restartFailed.replace("{error}", String(e)), "error");
     } finally {
       setRestarting(false);
     }
@@ -473,7 +527,9 @@ export default function ChannelsPage() {
         </p>
       ) : (
         <p className="text-xs text-muted-foreground">
-          {configured} de {platforms.length} canais configurados.
+          {c.configuredCount
+            .replace("{configured}", String(configured))
+            .replace("{total}", String(platforms.length))}
         </p>
       )}
 
@@ -498,7 +554,7 @@ export default function ChannelsPage() {
               size="icon"
               onClick={() => setEditing(null)}
               className="absolute right-2 top-2 text-muted-foreground hover:text-foreground"
-              aria-label="Close"
+              aria-label={t.common.close}
             >
               <X />
             </Button>
@@ -508,8 +564,10 @@ export default function ChannelsPage() {
                 id="channel-config-title"
                 className="font-mondwest text-display text-base tracking-wider"
               >
-                Configure {editing.name}
+                {c.configureTitle.replace("{name}", platformCopy(editing, c).name)}
               </h2>
+              {/* The catalog leaves docs_url empty when the vendor has no
+                  public setup page — then no link renders at all. */}
               {editing.docs_url && (
                 <a
                   href={editing.docs_url}
@@ -517,14 +575,14 @@ export default function ChannelsPage() {
                   rel="noopener noreferrer"
                   className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline"
                 >
-                  Setup guide <ExternalLink className="h-3 w-3" />
+                  {c.setupGuide} <ExternalLink className="h-3 w-3" />
                 </a>
               )}
             </header>
 
             <div className="p-5 grid gap-4 overflow-y-auto">
               <p className="text-xs text-muted-foreground">
-                {editing.description}
+                {platformCopy(editing, c).description}
               </p>
               {editing.env_vars.map((field: MessagingPlatformEnvVar) => (
                 <div className="grid gap-1.5" key={field.key}>
@@ -554,7 +612,7 @@ export default function ChannelsPage() {
                     type={field.is_password ? "password" : "text"}
                     placeholder={
                       field.is_set
-                        ? field.redacted_value || "•••••• (set — leave blank to keep)"
+                        ? field.redacted_value || c.secretSet
                         : field.key
                     }
                     value={draftEnv[field.key] ?? ""}
@@ -580,7 +638,7 @@ export default function ChannelsPage() {
 
               <div className="flex justify-end gap-2 pt-1">
                 <Button ghost size="sm" onClick={() => setEditing(null)}>
-                  Cancel
+                  {t.common.cancel}
                 </Button>
                 <Button
                   className="uppercase"
@@ -589,7 +647,7 @@ export default function ChannelsPage() {
                   disabled={saving}
                   prefix={saving ? <Spinner /> : undefined}
                 >
-                  {saving ? "Saving…" : "Save & enable"}
+                  {saving ? c.saving : c.saveEnable}
                 </Button>
               </div>
             </div>
@@ -600,7 +658,8 @@ export default function ChannelsPage() {
       {/* Platform list */}
       <div className="grid gap-3">
         {visible.map((platform) => {
-          const badge = stateBadge(platform.state);
+          const badge = stateBadge(platform.state, c);
+          const copy = platformCopy(platform, c);
           const busy = togglingId === platform.id;
           return (
             <Card key={platform.id} className="border-border">
@@ -611,12 +670,14 @@ export default function ChannelsPage() {
                     <div className="flex flex-col gap-0.5 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-mondwest normal-case text-sm font-medium">
-                          {platform.name}
+                          {copy.name}
                         </span>
-                        <Badge tone={badge.tone}>{badge.label}</Badge>
+                        <Badge tone={badge.tone} className={badge.className}>
+                          {badge.label}
+                        </Badge>
                       </div>
                       <span className="text-xs text-muted-foreground">
-                        {platform.description}
+                        {copy.description}
                       </span>
                       {/* Raw runtime error message (startup_failed/fatal) —
                           technical plumbing, internal view (?full=1) only. */}
@@ -636,7 +697,7 @@ export default function ChannelsPage() {
                         <Switch
                           checked={platform.enabled}
                           onCheckedChange={() => void handleToggle(platform)}
-                          aria-label={`Enable ${platform.name}`}
+                          aria-label={c.enableAria.replace("{name}", copy.name)}
                         />
                       )}
                     </div>
@@ -653,7 +714,7 @@ export default function ChannelsPage() {
                         )
                       }
                     >
-                      Test
+                      {c.test}
                     </Button>
                     <Button
                       size="sm"
@@ -661,7 +722,7 @@ export default function ChannelsPage() {
                       onClick={() => openConfig(platform)}
                       prefix={<Settings2 className="h-4 w-4" />}
                     >
-                      Configure
+                      {c.configure}
                     </Button>
                   </div>
                 </div>
@@ -688,9 +749,7 @@ export default function ChannelsPage() {
           onClick={() => setShowMore((v) => !v)}
           className="self-start text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          {showMore
-            ? t.chat.showLess
-            : `${t.chat.showMore} (${extra.length})`}
+          {showMore ? c.showLess : `${c.showAll} (${extra.length})`}
         </button>
       )}
     </div>
@@ -712,6 +771,8 @@ function TelegramOnboardingPanel({
   setRestartNeeded: (needed: boolean) => void;
   showToast: (message: string, type: "success" | "error") => void;
 }) {
+  const { t } = useI18n();
+  const c = t.channels;
   const [setup, setSetup] = useState<TelegramOnboardingStartResponse | null>(
     null,
   );
@@ -760,11 +821,11 @@ function TelegramOnboardingPanel({
           setSetup(null);
           setQrDataUrl("");
           setPhase("idle");
-          setError("Telegram pairing expired. Start a new QR setup to try again.");
+          setError(c.tgPairingExpired);
           return;
         }
 
-        setError(`Still waiting for Telegram. Retrying after: ${pollError}`);
+        setError(c.tgStillWaiting.replace("{error}", String(pollError)));
         timeout = setTimeout(poll, 2000);
       }
     };
@@ -774,7 +835,7 @@ function TelegramOnboardingPanel({
       cancelled = true;
       if (timeout) clearTimeout(timeout);
     };
-  }, [phase, setup]);
+  }, [phase, setup, c]);
 
   useEffect(() => {
     if (!setup) return;
@@ -830,7 +891,7 @@ function TelegramOnboardingPanel({
   const addAllowedId = () => {
     const trimmed = newAllowedId.trim();
     if (!TELEGRAM_USER_ID_RE.test(trimmed)) {
-      setError("Allowed Telegram user IDs must be numeric.");
+      setError(c.tgNumericOnly);
       return;
     }
     setError("");
@@ -853,7 +914,7 @@ function TelegramOnboardingPanel({
         if (st.exit_code !== 0 && st.exit_code !== null) {
           onRestartNeeded();
           showToast(
-            `Gateway restart failed (exit ${st.exit_code}) — restart manually`,
+            c.tgRestartFailedExit.replace("{code}", String(st.exit_code)),
             "error",
           );
         }
@@ -867,7 +928,7 @@ function TelegramOnboardingPanel({
   const apply = async () => {
     if (!setup) return;
     if (allowedIds.length === 0) {
-      setError("Add at least one allowed Telegram user ID.");
+      setError(c.tgNeedOneUser);
       return;
     }
     setPhase("applying");
@@ -879,24 +940,29 @@ function TelegramOnboardingPanel({
       });
       resetSetup();
       if (result.restart_started) {
-        showToast("Telegram saved; gateway restarting…", "success");
+        showToast(c.tgSaved, "success");
         setRestartNeeded(false);
         setTimeout(() => void onChanged(), 4000);
         void watchRestartOutcome();
       } else if (result.restart_started === undefined && result.needs_restart) {
         try {
           await api.restartGateway();
-          showToast("Telegram saved; gateway restarting…", "success");
+          showToast(c.tgSaved, "success");
           setRestartNeeded(false);
           setTimeout(() => void onChanged(), 4000);
         } catch (restartError) {
           onRestartNeeded();
-          showToast(`Telegram saved; gateway restart failed: ${restartError}`, "error");
+          showToast(
+            c.tgSavedRestartFailed.replace("{error}", String(restartError)),
+            "error",
+          );
         }
       } else {
         onRestartNeeded();
-        const detail = result.restart_error ? `: ${result.restart_error}` : "";
-        showToast(`Telegram saved; gateway restart failed${detail}`, "error");
+        showToast(
+          c.tgSavedRestartFailed.replace("{error}", result.restart_error || "—"),
+          "error",
+        );
       }
       await onChanged();
     } catch (applyError) {
@@ -906,7 +972,7 @@ function TelegramOnboardingPanel({
   };
 
   const expiresIn = useMemo(
-    () => (setup ? formatExpiry(setup.expires_at) : ""),
+    () => (setup ? formatExpiry(setup.expires_at) : null),
     // tick keeps the memo fresh without recalculating on every render branch.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [setup, tick],
@@ -922,11 +988,11 @@ function TelegramOnboardingPanel({
           disabled={phase === "starting" || phase === "waiting" || phase === "applying"}
           prefix={phase === "starting" ? <Spinner /> : <QrCode className="h-4 w-4" />}
         >
-          {phase === "starting" ? "Starting…" : "Set up with QR"}
+          {phase === "starting" ? c.tgStarting : c.tgSetupQr}
         </Button>
         {platform.configured && (
           <span className="text-xs text-muted-foreground">
-            Existing Telegram credentials are configured.
+            {c.tgAlreadySet}
           </span>
         )}
       </div>
@@ -943,7 +1009,9 @@ function TelegramOnboardingPanel({
             {(phase === "ready" || phase === "applying") && (
               <div className="grid gap-3">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone="success">Ready</Badge>
+                  <Badge tone="success" className={SUCCESS_BADGE_CLASS}>
+                    {c.tgReady}
+                  </Badge>
                   {botUsername && (
                     <span className="font-courier text-sm text-muted-foreground">
                       @{botUsername}
@@ -954,10 +1022,12 @@ function TelegramOnboardingPanel({
                 <div className="grid gap-2">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs uppercase tracking-[0.12em] text-muted-foreground">
-                      Allowed users
+                      {c.tgAllowedUsers}
                     </span>
                     {detectedOwnerId && allowedIds.includes(detectedOwnerId) && (
-                      <Badge tone="success">owner detected</Badge>
+                      <Badge tone="success" className={SUCCESS_BADGE_CLASS}>
+                        {c.tgOwnerDetected}
+                      </Badge>
                     )}
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -978,7 +1048,7 @@ function TelegramOnboardingPanel({
                     ))}
                     {allowedIds.length === 0 && (
                       <span className="text-sm text-muted-foreground">
-                        Add at least one Telegram user ID.
+                        {c.tgNeedOneUser}
                       </span>
                     )}
                   </div>
@@ -988,11 +1058,11 @@ function TelegramOnboardingPanel({
                   <Input
                     value={newAllowedId}
                     onChange={(event) => setNewAllowedId(event.target.value)}
-                    placeholder="Telegram user ID"
+                    placeholder={c.tgUserIdPlaceholder}
                     className="font-courier"
                   />
                   <Button size="sm" outlined onClick={addAllowedId} prefix={<Check />}>
-                    Add
+                    {c.tgAdd}
                   </Button>
                 </div>
 
@@ -1004,10 +1074,10 @@ function TelegramOnboardingPanel({
                     disabled={phase === "applying"}
                     prefix={phase === "applying" ? <Spinner /> : <Save className="h-4 w-4" />}
                   >
-                    {phase === "applying" ? "Saving…" : "Save and restart"}
+                    {phase === "applying" ? c.saving : t.common.save}
                   </Button>
                   <Button size="sm" ghost onClick={() => void cancel()}>
-                    Cancel
+                    {t.common.cancel}
                   </Button>
                 </div>
               </div>
@@ -1017,14 +1087,14 @@ function TelegramOnboardingPanel({
           <div className="flex flex-col items-center justify-center gap-3">
             <img
               src={qrDataUrl}
-              alt="Telegram setup QR code"
+              alt={c.tgQrAlt}
               className="h-56 w-56 bg-white p-2"
             />
             <div className="flex flex-wrap items-center justify-center gap-2 text-sm">
-              <Badge tone={expiresIn === "expired" ? "destructive" : "outline"}>
-                {expiresIn}
+              <Badge tone={expiresIn === null ? "destructive" : "outline"}>
+                {expiresIn ?? c.tgExpired}
               </Badge>
-              {phase === "waiting" && <Badge tone="warning">waiting</Badge>}
+              {phase === "waiting" && <Badge tone="warning">{c.tgWaiting}</Badge>}
             </div>
             <div className="flex flex-wrap justify-center gap-2">
               <a
@@ -1034,10 +1104,10 @@ function TelegramOnboardingPanel({
                 className="inline-flex h-8 items-center gap-1 border border-border px-3 text-xs uppercase text-foreground hover:border-foreground/40"
               >
                 <ExternalLink className="h-4 w-4" />
-                Open Telegram
+                {c.tgOpenTelegram}
               </a>
               <Button size="sm" ghost onClick={() => void cancel()}>
-                Cancel
+                {t.common.cancel}
               </Button>
             </div>
           </div>

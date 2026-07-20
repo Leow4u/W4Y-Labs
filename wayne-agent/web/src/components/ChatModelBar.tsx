@@ -48,7 +48,7 @@ export function ChatModelBar({ light }: { light: boolean }) {
       {notice && (
         <span
           className={cn(
-            "hidden max-w-[220px] truncate text-[11px] sm:block",
+            "hidden max-w-[220px] truncate text-xs sm:block",
             light ? "text-neutral-400" : "text-white/50",
           )}
         >

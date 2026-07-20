@@ -306,13 +306,13 @@ export function ProjectWorkspace({
                     onClick={() => openTask(s.id)}
                     className="flex w-full items-center gap-3 border-b border-border/60 px-1 py-3 text-left transition-colors last:border-b-0 hover:bg-muted/40"
                   >
-                    <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                    <MessageSquare className="h-4 w-4 shrink-0 text-text-tertiary" />
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground">
                       {s.title?.trim() && s.title !== "Untitled"
                         ? s.title
                         : s.preview?.trim() || t.sessions.untitledSession}
                     </span>
-                    <span className="shrink-0 text-xs tabular-nums text-muted-foreground/70">
+                    <span className="shrink-0 text-xs tabular-nums text-text-tertiary">
                       {timeAgo(s.last_active)}
                     </span>
                   </button>
@@ -335,7 +335,7 @@ export function ProjectWorkspace({
                     setInstrDraft(instructions);
                     setEditingInstr(true);
                   }}
-                  className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
+                  className="rounded p-1 text-text-tertiary transition-colors hover:text-foreground"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                 </button>
@@ -349,7 +349,7 @@ export function ProjectWorkspace({
                   value={instrDraft}
                   onChange={(e) => setInstrDraft(e.target.value)}
                   placeholder={t.chat.instructionsPlaceholder}
-                  className="min-h-[120px] w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-foreground/30"
+                  className="min-h-[120px] w-full resize-y rounded-lg border border-input bg-transparent px-3 py-2 text-sm text-foreground outline-none placeholder:text-text-tertiary focus:border-foreground/30"
                 />
                 <div className="flex justify-end gap-1.5">
                   <button
@@ -396,12 +396,12 @@ export function ProjectWorkspace({
                   setInstrDraft("");
                   setEditingInstr(true);
                 }}
-                className="text-sm text-muted-foreground/70 transition-colors hover:text-foreground"
+                className="text-sm text-text-tertiary transition-colors hover:text-foreground"
               >
                 + {t.chat.instructionsPlaceholder}
               </button>
             )}
-            <p className="mt-2 text-xs text-muted-foreground/60">
+            <p className="mt-2 text-xs text-text-tertiary">
               {t.chat.instructionsHint}
             </p>
           </Panel>
@@ -416,7 +416,7 @@ export function ProjectWorkspace({
                   disabled={uploading}
                   aria-label={t.chat.add}
                   title={t.chat.add}
-                  className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-foreground"
+                  className="rounded p-1 text-text-tertiary transition-colors hover:text-foreground"
                 >
                   {uploading ? (
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -429,7 +429,7 @@ export function ProjectWorkspace({
                   onClick={() =>
                     navigate(`/files?path=${encodeURIComponent(projectPath)}`)
                   }
-                  className="rounded px-1 py-0.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+                  className="rounded px-1 py-0.5 text-xs text-text-tertiary transition-colors hover:text-foreground"
                 >
                   {t.chat.viewAll}
                 </button>
@@ -446,7 +446,7 @@ export function ProjectWorkspace({
             {files === null ? (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             ) : files.length === 0 ? (
-              <p className="text-sm text-muted-foreground/60">{t.common.none}</p>
+              <p className="text-sm text-text-tertiary">{t.common.none}</p>
             ) : (
               <ul className="space-y-0.5">
                 {files.slice(0, 6).map((f) => (
@@ -457,7 +457,7 @@ export function ProjectWorkspace({
                       title={f.name}
                       className="group flex w-full items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-muted/50"
                     >
-                      <FileText className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                      <FileText className="h-4 w-4 shrink-0 text-text-tertiary" />
                       <span className="min-w-0 flex-1 truncate text-sm text-foreground">
                         {f.name}
                       </span>
@@ -481,7 +481,7 @@ export function ProjectWorkspace({
                       : "/cron",
                   )
                 }
-                className="rounded px-1 py-0.5 text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+                className="rounded px-1 py-0.5 text-xs text-text-tertiary transition-colors hover:text-foreground"
               >
                 + {t.chat.add}
               </button>
@@ -490,17 +490,17 @@ export function ProjectWorkspace({
             {jobs === null ? (
               <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
             ) : jobs.length === 0 ? (
-              <p className="text-xs text-muted-foreground/60">{t.chat.scheduledHint}</p>
+              <p className="text-xs text-text-tertiary">{t.chat.scheduledHint}</p>
             ) : (
               <ul className="space-y-1.5">
                 {jobs.map((j) => (
                   <li key={j.id} className="flex items-center gap-2">
-                    <CalendarClock className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                    <CalendarClock className="h-4 w-4 shrink-0 text-text-tertiary" />
                     <span className="min-w-0 flex-1 truncate text-sm text-foreground">
                       {j.name || j.prompt || j.id}
                     </span>
                     {j.schedule_display && (
-                      <span className="shrink-0 text-xs text-muted-foreground/70">
+                      <span className="shrink-0 text-xs text-text-tertiary">
                         {j.schedule_display}
                       </span>
                     )}

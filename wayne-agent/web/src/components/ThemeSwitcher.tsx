@@ -271,7 +271,7 @@ function FontSection({ fontChoices, fontId, setFont }: FontSectionProps) {
         return (
           <div key={cat}>
             <div className="px-3 pb-0.5 pt-1.5">
-              <Typography className="text-[0.65rem] uppercase tracking-[0.1em] text-text-tertiary">
+              <Typography className="text-xs uppercase tracking-[0.1em] text-text-tertiary">
                 {catLabel}
               </Typography>
             </div>

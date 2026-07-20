@@ -106,7 +106,7 @@ export function KnowledgePanel({
           <div className="text-sm font-semibold text-foreground">
             {ag.studioKnowledgeLabel}
           </div>
-          <div className="truncate text-[11px] text-muted-foreground">
+          <div className="truncate text-xs text-muted-foreground">
             {ag.studioKnowledgeCites}
           </div>
         </div>
@@ -161,7 +161,7 @@ export function KnowledgePanel({
                 aria-label={ag.teamRemoveSub}
                 disabled={removing === d.name}
                 onClick={() => void remove(d.name)}
-                className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:text-destructive disabled:opacity-50"
+                className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:text-destructive disabled:opacity-50"
               >
                 {removing === d.name ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

@@ -423,7 +423,7 @@ export default function AgentWorkflowPage() {
               {displayName}
             </h1>
             {data?.isActive && (
-              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground">
+              <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-foreground">
                 <Check className="h-3 w-3" />
                 {ag.active}
               </span>

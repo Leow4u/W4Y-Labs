@@ -146,7 +146,7 @@ export function ProjectPicker({
           <SquareDashed className="h-3.5 w-3.5 text-muted-foreground" />
         )}
         <span className="max-w-[12rem] truncate">{label}</span>
-        <ChevronDown className="h-3 w-3 text-muted-foreground/60" />
+        <ChevronDown className="h-3 w-3 text-text-tertiary" />
       </button>
 
       {open && (
@@ -156,20 +156,20 @@ export function ProjectPicker({
         >
           {/* Search */}
           <div className="mb-1 flex items-center gap-2 rounded-xl border border-border bg-background px-2.5 py-1.5">
-            <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+            <Search className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
             <input
               autoFocus
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t.chat.searchProjects}
-              className="min-w-0 flex-1 bg-transparent type-ui text-foreground outline-none placeholder:text-muted-foreground/50"
+              className="min-w-0 flex-1 bg-transparent type-ui text-foreground outline-none placeholder:text-text-tertiary"
             />
           </div>
 
           {/* Project list */}
           <div className="max-h-56 overflow-y-auto">
             {projects === null ? (
-              <Loader2 className="m-2 h-4 w-4 animate-spin text-muted-foreground/60" />
+              <Loader2 className="m-2 h-4 w-4 animate-spin text-text-tertiary" />
             ) : (
               filtered.map((slug) => (
                 <button
@@ -208,7 +208,7 @@ export function ProjectPicker({
               <Plus className="h-4 w-4 shrink-0 text-muted-foreground" />
               <span className="min-w-0 flex-1">{t.chat.newProjectMenu}</span>
               <ChevronRight
-                className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${submenu ? "rotate-90" : ""}`}
+                className={`h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform ${submenu ? "rotate-90" : ""}`}
               />
             </button>
             {submenu && (
@@ -361,7 +361,7 @@ export function FolderBrowser({ onClose }: { onClose: () => void }) {
             type="button"
             aria-label={t.common.close}
             onClick={onClose}
-            className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -378,7 +378,7 @@ export function FolderBrowser({ onClose }: { onClose: () => void }) {
           </button>
           {crumbs.map((seg, i) => (
             <span key={i} className="flex min-w-0 items-center gap-1">
-              <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+              <ChevronRight className="h-3 w-3 shrink-0 text-text-tertiary" />
               <button
                 type="button"
                 onClick={() => setPath(crumbs.slice(0, i + 1).join("/"))}
@@ -392,9 +392,9 @@ export function FolderBrowser({ onClose }: { onClose: () => void }) {
 
         <div className="min-h-0 flex-1 overflow-y-auto rounded-xl border border-border bg-background p-1">
           {entries === null ? (
-            <Loader2 className="m-2 h-4 w-4 animate-spin text-muted-foreground/60" />
+            <Loader2 className="m-2 h-4 w-4 animate-spin text-text-tertiary" />
           ) : entries.length === 0 ? (
-            <p className="px-2.5 py-4 type-caption text-muted-foreground/70">
+            <p className="px-2.5 py-4 type-caption text-text-tertiary">
               {t.common.noResults}
             </p>
           ) : (
@@ -415,7 +415,7 @@ export function FolderBrowser({ onClose }: { onClose: () => void }) {
           )}
         </div>
 
-        <p className="mt-2 type-micro text-muted-foreground/70">{t.chat.pickFolderHint}</p>
+        <p className="mt-2 type-micro text-text-tertiary">{t.chat.pickFolderHint}</p>
         <div className="mt-3 flex justify-end">
           <button
             type="button"
@@ -490,7 +490,7 @@ export function RepoModal({
             type="button"
             aria-label={t.common.close}
             onClick={onClose}
-            className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -498,7 +498,7 @@ export function RepoModal({
 
         {ghReady === null ? (
           <div className="grid place-items-center py-6">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground/60" />
+            <Loader2 className="h-5 w-5 animate-spin text-text-tertiary" />
           </div>
         ) : ghReady ? (
           <>
@@ -515,7 +515,7 @@ export function RepoModal({
                 if (e.key === "Enter") void submit();
               }}
               placeholder={t.chat.repoUrlPlaceholder}
-              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 font-mono type-ui text-foreground outline-none placeholder:text-muted-foreground/50 focus:border-foreground/30"
+              className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 font-mono type-ui text-foreground outline-none placeholder:text-text-tertiary focus:border-foreground/30"
             />
             <p className="mt-2 type-micro text-muted-foreground">{t.chat.repoAnyProvider}</p>
             <div className="mt-4 flex justify-end">
@@ -548,7 +548,7 @@ export function RepoModal({
             </p>
             <div className="my-4 flex items-center gap-3">
               <span className="h-px flex-1 bg-border/70" />
-              <span className="type-micro text-muted-foreground/60">{t.chat.repoOrUrl}</span>
+              <span className="type-micro text-text-tertiary">{t.chat.repoOrUrl}</span>
               <span className="h-px flex-1 bg-border/70" />
             </div>
             <div className="flex items-center gap-2">
@@ -559,7 +559,7 @@ export function RepoModal({
                   if (e.key === "Enter") void submit();
                 }}
                 placeholder={t.chat.repoUrlPlaceholder}
-                className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 font-mono type-caption text-foreground outline-none placeholder:text-muted-foreground/50 focus:border-foreground/30"
+                className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3 py-2 font-mono type-caption text-foreground outline-none placeholder:text-text-tertiary focus:border-foreground/30"
               />
               <button
                 type="button"

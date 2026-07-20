@@ -1535,6 +1535,17 @@ def _dashboard_local_update_managed_externally() -> bool:
     return True
 
 
+def _default_user_files_root() -> Path:
+    """The user-facing files root outside the hosted container: ~/Work4You.
+
+    The desktop shell already creates this folder on first boot (DL-01), so it
+    is the folder the product means when it says "your files" — never the raw
+    OS home, which exposes AppData/NTUSER.DAT and (before the lock) allowed
+    walking out to the whole drive.
+    """
+    return Path.home() / "Work4You"
+
+
 def _managed_files_policy(request: Request, *, create_root: bool = True) -> ManagedFilesPolicy:
     raw_forced_root = os.environ.get(_MANAGED_FILES_ROOT_ENV, "").strip()
     if raw_forced_root:
@@ -1550,8 +1561,14 @@ def _managed_files_policy(request: Request, *, create_root: bool = True) -> Mana
         root = _ensure_managed_root(_HOSTED_MANAGED_FILES_ROOT) if create_root else _HOSTED_MANAGED_FILES_ROOT
         return ManagedFilesPolicy(default_path=root, locked_root=root, can_change_path=False)
 
-    home = _canonical_path(Path.home())
-    return ManagedFilesPolicy(default_path=home, locked_root=None, can_change_path=True)
+    # SECURITY (20/07): never fall back to an UNLOCKED home. With locked_root
+    # None both guards below degrade open — `_resolve_managed_path` skips the
+    # containment check and `_is_protected_managed_entry` returns "not
+    # protected" as its first branch — so the desktop Files page could walk up
+    # to C:\ and recursively delete anything. The product's file surface is the
+    # Work4You folder the desktop shell already creates; lock to it always.
+    root = _ensure_managed_root(_default_user_files_root()) if create_root else _canonical_path(_default_user_files_root())
+    return ManagedFilesPolicy(default_path=root, locked_root=root, can_change_path=False)
 
 
 def _resolve_managed_path(
@@ -1586,7 +1603,12 @@ def _resolve_managed_path(
     else:
         resolved = _canonical_path(candidate, require_exists=not for_write)
 
-    if root is not None and not _path_is_under(root, resolved):
+    # UNCONDITIONAL containment (20/07). This used to be `if root is not None`,
+    # which meant the one configuration without a locked root (the desktop) had
+    # no confinement at all. A missing root is now a refusal, not a bypass.
+    if root is None:
+        raise HTTPException(status_code=500, detail="Managed files root is not configured")
+    if not _path_is_under(root, resolved):
         raise HTTPException(status_code=403, detail="Path outside managed files root")
 
     return policy, resolved, str(resolved)
@@ -1889,7 +1911,10 @@ def _is_protected_managed_entry(policy: "ManagedFilesPolicy", target: Path) -> b
     """A entrada é uma pasta/arquivo de sistema do NÍVEL RAIZ do home?"""
     root = policy.locked_root
     if root is None:
-        return False  # instalação sem raiz travada (dev) — sem guarda
+        # No root = we cannot reason about what is a system entry, so treat
+        # EVERYTHING as protected. (Was: return False — which turned the one
+        # rootless configuration into "delete anything".)
+        return True
     try:
         if target.parent != root:
             return False  # só protege o nível de topo
@@ -6046,17 +6071,24 @@ async def reveal_env_var(
 # Entries omit fields they don't need to override; the catalog builder fills
 # in env_vars from OPTIONAL_ENV_VARS via prefix matching when not specified,
 # and pulls required_env from a plugin's PlatformEntry when available.
+#
+# Copy rules for `description`:
+# - Describe the CHANNEL, never the agent. No product/agent name here — the
+#   dashboard renders localized copy from `t.channels.platformCopy` and only
+#   falls back to these strings for platforms it has no translation for.
+# - `docs_url` must point at the VENDOR's own setup docs. An empty string
+#   means "no link" and the config modal hides the "Setup guide" anchor.
 _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     "telegram": {
         "name": "Telegram",
-        "description": "Run Wayne from Telegram DMs, groups, and topics.",
+        "description": "Talk to your agents from Telegram DMs, groups and topics.",
         "docs_url": "https://core.telegram.org/bots/features#botfather",
         "env_vars": ("TELEGRAM_BOT_TOKEN", "TELEGRAM_ALLOWED_USERS", "TELEGRAM_PROXY"),
         "required_env": ("TELEGRAM_BOT_TOKEN",),
     },
     "discord": {
         "name": "Discord",
-        "description": "Connect Wayne to Discord DMs, channels, and threads.",
+        "description": "Reach your agents in Discord DMs, channels and threads.",
         "docs_url": "https://discord.com/developers/applications",
         "env_vars": (
             "DISCORD_BOT_TOKEN",
@@ -6067,21 +6099,21 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "slack": {
         "name": "Slack",
-        "description": "Use Wayne from Slack via Socket Mode. Add allowed Slack member IDs so connected bots can respond.",
+        "description": "Slack via Socket Mode. Add the Slack member IDs allowed to talk to the bot.",
         "docs_url": "https://api.slack.com/apps",
         "env_vars": ("SLACK_BOT_TOKEN", "SLACK_APP_TOKEN", "SLACK_ALLOWED_USERS"),
         "required_env": ("SLACK_BOT_TOKEN", "SLACK_APP_TOKEN"),
     },
     "mattermost": {
         "name": "Mattermost",
-        "description": "Connect Wayne to Mattermost channels and direct messages.",
+        "description": "Reach your agents in Mattermost channels and direct messages.",
         "docs_url": "https://mattermost.com/deploy/",
         "env_vars": ("MATTERMOST_URL", "MATTERMOST_TOKEN", "MATTERMOST_ALLOWED_USERS"),
         "required_env": ("MATTERMOST_URL", "MATTERMOST_TOKEN"),
     },
     "matrix": {
         "name": "Matrix",
-        "description": "Use Wayne in Matrix rooms and direct messages.",
+        "description": "Reach your agents in Matrix rooms and direct messages.",
         "docs_url": "https://matrix.org/ecosystem/servers/",
         "env_vars": (
             "MATRIX_HOMESERVER",
@@ -6100,22 +6132,52 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "whatsapp": {
         "name": "WhatsApp",
-        "description": "Use Wayne through the bundled WhatsApp bridge with QR-based auth.",
+        "description": "WhatsApp through the bundled bridge, paired with a QR code.",
         "docs_url": "https://github.com/tulir/whatsmeow",
         "env_vars": ("WHATSAPP_ENABLED", "WHATSAPP_MODE", "WHATSAPP_ALLOWED_USERS"),
         "required_env": (),
     },
+    # Meta's official WhatsApp Business Platform — a sibling of "whatsapp"
+    # (the bundled bridge), not a replacement. Its env vars are NOT in
+    # OPTIONAL_ENV_VARS, so without this explicit list the card would render
+    # with an empty config modal. Keys mirror gateway/platforms/whatsapp_cloud.py.
+    "whatsapp_cloud": {
+        "name": "WhatsApp Business (official API)",
+        "description": "WhatsApp Business Platform: official Meta Cloud API with a public webhook.",
+        "docs_url": "https://developers.facebook.com/docs/whatsapp/cloud-api/get-started",
+        "env_vars": (
+            "WHATSAPP_CLOUD_PHONE_NUMBER_ID",
+            "WHATSAPP_CLOUD_ACCESS_TOKEN",
+            "WHATSAPP_CLOUD_APP_SECRET",
+            "WHATSAPP_CLOUD_VERIFY_TOKEN",
+            "WHATSAPP_CLOUD_APP_ID",
+            "WHATSAPP_CLOUD_WABA_ID",
+            "WHATSAPP_CLOUD_ALLOWED_USERS",
+            "WHATSAPP_CLOUD_WEBHOOK_HOST",
+            "WHATSAPP_CLOUD_WEBHOOK_PORT",
+            "WHATSAPP_CLOUD_WEBHOOK_PATH",
+            "WHATSAPP_CLOUD_API_VERSION",
+        ),
+        # Only these two gate the adapter's start-up (see _validate_config in
+        # the adapter); everything else is optional or has a default.
+        "required_env": (
+            "WHATSAPP_CLOUD_PHONE_NUMBER_ID",
+            "WHATSAPP_CLOUD_ACCESS_TOKEN",
+        ),
+    },
     "homeassistant": {
         "name": "Home Assistant",
-        "description": "Control your smart home from Wayne via Home Assistant.",
+        "description": "Control your smart home through Home Assistant.",
         "docs_url": "https://www.home-assistant.io/docs/authentication/",
         "env_vars": ("HASS_URL", "HASS_TOKEN"),
         "required_env": ("HASS_URL", "HASS_TOKEN"),
     },
     "email": {
         "name": "Email",
-        "description": "Talk to Wayne through an IMAP/SMTP mailbox.",
-        "docs_url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/",
+        "description": "Talk to your agents through an IMAP/SMTP mailbox.",
+        # No vendor docs page: the mailbox is the user's own (any IMAP/SMTP
+        # provider), so there is nothing generic to link to.
+        "docs_url": "",
         "env_vars": (
             "EMAIL_ADDRESS",
             "EMAIL_PASSWORD",
@@ -6138,14 +6200,14 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "dingtalk": {
         "name": "DingTalk",
-        "description": "Connect Wayne to DingTalk groups (钉钉).",
+        "description": "Reach your agents in DingTalk groups (钉钉).",
         "docs_url": "https://open.dingtalk.com/document/orgapp/the-robot-development-process",
         "env_vars": ("DINGTALK_CLIENT_ID", "DINGTALK_CLIENT_SECRET"),
         "required_env": ("DINGTALK_CLIENT_ID", "DINGTALK_CLIENT_SECRET"),
     },
     "feishu": {
         "name": "Feishu / Lark",
-        "description": "Use Wayne inside Feishu / Lark.",
+        "description": "Reach your agents inside Feishu / Lark.",
         "docs_url": "https://open.feishu.cn/document/uAjLw4CM/ukTMukTMukTM/reference/im-v1/intro",
         "env_vars": (
             "FEISHU_APP_ID",
@@ -6157,8 +6219,8 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "google_chat": {
         "name": "Google Chat",
-        "description": "Connect Wayne to Google Chat via Cloud Pub/Sub.",
-        "docs_url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/google_chat",
+        "description": "Google Chat via Cloud Pub/Sub.",
+        "docs_url": "https://developers.google.com/workspace/chat/quickstart/gcf-app",
     },
     "wecom": {
         "name": "WeCom (group bot)",
@@ -6187,13 +6249,15 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     "weixin": {
         "name": "Weixin / WeChat (Personal)",
         "description": "Connect a personal WeChat account through Tencent's iLink Bot API.",
-        "docs_url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/weixin/",
+        # iLink Bot has no public vendor doc page; pairing happens through the
+        # QR login in `wayne gateway setup`.
+        "docs_url": "",
         "env_vars": ("WEIXIN_ACCOUNT_ID", "WEIXIN_TOKEN", "WEIXIN_BASE_URL"),
         "required_env": ("WEIXIN_ACCOUNT_ID", "WEIXIN_TOKEN"),
     },
     "bluebubbles": {
         "name": "BlueBubbles (iMessage)",
-        "description": "Use Wayne through iMessage via a BlueBubbles server.",
+        "description": "iMessage through a BlueBubbles server.",
         "docs_url": "https://bluebubbles.app/",
         "env_vars": (
             "BLUEBUBBLES_SERVER_URL",
@@ -6204,27 +6268,27 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     },
     "qqbot": {
         "name": "QQ Bot",
-        "description": "Connect Wayne to a QQ Bot from the QQ Open Platform.",
+        "description": "Connect a QQ Bot from the QQ Open Platform.",
         "docs_url": "https://q.qq.com",
         "env_vars": ("QQ_APP_ID", "QQ_CLIENT_SECRET", "QQ_ALLOWED_USERS"),
         "required_env": ("QQ_APP_ID", "QQ_CLIENT_SECRET"),
     },
     # Teams ships as a platform plugin, so its name/env vars come from the
-    # plugin registry. Only the docs link needs an override here so the
-    # Channels page can point at the Microsoft Teams setup guide.
+    # plugin registry. Only the docs link is overridden here, pointing at
+    # Microsoft's own bot-registration guide.
     "teams": {
-        "docs_url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/teams",
+        "docs_url": "https://learn.microsoft.com/en-us/microsoftteams/platform/bots/how-to/create-a-bot-for-teams",
     },
     "yuanbao": {
         "name": "Yuanbao (元宝)",
-        "description": "Connect Wayne to Tencent Yuanbao.",
+        "description": "Connect to Tencent Yuanbao.",
         "docs_url": "",
         "required_env": (),
     },
     "api_server": {
         "name": "API server",
-        "description": "Expose Wayne as an OpenAI-compatible HTTP API for tools like Open WebUI.",
-        "docs_url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/",
+        "description": "Expose your agents as an OpenAI-compatible HTTP API for tools like Open WebUI.",
+        "docs_url": "",
         "env_vars": (
             "API_SERVER_ENABLED",
             "API_SERVER_KEY",
@@ -6237,7 +6301,7 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     "webhook": {
         "name": "Webhooks",
         "description": "Receive events from GitHub, GitLab, and other webhook sources.",
-        "docs_url": "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/",
+        "docs_url": "",
         "env_vars": ("WEBHOOK_ENABLED", "WEBHOOK_PORT", "WEBHOOK_SECRET"),
         "required_env": (),
     },
@@ -6252,6 +6316,7 @@ _PLATFORM_ORDER: tuple[str, ...] = (
     "mattermost",
     "matrix",
     "whatsapp",
+    "whatsapp_cloud",
     "signal",
     "bluebubbles",
     "homeassistant",
@@ -6299,6 +6364,63 @@ _MESSAGING_ENV_FALLBACKS: dict[str, dict[str, Any]] = {
     "WHATSAPP_ALLOWED_USERS": {
         "description": "Comma-separated WhatsApp users allowed to use the bot",
         "prompt": "Allowed WhatsApp users",
+    },
+    # WhatsApp Cloud API (Meta). None of these live in OPTIONAL_ENV_VARS, so
+    # without a fallback the config modal would label them with the raw
+    # SCREAMING_SNAKE key and render the token in plain text.
+    "WHATSAPP_CLOUD_PHONE_NUMBER_ID": {
+        "description": "Phone number ID from the Meta app's WhatsApp → API Setup panel",
+        "prompt": "Phone number ID",
+        "url": "https://developers.facebook.com/docs/whatsapp/cloud-api/get-started",
+    },
+    "WHATSAPP_CLOUD_ACCESS_TOKEN": {
+        "description": "Permanent System User access token with whatsapp_business_messaging",
+        "prompt": "Access token",
+        "password": True,
+    },
+    "WHATSAPP_CLOUD_APP_SECRET": {
+        "description": "Meta app secret — verifies the X-Hub-Signature-256 on inbound webhooks",
+        "prompt": "App secret",
+        "password": True,
+    },
+    "WHATSAPP_CLOUD_VERIFY_TOKEN": {
+        "description": "Shared secret echoed back during Meta's webhook verification handshake",
+        "prompt": "Webhook verify token",
+        "password": True,
+    },
+    "WHATSAPP_CLOUD_APP_ID": {
+        "description": "Meta app ID",
+        "prompt": "App ID",
+        "advanced": True,
+    },
+    "WHATSAPP_CLOUD_WABA_ID": {
+        "description": "WhatsApp Business Account ID",
+        "prompt": "Business account ID",
+        "advanced": True,
+    },
+    "WHATSAPP_CLOUD_ALLOWED_USERS": {
+        "description": "Comma-separated phone numbers allowed to use the bot",
+        "prompt": "Allowed numbers",
+    },
+    "WHATSAPP_CLOUD_WEBHOOK_HOST": {
+        "description": "Interface the webhook server binds to (default 0.0.0.0)",
+        "prompt": "Webhook host",
+        "advanced": True,
+    },
+    "WHATSAPP_CLOUD_WEBHOOK_PORT": {
+        "description": "Port the webhook server listens on (default 8090)",
+        "prompt": "Webhook port",
+        "advanced": True,
+    },
+    "WHATSAPP_CLOUD_WEBHOOK_PATH": {
+        "description": "Webhook path Meta posts to (default /whatsapp/webhook)",
+        "prompt": "Webhook path",
+        "advanced": True,
+    },
+    "WHATSAPP_CLOUD_API_VERSION": {
+        "description": "Graph API version (default v20.0)",
+        "prompt": "Graph API version",
+        "advanced": True,
     },
     "HASS_URL": {
         "description": "Home Assistant base URL, e.g. https://homeassistant.local:8123",
@@ -10686,6 +10808,75 @@ async def set_memory_provider(body: MemoryProviderSelect):
     cfg["memory"]["provider"] = provider
     save_config(cfg)
     return {"ok": True, "active": provider}
+
+
+class UserProfileBody(BaseModel):
+    content: str = ""
+
+
+@app.get("/api/memory/user-profile")
+async def get_user_profile():
+    """The user's own profile — `memories/USER.md`.
+
+    Settings used to edit the INSTALLATION's SOUL.md here, which was wrong on
+    two counts: the copy talked about the agent's persona (not the user), and
+    a tenant rewriting the base soul changes the behaviour every agent
+    inherits. USER.md is the native store for "what the assistant knows about
+    you" and is injected into every system prompt (agent/system_prompt.py:432).
+    """
+    from tools.memory_tool import load_memory_store
+
+    try:
+        store = load_memory_store()
+    except Exception:
+        _log.exception("load_memory_store failed")
+        raise HTTPException(status_code=500, detail="Could not read the user profile")
+    return {
+        "content": "\n\n".join(store.user_entries),
+        "char_limit": store.user_char_limit,
+    }
+
+
+@app.put("/api/memory/user-profile")
+async def set_user_profile(body: UserProfileBody):
+    """Replace USER.md with the edited text, as a single memory entry.
+
+    Kept inside the store's own contract: the same char limit the memory tool
+    enforces, the same injection scan (a profile is injected verbatim into the
+    system prompt), and the same atomic entry writer — so an edit here can
+    never leave a file the agent's memory tool would read as drift.
+    """
+    from tools.memory_tool import (
+        MemoryStore,
+        _scan_memory_content,
+        load_memory_store,
+    )
+
+    text = (body.content or "").strip()
+    try:
+        store = load_memory_store()
+    except Exception:
+        _log.exception("load_memory_store failed")
+        raise HTTPException(status_code=500, detail="Could not read the user profile")
+
+    if len(text) > store.user_char_limit:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Profile is too long ({len(text)}/{store.user_char_limit} characters)",
+        )
+    if text:
+        scan_error = _scan_memory_content(text)
+        if scan_error:
+            raise HTTPException(status_code=400, detail=scan_error)
+
+    path = MemoryStore._path_for("user")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        MemoryStore._write_file(path, [text] if text else [])
+    except Exception as exc:
+        _log.exception("USER.md write failed")
+        raise HTTPException(status_code=500, detail=f"Could not save the profile: {exc}")
+    return {"ok": True, "content": text}
 
 
 @app.post("/api/memory/reset")

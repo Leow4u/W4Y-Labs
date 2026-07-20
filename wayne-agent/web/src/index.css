@@ -177,6 +177,15 @@
   --shadow-card: 0 1px 2px rgba(31, 26, 18, 0.04), 0 4px 16px rgba(31, 26, 18, 0.05);
   --shadow-pop: 0 4px 12px rgba(31, 26, 18, 0.08), 0 12px 32px rgba(31, 26, 18, 0.12);
 
+  /* ── Contraste (auditoria 20/07) ───────────────────────────────────
+     Os tokens semânticos de texto do DS aceitam override aqui. Medido
+     sobre o creme (#faf9f5) com tinta #1a1915:
+       secondary 80% = 8,99:1 (passa, mantido)
+       tertiary  65% = 5,26:1 (passa, mantido)
+       disabled  45% = 2,87:1 → FALHAVA e era usado em conteúdo real.
+     Subido para 55% (~3,9:1): continua claramente apagado, mas legível. */
+  --text-disabled: color-mix(in srgb, var(--midground-base) 55%, transparent);
+
   /* Data-series accents — consumed by Analytics + Models pages. Defaults
      tuned for the editorial light canvas; themes override via
      ThemeProvider (`--series-input-token` / `--series-output-token`). */
@@ -217,6 +226,27 @@ code, kbd, pre, samp, .font-mono, .font-mono-ui {
   --font-sans: var(--theme-font-sans);
   --font-mono: var(--theme-font-mono);
   --font-serif: var(--theme-font-serif);
+
+  /* ── Escala tipográfica em PIXELS (auditoria de acessibilidade 20/07) ──
+     O root é 15px (--theme-base-size), então as classes rem do Tailwind
+     mentiam em toda a UI: `text-xs` = 0.75rem = 11,25px em 526 lugares,
+     `text-sm` = 13,1px. Era ESSA a causa das "letras pequenas" — não 74
+     tamanhos avulsos. Ancorando os tokens em px, `text-xs` nunca cai
+     abaixo de 12px, em qualquer tema (há temas com base 14px).
+     A prosa da resposta continua escalando: ela usa .prose-serif, que lê
+     --chat-font-size das Configurações. */
+  --text-xs: 12px;
+  --text-xs--line-height: 1.4;
+  --text-sm: 13.5px;
+  --text-sm--line-height: 1.45;
+  --text-base: 15px;
+  --text-base--line-height: 1.6;
+  --text-lg: 17px;
+  --text-lg--line-height: 1.5;
+  --text-xl: 19px;
+  --text-xl--line-height: 1.4;
+  --text-2xl: 23px;
+  --text-2xl--line-height: 1.3;
 }
 
 #root {
@@ -248,7 +278,11 @@ code, kbd, pre, samp, .font-mono, .font-mono-ui {
 /* dashboard de uma vez (AutoField, ConfigUser, Skills, Channels…).   */
 /* ------------------------------------------------------------------ */
 :root {
-  --toggle-on: #0a84ff;    /* azul iOS (ligado) */
+  /* Ligado = o terracota da marca. Era #0a84ff (azul iOS), a única peça
+     azul que sobrou do produto inteiro — destoava em toda tela com um
+     toggle (auditoria 20/07). Escurecido em --live-ink garante contraste
+     do knob branco por cima. */
+  --toggle-on: var(--live-ink);
   --toggle-knob: #ffffff;  /* botão (knob) */
 }
 
@@ -321,8 +355,12 @@ code { font-size: 0.875rem; }
   --color-live: var(--live);
   --color-live-ink: var(--live-ink);
   --color-live-soft: var(--live-soft);
-  --color-border: color-mix(in srgb, var(--midground-base) 15%, transparent);
-  --color-input: color-mix(in srgb, var(--midground-base) 15%, transparent);
+  /* Bordas: a decorativa (cartões, divisores) sobe de 15% para 18% — a
+     15% dava 1,36:1 e sumia no creme. A de CONTROLE (input, select,
+     textarea) vai a 50% ≈ 3,3:1, que é o mínimo do WCAG 1.4.11 para a
+     borda que identifica um campo: sem ela o usuário não vê onde clicar. */
+  --color-border: color-mix(in srgb, var(--midground-base) 18%, transparent);
+  --color-input: color-mix(in srgb, var(--midground-base) 50%, transparent);
   --color-ring: var(--midground);
   --color-popover: color-mix(in srgb, var(--midground-base) 4%, var(--background-base));
   --color-popover-foreground: var(--midground);
@@ -429,8 +467,11 @@ code { font-size: 0.875rem; }
    o root é 15px, então rem "mente" (text-sm = 13.1px, não 14). */
 @utility type-body    { font-size: 15px;   line-height: 1.6;  }
 @utility type-ui      { font-size: 14px;   line-height: 1.45; }
-@utility type-caption { font-size: 12px;   line-height: 1.4;  }
-@utility type-micro   { font-size: 11px;   line-height: 1.35; letter-spacing: 0.01em; }
+@utility type-caption { font-size: 12.5px; line-height: 1.4;  }
+/* 12px é o PISO de legibilidade do produto (era 11px). Micro segue sendo o
+   menor degrau, mas agora só se distingue por peso/tracking, não por ficar
+   ilegível. */
+@utility type-micro   { font-size: 12px;   line-height: 1.35; letter-spacing: 0.01em; }
 
 /* A voz do Wayne — prosa serifada (papel do Tiempos no claude.ai).
    Aplicada ao corpo das respostas do assistente e ao hero. 17px/1.75 =

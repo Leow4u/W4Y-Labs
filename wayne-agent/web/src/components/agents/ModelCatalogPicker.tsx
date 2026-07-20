@@ -159,7 +159,7 @@ export function ModelCatalogPicker({
       >
         <span
           className={cn(
-            "grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px] font-extrabold text-white",
+            "grid h-5 w-5 shrink-0 place-items-center rounded-md text-xs font-extrabold text-white",
             badge.cls,
           )}
         >
@@ -169,11 +169,11 @@ export function ModelCatalogPicker({
           {value ? modelCommercialName(value) : t.agents.modelPickerEmpty}
         </span>
         {recommendedModel && value === recommendedModel && (
-          <span className="shrink-0 rounded-full bg-live/10 px-1.5 py-px text-[9px] font-semibold text-live">
+          <span className="shrink-0 rounded-full bg-live/10 px-1.5 py-px text-xs font-semibold text-live">
             ✦ {t.agents.modelPickerRecommended}
           </span>
         )}
-        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+        <ChevronDown className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
       </button>
 
       {open && (
@@ -184,13 +184,13 @@ export function ModelCatalogPicker({
         >
           <div className="sticky top-0 z-10 bg-card p-2.5 pb-1.5">
             <div className="flex items-center gap-2 rounded-lg border border-border bg-background px-2.5 py-1.5">
-              <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+              <Search className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
               <input
                 ref={inputRef}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.agents.modelPickerSearch}
-                className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground/60"
+                className="w-full bg-transparent text-xs text-foreground outline-none placeholder:text-text-tertiary"
               />
             </div>
           </div>
@@ -199,7 +199,7 @@ export function ModelCatalogPicker({
               picked for this agent. Never repeated elsewhere in the list. */}
           {recommendedModel && !query && (
             <div>
-              <div className="px-3.5 pb-0.5 pt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-live">
+              <div className="px-3.5 pb-0.5 pt-2 type-micro font-semibold uppercase tracking-[0.1em] text-live">
                 ✦ {t.agents.modelPickerRecommended}
               </div>
               <ModelRow
@@ -216,7 +216,7 @@ export function ModelCatalogPicker({
           )}
           {grouped.sections.map((sec) => (
             <div key={sec.prefix}>
-              <div className="px-3.5 pb-0.5 pt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/70">
+              <div className="px-3.5 pb-0.5 pt-2 type-micro font-semibold uppercase tracking-[0.1em] text-text-tertiary">
                 {sec.label}
               </div>
               {sec.items.map((m) => (
@@ -237,7 +237,7 @@ export function ModelCatalogPicker({
 
           {grouped.others.length > 0 && (
             <div>
-              <div className="px-3.5 pb-0.5 pt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/70">
+              <div className="px-3.5 pb-0.5 pt-2 type-micro font-semibold uppercase tracking-[0.1em] text-text-tertiary">
                 {t.agents.modelPickerOthers}
               </div>
               {(query ? grouped.others : grouped.others.slice(0, 6)).map((m) => (
@@ -254,7 +254,7 @@ export function ModelCatalogPicker({
                 />
               ))}
               {!query && grouped.others.length > 6 && (
-                <div className="px-3.5 py-1.5 text-[11px] text-muted-foreground">
+                <div className="px-3.5 py-1.5 text-xs text-muted-foreground">
                   {t.agents.modelPickerMore.replace(
                     "{count}",
                     String(grouped.others.length - 6),
@@ -264,7 +264,7 @@ export function ModelCatalogPicker({
             </div>
           )}
 
-          <div className="mt-1 border-t border-border px-3.5 py-2 text-[11px] font-semibold text-live">
+          <div className="mt-1 border-t border-border px-3.5 py-2 text-xs font-semibold text-live">
             {t.agents.modelPickerCatalog.replace("{count}", String(models.length))}
           </div>
         </div>
@@ -300,7 +300,7 @@ function ModelRow({
     >
       <span
         className={cn(
-          "grid h-5 w-5 shrink-0 place-items-center rounded-md text-[10px] font-extrabold text-white",
+          "grid h-5 w-5 shrink-0 place-items-center rounded-md text-xs font-extrabold text-white",
           badge.cls,
         )}
       >
@@ -308,7 +308,7 @@ function ModelRow({
       </span>
       <span className="min-w-0 flex-1 truncate text-foreground">{modelCommercialName(model)}</span>
       {recommended && !selected && (
-        <span className="shrink-0 rounded-full bg-live/10 px-1.5 py-px text-[9px] font-semibold text-live">
+        <span className="shrink-0 rounded-full bg-live/10 px-1.5 py-px text-xs font-semibold text-live">
           {recommendedLabel}
         </span>
       )}

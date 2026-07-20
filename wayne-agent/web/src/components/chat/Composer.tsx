@@ -534,7 +534,7 @@ export function Composer({
                   type="button"
                   onClick={() => onRemoveAttachment(i)}
                   aria-label={t.common.close}
-                  className="shrink-0 rounded-full p-0.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+                  className="shrink-0 rounded-full p-0.5 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -555,7 +555,7 @@ export function Composer({
         onChange={autoGrow}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
-        className="max-h-[200px] w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
+        className="max-h-[200px] w-full resize-none bg-transparent px-4 pb-1 pt-3.5 text-[15px] leading-relaxed text-foreground outline-none placeholder:text-text-tertiary disabled:opacity-50"
       />
 
       <div className="relative flex items-center gap-1.5 px-2.5 pb-2.5 pt-1">
@@ -616,7 +616,7 @@ export function Composer({
               role="menu"
               className="absolute bottom-full left-0 z-50 mb-2 w-56 rounded-xl border border-border bg-card p-1.5 shadow-xl"
             >
-              <div className="px-2.5 pb-1 pt-1.5 text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+              <div className="px-2.5 pb-1 pt-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
                 {t.chat.attachTitle}
               </div>
               <button

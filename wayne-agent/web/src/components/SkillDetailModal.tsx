@@ -201,7 +201,7 @@ function ScanPanel({
           <ShieldAlert className="h-4 w-4 shrink-0 text-destructive" />
           <span className="type-ui font-medium text-destructive">{s.failed}</span>
         </div>
-        <p className="mt-1 break-words font-mono text-[0.65rem] leading-relaxed text-text-tertiary">
+        <p className="mt-1 break-words font-mono text-xs leading-relaxed text-text-tertiary">
           {error}
         </p>
       </div>
@@ -277,7 +277,7 @@ function ScanPanel({
         <PolicyIcon className={cn("mt-px h-3.5 w-3.5 shrink-0", policyTone)} />
         <div className="min-w-0 flex-1">
           <span className={cn("type-ui font-medium", policyTone)}>{policyLabel}</span>
-          <p className="mt-0.5 break-words font-mono text-[0.65rem] leading-relaxed text-text-tertiary">
+          <p className="mt-0.5 break-words font-mono text-xs leading-relaxed text-text-tertiary">
             {scan.policy_reason}
           </p>
         </div>
@@ -320,14 +320,14 @@ function ScanPanel({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="type-ui text-text-secondary">{f.description}</p>
-                    <p className="mt-0.5 truncate font-mono text-[0.65rem] text-text-tertiary">
+                    <p className="mt-0.5 truncate font-mono text-xs text-text-tertiary">
                       {prettyCat(f.category, t.common.general)} · {f.file}:{f.line}
                     </p>
                     {/* The offending snippet itself — so the user can judge the
                         scanner's claim instead of taking coordinates on faith.
                         Optional: absent against pre-fly196 backends. */}
                     {f.match && (
-                      <code className="mt-1 block overflow-x-auto whitespace-pre rounded bg-muted/60 px-2 py-1 font-mono text-[0.7rem] text-foreground">
+                      <code className="mt-1 block overflow-x-auto whitespace-pre rounded bg-muted/60 px-2 py-1 font-mono text-xs text-foreground">
                         {f.match}
                       </code>
                     )}
@@ -913,7 +913,7 @@ export function SkillDetailModal({
                   {doc.frontmatter && (
                     <div className="mb-5 overflow-hidden rounded-lg border border-current/15">
                       <div className="flex items-center justify-between border-b border-current/10 bg-current/[0.03] px-3 py-1.5">
-                        <span className="font-mono-ui text-[0.7rem] uppercase tracking-wide text-text-tertiary">
+                        <span className="font-mono-ui text-xs uppercase tracking-wide text-text-tertiary">
                           YAML
                         </span>
                         <button
@@ -921,7 +921,7 @@ export function SkillDetailModal({
                           onClick={copyYaml}
                           aria-label={t.configUser.skCopy}
                           title={t.configUser.skCopy}
-                          className="grid h-6 w-6 place-items-center rounded text-muted-foreground/70 transition-colors hover:bg-current/10 hover:text-foreground"
+                          className="grid h-6 w-6 place-items-center rounded text-text-tertiary transition-colors hover:bg-current/10 hover:text-foreground"
                         >
                           <Copy className="h-3.5 w-3.5" />
                         </button>
@@ -941,7 +941,7 @@ export function SkillDetailModal({
               {/* Provenance: the on-disk path once installed, the hub
                   identifier while previewing. */}
               {!loading && (skillPath || hub?.skill.identifier) && (
-                <p className="mt-4 truncate font-mono text-[0.65rem] text-text-tertiary">
+                <p className="mt-4 truncate font-mono text-xs text-text-tertiary">
                   {skillPath || hub?.skill.identifier}
                 </p>
               )}

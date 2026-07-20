@@ -38,7 +38,7 @@ const PANEL =
   "absolute right-0 top-full z-50 mt-1 min-w-[240px] rounded-2xl border border-border bg-card p-1.5 shadow-pop";
 const ITEM =
   "flex w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-left text-sm text-foreground transition-colors hover:bg-muted";
-const GROUP = "px-2.5 pb-1 pt-2 text-[10px] uppercase tracking-[0.12em] text-text-tertiary";
+const GROUP = "px-2.5 pb-1 pt-2 text-xs uppercase tracking-[0.12em] text-text-tertiary";
 
 function parseArgs(raw: string): string[] {
   return raw

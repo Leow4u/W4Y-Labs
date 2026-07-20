@@ -375,7 +375,7 @@ export function ContextPicker({
         )}
         <span className="max-w-[12rem] truncate">{label}</span>
         {/* No caret once settled: a caret promises a menu. */}
-        {!locked && <ChevronDown className="h-3 w-3 text-muted-foreground/60" />}
+        {!locked && <ChevronDown className="h-3 w-3 text-text-tertiary" />}
       </button>
 
       {open && !locked && (
@@ -425,7 +425,7 @@ export function ContextPicker({
                 setOpen(false);
                 onOpenProjectSettings();
               }}
-              className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+              className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
             >
               <Settings className="h-3.5 w-3.5" />
             </button>
@@ -434,12 +434,12 @@ export function ContextPicker({
           {/* Search (only when there are many projects) */}
           {(rows?.length ?? 0) > 6 && (
             <div className="mx-1 mb-1 mt-0.5 flex items-center gap-2 rounded-xl border border-border bg-background px-2.5 py-1.5">
-              <Search className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+              <Search className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t.chat.searchProjects}
-                className="min-w-0 flex-1 bg-transparent type-ui text-foreground outline-none placeholder:text-muted-foreground/50"
+                className="min-w-0 flex-1 bg-transparent type-ui text-foreground outline-none placeholder:text-text-tertiary"
               />
             </div>
           )}
@@ -448,7 +448,7 @@ export function ContextPicker({
               where it lives; nothing here asks the user to choose that. */}
           <div className="max-h-48 overflow-y-auto">
             {rows === null ? (
-              <Loader2 className="m-2 h-4 w-4 animate-spin text-muted-foreground/60" />
+              <Loader2 className="m-2 h-4 w-4 animate-spin text-text-tertiary" />
             ) : (
               filtered.map((r) => {
                 const folder = primaryFolder(r);
@@ -480,7 +480,7 @@ export function ContextPicker({
                       {/* The path only shows for a folder on this machine — for a
                           cloud project it is our storage detail, not information. */}
                       {local && folder && (
-                        <span className="block truncate type-micro text-muted-foreground/70">
+                        <span className="block truncate type-micro text-text-tertiary">
                           {folder}
                         </span>
                       )}
@@ -502,7 +502,7 @@ export function ContextPicker({
               <Plus className="h-4 w-4 shrink-0" />
               <span className="min-w-0 flex-1">{t.chat.newProjectMenu}</span>
               <ChevronRight
-                className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/60 transition-transform ${submenu ? "rotate-90" : ""}`}
+                className={`h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform ${submenu ? "rotate-90" : ""}`}
               />
             </button>
             {submenu && (

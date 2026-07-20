@@ -313,7 +313,7 @@ export default function AgentQuickstartPage() {
                   placeholder={ag.qsPlaceholder}
                   rows={2}
                   disabled={phase === "drafting"}
-                  className="w-full resize-none bg-transparent px-2 pt-1 type-body text-foreground placeholder:text-muted-foreground/60 focus:outline-none"
+                  className="w-full resize-none bg-transparent px-2 pt-1 type-body text-foreground placeholder:text-text-tertiary focus:outline-none"
                 />
                 <div className="flex items-center justify-end pt-1">
                   <button

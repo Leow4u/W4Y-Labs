@@ -1229,7 +1229,7 @@ export function SidebarTasks({
                         {depth > 0 && (
                           <span
                             aria-hidden
-                            className="shrink-0 font-mono text-[10px] leading-none text-text-tertiary"
+                            className="shrink-0 font-mono text-xs leading-none text-text-tertiary"
                           >
                             └
                           </span>
@@ -1255,7 +1255,7 @@ export function SidebarTasks({
                       {chatMenu?.id !== s.id && (
                         <span
                           aria-hidden
-                          className="pointer-events-none absolute right-8 shrink-0 text-[10px] tabular-nums text-text-tertiary transition-opacity group-hover:opacity-0"
+                          className="pointer-events-none absolute right-8 shrink-0 text-xs tabular-nums text-text-tertiary transition-opacity group-hover:opacity-0"
                         >
                           {age}
                         </span>
@@ -1438,7 +1438,7 @@ export function SidebarTasks({
                   {depth > 0 && (
                     <span
                       aria-hidden
-                      className="shrink-0 font-mono text-[10px] leading-none text-text-tertiary"
+                      className="shrink-0 font-mono text-xs leading-none text-text-tertiary"
                     >
                       └
                     </span>
@@ -1473,7 +1473,7 @@ export function SidebarTasks({
                 {rowMenu?.id !== s.id && (
                   <span
                     aria-hidden
-                    className="pointer-events-none absolute right-8 shrink-0 text-[10px] tabular-nums text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
+                    className="pointer-events-none absolute right-8 shrink-0 text-xs tabular-nums text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100"
                   >
                     {age}
                   </span>
@@ -1832,7 +1832,7 @@ export function SidebarTasks({
             />
 
             <div className="mb-4">
-              <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-tertiary">
                 {t.chat.foldersLabel}
               </span>
               {newProject.folders.length === 0 ? (
@@ -1910,7 +1910,7 @@ export function SidebarTasks({
             </div>
 
             <div className="mb-5">
-              <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+              <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-tertiary">
                 {t.chat.ideaLabel}
               </span>
               <textarea
@@ -1926,7 +1926,7 @@ export function SidebarTasks({
                     key={tpl.label}
                     type="button"
                     onClick={() => setNewProject((d) => ({ ...d, idea: tpl.idea }))}
-                    className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-[11px] text-text-secondary transition-colors hover:border-foreground/25 hover:bg-muted hover:text-foreground"
+                    className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-text-secondary transition-colors hover:border-foreground/25 hover:bg-muted hover:text-foreground"
                   >
                     <span aria-hidden>{tpl.emoji}</span>
                     {tpl.label}

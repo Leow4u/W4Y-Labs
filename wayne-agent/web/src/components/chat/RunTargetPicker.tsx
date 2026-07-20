@@ -78,7 +78,7 @@ export function RunTargetPicker({
       >
         <Icon className="h-3.5 w-3.5 text-live" />
         <span className="max-w-[10rem] truncate">{label}</span>
-        {!locked && <ChevronDown className="h-3 w-3 text-muted-foreground/60" />}
+        {!locked && <ChevronDown className="h-3 w-3 text-text-tertiary" />}
       </button>
 
       {open && !locked && (
@@ -86,7 +86,7 @@ export function RunTargetPicker({
           data-menu-root="run-target"
           className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-2xl border border-border bg-card p-1.5 shadow-pop"
         >
-          <div className="px-2.5 pb-1 pt-1.5 type-micro font-medium uppercase tracking-[0.06em] text-muted-foreground/70">
+          <div className="px-2.5 pb-1 pt-1.5 type-micro font-medium uppercase tracking-[0.06em] text-text-tertiary">
             {t.chat.runWhereTooltip}
           </div>
           <button

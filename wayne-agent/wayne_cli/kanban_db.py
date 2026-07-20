@@ -7685,6 +7685,19 @@ def _default_spawn(
 
     profile_arg = normalize_profile_name(task.assignee)
 
+    # The installation is NOT an agent (product rule 20/07). Spawning on it
+    # would run the task inside the install's own home, with its soul, keys
+    # and skills — the exact thing that must never happen. Raising here rides
+    # the dispatcher's spawn-failure path, so the board shows WHY it stopped
+    # instead of silently working as the installation.
+    if profile_arg == "default":
+        message = (
+            f"Tarefa {task.id} está atribuída ao assistente principal, que não é "
+            f"um agente. Escolha um agente da sua equipe como responsável."
+        )
+        _log.warning("kanban spawn refused: task %s assigned to the installation", task.id)
+        raise RuntimeError(message)
+
     # Per-agent monthly credit cap (Governança). Raising here rides the
     # dispatcher's spawn-failure path: after failure_limit attempts the task
     # auto-blocks with THIS message visible on the board — the owner sees WHY

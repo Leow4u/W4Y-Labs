@@ -78,7 +78,7 @@ export function FilesRail({
       <div>
         <div className={label}>{tf.favorites}</div>
         {favorites.length === 0 ? (
-          <p className="px-2 py-1 type-micro text-muted-foreground/70">{tf.noFavorites}</p>
+          <p className="px-2 py-1 type-micro text-text-tertiary">{tf.noFavorites}</p>
         ) : (
           favorites.map((f) => (
             <button

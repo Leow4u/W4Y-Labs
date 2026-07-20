@@ -38,7 +38,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { api, type AuthMeResponse } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { LogOut, Settings, ChevronUp, ChevronRight, Globe, Check, Sparkles, User } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LogOut, Settings, ChevronUp, ChevronRight, Globe, Check, Sparkles, Trophy, User } from "lucide-react";
 import { useI18n } from "@/i18n/context";
 import { LOCALE_META } from "@/i18n";
 import type { Locale } from "@/i18n";
@@ -84,6 +85,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
   const { locale, setLocale, t } = useI18n();
+  const navigate = useNavigate();
   // Stable per page load (origin + shell bridge never change mid-session).
   const localEngine = isLocalEngine();
   const chipRef = useRef<HTMLButtonElement>(null);
@@ -204,7 +206,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
 
     if (error) {
       return (
-        <div className={cn("px-5 py-2 text-[0.65rem] tracking-[0.05em] text-muted-foreground/70", className)}>
+        <div className={cn("px-5 py-2 text-xs tracking-[0.05em] text-text-tertiary", className)}>
           {error}
         </div>
       );
@@ -212,7 +214,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
 
     if (!me) {
       return (
-        <div className={cn("h-11 px-5 py-2 text-[0.65rem] text-muted-foreground/40", className)} aria-busy="true">
+        <div className={cn("h-11 px-5 py-2 text-xs text-text-tertiary", className)} aria-busy="true">
           …
         </div>
       );
@@ -249,7 +251,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
       >
         <span
           aria-hidden
-          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-midground/15 font-mono text-[0.7rem] font-semibold text-foreground/90"
+          className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-midground/15 font-mono text-xs font-semibold text-foreground/90"
         >
           {me ? initials : <User className="h-3.5 w-3.5" />}
         </span>
@@ -287,7 +289,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
             {t.configUser.updateChip}
           </span>
         )}
-        <ChevronUp className={cn("h-3.5 w-3.5 shrink-0 text-muted-foreground/70 transition-transform", !open && "rotate-180")} />
+        <ChevronUp className={cn("h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform", !open && "rotate-180")} />
       </button>
 
       {open && (() => {
@@ -333,7 +335,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               >
                 <Globe className="h-4 w-4 shrink-0 text-muted-foreground/80" />
                 Idioma
-                <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 text-text-tertiary" />
               </button>
 
               {langOpen && (
@@ -407,6 +409,20 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
                 Atualizar plano
               </a>
             )}
+
+            {/* "Conquistas" — the collectible badges screen. It left the
+                sidebar (a bundled plugin tab used to plant it there, in
+                English) and lives here instead: personal, occasional, next to
+                the other account-level entries. */}
+            <button
+              type="button"
+              role="menuitem"
+              className={cn(menuRow, "border-t border-current/10")}
+              onClick={() => { close(); navigate("/achievements"); }}
+            >
+              <Trophy className="h-4 w-4 shrink-0 text-muted-foreground/80" />
+              {t.achievementsPage.title}
+            </button>
 
             {/* "Sair" ends the CLOUD session (POST /auth/logout + /login). The
                 local-engine gateway has neither — omitted there. */}

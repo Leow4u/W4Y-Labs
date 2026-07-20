@@ -147,7 +147,7 @@ export function EnvironmentCard({
             type="button"
             aria-label={t.common.close}
             onClick={() => setAgentsOpen(false)}
-            className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
           >
             <ChevronDown className="h-4 w-4" />
           </button>
@@ -250,7 +250,7 @@ export function EnvironmentCard({
           type="button"
           onClick={() => setOpenPersist(false)}
           aria-label={t.common.close}
-          className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+          className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
         >
           <ChevronDown className="h-4 w-4" />
         </button>
@@ -269,9 +269,9 @@ export function EnvironmentCard({
                   ) : s.status === "in_progress" ? (
                     <Loader2 className="mt-px h-3 w-3 shrink-0 animate-spin text-live" />
                   ) : s.status === "cancelled" ? (
-                    <XCircle className="mt-px h-3 w-3 shrink-0 text-muted-foreground/50" />
+                    <XCircle className="mt-px h-3 w-3 shrink-0 text-text-tertiary" />
                   ) : (
-                    <Circle className="mt-0.5 h-2.5 w-2.5 shrink-0 text-muted-foreground/40" />
+                    <Circle className="mt-0.5 h-2.5 w-2.5 shrink-0 text-text-tertiary" />
                   )}
                   <span
                     className={
@@ -303,7 +303,7 @@ export function EnvironmentCard({
               <span className="type-caption font-medium uppercase tracking-[0.05em]">
                 {t.chat.envAgents}
               </span>
-              <span className="ml-auto type-micro text-muted-foreground/50">›</span>
+              <span className="ml-auto type-micro text-text-tertiary">›</span>
             </button>
             <div className="space-y-1">
               {shownAgents.map((a) => (
@@ -316,13 +316,13 @@ export function EnvironmentCard({
                     <Check className="h-3 w-3 shrink-0 text-success" />
                   )}
                   <span className="min-w-0 flex-1 truncate text-foreground">{a.label}</span>
-                  <span className="shrink-0 tabular-nums text-muted-foreground/70">
+                  <span className="shrink-0 tabular-nums text-text-tertiary">
                     {fmtElapsed(a.startedAt, a.durationS)}
                   </span>
                 </div>
               ))}
               {subagents.length > shownAgents.length && (
-                <div className="type-caption text-muted-foreground/70">
+                <div className="type-caption text-text-tertiary">
                   +{subagents.length - shownAgents.length}
                 </div>
               )}
@@ -375,7 +375,7 @@ export function EnvironmentCard({
                 </span>
               ))}
               {domains.length > 8 && (
-                <span className="px-1 type-micro text-muted-foreground/70">
+                <span className="px-1 type-micro text-text-tertiary">
                   +{domains.length - 8}
                 </span>
               )}
@@ -409,7 +409,7 @@ export function EnvironmentCard({
                 </div>
               ))}
               {files.length > shownFiles.length && (
-                <div className="type-micro text-muted-foreground/70">
+                <div className="type-micro text-text-tertiary">
                   +{files.length - shownFiles.length}
                 </div>
               )}

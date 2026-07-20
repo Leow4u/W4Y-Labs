@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { agentLabel, agentMonogram, isInstallation } from "@/lib/agents";
 import { modelCommercialName } from "@/components/agents/ModelCatalogPicker";
 import type {
   ApprovalInboxItem,
@@ -303,7 +304,7 @@ export default function GovernancePage() {
   useEffect(() => {
     setEnd(
       waitingCount > 0 ? (
-        <span className="inline-flex items-center rounded-full bg-live/10 px-2.5 py-1 text-[11px] font-semibold tabular-nums text-live">
+        <span className="inline-flex items-center rounded-full bg-live/10 px-2.5 py-1 text-xs font-semibold tabular-nums text-live">
           {waitingCount}
         </span>
       ) : null,
@@ -317,8 +318,18 @@ export default function GovernancePage() {
     return m;
   }, [pulse]);
 
-  const teamRows = useMemo(() => (rows ?? []).filter((r) => !r.isDefault), [rows]);
-  const totalCredits = (rows ?? []).reduce((acc, r) => acc + (r.credits30 ?? 0), 0);
+  // The installation is not a team member: it never appears as a row and its
+  // spend never lands in the TEAM total (product rule 20/07). Its activity is
+  // shown separately, read-only, as "Assistente Work4You".
+  const teamRows = useMemo(
+    () => (rows ?? []).filter((r) => !r.isDefault && !isInstallation(r.name)),
+    [rows],
+  );
+  const assistantRow = useMemo(
+    () => (rows ?? []).find((r) => r.isDefault || isInstallation(r.name)) ?? null,
+    [rows],
+  );
+  const totalCredits = teamRows.reduce((acc, r) => acc + (r.credits30 ?? 0), 0);
 
   /* ------------------------------- render -------------------------------- */
 
@@ -353,14 +364,17 @@ export default function GovernancePage() {
                       className="min-w-0 rounded-xl border border-live/50 bg-card p-3 shadow-card"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
-                          <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-foreground/80 text-[8px] font-semibold text-background">
-                            {monogram(item.profile)}
+                        <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                          <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-foreground/80 text-xs font-semibold text-background">
+                            {isInstallation(item.profile) ? "W4" : agentMonogram(item.profile)}
                           </span>
-                          <span className="truncate">{prettify(item.profile)}</span>
+                          {/* Approvals raised by the MAIN chat carry the
+                              installation's name — show the product label, not
+                              "Default". */}
+                          <span className="truncate">{agentLabel(item.profile, null, ag.govAssistant)}</span>
                         </span>
                         {item.session_title && (
-                          <span className="min-w-0 truncate text-[11px] text-muted-foreground">
+                          <span className="min-w-0 truncate text-xs text-muted-foreground">
                             {item.session_title}
                           </span>
                         )}
@@ -498,11 +512,11 @@ export default function GovernancePage() {
                       className="min-w-0 rounded-xl border border-live/50 bg-card p-3 shadow-card"
                     >
                       <div className="flex items-center gap-2">
-                        <span className="rounded-md bg-live/10 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-live">
+                        <span className="rounded-md bg-live/10 px-1.5 py-px text-xs font-medium uppercase tracking-wide text-live">
                           {ag.govBlockedNeedsInput}
                         </span>
                         {task.assignee && (
-                          <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                          <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                             <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-foreground/80 text-[8px] font-semibold text-background">
                               {monogram(task.assignee)}
                             </span>
@@ -611,7 +625,7 @@ export default function GovernancePage() {
                       />
                     </div>
                     <div className="mt-1.5 flex items-center gap-2">
-                      <span className="text-[11px] tabular-nums text-muted-foreground">
+                      <span className="text-xs tabular-nums text-muted-foreground">
                         {month != null ? `${formatCredits(month)} cr` : "…"}
                       </span>
                       {editing ? (
@@ -645,7 +659,7 @@ export default function GovernancePage() {
                       ) : (
                         <button
                           type="button"
-                          className="ml-auto inline-flex items-center gap-1 text-[11px] tabular-nums text-muted-foreground transition-colors hover:text-foreground"
+                          className="ml-auto inline-flex items-center gap-1 text-xs tabular-nums text-muted-foreground transition-colors hover:text-foreground"
                           title={ag.govSetCap}
                           onClick={() => {
                             setCapEditing(r.name);
@@ -693,15 +707,15 @@ export default function GovernancePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {rows.map((r) => (
+                  {teamRows.map((r) => (
                     <tr key={r.name} className="border-b border-border/60 last:border-0">
                       <td className="px-4 py-3">
                         <div className="flex min-w-0 items-center gap-2.5">
                           <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-xs font-semibold text-foreground">
-                            {monogram(r.name)}
+                            {agentMonogram(r.name)}
                           </span>
                           <span className="truncate font-medium text-foreground">
-                            {prettify(r.name)}
+                            {agentLabel(r.name)}
                           </span>
                         </div>
                       </td>
@@ -736,6 +750,29 @@ export default function GovernancePage() {
                   </tr>
                 </tfoot>
               </table>
+            </div>
+          )}
+
+          {/* The main assistant (the installation) is NOT a team member: no
+              row, no edit, out of the team total. Its consumption still has
+              to be visible to the owner, so it shows here as a read-only
+              summary line. */}
+          {assistantRow && (
+            <div className="mt-3 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
+              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-muted text-xs font-semibold text-foreground">
+                W4
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium text-foreground">{ag.govAssistant}</div>
+                <div className="type-caption text-muted-foreground">{ag.govAssistantHint}</div>
+              </div>
+              <span className="inline-flex shrink-0 items-center gap-1.5 text-sm tabular-nums text-muted-foreground">
+                <Coins className="h-4 w-4" />
+                {assistantRow.credits30 != null ? formatCredits(assistantRow.credits30) : "…"}
+              </span>
+              <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                {assistantRow.sessions30 != null ? assistantRow.sessions30 : "…"}
+              </span>
             </div>
           )}
         </div>

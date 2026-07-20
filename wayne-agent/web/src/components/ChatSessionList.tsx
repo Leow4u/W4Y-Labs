@@ -227,7 +227,7 @@ export function ChatSessionList({
           onClick={reload}
           aria-label={t.common.refresh}
           title={t.common.refresh}
-          className="text-muted-foreground/60 transition-colors hover:text-foreground"
+          className="text-text-tertiary transition-colors hover:text-foreground"
         >
           <RefreshCw className={cn("h-3.5 w-3.5", loading && "animate-spin")} />
         </button>

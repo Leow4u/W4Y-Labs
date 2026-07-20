@@ -375,14 +375,14 @@ function DockBlock({
           className="flex min-w-0 flex-1 items-center gap-1.5 rounded-lg px-1 py-1 text-left text-muted-foreground transition-colors hover:text-foreground"
         >
           <ChevronRight
-            className={`h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform ${open ? "rotate-90" : ""}`}
+            className={`h-3 w-3 shrink-0 text-text-tertiary transition-transform ${open ? "rotate-90" : ""}`}
           />
           <Icon className="h-3.5 w-3.5 shrink-0" />
           <span className="min-w-0 truncate type-caption font-medium uppercase tracking-[0.05em]">
             {label}
           </span>
           {typeof count === "number" && count > 0 && (
-            <span className="type-micro tabular-nums text-muted-foreground/70">{count}</span>
+            <span className="type-micro tabular-nums text-text-tertiary">{count}</span>
           )}
         </button>
         {action}
@@ -445,7 +445,7 @@ function PlanBlock({
       open={open}
       onToggle={onToggle}
       action={
-        <span className="shrink-0 px-1 type-micro tabular-nums text-muted-foreground/70">
+        <span className="shrink-0 px-1 type-micro tabular-nums text-text-tertiary">
           {done} / {steps.length}
         </span>
       }
@@ -463,9 +463,9 @@ function PlanBlock({
               ) : live ? (
                 <Loader2 className="mt-px h-3 w-3 shrink-0 animate-spin text-live" />
               ) : s.status === "cancelled" ? (
-                <XCircle className="mt-px h-3 w-3 shrink-0 text-muted-foreground/50" />
+                <XCircle className="mt-px h-3 w-3 shrink-0 text-text-tertiary" />
               ) : (
-                <Circle className="mt-0.5 h-2.5 w-2.5 shrink-0 text-muted-foreground/40" />
+                <Circle className="mt-0.5 h-2.5 w-2.5 shrink-0 text-text-tertiary" />
               )}
               <span
                 className={`min-w-0 flex-1 ${
@@ -479,7 +479,7 @@ function PlanBlock({
                 {s.content}
               </span>
               {secs != null && (
-                <span className="shrink-0 type-micro tabular-nums text-muted-foreground/70">
+                <span className="shrink-0 type-micro tabular-nums text-text-tertiary">
                   {fmtClock(secs)}
                 </span>
               )}
@@ -535,18 +535,18 @@ function AgentRow({ agent, onWatch }: { agent: SubagentInfo; onWatch?: () => voi
         <span className="min-w-0 flex-1 truncate text-foreground" title={agent.label}>
           {agent.label}
         </span>
-        <span className="shrink-0 tabular-nums text-muted-foreground/70">
+        <span className="shrink-0 tabular-nums text-text-tertiary">
           {fmtAgentElapsed(agent.startedAt, agent.durationS)}
         </span>
         <ChevronRight
-          className={`h-3 w-3 shrink-0 text-muted-foreground/50 transition-transform ${expanded ? "rotate-90" : ""}`}
+          className={`h-3 w-3 shrink-0 text-text-tertiary transition-transform ${expanded ? "rotate-90" : ""}`}
         />
       </button>
       {expanded && detail.length > 0 && (
         <div className="mb-1 ml-[26px] space-y-0.5 border-l border-border/70 pl-2.5">
           {detail.map(([label, value]) => (
             <div key={label} className="flex items-center gap-2 type-micro">
-              <span className="min-w-0 flex-1 truncate text-muted-foreground/70">{label}</span>
+              <span className="min-w-0 flex-1 truncate text-text-tertiary">{label}</span>
               <span className="shrink-0 tabular-nums text-muted-foreground">{value}</span>
             </div>
           ))}
@@ -575,7 +575,7 @@ function AgentsBlock({
   const active = subagents.filter((s) => s.status === "running");
   const finished = subagents.filter((s) => s.status !== "running");
   const groupCls =
-    "px-1 pb-0.5 pt-1 type-micro font-medium uppercase tracking-[0.05em] text-muted-foreground/60";
+    "px-1 pb-0.5 pt-1 type-micro font-medium uppercase tracking-[0.05em] text-text-tertiary";
   return (
     <DockBlock
       Icon={Users}
@@ -920,7 +920,7 @@ function ResultsBlock({
         )}
         {result.durationS != null && (
           <div className={rowCls}>
-            <Clock className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+            <Clock className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
               {t.chat.workedTime}
             </span>
@@ -931,7 +931,7 @@ function ResultsBlock({
         )}
         {result.usage && (result.usage.input != null || result.usage.output != null) && (
           <div className={rowCls}>
-            <Zap className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+            <Zap className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
               {`${t.chat.tokensIn} / ${t.chat.tokensOut}`}
             </span>
@@ -942,22 +942,22 @@ function ResultsBlock({
         )}
         {agentsDone > 0 && (
           <button type="button" className={linkCls} onClick={onOpenAgents}>
-            <Users className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+            <Users className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
               {t.chat.envAgents}
             </span>
             <span className="shrink-0 tabular-nums text-foreground">{agentsDone}</span>
-            <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+            <ChevronRight className="h-3 w-3 shrink-0 text-text-tertiary" />
           </button>
         )}
         {outputsCount > 0 && (
           <button type="button" className={linkCls} onClick={onOpenOutputs}>
-            <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+            <FileText className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
             <span className="min-w-0 flex-1 truncate text-muted-foreground">
               {t.chat.dockOutputs}
             </span>
             <span className="shrink-0 tabular-nums text-foreground">{outputsCount}</span>
-            <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+            <ChevronRight className="h-3 w-3 shrink-0 text-text-tertiary" />
           </button>
         )}
       </div>
@@ -1093,7 +1093,7 @@ function SourcesBlock({
                   <button type="button" className={menuItemCls} onClick={() => setMenu("apps")}>
                     <Plug className="h-4 w-4 shrink-0 opacity-80" />
                     <span className="min-w-0 flex-1 truncate">{t.chat.dockConnectApps}</span>
-                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                    <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
                   </button>
                 </>
               ) : (
@@ -1156,7 +1156,7 @@ function SourcesBlock({
                 {tk ? (
                   <LogoTile toolkit={tk} className="h-5 w-5 rounded-md p-0.5" />
                 ) : (
-                  <Plug className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                  <Plug className="h-4 w-4 shrink-0 text-text-tertiary" />
                 )}
                 <span className="min-w-0 flex-1 truncate">
                   {generic ? t.chat.dockSourceApp : (tk?.name ?? slug)}
@@ -1168,11 +1168,11 @@ function SourcesBlock({
           {sources.map((s, i) => (
             <div key={`${s.name}-${i}`} className={rowCls}>
               {s.kind === "web" ? (
-                <Globe className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                <Globe className="h-4 w-4 shrink-0 text-text-tertiary" />
               ) : s.kind === "image" ? (
-                <ImageIcon className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                <ImageIcon className="h-4 w-4 shrink-0 text-text-tertiary" />
               ) : (
-                <FileText className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                <FileText className="h-4 w-4 shrink-0 text-text-tertiary" />
               )}
               <span className="min-w-0 flex-1 truncate">
                 {s.kind === "web" ? t.chat.dockSourceWeb : s.name}
@@ -1263,7 +1263,7 @@ function OutputsBlock({
           type="button"
           data-menu-trigger="dock-outputs"
           onClick={() => setMenu((m) => !m)}
-          className="block w-full px-3 pb-3 pt-0.5 text-left type-caption text-muted-foreground/50 transition-colors hover:text-muted-foreground"
+          className="block w-full px-3 pb-3 pt-0.5 text-left type-caption text-text-tertiary transition-colors hover:text-muted-foreground"
         >
           {t.chat.dockOutputsHint}
         </button>
@@ -1330,7 +1330,7 @@ function PreviewTab({
       {/* Preview browser bar (Manus benchmark: home · path · open outside ·
           refresh + desktop/mobile). */}
       <div className="flex items-center gap-1 border-b border-border/70 px-2 py-1.5">
-        <Home className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+        <Home className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
         <span
           className="min-w-0 flex-1 truncate rounded-md bg-muted/50 px-2 py-1 font-mono type-micro text-muted-foreground"
           title={path ?? "/"}
@@ -1393,7 +1393,7 @@ function PreviewTab({
       </div>
       <div className="min-h-0 flex-1 overflow-auto bg-muted/30 p-2">
         {!path ? (
-          <p className="px-3 py-6 text-center type-caption text-muted-foreground/70">
+          <p className="px-3 py-6 text-center type-caption text-text-tertiary">
             {t.chat.previewEmptyHint}
           </p>
         ) : loading && !dataUrl ? (
@@ -1487,7 +1487,7 @@ function CodeTab({ path }: { path: string | null }) {
 
   if (!path)
     return (
-      <p className="px-3.5 py-6 text-center type-caption text-muted-foreground/70">
+      <p className="px-3.5 py-6 text-center type-caption text-text-tertiary">
         {t.chat.previewEmptyHint}
       </p>
     );
@@ -1495,7 +1495,7 @@ function CodeTab({ path }: { path: string | null }) {
   return (
     <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex items-center gap-2 border-b border-border/70 px-3 py-1.5">
-        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+        <FileText className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
         <span className="min-w-0 flex-1 truncate font-mono type-micro text-muted-foreground">
           {path}
         </span>
@@ -1587,7 +1587,7 @@ function FilesTab({ onOpen }: { onOpen: (path: string, kind: "preview" | "code")
         {path &&
           path.split("/").map((seg, i, all) => (
             <span key={i} className="flex min-w-0 items-center gap-1">
-              <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground/50" />
+              <ChevronRight className="h-3 w-3 shrink-0 text-text-tertiary" />
               <button
                 type="button"
                 onClick={() => setPath(all.slice(0, i + 1).join("/"))}
@@ -1633,7 +1633,7 @@ function FilesTab({ onOpen }: { onOpen: (path: string, kind: "preview" | "code")
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
                 title={e.name}
               >
-                <FileText className="h-4 w-4 shrink-0 text-muted-foreground/70" />
+                <FileText className="h-4 w-4 shrink-0 text-text-tertiary" />
                 <span className="min-w-0 flex-1 truncate">{e.name}</span>
               </button>
               <button
@@ -1645,7 +1645,7 @@ function FilesTab({ onOpen }: { onOpen: (path: string, kind: "preview" | "code")
                     setTimeout(() => setCopied(null), 1200);
                   });
                 }}
-                className="shrink-0 rounded p-1 text-muted-foreground/0 transition-colors hover:bg-muted hover:text-foreground group-hover:text-muted-foreground/70"
+                className="shrink-0 rounded p-1 text-muted-foreground/0 transition-colors hover:bg-muted hover:text-foreground group-hover:text-text-tertiary"
               >
                 {copied === e.path ? (
                   <Check className="h-3.5 w-3.5 text-success" />
@@ -1658,7 +1658,7 @@ function FilesTab({ onOpen }: { onOpen: (path: string, kind: "preview" | "code")
                 title={t.chat.downloadFile}
                 onClick={() => void download(e)}
                 disabled={busyFile === e.path}
-                className="shrink-0 rounded p-1 text-muted-foreground/0 transition-colors hover:bg-muted hover:text-foreground group-hover:text-muted-foreground/70"
+                className="shrink-0 rounded p-1 text-muted-foreground/0 transition-colors hover:bg-muted hover:text-foreground group-hover:text-text-tertiary"
               >
                 <Download className="h-3.5 w-3.5" />
               </button>
@@ -1666,7 +1666,7 @@ function FilesTab({ onOpen }: { onOpen: (path: string, kind: "preview" | "code")
           ),
         )}
         {entries.length === 0 && (
-          <div className="px-2.5 py-4 type-caption text-muted-foreground/70">
+          <div className="px-2.5 py-4 type-caption text-text-tertiary">
             {t.common.noResults}
           </div>
         )}
@@ -1804,10 +1804,10 @@ function ChangesTab({
     return (
       <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto p-2">
         {cwd && repo === null && (
-          <p className="px-2 py-1 type-micro text-muted-foreground/70">{t.chat.gitNoRepo}</p>
+          <p className="px-2 py-1 type-micro text-text-tertiary">{t.chat.gitNoRepo}</p>
         )}
         {changes.length === 0 && (
-          <div className="px-2.5 py-4 type-caption text-muted-foreground/70">
+          <div className="px-2.5 py-4 type-caption text-text-tertiary">
             {t.common.noResults}
           </div>
         )}
@@ -1868,7 +1868,7 @@ function ChangesTab({
             {repo.branch ?? "—"}
           </span>
           <ChevronRight
-            className={`h-3 w-3 shrink-0 text-muted-foreground/60 transition-transform ${branchMenu ? "rotate-90" : ""}`}
+            className={`h-3 w-3 shrink-0 text-text-tertiary transition-transform ${branchMenu ? "rotate-90" : ""}`}
           />
         </button>
         {(repo.ahead > 0 || repo.behind > 0) && (
@@ -1885,7 +1885,7 @@ function ChangesTab({
             {branches === null ? (
               <Loader2 className="m-2 h-4 w-4 animate-spin text-muted-foreground" />
             ) : branches.length === 0 ? (
-              <p className="px-2.5 py-2 type-caption text-muted-foreground/70">
+              <p className="px-2.5 py-2 type-caption text-text-tertiary">
                 {t.common.noResults}
               </p>
             ) : (
@@ -1915,7 +1915,7 @@ function ChangesTab({
                     }}
                     className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-left font-mono type-caption transition-colors ${
                       current
-                        ? "text-muted-foreground/60"
+                        ? "text-text-tertiary"
                         : armed
                           ? "bg-warning/15 text-warning"
                           : "text-foreground hover:bg-muted"
@@ -1936,7 +1936,7 @@ function ChangesTab({
 
       <div className="min-h-0 flex-1 overflow-y-auto p-1.5">
         {repo.files.length === 0 && (
-          <div className="px-2.5 py-4 type-caption text-muted-foreground/70">
+          <div className="px-2.5 py-4 type-caption text-text-tertiary">
             {t.common.noResults}
           </div>
         )}
@@ -1988,7 +1988,7 @@ function ChangesTab({
                 className={`shrink-0 rounded p-1 transition-colors ${
                   armedRevert === f.path
                     ? "bg-warning/15 text-warning"
-                    : "text-muted-foreground/0 hover:bg-muted hover:text-destructive group-hover:text-muted-foreground/70"
+                    : "text-muted-foreground/0 hover:bg-muted hover:text-destructive group-hover:text-text-tertiary"
                 }`}
               >
                 <RotateCcw className="h-3.5 w-3.5" />
@@ -2001,7 +2001,7 @@ function ChangesTab({
                 ) : diffText ? (
                   <DiffView diff={diffText} />
                 ) : (
-                  <p className="px-2 py-1 type-micro text-muted-foreground/70">—</p>
+                  <p className="px-2 py-1 type-micro text-text-tertiary">—</p>
                 )}
               </div>
             )}
@@ -2015,7 +2015,7 @@ function ChangesTab({
           value={msg}
           onChange={(e) => setMsg(e.target.value)}
           placeholder={t.chat.gitMsgPlaceholder}
-          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 type-ui text-foreground outline-none placeholder:text-muted-foreground/60 focus:border-foreground/30"
+          className="w-full rounded-lg border border-border bg-background px-2.5 py-1.5 type-ui text-foreground outline-none placeholder:text-text-tertiary focus:border-foreground/30"
         />
         <div className="flex flex-wrap items-center gap-1.5">
           <ArmedButton
@@ -2056,7 +2056,7 @@ function ChangesTab({
               }}
             />
           ) : (
-            <span className="ml-auto type-micro text-muted-foreground/60">
+            <span className="ml-auto type-micro text-text-tertiary">
               {t.chat.gitGhMissing}
             </span>
           )}
@@ -2121,7 +2121,7 @@ function ProjectTab({ project, cwd }: { project: string | null; cwd: string | nu
 
   if (!project)
     return (
-      <p className="px-3.5 py-6 text-center type-caption text-muted-foreground/70">
+      <p className="px-3.5 py-6 text-center type-caption text-text-tertiary">
         {t.chat.projectTasksEmpty}
       </p>
     );
@@ -2142,7 +2142,7 @@ function ProjectTab({ project, cwd }: { project: string | null; cwd: string | nu
         disabled={text === null}
         onChange={(e) => setText(e.target.value)}
         placeholder={t.chat.instructionsPlaceholder}
-        className="min-h-0 flex-1 resize-none rounded-lg border border-border bg-background p-2.5 font-mono type-caption text-foreground outline-none placeholder:text-muted-foreground/50 focus:border-foreground/30"
+        className="min-h-0 flex-1 resize-none rounded-lg border border-border bg-background p-2.5 font-mono type-caption text-foreground outline-none placeholder:text-text-tertiary focus:border-foreground/30"
       />
       <div className="flex items-center justify-end gap-2">
         {saved && <span className="type-micro text-success">{t.chat.instructionsSaved}</span>}
@@ -2181,9 +2181,9 @@ function ProjectTab({ project, cwd }: { project: string | null; cwd: string | nu
           </a>
         </div>
         {jobs === null ? (
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground/60" />
+          <Loader2 className="h-3.5 w-3.5 animate-spin text-text-tertiary" />
         ) : jobs.length === 0 ? (
-          <p className="type-micro text-muted-foreground/60">{t.chat.projectTasksEmpty}</p>
+          <p className="type-micro text-text-tertiary">{t.chat.projectTasksEmpty}</p>
         ) : (
           jobs.slice(0, 5).map((j, i) => (
             <div key={`${j.name ?? i}`} className="flex items-center gap-2 type-caption">
@@ -2192,7 +2192,7 @@ function ProjectTab({ project, cwd }: { project: string | null; cwd: string | nu
                 {j.name || j.schedule?.display || j.schedule?.expr || "—"}
               </span>
               {(j.schedule?.display ?? j.schedule?.expr) && (
-                <span className="shrink-0 font-mono type-micro text-muted-foreground/70">
+                <span className="shrink-0 font-mono type-micro text-text-tertiary">
                   {j.schedule?.display ?? j.schedule?.expr}
                 </span>
               )}
@@ -2506,7 +2506,7 @@ export function RightDock({
             <span className="relative h-1.5 w-1.5 rounded-full bg-live" />
           </span>
         ) : (
-          <Monitor className="h-3 w-3 shrink-0 text-muted-foreground/70" />
+          <Monitor className="h-3 w-3 shrink-0 text-text-tertiary" />
         )}
         <span className="min-w-0 flex-1 truncate type-caption tabular-nums text-muted-foreground">
           {bits.length > 0 ? bits.join(" · ") : t.chat.envTitle}

@@ -179,7 +179,7 @@ export function RoutineCalendar({
                     ? "grid h-5 w-5 place-items-center rounded-full bg-live font-semibold text-background"
                     : inMonth
                       ? "text-muted-foreground"
-                      : "text-muted-foreground/40",
+                      : "text-text-tertiary",
                 )}
               >
                 {date.getDate()}

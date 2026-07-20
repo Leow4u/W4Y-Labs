@@ -11,11 +11,12 @@
  * board alive.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { CircleCheck, Loader2, Plus, Play, RotateCcw, ThumbsUp, X } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { KanbanBoardResponse, KanbanTask, KanbanWorker, ProfileInfo } from "@/lib/api";
+import { agentLabel, agentMonogram, realAgents } from "@/lib/agents";
 import { DelegateObjective } from "@/components/agents/DelegateObjective";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
@@ -24,16 +25,6 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn, themedBody } from "@/lib/utils";
-
-function prettify(name: string): string {
-  const s = name.replace(/[-_]+/g, " ").trim();
-  return s.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-function monogram(name: string): string {
-  const parts = prettify(name).split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return prettify(name).slice(0, 2).toUpperCase();
-}
 
 /** Compact "time ago" from an age in seconds (units only). */
 function ageShort(seconds: number | null | undefined): string {
@@ -90,12 +81,17 @@ export default function OperationsPage() {
   const [delegating, setDelegating] = useState(false);
   const [busyTask, setBusyTask] = useState<string | null>(null);
 
-  // New task form.
+  // New task form. The assignee starts EMPTY: the installation used to be the
+  // pre-selected value, so a task created without opening the dropdown was
+  // assigned to it (product rule 20/07 — it is not an agent).
   const [fTitle, setFTitle] = useState("");
   const [fBody, setFBody] = useState("");
-  const [fAssignee, setFAssignee] = useState("default");
+  const [fAssignee, setFAssignee] = useState("");
   const [fHigh, setFHigh] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  /** The only list any picker may show. */
+  const agents = useMemo(() => realAgents(profiles), [profiles]);
 
   useEffect(() => {
     setTitle(ag.opsTab);
@@ -179,13 +175,13 @@ export default function OperationsPage() {
     setEnd(
       <div className="flex items-center gap-2">
         {workers.length > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium tabular-nums text-emerald-600">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium tabular-nums text-emerald-600">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
             {ag.opsWorking.replace("{count}", String(workers.length))}
           </span>
         )}
         {reviewCount > 0 && (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-live/10 px-2.5 py-1 text-[11px] font-medium tabular-nums text-live">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-live/10 px-2.5 py-1 text-xs font-medium tabular-nums text-live">
             {ag.opsReviewWait.replace("{count}", String(reviewCount))}
           </span>
         )}
@@ -304,14 +300,18 @@ export default function OperationsPage() {
           </div>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 gap-3">
+        // The live rail used to be gated on the VIEWPORT (`xl:flex`) while the
+        // space it eats comes out of the CONTAINER (viewport − 280px sidebar),
+        // so at ~1280-1400px the 5th column ("Concluída") was clipped. The
+        // @container query below measures the board area itself instead.
+        <div className="@container flex min-h-0 flex-1 gap-3">
           <div className="min-h-0 flex-1 overflow-x-auto pb-2">
             <div className="grid h-full min-w-[1080px] grid-cols-5 gap-3">
             {columns.map((col) => (
               <div key={col.key} className="flex min-h-0 flex-col rounded-xl bg-muted/40 p-2">
                 <div className="flex items-center justify-between px-1.5 pb-2 pt-1">
                   <span className="type-caption font-medium text-foreground">{col.label}</span>
-                  <span className="rounded-full bg-background px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+                  <span className="rounded-full bg-background px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
                     {col.tasks.length}
                   </span>
                 </div>
@@ -333,7 +333,7 @@ export default function OperationsPage() {
                             {task.title}
                           </span>
                           {(task.priority ?? 0) > 0 && (
-                            <span className="shrink-0 rounded-md bg-live/10 px-1.5 py-px text-[10px] font-medium uppercase tracking-wide text-live">
+                            <span className="shrink-0 rounded-md bg-live/10 px-1.5 py-px text-xs font-medium uppercase tracking-wide text-live">
                               {ag.opsHigh}
                             </span>
                           )}
@@ -350,27 +350,27 @@ export default function OperationsPage() {
                         )}
                         <div className="mt-2.5 flex items-center gap-2 border-t border-border/70 pt-2">
                           {task.assignee && (
-                            <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+                            <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                               <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-foreground/80 text-[8px] font-semibold text-background">
-                                {monogram(task.assignee)}
+                                {agentMonogram(task.assignee)}
                               </span>
-                              <span className="truncate">{prettify(task.assignee)}</span>
+                              <span className="truncate">{agentLabel(task.assignee)}</span>
                             </span>
                           )}
                           {running && (
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-live">
+                            <span className="inline-flex items-center gap-1 text-xs font-medium text-live">
                               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-live" />
                               {ag.opsRunningBadge}
                             </span>
                           )}
-                          <span className="ml-auto shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                          <span className="ml-auto shrink-0 text-xs tabular-nums text-muted-foreground">
                             {ageShort(task.age?.created_age_seconds)}
                           </span>
                         </div>
                         {/* Live worker row — honest: we know it's working and
                             for how long, not which tool it's on right now. */}
                         {worker && (
-                          <div className="mt-2 flex items-center gap-2 rounded-lg bg-live/5 px-2 py-1.5 text-[11px] text-live">
+                          <div className="mt-2 flex items-center gap-2 rounded-lg bg-live/5 px-2 py-1.5 text-xs text-live">
                             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
                             <span className="min-w-0 truncate">{ag.opsRunningLine}</span>
                             <span className="ml-auto shrink-0 tabular-nums">
@@ -424,7 +424,7 @@ export default function OperationsPage() {
           </div>
 
           {/* "Ao vivo" — last completions derived from the board itself. */}
-          <aside className="hidden w-60 shrink-0 flex-col rounded-xl bg-muted/40 p-3 xl:flex">
+          <aside className="hidden w-60 shrink-0 flex-col rounded-xl bg-muted/40 p-3 @[1360px]:flex">
             <span className="type-caption px-0.5 pb-2 font-medium text-foreground">
               {ag.opsLiveFeed}
             </span>
@@ -439,14 +439,14 @@ export default function OperationsPage() {
                     {task.assignee && (
                       <>
                         <span className="grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full bg-foreground/80 text-[7px] font-semibold text-background">
-                          {monogram(task.assignee)}
+                          {agentMonogram(task.assignee)}
                         </span>
-                        <span className="truncate text-[10px] text-muted-foreground">
-                          {prettify(task.assignee)}
+                        <span className="truncate text-xs text-muted-foreground">
+                          {agentLabel(task.assignee)}
                         </span>
                       </>
                     )}
-                    <span className="ml-auto shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                    <span className="ml-auto shrink-0 text-xs tabular-nums text-muted-foreground">
                       {ageShort(nowSec - at)}
                     </span>
                   </div>
@@ -501,17 +501,31 @@ export default function OperationsPage() {
               </label>
               <label className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">{ag.opsTaskAssignee}</span>
-                <select
-                  className={inputCls}
-                  value={fAssignee}
-                  onChange={(e) => setFAssignee(e.target.value)}
-                >
-                  {profiles.map((p) => (
-                    <option key={p.name} value={p.name}>
-                      {prettify(p.name)}
-                    </option>
-                  ))}
-                </select>
+                {/* Only real agents — the installation is not one, and used to
+                    be the pre-selected value here. With no agent created yet
+                    the field points to Agentes instead of degrading. */}
+                {agents.length === 0 ? (
+                  <Link
+                    to="/profiles/quickstart"
+                    className="rounded-lg border border-dashed border-border px-3 py-2 text-sm text-live"
+                    onClick={closeCreate}
+                  >
+                    {ag.opsNoAgentsYet}
+                  </Link>
+                ) : (
+                  <select
+                    className={inputCls}
+                    value={fAssignee}
+                    onChange={(e) => setFAssignee(e.target.value)}
+                  >
+                    <option value="">{ag.opsPickAgent}</option>
+                    {agents.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {agentLabel(p.name)}
+                      </option>
+                    ))}
+                  </select>
+                )}
               </label>
               <label className="flex items-center gap-2 text-sm text-foreground">
                 <input

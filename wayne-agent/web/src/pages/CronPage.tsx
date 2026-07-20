@@ -25,7 +25,7 @@
  * gated on cloudMutateAvailable(): older shells coerced those verbs to GET,
  * so there the affordances stay hidden as before.
  */
-import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Clock, Cloud, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
@@ -60,6 +60,7 @@ import {
 } from "@/lib/schedule";
 import { partitionJobs } from "@/lib/cron-curation";
 import { agentColorOf } from "@/lib/agent-colors";
+import { agentLabel, realAgents } from "@/lib/agents";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
@@ -482,8 +483,11 @@ function splitJobKey(key: string): { profile: string; id: string } {
  *  first ":" and would read "cloud" as the profile). */
 const CLOUD_JOB_KEY_PREFIX = "cloud:";
 
+/** Display only. `default` is the installation, never an assignable agent —
+ *  system routines DO run on it, so its rows must stay readable while it is
+ *  kept out of every picker below (see lib/agents). */
 function profileLabel(profile: string): string {
-  return profile === "default" ? "Work4You" : profile;
+  return agentLabel(profile);
 }
 
 // The agent's colored dot (same color on the card and in the calendar).
@@ -687,7 +691,11 @@ export default function CronPage() {
   // no error (fail-open by contract).
   const [cloudJobs, setCloudJobs] = useState<CronJob[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
+  // Every picker on this screen offers agents only — never the installation.
+  const agentProfiles = useMemo(() => realAgents(profiles), [profiles]);
   const [selectedProfile, setSelectedProfile] = useState("all");
+  const blueprintProfile =
+    selectedProfile === "all" ? (agentProfiles[0]?.name ?? "") : selectedProfile;
   const [tab, setTab] = useState<"routines" | "calendar">("routines");
   const [loading, setLoading] = useState(true);
   const { toast, showToast } = useToast();
@@ -703,7 +711,7 @@ export default function CronPage() {
 
   // New / edit modal state.
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [createProfile, setCreateProfile] = useState("default");
+  const [createProfile, setCreateProfile] = useState("");
   const [createForm, setCreateForm] = useState<CronJobEditorState>(emptyCronJobForm);
   const closeCreateModal = useCallback(() => setCreateModalOpen(false), []);
   const createModalRef = useModalBehavior({ open: createModalOpen, onClose: closeCreateModal });
@@ -736,11 +744,13 @@ export default function CronPage() {
   // Composer / chips / "+ Nova rotina" → opens the drawer pre-filled on the active agent.
   const openCreateWithPrompt = useCallback(
     (prompt: string) => {
-      setCreateProfile(selectedProfile === "all" ? "default" : selectedProfile);
+      setCreateProfile(
+        selectedProfile === "all" ? (agentProfiles[0]?.name ?? "") : selectedProfile,
+      );
       setCreateForm({ ...emptyCronJobForm(), prompt });
       setCreateModalOpen(true);
     },
-    [selectedProfile],
+    [selectedProfile, agentProfiles],
   );
 
   const loadJobs = useCallback(() => {
@@ -1078,7 +1088,7 @@ export default function CronPage() {
               </Label>
               <Select id="cron-agent-filter" value={selectedProfile} onValueChange={setSelectedProfile}>
                 <SelectOption value="all">{t.cron.allAgents}</SelectOption>
-                {profiles.map((p) => (
+                {agentProfiles.map((p) => (
                   <SelectOption key={p.name} value={p.name}>
                     {profileLabel(p.name)}
                   </SelectOption>
@@ -1090,7 +1100,7 @@ export default function CronPage() {
           {/* Lista de rotinas. */}
           {shown.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-border py-16 text-center">
-              <Clock className="mx-auto mb-3 h-6 w-6 text-muted-foreground/60" />
+              <Clock className="mx-auto mb-3 h-6 w-6 text-text-tertiary" />
               <p className="type-body text-muted-foreground">{t.cron.noRoutines}</p>
             </div>
           ) : (
@@ -1126,14 +1136,16 @@ export default function CronPage() {
             </div>
           )}
 
-          {/* Template gallery (native blueprints) — Onda 2. */}
-          <div className="grid gap-3 pt-2">
-            <h3 className="type-ui font-medium text-foreground">{t.cron.startFromTemplate}</h3>
-            <AutomationBlueprints
-              profile={selectedProfile === "all" ? "default" : selectedProfile}
-              onCreated={loadJobs}
-            />
-          </div>
+          {/* Template gallery (native blueprints) — Onda 2. A blueprint creates
+              a routine ON an agent, so with no agents there is nothing to
+              create it on: the gallery stays hidden rather than defaulting to
+              the installation. */}
+          {blueprintProfile && (
+            <div className="grid gap-3 pt-2">
+              <h3 className="type-ui font-medium text-foreground">{t.cron.startFromTemplate}</h3>
+              <AutomationBlueprints profile={blueprintProfile} onCreated={loadJobs} />
+            </div>
+          )}
         </>
       )}
 
@@ -1179,7 +1191,8 @@ export default function CronPage() {
               <div className="grid gap-2">
                 <Label htmlFor="cron-agent">{t.cron.agent}</Label>
                 <Select id="cron-agent" value={createProfile} onValueChange={(v) => setCreateProfile(v)}>
-                  {profiles.map((profile) => (
+                  <SelectOption value="">{t.agents.opsPickAgent}</SelectOption>
+                  {agentProfiles.map((profile) => (
                     <SelectOption key={profile.name} value={profile.name}>
                       {profileLabel(profile.name)}
                     </SelectOption>
@@ -1196,7 +1209,7 @@ export default function CronPage() {
               <div className="flex justify-end">
                 <Button
                   onClick={handleCreate}
-                  disabled={creating}
+                  disabled={creating || !createProfile}
                   prefix={creating ? <Spinner /> : <Plus />}
                 >
                   {creating ? t.common.creating : t.cron.createRoutine}

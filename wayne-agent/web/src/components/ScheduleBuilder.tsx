@@ -145,7 +145,7 @@ export function ScheduleBuilder({ onChange, value }: ScheduleBuilderProps) {
                     outlined={!isOn}
                     aria-pressed={isOn}
                     onClick={() => toggleWeekday(d)}
-                    className="min-w-[2.5rem] font-mono-ui text-xs uppercase"
+                    className="min-w-[2.5rem] text-xs uppercase tabular-nums"
                   >
                     {modeStrings.weekdaysShort[d]}
                   </Button>
@@ -213,7 +213,7 @@ export function ScheduleBuilder({ onChange, value }: ScheduleBuilderProps) {
             placeholder={modeStrings.customPlaceholder}
             value={value.custom}
             onChange={(e) => update({ custom: e.target.value })}
-            className="font-mono-ui"
+            className="tabular-nums"
           />
           <p className="text-xs text-muted-foreground">
             {modeStrings.customHint}
@@ -226,7 +226,7 @@ export function ScheduleBuilder({ onChange, value }: ScheduleBuilderProps) {
           schedule grammar discoverable for the custom mode. */}
       <p className="text-xs text-muted-foreground">
         <span className="opacity-70">{modeStrings.preview}: </span>
-        <span className="font-mono-ui text-foreground">
+        <span className="tabular-nums text-foreground">
           {buildScheduleString(value) || modeStrings.previewEmpty}
         </span>
       </p>

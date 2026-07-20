@@ -203,7 +203,7 @@ export function TierPicker({
                     <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
                       {tierLabel(t, k)}
                       {k === "gratis" && (
-                        <span className="rounded-full bg-live/10 px-1.5 py-px text-[10px] font-medium text-live">
+                        <span className="rounded-full bg-live/10 px-1.5 py-px text-xs font-medium text-live">
                           {t.tiers.gratisBadge}
                         </span>
                       )}

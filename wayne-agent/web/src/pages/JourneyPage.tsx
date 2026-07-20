@@ -131,7 +131,7 @@ export default function JourneyPage() {
         {groups.map(([day, items]) => (
           <section key={day} className="mt-5">
             <div className="mb-1.5 flex items-center gap-2.5">
-              <span className="type-caption font-medium uppercase tracking-[0.06em] text-muted-foreground/70">
+              <span className="type-caption font-medium uppercase tracking-[0.06em] text-text-tertiary">
                 {day}
               </span>
               <span className="h-px flex-1 bg-border/70" />
@@ -183,7 +183,7 @@ export default function JourneyPage() {
                   setDraft(detail);
                   setEditing(true);
                 }}
-                className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+                className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
               >
                 <Pencil className="h-3.5 w-3.5" />
               </button>
@@ -193,7 +193,7 @@ export default function JourneyPage() {
               title={t.common.delete}
               onClick={() => void remove(sel)}
               disabled={busy}
-              className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-destructive/10 hover:text-destructive"
+              className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-destructive/10 hover:text-destructive"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -201,7 +201,7 @@ export default function JourneyPage() {
               type="button"
               aria-label={t.common.close}
               onClick={() => setSel(null)}
-              className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+              className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
             >
               <X className="h-3.5 w-3.5" />
             </button>

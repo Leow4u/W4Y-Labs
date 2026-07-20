@@ -209,14 +209,14 @@ function ReasoningItem({ text, live }: { text: string; live: boolean }) {
         onClick={() => setOpen((o) => (o == null ? !live : !o))}
         className="group flex w-full items-center gap-2 rounded-md px-1 py-[3px] text-left transition-colors hover:bg-muted/50"
       >
-        <Sparkles className="h-3.5 w-3.5 shrink-0 text-muted-foreground/70" />
+        <Sparkles className="h-3.5 w-3.5 shrink-0 text-text-tertiary" />
         {live ? (
           <span className="text-shimmer type-ui font-medium">{t.chat.thinking}…</span>
         ) : (
           <span className="type-ui text-muted-foreground">{t.chat.reasoning}</span>
         )}
         <ChevronDown
-          className={`h-3 w-3 shrink-0 text-muted-foreground/50 transition-transform ${show ? "rotate-180" : ""}`}
+          className={`h-3 w-3 shrink-0 text-text-tertiary transition-transform ${show ? "rotate-180" : ""}`}
         />
       </button>
       {show && (
@@ -241,9 +241,9 @@ function TodoChecklist({ steps }: { steps: TaskStep[] }) {
           ) : s.status === "in_progress" ? (
             <Loader2 className="mt-[3px] h-3.5 w-3.5 shrink-0 animate-spin text-live" />
           ) : s.status === "cancelled" ? (
-            <XCircle className="mt-[3px] h-3.5 w-3.5 shrink-0 text-muted-foreground/50" />
+            <XCircle className="mt-[3px] h-3.5 w-3.5 shrink-0 text-text-tertiary" />
           ) : (
-            <Circle className="mt-[4px] h-3 w-3 shrink-0 text-muted-foreground/40" />
+            <Circle className="mt-[4px] h-3 w-3 shrink-0 text-text-tertiary" />
           )}
           <span
             className={
@@ -357,7 +357,7 @@ export function AssistantTurn({
             : t.chat.progressTitle}
       </span>
       {toolCount > 0 && (
-        <span className="type-ui text-muted-foreground/70">
+        <span className="type-ui text-text-tertiary">
           · {toolCount} {toolCount === 1 ? t.chat.toolsOne : t.chat.toolsLabel}
         </span>
       )}
@@ -379,7 +379,7 @@ export function AssistantTurn({
             {summaryLabel}
             {!streaming && (
               <ChevronDown
-                className={`h-3 w-3 shrink-0 text-muted-foreground/50 transition-transform ${activityOpen ? "rotate-180" : ""}`}
+                className={`h-3 w-3 shrink-0 text-text-tertiary transition-transform ${activityOpen ? "rotate-180" : ""}`}
               />
             )}
           </button>
@@ -389,7 +389,7 @@ export function AssistantTurn({
               onClick={() => setModeMenu((v) => !v)}
               title={t.chat.detailsLabel}
               aria-label={t.chat.detailsLabel}
-              className="shrink-0 rounded p-1 text-muted-foreground/0 transition-colors hover:bg-muted hover:text-foreground group-hover/summary:text-muted-foreground/70"
+              className="shrink-0 rounded p-1 text-muted-foreground/0 transition-colors hover:bg-muted hover:text-foreground group-hover/summary:text-text-tertiary"
             >
               <Eye className="h-3.5 w-3.5" />
             </button>
@@ -507,7 +507,7 @@ export function AssistantTurn({
             }}
             title={t.chat.copy}
             aria-label={t.chat.copy}
-            className="rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="rounded-md p-1.5 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
           >
             {copied ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
           </button>
@@ -517,7 +517,7 @@ export function AssistantTurn({
               onClick={onRegenerate}
               title={t.chat.regenerate}
               aria-label={t.chat.regenerate}
-              className="rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-md p-1.5 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
             >
               <RotateCw className="h-4 w-4" />
             </button>
@@ -528,7 +528,7 @@ export function AssistantTurn({
               onClick={onBranch}
               title={t.chat.branchChat}
               aria-label={t.chat.branchChat}
-              className="rounded-md p-1.5 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+              className="rounded-md p-1.5 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
             >
               <GitBranch className="h-4 w-4" />
             </button>

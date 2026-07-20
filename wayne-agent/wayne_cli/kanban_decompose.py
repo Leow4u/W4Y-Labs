@@ -199,19 +199,28 @@ def _resolve_orchestrator_profile(cfg: dict) -> str:
 
 
 def _resolve_default_assignee(cfg: dict) -> str:
-    """Resolve which profile catches child tasks the orchestrator can't route."""
+    """Resolve which profile catches child tasks the orchestrator can't route.
+
+    NEVER the installation ("default"): it is not an agent, and a task routed
+    to it would run inside the install's own home. When no real agent can be
+    resolved we return "" — callers keep the child unassigned (visible on the
+    board as needing an owner) instead of silently spending the install.
+    """
     kanban_cfg = cfg.get("kanban", {}) if isinstance(cfg, dict) else {}
     explicit = (kanban_cfg.get("default_assignee") or "").strip()
-    if explicit:
+    if explicit and explicit != "default":
         try:
             if profiles_mod.profile_exists(explicit):
                 return explicit
         except Exception:
             pass
     try:
-        return profiles_mod.get_active_profile_name() or "default"
+        active = profiles_mod.get_active_profile_name() or ""
+        if active and active != "default":
+            return active
     except Exception:
-        return "default"
+        pass
+    return ""
 
 
 def _build_roster() -> tuple[list[dict], set[str]]:
@@ -229,6 +238,12 @@ def _build_roster() -> tuple[list[dict], set[str]]:
         logger.warning("decompose: failed to list profiles: %s", exc)
         return roster, valid
     for p in all_profiles:
+        # "default" is the INSTALLATION, not an agent (product rule 20/07):
+        # never offer it to the router. Without this the model could hand
+        # child tasks to the install itself, which then runs with the
+        # install's own soul/keys.
+        if getattr(p, "is_default", False) or p.name == "default":
+            continue
         desc = (p.description or "").strip()
         roster.append({
             "name": p.name,

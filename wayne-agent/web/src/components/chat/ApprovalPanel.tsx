@@ -52,7 +52,7 @@ function OptionRow({
       <Key label={keyLabel} />
       <span className="min-w-0 flex-1">{label}</span>
       {hint && (
-        <span className="shrink-0 type-micro text-muted-foreground/50 opacity-0 transition-opacity group-hover:opacity-100">
+        <span className="shrink-0 type-micro text-text-tertiary opacity-0 transition-opacity group-hover:opacity-100">
           {hint}
         </span>
       )}

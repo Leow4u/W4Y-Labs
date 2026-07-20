@@ -5,10 +5,10 @@
  *
  * Block 3 — AUTO-SAVE: there is no Save button. Toggles/selects write on the
  * spot (api.saveConfig); the Instructions textarea writes on blur
- * (updateProfileSoul); theme/language already persist in their own hooks.
+ * (setUserProfile); theme/language already persist in their own hooks.
  *
  * Backings: Conta=/api/auth/me + logout · Geral=useI18n/useTheme/config ·
- * Personalização=SOUL.md · Privacidade=memory + privacy.redact_pii ·
+ * Personalização=memories/USER.md · Privacidade=memory + privacy.redact_pii ·
  * Controle de dados=resetMemory + bulkDeleteSessions. Technical screen: ?full=1.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -48,6 +48,8 @@ import { useTheme, THEME_DEFAULT_FONT_ID } from "@/themes";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
 import { isInternalView } from "@/lib/internal-view";
+import { isDesktopApp } from "@/lib/desktopChrome";
+import { isLocalEngine } from "@/lib/projects";
 
 type SectionKey =
   | "general" | "account" | "computer" | "planTab" | "notificationsTab" | "memoryTab" | "privacyData"
@@ -217,6 +219,10 @@ export default function ConfigUser() {
   const [stats, setStats] = useState<SystemStats | null>(null);
   const [sysStatus, setSysStatus] = useState<StatusResponse | null>(null);
   const [computerTab, setComputerTab] = useState<"cloud" | "local">("cloud");
+  // Two computers only exist on the CLOUD-shell desktop (the shell talks to a
+  // remote brain). Plain web has no local side; the local-engine desktop has
+  // no remote one — both get a single section instead of a dead "coming soon".
+  const showComputerTabs = isDesktopApp() && !isLocalEngine();
   const [backupBusy, setBackupBusy] = useState(false);
   useEffect(() => {
     if (active !== "computer") return;
@@ -315,7 +321,7 @@ export default function ConfigUser() {
     api.getConfig().then(setConfig).catch(() => {});
     api.getAuthMe().then(setMe).catch(() => {});
     api
-      .getProfileSoul("default")
+      .getUserProfile()
       .then((r) => { setSoul(r.content ?? ""); soulLoaded.current = r.content ?? ""; })
       .catch(() => {});
   }, []);
@@ -352,10 +358,13 @@ export default function ConfigUser() {
     void persist(next);
   };
 
+  // Writes the USER PROFILE (memories/USER.md), not the installation's soul:
+  // this field is about the person, and the base soul every agent inherits is
+  // not a per-tenant setting. See lib/agents for the rule.
   const saveSoul = async () => {
     if (soul === soulLoaded.current) return;
     try {
-      await api.updateProfileSoul("default", soul);
+      await api.setUserProfile(soul);
       soulLoaded.current = soul;
       showToast(cu.done, "success");
     } catch (e) {
@@ -694,7 +703,6 @@ export default function ConfigUser() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-2 px-5 pb-5">
-                <span className="text-xs text-text-secondary">{cu.instructionsHint}</span>
                 <textarea
                   className="min-h-[160px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-live/50"
                   placeholder={cu.instructionsPlaceholder}
@@ -804,7 +812,12 @@ export default function ConfigUser() {
           {/* ---------- COMPUTER (Manus "My Computer" benchmark) ---------- */}
           {active === "computer" && (
             <>
-              {/* Cloud/Local tabs — faithful to Manus. */}
+              {/* Cloud/Local tabs — faithful to Manus, but only where BOTH
+                  sides exist. On plain web there is no local computer to show,
+                  and on the local-engine desktop the engine serving this page
+                  IS the local one; in both cases a second tab whose only
+                  content is "coming soon" was a dead end (UX audit 20/07). */}
+              {showComputerTabs && (
               <div className="flex gap-1 border-b border-border px-1">
                 {(["cloud", "local"] as const).map((tab) => (
                   <button
@@ -822,8 +835,9 @@ export default function ConfigUser() {
                   </button>
                 ))}
               </div>
+              )}
 
-              {computerTab === "cloud" ? (
+              {!showComputerTabs || computerTab === "cloud" ? (
                 <>
                   {/* Computer state — /api/status */}
                   <Card>
@@ -851,9 +865,6 @@ export default function ConfigUser() {
                           {cu.activeSessionsLabel}: {sysStatus.active_sessions}
                         </span>
                       )}
-                      <span className="ml-auto text-xs text-text-tertiary">
-                        {cu.alwaysOnNote}
-                      </span>
                     </CardContent>
                   </Card>
 
@@ -960,7 +971,7 @@ export default function ConfigUser() {
                     <div className="flex min-w-0 flex-col gap-0.5">
                       <span className="flex items-center gap-2 text-sm font-medium">
                         {cu.localTab}
-                        <span className="rounded bg-muted px-1.5 py-px text-[11px] font-medium text-muted-foreground">
+                        <span className="rounded bg-muted px-1.5 py-px text-xs font-medium text-muted-foreground">
                           {t.chat.comingSoon}
                         </span>
                       </span>
@@ -1006,7 +1017,7 @@ export default function ConfigUser() {
                           <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
                             {tierLabel(t, k)}
                             {k === "gratis" && (
-                              <span className="rounded-full bg-live/10 px-1.5 py-px text-[10px] font-medium text-live">
+                              <span className="rounded-full bg-live/10 px-1.5 py-px text-xs font-medium text-live">
                                 {t.tiers.gratisBadge}
                               </span>
                             )}
@@ -1103,7 +1114,7 @@ export default function ConfigUser() {
                                   {days.map((d) => (
                                     <span
                                       key={d.day}
-                                      className="flex-1 text-center text-[10px] tabular-nums text-text-tertiary"
+                                      className="flex-1 text-center text-xs tabular-nums text-text-tertiary"
                                     >
                                       {d.day.slice(8, 10)}
                                     </span>

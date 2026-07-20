@@ -115,7 +115,7 @@ export function ModePicker({
           data-menu-root="mode"
           className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-2xl border border-border bg-card p-1.5 shadow-pop"
         >
-          <div className="px-2.5 pb-1 pt-1.5 type-micro font-medium uppercase tracking-[0.06em] text-muted-foreground/70">
+          <div className="px-2.5 pb-1 pt-1.5 type-micro font-medium uppercase tracking-[0.06em] text-text-tertiary">
             {t.chat.modeTitle}
           </div>
           {items.map((it) => {

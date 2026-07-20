@@ -131,14 +131,14 @@ function PrincipalNode({ data }: NodeProps<PrincipalNodeType>) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <h3 className="truncate text-sm font-semibold text-foreground">{c.displayName}</h3>
-            <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground">
+            <span className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-foreground">
               {ag.teamPrincipal}
             </span>
           </div>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                "rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide",
                 c.area ? "bg-muted text-foreground" : "bg-muted/60 text-muted-foreground",
               )}
             >
@@ -146,7 +146,7 @@ function PrincipalNode({ data }: NodeProps<PrincipalNodeType>) {
             </span>
             <span
               className={cn(
-                "inline-flex min-w-0 max-w-[172px] items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                "inline-flex min-w-0 max-w-[172px] items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium",
                 STATUS_CHIP_CLS[c.statusKind],
               )}
               title={c.statusText}
@@ -163,16 +163,16 @@ function PrincipalNode({ data }: NodeProps<PrincipalNodeType>) {
       </div>
       {/* Model + month cost (credits, never US$). */}
       <div className="mt-3 flex items-center gap-2 border-t border-border/70 pt-2.5">
-        <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+        <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
           <Bot className="h-3 w-3 shrink-0" />
           <span className="truncate">{c.model ? modelCommercialName(c.model) : "…"}</span>
         </span>
-        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
           <Coins className="h-3 w-3" />
           {c.monthCredits === null ? "…" : `${formatCredits(c.monthCredits)} cr`}
         </span>
       </div>
-      <p className="mt-2 text-[11px] text-muted-foreground">{c.subtitle}</p>
+      <p className="mt-2 text-xs text-muted-foreground">{c.subtitle}</p>
       <Handle type="source" position={Position.Bottom} className="!h-1.5 !w-1.5 !border-0 !bg-transparent" />
     </div>
   );
@@ -476,7 +476,7 @@ export default function AgentTeamPage() {
           {team && (
             <span
               className={cn(
-                "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide",
                 area ? "bg-muted text-foreground" : "bg-muted/60 text-muted-foreground",
               )}
             >

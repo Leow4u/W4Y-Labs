@@ -11,9 +11,11 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { Link } from "react-router-dom";
 import { Loader2, RefreshCcw, SlidersHorizontal, X } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { agentMonogram, prettifySlug, realAgents } from "@/lib/agents";
 import {
   draftPlan,
   planStepDepths,
@@ -29,15 +31,6 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
 import { cn, themedBody } from "@/lib/utils";
 
-function prettify(name: string): string {
-  const s = name.replace(/[-_]+/g, " ").trim();
-  return s.replace(/\b\w/g, (c) => c.toUpperCase());
-}
-function monogram(name: string): string {
-  const parts = prettify(name).split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return prettify(name).slice(0, 2).toUpperCase();
-}
 
 type Phase = "input" | "drafting" | "error" | "preview" | "creating";
 
@@ -83,17 +76,17 @@ function DelegatePanel({
   /** Creation failure detail — surfaced verbatim, never pretended away. */
   const [createError, setCreateError] = useState<string | null>(null);
 
-  // Roster: non-default profiles = the team; fallback to every profile when
-  // the team is empty so the flow still works on a fresh installation.
+  // Roster = the real agents, and ONLY them. There is no fallback to the full
+  // profile list: on a fresh installation that fallback offered `default` (the
+  // installation itself) as an assignee, and the dispatcher refuses to spawn
+  // it — the plan would be created and then stall. Empty roster = say so.
   useEffect(() => {
     let dead = false;
     api
       .getProfiles()
       .then((r) => {
         if (dead) return;
-        const team = r.profiles.filter((p) => !p.is_default);
-        const src = team.length > 0 ? team : r.profiles;
-        setRoster(src.map((p) => ({ name: p.name, description: p.description })));
+        setRoster(realAgents(r.profiles).map((p) => ({ name: p.name, description: p.description })));
       })
       .catch(() => {});
     return () => {
@@ -203,7 +196,7 @@ function DelegatePanel({
             {phase === "preview" && plan && (
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="type-caption text-muted-foreground">{ag.delegateProposal}</span>
-                <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
+                <span className="rounded-full bg-muted px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
                   {ag.delegateAgentsCost
                     .replace("{count}", String(distinctAssignees))
                     .replace("{cost}", String(plan.steps.length * CREDITS_PER_STEP))}
@@ -229,7 +222,14 @@ function DelegatePanel({
                   </p>
                 )}
                 {phase === "error" && (
-                  <p className="text-sm text-live">{ag.delegateError}</p>
+                  <p className="text-sm text-live-ink">{ag.delegateError}</p>
+                )}
+                {roster.length === 0 && phase === "input" && (
+                  <p className="text-sm text-muted-foreground">
+                    <Link className="underline underline-offset-2" to="/profiles/quickstart">
+                      {ag.opsNoAgentsYet}
+                    </Link>
+                  </p>
                 )}
                 <div className="flex justify-end">
                   <Button
@@ -270,8 +270,8 @@ function DelegatePanel({
                             className="min-w-0 rounded-xl border border-border bg-background p-3 shadow-card"
                           >
                             <div className="flex items-center gap-2">
-                              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-foreground/80 text-[9px] font-semibold text-background">
-                                {monogram(step.assignee)}
+                              <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-foreground/80 text-xs font-semibold text-background">
+                                {agentMonogram(step.assignee)}
                               </span>
                               {adjusting ? (
                                 <select
@@ -281,13 +281,13 @@ function DelegatePanel({
                                 >
                                   {roster.map((r) => (
                                     <option key={r.name} value={r.name}>
-                                      {prettify(r.name)}
+                                      {prettifySlug(r.name)}
                                     </option>
                                   ))}
                                 </select>
                               ) : (
-                                <span className="truncate text-[11px] text-muted-foreground">
-                                  {prettify(step.assignee)}
+                                <span className="truncate text-xs text-muted-foreground">
+                                  {prettifySlug(step.assignee)}
                                 </span>
                               )}
                             </div>
@@ -309,20 +309,20 @@ function DelegatePanel({
                             )}
                             <div className="mt-2 flex flex-wrap items-center gap-1.5">
                               {group.length > 1 && (
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground">
+                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                                   {ag.delegateParallel}
                                 </span>
                               )}
                               {parentTitles && (
                                 <span
-                                  className="max-w-full truncate rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
+                                  className="max-w-full truncate rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                                   title={parentTitles}
                                 >
                                   {ag.delegateDependsOn.replace("{task}", parentTitles)}
                                 </span>
                               )}
                               {step.recurring && (
-                                <span className="rounded-full bg-live/10 px-2 py-0.5 text-[10px] text-live">
+                                <span className="rounded-full bg-live/10 px-2 py-0.5 text-xs text-live">
                                   {"↻ "}
                                   {scheduleText({
                                     kind: "cron",

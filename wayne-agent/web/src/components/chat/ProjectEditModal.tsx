@@ -91,7 +91,7 @@ export function ProjectEditModal({
             type="button"
             aria-label={t.common.close}
             onClick={onClose}
-            className="shrink-0 rounded p-1 text-muted-foreground/60 transition-colors hover:bg-muted hover:text-foreground"
+            className="shrink-0 rounded p-1 text-text-tertiary transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="h-4 w-4" />
           </button>
@@ -99,7 +99,7 @@ export function ProjectEditModal({
 
         {!loaded ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground/60" />
+            <Loader2 className="h-4 w-4 animate-spin text-text-tertiary" />
           </div>
         ) : (
           <>
@@ -125,7 +125,7 @@ export function ProjectEditModal({
             </div>
 
             {/* Color */}
-            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-tertiary">
               {t.chat.projectColor}
             </span>
             <div className="mb-4 flex flex-wrap items-center gap-2">
@@ -135,7 +135,7 @@ export function ProjectEditModal({
                 title={t.chat.projectColorNone}
                 onClick={() => setColor(undefined)}
                 className={cn(
-                  "grid h-7 w-7 place-items-center rounded-full border text-muted-foreground/70 transition-transform hover:scale-110",
+                  "grid h-7 w-7 place-items-center rounded-full border text-text-tertiary transition-transform hover:scale-110",
                   color === undefined ? "border-foreground" : "border-border",
                 )}
               >
@@ -158,7 +158,7 @@ export function ProjectEditModal({
             </div>
 
             {/* Emoji */}
-            <span className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-text-tertiary">
+            <span className="mb-1.5 block text-xs font-medium uppercase tracking-wide text-text-tertiary">
               {t.chat.projectIcon}
             </span>
             <div className="mb-5 grid grid-cols-8 gap-1 rounded-xl border border-border bg-background p-2">
@@ -168,7 +168,7 @@ export function ProjectEditModal({
                 title={t.chat.projectIconNone}
                 onClick={() => setIcon(undefined)}
                 className={cn(
-                  "grid h-8 place-items-center rounded-lg text-muted-foreground/70 transition-colors hover:bg-muted",
+                  "grid h-8 place-items-center rounded-lg text-text-tertiary transition-colors hover:bg-muted",
                   icon === undefined && "bg-muted ring-1 ring-inset ring-foreground/30",
                 )}
               >

@@ -126,7 +126,7 @@ export function SessionSwitcher({
               setSel(0);
             }}
             placeholder={t.sessions.searchPlaceholder}
-            className="min-w-0 flex-1 bg-transparent type-body text-foreground outline-none placeholder:text-muted-foreground/60"
+            className="min-w-0 flex-1 bg-transparent type-body text-foreground outline-none placeholder:text-text-tertiary"
           />
           <kbd className="shrink-0 rounded-md border border-border bg-muted/60 px-1.5 py-0.5 type-micro font-semibold text-muted-foreground">
             Esc
@@ -173,16 +173,16 @@ export function SessionSwitcher({
                     <span className="h-1.5 w-1.5 rounded-full bg-warning" />
                   </span>
                 ) : s.source === "cron" ? (
-                  <Clock className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                  <Clock className="h-4 w-4 shrink-0 text-text-tertiary" />
                 ) : (
-                  <MessageSquare className="h-4 w-4 shrink-0 text-muted-foreground/60" />
+                  <MessageSquare className="h-4 w-4 shrink-0 text-text-tertiary" />
                 )}
                 <span
                   className={`min-w-0 flex-1 truncate ${s.id === currentId ? "font-semibold" : ""}`}
                 >
                   {label}
                 </span>
-                <span className="shrink-0 type-micro tabular-nums text-muted-foreground/60">
+                <span className="shrink-0 type-micro tabular-nums text-text-tertiary">
                   {timeAgoShort(s.last_active || s.started_at, {
                     ageNow: t.chat.ageNow,
                     ageMin: t.chat.ageMin,

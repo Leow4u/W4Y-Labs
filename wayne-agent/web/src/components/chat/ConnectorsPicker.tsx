@@ -117,13 +117,13 @@ export function ConnectorsPicker({
               <LogoTile
                 key={tk.slug}
                 toolkit={tk}
-                className="h-[18px] w-[18px] rounded-full border border-border p-px text-[9px]"
+                className="h-[18px] w-[18px] rounded-full border border-border p-px text-xs"
               />
             ))}
           </span>
         )}
         <span className="max-w-[10rem] truncate">{t.chat.connectorsLabel}</span>
-        <ChevronDown className="h-3 w-3 text-muted-foreground/60" />
+        <ChevronDown className="h-3 w-3 text-text-tertiary" />
       </button>
 
       {open && (
@@ -131,7 +131,7 @@ export function ConnectorsPicker({
           data-menu-root={MENU_KEY}
           className="absolute bottom-full left-0 z-50 mb-2 w-72 rounded-2xl border border-border bg-card p-1.5 shadow-pop"
         >
-          <div className="px-2.5 pb-1 pt-1.5 type-micro font-medium uppercase tracking-[0.06em] text-muted-foreground/70">
+          <div className="px-2.5 pb-1 pt-1.5 type-micro font-medium uppercase tracking-[0.06em] text-text-tertiary">
             {t.chat.connectorsSession}
           </div>
           {connected.map((tk) => {

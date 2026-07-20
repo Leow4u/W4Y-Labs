@@ -71,7 +71,7 @@ function StatusChip({
   const ag = t.agents;
   if (pulse?.live_status === "working") {
     return (
-      <span className="inline-flex min-w-0 max-w-[46%] shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+      <span className="inline-flex min-w-0 max-w-[46%] shrink-0 items-center gap-1.5 rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
         <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-emerald-500" />
         <span className="truncate">{pulse.live_title || ag.statusWorkingNow}</span>
       </span>
@@ -79,7 +79,7 @@ function StatusChip({
   }
   if (pulse?.live_status === "waiting") {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-live/10 px-2 py-0.5 text-[11px] font-medium text-live">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-live/10 px-2 py-0.5 text-xs font-medium text-live">
         <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-live" />
         {ag.statusWaitingYou}
       </span>
@@ -87,7 +87,7 @@ function StatusChip({
   }
   if (pulse?.live_status === "starting") {
     return (
-      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+      <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
         <span className="h-1.5 w-1.5 shrink-0 animate-pulse rounded-full bg-amber-500" />
         {ag.statusStarting}
       </span>
@@ -96,7 +96,7 @@ function StatusChip({
   if (nextRun) {
     return (
       <span
-        className="inline-flex min-w-0 max-w-[46%] shrink-0 items-center gap-1 rounded-full bg-live/10 px-2 py-0.5 text-[11px] text-live"
+        className="inline-flex min-w-0 max-w-[46%] shrink-0 items-center gap-1 rounded-full bg-live/10 px-2 py-0.5 text-xs text-live"
         title={nextRun}
       >
         <CalendarClock className="h-3 w-3 shrink-0" />
@@ -105,7 +105,7 @@ function StatusChip({
     );
   }
   return (
-    <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
+    <span className="inline-flex shrink-0 items-center rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
       {ag.statusIdle}
     </span>
   );
@@ -360,7 +360,7 @@ export default function AgentsPage() {
                             setAreaMenuFor((cur) => (cur === p.name ? null : p.name))
                           }
                           className={cn(
-                            "rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide transition-colors hover:bg-foreground/10",
+                            "rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide transition-colors hover:bg-foreground/10",
                             area ? "bg-muted text-foreground" : "bg-muted/60 text-muted-foreground",
                           )}
                         >
@@ -414,12 +414,12 @@ export default function AgentsPage() {
                             style={{ width: `${Math.min(100, pct)}%` }}
                           />
                         </div>
-                        <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
+                        <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
                           {ag.teamCapShort.replace("{cap}", formatCredits(cap))}
                         </span>
                       </>
                     ) : (
-                      <span className="ml-auto shrink-0 text-[11px] text-muted-foreground">
+                      <span className="ml-auto shrink-0 text-xs text-muted-foreground">
                         {ag.teamNoCap}
                       </span>
                     )}
@@ -440,19 +440,19 @@ export default function AgentsPage() {
                         ))}
                       </div>
                     )}
-                    <span className="shrink-0 text-[11px] text-muted-foreground">
+                    <span className="shrink-0 text-xs text-muted-foreground">
                       {ag.teamSubagents.replace("{count}", String(subs.length))}
                     </span>
                     {channels.slice(0, 2).map((c) => (
                       <span
                         key={c}
-                        className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[10px] text-muted-foreground"
+                        className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground"
                       >
                         {c}
                       </span>
                     ))}
                     {channels.length > 2 && (
-                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-[10px] tabular-nums text-muted-foreground">
+                      <span className="shrink-0 rounded-full bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground">
                         +{channels.length - 2}
                       </span>
                     )}

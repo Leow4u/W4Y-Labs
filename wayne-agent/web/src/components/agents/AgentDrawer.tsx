@@ -401,7 +401,7 @@ export function AgentDrawer({
                   {agent.displayName}
                 </h2>
                 {agent.isActive && (
-                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-foreground">
+                  <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-foreground/10 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-foreground">
                     <Check className="h-3 w-3" />
                     {ag.active}
                   </span>
@@ -510,7 +510,7 @@ export function AgentDrawer({
                     replaces the raw datalist text field. */}
                 <ModelCatalogPicker
                   value={model}
-                  disabled={profileLoading}
+                  disabled={profileLoading || agent.isDefault}
                   onSelect={(m) => setModel(m)}
                 />
               </div>
@@ -520,7 +520,7 @@ export function AgentDrawer({
                 <textarea
                   className={cn(inputCls, "min-h-[180px] resize-y leading-relaxed")}
                   value={soul}
-                  disabled={profileLoading}
+                  disabled={profileLoading || agent.isDefault}
                   onChange={(e) => setSoul(e.target.value)}
                   placeholder={profileLoading ? "…" : ag.instructionsPlaceholder}
                 />
@@ -530,11 +530,17 @@ export function AgentDrawer({
                 <p className="type-micro text-muted-foreground">{ag.eqDefaultNote}</p>
               )}
 
-              <div>
-                <Button size="sm" onClick={saveProfile} disabled={!dirty || saving || profileLoading}>
-                  {saving ? t.common.saving : t.common.save}
-                </Button>
-              </div>
+              {/* The installation is READ-ONLY here: it is the base every agent
+                  inherits, so a tenant editing it would change the product
+                  itself (rule in lib/agents). It should not even reach this
+                  drawer anymore — the guard stays as a floor, not a fence. */}
+              {!agent.isDefault && (
+                <div>
+                  <Button size="sm" onClick={saveProfile} disabled={!dirty || saving || profileLoading}>
+                    {saving ? t.common.saving : t.common.save}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
 
@@ -568,7 +574,7 @@ export function AgentDrawer({
                       </div>
                       <span
                         className={cn(
-                          "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide",
+                          "shrink-0 rounded-full px-2 py-0.5 text-xs font-medium uppercase tracking-wide",
                           j.enabled ? "bg-live/10 text-live" : "bg-muted text-muted-foreground",
                         )}
                       >

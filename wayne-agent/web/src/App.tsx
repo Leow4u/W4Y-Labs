@@ -93,6 +93,7 @@ import AgentTeamPage from "@/pages/AgentTeamPage";
 import OperationsPage from "@/pages/OperationsPage";
 import GovernancePage from "@/pages/GovernancePage";
 import AgentsPage from "@/pages/AgentsPage";
+import AchievementsPage from "@/pages/AchievementsPage";
 import JourneyPage from "@/pages/JourneyPage";
 import SkillsPage from "@/pages/SkillsPage";
 import PluginsPage from "@/pages/PluginsPage";
@@ -200,6 +201,12 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/config": ConfigRoute,
   "/env": EnvPage,
   "/docs": DocsPage,
+  // Native "Conquistas" screen. The wayne-achievements plugin registers the
+  // SAME path as an addon tab; `buildRoutes` skips any addon whose path already
+  // exists in the built-in map, so this native page wins and the plugin's
+  // English bundle never paints. The plugin's REST API (/api/plugins/
+  // wayne-achievements/achievements) stays the data source.
+  "/achievements": AchievementsPage,
 };
 
 // Route placeholder for /chat.  The persistent ChatPage host (rendered
@@ -551,9 +558,18 @@ export default function App() {
     return withAnalytics.filter((n) => USER_NAV_PATHS.has(n.path));
   }, [embeddedChat, showTokenAnalytics, internalView]);
 
+  // Plugin tabs obey the SAME product curation as the built-in nav. Bundled
+  // plugins (Kanban, Achievements) ship their own manifest tab and used to be
+  // merged into the sidebar with no gate — so they sat permanently in the end
+  // user's navigation, in English, under a section header also called
+  // "Plugins" (colliding with the /plugins hub, a different thing entirely).
+  // Feeding `partitionSidebarNav` an empty manifest list outside the internal
+  // view drops both the plugin items and — since the section only renders when
+  // `pluginItems.length > 0` — the duplicate "Plugins" header. Every plugin
+  // route stays mounted (deep-link) and the tabs reappear under `?full=1`.
   const sidebarNav = useMemo(
-    () => partitionSidebarNav(builtinNav, manifests),
-    [builtinNav, manifests],
+    () => partitionSidebarNav(builtinNav, internalView ? manifests : []),
+    [builtinNav, manifests, internalView],
   );
   const routes = useMemo(
     () => buildRoutes(builtinRoutes, manifests),

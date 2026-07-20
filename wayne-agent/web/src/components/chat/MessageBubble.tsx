@@ -171,7 +171,7 @@ function MessageActions({
     });
   };
   const btn =
-    "flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-muted-foreground/70 transition-colors hover:bg-muted hover:text-foreground";
+    "flex items-center gap-1 rounded-md px-1.5 py-1 text-xs text-text-tertiary transition-colors hover:bg-muted hover:text-foreground";
   return (
     <div className="mt-1.5 flex items-center gap-0.5 opacity-0 transition-opacity group-hover/msg:opacity-100">
       <button type="button" onClick={copy} className={btn} title={t.chat.copy}>
@@ -260,7 +260,7 @@ function StepRun({
             {tools.length} {t.chat.toolsLabel}
           </span>
           <ChevronDown
-            className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform ${
+            className={`h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform ${
               open ? "" : "-rotate-90"
             }`}
           />
@@ -291,7 +291,7 @@ function StepRun({
         ) : step.status === "completed" ? (
           <Check className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
         ) : (
-          <Circle className="h-2.5 w-2.5 shrink-0 text-muted-foreground/40" />
+          <Circle className="h-2.5 w-2.5 shrink-0 text-text-tertiary" />
         )}
         <span
           className={`min-w-0 flex-1 truncate text-sm ${
@@ -301,7 +301,7 @@ function StepRun({
           {step.content}
         </span>
         <ChevronDown
-          className={`h-3.5 w-3.5 shrink-0 text-muted-foreground/50 transition-transform ${
+          className={`h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform ${
             open ? "" : "-rotate-90"
           }`}
         />
@@ -623,12 +623,12 @@ export function MessageBubble({
           <img src="/brand/work4you-favicon.svg" alt="" className="h-4 w-4" />
           <span className="text-sm font-semibold tracking-tight text-foreground">Work4You</span>
           {badge && (
-            <span className="rounded-md bg-live/10 px-1.5 py-px text-[11px] font-medium text-live">
+            <span className="rounded-md bg-live/10 px-1.5 py-px text-xs font-medium text-live">
               {badge}
             </span>
           )}
           {msg.timestamp && (
-            <span className="ml-auto text-xs text-muted-foreground/60">
+            <span className="ml-auto text-xs text-text-tertiary">
               {timeAgo(msg.timestamp)}
             </span>
           )}

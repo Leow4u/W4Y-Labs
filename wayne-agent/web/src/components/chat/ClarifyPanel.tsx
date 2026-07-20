@@ -85,7 +85,7 @@ export function ClarifyPanel({
             >
               <KeyBadge label={letterFor(i)} />
               <span className="min-w-0 flex-1">{choice}</span>
-              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/0 transition-colors group-hover:text-muted-foreground/60" />
+              <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/0 transition-colors group-hover:text-text-tertiary" />
             </button>
           ))}
           <button
@@ -112,7 +112,7 @@ export function ClarifyPanel({
                 setValue("");
               }
             }}
-            className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3.5 py-2.5 type-body text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-foreground/30"
+            className="min-w-0 flex-1 rounded-xl border border-border bg-background px-3.5 py-2.5 type-body text-foreground outline-none transition-colors placeholder:text-text-tertiary focus:border-foreground/30"
           />
           <button
             type="button"

@@ -1191,6 +1191,17 @@ export const api = {
       count: number;
       checked_at: number;
     }>("/api/plugins/kanban/workers/active"),
+
+  // ── Achievements (native plugin /api/plugins/wayne-achievements) ──
+  // Data source for the native "Conquistas" screen. The plugin ships its own
+  // dashboard bundle, but the SPA renders AchievementsPage instead and only
+  // consumes this REST surface.
+  getAchievements: () =>
+    fetchJSON<AchievementsResponse>("/api/plugins/wayne-achievements/achievements"),
+  rescanAchievements: () =>
+    fetchJSON<AchievementsResponse>("/api/plugins/wayne-achievements/rescan", {
+      method: "POST",
+    }),
   addMcpServer: (body: McpServerCreate) =>
     fetchJSON<McpServer>("/api/mcp/servers", {
       method: "POST",
@@ -1305,6 +1316,16 @@ export const api = {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ provider }),
+    }),
+  // The user's own profile (memories/USER.md) — what Settings edits under
+  // "Sobre você". Injected into every system prompt by the built-in memory.
+  getUserProfile: () =>
+    fetchJSON<{ content: string; char_limit: number }>("/api/memory/user-profile"),
+  setUserProfile: (content: string) =>
+    fetchJSON<{ ok: boolean; content: string }>("/api/memory/user-profile", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
     }),
   resetMemory: (target: "all" | "memory" | "user") =>
     fetchJSON<{ ok: boolean; deleted: string[] }>("/api/memory/reset", {
@@ -2689,6 +2710,44 @@ export interface KanbanTaskCreate {
   parents?: string[];
   /** Land in `triage` (never dispatched) instead of `ready`. */
   triage?: boolean;
+}
+
+/** One badge from the wayne-achievements catalog, as evaluated by the plugin. */
+export interface AchievementItem {
+  id: string;
+  name: string;
+  description: string;
+  category: string;
+  icon: string;
+  /** "unlocked" = earned; "discovered" = known but not earned; "secret" = hidden. */
+  state: "unlocked" | "discovered" | "secret";
+  unlocked: boolean;
+  discovered: boolean;
+  secret?: boolean;
+  /** Tier name reached (Copper → Olympian), null before the first tier. */
+  tier: string | null;
+  /** Raw metric value (or % for multi-condition badges). */
+  progress: number;
+  /** 0-100 progress toward the next tier. */
+  progress_pct: number;
+  next_tier: string | null;
+  next_threshold: number;
+  /** Unix seconds when the badge was first earned. */
+  unlocked_at?: number | null;
+  criteria?: string;
+}
+
+/** Payload of GET /api/plugins/wayne-achievements/achievements. */
+export interface AchievementsResponse {
+  achievements: AchievementItem[];
+  unlocked_count: number;
+  discovered_count: number;
+  secret_count: number;
+  total_count: number;
+  error?: string | null;
+  generated_at: number;
+  is_stale?: boolean;
+  scan_meta?: Record<string, unknown>;
 }
 
 /** A live kanban worker (task_runs row with a PID, joined to a running task). */
