@@ -461,7 +461,7 @@ export default function AgentQuickstartPage() {
                     onClick={() => void create()}
                     className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90 disabled:opacity-40"
                   >
-                    {phase === "creating" ? "…" : ag.qsCreate}
+                    {phase === "creating" ? "…" : ag.qsAddToTeam}
                   </button>
                   <button
                     type="button"

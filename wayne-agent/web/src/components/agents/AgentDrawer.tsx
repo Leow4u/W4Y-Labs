@@ -36,6 +36,8 @@ import { defaultRoutineSchedule } from "@/lib/agent-draft";
 import { buildScheduleString, type ScheduleBuilderState } from "@/lib/schedule";
 import { formatCredits, usdToCredits } from "@/lib/credits";
 import { AgentSchedulePicker } from "@/components/agents/AgentSchedulePicker";
+import { KnowledgePanel } from "@/components/agents/KnowledgePanel";
+import { ModelCatalogPicker } from "@/components/agents/ModelCatalogPicker";
 import { useScheduleText } from "@/hooks/useScheduleText";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { Button } from "@nous-research/ui/ui/components/button";
@@ -53,6 +55,7 @@ export interface DrawerAgent {
 
 export type AgentDrawerTab =
   | "profile"
+  | "knowledge"
   | "schedule"
   | "skills"
   | "channels"
@@ -62,6 +65,9 @@ type Tab = AgentDrawerTab;
 
 const inputCls =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-live/50";
+
+/** How many skills the drawer shows before the explicit "show all" expand. */
+const SKILLS_PREVIEW_COUNT = 12;
 
 export function AgentDrawer({
   agent,
@@ -101,7 +107,6 @@ export function AgentDrawer({
   const [soul, setSoul] = useState("");
   const [base, setBase] = useState({ specialty: agent.specialty, model: "", soul: "" });
   const [profileLoading, setProfileLoading] = useState(true);
-  const [modelOptions, setModelOptions] = useState<string[]>([]);
   const [stats, setStats] = useState<{ credits: number; sessions: number } | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -129,14 +134,6 @@ export function AgentDrawer({
         const usd =
           r.totals.total_actual_cost > 0 ? r.totals.total_actual_cost : r.totals.total_estimated_cost;
         setStats({ credits: usdToCredits(usd), sessions: r.totals.total_sessions });
-      })
-      .catch(() => {});
-    api
-      .getModelOptions()
-      .then((r) => {
-        if (dead) return;
-        const or = r.providers?.find((p) => p.slug === "openrouter");
-        setModelOptions((or?.models ?? []).slice(0, 600));
       })
       .catch(() => {});
     return () => {
@@ -263,6 +260,22 @@ export function AgentDrawer({
     return [...m.entries()].sort((a, b) => a[0].localeCompare(b[0]));
   }, [skills]);
 
+  // Skills curation (v3): first dozen visible, the rest behind an explicit
+  // expand — the raw 60+ toggle wall was the audit's worst grade.
+  const [skillsExpanded, setSkillsExpanded] = useState(false);
+  const visibleSkillGroups = useMemo(() => {
+    if (skillsExpanded) return skillGroups;
+    let budget = SKILLS_PREVIEW_COUNT;
+    const out: Array<[string, SkillInfo[]]> = [];
+    for (const [category, list] of skillGroups) {
+      if (budget <= 0) break;
+      const take = list.slice(0, budget);
+      out.push([category, take]);
+      budget -= take.length;
+    }
+    return out;
+  }, [skillGroups, skillsExpanded]);
+
   const toggleSkill = useCallback(
     async (s: SkillInfo) => {
       setTogglingSkill(s.name);
@@ -293,6 +306,36 @@ export function AgentDrawer({
 
   const connected = (platforms ?? []).filter((p) => p.configured || p.enabled);
 
+  // Per-agent channel on/off (v3): PUT platforms/{id} {enabled, profile}
+  // writes the AGENT's config.yaml. Native contract: takes effect after the
+  // engine restarts — the row says so instead of pretending it's live.
+  const [channelSaving, setChannelSaving] = useState<string | null>(null);
+  const [channelPending, setChannelPending] = useState<string | null>(null);
+  const toggleChannel = useCallback(
+    async (p: MessagingPlatform) => {
+      setChannelSaving(p.id);
+      try {
+        await api.updateMessagingPlatform(p.id, {
+          enabled: !p.enabled,
+          profile: agent.name,
+        });
+        setPlatforms(
+          (prev) =>
+            prev?.map((x) =>
+              x.id === p.id ? { ...x, enabled: !p.enabled } : x,
+            ) ?? prev,
+        );
+        setChannelPending(p.id);
+        onChanged();
+      } catch (e) {
+        notify(String(e), "error");
+      } finally {
+        setChannelSaving(null);
+      }
+    },
+    [agent.name, notify, onChanged],
+  );
+
   /* ---------------- MCP ---------------- */
   const [mcpServers, setMcpServers] = useState<McpServer[] | null>(null);
 
@@ -319,6 +362,7 @@ export function AgentDrawer({
 
   const tabs: Array<{ key: Tab; label: string }> = [
     { key: "profile", label: ag.eqTabProfile },
+    { key: "knowledge", label: ag.studioKnowledgeCol },
     { key: "schedule", label: t.app.nav.cron },
     { key: "skills", label: t.app.nav.skills },
     { key: "channels", label: t.app.nav.channels },
@@ -461,19 +505,14 @@ export function AgentDrawer({
 
               <div className="grid gap-1.5">
                 <label className="type-caption text-foreground">{ag.qsModel}</label>
-                <input
-                  className={inputCls}
-                  list="xray-model-options"
+                {/* Provider-grouped catalog (v3): OpenAI/Anthropic/Google/xAI
+                    first, the whole vetted OpenRouter catalog in the search —
+                    replaces the raw datalist text field. */}
+                <ModelCatalogPicker
                   value={model}
                   disabled={profileLoading}
-                  onChange={(e) => setModel(e.target.value)}
-                  placeholder="anthropic/claude-sonnet-5"
+                  onSelect={(m) => setModel(m)}
                 />
-                <datalist id="xray-model-options">
-                  {modelOptions.map((m) => (
-                    <option key={m} value={m} />
-                  ))}
-                </datalist>
                 <p className="type-micro text-muted-foreground">{ag.qsModelHint}</p>
               </div>
 
@@ -498,6 +537,11 @@ export function AgentDrawer({
                 </Button>
               </div>
             </div>
+          )}
+
+          {/* ---------------- Knowledge (K1) ---------------- */}
+          {tab === "knowledge" && (
+            <KnowledgePanel profile={agent.name} onChanged={onChanged} />
           )}
 
           {/* ---------------- Schedule ---------------- */}
@@ -623,7 +667,10 @@ export function AgentDrawer({
                       .replace("{on}", String(skills.filter((s) => s.enabled).length))
                       .replace("{total}", String(skills.length))}
                   </p>
-                  {skillGroups.map(([category, list]) => (
+                  {/* Curation (v3): the raw 60+ list overwhelmed the drawer —
+                      show the first dozen, the rest behind an explicit expand.
+                      Everything stays REAL and toggleable once expanded. */}
+                  {visibleSkillGroups.map(([category, list]) => (
                     <div key={category}>
                       <div className="type-micro uppercase tracking-wide text-muted-foreground">
                         {category}
@@ -668,6 +715,15 @@ export function AgentDrawer({
                       </div>
                     </div>
                   ))}
+                  {!skillsExpanded && skills.length > SKILLS_PREVIEW_COUNT && (
+                    <button
+                      type="button"
+                      onClick={() => setSkillsExpanded(true)}
+                      className="justify-self-start rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                    >
+                      {ag.skillsShowAll.replace("{count}", String(skills.length))}
+                    </button>
+                  )}
                 </>
               )}
             </div>
@@ -692,8 +748,32 @@ export function AgentDrawer({
                       <span className={cn("h-2 w-2 shrink-0 rounded-full", stateDot(p.state))} />
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium text-foreground">{p.name}</div>
-                        <div className="truncate text-xs text-muted-foreground">{p.state}</div>
+                        <div className="truncate text-xs text-muted-foreground">
+                          {channelPending === p.id ? ag.chPending : p.state}
+                        </div>
                       </div>
+                      {/* REAL per-agent on/off: PUT platforms/{id} {enabled,
+                          profile} writes the agent's own config.yaml; goes
+                          live on the next engine restart (native contract). */}
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={p.enabled}
+                        aria-label={p.name}
+                        disabled={channelSaving === p.id}
+                        onClick={() => void toggleChannel(p)}
+                        className={cn(
+                          "relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors disabled:opacity-50",
+                          p.enabled ? "bg-live" : "bg-muted",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform",
+                            p.enabled ? "translate-x-[18px]" : "translate-x-[3px]",
+                          )}
+                        />
+                      </button>
                     </div>
                   ))}
                 </div>

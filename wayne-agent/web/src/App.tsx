@@ -89,6 +89,7 @@ import ProfilesPage from "@/pages/ProfilesPage";
 import ProfileBuilderPage from "@/pages/ProfileBuilderPage";
 import AgentQuickstartPage from "@/pages/AgentQuickstartPage";
 import AgentWorkflowPage from "@/pages/AgentWorkflowPage";
+import AgentTeamPage from "@/pages/AgentTeamPage";
 import OperationsPage from "@/pages/OperationsPage";
 import GovernancePage from "@/pages/GovernancePage";
 import AgentsPage from "@/pages/AgentsPage";
@@ -193,6 +194,7 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/profiles/new": ProfileBuilderPage,
   "/profiles/quickstart": AgentQuickstartPage,
   "/profiles/agent": AgentWorkflowPage,
+  "/profiles/team": AgentTeamPage,
   "/profiles/operations": OperationsPage,
   "/profiles/governance": GovernancePage,
   "/config": ConfigRoute,

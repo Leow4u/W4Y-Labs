@@ -11,10 +11,12 @@
  * board alive.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CircleCheck, Plus, Play, ThumbsUp, X } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+import { CircleCheck, Loader2, Plus, Play, RotateCcw, ThumbsUp, X } from "lucide-react";
 
 import { api } from "@/lib/api";
-import type { KanbanBoardResponse, KanbanTask, ProfileInfo } from "@/lib/api";
+import type { KanbanBoardResponse, KanbanTask, KanbanWorker, ProfileInfo } from "@/lib/api";
+import { DelegateObjective } from "@/components/agents/DelegateObjective";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
@@ -41,6 +43,28 @@ function ageShort(seconds: number | null | undefined): string {
   return `${Math.round(seconds / 86400)}d`;
 }
 
+/** Worker elapsed time as mm:ss (started_at = epoch seconds). */
+function elapsedMmSs(startedAt: number | null | undefined, nowSec: number): string {
+  if (startedAt == null || !Number.isFinite(startedAt) || nowSec <= 0) return "";
+  const s = Math.max(0, Math.floor(nowSec - startedAt));
+  const mm = Math.floor(s / 60);
+  const ss = s % 60;
+  return `${mm}:${ss < 10 ? "0" : ""}${ss}`;
+}
+
+/** Defensive epoch reader: the board payload stores completed_at as epoch
+ *  seconds (INTEGER in kanban.db), but accept ISO strings too. */
+function toEpochSeconds(v: unknown): number | null {
+  if (typeof v === "number" && Number.isFinite(v) && v > 0) return v;
+  if (typeof v === "string" && v) {
+    const n = Number(v);
+    if (Number.isFinite(n) && n > 0) return n;
+    const parsed = Date.parse(v);
+    if (!Number.isNaN(parsed)) return parsed / 1000;
+  }
+  return null;
+}
+
 /** Curation: 8 native states → 5 product columns. */
 const COLUMN_MAP: Array<{ key: string; statuses: string[] }> = [
   { key: "backlog", statuses: ["triage", "todo", "scheduled"] },
@@ -61,7 +85,9 @@ export default function OperationsPage() {
 
   const [board, setBoard] = useState<KanbanBoardResponse | null>(null);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
+  const [workers, setWorkers] = useState<KanbanWorker[]>([]);
   const [creating, setCreating] = useState(false);
+  const [delegating, setDelegating] = useState(false);
   const [busyTask, setBusyTask] = useState<string | null>(null);
 
   // New task form.
@@ -76,13 +102,26 @@ export default function OperationsPage() {
     return () => setTitle(null);
   }, [setTitle, ag.opsTab]);
 
+  // Wall clock (epoch seconds) for elapsed/age labels — fed by the board
+  // poll (server `now`) and a 1s tick while workers run; never read in
+  // render directly (purity rule).
+  const [nowSec, setNowSec] = useState(0);
+
   const load = useCallback((silent = false) => {
     api
       .getKanbanBoard()
-      .then(setBoard)
+      .then((b) => {
+        setBoard(b);
+        setNowSec(Number.isFinite(b.now) && b.now > 0 ? b.now : Date.now() / 1000);
+      })
       .catch(() => {
         if (!silent) setBoard(null);
       });
+    // Live workers ride the same 8s cadence as the board poll.
+    api
+      .getKanbanWorkers()
+      .then((r) => setWorkers(r.workers))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -104,16 +143,64 @@ export default function OperationsPage() {
     };
   }, [load]);
 
-  // "Nova tarefa" button in the page header.
+  // Deep link: /operations?delegate=1 opens the delegation panel. The URL is
+  // the source of truth for that entry point (no state-sync effect); closing
+  // consumes the param so it doesn't reopen.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const delegateFromUrl = searchParams.get("delegate") === "1";
+  const delegateOpen = delegating || delegateFromUrl;
+  const closeDelegate = useCallback(() => {
+    setDelegating(false);
+    if (searchParams.get("delegate") === "1") {
+      const next = new URLSearchParams(searchParams);
+      next.delete("delegate");
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // 1s tick only while somebody is actually working (elapsed mm:ss stays live).
+  useEffect(() => {
+    if (workers.length === 0) return;
+    const id = window.setInterval(() => setNowSec(Date.now() / 1000), 1000);
+    return () => window.clearInterval(id);
+  }, [workers.length]);
+
+  const reviewCount = useMemo(
+    () =>
+      (board?.columns ?? [])
+        .filter((c) => c.name === "review")
+        .reduce((acc, c) => acc + c.tasks.length, 0),
+    [board],
+  );
+
+  // Header: live chips (honest board/worker facts) + secondary "Nova tarefa"
+  // + primary dark "Delegar um objetivo".
   useEffect(() => {
     setEnd(
-      <Button size="sm" onClick={() => setCreating(true)}>
-        <Plus className="h-4 w-4" />
-        {ag.opsNewTask}
-      </Button>,
+      <div className="flex items-center gap-2">
+        {workers.length > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium tabular-nums text-emerald-600">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />
+            {ag.opsWorking.replace("{count}", String(workers.length))}
+          </span>
+        )}
+        {reviewCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-live/10 px-2.5 py-1 text-[11px] font-medium tabular-nums text-live">
+            {ag.opsReviewWait.replace("{count}", String(reviewCount))}
+          </span>
+        )}
+        <Button ghost size="sm" onClick={() => setCreating(true)}>
+          <Plus className="h-4 w-4" />
+          {ag.opsNewTask}
+        </Button>
+        <Button size="sm" onClick={() => setDelegating(true)}>
+          <Plus className="h-4 w-4" />
+          {ag.delegateTitle}
+        </Button>
+      </div>,
     );
     return () => setEnd(null);
-  }, [setEnd, ag.opsNewTask]);
+  }, [setEnd, ag.opsNewTask, ag.delegateTitle, ag.opsWorking, ag.opsReviewWait, workers.length, reviewCount]);
 
   const closeCreate = () => setCreating(false);
   const modalRef = useModalBehavior({ open: creating, onClose: closeCreate });
@@ -179,6 +266,26 @@ export default function OperationsPage() {
 
   const totalTasks = columns.reduce((acc, c) => acc + c.tasks.length, 0);
 
+  const workerByTask = useMemo(() => {
+    const m = new Map<string, KanbanWorker>();
+    for (const w of workers) m.set(w.task_id, w);
+    return m;
+  }, [workers]);
+
+  // "Ao vivo" rail: last 6 completions synthesized from board facts each poll
+  // (completed_at desc) — honest, no fake feed.
+  const liveFeed = useMemo(() => {
+    const all: Array<{ task: KanbanTask; at: number }> = [];
+    for (const col of board?.columns ?? []) {
+      for (const tk of col.tasks) {
+        const at = toEpochSeconds((tk as unknown as { completed_at?: unknown }).completed_at);
+        if (at != null) all.push({ task: tk, at });
+      }
+    }
+    all.sort((a, b) => b.at - a.at);
+    return all.slice(0, 6);
+  }, [board]);
+
   return (
     <div className="flex h-[calc(100dvh-112px)] min-h-[480px] flex-col px-4 py-3">
       <Toast toast={toast} />
@@ -197,8 +304,9 @@ export default function OperationsPage() {
           </div>
         </div>
       ) : (
-        <div className="min-h-0 flex-1 overflow-x-auto pb-2">
-          <div className="grid h-full min-w-[1080px] grid-cols-5 gap-3">
+        <div className="flex min-h-0 flex-1 gap-3">
+          <div className="min-h-0 flex-1 overflow-x-auto pb-2">
+            <div className="grid h-full min-w-[1080px] grid-cols-5 gap-3">
             {columns.map((col) => (
               <div key={col.key} className="flex min-h-0 flex-col rounded-xl bg-muted/40 p-2">
                 <div className="flex items-center justify-between px-1.5 pb-2 pt-1">
@@ -211,6 +319,7 @@ export default function OperationsPage() {
                   {col.tasks.map((task) => {
                     const running = task.status === "running";
                     const blocked = task.status === "blocked";
+                    const worker = workerByTask.get(task.id);
                     return (
                       <div
                         key={task.id}
@@ -258,6 +367,17 @@ export default function OperationsPage() {
                             {ageShort(task.age?.created_age_seconds)}
                           </span>
                         </div>
+                        {/* Live worker row — honest: we know it's working and
+                            for how long, not which tool it's on right now. */}
+                        {worker && (
+                          <div className="mt-2 flex items-center gap-2 rounded-lg bg-live/5 px-2 py-1.5 text-[11px] text-live">
+                            <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                            <span className="min-w-0 truncate">{ag.opsRunningLine}</span>
+                            <span className="ml-auto shrink-0 tabular-nums">
+                              {elapsedMmSs(worker.started_at, nowSec)}
+                            </span>
+                          </div>
+                        )}
                         {/* Flow actions (curated per column). */}
                         {(col.key === "backlog" || blocked) && (
                           <Button
@@ -272,15 +392,27 @@ export default function OperationsPage() {
                           </Button>
                         )}
                         {col.key === "review" && (
-                          <Button
-                            size="sm"
-                            disabled={busyTask === task.id}
-                            onClick={() => void setStatus(task, "done", ag.opsApproved)}
-                            className="mt-2 w-full justify-center"
-                          >
-                            <ThumbsUp className="h-3.5 w-3.5" />
-                            {ag.opsApprove}
-                          </Button>
+                          <div className="mt-2 flex gap-2">
+                            <Button
+                              size="sm"
+                              disabled={busyTask === task.id}
+                              onClick={() => void setStatus(task, "done", ag.opsApproved)}
+                              className="flex-1 justify-center"
+                            >
+                              <ThumbsUp className="h-3.5 w-3.5" />
+                              {ag.opsApprove}
+                            </Button>
+                            <Button
+                              ghost
+                              size="sm"
+                              disabled={busyTask === task.id}
+                              onClick={() => void setStatus(task, "ready", ag.opsDispatched)}
+                              className="flex-1 justify-center text-muted-foreground hover:text-foreground"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                              {ag.opsRedo}
+                            </Button>
+                          </div>
                         )}
                       </div>
                     );
@@ -288,7 +420,40 @@ export default function OperationsPage() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
+
+          {/* "Ao vivo" — last completions derived from the board itself. */}
+          <aside className="hidden w-60 shrink-0 flex-col rounded-xl bg-muted/40 p-3 xl:flex">
+            <span className="type-caption px-0.5 pb-2 font-medium text-foreground">
+              {ag.opsLiveFeed}
+            </span>
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
+              {liveFeed.map(({ task, at }) => (
+                <div
+                  key={task.id}
+                  className="min-w-0 rounded-lg border border-border/70 bg-card px-2.5 py-2"
+                >
+                  <p className="truncate text-xs font-medium text-foreground">{task.title}</p>
+                  <div className="mt-1 flex items-center gap-1.5">
+                    {task.assignee && (
+                      <>
+                        <span className="grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full bg-foreground/80 text-[7px] font-semibold text-background">
+                          {monogram(task.assignee)}
+                        </span>
+                        <span className="truncate text-[10px] text-muted-foreground">
+                          {prettify(task.assignee)}
+                        </span>
+                      </>
+                    )}
+                    <span className="ml-auto shrink-0 text-[10px] tabular-nums text-muted-foreground">
+                      {ageShort(nowSec - at)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </aside>
         </div>
       )}
 
@@ -369,6 +534,17 @@ export default function OperationsPage() {
           </div>
         </div>
       )}
+
+      {/* Delegate an objective → LLM plan → REAL kanban tasks + routine. */}
+      <DelegateObjective
+        open={delegateOpen}
+        onClose={closeDelegate}
+        onStarted={() => {
+          closeDelegate();
+          showToast(ag.delegateStarted, "success");
+          load();
+        }}
+      />
     </div>
   );
 }

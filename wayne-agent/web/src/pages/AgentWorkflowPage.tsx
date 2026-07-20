@@ -30,6 +30,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import {
   ArrowLeft,
+  BookOpen,
   Bot,
   Check,
   Coins,
@@ -69,7 +70,7 @@ function monogram(name: string): string {
 
 interface WfNodeData {
   title: string;
-  icon: "zap" | "bot" | "package" | "plug" | "radio" | "coins";
+  icon: "zap" | "bot" | "package" | "plug" | "radio" | "coins" | "book";
   /** Content rows (short label on the left / value on the right). */
   lines: Array<{ label: string; value?: string; on?: boolean }>;
   accent?: boolean;
@@ -84,6 +85,7 @@ const NODE_ICONS = {
   plug: Plug,
   radio: Radio,
   coins: Coins,
+  book: BookOpen,
 } as const;
 
 function WfNode({ data }: NodeProps<WfFlowNode>) {
@@ -163,6 +165,8 @@ interface WfData {
   routineCount: number;
   credits30: number | null;
   sessions30: number | null;
+  knowledgeDocs: number;
+  subagentNames: string[];
 }
 
 export default function AgentWorkflowPage() {
@@ -206,7 +210,9 @@ export default function AgentWorkflowPage() {
       api.getMessagingPlatforms(name).catch(() => ({ platforms: [] })),
       api.getCronJobs(name).catch(() => []),
       api.getAnalytics(30, name).catch(() => null),
-    ]).then(([profs, active, model, skills, mcp, msg, jobs, usage]) => {
+      api.getKnowledge(name).catch(() => null),
+      api.getProfileTeam(name).catch(() => null),
+    ]).then(([profs, active, model, skills, mcp, msg, jobs, usage, knowledge, team]) => {
       if (dead) return;
       const p = profs.profiles.find((x) => x.name === name);
       const activeName = active?.active || "default";
@@ -231,6 +237,8 @@ export default function AgentWorkflowPage() {
         routineCount: jobs.length,
         credits30: usage ? usdToCredits(usd) : null,
         sessions30: usage ? usage.totals.total_sessions : null,
+        knowledgeDocs: knowledge ? knowledge.documents.length : 0,
+        subagentNames: (team?.subagents ?? []).map((s) => s.name),
       });
     });
     return () => {
@@ -306,7 +314,22 @@ export default function AgentWorkflowPage() {
             .replace("{total}", String(d?.skillsTotal ?? "…")),
           value: "",
         },
+        ...(d && d.subagentNames.length > 0
+          ? [{ label: ag.studioSubagentsLabel, value: String(d.subagentNames.length) }]
+          : []),
       ]),
+      // Knowledge base (K1): documents ingested into the agent's own fact
+      // store — clicking opens the drawer's knowledge tab (upload/remove).
+      n("knowledge", ag.studioKnowledgeLabel, "book", [
+        {
+          label: ag.studioKnowledgeDocs.replace(
+            "{count}",
+            String(d?.knowledgeDocs ?? "…"),
+          ),
+          value: "",
+        },
+        { label: ag.studioKnowledgeCites, on: (d?.knowledgeDocs ?? 0) > 0 },
+      ], (d?.knowledgeDocs ?? 0) > 0),
       n("mcp", "MCP", "plug", [
         { label: ag.wfServers.replace("{n}", String(d?.mcpNames.length ?? "…")), value: "" },
         ...top3(d?.mcpNames ?? []).map((m) => ({ label: m, on: true })),
@@ -324,6 +347,7 @@ export default function AgentWorkflowPage() {
     const rawEdges: Edge[] = [
       { id: "e-t-m", source: "triggers", target: "model", type: "smoothstep", animated: true },
       { id: "e-s-m", source: "skills", target: "model", type: "smoothstep" },
+      { id: "e-k-m", source: "knowledge", target: "model", type: "smoothstep" },
       { id: "e-x-m", source: "mcp", target: "model", type: "smoothstep" },
       { id: "e-m-c", source: "model", target: "channels", type: "smoothstep" },
       { id: "e-m-r", source: "model", target: "results", type: "smoothstep", animated: true },
@@ -335,6 +359,7 @@ export default function AgentWorkflowPage() {
     triggers: "schedule",
     model: "profile",
     skills: "skills",
+    knowledge: "knowledge",
     mcp: "mcp",
     channels: "channels",
     results: "activity",
