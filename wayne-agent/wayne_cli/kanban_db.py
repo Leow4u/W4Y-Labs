@@ -7685,6 +7685,30 @@ def _default_spawn(
 
     profile_arg = normalize_profile_name(task.assignee)
 
+    # Per-agent monthly credit cap (Governança). Raising here rides the
+    # dispatcher's spawn-failure path: after failure_limit attempts the task
+    # auto-blocks with THIS message visible on the board — the owner sees WHY
+    # nothing ran instead of a silent limbo. Meter trouble fails open (the
+    # capped OpenRouter key is the hard financial stop).
+    _budget_error: Optional[str] = None
+    try:
+        from wayne_cli.budget import budget_refusal_message, check_budget
+        from wayne_cli.profiles import resolve_profile_env as _budget_home
+
+        _state = check_budget(_budget_home(profile_arg))
+        if not _state.get("allowed", True):
+            _budget_error = budget_refusal_message(_state)
+    except FileNotFoundError:
+        pass
+    except Exception:
+        _log.exception("budget check failed for kanban task %s", task.id)
+    if _budget_error:
+        _log.warning(
+            "kanban spawn refused for %s (task %s): %s",
+            profile_arg, task.id, _budget_error,
+        )
+        raise RuntimeError(_budget_error)
+
     prompt = f"work kanban task {task.id}"
     env = dict(os.environ)
 

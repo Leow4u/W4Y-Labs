@@ -28,6 +28,13 @@ COPY wayne_cli/web_server.py /opt/wayne/wayne_cli/web_server.py
 # in approval.py, enforcement at the MCP call door in mcp_tool.py.
 COPY tools/approval.py /opt/wayne/tools/approval.py
 COPY tools/mcp_tool.py /opt/wayne/tools/mcp_tool.py
+# Agentes v3 backend: per-agent credit cap (budget.py + hooks in kanban/cron),
+# per-agent knowledge base (knowledge.py), team sidecar + pulse + approvals
+# inbox + knowledge REST (web_server.py, already copied above).
+COPY wayne_cli/budget.py /opt/wayne/wayne_cli/budget.py
+COPY wayne_cli/knowledge.py /opt/wayne/wayne_cli/knowledge.py
+COPY wayne_cli/kanban_db.py /opt/wayne/wayne_cli/kanban_db.py
+COPY cron/scheduler.py /opt/wayne/cron/scheduler.py
 # APAGA antes de copiar — ver a mesma nota no Dockerfile.ui: o COPY MESCLA, não
 # substitui, e sem isto os bundles antigos se acumulam (82 no fly193) e enganam
 # qualquer grep de diagnóstico.

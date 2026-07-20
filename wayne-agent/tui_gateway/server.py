@@ -8313,6 +8313,19 @@ def _(rid, params: dict) -> dict:
     session, err = _sess_nowait(params, rid)
     if err:
         return err
+    # Per-agent monthly credit cap (Governança). Checked before ANY turn work
+    # so a capped agent refuses cleanly instead of half-recording a prompt.
+    # Fail-open on meter trouble — the capped OpenRouter key is the hard stop.
+    try:
+        profile_home = session.get("profile_home")
+        if profile_home:
+            from wayne_cli.budget import budget_refusal_message, check_budget
+
+            state = check_budget(profile_home)
+            if not state.get("allowed", True):
+                return _err(rid, 4030, budget_refusal_message(state))
+    except Exception:
+        pass
     # Re-bind to the current client transport for this request. This keeps
     # streaming events on the active websocket even if an earlier disconnect
     # or fallback moved the session transport to stdio.

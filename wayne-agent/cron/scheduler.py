@@ -2260,6 +2260,24 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     job_id = job["id"]
     job_name = str(job.get("name") or job.get("prompt") or job_id or "cron job")
 
+    # Per-agent monthly credit cap (Governança): a capped agent skips its
+    # scheduled turns with a recorded reason. no_agent jobs spend nothing and
+    # are exempt; meter trouble fails open (the capped key is the hard stop).
+    if not job.get("no_agent"):
+        try:
+            from wayne_constants import get_wayne_home
+            from wayne_cli.budget import budget_refusal_message, check_budget
+
+            _budget_state = check_budget(get_wayne_home())
+            if not _budget_state.get("allowed", True):
+                message = budget_refusal_message(_budget_state)
+                logger.warning("cron job %s skipped: %s", job_id, message)
+                return False, message, "", message
+        except ImportError:
+            pass
+        except Exception:
+            logger.exception("budget check failed for cron job %s", job_id)
+
     # ---------------------------------------------------------------
     # no_agent short-circuit — the script IS the job, no LLM involvement.
     # ---------------------------------------------------------------

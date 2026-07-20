@@ -12621,6 +12621,377 @@ async def describe_profile_auto_endpoint(name: str, body: ProfileDescribeAuto):
     }
 
 
+# ── Team sidecar: owner-view metadata (area + named subagent roles) ─────────
+#
+# team.json lives NEXT TO the profile (decision 10/07: hierarchy is a sidecar,
+# never a change to the flat profile registry). It names the business AREA the
+# agent is allocated to and the SUBAGENT roles the UI shows on the org canvas.
+# The delegation runtime itself stays delegate_task — this file only gives the
+# ephemeral workers stable, human names.
+
+class ProfileTeamUpdate(BaseModel):
+    area: Optional[str] = None
+    subagents: Optional[List[Dict[str, Any]]] = None
+
+
+def _read_profile_team(profile_dir) -> Dict[str, Any]:
+    team_path = profile_dir / "team.json"
+    if team_path.exists():
+        try:
+            data = json.loads(team_path.read_text(encoding="utf-8"))
+            if isinstance(data, dict):
+                return {
+                    "area": str(data.get("area") or ""),
+                    "subagents": data.get("subagents") if isinstance(data.get("subagents"), list) else [],
+                    "exists": True,
+                }
+        except Exception:
+            _log.exception("unreadable team.json in %s", profile_dir)
+    return {"area": "", "subagents": [], "exists": False}
+
+
+@app.get("/api/profiles/{name}/team")
+async def get_profile_team(name: str):
+    return _read_profile_team(_resolve_profile_dir(name))
+
+
+@app.put("/api/profiles/{name}/team")
+async def update_profile_team(name: str, body: ProfileTeamUpdate):
+    profile_dir = _resolve_profile_dir(name)
+    team_path = profile_dir / "team.json"
+    current: Dict[str, Any] = {}
+    if team_path.exists():
+        try:
+            loaded = json.loads(team_path.read_text(encoding="utf-8"))
+            if isinstance(loaded, dict):
+                current = loaded
+        except Exception:
+            pass
+    if body.area is not None:
+        current["area"] = str(body.area).strip()[:60]
+    if body.subagents is not None:
+        clean = []
+        for it in body.subagents[:12]:
+            if not isinstance(it, dict):
+                continue
+            role_name = str(it.get("name") or "").strip()
+            if not role_name:
+                continue
+            clean.append({
+                "name": role_name[:40],
+                "role": str(it.get("role") or "").strip()[:140],
+                "icon": str(it.get("icon") or "").strip()[:8],
+            })
+        current["subagents"] = clean
+    try:
+        team_path.write_text(
+            json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
+    except OSError as e:
+        raise HTTPException(status_code=500, detail=f"Could not write team.json: {e}")
+    return {
+        "ok": True,
+        "area": str(current.get("area") or ""),
+        "subagents": current.get("subagents") or [],
+    }
+
+
+# ── Team pulse: the owner-view "what is happening now" aggregate ────────────
+#
+# Live state comes from the IN-PROCESS gateway registry (dashboard sessions
+# and per-agent sessions created over /api/ws with a profile both live here —
+# verified 19/07; kanban workers are separate processes and ride the board
+# REST instead). Disk (state.db) provides last-activity and month spend.
+
+@app.get("/api/profiles/pulse")
+def get_profiles_pulse():
+    from wayne_cli import profiles as profiles_mod
+    from wayne_cli import budget as budget_mod
+
+    try:
+        infos = profiles_mod.list_profiles()
+    except Exception:
+        _log.exception("pulse: list_profiles failed")
+        infos = []
+
+    # Live gateway sessions grouped by profile home path.
+    live_by_home: Dict[str, Dict[str, Any]] = {}
+    try:
+        from tui_gateway import server as gw
+
+        with gw._sessions_lock:
+            items = [(sid, dict(sess)) for sid, sess in gw._sessions.items()]
+        rank = {"waiting": 3, "working": 2, "starting": 1, "idle": 0}
+        for sid, sess in items:
+            home = str(sess.get("profile_home") or "")
+            try:
+                status = gw._session_live_status(sid, sess)
+            except Exception:
+                status = "working" if sess.get("running") else "idle"
+            cur = live_by_home.get(home)
+            if cur is None or rank.get(status, 0) > rank.get(cur["status"], 0):
+                live_by_home[home] = {
+                    "status": status,
+                    "title": sess.get("pending_title") or "",
+                }
+    except Exception:
+        _log.exception("pulse: gateway registry unavailable")
+
+    out = []
+    for info in infos:
+        home = Path(info.path)
+        live = live_by_home.get(str(home)) or {}
+        last_active = None
+        sessions_today = 0
+        db_path = home / "state.db"
+        if db_path.exists():
+            try:
+                import sqlite3 as _sq
+
+                conn = _sq.connect(f"file:{db_path}?mode=ro", uri=True, timeout=2)
+                try:
+                    row = conn.execute(
+                        "SELECT MAX(last_active), "
+                        "SUM(CASE WHEN started_at >= ? THEN 1 ELSE 0 END) "
+                        "FROM sessions",
+                        (time.time() - 86400,),
+                    ).fetchone()
+                    last_active = row[0]
+                    sessions_today = int(row[1] or 0)
+                finally:
+                    conn.close()
+            except Exception:
+                _log.exception("pulse: state.db read failed for %s", info.name)
+        cap = budget_mod.get_cap_credits(home)
+        spent = budget_mod.month_spend_credits(home)
+        out.append({
+            "name": info.name,
+            "is_default": bool(getattr(info, "is_default", info.name == "default")),
+            "live_status": live.get("status") or "idle",
+            "live_title": live.get("title") or "",
+            "last_active": last_active,
+            "sessions_today": sessions_today,
+            "month_credits": round(spent, 1),
+            "cap_credits": cap,
+        })
+    return {"profiles": out, "now": time.time()}
+
+
+# ── Approvals inbox: everything waiting for the OWNER, across sessions ──────
+#
+# Sources (all same-process, verified 19/07): gateway approval queues
+# (tools.approval._gateway_queues, keyed by session_key) and gateway blocking
+# prompts (tui_gateway.server._pending/_pending_prompt_payloads, keyed by
+# request_id: clarify/sudo/secret). Kanban needs_input blocks are ALREADY
+# reachable via the board REST — the UI merges them; no duplication here.
+
+@app.get("/api/approvals/pending")
+def approvals_pending():
+    items: List[Dict[str, Any]] = []
+    session_meta: Dict[str, Dict[str, Any]] = {}
+    sid_meta: Dict[str, Dict[str, Any]] = {}
+    try:
+        from tui_gateway import server as gw
+
+        with gw._sessions_lock:
+            for sid, sess in gw._sessions.items():
+                meta = {
+                    "profile_home": str(sess.get("profile_home") or ""),
+                    "title": sess.get("pending_title") or "",
+                    "session_id": sid,
+                }
+                sid_meta[sid] = meta
+                key = sess.get("session_key")
+                if key:
+                    session_meta[str(key)] = meta
+    except Exception:
+        _log.exception("inbox: gateway registry unavailable")
+
+    def _profile_name(home: str) -> str:
+        if not home:
+            return ""
+        try:
+            from wayne_cli import profiles as profiles_mod
+
+            for info in profiles_mod.list_profiles():
+                if str(info.path) == home:
+                    return info.name
+        except Exception:
+            pass
+        return Path(home).name
+
+    try:
+        from tools import approval as approval_mod
+
+        with approval_mod._lock:
+            queues = {
+                key: [dict(entry.data or {}) for entry in entries]
+                for key, entries in approval_mod._gateway_queues.items()
+            }
+        for session_key, entries in queues.items():
+            meta = session_meta.get(str(session_key), {})
+            for data in entries:
+                items.append({
+                    "kind": "approval",
+                    "session_key": session_key,
+                    "session_id": meta.get("session_id"),
+                    "profile": _profile_name(meta.get("profile_home", "")),
+                    "session_title": meta.get("title", ""),
+                    "command": data.get("command"),
+                    "description": data.get("description"),
+                    "pattern_key": data.get("pattern_key"),
+                })
+    except Exception:
+        _log.exception("inbox: approval queues unavailable")
+
+    try:
+        from tui_gateway import server as gw
+
+        with gw._prompt_lock:
+            pend = {
+                rid: (gw._pending.get(rid), payload)
+                for rid, payload in gw._pending_prompt_payloads.items()
+            }
+        for rid, (owner, (event_name, payload)) in pend.items():
+            kind = str(event_name or "").split(".", 1)[0]
+            if kind not in ("clarify", "sudo", "secret"):
+                continue
+            owner_sid = owner[0] if isinstance(owner, tuple) else None
+            meta = sid_meta.get(owner_sid or "", {})
+            items.append({
+                "kind": kind,
+                "request_id": rid,
+                "session_id": owner_sid,
+                "profile": _profile_name(meta.get("profile_home", "")),
+                "session_title": meta.get("title", ""),
+                "question": (payload or {}).get("question")
+                or (payload or {}).get("prompt"),
+                "choices": (payload or {}).get("choices"),
+            })
+    except Exception:
+        _log.exception("inbox: prompt registry unavailable")
+
+    return {"items": items, "count": len(items)}
+
+
+class ApprovalRespond(BaseModel):
+    kind: str
+    session_key: Optional[str] = None
+    choice: Optional[str] = None
+    request_id: Optional[str] = None
+    answer: Optional[str] = None
+    all: bool = False
+
+
+@app.post("/api/approvals/respond")
+async def approvals_respond(body: ApprovalRespond):
+    kind = (body.kind or "").strip().lower()
+    if kind == "approval":
+        if not body.session_key or body.choice not in (
+            "once", "session", "always", "deny",
+        ):
+            raise HTTPException(status_code=400, detail="session_key and a valid choice are required")
+        from tools.approval import resolve_gateway_approval
+
+        resolved = resolve_gateway_approval(
+            body.session_key, body.choice, resolve_all=bool(body.all)
+        )
+        return {"ok": resolved > 0, "resolved": resolved}
+    if kind in ("clarify", "sudo", "secret"):
+        if not body.request_id or body.answer is None:
+            raise HTTPException(status_code=400, detail="request_id and answer are required")
+        from tui_gateway import server as gw
+
+        with gw._prompt_lock:
+            entry = gw._pending.get(body.request_id)
+            if entry is None:
+                return {"ok": False, "resolved": 0}
+            gw._answers[body.request_id] = str(body.answer)
+            entry[1].set()
+        return {"ok": True, "resolved": 1}
+    raise HTTPException(status_code=400, detail=f"unknown kind: {kind}")
+
+
+# ── Per-agent knowledge base (K1) ───────────────────────────────────────────
+
+@app.get("/api/knowledge")
+async def knowledge_list(profile: Optional[str] = None):
+    from wayne_cli import knowledge as knowledge_mod
+
+    name, home = _cron_profile_home(profile)
+    docs = knowledge_mod.list_documents(home)
+    provider = None
+    try:
+        import yaml as _yaml
+
+        cfg_path = Path(home) / "config.yaml"
+        if cfg_path.exists():
+            cfg = _yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}
+            provider = ((cfg.get("memory") or {}).get("provider")) or None
+    except Exception:
+        pass
+    return {"profile": name, "documents": docs, "provider": provider}
+
+
+@app.post("/api/knowledge/upload")
+async def knowledge_upload(
+    file: UploadFile = File(...),
+    profile: Optional[str] = Form(None),
+):
+    from wayne_cli import knowledge as knowledge_mod
+
+    name, home = _cron_profile_home(profile)
+    safe = knowledge_mod.sanitize_filename(file.filename or "documento.txt")
+    if not safe:
+        raise HTTPException(status_code=400, detail="invalid filename")
+    target_dir = knowledge_mod.knowledge_dir(home)
+    target_dir.mkdir(parents=True, exist_ok=True)
+    target = target_dir / safe
+
+    size = 0
+    try:
+        with open(target, "wb") as fh:
+            while True:
+                chunk = await file.read(1024 * 1024)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > knowledge_mod.MAX_FILE_BYTES:
+                    raise HTTPException(status_code=413, detail="file_too_large")
+                fh.write(chunk)
+    except HTTPException:
+        try:
+            target.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+
+    try:
+        result = await asyncio.to_thread(knowledge_mod.ingest_file, home, safe)
+    except knowledge_mod.KnowledgeError as e:
+        try:
+            target.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise HTTPException(status_code=422, detail=str(e))
+    except Exception as e:
+        _log.exception("knowledge ingest failed for %s", safe)
+        raise HTTPException(status_code=500, detail=str(e))
+
+    provider_state = knowledge_mod.ensure_holographic_provider(home)
+    return {"ok": True, "profile": name, "document": result,
+            "provider": provider_state}
+
+
+@app.delete("/api/knowledge/{filename}")
+async def knowledge_delete(filename: str, profile: Optional[str] = None):
+    from wayne_cli import knowledge as knowledge_mod
+
+    name, home = _cron_profile_home(profile)
+    result = await asyncio.to_thread(knowledge_mod.remove_document, home, filename)
+    return {"ok": True, "profile": name, **result}
+
+
 # ---------------------------------------------------------------------------
 # Skills & Tools endpoints
 #
