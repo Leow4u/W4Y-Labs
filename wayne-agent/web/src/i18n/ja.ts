@@ -408,6 +408,8 @@ export const ja: Translations = {
     runCloudOption: "クラウドで",
     runLockedHint: "実行場所はチャット開始時に決まります。変更するには新しい会話を開始してください。",
     runCloudSignIn: "クラウドを使うにはアカウントでログインしてください",
+    connectorsLabel: "コネクタ",
+    connectorsSession: "このチャットのコネクタ",
     cloudOriginTooltip: "クラウド上のコンピュータにあります",
     dockLocalDefault: "Work4You",
     envDefaultName: "デフォルト",

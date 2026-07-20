@@ -408,6 +408,8 @@ export const tr: Translations = {
     runCloudOption: "Bulutta",
     runLockedHint: "Sohbetin nerede çalışacağı başlarken belirlenir. Değiştirmek için yeni bir sohbet başlatın.",
     runCloudSignIn: "Bulutu kullanmak için hesabınla oturum aç",
+    connectorsLabel: "Bağlayıcılar",
+    connectorsSession: "Bu sohbetteki bağlayıcılar",
     cloudOriginTooltip: "Bulut bilgisayarınızda",
     dockLocalDefault: "Work4You",
     envDefaultName: "Varsayılan",

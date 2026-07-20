@@ -3332,6 +3332,73 @@ async def _connect_server(name: str, config: dict) -> MCPServerTask:
 # Handler / check-fn factories
 # ---------------------------------------------------------------------------
 
+# Argument keys (anywhere in the args tree) that name a Composio toolkit or
+# tool slug. The tool-router master tools (COMPOSIO_EXECUTE_TOOL, SEARCH_TOOLS,
+# MULTI_EXECUTE…) carry the target in arguments rather than the tool name, so
+# the session gate below matches values under these keys only — never free
+# text — to avoid false positives on user queries that merely mention an app.
+_CONNECTOR_SLUG_ARG_KEYS = frozenset({
+    "tool_slug", "tool_slugs", "toolkit", "toolkits", "toolkit_slug", "slug",
+})
+
+
+def _blocked_connector_for_call(server_name: str, tool_name: str, args) -> str:
+    """Return the disabled toolkit slug this call targets, or "" when allowed.
+
+    Enforces the composer's per-session "Conectores" toggles at the single
+    door every MCP call walks through. Two shapes are covered:
+      - direct per-tool names: GMAIL_FETCH_EMAILS (toolkit prefix in the name)
+      - tool-router master tools: toolkit/tool_slug rides in the arguments
+    """
+    if sanitize_mcp_name_component(server_name).lower() != "composio":
+        return ""
+    try:
+        from tools.approval import get_current_session_disabled_connectors
+
+        disabled = get_current_session_disabled_connectors()
+    except Exception:
+        return ""
+    if not disabled:
+        return ""
+
+    def _matches(value: str) -> str:
+        candidate = value.strip().upper()
+        if not candidate:
+            return ""
+        for slug in disabled:
+            slug_u = slug.upper()
+            if candidate == slug_u or candidate.startswith(slug_u + "_"):
+                return slug
+        return ""
+
+    hit = _matches(str(tool_name or ""))
+    if hit:
+        return hit
+
+    def _walk(obj) -> str:
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                if str(k).lower() in _CONNECTOR_SLUG_ARG_KEYS:
+                    values = v if isinstance(v, (list, tuple)) else [v]
+                    for item in values:
+                        if isinstance(item, str):
+                            found = _matches(item)
+                            if found:
+                                return found
+                elif isinstance(v, (dict, list)):
+                    found = _walk(v)
+                    if found:
+                        return found
+        elif isinstance(obj, list):
+            for item in obj:
+                found = _walk(item)
+                if found:
+                    return found
+        return ""
+
+    return _walk(args) if isinstance(args, (dict, list)) else ""
+
+
 def _make_tool_handler(server_name: str, tool_name: str, tool_timeout: float):
     """Return a sync handler that calls an MCP tool via the background loop.
 
@@ -3340,6 +3407,21 @@ def _make_tool_handler(server_name: str, tool_name: str, tool_timeout: float):
     """
 
     def _handler(args: dict, **kwargs) -> str:
+        # Per-session connector gate (composer "Conectores" toggles). Checked
+        # before anything else — a switched-off connector must not even probe
+        # the server, and the refusal must not count as a server error.
+        blocked_slug = _blocked_connector_for_call(server_name, tool_name, args)
+        if blocked_slug:
+            return json.dumps({
+                "error": (
+                    f"The '{blocked_slug}' connector is switched OFF for this "
+                    f"session by the user. Do not retry and do not work around "
+                    f"it; if the task requires '{blocked_slug}', tell the user "
+                    f"it is currently disabled in the composer's connector "
+                    f"toggles."
+                )
+            }, ensure_ascii=False)
+
         # Circuit breaker: if this server has failed too many times
         # consecutively, short-circuit with a clear message so the model
         # stops retrying and uses alternative approaches (#10447).

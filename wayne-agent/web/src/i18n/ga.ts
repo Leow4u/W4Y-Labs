@@ -408,6 +408,8 @@ export const ga: Translations = {
     runCloudOption: "Sa scamall",
     runLockedHint: "Socraítear cá rithfidh an comhrá nuair a thosaíonn sé. Tosaigh comhrá nua chun athrú.",
     runCloudSignIn: "Sínigh isteach le do chuntas chun an scamall a úsáid",
+    connectorsLabel: "Nascóirí",
+    connectorsSession: "Nascóirí sa chomhrá seo",
     cloudOriginTooltip: "Ar do ríomhaire scamaill",
     dockLocalDefault: "Work4You",
     envDefaultName: "Réamhshocrú",

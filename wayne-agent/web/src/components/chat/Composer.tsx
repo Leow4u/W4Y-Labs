@@ -590,7 +590,7 @@ export function Composer({
           title={t.chat.attachImage}
           aria-label={t.chat.attachImage}
           aria-expanded={menuOpen}
-          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
         >
           {attaching ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -694,10 +694,10 @@ export function Composer({
                 disabled={disabled || transcribing}
                 title={recording ? t.chat.stopRecording : t.chat.dictate}
                 aria-label={recording ? t.chat.stopRecording : t.chat.dictate}
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
                   recording
-                    ? "animate-pulse bg-destructive/10 text-destructive"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "animate-pulse border-destructive/40 bg-destructive/10 text-destructive"
+                    : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 {transcribing ? (

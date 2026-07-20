@@ -444,6 +444,8 @@ export interface Translations {
     runCloudOption: string;
     runLockedHint: string;
     runCloudSignIn: string;
+    connectorsLabel: string;
+    connectorsSession: string;
     cloudOriginTooltip: string;
     dockLocalDefault: string;
     envDefaultName: string;

@@ -408,6 +408,8 @@ export const ko: Translations = {
     runCloudOption: "클라우드에서",
     runLockedHint: "실행 위치는 채팅 시작 시 결정됩니다. 변경하려면 새 대화를 시작하세요.",
     runCloudSignIn: "클라우드를 사용하려면 계정으로 로그인하세요",
+    connectorsLabel: "커넥터",
+    connectorsSession: "이 대화의 커넥터",
     cloudOriginTooltip: "클라우드 컴퓨터에 있음",
     dockLocalDefault: "Work4You",
     envDefaultName: "기본값",

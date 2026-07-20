@@ -1357,6 +1357,11 @@ _lock = threading.Lock()
 _pending: dict[str, dict] = {}
 _session_approved: dict[str, set] = {}
 _session_yolo: set[str] = set()
+# Connector toolkits (Composio slugs, e.g. "gmail") the user switched OFF for
+# a single session via the composer's Conectores toggles. Lives here — not in
+# an MCP module — because it shares the session-key lifecycle with the state
+# above (clear_session, the session_key re-anchor in the gateway).
+_session_disabled_connectors: dict[str, frozenset[str]] = {}
 _permanent_approved: set = set()
 
 # =========================================================================
@@ -1477,6 +1482,7 @@ def clear_session(session_key: str) -> None:
     with _lock:
         _session_approved.pop(session_key, None)
         _session_yolo.discard(session_key)
+        _session_disabled_connectors.pop(session_key, None)
         _pending.pop(session_key, None)
         entries = _gateway_queues.pop(session_key, [])
     for entry in entries:
@@ -1492,6 +1498,40 @@ def is_session_yolo_enabled(session_key: str) -> bool:
         return False
     with _lock:
         return session_key in _session_yolo
+
+
+def set_session_disabled_connectors(session_key: str, slugs) -> frozenset[str]:
+    """Replace the set of connector toolkits switched OFF for one session.
+
+    Slugs are Composio toolkit slugs ("gmail", "github"), normalized to
+    lowercase. An empty/None value clears the entry entirely.
+    """
+    if not session_key:
+        return frozenset()
+    normalized = frozenset(
+        s.strip().lower()
+        for s in (slugs or [])
+        if isinstance(s, str) and s.strip()
+    )
+    with _lock:
+        if normalized:
+            _session_disabled_connectors[session_key] = normalized
+        else:
+            _session_disabled_connectors.pop(session_key, None)
+    return normalized
+
+
+def get_session_disabled_connectors(session_key: str) -> frozenset[str]:
+    """Connector toolkits switched OFF for a specific session (empty when none)."""
+    if not session_key:
+        return frozenset()
+    with _lock:
+        return _session_disabled_connectors.get(session_key, frozenset())
+
+
+def get_current_session_disabled_connectors() -> frozenset[str]:
+    """Disabled connectors for the session bound to the calling context."""
+    return get_session_disabled_connectors(get_current_session_key(default=""))
 
 
 def is_current_session_yolo_enabled() -> bool:

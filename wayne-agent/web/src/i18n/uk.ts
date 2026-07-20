@@ -408,6 +408,8 @@ export const uk: Translations = {
     runCloudOption: "У хмарі",
     runLockedHint: "Де виконується чат, вирішується на його початку. Щоб змінити, почніть нову розмову.",
     runCloudSignIn: "Увійдіть у свій обліковий запис, щоб користуватися хмарою",
+    connectorsLabel: "Конектори",
+    connectorsSession: "Конектори в цьому чаті",
     cloudOriginTooltip: "На вашому хмарному комп’ютері",
     dockLocalDefault: "Work4You",
     envDefaultName: "За замовчуванням",

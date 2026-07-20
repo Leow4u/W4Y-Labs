@@ -408,6 +408,8 @@ export const ru: Translations = {
     runCloudOption: "В облаке",
     runLockedHint: "Где выполняется чат, решается при его запуске. Чтобы изменить, начните новый разговор.",
     runCloudSignIn: "Войдите в свою учётную запись, чтобы использовать облако",
+    connectorsLabel: "Коннекторы",
+    connectorsSession: "Коннекторы в этом чате",
     cloudOriginTooltip: "На вашем облачном компьютере",
     dockLocalDefault: "Work4You",
     envDefaultName: "По умолчанию",

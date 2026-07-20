@@ -408,6 +408,8 @@ export const hu: Translations = {
     runCloudOption: "A felhőben",
     runLockedHint: "A futtatás helye a beszélgetés indításakor dől el. Váltáshoz indíts új beszélgetést.",
     runCloudSignIn: "Jelentkezz be a fiókoddal a felhő használatához",
+    connectorsLabel: "Csatlakozók",
+    connectorsSession: "Csatlakozók ebben a beszélgetésben",
     cloudOriginTooltip: "A felhőbeli számítógépeden",
     dockLocalDefault: "Work4You",
     envDefaultName: "Alapértelmezett",

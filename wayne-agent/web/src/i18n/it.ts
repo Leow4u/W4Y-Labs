@@ -408,6 +408,8 @@ export const it: Translations = {
     runCloudOption: "Nel cloud",
     runLockedHint: "Dove viene eseguita la chat si decide all'avvio. Avvia una nuova conversazione per cambiare.",
     runCloudSignIn: "Accedi con il tuo account per usare il cloud",
+    connectorsLabel: "Connettori",
+    connectorsSession: "Connettori in questa conversazione",
     cloudOriginTooltip: "Sul tuo computer cloud",
     dockLocalDefault: "Work4You",
     envDefaultName: "Predefinito",

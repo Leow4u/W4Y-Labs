@@ -408,6 +408,8 @@ export const fr: Translations = {
     runCloudOption: "Dans le cloud",
     runLockedHint: "L'endroit où s'exécute la conversation se décide au démarrage. Démarrez une nouvelle conversation pour changer.",
     runCloudSignIn: "Connectez-vous avec votre compte pour utiliser le cloud",
+    connectorsLabel: "Connecteurs",
+    connectorsSession: "Connecteurs dans cette conversation",
     cloudOriginTooltip: "Sur votre ordinateur cloud",
     dockLocalDefault: "Work4You",
     envDefaultName: "Par défaut",

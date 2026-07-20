@@ -408,6 +408,8 @@ export const zhHant: Translations = {
     runCloudOption: "在雲端",
     runLockedHint: "執行位置在對話開始時決定。若要更換，請開始新對話。",
     runCloudSignIn: "登入你的帳號以使用雲端",
+    connectorsLabel: "連接器",
+    connectorsSession: "此對話中的連接器",
     cloudOriginTooltip: "在你的雲端電腦上",
     dockLocalDefault: "Work4You",
     envDefaultName: "預設",

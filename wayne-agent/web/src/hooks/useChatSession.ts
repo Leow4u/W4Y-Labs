@@ -1342,6 +1342,28 @@ export function useChatSession(
     }
   }, []);
 
+  /** Replaces the set of connector toolkits switched OFF for THIS session
+   *  (composer Conectores toggles) — RPC config.set key=connectors.disabled
+   *  scope=session. Enforcement lives at the engine's MCP call door
+   *  (tools/mcp_tool.py); this never touches global config nor other sessions. */
+  const setSessionConnectorsDisabled = useCallback(async (slugs: string[]): Promise<boolean> => {
+    const gw = gwRef.current;
+    const sid = sessionIdRef.current;
+    if (!gw || !sid) return false;
+    try {
+      await gw.request("config.set", {
+        session_id: sid,
+        key: "connectors.disabled",
+        value: slugs,
+        scope: "session",
+      });
+      return true;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      return false;
+    }
+  }, []);
+
   const branchChat = useCallback(async (): Promise<string | null> => {
     const gw = gwRef.current;
     const sid = sessionIdRef.current;
@@ -1483,6 +1505,7 @@ export function useChatSession(
     compressChat,
     branchChat,
     setSessionYolo,
+    setSessionConnectorsDisabled,
     contextBreakdown,
     completeSlash,
     completePath,

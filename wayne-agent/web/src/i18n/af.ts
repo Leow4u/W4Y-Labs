@@ -408,6 +408,8 @@ export const af: Translations = {
     runCloudOption: "In die wolk",
     runLockedHint: "Waar die gesprek loop, word by die begin gekies. Begin 'n nuwe gesprek om te verander.",
     runCloudSignIn: "Meld aan met jou rekening om die wolk te gebruik",
+    connectorsLabel: "Koppelaars",
+    connectorsSession: "Koppelaars in hierdie gesprek",
     cloudOriginTooltip: "Op jou wolkrekenaar",
     dockLocalDefault: "Work4You",
     envDefaultName: "Verstek",

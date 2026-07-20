@@ -3056,6 +3056,21 @@ def _sync_session_key_after_compress(
                 disable_session_yolo(old_key)
             except Exception:
                 pass
+        # The composer's per-session connector toggles ride the same
+        # session_key lifecycle as yolo — re-anchor them too, or the gate
+        # silently evaporates on the first compression/continuation.
+        try:
+            from tools.approval import (
+                get_session_disabled_connectors,
+                set_session_disabled_connectors,
+            )
+
+            disabled_connectors = get_session_disabled_connectors(old_key)
+            if disabled_connectors:
+                set_session_disabled_connectors(new_session_id, disabled_connectors)
+                set_session_disabled_connectors(old_key, None)
+        except Exception:
+            pass
         try:
             register_gateway_notify(
                 new_session_id,
@@ -10395,6 +10410,31 @@ def _(rid, params: dict) -> dict:
             if agent is not None:
                 agent.verbose_logging = nv == "verbose"
         return _ok(rid, {"key": key, "value": nv})
+
+    if key == "connectors.disabled":
+        # Composer "Conectores" toggles — the set of connector toolkits
+        # (Composio slugs, e.g. "gmail") switched OFF for THIS session only.
+        # Session-scoped by design (like yolo): never touches config.yaml,
+        # never affects other sessions, CLI or cron. Enforcement lives at the
+        # MCP call door (tools/mcp_tool.py), not in the prompt.
+        if not session:
+            return _err(rid, 4002, "connectors.disabled requires a session")
+        try:
+            from tools.approval import set_session_disabled_connectors
+
+            if isinstance(value, (list, tuple)):
+                slugs = [str(s) for s in value]
+            else:
+                slugs = [s for s in str(value or "").split(",")]
+            applied = set_session_disabled_connectors(
+                session["session_key"], slugs
+            )
+            return _ok(
+                rid,
+                {"key": key, "value": sorted(applied), "scope": "session"},
+            )
+        except Exception as e:
+            return _err(rid, 5001, str(e))
 
     if key == "yolo":
         # Approval bypass. Two scopes:

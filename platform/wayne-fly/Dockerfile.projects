@@ -24,6 +24,10 @@ FROM ${BASE_IMAGE}
 COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py
 COPY wayne_cli/projects_db.py /opt/wayne/wayne_cli/projects_db.py
 COPY wayne_cli/web_server.py /opt/wayne/wayne_cli/web_server.py
+# Per-session connector gate (composer "Conectores" toggles): registry lives
+# in approval.py, enforcement at the MCP call door in mcp_tool.py.
+COPY tools/approval.py /opt/wayne/tools/approval.py
+COPY tools/mcp_tool.py /opt/wayne/tools/mcp_tool.py
 # APAGA antes de copiar — ver a mesma nota no Dockerfile.ui: o COPY MESCLA, não
 # substitui, e sem isto os bundles antigos se acumulam (82 no fly193) e enganam
 # qualquer grep de diagnóstico.

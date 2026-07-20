@@ -17,6 +17,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { AssistantTurn, type DetailMode } from "@/components/chat/AssistantTurn";
 import { Composer } from "@/components/chat/Composer";
+import { ConnectorsPicker } from "@/components/chat/ConnectorsPicker";
 import { ContextPicker } from "@/components/chat/ContextPicker";
 import { ModePicker, type ApprovalsMode } from "@/components/chat/ModePicker";
 import { RunTargetPicker } from "@/components/chat/RunTargetPicker";
@@ -289,6 +290,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     compressChat,
     branchChat,
     setSessionYolo,
+    setSessionConnectorsDisabled,
     contextBreakdown,
     completeSlash,
     completePath,
@@ -316,6 +318,44 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     setCloudSessionActive(cloudSession);
     return () => setCloudSessionActive(false);
   }, [cloudSession]);
+
+  // Per-session connector toggles (composer "Conectores"). The OFF set lives
+  // HERE (the picker remounts on hero→conversation) and is persisted per
+  // stored session so a reload/resume re-arms the engine-side gate — which is
+  // in-memory and dies with the engine process.
+  const connectorsOffKey = storedSessionId
+    ? `wayne:connectors-off:${storedSessionId}`
+    : null;
+  const [connectorsOff, setConnectorsOff] = useState<string[]>([]);
+  useEffect(() => {
+    // New chat identity → start clean; a stored one restores its saved set.
+    if (!connectorsOffKey) {
+      setConnectorsOff([]);
+      return;
+    }
+    try {
+      const raw = window.localStorage.getItem(connectorsOffKey);
+      if (raw) setConnectorsOff(JSON.parse(raw) as string[]);
+    } catch {
+      /* private mode / corrupt entry — keep current state */
+    }
+  }, [connectorsOffKey]);
+  useEffect(() => {
+    if (!connectorsOffKey) return;
+    try {
+      if (connectorsOff.length > 0)
+        window.localStorage.setItem(connectorsOffKey, JSON.stringify(connectorsOff));
+      else window.localStorage.removeItem(connectorsOffKey);
+    } catch {
+      /* private mode */
+    }
+  }, [connectorsOffKey, connectorsOff]);
+  useEffect(() => {
+    // (Re)assert on the live session: on every change and once at ready —
+    // the empty send keeps engine state consistent with a cleared UI.
+    if (!sessionReady) return;
+    void setSessionConnectorsDisabled(connectorsOff);
+  }, [sessionReady, connectorsOff, setSessionConnectorsDisabled]);
 
   // Active local folder (Local desktop mode). The state lives HERE, not in the
   // ContextPicker (which remounts on hero→conversation and would lose the
@@ -1213,44 +1253,6 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
 
   const composerStack = (
     <div className="w-full">
-      {/* "Code" piece: environment (tenant cloud) + select repo. */}
-      <div className="mb-2 flex items-center gap-1.5">
-        {/* The project/folder chip names places on THIS machine — for a chat
-            running on the cloud computer it would promise folders that are
-            not there, so it yields to the run-target chip alone (S1; the
-            cloud session runs in the tenant's default workspace). */}
-        {!cloudSession && (
-          <ContextPicker
-            // The folder is chosen when the conversation STARTS, and then it is
-            // settled — same as Codex/Cursor. The backend already works this way:
-            // the cwd ships in session.create and is IGNORED on resume, so a
-            // mid-conversation switch changed the chip and moved nothing. Locking
-            // the picker stops the screen from promising what the server won't do.
-            locked={messages.length > 0}
-            project={project}
-            cwd={cwd ?? null}
-            storedSessionId={storedSessionId}
-            activeLocal={activeLocalFolder}
-            onActiveLocalChange={setActiveLocalFolder}
-            onLocalEnv={localEnv}
-            onSendPrompt={(text) => handleSend(text)}
-            onOpenProjectSettings={() =>
-              setDockSignal((sig) => ({ tab: "project", nonce: (sig?.nonce ?? 0) + 1 }))
-            }
-          />
-        )}
-        {/* S1 mini-computer: where this chat runs (local-engine desktop). New
-            sessions choose; a resumed CLOUD session (S2) shows the settled
-            fact as a locked label — same contract as the folder chip. */}
-        {(!resumeId || cloudResume) && cloudRunAvailable() && (
-          <RunTargetPicker
-            value={cloudSession ? "cloud" : runTarget}
-            locked={cloudResume || messages.length > 0}
-            onChange={setRunTarget}
-          />
-        )}
-      </div>
-
       {/* Notification nudge (claude.ai parity). */}
       {showNotifyNudge && (
         <div className="mb-2 flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5 shadow-card">
@@ -1410,6 +1412,49 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
           lastReply={lastAssistantReply}
           sessionKey={resumeId ?? `new-${freshNonce}`}
         />
+      </div>
+
+      {/* Attached bar BELOW the card (hero mockup 19/07): project + connector
+          toggles on the left, the S1 run-target mini-computer on the right. */}
+      <div className="mt-2 flex items-center gap-1.5">
+        {/* The project/folder chip names places on THIS machine — for a chat
+            running on the cloud computer it would promise folders that are
+            not there, so it yields to the run-target chip alone (S1; the
+            cloud session runs in the tenant's default workspace). */}
+        {!cloudSession && (
+          <ContextPicker
+            // The folder is chosen when the conversation STARTS, and then it is
+            // settled — same as Codex/Cursor. The backend already works this way:
+            // the cwd ships in session.create and is IGNORED on resume, so a
+            // mid-conversation switch changed the chip and moved nothing. Locking
+            // the picker stops the screen from promising what the server won't do.
+            locked={messages.length > 0}
+            project={project}
+            cwd={cwd ?? null}
+            storedSessionId={storedSessionId}
+            activeLocal={activeLocalFolder}
+            onActiveLocalChange={setActiveLocalFolder}
+            onLocalEnv={localEnv}
+            onSendPrompt={(text) => handleSend(text)}
+            onOpenProjectSettings={() =>
+              setDockSignal((sig) => ({ tab: "project", nonce: (sig?.nonce ?? 0) + 1 }))
+            }
+          />
+        )}
+        {/* Connected apps with per-SESSION on/off switches — live for the
+            whole conversation (like the yolo toggle), not settled at start. */}
+        <ConnectorsPicker disabled={connectorsOff} onChange={setConnectorsOff} />
+        <div className="min-w-0 flex-1" />
+        {/* S1 mini-computer: where this chat runs (local-engine desktop). New
+            sessions choose; a resumed CLOUD session (S2) shows the settled
+            fact as a locked label — same contract as the folder chip. */}
+        {(!resumeId || cloudResume) && cloudRunAvailable() && (
+          <RunTargetPicker
+            value={cloudSession ? "cloud" : runTarget}
+            locked={cloudResume || messages.length > 0}
+            onChange={setRunTarget}
+          />
+        )}
       </div>
 
       <p className="pt-2.5 text-center text-xs text-muted-foreground/60">

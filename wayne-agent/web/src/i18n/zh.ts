@@ -406,6 +406,8 @@ export const zh: Translations = {
     runCloudOption: "在云端",
     runLockedHint: "运行位置在对话开始时确定。要更换，请开始新对话。",
     runCloudSignIn: "登录你的账号以使用云端",
+    connectorsLabel: "连接器",
+    connectorsSession: "此对话中的连接器",
     cloudOriginTooltip: "在你的云端电脑上",
     dockLocalDefault: "Work4You",
     envDefaultName: "默认",
