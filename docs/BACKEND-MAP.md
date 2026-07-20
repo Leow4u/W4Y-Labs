@@ -106,6 +106,28 @@
   WhatsApp Cloud, WeCom callback, Composio events) ACORDAM a máquina via HTTP inbound.
 - Polish barato: `whatsapp_cloud` e `msgraph_webhook` sem entrada em `_PLATFORM_OVERRIDES` (rótulo cru).
 
+## AUDITORIA DE UX — ondas 0/1/2 (20/07; engine 20260720e + fly223)
+
+**`default` NÃO é agente — é a instalação.** Regra do dono: não pode aparecer em lugar nenhum
+onde dê pra selecionar, editar ou atribuir trabalho. Fonte única no frontend:
+`web/src/lib/agents.ts` (`isInstallation` / `realAgents` / `agentLabel` / `agentMonogram`).
+Piso no motor (não confiar só na UI): `kanban_decompose._build_roster` pula `is_default`,
+`_resolve_default_assignee` devolve `""`, e `kanban_db._default_spawn` **levanta** RuntimeError
+com motivo em PT quando o assignee é `default` (aparece no quadro pelo caminho de spawn-failure).
+
+**Perfil do usuário — endpoint NOVO `GET/PUT /api/memory/user-profile`** (web_server.py).
+Lê/escreve `<WAYNE_HOME>/memories/USER.md` através do próprio `MemoryStore`: mesmo limite de
+caracteres (`memory.user_char_limit`, default 1375), mesmo scan de injeção, mesmo writer atômico
+(entradas separadas por `\n§\n`) — escrever texto cru quebraria o guard de drift do memory tool.
+USER.md entra em TODO system prompt (`agent/system_prompt.py:432`), é por-perfil, e é o backing
+correto de "Instruções personalizadas" nas Configurações — que antes escrevia o **SOUL.md da
+instalação**, ou seja, a base herdada por todos os agentes.
+
+**Tokens de tipografia (a causa real das "letras pequenas"):** o root é 15px
+(`--theme-base-size`), então a escala rem do Tailwind mentia em toda a UI — `text-xs` = 11,25px
+em 526 lugares. A escala agora é ancorada em px no `@theme` do `index.css` (xs=12px é o PISO).
+Ao mexer em tamanho de fonte, mexer LÁ, não no call site.
+
 ## AGENTES v3 — construído 20/07 (engine 20260720a + fly219; mockups → produto)
 
 **Backend novo (tudo smoke-testado):**
