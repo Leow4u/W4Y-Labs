@@ -282,6 +282,30 @@ do projeto (mesmo padrão de `_connector_session`, web_server.py:2158) → URL n
 Verificado: discover_mcp_tools → 6 ferramentas-mestre (`mcp_composio_COMPOSIO_SEARCH_TOOLS`,
 `MULTI_EXECUTE_TOOL`…), mesmas contas (user_id global). O broker 0.3.4 minta a sessão NOVA no
 login — nunca copia a da nuvem.
+
+**TOGGLE DE CONECTORES POR SESSÃO (19/07, engine 20260719a + fly218):** o composer ganhou o
+controle "Conectores" (barra acoplada ABAIXO do card, hero mockup) com switch on/off por app,
+escopo = A CONVERSA. Antes de construir foi verificado: **NÃO existe** liga/desliga nativo por
+toolkit (a API só tem catalog/status/connect/attach/DELETE account) — então o gate foi construído:
+- **Registro por sessão**: `tools/approval.py` `_session_disabled_connectors` (ao lado do
+  `_session_yolo` DE PROPÓSITO — herda o ciclo de vida: `clear_session` limpa, e o re-anchor de
+  session_key em `tui_gateway/server.py` (~:3060, único helper de rename) transplanta o set).
+- **Set**: RPC `config.set {key:"connectors.disabled", value:[slugs], scope:"session"}` (branch
+  ao lado do yolo, server.py ~:10420). Aceita lista ou CSV; sem sessão → erro 4002. UI:
+  `useChatSession.setSessionConnectorsDisabled`; NativeChatPage persiste em localStorage
+  `wayne:connectors-off:<storedSessionId>` e REENVIA em todo sessionReady (o registro do motor é
+  em memória — morre com o processo; o reenvio re-arma no resume).
+- **Enforcement**: `tools/mcp_tool.py` `_blocked_connector_for_call` no TOPO do `_handler`
+  (porta única de toda chamada MCP, server composio apenas). Cobre os DOIS formatos: nome direto
+  `GMAIL_*` (nuvem) e ferramentas-mestre com toolkit nos ARGS (chaves allowlist `tool_slug/
+  toolkits/...` em qualquer nível — texto livre NUNCA casa, sem falso positivo em query). Erro
+  claro pro modelo ("switched OFF for this session... do not retry"). Testado 9 casos unit.
+- **Entrega**: Dockerfile.projects agora COPIA `tools/approval.py` + `tools/mcp_tool.py`.
+- **GOTCHA install.ps1**: `WAYNE_SOURCE_ZIP_URL` NÃO aceita `file:///` ("scheme not supported") —
+  refresh in-place usa a URL https do bucket. Após refresh manual, atualizar TAMBÉM o marcador
+  `%LOCALAPPDATA%\wayne\engine-source.json` (senão o chip oferece o mesmo update de novo).
+- UI: `components/chat/ConnectorsPicker.tsx` (some quando 0 contas ACTIVE — tela não promete;
+  logos via catalog + LogoTile). i18n `connectorsLabel/connectorsSession` ×16.
 **0.3.4 ENTREGUE (17/07, fly209 + instalador):** (1) CHIP DE UPDATE — pill accent "Atualizar" ao
 lado do nome no rodapé (AuthWidget, ref. ChatGPT), IPC `w4y:update:{check,apply}` (apply = killEngine
 → app.relaunch+exit → boot aplica); check no mount + 30min; gated isLocalEngine + bridge (casca
