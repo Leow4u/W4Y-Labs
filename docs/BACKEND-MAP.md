@@ -148,7 +148,7 @@ Atividade) e contagem mcp no nó. (2) PDF no Conhecimento: pypdf 6.1.3 lazy (pyp
 desktop venv via `uv pip install --python <venv>` — venv uv NÃO tem pip; imagem fly idem, tem
 `/usr/local/bin/uv`). (3) Esquadrão: `AgentDraft.team` → template composto cria principal +
 papéis no team.json (premium). **GOTCHA:** build-engine-zip.ps1 no PowerShell 5 gera zip com
-CONTRABARRAS nos entry names (quebra unzip POSIX) — sempre pwsh 7.
+CONTRABARRAS nos entry names (quebra unzip POSIX) — sempre pwsh 7. **GOTCHA local (20/07):** o refresh in-place do desktop (robocopy) MESCLA web_dist sem apagar bundles antigos — mesmo acúmulo do fly193, só que na máquina do usuário (17 index-*.js). Inertes, mas após refresh manual limpar assets/ mantendo só o par referenciado no index.html. Nomes COMERCIAIS de modelo em toda a UI via modelCommercialName() (ModelCatalogPicker) — slug técnico nunca aparece; recomendação por necessidade = prop recommendedModel (escolha do LLM do rascunho/template).
 **LIÇÃO decompose (19/07):** decompose nativo NÃO tem dry-run e `recompute_ready` promove filho
 sem-pai a ready A CADA tick do dispatcher (auto_promote_children=false NÃO segura) — por isso o
 preview do Delegar é LLM especulativo e a criação só acontece no Aprovar.
