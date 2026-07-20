@@ -1175,6 +1175,22 @@ export const api = {
         body: JSON.stringify(updates),
       },
     ),
+  getKanbanTask: (id: string) =>
+    fetchJSON<{ task: Record<string, unknown> }>(
+      `/api/plugins/kanban/tasks/${encodeURIComponent(id)}`,
+    ),
+  linkKanbanTasks: (parentId: string, childId: string) =>
+    fetchJSON<Record<string, unknown>>("/api/plugins/kanban/links", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ parent_id: parentId, child_id: childId }),
+    }),
+  getKanbanWorkers: () =>
+    fetchJSON<{
+      workers: KanbanWorker[];
+      count: number;
+      checked_at: number;
+    }>("/api/plugins/kanban/workers/active"),
   addMcpServer: (body: McpServerCreate) =>
     fetchJSON<McpServer>("/api/mcp/servers", {
       method: "POST",
@@ -1455,6 +1471,64 @@ export const api = {
       `/api/connectors/accounts/${encodeURIComponent(accountId)}`,
       { method: "DELETE" },
     ),
+
+  // ── Agentes v3: team sidecar, pulse, approvals inbox, knowledge (K1) ──
+  getProfileTeam: (name: string) =>
+    fetchJSON<ProfileTeamInfo>(
+      `/api/profiles/${encodeURIComponent(name)}/team`,
+    ),
+  updateProfileTeam: (
+    name: string,
+    body: { area?: string; subagents?: TeamSubagent[] },
+  ) =>
+    fetchJSON<ProfileTeamInfo & { ok: boolean }>(
+      `/api/profiles/${encodeURIComponent(name)}/team`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
+    ),
+  getProfilesPulse: () => fetchJSON<PulseResponse>("/api/profiles/pulse"),
+  getApprovalsInbox: () =>
+    fetchJSON<{ items: ApprovalInboxItem[]; count: number }>(
+      "/api/approvals/pending",
+    ),
+  respondApprovalInbox: (body: {
+    kind: string;
+    session_key?: string;
+    choice?: string;
+    request_id?: string;
+    answer?: string;
+    all?: boolean;
+  }) =>
+    fetchJSON<{ ok: boolean; resolved: number }>("/api/approvals/respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }),
+  getKnowledge: (profile?: string) =>
+    fetchJSON<{
+      profile: string;
+      documents: KnowledgeDoc[];
+      provider: string | null;
+    }>(`/api/knowledge${profileQuery(profile)}`),
+  uploadKnowledge: (file: File, profile?: string) => {
+    const form = new FormData();
+    if (profile) form.append("profile", profile);
+    form.append("file", file, file.name);
+    return fetchJSON<{
+      ok: boolean;
+      profile: string;
+      document: { name: string; facts: number; chunks: number };
+      provider: { ok: boolean; provider: string | null; warning?: string };
+    }>("/api/knowledge/upload", { method: "POST", body: form });
+  },
+  deleteKnowledge: (name: string, profile?: string) =>
+    fetchJSON<{ ok: boolean; name: string; facts_removed: number }>(
+      `/api/knowledge/${encodeURIComponent(name)}${profileQuery(profile)}`,
+      { method: "DELETE" },
+    ),
   // Events (triggers) — wire a trigger onto an already-connected connector;
   // each event becomes an agent task (native kanban). Scope global|<agent>.
   getConnectorTriggerTypes: (toolkit: string) =>
@@ -1640,6 +1714,62 @@ export interface ConnectorTrigger {
   trigger: string;
   toolkit?: string | null;
   disabled: boolean;
+}
+
+// ── Agentes v3 (team sidecar, pulse, inbox, knowledge) ─────────────────
+
+/** A named subagent role on an agent's team (team.json sidecar). */
+export interface TeamSubagent {
+  name: string;
+  role?: string;
+  icon?: string;
+}
+
+export interface ProfileTeamInfo {
+  area: string;
+  subagents: TeamSubagent[];
+  exists?: boolean;
+}
+
+/** Live pulse for one agent: what it is doing NOW + month spend vs cap. */
+export interface ProfilePulse {
+  name: string;
+  is_default: boolean;
+  /** waiting | working | starting | idle */
+  live_status: string;
+  live_title: string;
+  last_active: number | null;
+  sessions_today: number;
+  month_credits: number;
+  cap_credits: number | null;
+}
+
+export interface PulseResponse {
+  profiles: ProfilePulse[];
+  now: number;
+}
+
+/** One thing waiting for the OWNER across all sessions/agents. */
+export interface ApprovalInboxItem {
+  kind: "approval" | "clarify" | "sudo" | "secret";
+  session_key?: string;
+  request_id?: string;
+  session_id?: string | null;
+  profile: string;
+  session_title: string;
+  command?: string | null;
+  description?: string | null;
+  pattern_key?: string | null;
+  question?: string | null;
+  choices?: string[] | null;
+}
+
+/** A document in an agent's knowledge base. */
+export interface KnowledgeDoc {
+  name: string;
+  size?: number | null;
+  facts?: number | null;
+  ingested_at?: string | null;
 }
 
 /** Lock-entry summary for an already-installed hub skill (keyed by identifier). */
@@ -2532,6 +2662,24 @@ export interface KanbanTaskCreate {
   body?: string;
   assignee?: string;
   priority?: number;
+  /** Parent task ids: with unfinished parents the task waits in `todo` and
+   *  the dispatcher promotes it to `ready` when every parent is done. */
+  parents?: string[];
+  /** Land in `triage` (never dispatched) instead of `ready`. */
+  triage?: boolean;
+}
+
+/** A live kanban worker (task_runs row with a PID, joined to a running task). */
+export interface KanbanWorker {
+  run_id: string;
+  task_id: string;
+  task_title: string;
+  task_status: string;
+  task_assignee: string | null;
+  profile: string | null;
+  worker_pid: number | null;
+  started_at: number | null;
+  last_heartbeat_at: number | null;
 }
 
 export interface KanbanTaskUpdate {
