@@ -106,6 +106,46 @@
   WhatsApp Cloud, WeCom callback, Composio events) ACORDAM a máquina via HTTP inbound.
 - Polish barato: `whatsapp_cloud` e `msgraph_webhook` sem entrada em `_PLATFORM_OVERRIDES` (rótulo cru).
 
+## AGENTES v3 — construído 20/07 (engine 20260720a + fly219; mockups → produto)
+
+**Backend novo (tudo smoke-testado):**
+- **Teto de créditos por agente** (`wayne_cli/budget.py`): cap em `limits.monthly_credits` do
+  config.yaml DO perfil (1cr=US$0,01); gasto = SUM(actual||estimated) do state.db no MÊS civil;
+  guarda em `prompt.submit` (server.py, _err 4030), `cron run_job` (skip com motivo) e
+  `kanban _default_spawn` (**raise** → após failure_limit a tarefa auto-bloqueia com a mensagem
+  VISÍVEL no quadro — nunca devolver None: vira limbo de claim). Fail-open (chave capada = stop real).
+- **Conhecimento K1** (`wayne_cli/knowledge.py` + REST `/api/knowledge` GET/upload/DELETE):
+  docs em `<profile>/knowledge/` + manifest; chunks ~700c no fact store holographic com
+  `[fonte: arquivo]` INLINE (citação via prefetch) + tag `src:` (delete por doc =
+  list_facts(category)+filtro tag+remove_fact). txt/md/csv/json/docx/xlsx/ipynb; PDF recusado
+  (`unsupported_format` — sem lib no lock). Ativa `memory.provider: holographic` no perfil se vazio
+  (NUNCA sobrescreve outro provider — limite 1-externo do MemoryManager).
+- **team.json** sidecar (`GET/PUT /api/profiles/{name}/team`): area + subagents[{name,role,icon}].
+- **Pulso** (`GET /api/profiles/pulse`): status vivo por perfil do registry IN-PROCESS do gateway
+  (sessões do painel E por-agente via WS vivem no MESMO processo — verificado; chats PTY `wayne -p`
+  são subprocesso e ficam de fora) + créditos do mês + cap + last_active/sessions_today do state.db.
+- **Inbox de aprovações** (`GET /api/approvals/pending` + `POST /api/approvals/respond`): aprovações
+  (tools.approval._gateway_queues por session_key) + clarify/sudo/secret
+  (server._pending/_pending_prompt_payloads por request_id, respond = _answers[rid]+event.set);
+  kanban needs_input entra pela UI via board REST.
+- Dockerfile.projects: +budget.py, +knowledge.py, +kanban_db.py, +cron/scheduler.py.
+
+**Frontend (tudo botão-real):** AgentsPage = visão do dono (cards por área, custo×teto, subagentes,
+"Ver time"); AgentTeamPage `/profiles/team?name=` (org: principal+papéis do team.json, +subagente
+inline); Estúdio ganhou nó Conhecimento (abre gaveta na aba certa); gaveta: aba Conhecimento
+(upload/remover REAL), ModelCatalogPicker (provedores OpenAI→Anthropic→Google→xAI + catálogo
+inteiro na busca) no lugar do datalist, toggle liga/desliga de canal POR agente (PUT
+platforms/{id} {enabled, profile} — vale após reinício do motor, a linha diz isso), curadoria de
+skills (12 + expandir); DelegateObjective (lib/delegate-draft.ts = draft LLM descartável →
+preview DAG → aprovar = kanban tasks REAIS com parents[] em ordem topológica, raízes nascem ready
+e TRABALHAM; recorrente vira cron do assignee); Operações ao vivo (workers 8s, Aprovar/Refazer na
+revisão, rail de fatos do board); Governança = inbox + editor de teto (saveConfig limits ?profile).
+**Vocabulário: zero "contratar".** Corte honesto registrado: overlay de trace por nó (tempos por
+etapa) NÃO entrou — precisa de endpoint de trace de sessão; nada na UI finge isso.
+**LIÇÃO decompose (19/07):** decompose nativo NÃO tem dry-run e `recompute_ready` promove filho
+sem-pai a ready A CADA tick do dispatcher (auto_promote_children=false NÃO segura) — por isso o
+preview do Delegar é LLM especulativo e a criação só acontece no Aprovar.
+
 ## Kanban — verificado 16/07 (prints do Leonardo + greps)
 
 - **Estados nativos (9):** `triage, todo, scheduled, ready, running, blocked, review, done, archived`
