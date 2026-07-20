@@ -3,7 +3,6 @@ import {
   AlertTriangle,
   Check,
   ExternalLink,
-  Info,
   Mail,
   MessageSquare,
   PlugZap,
@@ -33,6 +32,7 @@ import type {
   ProfileInfo,
   TelegramOnboardingStartResponse,
 } from "@/lib/api";
+import { channelFieldMeta, isTruthyEnv } from "@/lib/channel-fields";
 import { isInternalView } from "@/lib/internal-view";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { usePageHeader } from "@/contexts/usePageHeader";
@@ -452,6 +452,76 @@ export default function ChannelsPage() {
     [platforms],
   );
 
+  // ── Campos do modal de configuração ────────────────────────────────
+  // The backend describes each channel as environment variables. Rendering
+  // that description verbatim is what put WHATSAPP_ENABLED on screen as a
+  // placeholder and asked the user to type "true". lib/channel-fields turns
+  // it into labels a person reads; here we only decide what shows up front.
+  const fieldStrings = c as unknown as Record<string, string>;
+  const [primaryFields, advancedFields] = useMemo(() => {
+    const all = editing?.env_vars ?? [];
+    const primary: MessagingPlatformEnvVar[] = [];
+    const advanced: MessagingPlatformEnvVar[] = [];
+    for (const f of all) {
+      (channelFieldMeta(f, fieldStrings).advanced ? advanced : primary).push(f);
+    }
+    return [primary, advanced];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing]);
+
+  const renderField = (field: MessagingPlatformEnvVar) => {
+    const meta = channelFieldMeta(field, fieldStrings);
+    const current = draftEnv[field.key] ?? "";
+    const setValue = (value: string) => {
+      setDraftEnv((prev) => ({ ...prev, [field.key]: value }));
+      setFieldErrors((prev) => {
+        if (!prev[field.key]) return prev;
+        const next = { ...prev };
+        delete next[field.key];
+        return next;
+      });
+    };
+
+    // A yes/no answer gets a switch. It used to be a text box where the
+    // correct thing to type was the word "true".
+    if (meta.kind === "boolean") {
+      const on = isTruthyEnv(current || (field.is_set ? "true" : ""));
+      return (
+        <label className="flex items-center justify-between gap-3" key={field.key}>
+          <span className="min-w-0">
+            <span className="block text-sm text-foreground">{meta.label}</span>
+            {meta.hint && (
+              <span className="block text-xs text-muted-foreground">{meta.hint}</span>
+            )}
+          </span>
+          <Switch checked={on} onCheckedChange={(v) => setValue(v ? "true" : "false")} />
+        </label>
+      );
+    }
+
+    return (
+      <div className="grid gap-1.5" key={field.key}>
+        <Label htmlFor={`field-${field.key}`}>
+          {meta.label}
+          {field.required ? " *" : ""}
+        </Label>
+        {meta.hint && <span className="text-xs text-muted-foreground">{meta.hint}</span>}
+        <Input
+          id={`field-${field.key}`}
+          type={meta.kind === "password" ? "password" : meta.kind === "number" ? "number" : "text"}
+          // NEVER the variable name: an empty field beats WHATSAPP_HOME_CHANNEL.
+          placeholder={field.is_set ? field.redacted_value || c.secretSet : ""}
+          value={current}
+          aria-invalid={Boolean(fieldErrors[field.key])}
+          onChange={(e) => setValue(e.target.value)}
+        />
+        {fieldErrors[field.key] && (
+          <span className="text-xs text-destructive">{fieldErrors[field.key]}</span>
+        )}
+      </div>
+    );
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -584,57 +654,21 @@ export default function ChannelsPage() {
               <p className="text-xs text-muted-foreground">
                 {platformCopy(editing, c).description}
               </p>
-              {editing.env_vars.map((field: MessagingPlatformEnvVar) => (
-                <div className="grid gap-1.5" key={field.key}>
-                  <div className="flex items-center gap-1.5">
-                    <Label htmlFor={`field-${field.key}`}>
-                      {field.prompt || field.key}
-                      {field.required ? " *" : ""}
-                    </Label>
-                    {field.help && (
-                      <span
-                        aria-label={field.help}
-                        className="inline-flex text-muted-foreground hover:text-foreground"
-                        role="img"
-                        title={field.help}
-                      >
-                        <Info className="h-3.5 w-3.5" />
-                      </span>
-                    )}
+              {/* Only what is needed to connect. Everything else waits behind
+                  "Opções avançadas" — a channel used to open with six fields
+                  and the first one asked the user to type "true". */}
+              {primaryFields.map((field) => renderField(field))}
+
+              {advancedFields.length > 0 && (
+                <details className="rounded-xl border border-border bg-muted/25 px-3 py-2">
+                  <summary className="cursor-pointer select-none text-xs text-muted-foreground">
+                    {c.advancedOptions}
+                  </summary>
+                  <div className="grid gap-4 pt-3">
+                    {advancedFields.map((field) => renderField(field))}
                   </div>
-                  {field.description && (
-                    <span className="text-xs text-muted-foreground">
-                      {field.description}
-                    </span>
-                  )}
-                  <Input
-                    id={`field-${field.key}`}
-                    type={field.is_password ? "password" : "text"}
-                    placeholder={
-                      field.is_set
-                        ? field.redacted_value || c.secretSet
-                        : field.key
-                    }
-                    value={draftEnv[field.key] ?? ""}
-                    aria-invalid={Boolean(fieldErrors[field.key])}
-                    onChange={(e) => {
-                      const nextValue = e.target.value;
-                      setDraftEnv((prev) => ({ ...prev, [field.key]: nextValue }));
-                      setFieldErrors((prev) => {
-                        if (!prev[field.key]) return prev;
-                        const next = { ...prev };
-                        delete next[field.key];
-                        return next;
-                      });
-                    }}
-                  />
-                  {fieldErrors[field.key] && (
-                    <span className="text-xs text-destructive">
-                      {fieldErrors[field.key]}
-                    </span>
-                  )}
-                </div>
-              ))}
+                </details>
+              )}
 
               <div className="flex justify-end gap-2 pt-1">
                 <Button ghost size="sm" onClick={() => setEditing(null)}>

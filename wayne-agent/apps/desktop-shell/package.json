@@ -2,7 +2,7 @@
   "name": "work4you-desktop",
   "productName": "Work4You",
   "private": true,
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "Work4You desktop — native shell for work4you.ai.",
   "author": "W4Y Labs",
   "main": "main.cjs",
@@ -32,7 +32,7 @@
     "icon": "assets/icon",
     "afterPack": "./afterPack.cjs",
     "directories": {
-      "output": "release"
+      "output": "release10"
     },
     "files": [
       "main.cjs",
