@@ -68,6 +68,44 @@
 | 12 | **Descoberta de repos** — repos com histórico mas sem sessão carregada viram projeto | `projects.discover_repos`/`record_repos` (server.py:10820/10832) | web não chama | P |
 | 13 | **Overlay /journey nativo** + profundidade do kanban (runs/logs/claims/dependências/anexos) | ui-tui overlays; `kanban_db.py` *(memória/plano — não re-verificado)* | Operações expõe o básico curado | M |
 
+## Knowledge/RAG — auditoria 19/07 (agente Explore, file:line verificados)
+
+- **NÃO existe primitivo de "base de conhecimento" de documentos** (upload→chunk→embed→retrieve
+  estilo Dify/Stack AI). O CORE (agent/, tools/, wayne_cli/) tem ZERO embeddings neurais e ZERO
+  vector DB — todo vetor/semântica vive nos plugins de memória opt-in.
+- **Memória curada nativa** (MEMORY.md+USER.md por profile): snapshot CONGELADO injetado no system
+  prompt (budget em chars ~800 tokens; `tools/memory_tool.py:55-1129`, `agent/system_prompt.py:428`)
+  — é context-injection, SEM retrieval em query-time. UI: memoryTab no ConfigUser (exposta).
+- **Plugins MemoryProvider (native-hidden, só ?full=1):** `holographic` = FTS5+Jaccard+HRR sobre
+  memory_store.db POR PROFILE, zero deps externas (`plugins/memory/holographic/retrieval.py:22-336`);
+  `mem0` = embeddings REAIS + Qdrant/cloud (`plugins/memory/mem0/_backend.py:9-140`). LIMITE DURO:
+  só UM provider externo ativo por vez (`agent/memory_manager.py:353-441`).
+- **Busca de histórico**: FTS5 sobre state.db — tool `session_search` (`tools/session_search_tool.py:619`)
+  + REST `GET /api/sessions/search` (`web_server.py:4630-4790`). Keyword, sem embeddings.
+- Uploads (`/api/files/upload*`, web_server.py:1749+) NÃO são indexados como conhecimento; context
+  files (WAYNE.md/AGENTS.md) são cwd-bound. Caminho de reuso p/ KB por agente = holographic (local+
+  nuvem sem custo) ou mem0 (embeddings de verdade, infra extra); ingestão/chunking/citação = construir.
+
+## Canais nativos — auditoria 19/07 (agente Explore; baseline conferida vs hermes-upstream)
+
+- **~30 adapters nativos, TODOS por profile e TODOS aparecem como card em /channels** (catálogo
+  dinâmico enum+plugin registry: `gateway/config.py:136-167`, `web_server.py:6408-6446`; per-profile
+  `:7089-7107`). Redes: Telegram, Discord, Slack, WhatsApp (bridge + Cloud/Meta), Signal, iMessage
+  (BlueBubbles+Photon), Email IMAP/SMTP, SMS Twilio, Teams (+MS Graph), Matrix, Mattermost, IRC,
+  LINE, ntfy, SimpleX, Google Chat, DingTalk, Feishu, WeCom (×2), WeChat pessoal, QQ, Yuanbao,
+  Home Assistant, Raft, webhook genérico, api_server. Quase todos BIDIRECIONAIS (inbound → turno).
+- **API pública OpenAI-compatível nativa**: platform `api_server` (`gateway/platforms/api_server.py`)
+  — /v1/chat/completions, /v1/responses, /v1/runs+SSE, sessions CRUD. MAS: UMA `API_SERVER_KEY`
+  compartilhada por instalação (sem chave por agente/app) e loopback por default (`API_SERVER_HOST`).
+- **Webhook genérico inbound → prompt** por profile (`gateway/platforms/webhook.py:107`; rota
+  `/p/<profile>/`; GitHub/GitLab/Stripe; página /webhooks é ?full=1). Composio triggers→kanban =
+  NOSSO (web_server.py:2539-2783). `send_message` alcança 18+ plataformas (`tools/send_message_tool.py:628-980`).
+- **AUSENTE**: widget de chat embarcável pra site de terceiro; chaves de API por agente/app.
+- **GOTCHA 24/7**: canais de polling/socket (Telegram, Slack Socket, Discord, IMAP) exigem gateway
+  vivo — colide com min_machines_running=0 (ver seção billing); canais webhook (LINE, Teams,
+  WhatsApp Cloud, WeCom callback, Composio events) ACORDAM a máquina via HTTP inbound.
+- Polish barato: `whatsapp_cloud` e `msgraph_webhook` sem entrada em `_PLATFORM_OVERRIDES` (rótulo cru).
+
 ## Kanban — verificado 16/07 (prints do Leonardo + greps)
 
 - **Estados nativos (9):** `triage, todo, scheduled, ready, running, blocked, review, done, archived`
