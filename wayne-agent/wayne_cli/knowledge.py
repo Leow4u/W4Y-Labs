@@ -42,7 +42,7 @@ MAX_FILE_BYTES = 15 * 1024 * 1024
 
 PLAIN_TEXT_SUFFIXES = {".txt", ".md", ".markdown", ".csv", ".json", ".log"}
 EXTRACTABLE_SUFFIXES = {".docx", ".xlsx", ".ipynb"}
-UNSUPPORTED_HINT = {".pdf", ".doc", ".ppt", ".pptx"}
+UNSUPPORTED_HINT = {".doc", ".ppt", ".pptx"}
 
 
 class KnowledgeError(Exception):
@@ -115,6 +115,28 @@ def extract_text(path: Path) -> str:
         from tools.read_extract import extract_document_text
 
         return extract_document_text(str(path)) or ""
+    if suffix == ".pdf":
+        # Lazy import: installs without pypdf (older venvs) degrade to the
+        # same clear refusal instead of a crash. Scanned/image-only PDFs
+        # yield no text and surface as empty_text.
+        try:
+            from pypdf import PdfReader  # type: ignore
+        except ImportError:
+            raise KnowledgeError("unsupported_format:pdf")
+        try:
+            reader = PdfReader(str(path))
+            pages = []
+            for page in reader.pages[:300]:
+                try:
+                    pages.append(page.extract_text() or "")
+                except Exception:
+                    continue
+            return "\n\n".join(p for p in pages if p.strip())
+        except KnowledgeError:
+            raise
+        except Exception as exc:
+            _log.exception("pdf extraction failed for %s", path)
+            raise KnowledgeError(f"pdf_error:{exc}")
     if suffix in UNSUPPORTED_HINT:
         raise KnowledgeError(f"unsupported_format:{suffix.lstrip('.')}")
     raise KnowledgeError(f"unsupported_format:{suffix.lstrip('.') or 'sem-extensao'}")

@@ -12992,6 +12992,87 @@ async def knowledge_delete(filename: str, profile: Optional[str] = None):
     return {"ok": True, "profile": name, **result}
 
 
+# ── Last-run trace (Estúdio overlay) ────────────────────────────────────────
+
+@app.get("/api/agent-trace")
+async def agent_trace(profile: Optional[str] = None):
+    """The profile's most recent session as a tool timeline.
+
+    Read-only over state.db: tool rows carry ``tool_name`` + ``timestamp``;
+    the duration of each call is approximated as the gap since the previous
+    message row (the assistant turn that requested it). Good enough for the
+    Estúdio's honest "last run" overlay — no new event plumbing.
+    """
+    import sqlite3 as _sq
+
+    name, home = _cron_profile_home(profile)
+    empty = {"profile": name, "session": None, "tools": []}
+    db_path = Path(home) / "state.db"
+    if not db_path.exists():
+        return empty
+    try:
+        conn = _sq.connect(f"file:{db_path}?mode=ro", uri=True, timeout=2)
+        conn.row_factory = _sq.Row
+    except Exception:
+        _log.exception("agent-trace: cannot open %s", db_path)
+        return empty
+    try:
+        base = (
+            "SELECT id, title, started_at, last_active, source, "
+            "estimated_cost_usd, actual_cost_usd FROM sessions "
+        )
+        try:
+            sess = conn.execute(
+                base + "WHERE COALESCE(archived, 0) = 0 "
+                "ORDER BY last_active DESC LIMIT 1"
+            ).fetchone()
+        except Exception:
+            # Older DBs without the archived column.
+            sess = conn.execute(
+                base + "ORDER BY last_active DESC LIMIT 1"
+            ).fetchone()
+        if sess is None:
+            return empty
+        rows = conn.execute(
+            "SELECT role, tool_name, timestamp FROM messages "
+            "WHERE session_id = ? AND COALESCE(active, 1) = 1 "
+            "ORDER BY timestamp ASC",
+            (sess["id"],),
+        ).fetchall()
+        tools = []
+        prev_ts: Optional[float] = None
+        for r in rows:
+            if r["role"] == "tool" and r["tool_name"]:
+                duration = None
+                if prev_ts is not None:
+                    gap = float(r["timestamp"]) - prev_ts
+                    if 0 < gap < 3600:
+                        duration = round(gap, 1)
+                tools.append({
+                    "name": r["tool_name"],
+                    "ts": r["timestamp"],
+                    "duration_s": duration,
+                })
+            prev_ts = float(r["timestamp"])
+        usd = float(sess["actual_cost_usd"] or 0) or float(
+            sess["estimated_cost_usd"] or 0
+        )
+        return {
+            "profile": name,
+            "session": {
+                "id": sess["id"],
+                "title": sess["title"],
+                "started_at": sess["started_at"],
+                "last_active": sess["last_active"],
+                "source": sess["source"],
+                "cost_usd": usd,
+            },
+            "tools": tools[:120],
+        }
+    finally:
+        conn.close()
+
+
 # ---------------------------------------------------------------------------
 # Skills & Tools endpoints
 #

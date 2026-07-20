@@ -28,6 +28,12 @@ export interface AgentDraft {
   /** An agent can have SEVERAL routines (different contexts — e.g. post at
    *  9am + send e-mail at noon). Each item becomes its own cron job. */
   routines: AgentRoutineDraft[];
+  /** Squad templates: the agent is born with an AREA and named subagent
+   *  ROLES (team.json sidecar) — the delegate crew it commands. */
+  team?: {
+    area: string;
+    subagents: { name: string; role: string; icon: string }[];
+  };
 }
 
 /** Default schedule for a new routine (every day at 9am) — the starting point

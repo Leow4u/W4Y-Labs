@@ -35,6 +35,9 @@ COPY wayne_cli/budget.py /opt/wayne/wayne_cli/budget.py
 COPY wayne_cli/knowledge.py /opt/wayne/wayne_cli/knowledge.py
 COPY wayne_cli/kanban_db.py /opt/wayne/wayne_cli/kanban_db.py
 COPY cron/scheduler.py /opt/wayne/cron/scheduler.py
+# Knowledge K1: PDF extraction dep (lazy import in knowledge.py). The base
+# image venv predates the pyproject bump, so install it directly here.
+RUN /opt/wayne/.venv/bin/python -m pip install --no-cache-dir pypdf==6.1.3
 # APAGA antes de copiar — ver a mesma nota no Dockerfile.ui: o COPY MESCLA, não
 # substitui, e sem isto os bundles antigos se acumulam (82 no fly193) e enganam
 # qualquer grep de diagnóstico.

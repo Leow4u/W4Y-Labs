@@ -188,6 +188,11 @@ export default function AgentQuickstartPage() {
       if (draft.model) {
         await api.setProfileModel(slug, "openrouter", draft.model).catch(() => {});
       }
+      // Squad template: the agent is born with area + named subagent roles
+      // (team.json sidecar) — the delegate crew it commands from day one.
+      if (draft.team) {
+        await api.updateProfileTeam(slug, draft.team).catch(() => {});
+      }
       // One routine = its own cron job (different contexts).
       for (const r of draft.routines) {
         const schedule = buildScheduleString(r.schedule);

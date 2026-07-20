@@ -1529,6 +1529,8 @@ export const api = {
       `/api/knowledge/${encodeURIComponent(name)}${profileQuery(profile)}`,
       { method: "DELETE" },
     ),
+  getAgentTrace: (profile?: string) =>
+    fetchJSON<AgentTraceResponse>(`/api/agent-trace${profileQuery(profile)}`),
   // Events (triggers) — wire a trigger onto an already-connected connector;
   // each event becomes an agent task (native kanban). Scope global|<agent>.
   getConnectorTriggerTypes: (toolkit: string) =>
@@ -1770,6 +1772,26 @@ export interface KnowledgeDoc {
   size?: number | null;
   facts?: number | null;
   ingested_at?: string | null;
+}
+
+/** Last-run trace for the Estúdio overlay (state.db read, approx durations). */
+export interface AgentTraceTool {
+  name: string;
+  ts: number;
+  duration_s: number | null;
+}
+
+export interface AgentTraceResponse {
+  profile: string;
+  session: {
+    id: string;
+    title: string | null;
+    started_at: number | null;
+    last_active: number | null;
+    source: string | null;
+    cost_usd: number;
+  } | null;
+  tools: AgentTraceTool[];
 }
 
 /** Lock-entry summary for an already-installed hub skill (keyed by identifier). */

@@ -24,6 +24,37 @@ export interface AgentTemplate {
 
 export const AGENT_TEMPLATES: AgentTemplate[] = [
   {
+    // Esquadrão (mockup 06): ONE principal born with a named delegate crew
+    // (team.json roles) + the editorial routine. The runtime is the native
+    // delegate_task — the roles direct how the principal splits the work.
+    key: "squad-marketing",
+    emoji: "✦",
+    recurring: true,
+    premium: true,
+    draft: {
+      name: "Esquadrão de Marketing",
+      specialty:
+        "Time completo de marketing num agente: pesquisa, textos e artes trabalham em paralelo sob um head que coordena e traz tudo pra sua revisão.",
+      soul: "Você é o head de marketing da empresa e comanda um esquadrão de três papéis: Pesquisa (dados, concorrentes, referências), Redator (legendas e textos longos) e Artes (imagens e variações de formato). Para qualquer entrega de campanha, DELEGUE o trabalho em paralelo aos papéis via subagentes — um subagente por papel, com instrução específica — e depois consolide: revise consistência de tom, monte a entrega final e apresente pra aprovação antes de publicar qualquer coisa. Nunca publique sem aprovação explícita.",
+      model: "anthropic/claude-sonnet-5",
+      team: {
+        area: "Marketing",
+        subagents: [
+          { name: "Pesquisa", role: "Dados de mercado, concorrentes e referências", icon: "🔎" },
+          { name: "Redator", role: "Legendas e textos longos", icon: "✍️" },
+          { name: "Artes", role: "Imagens e variações por formato", icon: "🎨" },
+        ],
+      },
+      routines: [
+        {
+          schedule: { ...DEFAULT_SCHEDULE_STATE, mode: "daily", timeOfDay: "09:00" },
+          prompt:
+            "Coordene a entrega do dia: delegue pesquisa de temas, texto e sugestão de arte aos papéis do esquadrão, consolide o melhor post e me traga pronto pra revisão.",
+        },
+      ],
+    },
+  },
+  {
     key: "social",
     emoji: "📣",
     recurring: true,

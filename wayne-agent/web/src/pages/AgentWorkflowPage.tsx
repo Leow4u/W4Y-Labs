@@ -167,6 +167,14 @@ interface WfData {
   sessions30: number | null;
   knowledgeDocs: number;
   subagentNames: string[];
+  /** Last session as an honest trace: when, cost, tool volume. */
+  lastRun: {
+    ts: number | null;
+    costCredits: number;
+    toolCount: number;
+    totalS: number;
+    mcpCalls: number;
+  } | null;
 }
 
 export default function AgentWorkflowPage() {
@@ -212,7 +220,8 @@ export default function AgentWorkflowPage() {
       api.getAnalytics(30, name).catch(() => null),
       api.getKnowledge(name).catch(() => null),
       api.getProfileTeam(name).catch(() => null),
-    ]).then(([profs, active, model, skills, mcp, msg, jobs, usage, knowledge, team]) => {
+      api.getAgentTrace(name).catch(() => null),
+    ]).then(([profs, active, model, skills, mcp, msg, jobs, usage, knowledge, team, trace]) => {
       if (dead) return;
       const p = profs.profiles.find((x) => x.name === name);
       const activeName = active?.active || "default";
@@ -239,6 +248,18 @@ export default function AgentWorkflowPage() {
         sessions30: usage ? usage.totals.total_sessions : null,
         knowledgeDocs: knowledge ? knowledge.documents.length : 0,
         subagentNames: (team?.subagents ?? []).map((s) => s.name),
+        lastRun: trace?.session
+          ? {
+              ts: trace.session.last_active ?? trace.session.started_at,
+              costCredits: usdToCredits(trace.session.cost_usd),
+              toolCount: trace.tools.length,
+              totalS: Math.round(
+                trace.tools.reduce((acc, x) => acc + (x.duration_s ?? 0), 0),
+              ),
+              mcpCalls: trace.tools.filter((x) => x.name.startsWith("mcp_"))
+                .length,
+            }
+          : null,
       });
     });
     return () => {
@@ -333,6 +354,9 @@ export default function AgentWorkflowPage() {
       n("mcp", "MCP", "plug", [
         { label: ag.wfServers.replace("{n}", String(d?.mcpNames.length ?? "…")), value: "" },
         ...top3(d?.mcpNames ?? []).map((m) => ({ label: m, on: true })),
+        ...(d?.lastRun && d.lastRun.mcpCalls > 0
+          ? [{ label: ag.studioLastRun, value: `${d.lastRun.mcpCalls}⚙` }]
+          : []),
       ]),
       n("channels", t.app.nav.channels, "radio", [
         ...(d && d.channelNames.length > 0
@@ -439,7 +463,37 @@ export default function AgentWorkflowPage() {
       </div>
 
       {/* The workflow (React Flow LR). */}
-      <div className="w4y-flow min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-background/60">
+      <div className="w4y-flow relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-background/60">
+        {/* Last-run overlay pill: WHEN it ran, tool volume, honest cost —
+            straight from state.db via /api/agent-trace. Clicking opens the
+            activity tab (the full session list). */}
+        {data?.lastRun && data.lastRun.ts != null && (
+          <button
+            type="button"
+            onClick={() => setDrawerTab("activity")}
+            className="absolute right-3 top-3 z-10 flex items-center gap-2 rounded-full border border-border bg-card px-3.5 py-1.5 text-xs text-foreground shadow-card transition-colors hover:border-foreground/25"
+          >
+            <Check className="h-3.5 w-3.5 text-live" />
+            <span className="font-medium">{ag.studioLastRun}</span>
+            <span className="text-muted-foreground">
+              {new Date(data.lastRun.ts * 1000).toLocaleString([], {
+                day: "2-digit",
+                month: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+            {data.lastRun.toolCount > 0 && (
+              <span className="tabular-nums text-muted-foreground">
+                · {data.lastRun.toolCount}⚙
+                {data.lastRun.totalS > 0 ? ` · ${data.lastRun.totalS}s` : ""}
+              </span>
+            )}
+            <span className="font-semibold tabular-nums text-live">
+              {formatCredits(data.lastRun.costCredits)}
+            </span>
+          </button>
+        )}
         <ReactFlow
           nodes={nodes}
           edges={edges}
