@@ -105,6 +105,7 @@ const backendReady = require("./backend-ready.cjs");
 const backendProbes = require("./backend-probes.cjs");
 const backendEnvMod = require("./backend-env.cjs");
 const bootstrapRunner = require("./bootstrap-runner.cjs");
+const bootPreview = require("./boot-preview.cjs");
 const engineSlots = require("./engine-slots.cjs");
 const updateState = require("./engine-update-state.cjs");
 // 0.3.8: shell self-update (electron-updater atrás de um seam fail-open).
@@ -600,6 +601,37 @@ function setPhase(phase, message, extra) {
   sendBootEvent({ type: "phase", phase, message: message || null, ...(extra || {}) });
 }
 
+/** Where the bundled copy of the product's interface lives. */
+function appUiDir() {
+  return app.isPackaged
+    ? path.join(process.resourcesPath, "app-ui")
+    : path.join(__dirname, "..", "..", "wayne_cli", "web_dist");
+}
+
+/**
+ * The opening frame: the PRODUCT, not a screen about the product.
+ *
+ * The shell serves its bundled copy of the interface right away, so the window
+ * paints the real sidebar/header/hero while the engine is still starting behind
+ * it. When the engine answers, startLocalEngine loads its origin and the swap
+ * is invisible — same bundle, now with a session.
+ *
+ * Falls back to boot.html whenever the bundle is missing, and boot.html remains
+ * the surface for the states that genuinely need words: first install, the key
+ * gate and failures.
+ */
+async function showProductPreview() {
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return false;
+    const origin = await bootPreview.start(appUiDir());
+    if (!origin) return false;
+    await mainWindow.loadURL(origin);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function showBootPage() {
   try {
     if (!mainWindow || mainWindow.isDestroyed()) return;
@@ -675,6 +707,29 @@ function resolveEngineBackend() {
   }
   const installed = pythonBackendCandidate(ENGINE_ROOT, `motor instalado ${ENGINE_ROOT}`);
   if (installed) return installed;
+  // Self-heal: the canonical path is a junction now, and a crash between the
+  // unlink and the re-link (power loss mid-promotion) would leave it missing —
+  // which alone would look like "no engine installed" and trigger a full
+  // reinstall behind the very screen this release removes. The marker still
+  // knows which slot holds a working tree, so boot from it and put the link
+  // back on the way.
+  try {
+    const marked = readEngineSource();
+    const slot = marked && marked.root ? marked.root : null;
+    if (slot && slot !== ENGINE_ROOT) {
+      const fromSlot = pythonBackendCandidate(slot, `motor instalado ${slot}`);
+      if (fromSlot) {
+        try {
+          engineSlots.pointJunction(ENGINE_ROOT, slot);
+        } catch {
+          /* the link can be repaired later; booting matters more */
+        }
+        return fromSlot;
+      }
+    }
+  } catch {
+    /* fall through to bootstrap */
+  }
   return { kind: "bootstrap-needed" };
 }
 
@@ -1415,6 +1470,13 @@ async function startLocalEngine() {
     setPhase("resolve", "Verificando o motor local…");
     let backend = resolveEngineBackend();
 
+    // The window shows the PRODUCT while the engine starts behind it. Only a
+    // first install (nothing to preview yet) keeps the explaining screen.
+    if (backend.kind !== "bootstrap-needed") {
+      await showProductPreview();
+      if (aborted()) return;
+    }
+
     if (backend.kind === "bootstrap-needed") {
       setPhase("bootstrap", "Instalando o motor local…");
       // Fonte do motor pro install.ps1: o runner espalha process.env no spawn,
@@ -1485,6 +1547,9 @@ async function startLocalEngine() {
     const composioSnoozed = readLoginGate().composioSnoozed === true;
     if (needModel || (needComposio && !composioSnoozed)) {
       engine.lastGate = { needModel, needComposio };
+      // The preview is a picture of the product; it cannot take a password.
+      // Anything that must SPEAK to the user goes back to boot.html.
+      showBootPage();
       setPhase("key", null, { gate: { needModel, needComposio } });
       await new Promise((resolve) => {
         engine.keyWaiter = resolve;
@@ -1516,6 +1581,8 @@ async function startLocalEngine() {
     if (mainWindow && !mainWindow.isDestroyed()) {
       await mainWindow.loadURL(engine.origin);
     }
+    // The engine serves the same interface now — the preview has no more job.
+    bootPreview.stop();
     // The app is on screen. Only now is a promotion proven good, and only now
     // may we spend bandwidth on the next one.
     verifyPromotion();

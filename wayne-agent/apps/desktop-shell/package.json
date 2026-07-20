@@ -38,6 +38,9 @@
       "main.cjs",
       "preload.cjs",
       "boot.html",
+      "boot-preview.cjs",
+      "engine-update-state.cjs",
+      "engine-slots.cjs",
       "folders.cjs",
       "executor.cjs",
       "executor-ws.cjs",
@@ -60,6 +63,13 @@
       {
         "from": "../../scripts/install.ps1",
         "to": "scripts/install.ps1"
+      },
+      {
+        "from": "../../wayne_cli/web_dist",
+        "to": "app-ui",
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "protocols": [
