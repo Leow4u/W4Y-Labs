@@ -513,7 +513,6 @@ export function AgentDrawer({
                   disabled={profileLoading}
                   onSelect={(m) => setModel(m)}
                 />
-                <p className="type-micro text-muted-foreground">{ag.qsModelHint}</p>
               </div>
 
               <div className="grid gap-1.5">

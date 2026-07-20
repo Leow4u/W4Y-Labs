@@ -47,6 +47,28 @@ export function modelShortName(model: string): string {
   return raw;
 }
 
+/** COMMERCIAL model name — the product never shows a technical slug.
+ *  "google/gemini-3.5-flash" → "Gemini 3.5 Flash",
+ *  "anthropic/claude-sonnet-5" → "Claude Sonnet 5", "openai/gpt-5.2" → "GPT 5.2". */
+const NAME_FIXES: Record<string, string> = {
+  gpt: "GPT", ai: "AI", xl: "XL", llm: "LLM", moe: "MoE", vl: "VL",
+  deepseek: "DeepSeek", qwq: "QwQ", glm: "GLM",
+};
+export function modelCommercialName(model: string): string {
+  const short = modelShortName(model).replace(/:free$/i, "").replace(/:.*$/, "");
+  return short
+    .split("-")
+    .filter(Boolean)
+    .map((tok) => {
+      const fix = NAME_FIXES[tok.toLowerCase()];
+      if (fix) return fix;
+      // Version-ish tokens (5.2, 4o, r1, 550b) keep their casing shape.
+      if (/^\d/.test(tok)) return tok;
+      return tok.charAt(0).toUpperCase() + tok.slice(1);
+    })
+    .join(" ");
+}
+
 /** Models our tiers already vouch for — surfaced as "recomendado". */
 const RECOMMENDED = new Set(
   Object.values(TIER_PRESETS)
@@ -59,12 +81,17 @@ export function ModelCatalogPicker({
   onSelect,
   disabled,
   className,
+  recommendedModel,
 }: {
   /** Current model slug (e.g. "google/gemini-3.5-flash"). */
   value: string;
   onSelect: (model: string) => void;
   disabled?: boolean;
   className?: string;
+  /** The model OUR technology picked for THIS need (e.g. the quickstart
+   *  draft's choice) — surfaces as the single "Recomendado" section on top
+   *  and as a chip on the field while it is the selected one. */
+  recommendedModel?: string | null;
 }) {
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
@@ -139,8 +166,13 @@ export function ModelCatalogPicker({
           {badge.mono}
         </span>
         <span className="min-w-0 flex-1 truncate font-medium">
-          {value ? modelShortName(value) : t.agents.modelPickerEmpty}
+          {value ? modelCommercialName(value) : t.agents.modelPickerEmpty}
         </span>
+        {recommendedModel && value === recommendedModel && (
+          <span className="shrink-0 rounded-full bg-live/10 px-1.5 py-px text-[9px] font-semibold text-live">
+            ✦ {t.agents.modelPickerRecommended}
+          </span>
+        )}
         <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
       </button>
 
@@ -163,6 +195,25 @@ export function ModelCatalogPicker({
             </div>
           </div>
 
+          {/* The ONE per-need recommendation on top — what our technology
+              picked for this agent. Never repeated elsewhere in the list. */}
+          {recommendedModel && !query && (
+            <div>
+              <div className="px-3.5 pb-0.5 pt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-live">
+                ✦ {t.agents.modelPickerRecommended}
+              </div>
+              <ModelRow
+                model={recommendedModel}
+                selected={recommendedModel === value}
+                recommended={false}
+                recommendedLabel={t.agents.modelPickerRecommended}
+                onPick={() => {
+                  onSelect(recommendedModel);
+                  setOpen(false);
+                }}
+              />
+            </div>
+          )}
           {grouped.sections.map((sec) => (
             <div key={sec.prefix}>
               <div className="px-3.5 pb-0.5 pt-2 font-mono text-[9px] uppercase tracking-[0.1em] text-muted-foreground/70">
@@ -255,7 +306,7 @@ function ModelRow({
       >
         {badge.mono}
       </span>
-      <span className="min-w-0 flex-1 truncate text-foreground">{modelShortName(model)}</span>
+      <span className="min-w-0 flex-1 truncate text-foreground">{modelCommercialName(model)}</span>
       {recommended && !selected && (
         <span className="shrink-0 rounded-full bg-live/10 px-1.5 py-px text-[9px] font-semibold text-live">
           {recommendedLabel}

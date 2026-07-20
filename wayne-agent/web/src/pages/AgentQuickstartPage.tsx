@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { ModelCatalogPicker } from "@/components/agents/ModelCatalogPicker";
 import { draftAgent, defaultRoutineSchedule } from "@/lib/agent-draft";
 import type { AgentDraft, AgentRoutineDraft } from "@/lib/agent-draft";
 import { AGENT_TEMPLATES } from "@/lib/agent-templates";
@@ -115,23 +116,9 @@ export default function AgentQuickstartPage() {
   }, []);
   const premiumLocked = plan !== null && plan !== "pro" && plan !== "max";
 
-  // OpenRouter catalog for the Model field's datalist (all models —
-  // decision: agents are NOT locked to the chat tiers).
-  const [modelOptions, setModelOptions] = useState<string[]>([]);
-  useEffect(() => {
-    let cancelled = false;
-    api
-      .getModelOptions()
-      .then((res) => {
-        if (cancelled) return;
-        const or = (res.providers ?? []).find((p) => p.slug === "openrouter");
-        setModelOptions((or?.models ?? []).slice(0, 600));
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  // The model OUR technology picked for THIS need (the draft LLM's choice,
+  // or the template's curated model) — the picker's single "Recomendado".
+  const [recommendedModel, setRecommendedModel] = useState<string | null>(null);
 
   const generate = useCallback(
     async (req: string, current?: AgentDraft, refinement?: string) => {
@@ -140,6 +127,7 @@ export default function AgentQuickstartPage() {
       try {
         const d = await draftAgent(req, current, refinement);
         setDraft(d);
+        setRecommendedModel(d.model || null);
         setPhase("editing");
         setRefineOpen(false);
         setRefineText("");
@@ -381,21 +369,18 @@ export default function AgentQuickstartPage() {
                     />
                   </label>
 
-                  <label className="flex flex-col gap-1.5">
+                  <div className="flex flex-col gap-1.5">
                     <span className="text-sm font-medium">{ag.qsModel}</span>
-                    <span className="type-micro text-muted-foreground">{ag.qsModelHint}</span>
-                    <input
-                      className={cn(inputCls, "font-mono text-[13px]")}
-                      list="qs-model-options"
+                    {/* SAME picker as everywhere else (drawer/studio):
+                        commercial names, providers first, whole vetted
+                        catalog in the search. The draft LLM's pick for THIS
+                        need surfaces as the single "Recomendado". */}
+                    <ModelCatalogPicker
                       value={draft.model}
-                      onChange={(e) => patchDraft({ model: e.target.value })}
+                      onSelect={(m) => patchDraft({ model: m })}
+                      recommendedModel={recommendedModel}
                     />
-                    <datalist id="qs-model-options">
-                      {modelOptions.map((m) => (
-                        <option key={m} value={m} />
-                      ))}
-                    </datalist>
-                  </label>
+                  </div>
 
                   <label className="flex flex-col gap-1.5">
                     <span className="text-sm font-medium">{ag.qsSoul}</span>
@@ -572,6 +557,7 @@ export default function AgentQuickstartPage() {
                           return;
                         }
                         setDraft({ ...tpl.draft });
+                        setRecommendedModel(tpl.draft.model || null);
                         setPhase("editing");
                         setError(false);
                         lastRequestRef.current = tpl.draft.specialty;

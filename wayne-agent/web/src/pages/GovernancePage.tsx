@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { modelCommercialName } from "@/components/agents/ModelCatalogPicker";
 import type {
   ApprovalInboxItem,
   KanbanBoardResponse,
@@ -704,8 +705,8 @@ export default function GovernancePage() {
                           </span>
                         </div>
                       </td>
-                      <td className="max-w-[220px] truncate px-4 py-3 font-mono text-[12px] text-muted-foreground">
-                        {r.model ? r.model : "…"}
+                      <td className="max-w-[220px] truncate px-4 py-3 text-[12px] text-muted-foreground">
+                        {r.model ? modelCommercialName(r.model) : "…"}
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums text-foreground">
                         {r.credits30 != null ? formatCredits(r.credits30) : "…"}

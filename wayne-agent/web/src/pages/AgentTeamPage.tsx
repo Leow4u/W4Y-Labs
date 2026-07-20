@@ -39,6 +39,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { modelCommercialName } from "@/components/agents/ModelCatalogPicker";
 import type { ProfileInfo, ProfilePulse, ProfileTeamInfo, TeamSubagent } from "@/lib/api";
 import { formatCredits } from "@/lib/credits";
 import { useScheduleText } from "@/hooks/useScheduleText";
@@ -164,7 +165,7 @@ function PrincipalNode({ data }: NodeProps<PrincipalNodeType>) {
       <div className="mt-3 flex items-center gap-2 border-t border-border/70 pt-2.5">
         <span className="inline-flex min-w-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] text-muted-foreground">
           <Bot className="h-3 w-3 shrink-0" />
-          <span className="truncate">{c.model ? c.model.split("/").pop() : "…"}</span>
+          <span className="truncate">{c.model ? modelCommercialName(c.model) : "…"}</span>
         </span>
         <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-[11px] tabular-nums text-muted-foreground">
           <Coins className="h-3 w-3" />

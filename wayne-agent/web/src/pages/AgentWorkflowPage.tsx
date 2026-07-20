@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { modelCommercialName } from "@/components/agents/ModelCatalogPicker";
 import { usdToCredits, formatCredits } from "@/lib/credits";
 import { AgentDrawer, type AgentDrawerTab } from "@/components/agents/AgentDrawer";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
@@ -322,10 +323,7 @@ export default function AgentWorkflowPage() {
         "model",
         ag.qsModel,
         "bot",
-        [
-          { label: d?.model ? d.model.split("/").pop()! : "…", value: "" },
-          { label: ag.qsModelHint.slice(0, 42) + "…", value: "" },
-        ],
+        [{ label: d?.model ? modelCommercialName(d.model) : "…", value: "" }],
         true,
       ),
       n("skills", t.app.nav.skills, "package", [
