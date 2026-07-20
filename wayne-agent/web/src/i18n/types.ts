@@ -90,6 +90,8 @@ export interface Translations {
       connectors: string;
       analytics: string;
       channels: string;
+      integrations: string;
+      apps: string;
       chat: string;
       config: string;
       cron: string;

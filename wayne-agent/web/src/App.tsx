@@ -240,7 +240,20 @@ const BUILTIN_NAV_REST: NavItem[] = [
   { path: "/logs", labelKey: "logs", label: "Logs", icon: FileText },
   { path: "/cron", labelKey: "cron", label: "Cron", icon: Clock },
   { path: "/skills", labelKey: "skills", label: "Skills", icon: Package },
-  { path: "/plugins", labelKey: "plugins", label: "Plugins", icon: Puzzle },
+  // "Integrações" — everything that connects the agents to the outside world.
+  // Plugins (skills + connectors) and Channels used to sit as two sibling
+  // entries with no relationship on screen, and the owner could not tell what
+  // each one was for (UX audit 20/07). One parent, two children.
+  {
+    path: "/plugins",
+    labelKey: "integrations",
+    label: "Integrations",
+    icon: Puzzle,
+    children: [
+      { path: "/plugins", end: true, getLabel: (tt) => tt.app.nav.apps },
+      { path: "/channels", getLabel: (tt) => tt.app.nav.channels },
+    ],
+  },
   { path: "/mcp", labelKey: "connectors", label: "Connectors", icon: Plug },
   { path: "/channels", labelKey: "channels", label: "Channels", icon: Radio },
   { path: "/webhooks", label: "Webhooks", icon: Webhook },
@@ -289,8 +302,9 @@ const USER_NAV_PATHS = new Set<string>([
   // — they became ONE single hub, "Plugins" (/plugins → PluginsHub). The /skills
   // and /mcp routes stay mounted (deep-link + ?full=1 admin); only the nav item
   // disappears. The technical plugins console lives at /plugins?full=1 (PluginsPage).
+  // /plugins carries "Integrações"; /channels rides in as its child, so it is
+  // deliberately NOT a top-level entry anymore.
   "/plugins",
-  "/channels",
   "/profiles",
 ]);
 
