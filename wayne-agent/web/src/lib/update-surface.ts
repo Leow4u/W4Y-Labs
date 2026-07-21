@@ -1,31 +1,17 @@
 /**
- * Translating an update check into what the user is told, and into what the
- * chip does next.
+ * Every decision the renderer makes about updates, in one testable place.
  *
- * Both decisions were being made by truthiness, and both lied:
- *
- *  - The Help menu did `r ? updateUpToDate : updateCheckFailed`, so ANY
- *    non-null answer — including `{available:false, status:"unknown"}`, which
- *    means "we could not check" — printed "you are on the latest version".
- *  - The chip read `r.available` alone, so a transient failed check replaced a
- *    plan the user could have acted on with nothing.
- *
- * Pure on purpose: this project's vitest runs with `environment: node`, no
- * jsdom and no @testing-library, so a component cannot be rendered in a test.
- * Keeping the decisions here is what makes them testable at all.
+ * This project's vitest runs with `environment: node` — no jsdom, no
+ * @testing-library — so a component cannot be rendered in a test. Keeping the
+ * decisions here is what makes them provable at all. Nothing below touches the
+ * DOM, Electron or the network; the components only wire it up.
  */
 
-/** What the shell's `update.check()` can answer. */
-export interface UpdateCheckResult {
-  available?: boolean;
-  version?: string | null;
-  kind?: string;
-  token?: string;
-  status?: string;
-  unverified?: string[];
-}
+import type { UpdateApplyResult, UpdateCheckResult } from "./desktopChrome";
 
-/** Which `t.desktop.*` string the Help menu should show. */
+export type { UpdateApplyResult, UpdateCheckResult };
+
+/** Which `t.desktop.*` string the Help menu shows for a CHECK. */
 export type UpdateMessageKey =
   | "updateUpToDate"
   | "updateCheckFailed"
@@ -34,8 +20,8 @@ export type UpdateMessageKey =
 
 /**
  * Exhaustive and FAIL-CLOSED: only an explicit `up-to-date` earns
- * "updateUpToDate". A missing status (an older shell) or one this build does
- * not recognise is reported as "could not check", never as current.
+ * "updateUpToDate". A status this build does not recognise is reported as
+ * "could not check", never as current.
  */
 export function updateMessageKey(result: UpdateCheckResult | null): UpdateMessageKey {
   if (!result) return "updateCheckFailed";
@@ -46,33 +32,145 @@ export function updateMessageKey(result: UpdateCheckResult | null): UpdateMessag
       return "updateInProgress";
     case "preparing":
       return "updatePreparing";
-    case "unknown":
-      return "updateCheckFailed";
     default:
       return "updateCheckFailed";
   }
 }
 
-/** True when this answer names a plan the user can apply right now. */
-export function isApplicable(result: UpdateCheckResult | null): boolean {
-  return !!result && result.status === "available" && result.available === true;
+/** Which `t.desktop.*` string the Help menu shows for an APPLY. */
+export type ApplyMessageKey =
+  | "updateApplied"
+  | "updateStagedRestart"
+  | "updateUpToDate"
+  | "updateRecovered"
+  | "updateApplyFailed"
+  | "updatePlanChanged";
+
+/** Exhaustive; an unrecognised outcome reports failure, never success. */
+export function applyMessageKey(outcome: string | null | undefined): ApplyMessageKey {
+  switch (outcome) {
+    case "applied":
+      return "updateApplied";
+    case "staged":
+      return "updateStagedRestart";
+    case "no-update":
+      return "updateUpToDate";
+    case "recovered":
+      return "updateRecovered";
+    case "stale-plan":
+      return "updatePlanChanged";
+    default:
+      return "updateApplyFailed";
+  }
 }
 
 /**
- * What the chip should hold after a check.
+ * Can this answer be handed to `apply()`?
  *
- * `previous` is what it holds today. The rule: only a VERIFIED answer may take
- * an actionable plan away. An inconclusive check keeps whatever was there —
- * the bytes of a staged update are already on disk and a stalled one still
- * needs the user, so dropping it on a network blip stranded them.
+ * Two shapes are accepted, and the second one matters: a shell older than the
+ * tri-state contract answers `{available:true, version, token}` with NO status.
+ * Requiring `status === "available"` (as the first version of this did) silently
+ * removed the update path for every one of those installs — a new web bundle is
+ * served to whatever shell the user happens to be running, so that pairing is
+ * real, not hypothetical.
+ *
+ * A MODERN `available` must carry a token: the main refuses a tokenless apply
+ * rather than borrowing another plan, so offering one is a guaranteed dead click.
  */
-export function nextChipPlan(
-  previous: UpdateCheckResult | null,
+export function isApplicable(result: UpdateCheckResult | null): boolean {
+  if (!result) return false;
+  if (result.status === "available") return typeof result.token === "string" && !!result.token;
+  // Legacy shell: no status field at all. Trust `available` as it was designed.
+  if (result.status === undefined && result.available === true) return true;
+  return false;
+}
+
+/** True while the shell reports work in flight — the chip must not be clickable. */
+export function isBusy(result: UpdateCheckResult | null): boolean {
+  return !!result && result.status === "in-progress";
+}
+
+/** What the chip holds, distinguishing actionable from merely informative. */
+export interface ChipState {
+  /** The plan to apply, or null. Only ever set when `isApplicable` held. */
+  plan: UpdateCheckResult | null;
+  /** Shown but NOT clickable: work in flight, or a build not ready yet. */
+  notice: "in-progress" | "preparing" | null;
+  /** Last failure worth offering a retry for. */
+  error: string | null;
+}
+
+export const emptyChip: ChipState = { plan: null, notice: null, error: null };
+
+/**
+ * Fold a check result into the chip's next state.
+ *
+ * Rules, and why:
+ *  - `available` replaces whatever was there. A newer plan always wins.
+ *  - `up-to-date` is the ONLY verified clear.
+ *  - `preparing` is a conclusion that there is NO staged build ready. Keeping a
+ *    previous engine `ready` token clickable there would offer a restart into
+ *    an artifact the check just said does not exist.
+ *  - `in-progress` means work is happening now; the chip shows it but must not
+ *    start a second, concurrent action.
+ *  - `unknown` proves nothing, so it changes nothing — an actionable plan
+ *    survives a network blip. It is NOT re-presented as fresh evidence: the
+ *    plan is only ever re-validated by the main at apply time.
+ */
+export function nextChipState(
+  previous: ChipState,
   result: UpdateCheckResult | null,
-): UpdateCheckResult | null {
-  if (isApplicable(result)) return result; // a new plan always wins
-  if (result && result.status === "up-to-date") return null; // verified: clear it
-  // unknown / in-progress / preparing / unrecognised / null: inconclusive.
-  // Keep an actionable plan if we had one; otherwise stay empty.
-  return isApplicable(previous) ? previous : null;
+): ChipState {
+  if (isApplicable(result)) return { plan: result, notice: null, error: null };
+  switch (result?.status) {
+    case "up-to-date":
+      return emptyChip;
+    case "preparing":
+      // No staged build exists. Drop any actionable engine plan.
+      return { plan: null, notice: "preparing", error: null };
+    case "in-progress":
+      return { plan: null, notice: "in-progress", error: previous.error };
+    default:
+      // unknown / unrecognised / null: inconclusive. Keep what we had.
+      return previous;
+  }
+}
+
+/**
+ * What to do when a click came back `stale-plan`.
+ *
+ * The old behaviour asked for a fresh check and stopped: no message, and the
+ * user had to guess that a SECOND click was now required. But re-applying
+ * blindly is worse — the fresh plan may be a different layer, kind or version,
+ * i.e. a decision the user never made.
+ *
+ * So: exactly one controlled recovery. Re-apply automatically only when the new
+ * plan is the same intention; otherwise show it and let the user choose. Never
+ * loop.
+ */
+export type StaleRecovery =
+  | { action: "reapply"; plan: UpdateCheckResult }
+  | { action: "show"; chip: ChipState; changed: boolean };
+
+export function recoverFromStalePlan(
+  previousPlan: UpdateCheckResult | null,
+  fresh: UpdateCheckResult | null,
+  chip: ChipState,
+): StaleRecovery {
+  const next = nextChipState(chip, fresh);
+  if (isApplicable(fresh) && sameIntention(previousPlan, fresh)) {
+    return { action: "reapply", plan: fresh! };
+  }
+  return { action: "show", chip: next, changed: isApplicable(fresh) };
+}
+
+/** Same layer, same kind, same version — anything else is another decision. */
+export function sameIntention(
+  before: UpdateCheckResult | null,
+  after: UpdateCheckResult | null,
+): boolean {
+  if (!before || !after) return false;
+  if ((before.kind ?? null) !== (after.kind ?? null)) return false;
+  if ((before.version ?? null) !== (after.version ?? null)) return false;
+  return true;
 }

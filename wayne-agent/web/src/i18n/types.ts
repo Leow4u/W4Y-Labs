@@ -172,6 +172,16 @@ export interface Translations {
     updateInProgress: string;
     /** A newer build exists but is not staged yet, so nothing can be applied. */
     updatePreparing: string;
+    /** Apply is running. Distinct from "checking". */
+    updateApplying: string;
+    updateApplied: string;
+    /** Bytes ready; the update lands on the next restart. NOT applied. */
+    updateStagedRestart: string;
+    /** The update failed and the current build was reopened. */
+    updateRecovered: string;
+    updateApplyFailed: string;
+    /** The pinned plan could no longer be honoured. */
+    updatePlanChanged: string;
     /** aria-label of the "Work4You ⌄" chip. */
     productSwitcher: string;
     /** Badge on the disabled Code4You entry. */

@@ -52,23 +52,47 @@ export interface DesktopUpdateEvent {
   reason?: string;
 }
 
+/**
+ * What the shell's `update.check()` answers.
+ *
+ * `status` is the tri-state (plus the two non-terminal states). It is OPTIONAL
+ * on purpose: a shell older than this contract omits it entirely and signals
+ * only through `available`. That pairing is real — a new web bundle is served
+ * to whatever shell the user is running — so `isApplicable` honours the legacy
+ * shape rather than silently removing the update path for those installs.
+ */
+export interface UpdateCheckResult {
+  available?: boolean;
+  version?: string | null;
+  kind?: string;
+  /** Required for a MODERN `available`; the main refuses a tokenless apply. */
+  token?: string;
+  status?: "available" | "up-to-date" | "unknown" | "in-progress" | "preparing";
+  /** Layers that could not be verified, when the answer is `unknown`. */
+  unverified?: string[];
+}
+
+/** What `update.apply()` answers. One vocabulary, shared by every surface. */
+export type UpdateOutcome =
+  | "applied"
+  | "staged"
+  | "no-update"
+  | "recovered"
+  | "failed"
+  | "stale-plan";
+
+export interface UpdateApplyResult {
+  ok?: boolean;
+  outcome?: UpdateOutcome;
+  /** Engine-run status, when the shell reports one. */
+  status?: string;
+  error?: string;
+  reason?: string;
+}
+
 interface DesktopUpdateBridge {
-  check: () => Promise<{
-    available?: boolean;
-    version?: string | null;
-    kind?: string;
-    /** Identifies THIS check, so apply acts on the plan it produced. */
-    token?: string;
-    /**
-     * Tri-state, because `available:false` alone was ambiguous: it used to mean
-     * both "verified, nothing to install" and "could not check". Now
-     * `"up-to-date"` is the verified answer and `"unknown"` means some layer was
-     * never reached — `unverified` names which. Older shells omit both.
-     */
-    status?: "available" | "up-to-date" | "unknown" | "in-progress";
-    unverified?: string[];
-  } | null>;
-  apply: (token?: string) => Promise<unknown>;
+  check: () => Promise<UpdateCheckResult | null>;
+  apply: (token?: string) => Promise<UpdateApplyResult | null>;
   /**
    * Subscribe to update STATE CHANGES — not progress. The shell pushes the
    * whole state on a transition, and in practice the chip only acts on the

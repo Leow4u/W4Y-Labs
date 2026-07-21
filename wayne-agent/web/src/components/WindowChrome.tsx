@@ -33,7 +33,7 @@ import { ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
-import { isApplicable, updateMessageKey } from "@/lib/update-surface";
+import { applyMessageKey, isApplicable, updateMessageKey } from "@/lib/update-surface";
 import {
   desktopFolderBridge,
   desktopOpenExternal,
@@ -67,6 +67,7 @@ interface WindowChromeProps {
 type DialogState =
   | { kind: "about"; shellVersion: string | null; engineVersion: string | null }
   | { kind: "update-checking" }
+  | { kind: "update-applying" }
   | { kind: "update-result"; message: string };
 
 export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) {
@@ -152,11 +153,22 @@ export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) 
     setDialog({ kind: "update-checking" });
     const r = await upd.check().catch(() => null);
     if (isApplicable(r)) {
-      // Same token the check just produced. Calling apply() bare made it throw
-      // the plan away and run a second check, so a blip between the two
-      // silently cancelled an update the user had just been shown — the exact
-      // bug fixed in the tray, still live here.
-      void upd.apply(r!.token);
+      // `void upd.apply(...)` left the modal stuck on "Verificando…" for every
+      // path that keeps the process alive — staged, recovered, failed and
+      // stale-plan all resolve without a relaunch. Await it and say what
+      // happened. On a real install the process dies here and nothing renders,
+      // which is fine; on every other path the user gets an answer.
+      setDialog({ kind: "update-applying" });
+      try {
+        const res = await upd.apply(r!.token);
+        setDialog({
+          kind: "update-result",
+          message: t.desktop[applyMessageKey(res?.outcome)],
+        });
+      } catch {
+        // A rejected IPC is still an answer.
+        setDialog({ kind: "update-result", message: t.desktop.updateApplyFailed });
+      }
       return;
     }
     // `r ? updateUpToDate : updateCheckFailed` printed "you are on the latest
@@ -460,6 +472,11 @@ function ChromeDialog({
         )}
         {dialog.kind === "update-checking" && (
           <div className="text-sm text-foreground/90">{t.desktop.updateChecking}</div>
+        )}
+        {/* Distinct from "checking": the plan was accepted and is being applied.
+            Every path that keeps the process alive replaces this with a result. */}
+        {dialog.kind === "update-applying" && (
+          <div className="text-sm text-foreground/90">{t.desktop.updateApplying}</div>
         )}
         {dialog.kind === "update-result" && (
           <div className="text-sm text-foreground/90">{dialog.message}</div>

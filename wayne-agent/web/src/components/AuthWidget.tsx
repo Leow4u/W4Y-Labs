@@ -51,7 +51,13 @@ import type { Locale } from "@/i18n";
 import { isLocalEngine } from "@/lib/projects";
 import { cloudGetJson } from "@/lib/cloudSession";
 import { desktopUpdateBridge } from "@/lib/desktopChrome";
-import { nextChipPlan } from "@/lib/update-surface";
+import {
+  emptyChip,
+  nextChipState,
+  recoverFromStalePlan,
+  type ChipState,
+  type UpdateApplyResult,
+} from "@/lib/update-surface";
 
 interface AuthWidgetProps {
   className?: string;
@@ -96,13 +102,14 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   // `kind` (shell 0.3.9): "ready" = the engine is already downloaded and a
   // restart is instant; "stalled" = the background install keeps failing and
   // the click means "try again", not "restart".
-  const [update, setUpdate] = useState<{
-    version: string | null;
-    kind?: string;
-    /** Token of the check that produced this state — echoed back on apply. */
-    token?: string;
-  } | null>(null);
+  // The WHOLE chip state, not just a plan. Reconstructing a previous plan as
+  // `{status:"available", available:true}` (what this used to do) threw away
+  // whether it was actionable at all, so an old engine `ready` token survived a
+  // `preparing` check that had just concluded no staged build exists.
+  const [chip, setChip] = useState<ChipState>(emptyChip);
+  const [applying, setApplying] = useState(false);
   const applyingRef = useRef(false);
+  const update = chip.plan;
 
   // Update state: pushed by the shell, with polling kept only as a fallback.
   //
@@ -122,24 +129,8 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
         .check()
         .then((r) => {
           if (cancelled) return;
-          setUpdate(
-            // An inconclusive check (unknown / preparing / installing) must not
-            // wipe a plan the user could act on — the bytes of a staged update
-            // are already on disk. Only a VERIFIED "up to date" clears it.
-            (prev) => {
-              const next = nextChipPlan(prev ? { ...prev, status: "available", available: true } : null, r);
-              return next && next !== prev
-                ? {
-                    version:
-                      typeof next.version === "string" && next.version ? next.version : null,
-                    kind: typeof next.kind === "string" ? next.kind : undefined,
-                    token: typeof next.token === "string" ? next.token : undefined,
-                  }
-                : next === null
-                  ? null
-                  : prev;
-            },
-          );
+          // One rule for every status, in a pure function a test can drive.
+          setChip((prev) => nextChipState(prev, r));
         })
         .catch(() => {});
     };
@@ -175,51 +166,68 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   // Se a atualização der certo, o processo morre antes do finally — a trava
   // solta só nos casos em que o app continua vivo, que são os que importam.
   const applyUpdate = useCallback(() => {
-    if (applyingRef.current) return;
+    if (applyingRef.current) return; // no concurrent click
     const bridge = desktopUpdateBridge();
-    // Sem ponte (web pura, ou casca antiga) não há o que aplicar: não trava.
-    if (!bridge) return;
+    if (!bridge) return; // web, or a shell with no update surface
+    const plan = chip.plan;
+    if (!plan) return; // nothing actionable — the button is disabled anyway
     applyingRef.current = true;
+    setApplying(true);
+
+    const finish = () => {
+      applyingRef.current = false;
+      setApplying(false);
+    };
+
+    // ONE controlled recovery, never a loop: if the plan expired we re-check
+    // once, re-apply only when the fresh plan is the same intention, and
+    // otherwise show what changed. The old code just re-checked in silence and
+    // left the user to guess that a second click was now required.
+    const settle = (res: UpdateApplyResult | null, recovered: boolean) => {
+      const outcome = res?.outcome ?? (res?.ok === false ? "failed" : "applied");
+      if (outcome === "stale-plan" && !recovered) {
+        void bridge
+          .check()
+          .then((fresh) => {
+            const decision = recoverFromStalePlan(plan, fresh, chip);
+            if (decision.action === "reapply") {
+              setChip((prev) => nextChipState(prev, fresh));
+              return bridge.apply(decision.plan.token).then((r2) => settle(r2, true));
+            }
+            setChip(decision.chip);
+            finish();
+            return undefined;
+          })
+          .catch(() => {
+            // Could not even re-check. Keep the plan and let them try again.
+            finish();
+          });
+        return;
+      }
+      if (outcome === "staged") {
+        // Bytes are ready; the update lands on the next restart. Show that
+        // immediately instead of leaving a stale "update available" pill.
+        setChip({ plan: null, notice: "preparing", error: null });
+      } else if (outcome === "applied" || outcome === "no-update") {
+        setChip(emptyChip);
+      } else {
+        // failed / recovered / anything unrecognised: keep a real retry path.
+        setChip((prev) => ({ ...prev, error: res?.error ?? "update failed" }));
+      }
+      finish();
+    };
+
     void bridge
-      // Echoes the token from the check that produced this chip, so the main
-      // cannot apply a plan a later check overwrote.
-      .apply(update?.token)
-      .then((res) => {
-        // The main now REFUSES a plan it cannot honour instead of silently
-        // substituting another one. A refusal is not a dead click: ask for a
-        // fresh plan so the next press has something valid to apply.
-        const refused =
-          res && typeof res === "object" && (res as { error?: string }).error === "stale-plan";
-        if (refused) void bridge.check().then((r) => {
-          setUpdate(
-            // An inconclusive check (unknown / preparing / installing) must not
-            // wipe a plan the user could act on — the bytes of a staged update
-            // are already on disk. Only a VERIFIED "up to date" clears it.
-            (prev) => {
-              const next = nextChipPlan(prev ? { ...prev, status: "available", available: true } : null, r);
-              return next && next !== prev
-                ? {
-                    version:
-                      typeof next.version === "string" && next.version ? next.version : null,
-                    kind: typeof next.kind === "string" ? next.kind : undefined,
-                    token: typeof next.token === "string" ? next.token : undefined,
-                  }
-                : next === null
-                  ? null
-                  : prev;
-            },
-          );
-        });
-      })
-      .catch(() => {
-        /* a casca já registra o motivo; aqui só garantimos o retry */
-      })
-      .finally(() => {
-        applyingRef.current = false;
+      .apply(plan.token)
+      .then((res) => settle(res, false))
+      .catch((e) => {
+        // A rejected IPC is still an answer the user must see.
+        setChip((prev) => ({ ...prev, error: String(e) }));
+        finish();
       });
-    // Depends on the token: with an empty array the callback would close over
-    // the FIRST update it ever saw and keep applying that stale plan.
-  }, [update?.token]);
+    // Depends on the plan: with an empty array the callback would close over
+    // the FIRST plan it ever saw and keep applying that stale one.
+  }, [chip]);
 
   // Opens the language submenu with the current language in view. Runs ONLY on
   // open (not on every render): an inline callback ref would re-run on
@@ -372,14 +380,20 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
                 ? "bg-warning/15 text-warning ring-warning/40 hover:bg-warning/25 focus-visible:ring-warning/60"
                 : "bg-live text-background hover:bg-live/85 focus-visible:ring-live/60",
             )}
+            // Busy is stated, not just guarded: a concurrent click was already
+            // dropped by applyingRef, but the user had no way to know why.
+            aria-busy={applying || undefined}
+            aria-disabled={applying || undefined}
             onClick={(e) => {
               e.stopPropagation();
+              if (applying) return;
               applyUpdate();
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 e.stopPropagation();
+                if (applying) return;
                 applyUpdate();
               }
             }}
