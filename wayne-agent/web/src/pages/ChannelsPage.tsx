@@ -34,7 +34,9 @@ import type {
 } from "@/lib/api";
 import { channelFieldMeta, channelStateLabel, isTruthyEnv } from "@/lib/channel-fields";
 import { isInternalView } from "@/lib/internal-view";
+import { hasPendingRestart, isRestarting, restartNoticeMode } from "@/lib/restart-flow";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
+import { useRestartFlow } from "@/hooks/useRestartFlow";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useI18n } from "@/i18n";
 import type { Translations } from "@/i18n";
@@ -251,11 +253,9 @@ export default function ChannelsPage() {
   }, []);
   const editModalRef = useModalBehavior({ open: editing !== null, onClose: closeEdit });
 
-  // Per-card busy + restart-needed tracking
+  // Per-card busy tracking
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
-  const [restartNeeded, setRestartNeeded] = useState(false);
-  const [restarting, setRestarting] = useState(false);
 
   const gatewayRunning = platforms.length > 0 && platforms[0].gateway_running;
 
@@ -298,6 +298,33 @@ export default function ChannelsPage() {
     setLoading(true);
     load().finally(() => setLoading(false));
   }, [load]);
+
+  // The one restart flow, shared with the config modal and the agent drawer.
+  // Give the gateway a moment to come up, then refresh status.
+  const onRestarted = useCallback(() => {
+    setTimeout(() => void load(), 4000);
+  }, [load]);
+  const {
+    state: restartState,
+    changeApplied,
+    restartNow,
+    reportOutcome: reportRestartOutcome,
+  } = useRestartFlow(onRestarted);
+  const restarting = isRestarting(restartState);
+  const restartNotice = restartNoticeMode(restartState, internal);
+
+  // Every entry point funnels its outcome through here so the user hears the
+  // same thing — and never hears "done" before the restart was accepted.
+  const announceRestart = useCallback(
+    (outcome: { ok: true; restarted: boolean } | { ok: false; error: string }) => {
+      if (!outcome.ok) {
+        showToast(c.restartFailed.replace("{error}", outcome.error), "error");
+      } else if (outcome.restarted) {
+        showToast(c.restarting, "success");
+      }
+    },
+    [showToast, c],
+  );
 
   // Agent list for the scope picker (default is left out — it is the "global").
   useEffect(() => {
@@ -353,12 +380,16 @@ export default function ChannelsPage() {
     try {
       const body: MessagingPlatformUpdate = { env, enabled: true, profile: profileParam };
       await api.updateMessagingPlatform(editing.id, body);
-      showToast(
-        c.saved.replace("{name}", platformCopy(editing, c).name),
-        "success",
-      );
       setEditing(null);
-      setRestartNeeded(true);
+      // Saving a channel turns it on — same "needs a restart" change as the
+      // toggle, so it goes through the same flow instead of only flagging the
+      // pending state and walking away.
+      const outcome = await changeApplied("channel-config", !internal);
+      if (outcome.ok) {
+        showToast(c.saved.replace("{name}", platformCopy(editing, c).name), "success");
+      } else {
+        showToast(c.restartFailed.replace("{error}", outcome.error), "error");
+      }
       await load();
     } catch (e) {
       showToast(c.saveFailed.replace("{error}", String(e)), "error");
@@ -379,16 +410,12 @@ export default function ChannelsPage() {
             : p,
         ),
       );
-      setRestartNeeded(true);
-      // Para o usuário final, o reinício do gateway é bastidor — é o que o
-      // banner de reinício sempre disse ao ficar restrito à visão interna
-      // ("for the user the restart is behind the scenes"). Só que ninguém
-      // fazia o reinício por ele: a tela marcava a pendência, escondia o
-      // botão que a resolvia, e o selo ficava "Aplicando…" para sempre.
-      // Na visão interna o botão continua sendo do operador.
-      if (!isInternalView()) {
-        await handleRestart();
-      }
+      // For the end user the gateway restart is backstage — that is what the
+      // restart banner always claimed by hiding behind the internal view. Only
+      // nobody ran the restart for them: the screen flagged the change, hid the
+      // button that resolved it, and the badge sat on "applying…" forever. In
+      // the internal view the button stays the operator's.
+      announceRestart(await changeApplied("channel-toggle", !internal));
     } catch (e) {
       showToast(c.toggleFailed.replace("{error}", String(e)), "error");
     } finally {
@@ -411,20 +438,11 @@ export default function ChannelsPage() {
     }
   };
 
-  const handleRestart = async () => {
-    setRestarting(true);
-    try {
-      await api.restartGateway();
-      showToast(c.restarting, "success");
-      setRestartNeeded(false);
-      // Give the gateway a moment to come up, then refresh status.
-      setTimeout(() => void load(), 4000);
-    } catch (e) {
-      showToast(c.restartFailed.replace("{error}", String(e)), "error");
-    } finally {
-      setRestarting(false);
-    }
-  };
+  // Manual restart: the operator's header button AND the user's "try again"
+  // after an automatic restart failed.
+  const handleRestart = useCallback(async () => {
+    announceRestart(await restartNow());
+  }, [announceRestart, restartNow]);
 
   useLayoutEffect(() => {
     // Curation: the "Restart gateway" button is technical plumbing — it only
@@ -438,7 +456,7 @@ export default function ChannelsPage() {
       <Button
         className="uppercase"
         size="sm"
-        onClick={handleRestart}
+        onClick={() => void handleRestart()}
         disabled={restarting}
         prefix={restarting ? <Spinner /> : <RotateCw className="h-4 w-4" />}
       >
@@ -551,25 +569,33 @@ export default function ChannelsPage() {
         </Select>
       </div>
 
-      {/* Restart banner — technical plumbing (gateway restart). Internal view
-          (?full=1) only; for the user the restart is behind the scenes. */}
-      {isInternalView() && restartNeeded && (
+      {/* Restart notice. "pending" is the operator's (internal view only) — for
+          the user the restart stays backstage. "failed" shows for EVERYONE:
+          the automatic restart is the user's only path, so when it fails they
+          need a persistent way to try again instead of a toast that vanishes. */}
+      {restartNotice !== "hidden" && (
         <Card className="border-warning/50">
           <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2 text-sm">
               <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
               <span>
-                Changes are saved. Restart the gateway for them to take effect.
+                {restartNotice === "failed"
+                  ? c.restartPending
+                  : "Changes are saved. Restart the gateway for them to take effect."}
               </span>
             </div>
             <Button
               size="sm"
               className="uppercase shrink-0"
-              onClick={handleRestart}
+              onClick={() => void handleRestart()}
               disabled={restarting}
               prefix={restarting ? <Spinner /> : <RotateCw className="h-4 w-4" />}
             >
-              {restarting ? "Restarting…" : "Restart now"}
+              {restartNotice === "failed"
+                ? t.common.retry
+                : restarting
+                  ? "Restarting…"
+                  : "Restart now"}
             </Button>
           </CardContent>
         </Card>
@@ -578,7 +604,7 @@ export default function ChannelsPage() {
       {/* "Gateway is not running" banner with the CLI command — technical
           jargon, hidden from the end user and visible only in the internal
           view (?full=1). */}
-      {isInternalView() && !gatewayRunning && !restartNeeded && (
+      {isInternalView() && !gatewayRunning && !hasPendingRestart(restartState) && (
         <Card className="border-border">
           <CardContent className="flex items-center gap-2 p-4 text-sm text-muted-foreground">
             <WifiOff className="h-4 w-4 shrink-0" />
@@ -771,10 +797,9 @@ export default function ChannelsPage() {
                 {platform.id === "telegram" && (
                   <TelegramOnboardingPanel
                     onChanged={load}
-                    onRestartNeeded={() => setRestartNeeded(true)}
+                    onRestartOutcome={reportRestartOutcome}
                     platform={platform}
                     profile={profileParam}
-                    setRestartNeeded={setRestartNeeded}
                     showToast={showToast}
                   />
                 )}
@@ -800,17 +825,20 @@ export default function ChannelsPage() {
 
 function TelegramOnboardingPanel({
   onChanged,
-  onRestartNeeded,
+  onRestartOutcome,
   platform,
   profile,
-  setRestartNeeded,
   showToast,
 }: {
   onChanged: () => Promise<void>;
-  onRestartNeeded: () => void;
+  /**
+   * Feeds the page's restart flow. Telegram onboarding restarts the gateway
+   * itself, so it reports the result rather than raising a "needs restart"
+   * flag the page then had to interpret.
+   */
+  onRestartOutcome: (ok: boolean, error?: string) => void;
   platform: MessagingPlatform;
   profile?: string;
-  setRestartNeeded: (needed: boolean) => void;
   showToast: (message: string, type: "success" | "error") => void;
 }) {
   const { t } = useI18n();
@@ -954,7 +982,7 @@ function TelegramOnboardingPanel({
         const st = await api.getActionStatus("gateway-restart", 5);
         if (st.running) continue;
         if (st.exit_code !== 0 && st.exit_code !== null) {
-          onRestartNeeded();
+          onRestartOutcome(false, String(st.exit_code));
           showToast(
             c.tgRestartFailedExit.replace("{code}", String(st.exit_code)),
             "error",
@@ -983,24 +1011,24 @@ function TelegramOnboardingPanel({
       resetSetup();
       if (result.restart_started) {
         showToast(c.tgSaved, "success");
-        setRestartNeeded(false);
+        onRestartOutcome(true);
         setTimeout(() => void onChanged(), 4000);
         void watchRestartOutcome();
       } else if (result.restart_started === undefined && result.needs_restart) {
         try {
           await api.restartGateway();
           showToast(c.tgSaved, "success");
-          setRestartNeeded(false);
+          onRestartOutcome(true);
           setTimeout(() => void onChanged(), 4000);
         } catch (restartError) {
-          onRestartNeeded();
+          onRestartOutcome(false, String(restartError));
           showToast(
             c.tgSavedRestartFailed.replace("{error}", String(restartError)),
             "error",
           );
         }
       } else {
-        onRestartNeeded();
+        onRestartOutcome(false, result.restart_error || "—");
         showToast(
           c.tgSavedRestartFailed.replace("{error}", result.restart_error || "—"),
           "error",

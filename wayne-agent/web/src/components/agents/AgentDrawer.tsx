@@ -35,6 +35,9 @@ import { timeAgoShort } from "@/lib/utils";
 import { defaultRoutineSchedule } from "@/lib/agent-draft";
 import { buildScheduleString, type ScheduleBuilderState } from "@/lib/schedule";
 import { channelStateLabel } from "@/lib/channel-fields";
+import { isInternalView } from "@/lib/internal-view";
+import { isRestarting, restartNoticeMode } from "@/lib/restart-flow";
+import { useRestartFlow } from "@/hooks/useRestartFlow";
 import { formatCredits, usdToCredits } from "@/lib/credits";
 import { AgentSchedulePicker } from "@/components/agents/AgentSchedulePicker";
 import { KnowledgePanel } from "@/components/agents/KnowledgePanel";
@@ -308,10 +311,17 @@ export function AgentDrawer({
   const connected = (platforms ?? []).filter((p) => p.configured || p.enabled);
 
   // Per-agent channel on/off (v3): PUT platforms/{id} {enabled, profile}
-  // writes the AGENT's config.yaml. Native contract: takes effect after the
-  // engine restarts — the row says so instead of pretending it's live.
+  // writes the AGENT's config.yaml. Native contract: it only takes effect once
+  // the engine restarts — so this toggle runs the SAME restart flow as the
+  // Channels page instead of leaving the row pending forever.
   const [channelSaving, setChannelSaving] = useState<string | null>(null);
   const [channelPending, setChannelPending] = useState<string | null>(null);
+  const internal = isInternalView();
+  const onRestarted = useCallback(() => setChannelPending(null), []);
+  const { state: restartState, changeApplied, restartNow } = useRestartFlow(onRestarted);
+  const restarting = isRestarting(restartState);
+  const restartNotice = restartNoticeMode(restartState, internal);
+
   const toggleChannel = useCallback(
     async (p: MessagingPlatform) => {
       setChannelSaving(p.id);
@@ -327,6 +337,8 @@ export function AgentDrawer({
             ) ?? prev,
         );
         setChannelPending(p.id);
+        const outcome = await changeApplied("agent-channel-toggle", !internal);
+        if (!outcome.ok) notify(outcome.error, "error");
         onChanged();
       } catch (e) {
         notify(String(e), "error");
@@ -334,8 +346,13 @@ export function AgentDrawer({
         setChannelSaving(null);
       }
     },
-    [agent.name, notify, onChanged],
+    [agent.name, notify, onChanged, changeApplied, internal],
   );
+
+  const retryRestart = useCallback(async () => {
+    const outcome = await restartNow();
+    if (!outcome.ok) notify(outcome.error, "error");
+  }, [restartNow, notify]);
 
   /* ---------------- MCP ---------------- */
   const [mcpServers, setMcpServers] = useState<McpServer[] | null>(null);
@@ -782,6 +799,25 @@ export function AgentDrawer({
                       </button>
                     </div>
                   ))}
+                </div>
+              )}
+              {/* Same rule as the Channels page: the restart is backstage, and
+                  only surfaces when it FAILED — otherwise the toggle would go
+                  back to being a switch that quietly changes nothing. */}
+              {restartNotice !== "hidden" && (
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5">
+                  <span className="min-w-0 flex-1 text-xs text-muted-foreground">
+                    {restartNotice === "failed" ? t.channels.restartPending : ag.chPending}
+                  </span>
+                  <Button
+                    ghost
+                    size="sm"
+                    disabled={restarting}
+                    onClick={() => void retryRestart()}
+                    className="shrink-0"
+                  >
+                    {t.common.retry}
+                  </Button>
                 </div>
               )}
               <Link
