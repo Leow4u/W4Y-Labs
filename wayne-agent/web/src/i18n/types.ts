@@ -18,6 +18,18 @@ export type Locale =
 
 export interface Translations {
   // ── Common ──
+  /** One human sentence for a failed request — see lib/error-message.ts.
+   * The HTTP status and the response body stay in the console; they are
+   * diagnostics, never a sentence for the person looking at the screen. */
+  errors: {
+    network: string;
+    unauthorized: string;
+    forbidden: string;
+    notFound: string;
+    rateLimited: string;
+    server: string;
+    unexpected: string;
+  };
   common: {
     save: string;
     saving: string;
@@ -1798,6 +1810,8 @@ export interface Translations {
     testFailed: string;
     restarting: string;
     restartFailed: string;
+    /** Persistent notice when a change is saved but the restart has not landed. */
+    restartPending: string;
     errPrefix: string;
     errSlackId: string;
     tgSetupQr: string;

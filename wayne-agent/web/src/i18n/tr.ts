@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const tr: Translations = {
+  errors: {
+    network: "Sunucuya ulaşılamadı. Bağlantınızı kontrol edin.",
+    unauthorized: "Oturumunuzun süresi doldu. Yeniden giriş yapın.",
+    forbidden: "Bunu yapma izniniz yok.",
+    notFound: "İstediğiniz şeyi bulamadık.",
+    rateLimited: "Çok fazla deneme. Bir an bekleyip yeniden deneyin.",
+    server: "Hizmet şu anda kullanılamıyor. Birazdan yeniden deneyin.",
+    unexpected: "Bir şeyler ters gitti. Yeniden deneyin.",
+  },
   common: {
     save: "Kaydet",
     saving: "Kaydediliyor...",
@@ -1715,6 +1724,7 @@ export const tr: Translations = {
     testFailed: "Kanal test edilemedi: {error}",
     restarting: "Değişiklikler uygulanıyor…",
     restartFailed: "Değişiklikler uygulanamadı: {error}",
+    restartPending: "Değişiklik kaydedildi ancak henüz etkin değil.",
     errPrefix: "{field} {prefix} ile başlamalıdır",
     errSlackId: "{value} bir Slack üye kimliğine benzemiyor. U01ABC2DEF3 gibi kimlikler kullanın.",
     tgSetupQr: "QR kod ile kur",

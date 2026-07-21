@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const zhHant: Translations = {
+  errors: {
+    network: "無法連線到伺服器，請檢查網路連線。",
+    unauthorized: "登入狀態已過期，請重新登入。",
+    forbidden: "你沒有執行此操作的權限。",
+    notFound: "找不到你要的內容。",
+    rateLimited: "嘗試次數過多，請稍候再試。",
+    server: "服務暫時無法使用，請稍後再試。",
+    unexpected: "發生問題，請再試一次。",
+  },
   common: {
     save: "儲存",
     saving: "儲存中...",
@@ -1714,6 +1723,7 @@ export const zhHant: Translations = {
     testFailed: "無法測試管道：{error}",
     restarting: "正在套用變更…",
     restartFailed: "無法套用變更：{error}",
+    restartPending: "變更已儲存，但尚未生效。",
     errPrefix: "{field} 必須以 {prefix} 開頭",
     errSlackId: "{value} 看起來不是 Slack 成員 ID。請使用類似 U01ABC2DEF3 的 ID。",
     tgSetupQr: "用 QR code 設定",

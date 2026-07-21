@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const hu: Translations = {
+  errors: {
+    network: "Nem sikerült elérni a kiszolgálót. Ellenőrizze a kapcsolatot.",
+    unauthorized: "A munkamenet lejárt. Jelentkezzen be újra.",
+    forbidden: "Ehhez nincs jogosultsága.",
+    notFound: "Nem találtuk, amit kért.",
+    rateLimited: "Túl sok próbálkozás. Várjon egy pillanatot, és próbálja újra.",
+    server: "A szolgáltatás jelenleg nem érhető el. Próbálja újra hamarosan.",
+    unexpected: "Valami hiba történt. Próbálja újra.",
+  },
   common: {
     save: "Mentés",
     saving: "Mentés...",
@@ -1715,6 +1724,7 @@ export const hu: Translations = {
     testFailed: "Nem sikerült tesztelni a csatornát: {error}",
     restarting: "Módosítások alkalmazása…",
     restartFailed: "Nem sikerült alkalmazni a módosításokat: {error}",
+    restartPending: "A módosítás mentve van, de még nem lépett érvénybe.",
     errPrefix: "A(z) {field} értékének {prefix} előtaggal kell kezdődnie",
     errSlackId: "A(z) {value} nem tűnik Slack tagazonosítónak. Használjon U01ABC2DEF3 formájú azonosítót.",
     tgSetupQr: "Beállítás QR-kóddal",

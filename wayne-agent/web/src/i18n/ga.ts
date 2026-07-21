@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const ga: Translations = {
+  errors: {
+    network: "Níorbh fhéidir teagmháil a dhéanamh leis an bhfreastalaí. Seiceáil do nasc.",
+    unauthorized: "Tá do sheisiún imithe in éag. Logáil isteach arís.",
+    forbidden: "Níl cead agat é seo a dhéanamh.",
+    notFound: "Níor aimsíomar an rud a d'iarr tú.",
+    rateLimited: "An iomarca iarrachtaí. Fan nóiméad agus bain triail eile as.",
+    server: "Níl an tseirbhís ar fáil faoi láthair. Bain triail eile as ar ball.",
+    unexpected: "Chuaigh rud éigin amú. Bain triail eile as.",
+  },
   common: {
     save: "Sábháil",
     saving: "Á shábháil...",
@@ -1723,6 +1732,7 @@ export const ga: Translations = {
     testFailed: "Níorbh fhéidir an cainéal a thástáil: {error}",
     restarting: "Na hathruithe á gcur i bhfeidhm…",
     restartFailed: "Níorbh fhéidir na hathruithe a chur i bhfeidhm: {error}",
+    restartPending: "Tá an t-athrú sábháilte, ach níl sé i bhfeidhm fós.",
     errPrefix: "Caithfidh {field} tosú le {prefix}",
     errSlackId: "Ní cosúil gur aitheantas ball Slack é {value}. Bain úsáid as aitheantais ar nós U01ABC2DEF3.",
     tgSetupQr: "Socraigh le cód QR",

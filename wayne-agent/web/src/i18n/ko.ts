@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const ko: Translations = {
+  errors: {
+    network: "서버에 연결할 수 없습니다. 연결 상태를 확인하세요.",
+    unauthorized: "세션이 만료되었습니다. 다시 로그인하세요.",
+    forbidden: "이 작업을 수행할 권한이 없습니다.",
+    notFound: "요청하신 항목을 찾을 수 없습니다.",
+    rateLimited: "시도가 너무 많습니다. 잠시 후 다시 시도하세요.",
+    server: "지금은 서비스를 사용할 수 없습니다. 잠시 후 다시 시도하세요.",
+    unexpected: "문제가 발생했습니다. 다시 시도하세요.",
+  },
   common: {
     save: "저장",
     saving: "저장 중...",
@@ -1714,6 +1723,7 @@ export const ko: Translations = {
     testFailed: "채널을 테스트하지 못했습니다: {error}",
     restarting: "변경 사항을 적용하는 중…",
     restartFailed: "변경 사항을 적용하지 못했습니다: {error}",
+    restartPending: "변경 사항이 저장되었지만 아직 적용되지 않았습니다.",
     errPrefix: "{field}은(는) {prefix}(으)로 시작해야 합니다",
     errSlackId: "{value}은(는) Slack 멤버 ID 형식이 아닙니다. U01ABC2DEF3 같은 ID를 사용하세요.",
     tgSetupQr: "QR 코드로 설정",

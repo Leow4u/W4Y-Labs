@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const ja: Translations = {
+  errors: {
+    network: "サーバーに接続できませんでした。接続を確認してください。",
+    unauthorized: "セッションの有効期限が切れました。もう一度サインインしてください。",
+    forbidden: "この操作を行う権限がありません。",
+    notFound: "お探しのものが見つかりませんでした。",
+    rateLimited: "試行回数が多すぎます。しばらく待ってからやり直してください。",
+    server: "現在サービスを利用できません。しばらくしてからやり直してください。",
+    unexpected: "問題が発生しました。もう一度お試しください。",
+  },
   common: {
     save: "保存",
     saving: "保存中...",
@@ -1714,6 +1723,7 @@ export const ja: Translations = {
     testFailed: "チャネルをテストできませんでした: {error}",
     restarting: "変更を適用しています…",
     restartFailed: "変更を適用できませんでした: {error}",
+    restartPending: "変更は保存されましたが、まだ反映されていません。",
     errPrefix: "{field} は {prefix} で始まる必要があります",
     errSlackId: "{value} は Slack のメンバー ID ではないようです。U01ABC2DEF3 のような ID を使用してください。",
     tgSetupQr: "QR コードで設定",

@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const en: Translations = {
+  errors: {
+    network: "Couldn't reach the server. Check your connection.",
+    unauthorized: "Your session expired. Sign in again.",
+    forbidden: "You don't have permission to do this.",
+    notFound: "We couldn't find what you asked for.",
+    rateLimited: "Too many attempts. Wait a moment and try again.",
+    server: "The service is unavailable right now. Try again in a moment.",
+    unexpected: "Something went wrong. Try again.",
+  },
   common: {
     save: "Save",
     saving: "Saving...",
@@ -1782,6 +1791,7 @@ export const en: Translations = {
     testFailed: "Could not test the channel: {error}",
     restarting: "Applying the changes…",
     restartFailed: "Could not apply the changes: {error}",
+    restartPending: "The change is saved but is not live yet.",
     errPrefix: "{field} must start with {prefix}",
     errSlackId: "{value} does not look like a Slack member ID. Use IDs like U01ABC2DEF3.",
     tgSetupQr: "Set up with QR code",

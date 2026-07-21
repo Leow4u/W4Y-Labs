@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const zh: Translations = {
+  errors: {
+    network: "无法连接服务器，请检查网络连接。",
+    unauthorized: "登录状态已过期，请重新登录。",
+    forbidden: "你没有执行此操作的权限。",
+    notFound: "没有找到你要的内容。",
+    rateLimited: "尝试次数过多，请稍候再试。",
+    server: "服务暂时不可用，请稍后再试。",
+    unexpected: "出了点问题，请再试一次。",
+  },
   common: {
     save: "保存",
     saving: "保存中...",
@@ -1710,6 +1719,7 @@ export const zh: Translations = {
     testFailed: "无法测试渠道：{error}",
     restarting: "正在应用更改…",
     restartFailed: "无法应用更改：{error}",
+    restartPending: "更改已保存，但尚未生效。",
     errPrefix: "{field} 必须以 {prefix} 开头",
     errSlackId: "{value} 看起来不是 Slack 成员 ID。请使用类似 U01ABC2DEF3 的 ID。",
     tgSetupQr: "用二维码配置",

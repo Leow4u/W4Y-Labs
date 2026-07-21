@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const ru: Translations = {
+  errors: {
+    network: "Не удалось связаться с сервером. Проверьте подключение.",
+    unauthorized: "Сеанс истёк. Войдите снова.",
+    forbidden: "У вас нет прав на это действие.",
+    notFound: "Мы не нашли то, что вы запросили.",
+    rateLimited: "Слишком много попыток. Подождите немного и попробуйте снова.",
+    server: "Сервис сейчас недоступен. Попробуйте через несколько мгновений.",
+    unexpected: "Что-то пошло не так. Попробуйте снова.",
+  },
   common: {
     save: "Сохранить",
     saving: "Сохранение...",
@@ -1715,6 +1724,7 @@ export const ru: Translations = {
     testFailed: "Не удалось проверить канал: {error}",
     restarting: "Применяем изменения…",
     restartFailed: "Не удалось применить изменения: {error}",
+    restartPending: "Изменение сохранено, но ещё не применено.",
     errPrefix: "{field} должно начинаться с {prefix}",
     errSlackId: "{value} не похоже на ID участника Slack. Используйте ID вида U01ABC2DEF3.",
     tgSetupQr: "Настроить по QR-коду",

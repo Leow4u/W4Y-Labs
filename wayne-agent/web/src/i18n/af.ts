@@ -1,6 +1,15 @@
 import type { Translations } from "./types";
 
 export const af: Translations = {
+  errors: {
+    network: "Kon nie die bediener bereik nie. Kontroleer jou verbinding.",
+    unauthorized: "Jou sessie het verstryk. Meld weer aan.",
+    forbidden: "Jy het nie toestemming hiervoor nie.",
+    notFound: "Ons kon nie kry wat jy gevra het nie.",
+    rateLimited: "Te veel pogings. Wag 'n oomblik en probeer weer.",
+    server: "Die diens is tans nie beskikbaar nie. Probeer netnou weer.",
+    unexpected: "Iets het verkeerd geloop. Probeer weer.",
+  },
   common: {
     save: "Stoor",
     saving: "Besig om te stoor...",
@@ -1715,6 +1724,7 @@ export const af: Translations = {
     testFailed: "Kon nie die kanaal toets nie: {error}",
     restarting: "Veranderinge word toegepas…",
     restartFailed: "Kon nie die veranderinge toepas nie: {error}",
+    restartPending: "Die verandering is gestoor, maar is nog nie aktief nie.",
     errPrefix: "{field} moet met {prefix} begin",
     errSlackId: "{value} lyk nie soos ’n Slack-lid-ID nie. Gebruik ID’s soos U01ABC2DEF3.",
     tgSetupQr: "Stel op met ’n QR-kode",
