@@ -111,6 +111,8 @@ const engineSlots = require("./engine-slots.cjs");
 const updateState = require("./engine-update-state.cjs");
 const { createSingleFlight } = require("./single-flight.cjs");
 const updateScheduler = require("./update-scheduler.cjs");
+const shellApplyFlow = require("./shell-apply-flow.cjs");
+const trayUpdateFlow = require("./tray-update-flow.cjs");
 
 // One engine update at a time, across EVERY entry point: the 30-minute timer,
 // the tray, and the renderer's retry. The previous guard (`engine.updating`)
@@ -1860,9 +1862,17 @@ async function runBackgroundEngineUpdateWork() {
 /**
  * Push the current update state to the window so the pill can react at once.
  *
- * Carries the state itself now, not just a "something changed" ping: the chip
- * used to learn about progress only from its own check() on mount and a
+ * Carries the state itself, not just a "something changed" ping: the chip used
+ * to learn about an update finishing only from its own check() on mount and a
  * 30-minute poll, so a failure could sit invisible for half an hour.
+ *
+ * NOT live progress. What crosses to the renderer is a STATE TRANSITION, and in
+ * practice only the terminal one: everything emitted while the work runs
+ * carries running:true, which the chip ignores on purpose so an in-flight
+ * install cannot clear its own pill. The `installing` phase and the installer's
+ * byte-level progress are written to disk (engine-update-state) but never
+ * surface as a moving bar — the user sees "updating", then done or failed.
+ * Per-step progress is a deliberate follow-up, not something this wiring does.
  */
 function notifyUpdateState(extra) {
   try {
@@ -2320,30 +2330,35 @@ async function applyUnifiedUpdate(token) {
   }
   if (snap.kind === "shell" && shellUpdater.hasPending()) {
     // Serialized: killEngine + an 85MB download + quitAndInstall must never
-    // run twice at once. A second caller JOINS the first rather than starting
-    // its own installer over the same directory.
-    const flight = shellApplyFlight.run(async () => {
-      killEngine();
-      return shellUpdater.apply({
-        beforeQuit: () => {
-          // The close→hide-to-tray interception must not fight the
-          // installer's quit (same latch the tray's "Sair" uses).
-          isQuitting = true;
-        },
-      });
-    });
+    // run twice at once. A second caller JOINS the first — and the join now
+    // covers the FALLBACK too. It used to end at the download: waiters woke up
+    // holding a failed outcome and each ran its own relaunch, so two callers
+    // meant two app.relaunch()+exit(0) racing over one process. The shared
+    // operation is the whole decision, and joiners receive a result, not a
+    // second chance to act.
+    const flight = shellApplyFlight.run(() =>
+      shellApplyFlow.runShellApplyWithFallback({
+        killEngine,
+        shellApply: () =>
+          shellUpdater.apply({
+            beforeQuit: () => {
+              // The close→hide-to-tray interception must not fight the
+              // installer's quit (same latch the tray's "Sair" uses).
+              isQuitting = true;
+            },
+          }),
+        // isQuitting may already be true; applyEngineUpdate sets it again,
+        // which is harmless and idempotent.
+        engineFallback: () => applyEngineUpdate(),
+        log: updaterLog,
+      }),
+    );
     const outcome = await flight.promise;
-    if (outcome.ok) {
-      const r = outcome.value;
-      if (r && r.ok) return { ok: true }; // process dies inside quitAndInstall
-      updaterLog(`apply fell back to relaunch: ${(r && r.error) || "unknown"}`);
-    } else {
-      updaterLog(`apply fell back to relaunch: ${outcome.error}`);
-    }
-    // Fail-open: the shell install didn't happen — the engine-style relaunch
-    // restores the current shell (and its engine). isQuitting may already be
-    // true; applyEngineUpdate sets it again, harmless.
-    return applyEngineUpdate();
+    // runShellApplyWithFallback never throws, so outcome.ok===false can only
+    // mean the flight machinery itself failed — report it, do not re-act.
+    if (!outcome.ok) return { ok: false, error: outcome.error };
+    const r = outcome.value;
+    return r.ok ? { ok: true } : { ok: false, error: r.error };
   }
   return applyEngineUpdate();
 }
@@ -2827,22 +2842,46 @@ async function trayLoginToWork4You() {
 
 async function trayCheckForUpdates() {
   // 0.3.8: unified path — shell first, then engine (same as the web chip).
-  const r = await checkUnifiedUpdate();
-  if (r && r.available) {
-    void applyUnifiedUpdate();
-    return;
-  }
-  try {
-    await dialog.showMessageBox({
-      type: "info",
-      title: "Work4You",
-      message: r
-        ? "Você já está na versão mais recente."
-        : "Não deu para verificar atualizações agora. Tente de novo mais tarde.",
-    });
-  } catch {
-    /* best-effort — the dialog is informative only */
-  }
+  //
+  // The decisions live in tray-update-flow.cjs (Electron-free, tested); this
+  // only wires them to the real check/apply and to the tray's one channel to
+  // the user, a dialog. The bug it closes: this used to call
+  // applyUnifiedUpdate() with NO token, throwing away the plan the check had
+  // just produced and forcing a second check — so a feed blip between the two
+  // silently cancelled an update the user had already been shown. The result
+  // was `void`-ed, so nothing was logged either.
+  await trayUpdateFlow.runTrayUpdateCheck({
+    check: () => checkUnifiedUpdate(),
+    apply: (token) => applyUnifiedUpdate(token),
+    log: updaterLog,
+    notify: async (kind, detail) => {
+      if (kind === "stale-plan") {
+        const res = await dialog.showMessageBox({
+          type: "warning",
+          title: "Work4You",
+          message: "O plano de atualização mudou enquanto preparávamos a instalação.",
+          detail: "Podemos verificar de novo e aplicar a versão mais recente.",
+          buttons: ["Tentar de novo", "Agora não"],
+          defaultId: 0,
+          cancelId: 1,
+        });
+        return res.response === 0;
+      }
+      const message =
+        kind === "up-to-date"
+          ? "Você já está na versão mais recente."
+          : kind === "check-failed"
+            ? "Não deu para verificar atualizações agora. Tente de novo mais tarde."
+            : "Não deu para aplicar a atualização agora. Tente de novo pela bandeja.";
+      await dialog.showMessageBox({
+        type: kind === "up-to-date" ? "info" : "warning",
+        title: "Work4You",
+        message,
+        detail: kind === "apply-failed" && detail && detail.reason ? String(detail.reason) : undefined,
+      });
+      return undefined;
+    },
+  });
 }
 
 function trayIconPath() {

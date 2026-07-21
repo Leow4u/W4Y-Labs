@@ -62,8 +62,13 @@ interface DesktopUpdateBridge {
   } | null>;
   apply: (token?: string) => Promise<unknown>;
   /**
-   * Subscribe to update progress. Optional: shells older than this feature
-   * simply don't have it, and the chip falls back to polling.
+   * Subscribe to update STATE CHANGES — not progress. The shell pushes the
+   * whole state on a transition, and in practice the chip only acts on the
+   * terminal one (anything emitted mid-install carries running:true and is
+   * ignored so an in-flight update cannot clear its own pill). There is no
+   * percentage and no step-by-step feed; a live progress bar is a follow-up.
+   * Optional: shells older than this feature don't have it and the chip falls
+   * back to polling.
    */
   onEvent?: (cb: (payload: DesktopUpdateEvent) => void) => () => void;
 }
