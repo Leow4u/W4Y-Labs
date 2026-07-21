@@ -76,6 +76,10 @@ const REGEX_PRECEDING_KEYWORDS = new Set([
   "else",
   "yield",
   "await",
+  // `throw /re/` is valid JavaScript and was still producing a phantom module:
+  // the regex read as a string and leaked the rest of the line, comment
+  // included, into the scanner.
+  "throw",
 ]);
 
 function regexCanStart(out) {

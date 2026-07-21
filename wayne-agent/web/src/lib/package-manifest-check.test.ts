@@ -381,3 +381,29 @@ describe("regexCanStart — regex after a keyword", () => {
     expect(src.match(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g)).toBeNull();
   });
 });
+
+describe("regexCanStart — `throw` was still missing", () => {
+  it("no phantom module after `throw`", () => {
+    // `throw /re/` is valid JavaScript. It was not in the keyword set, so the
+    // regex read as a string and leaked the rest of the line — comment
+    // included — into the scanner, exactly like the 0x08 defect did.
+    expect(localRequires(`throw /'/; // require("./ghost.cjs")`)).toEqual([]);
+  });
+
+  it("the keywords already covered still work", () => {
+    expect(localRequires(`return /'/; // require("./r.cjs")`)).toEqual([]);
+    expect(localRequires(`await /'/ ; // require("./a.cjs")`)).toEqual([]);
+    expect(localRequires(`yield /'/ ; // require("./y.cjs")`)).toEqual([]);
+  });
+
+  it("division after an identifier ending in a keyword is still division", () => {
+    expect(localRequires(`const j = x.join / 2; require("./real.cjs");`)).toEqual([
+      "real.cjs",
+    ]);
+  });
+
+  it("requires inside comments still do not leak", () => {
+    expect(localRequires(`// require("./c.cjs")`)).toEqual([]);
+    expect(localRequires(`/* require("./c2.cjs") */`)).toEqual([]);
+  });
+});
