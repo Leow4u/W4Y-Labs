@@ -174,6 +174,24 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
       // Echoes the token from the check that produced this chip, so the main
       // cannot apply a plan a later check overwrote.
       .apply(update?.token)
+      .then((res) => {
+        // The main now REFUSES a plan it cannot honour instead of silently
+        // substituting another one. A refusal is not a dead click: ask for a
+        // fresh plan so the next press has something valid to apply.
+        const refused =
+          res && typeof res === "object" && (res as { error?: string }).error === "stale-plan";
+        if (refused) void bridge.check().then((r) => {
+          setUpdate(
+            r && r.available
+              ? {
+                  version: typeof r.version === "string" && r.version ? r.version : null,
+                  kind: typeof r.kind === "string" ? r.kind : undefined,
+                  token: typeof r.token === "string" ? r.token : undefined,
+                }
+              : null,
+          );
+        });
+      })
       .catch(() => {
         /* a casca já registra o motivo; aqui só garantimos o retry */
       })

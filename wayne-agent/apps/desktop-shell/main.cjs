@@ -110,12 +110,21 @@ const bootPreview = require("./boot-preview.cjs");
 const engineSlots = require("./engine-slots.cjs");
 const updateState = require("./engine-update-state.cjs");
 const { createSingleFlight } = require("./single-flight.cjs");
+const updateScheduler = require("./update-scheduler.cjs");
 
 // One engine update at a time, across EVERY entry point: the 30-minute timer,
 // the tray, and the renderer's retry. The previous guard (`engine.updating`)
 // was read before the first await and written after it, so two callers could
 // both walk past it and install over the same slot tree.
 const engineUpdateFlight = createSingleFlight();
+
+// The SHELL apply needs the same protection. It kills the engine, downloads
+// ~85MB and calls quitAndInstall: two of those at once (renderer chip + tray
+// item) means two installers over one directory. The React guard in
+// AuthWidget only stops a double-click inside one window — it cannot see the
+// tray, a second window, or the automatic paths, so it stays what it is: a UX
+// nicety, not the lock.
+const shellApplyFlight = createSingleFlight();
 // 0.3.8: shell self-update (electron-updater atrás de um seam fail-open).
 const shellUpdater = require("./shell-updater.cjs");
 // Desktop-2: fs/git locais portados do Hermes (módulos git/fs puros). O executor
@@ -1666,6 +1675,10 @@ function verifyPromotion() {
       attempts: 0,
       lastError: null,
       lastErrorStage: null,
+      // The engine booted: nothing is pending any more, including a manual
+      // retry that had failed earlier. Leaving the flag set kept the warning
+      // pill up over a version that was already running fine.
+      manualRetryFailed: false,
     });
     const current = readEngineSource();
     if (current && current.previousRoot) {
@@ -1690,8 +1703,15 @@ function scheduleBackgroundEngineUpdate() {
   const FIRST_DELAY = 40_000;
   const EVERY = 4 * 60 * 60 * 1000;
   engine.updateTimer = setTimeout(function run() {
-    void runBackgroundEngineUpdate().finally(() => {
-      engine.updateTimer = setTimeout(run, EVERY);
+    // runBackgroundEngineUpdate returns a single-flight HANDLE, not a promise.
+    // Calling .finally() on it threw TypeError inside the timer and killed the
+    // reschedule; runUpdateTick owns that contract now and is tested on it.
+    void updateScheduler.runUpdateTick({
+      run: () => runBackgroundEngineUpdate(),
+      schedule: () => {
+        engine.updateTimer = setTimeout(run, EVERY);
+      },
+      onError: (err) => updaterLog(`background tick failed: ${String((err && err.message) || err)}`),
     });
   }, FIRST_DELAY);
 }
@@ -1710,7 +1730,23 @@ function runBackgroundEngineUpdate() {
   }
   // The lock is taken synchronously inside run(); the work below only starts
   // on the next microtask, so no second caller can slip in during the awaits.
-  return engineUpdateFlight.run(() => runBackgroundEngineUpdateWork());
+  const handle = engineUpdateFlight.run(() => runBackgroundEngineUpdateWork());
+  if (handle.started) {
+    // TERMINAL event, emitted AFTER the flight settles.
+    //
+    // Everything the work itself emits carries running:true, because the
+    // single-flight still holds the lock while the work function runs — and
+    // the chip deliberately ignores those to avoid clearing the pill
+    // mid-install. Without this last event the renderer never heard that the
+    // update had FINISHED, so success and failure both landed silently and
+    // the chip waited for its next poll.
+    void handle.promise.then(() => {
+      // Chained on the settled promise, so single-flight has already cleared
+      // its slot: isRunning() is false and the payload says running:false.
+      notifyUpdateState({ reason: "flight-finished" });
+    });
+  }
+  return handle;
 }
 
 async function runBackgroundEngineUpdateWork() {
@@ -1794,6 +1830,10 @@ async function runBackgroundEngineUpdateWork() {
         attempts: 0,
         lastError: null,
         lastErrorStage: null,
+        // A successful stage clears the manual-retry warning too. Without
+        // this the flag survived a working update and shouldWarnUser() kept
+        // showing "pending" over a build that had already landed.
+        manualRetryFailed: false,
       });
     } else {
       updateState.writeState(WAYNE_HOME, {
@@ -1826,14 +1866,20 @@ async function runBackgroundEngineUpdateWork() {
  */
 function notifyUpdateState(extra) {
   try {
-    if (mainWindow && !mainWindow.isDestroyed()) {
-      const state = updateState.readState(WAYNE_HOME);
-      mainWindow.webContents.send("w4y:update:event", {
+    const state = updateState.readState(WAYNE_HOME);
+    // Every window, not just the main one: "Nova janela" (Ctrl+Shift+N) shows
+    // the same chip, and a secondary window used to sit on stale state until
+    // its own 30-minute poll came round.
+    for (const win of BrowserWindow.getAllWindows()) {
+      if (!win || win.isDestroyed()) continue;
+      win.webContents.send("w4y:update:event", {
         type: "engine-state",
         phase: state.phase || "idle",
         version: state.version || null,
         attempts: state.attempts || 0,
-        stalled: updateState.isStalled(state),
+        // Same question checkEngineUpdate answers, so the event and the check
+        // can never disagree about whether to warn.
+        stalled: updateState.shouldWarnUser(state),
         running: engineUpdateFlight.isRunning(),
         lastError: state.lastError || null,
         lastErrorStage: state.lastErrorStage || null,
@@ -2101,28 +2147,28 @@ async function retryEngineUpdate() {
     });
     notifyUpdateState({ reason: "retry-started" });
 
+    // Joining an in-flight run is NOT a shortcut to success. The previous
+    // version awaited the shared promise, threw the result away and answered
+    // {ok:true} — so a retry that piggybacked on a failing install reported
+    // success, cleared the warning, and left the user with nothing to click.
+    // Both paths are judged by the same two questions below.
     const handle = runBackgroundEngineUpdate();
-    if (!handle.started) {
-      // Someone else already holds the lock — join it rather than firing a
-      // second install over the same tree.
-      await handle.promise;
-      return { ok: true, joined: true };
-    }
+    const joined = !handle.started;
     const res = await handle.promise;
-    if (!res.ok) {
-      updateState.writeState(WAYNE_HOME, { manualRetryFailed: true });
-      notifyUpdateState({ reason: "retry-failed" });
-      return { ok: false, error: res.error };
-    }
-    // The work may have completed without staging anything (already current).
+
     const after = updateState.readState(WAYNE_HOME);
-    if (after.phase === "failed") {
+    const failed = !res.ok || after.phase === "failed";
+    if (failed) {
       updateState.writeState(WAYNE_HOME, { manualRetryFailed: true });
       notifyUpdateState({ reason: "retry-failed" });
-      return { ok: false, error: after.lastError || "update failed" };
+      return {
+        ok: false,
+        joined,
+        error: res.ok ? after.lastError || "update failed" : res.error,
+      };
     }
     notifyUpdateState({ reason: "retry-done" });
-    return { ok: true };
+    return { ok: true, joined };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
   }
@@ -2172,13 +2218,34 @@ function rememberSnapshot(snap) {
   return token;
 }
 
-/** Most recent snapshot — the fallback for callers that pass no token. */
-function latestSnapshot() {
-  let best = null;
-  for (const v of updateSnapshots.values()) {
-    if (!best || v.at >= best.at) best = v;
+/**
+ * Resolves a token to the snapshot it names — and nothing else.
+ *
+ * The first version fell back to `latestSnapshot()` whenever the token missed:
+ *
+ *     (token && updateSnapshots.get(token)) || latestSnapshot()
+ *
+ * which defeats the whole point. A token exists to pin a decision; silently
+ * swapping in a DIFFERENT plan when the pinned one is gone is exactly the bug
+ * the snapshots were introduced to prevent — worse, it happens precisely when
+ * the state is most confused (expired, already used, or overwritten).
+ *
+ * @returns {{ok: true, snapshot: object} | {ok: false, reason: string}}
+ */
+function resolveSnapshot(token) {
+  if (!token) return { ok: false, reason: "no-token" };
+  const snap = updateSnapshots.get(token);
+  if (!snap) return { ok: false, reason: "stale-plan" }; // unknown or consumed
+  if (Date.now() - snap.at > SNAPSHOT_TTL_MS) {
+    updateSnapshots.delete(token);
+    return { ok: false, reason: "stale-plan" };
   }
-  return best;
+  return { ok: true, snapshot: snap };
+}
+
+/** A plan is single-use: applying it consumes it. */
+function consumeSnapshot(token) {
+  updateSnapshots.delete(token);
 }
 
 function updaterLog(line) {
@@ -2215,28 +2282,63 @@ async function checkUnifiedUpdate() {
  * @param {string} [token] snapshot returned by the check this apply belongs to
  */
 async function applyUnifiedUpdate(token) {
-  const snap = (token && updateSnapshots.get(token)) || latestSnapshot();
-  if (!snap) return applyEngineUpdate();
+  let snap;
+  if (token) {
+    const resolved = resolveSnapshot(token);
+    if (!resolved.ok) {
+      // Never guess. The caller's plan is gone; it must check again.
+      return { ok: false, error: "stale-plan", reason: resolved.reason };
+    }
+    snap = resolved.snapshot;
+    consumeSnapshot(token);
+  } else {
+    // Tray and pre-token clients have no plan of their own. Rather than borrow
+    // somebody else's, take a fresh decision right now.
+    const fresh = await checkUnifiedUpdate();
+    if (!fresh || !fresh.available) return { ok: false, error: "no-update" };
+    const resolved = resolveSnapshot(fresh.token);
+    if (!resolved.ok) return { ok: false, error: "stale-plan", reason: resolved.reason };
+    snap = resolved.snapshot;
+    consumeSnapshot(fresh.token);
+  }
 
   // A stalled engine update has nothing staged — restarting would land on the
   // same version and look like the click did nothing. Retry instead.
   if (snap.kind === "engine" && snap.engineKind === "stalled") {
     return retryEngineUpdate();
   }
+  if (snap.kind === "shell") {
+    // The plan named a shell version; refuse if the updater no longer holds
+    // that same one (a newer feed check can swap what is pending underneath).
+    const pendingVersion = shellUpdater.pendingVersion?.() ?? null;
+    if (!shellUpdater.hasPending()) {
+      return { ok: false, error: "stale-plan", reason: "shell-not-pending" };
+    }
+    if (snap.version && pendingVersion && String(pendingVersion) !== String(snap.version)) {
+      return { ok: false, error: "stale-plan", reason: "shell-version-changed" };
+    }
+  }
   if (snap.kind === "shell" && shellUpdater.hasPending()) {
-    try {
+    // Serialized: killEngine + an 85MB download + quitAndInstall must never
+    // run twice at once. A second caller JOINS the first rather than starting
+    // its own installer over the same directory.
+    const flight = shellApplyFlight.run(async () => {
       killEngine();
-      const r = await shellUpdater.apply({
+      return shellUpdater.apply({
         beforeQuit: () => {
           // The close→hide-to-tray interception must not fight the
           // installer's quit (same latch the tray's "Sair" uses).
           isQuitting = true;
         },
       });
+    });
+    const outcome = await flight.promise;
+    if (outcome.ok) {
+      const r = outcome.value;
       if (r && r.ok) return { ok: true }; // process dies inside quitAndInstall
       updaterLog(`apply fell back to relaunch: ${(r && r.error) || "unknown"}`);
-    } catch (e) {
-      updaterLog(`apply fell back to relaunch: ${String((e && e.message) || e)}`);
+    } else {
+      updaterLog(`apply fell back to relaunch: ${outcome.error}`);
     }
     // Fail-open: the shell install didn't happen — the engine-style relaunch
     // restores the current shell (and its engine). isQuitting may already be

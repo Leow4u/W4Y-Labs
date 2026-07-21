@@ -204,4 +204,16 @@ function hasPending() {
   return !!_state.pendingVersion;
 }
 
-module.exports = { init, check, apply, hasPending };
+/**
+ * Version the last successful check found, or null.
+ *
+ * Exposed so the unified apply can refuse a plan whose shell version moved
+ * underneath it: a feed check between someone's check() and their apply()
+ * rewrites `_state.pendingVersion`, and applying the old plan would install a
+ * different build than the one the caller decided on.
+ */
+function pendingVersion() {
+  return _state.pendingVersion;
+}
+
+module.exports = { init, check, apply, hasPending, pendingVersion };
