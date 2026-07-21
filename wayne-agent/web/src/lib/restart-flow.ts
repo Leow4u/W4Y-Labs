@@ -88,6 +88,14 @@ export function initialRestartFlow(): RestartFlowState {
   return { phase: "idle", source: null, error: null, profile: null, queued: [] };
 }
 
+function withoutProfile(
+  queued: RestartFlowState["queued"],
+  profile: RestartProfile,
+): RestartProfile[] {
+  const key = restartProfileKey(profile);
+  return queued.filter((p) => restartProfileKey(p) !== key);
+}
+
 function enqueue(queued: RestartFlowState["queued"], profile: RestartProfile): RestartProfile[] {
   const key = restartProfileKey(profile);
   return queued.some((p) => restartProfileKey(p) === key) ? queued : [...queued, profile];
@@ -124,13 +132,15 @@ export function reduceRestartFlow(
           effect: "none",
         };
       }
+      // Starting THIS profile must not discard other profiles already waiting:
+      // they are different gateways whose changes are still owed.
       return {
         state: {
           phase: "restarting",
           source: event.source,
           error: null,
           profile: event.profile,
-          queued: [],
+          queued: withoutProfile(state.queued, event.profile),
         },
         effect: "restart",
       };
@@ -146,13 +156,14 @@ export function reduceRestartFlow(
           effect: "none",
         };
       }
+      // Same rule as above: a retry of one gateway keeps the others queued.
       return {
         state: {
           ...state,
           phase: "restarting",
           error: null,
           profile: event.profile,
-          queued: [],
+          queued: withoutProfile(state.queued, event.profile),
         },
         effect: "restart",
       };
@@ -169,16 +180,23 @@ export function reduceRestartFlow(
     }
     case "restart-failed": {
       // The change stays saved-but-not-live: the phase keeps the pending
-      // meaning AND gains a retry affordance. The queue is dropped on purpose —
-      // the retry re-reads config from disk, so a queued run would be a second
-      // restart for a change the first one will already pick up.
+      // meaning AND gains a retry affordance.
+      //
+      // The queue keeps every OTHER profile. Clearing it wholesale (the
+      // previous behaviour) was wrong the moment more than one gateway was
+      // involved: a failure on agent A silently discarded agent B's saved
+      // change, and the retry the user then pressed restarts A — it cannot
+      // apply B's config, so B's change was simply lost. Only entries for the
+      // failing profile are dropped, because the retry does re-read that one's
+      // config from disk and a queued run would duplicate it.
+      const failedKey = restartProfileKey(state.profile);
       return {
         state: {
           phase: "failed",
           source: state.source,
           error: event.error,
           profile: state.profile,
-          queued: [],
+          queued: state.queued.filter((p) => restartProfileKey(p) !== failedKey),
         },
         effect: "none",
       };
@@ -223,71 +241,44 @@ export function restartNoticeMode(
   return "hidden";
 }
 
-/** Just enough of `ActionStatusResponse` to decide; keeps this file api-free. */
-export interface RestartActionStatus {
-  running: boolean;
-  exit_code: number | null;
-}
-
-export type RestartVerdict =
-  /** Still going — poll again. */
-  | { kind: "waiting" }
-  /** Finished, exit code 0. */
-  | { kind: "done" }
-  /**
-   * Finished, but the action left no exit code (the backend does not track it
-   * any more). We cannot prove success and we cannot prove failure — reporting
-   * failure would be a lie, so it resolves, flagged.
-   */
-  | { kind: "done-unverified" }
-  | { kind: "failed"; error: string };
-
-/**
- * Whether a restart actually finished.
- *
- * `POST /api/gateway/restart` returns `{ok:true, pid}` the moment the process
- * is SPAWNED — it says nothing about whether the gateway came back. The flow
- * treated that as success, so the badge went green and the toast said "done"
- * while the restart was still running, or had already died. The real answer is
- * in `GET /api/actions/gateway-restart/status`.
+/*
+ * The success/failure verdict used to live here, judging an action's exit code.
+ * It moved to the backend (wayne_cli/restart_jobs.judge_restart) because exit
+ * codes cannot answer the question: the gateway may run in the FOREGROUND and
+ * never exit, and a process exiting 0 proves only that a command ran. Only the
+ * server can check real gateway health and whether the config was applied, so
+ * the frontend observes a job now instead of forming its own opinion.
  */
-export function judgeRestartAction(
-  status: RestartActionStatus,
-  elapsedMs: number,
-  timeoutMs: number,
-): RestartVerdict {
-  if (status.running) {
-    return elapsedMs >= timeoutMs
-      ? { kind: "failed", error: `restart still running after ${Math.round(timeoutMs / 1000)}s` }
-      : { kind: "waiting" };
-  }
-  if (status.exit_code === null) return { kind: "done-unverified" };
-  if (status.exit_code === 0) return { kind: "done" };
-  return { kind: "failed", error: `restart exited with code ${status.exit_code}` };
-}
 
-/** The channel shape hydration needs — the backend's derived per-platform state. */
+/** The backend's durable "this profile owes a restart" answer. */
 export interface RestartHydrationInput {
-  state: string;
-  enabled?: boolean;
+  pending: boolean;
+  reasons?: string[];
 }
 
 /**
- * Rebuild "saved but not live" from the backend after a remount.
+ * Rebuild "saved but not live" from the backend's DURABLE marker.
  *
- * The flow lived only in React state, so navigating away and back reset it to
- * idle while the gateway was still running the OLD config: the badge said
- * `pending_restart` and nothing on screen would ever resolve it. The backend
- * derives that state itself (enabled + configured + gateway up + the platform
- * absent from the running gateway — web_server.py), so it is the durable
- * source of truth and survives any remount, reload or second tab.
+ * Two rounds of getting this wrong:
+ *
+ * 1. The flow lived only in React state, so navigating away and back reset it
+ *    to idle while the gateway was still running the old config.
+ * 2. Hydrating from `platform.state === "pending_restart"` fixed the reload but
+ *    not the truth: that derivation is blind to a DISABLE. The instant config
+ *    says disabled the backend reports `disabled`, while the running gateway
+ *    happily keeps serving the channel — indistinguishable from "nothing to
+ *    do", so turning a channel OFF looked applied when it was not.
+ *
+ * The marker is written when the change is written (restart_pending.json in the
+ * profile's WAYNE_HOME) and cleared only after confirmed health, so it carries
+ * enable, disable and credential changes alike, and survives reload, remount, a
+ * second tab and a restart of the web server.
  */
 export function hydrateRestartFlow(
-  platforms: RestartHydrationInput[],
+  pending: RestartHydrationInput | null | undefined,
   profile: RestartProfile,
 ): RestartFlowState | null {
-  const stale = platforms.some((p) => p.state === "pending_restart");
-  if (!stale) return null;
+  if (!pending || !pending.pending) return null;
   return {
     phase: "pending",
     source: null,

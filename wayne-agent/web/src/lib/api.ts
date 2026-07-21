@@ -1094,10 +1094,23 @@ export const api = {
   // `profile` picks WHICH gateway restarts (web_server.py: restart_gateway takes
   // it). Channels are profile-scoped, so a per-agent change must not bounce the
   // global gateway and leave the agent's own config dead.
+  //
+  // The reply identifies THIS operation with a `job_id`. It used to answer with
+  // the global action name `gateway-restart`, through which two profiles
+  // restarting in sequence were indistinguishable — a status read could hand
+  // job A the result of process B.
   restartGateway: (profile?: string) =>
-    fetchJSON<ActionResponse>(`/api/gateway/restart${profileQuery(profile)}`, {
+    fetchJSON<RestartJobResponse>(`/api/gateway/restart${profileQuery(profile)}`, {
       method: "POST",
     }),
+  /** Status of ONE restart operation, by its own id. */
+  getRestartJob: (jobId: string) =>
+    fetchJSON<RestartJobResponse>(`/api/gateway/restart/${encodeURIComponent(jobId)}`),
+  /** Durable "this profile owes a restart" mark — survives reload and remount. */
+  getRestartPending: (profile?: string) =>
+    fetchJSON<RestartPendingResponse>(
+      `/api/gateway/restart-pending${profileQuery(profile)}`,
+    ),
   updateWayne: () =>
     fetchJSON<ActionResponse>("/api/wayne/update", { method: "POST" }),
   checkWayneUpdate: (force = false) =>
@@ -2214,6 +2227,28 @@ interface FetchJSONOptions {
    *  whose 401 is an expected signal (e.g. /api/auth/me in non-gated mode)
    *  rather than evidence of a rotated session token. */
   allowUnauthorized?: boolean;
+}
+
+/** One restart operation, identified by `job_id` rather than a global name. */
+export interface RestartJobResponse {
+  job_id: string;
+  profile: string | null;
+  /** "queued" | "running" | "succeeded" | "failed" — decided by the backend. */
+  state: string;
+  pid: number | null;
+  /** True when this request joined an operation that was already queued. */
+  reused: boolean;
+  error: string | null;
+  ok: boolean;
+}
+
+export interface RestartPendingResponse {
+  profile: string | null;
+  pending: boolean;
+  /** "enable" | "disable" | "credentials" — a disable is invisible to state. */
+  reasons: string[];
+  platforms: string[];
+  since: number | null;
 }
 
 export interface ActionStatusResponse {

@@ -317,7 +317,7 @@ export default function ChannelsPage() {
   // reset it to idle while the gateway was still running the old config, so the
   // badge said pending_restart and nothing on screen could ever resolve it.
   useEffect(() => {
-    hydrateRestart(platforms, profileParam ?? null);
+    void hydrateRestart(profileParam ?? null);
   }, [platforms, profileParam, hydrateRestart]);
   const restarting = isRestarting(restartState);
   const restartNotice = restartNoticeMode(restartState, internal);
@@ -469,7 +469,7 @@ export default function ChannelsPage() {
         disabled={restarting}
         prefix={restarting ? <Spinner /> : <RotateCw className="h-4 w-4" />}
       >
-        {restarting ? "Restarting…" : "Restart gateway"}
+        {restarting ? t.status.restartingGateway : t.status.restartGateway}
       </Button>,
     );
     return () => setEnd(null);
@@ -588,9 +588,9 @@ export default function ChannelsPage() {
             <div className="flex items-center gap-2 text-sm">
               <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
               <span>
-                {restartNotice === "failed"
-                  ? c.restartPending
-                  : "Changes are saved. Restart the gateway for them to take effect."}
+                {/* One key for both screens: the drawer says the same thing
+                    from the same string, so page and drawer cannot drift. */}
+                {c.restartPending}
               </span>
             </div>
             <Button
@@ -603,8 +603,8 @@ export default function ChannelsPage() {
               {restartNotice === "failed"
                 ? t.common.retry
                 : restarting
-                  ? "Restarting…"
-                  : "Restart now"}
+                  ? t.status.restartingGateway
+                  : t.status.restartGateway}
             </Button>
           </CardContent>
         </Card>

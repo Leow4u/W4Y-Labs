@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
+import { observeRestart } from "@/lib/restart-observer";
 import {
   hydrateRestartFlow,
   initialRestartFlow,
-  judgeRestartAction,
   reduceRestartFlow,
   type RestartEffect,
   type RestartFlowEvent,
   type RestartFlowState,
   type RestartHydrationInput,
+  restartProfileKey,
   type RestartProfile,
   type RestartSource,
 } from "@/lib/restart-flow";
@@ -42,11 +43,11 @@ export interface RestartFlow {
   /** Feed the machine a restart somebody else performed (Telegram onboarding). */
   reportOutcome: (ok: boolean, error?: string) => void;
   /**
-   * Rebuild "saved but not live" from the backend's own per-platform state, so
-   * it survives a remount. Call it whenever the platform list is (re)loaded;
-   * it never overwrites a phase this session is actively driving.
+   * Rebuild "saved but not live" from the backend's DURABLE marker, so it
+   * survives reload, remount and a second tab. Call it whenever the screen
+   * (re)loads; it never overwrites a phase this session is actively driving.
    */
-  hydrate: (platforms: RestartHydrationInput[], profile?: RestartProfile) => void;
+  hydrate: (profile?: RestartProfile) => Promise<void>;
 }
 
 /**
@@ -74,42 +75,26 @@ export function useRestartFlow(onRestarted?: () => void): RestartFlow {
   /**
    * Ask the gateway to restart AND wait for the action to actually finish.
    *
-   * The POST resolves as soon as the restart process is spawned. Reporting
-   * success there told the user "applied" while the gateway was still coming
-   * up — or had already died — so the badge went green over a change that was
-   * not live. `judgeRestartAction` (pure, tested) reads the real verdict from
-   * the action status; this function only does the waiting.
+   * The POST only starts (or joins) the operation. This waits on the JOB the
+   * backend created for it; the backend decides success from real gateway
+   * health, so this hook no longer judges anything — it observes.
    */
   const awaitRestart = useCallback(
     async (profile: RestartProfile): Promise<{ ok: true; verified: boolean } | { ok: false; error: string }> => {
-      let name: string;
-      try {
-        const res = await api.restartGateway(profile ?? undefined);
-        if (res.ok === false) return { ok: false, error: res.error || "restart refused" };
-        name = res.name || "gateway-restart";
-      } catch (e) {
-        return { ok: false, error: String(e) };
-      }
-      const startedAt = Date.now();
-      for (;;) {
-        await sleep(POLL_INTERVAL_MS);
-        let status;
-        try {
-          status = await api.getActionStatus(name, 1);
-        } catch {
-          // A transient status read must not condemn a restart that is very
-          // likely fine — the gateway bouncing can itself break this request.
-          // Only the timeout below ends the wait.
-          if (Date.now() - startedAt >= RESTART_TIMEOUT_MS) {
-            return { ok: false, error: "restart status unreadable" };
-          }
-          continue;
-        }
-        const verdict = judgeRestartAction(status, Date.now() - startedAt, RESTART_TIMEOUT_MS);
-        if (verdict.kind === "waiting") continue;
-        if (verdict.kind === "failed") return { ok: false, error: verdict.error };
-        return { ok: true, verified: verdict.kind === "done" };
-      }
+      // Start the operation and watch THAT job. Polling the global
+      // `gateway-restart` action name meant job A could be handed process B's
+      // result. The logic lives in lib/restart-observer so it is testable
+      // without a DOM; success comes from the backend's health check, so
+      // `verified` is no longer a guess this hook makes.
+      const res = await observeRestart(profile, {
+        start: (p) => api.restartGateway(p ?? undefined),
+        poll: (id) => api.getRestartJob(id),
+        sleep,
+        now: () => Date.now(),
+        intervalMs: POLL_INTERVAL_MS,
+        timeoutMs: RESTART_TIMEOUT_MS,
+      });
+      return res.ok ? { ok: true, verified: true } : { ok: false, error: res.error };
     },
     [],
   );
@@ -157,20 +142,36 @@ export function useRestartFlow(onRestarted?: () => void): RestartFlow {
     [apply, performRestart],
   );
 
-  const hydrate = useCallback(
-    (platforms: RestartHydrationInput[], profile: RestartProfile = null) => {
-      // Never fight a phase this session is driving: an in-flight restart makes
-      // the backend report `pending_restart` too, and overwriting it would
-      // resurrect the very "stuck" notice the restart is about to clear.
-      const current = stateRef.current;
-      if (current.phase === "restarting" || current.phase === "failed") return;
-      const next = hydrateRestartFlow(platforms, profile) ?? initialRestartFlow();
-      if (next.phase === current.phase && next.hydrated === current.hydrated) return;
-      stateRef.current = next;
-      setState(next);
-    },
-    [],
-  );
+  const hydrate = useCallback(async (profile: RestartProfile = null) => {
+    // The backend owns this truth now. Reading its durable marker (rather than
+    // guessing from the platform list) is what makes a DISABLE visible and what
+    // keeps pending/retry alive across a reload, a remount and a second tab.
+    let pending: RestartHydrationInput | null = null;
+    try {
+      pending = await api.getRestartPending(profile ?? undefined);
+    } catch {
+      // Unknown is not "nothing pending" — leave whatever we have rather than
+      // clearing a notice the user may need.
+      return;
+    }
+    // Never fight a phase this session is driving: a restart in flight has the
+    // marker still on disk, and overwriting would resurrect the very notice the
+    // restart is about to clear.
+    const current = stateRef.current;
+    if (current.phase === "restarting" || current.phase === "failed") return;
+    const next = hydrateRestartFlow(pending, profile) ?? initialRestartFlow();
+    // Compare the PROFILE too: switching between two pending agents must move
+    // the state, not sit on the first one's phase because the phase matched.
+    if (
+      next.phase === current.phase &&
+      next.hydrated === current.hydrated &&
+      restartProfileKey(next.profile) === restartProfileKey(current.profile)
+    ) {
+      return;
+    }
+    stateRef.current = next;
+    setState(next);
+  }, []);
 
   const reportOutcome = useCallback(
     (ok: boolean, error = "") => {

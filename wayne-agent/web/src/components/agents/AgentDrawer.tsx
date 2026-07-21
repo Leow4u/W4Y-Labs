@@ -329,7 +329,7 @@ export function AgentDrawer({
   // constantly (it opens per agent), so a flow living only in React state was
   // guaranteed to be lost while the agent config was still not live.
   useEffect(() => {
-    if (platforms) hydrateRestart(platforms, agent.name);
+    if (platforms) void hydrateRestart(agent.name);
   }, [platforms, agent.name, hydrateRestart]);
   const restarting = isRestarting(restartState);
   const restartNotice = restartNoticeMode(restartState, internal);
@@ -819,7 +819,7 @@ export function AgentDrawer({
               {restartNotice !== "hidden" && (
                 <div className="flex items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5">
                   <span className="min-w-0 flex-1 text-xs text-muted-foreground">
-                    {restartNotice === "failed" ? t.channels.restartPending : ag.chPending}
+                    {t.channels.restartPending}
                   </span>
                   <Button
                     ghost
