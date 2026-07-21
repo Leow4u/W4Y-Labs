@@ -104,6 +104,46 @@ export function humanizeKey(key: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
 
+/**
+ * The backend's channel state, in the owner's language.
+ *
+ * `state` arrives as a raw identifier — "not_configured", "pending_restart",
+ * "gateway_stopped". The channels list already translated it; the agent drawer
+ * printed it verbatim, so a row said "WhatsApp / not_configured" — English, in
+ * code, inside a product in Portuguese.
+ *
+ * Living here instead of inside either screen so the two cannot drift: the
+ * whole point of today's work is that one truth beats two copies.
+ *
+ * An unknown state falls back to the raw string. That is deliberate: a new
+ * backend state should look odd and get reported, not disappear behind a
+ * plausible-but-wrong label.
+ */
+export interface ChannelStateCopy {
+  stateConnected: string;
+  statePendingRestart: string;
+  stateGatewayStopped: string;
+  stateStartFailed: string;
+  stateDisconnected: string;
+  stateNotConfigured: string;
+  stateDisabled: string;
+  stateError: string;
+}
+
+export function channelStateLabel(state: string, c: ChannelStateCopy): string {
+  const labels: Record<string, string> = {
+    connected: c.stateConnected,
+    pending_restart: c.statePendingRestart,
+    gateway_stopped: c.stateGatewayStopped,
+    startup_failed: c.stateStartFailed,
+    disconnected: c.stateDisconnected,
+    not_configured: c.stateNotConfigured,
+    disabled: c.stateDisabled,
+    fatal: c.stateError,
+  };
+  return labels[state] ?? state;
+}
+
 /** True for the values a boolean field accepts as "on". */
 export function isTruthyEnv(value: string | null | undefined): boolean {
   return ["1", "true", "yes", "on"].includes(String(value ?? "").trim().toLowerCase());

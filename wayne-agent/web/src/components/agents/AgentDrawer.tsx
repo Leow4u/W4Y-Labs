@@ -34,6 +34,7 @@ import type { CronJob, McpServer, MessagingPlatform, SessionInfo, SkillInfo } fr
 import { timeAgoShort } from "@/lib/utils";
 import { defaultRoutineSchedule } from "@/lib/agent-draft";
 import { buildScheduleString, type ScheduleBuilderState } from "@/lib/schedule";
+import { channelStateLabel } from "@/lib/channel-fields";
 import { formatCredits, usdToCredits } from "@/lib/credits";
 import { AgentSchedulePicker } from "@/components/agents/AgentSchedulePicker";
 import { KnowledgePanel } from "@/components/agents/KnowledgePanel";
@@ -754,7 +755,7 @@ export function AgentDrawer({
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium text-foreground">{p.name}</div>
                         <div className="truncate text-xs text-muted-foreground">
-                          {channelPending === p.id ? ag.chPending : p.state}
+                          {channelPending === p.id ? ag.chPending : channelStateLabel(p.state, t.channels)}
                         </div>
                       </div>
                       {/* REAL per-agent on/off: PUT platforms/{id} {enabled,

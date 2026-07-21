@@ -32,7 +32,7 @@ import type {
   ProfileInfo,
   TelegramOnboardingStartResponse,
 } from "@/lib/api";
-import { channelFieldMeta, isTruthyEnv } from "@/lib/channel-fields";
+import { channelFieldMeta, channelStateLabel, isTruthyEnv } from "@/lib/channel-fields";
 import { isInternalView } from "@/lib/internal-view";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { usePageHeader } from "@/contexts/usePageHeader";
@@ -62,19 +62,12 @@ const STATE_TONE: Record<string, BadgeTone> = {
 const SUCCESS_BADGE_CLASS = "bg-success/12 text-success border-success/30";
 
 function stateBadge(state: string, c: ChannelCopy) {
-  const labels: Record<string, string> = {
-    connected: c.stateConnected,
-    pending_restart: c.statePendingRestart,
-    gateway_stopped: c.stateGatewayStopped,
-    startup_failed: c.stateStartFailed,
-    disconnected: c.stateDisconnected,
-    not_configured: c.stateNotConfigured,
-    disabled: c.stateDisabled,
-    fatal: c.stateError,
-  };
   return {
     tone: STATE_TONE[state] ?? ("outline" as BadgeTone),
-    label: labels[state] ?? state,
+    // O mapa de rótulos mora em lib/channel-fields para a gaveta do agente
+    // usar o MESMO — ela imprimia o estado cru ("not_configured") porque tinha
+    // a própria cópia (nenhuma). Aqui fica só o tom do selo, que é desta tela.
+    label: channelStateLabel(state, c),
     className: state === "connected" ? SUCCESS_BADGE_CLASS : undefined,
   };
 }
@@ -387,6 +380,15 @@ export default function ChannelsPage() {
         ),
       );
       setRestartNeeded(true);
+      // Para o usuário final, o reinício do gateway é bastidor — é o que o
+      // banner de reinício sempre disse ao ficar restrito à visão interna
+      // ("for the user the restart is behind the scenes"). Só que ninguém
+      // fazia o reinício por ele: a tela marcava a pendência, escondia o
+      // botão que a resolvia, e o selo ficava "Aplicando…" para sempre.
+      // Na visão interna o botão continua sendo do operador.
+      if (!isInternalView()) {
+        await handleRestart();
+      }
     } catch (e) {
       showToast(c.toggleFailed.replace("{error}", String(e)), "error");
     } finally {
