@@ -309,7 +309,16 @@ export default function ChannelsPage() {
     changeApplied,
     restartNow,
     reportOutcome: reportRestartOutcome,
+    hydrate: hydrateRestart,
   } = useRestartFlow(onRestarted);
+
+  // Rebuild "saved but not live" from the backend on every (re)load. Without
+  // this the flow lived only in React state: leaving the screen and coming back
+  // reset it to idle while the gateway was still running the old config, so the
+  // badge said pending_restart and nothing on screen could ever resolve it.
+  useEffect(() => {
+    hydrateRestart(platforms, profileParam ?? null);
+  }, [platforms, profileParam, hydrateRestart]);
   const restarting = isRestarting(restartState);
   const restartNotice = restartNoticeMode(restartState, internal);
 
@@ -384,7 +393,7 @@ export default function ChannelsPage() {
       // Saving a channel turns it on — same "needs a restart" change as the
       // toggle, so it goes through the same flow instead of only flagging the
       // pending state and walking away.
-      const outcome = await changeApplied("channel-config", !internal);
+      const outcome = await changeApplied("channel-config", !internal, profileParam ?? null);
       if (outcome.ok) {
         showToast(c.saved.replace("{name}", platformCopy(editing, c).name), "success");
       } else {
@@ -415,7 +424,7 @@ export default function ChannelsPage() {
       // nobody ran the restart for them: the screen flagged the change, hid the
       // button that resolved it, and the badge sat on "applying…" forever. In
       // the internal view the button stays the operator's.
-      announceRestart(await changeApplied("channel-toggle", !internal));
+      announceRestart(await changeApplied("channel-toggle", !internal, profileParam ?? null));
     } catch (e) {
       showToast(c.toggleFailed.replace("{error}", String(e)), "error");
     } finally {
@@ -441,8 +450,8 @@ export default function ChannelsPage() {
   // Manual restart: the operator's header button AND the user's "try again"
   // after an automatic restart failed.
   const handleRestart = useCallback(async () => {
-    announceRestart(await restartNow());
-  }, [announceRestart, restartNow]);
+    announceRestart(await restartNow(profileParam ?? null));
+  }, [announceRestart, restartNow, profileParam]);
 
   useLayoutEffect(() => {
     // Curation: the "Restart gateway" button is technical plumbing — it only

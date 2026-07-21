@@ -1091,8 +1091,13 @@ export const api = {
     ),
 
   // Gateway / update actions
-  restartGateway: () =>
-    fetchJSON<ActionResponse>("/api/gateway/restart", { method: "POST" }),
+  // `profile` picks WHICH gateway restarts (web_server.py: restart_gateway takes
+  // it). Channels are profile-scoped, so a per-agent change must not bounce the
+  // global gateway and leave the agent's own config dead.
+  restartGateway: (profile?: string) =>
+    fetchJSON<ActionResponse>(`/api/gateway/restart${profileQuery(profile)}`, {
+      method: "POST",
+    }),
   updateWayne: () =>
     fetchJSON<ActionResponse>("/api/wayne/update", { method: "POST" }),
   checkWayneUpdate: (force = false) =>

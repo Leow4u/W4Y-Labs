@@ -318,7 +318,19 @@ export function AgentDrawer({
   const [channelPending, setChannelPending] = useState<string | null>(null);
   const internal = isInternalView();
   const onRestarted = useCallback(() => setChannelPending(null), []);
-  const { state: restartState, changeApplied, restartNow } = useRestartFlow(onRestarted);
+  const {
+    state: restartState,
+    changeApplied,
+    restartNow,
+    hydrate: hydrateRestart,
+  } = useRestartFlow(onRestarted);
+
+  // Same durability as the Channels page: the drawer is mounted and unmounted
+  // constantly (it opens per agent), so a flow living only in React state was
+  // guaranteed to be lost while the agent config was still not live.
+  useEffect(() => {
+    if (platforms) hydrateRestart(platforms, agent.name);
+  }, [platforms, agent.name, hydrateRestart]);
   const restarting = isRestarting(restartState);
   const restartNotice = restartNoticeMode(restartState, internal);
 
@@ -337,7 +349,7 @@ export function AgentDrawer({
             ) ?? prev,
         );
         setChannelPending(p.id);
-        const outcome = await changeApplied("agent-channel-toggle", !internal);
+        const outcome = await changeApplied("agent-channel-toggle", !internal, agent.name);
         if (!outcome.ok) notify(outcome.error, "error");
         onChanged();
       } catch (e) {
@@ -350,9 +362,9 @@ export function AgentDrawer({
   );
 
   const retryRestart = useCallback(async () => {
-    const outcome = await restartNow();
+    const outcome = await restartNow(agent.name);
     if (!outcome.ok) notify(outcome.error, "error");
-  }, [restartNow, notify]);
+  }, [restartNow, notify, agent.name]);
 
   /* ---------------- MCP ---------------- */
   const [mcpServers, setMcpServers] = useState<McpServer[] | null>(null);
