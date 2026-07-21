@@ -59,6 +59,14 @@ interface DesktopUpdateBridge {
     kind?: string;
     /** Identifies THIS check, so apply acts on the plan it produced. */
     token?: string;
+    /**
+     * Tri-state, because `available:false` alone was ambiguous: it used to mean
+     * both "verified, nothing to install" and "could not check". Now
+     * `"up-to-date"` is the verified answer and `"unknown"` means some layer was
+     * never reached — `unverified` names which. Older shells omit both.
+     */
+    status?: "available" | "up-to-date" | "unknown" | "in-progress";
+    unverified?: string[];
   } | null>;
   apply: (token?: string) => Promise<unknown>;
   /**
