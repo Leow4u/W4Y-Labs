@@ -1781,9 +1781,16 @@ async function runBackgroundEngineUpdateWork() {
     }
     const staged = readStaged();
     if (staged && staged.zipUrl === manifest.zipUrl) {
-      return engineOutcome.outcome(engineOutcome.ALREADY_STAGED, {
-        version: manifest.version ?? null,
-      });
+      // Matching zipUrl was treated as "already waiting" without ever asking
+      // whether the artifact finished unpacking. A half-written slot then
+      // announced "ready to restart" and the worker never rebuilt it.
+      if (staged.root && engineSlots.isComplete(staged.root)) {
+        return engineOutcome.outcome(engineOutcome.ALREADY_STAGED, {
+          version: manifest.version ?? null,
+        });
+      }
+      updaterLog("staged marker matches but the artifact is incomplete — rebuilding");
+      // fall through and stage it again
     }
 
     if (!engineSlots.junctionsSupported(WAYNE_HOME)) {
@@ -2143,6 +2150,15 @@ async function checkEngineUpdate() {
   try {
     // No local engine to update on this install — genuinely nothing to verify.
     if (CLOUD_SHELL || engine.usingCloud) return unifiedCheck.skipped();
+    // ACTIVE WORK FIRST. Checking staged before this let an old complete slot
+    // answer "ready" while a newer background update was mid-flight — offering
+    // a restart into the build being replaced.
+    const liveState = updateState.readState(WAYNE_HOME);
+    if (engineUpdateFlight.isRunning() || engine.updating || liveState.phase === "installing") {
+      return unifiedCheck.layer(unifiedCheck.IN_PROGRESS, {
+        version: liveState.version || null,
+      });
+    }
     const staged = readStaged();
     if (staged && engineSlots.isComplete(staged.root)) {
       return unifiedCheck.layer(unifiedCheck.AVAILABLE, {
@@ -2153,15 +2169,7 @@ async function checkEngineUpdate() {
         staged: stagedPlan.stagedIdentity(staged),
       });
     }
-    const state = updateState.readState(WAYNE_HOME);
-    // Work happening RIGHT NOW outranks an old warning. Evaluating
-    // shouldWarnUser() first let a live install still surface as "stalled",
-    // which offers a retry for something already running.
-    if (engine.updating || state.phase === "installing") {
-      return unifiedCheck.layer(unifiedCheck.IN_PROGRESS, {
-        version: state.version || null,
-      });
-    }
+    const state = liveState;
     // Two independent reasons to tell the user the update is not going through:
     //  - the automatic retries gave up (attempts >= STALLED_AFTER), or
     //  - the user asked for a retry and THAT failed. The manual path resets
@@ -2432,13 +2440,12 @@ async function applyUnifiedUpdate(token) {
     // Tray and pre-token clients have no plan of their own. Rather than borrow
     // somebody else's, take a fresh decision right now.
     const fresh = await checkUnifiedUpdate();
-    if (!fresh || !fresh.available) {
-      return { ok: false, outcome: applyOutcome.NO_UPDATE, error: "no-update" };
-    }
-    const resolved = resolveSnapshot(fresh.token);
+    const decision = applyOutcome.judgeTokenlessApply(fresh);
+    if (decision.action === "answer") return decision.result;
+    const resolved = resolveSnapshot(decision.token);
     if (!resolved.ok) return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: resolved.reason };
     snap = resolved.snapshot;
-    consumeSnapshot(fresh.token);
+    consumeSnapshot(decision.token);
   }
 
   // A stalled engine update has nothing staged — restarting would land on the
@@ -2450,6 +2457,16 @@ async function applyUnifiedUpdate(token) {
   // installed NOTHING while reporting success. Re-prove it here, and refuse
   // rather than restart on a guess.
   if (snap.kind === "engine" && snap.engineKind === "ready") {
+    // An engine operation in flight is replacing the very thing we would
+    // restart into. Refuse without touching the engine or the process.
+    if (engineUpdateFlight.isRunning() || engine.updating) {
+      updaterLog("engine apply refused: an engine update is in flight");
+      return {
+        ok: false,
+        outcome: applyOutcome.FAILED,
+        error: "update-in-progress",
+      };
+    }
     const current = readStaged();
     const verdict = stagedPlan.validateStagedPlan({
       pinned: snap.staged || null,
@@ -2525,7 +2542,9 @@ async function applyUnifiedUpdate(token) {
     //                  `r.error` is the original install failure, which the
     //                  previous code threw away along with `via`.
     return r.via === "fallback"
-      ? { ok: true, outcome: "recovered", error: r.error || null }
+      // `recovered` means the UPDATE FAILED and the current build was reopened.
+      // Reporting ok:true here contradicted the normalizer and read as success.
+      ? { ok: false, outcome: applyOutcome.RECOVERED, error: r.error || null }
       : { ok: true, outcome: "applied" };
   }
   return applyEngineUpdate();
