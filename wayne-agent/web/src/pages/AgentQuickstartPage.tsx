@@ -38,6 +38,7 @@ import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
+import { templatesPanelVisibilityClass } from "@/lib/quickstart-layout";
 import { cn } from "@/lib/utils";
 
 /** "Redator Financeiro" → "redator-financeiro" (valid profile id). */
@@ -226,7 +227,14 @@ export default function AgentQuickstartPage() {
     // center column collapsed to the content's height and the hero lost its
     // centering when the templates panel was collapsed. `relative` anchors the
     // collapsed panel's handle to the right edge.
-    <div className="relative flex h-[calc(100dvh-112px)] min-h-[480px] flex-col overflow-hidden lg:flex-row">
+    //
+    // The pinned height + `overflow-hidden` pair is DESKTOP ONLY. Below `lg`
+    // the two panels stack, so their combined height always exceeds the
+    // viewport and the clipped remainder had no scroll of its own — the tail
+    // of the templates list was simply unreachable. Below `lg` the height
+    // becomes a FLOOR (min-h) instead of a cap, and the app's own scroller
+    // (`main`, App.tsx) takes over: one scroll, nothing cut off.
+    <div className="relative flex min-h-[max(480px,calc(100dvh-112px))] flex-col lg:h-[calc(100dvh-112px)] lg:min-h-[480px] lg:flex-row lg:overflow-hidden">
       <Toast toast={toast} />
 
       {/* ─────────── Center column ─────────── */}
@@ -510,9 +518,14 @@ export default function AgentQuickstartPage() {
       </div>
 
       {/* ─────────── Right panel: ready-made templates (expandable) ─────────── */}
-      {showTplPanel &&
-        (tplOpen ? (
-          <aside className="relative flex min-h-0 w-full shrink-0 flex-col border-t border-border lg:w-[400px] lg:border-l lg:border-t-0">
+      {showTplPanel && (
+        <>
+          <aside
+            className={cn(
+              "relative flex min-h-0 w-full shrink-0 flex-col border-t border-border lg:w-[400px] lg:border-l lg:border-t-0",
+              templatesPanelVisibilityClass(tplOpen),
+            )}
+          >
             {/* Handle on the edge (Claude pattern) — click collapses. No button. */}
             <button
               type="button"
@@ -611,18 +624,23 @@ export default function AgentQuickstartPage() {
               </div>
             </div>
           </aside>
-        ) : (
-          /* Collapsed: just the handle against the right edge — click expands. */
-          <button
-            type="button"
-            onClick={toggleTpl}
-            aria-label={ag.tplExpand}
-            title={ag.tplExpand}
-            className="group absolute right-0 top-1/2 z-10 hidden h-16 w-4 -translate-y-1/2 cursor-pointer items-center justify-center lg:flex"
-          >
-            <span className="h-9 w-1 rounded-full bg-border transition-all duration-150 group-hover:h-12 group-hover:w-1.5 group-hover:bg-foreground/40" />
-          </button>
-        ))}
+
+          {/* Collapsed: just the handle against the right edge — click expands.
+              `lg:` only, like the handle inside the panel — which is exactly why
+              the collapsed panel above stays rendered below `lg`. */}
+          {!tplOpen && (
+            <button
+              type="button"
+              onClick={toggleTpl}
+              aria-label={ag.tplExpand}
+              title={ag.tplExpand}
+              className="group absolute right-0 top-1/2 z-10 hidden h-16 w-4 -translate-y-1/2 cursor-pointer items-center justify-center lg:flex"
+            >
+              <span className="h-9 w-1 rounded-full bg-border transition-all duration-150 group-hover:h-12 group-hover:w-1.5 group-hover:bg-foreground/40" />
+            </button>
+          )}
+        </>
+      )}
     </div>
   );
 }
