@@ -80,6 +80,8 @@ function combineUpdateLayers(layers = {}) {
       source: name,
       version: value.version ?? null,
       kind: value.kind ?? null,
+      // Identity of the artifact this offer is about, when the layer knows it.
+      staged: value.staged ?? null,
       unverified,
       layers,
     };

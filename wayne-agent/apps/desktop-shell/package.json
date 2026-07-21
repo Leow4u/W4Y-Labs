@@ -62,6 +62,8 @@
       "tray-update-flow.cjs",
       "engine-update-outcome.cjs",
       "unified-check.cjs",
+      "apply-outcome.cjs",
+      "staged-plan.cjs",
       "package-manifest-check.cjs",
       "assets/**",
       "node_modules/**/*",

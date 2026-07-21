@@ -78,6 +78,8 @@ async function settleNonApplicable(plan, say, attempts = 0) {
   }
 }
 
+const applyOutcome = require("./apply-outcome.cjs");
+
 async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRetries = 1 }) {
   const say = async (kind, detail) => {
     try {
@@ -114,12 +116,14 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
       // `recovered` = the shell install FAILED and the fallback reopened the
       // current build. Operationally fine, but it is not an update, and the
       // log and the dialog must not read as if it were.
-      // `staged`    = bytes are ready; the update lands on the NEXT restart.
-      // `recovered`  = the install failed and the current build was reopened.
-      // `applied`    = the install actually fired.
-      const outcome = res.outcome || (res.status === "staged" ? "staged" : "applied");
+      // ONE vocabulary, shared with the renderer (apply-outcome.cjs). The
+      // fallback this replaces — "any {ok:true} is applied" — turned
+      // `no-update` and `already-staged` into "Atualização aplicada".
+      const { outcome } = applyOutcome.normalizeApplyResult(res);
       log(
-        outcome === "recovered"
+        outcome === "no-update"
+          ? "tray apply: nothing to install"
+          : outcome === "recovered"
           ? `tray apply RECOVERED (update failed: ${res.error || "unknown"})`
           : outcome === "staged"
             ? `tray apply STAGED (restart to finish, version=${plan.version || "?"})`
