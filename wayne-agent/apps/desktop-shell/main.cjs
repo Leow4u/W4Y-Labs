@@ -113,6 +113,8 @@ const { createSingleFlight } = require("./single-flight.cjs");
 const updateScheduler = require("./update-scheduler.cjs");
 const shellApplyFlow = require("./shell-apply-flow.cjs");
 const trayUpdateFlow = require("./tray-update-flow.cjs");
+const engineOutcome = require("./engine-update-outcome.cjs");
+const unifiedCheck = require("./unified-check.cjs");
 
 // One engine update at a time, across EVERY entry point: the 30-minute timer,
 // the tray, and the renderer's retry. The previous guard (`engine.updating`)
@@ -127,6 +129,9 @@ const engineUpdateFlight = createSingleFlight();
 // tray, a second window, or the automatic paths, so it stays what it is: a UX
 // nicety, not the lock.
 const shellApplyFlight = createSingleFlight();
+// Last check that PROVED something installable. A later failed check must not
+// silently retract it (preferPreviousPlan).
+let lastProvenPlan = null;
 // 0.3.8: shell self-update (electron-updater atrás de um seam fail-open).
 const shellUpdater = require("./shell-updater.cjs");
 // Desktop-2: fs/git locais portados do Hermes (módulos git/fs puros). O executor
@@ -1754,13 +1759,30 @@ function runBackgroundEngineUpdate() {
 async function runBackgroundEngineUpdateWork() {
   try {
     const manifest = await fetchEngineManifest();
+    if (!manifest || !manifest.zipUrl) {
+      // fetchEngineManifest() collapses offline, DNS failure, timeout, HTTP
+      // != 200, unparseable JSON and a payload without an https zipUrl into a
+      // single null. NOTHING was verified, so do NOT stamp lastCheckAt — that
+      // timestamp used to claim a check that never happened.
+      return engineOutcome.outcome(engineOutcome.CHECK_FAILED, {
+        error: "could not reach the update manifest",
+      });
+    }
+    // Only now did a check actually occur.
     updateState.writeState(WAYNE_HOME, { lastCheckAt: new Date().toISOString() });
-    if (!manifest || !manifest.zipUrl) return;
 
     const current = readEngineSource();
-    if (current && current.zipUrl === manifest.zipUrl) return; // already on it
+    if (current && current.zipUrl === manifest.zipUrl) {
+      return engineOutcome.outcome(engineOutcome.NO_UPDATE, {
+        version: manifest.version ?? null,
+      });
+    }
     const staged = readStaged();
-    if (staged && staged.zipUrl === manifest.zipUrl) return; // already waiting
+    if (staged && staged.zipUrl === manifest.zipUrl) {
+      return engineOutcome.outcome(engineOutcome.ALREADY_STAGED, {
+        version: manifest.version ?? null,
+      });
+    }
 
     if (!engineSlots.junctionsSupported(WAYNE_HOME)) {
       updateState.writeState(WAYNE_HOME, {
@@ -1771,7 +1793,9 @@ async function runBackgroundEngineUpdateWork() {
         lastAttemptAt: new Date().toISOString(),
       });
       notifyUpdateState();
-      return;
+      return engineOutcome.outcome(engineOutcome.INSTALL_FAILED, {
+        error: "this filesystem does not support junctions",
+      });
     }
 
     engine.updating = true;
@@ -1837,23 +1861,30 @@ async function runBackgroundEngineUpdateWork() {
         // showing "pending" over a build that had already landed.
         manualRetryFailed: false,
       });
-    } else {
-      updateState.writeState(WAYNE_HOME, {
-        phase: "failed",
-        attempts: (updateState.readState(WAYNE_HOME).attempts || 0) + 1,
-        lastError: (ev && ev.error) || "the installer did not finish",
-        lastErrorStage: (ev && ev.stage) || "repository",
+      notifyUpdateState();
+      return engineOutcome.outcome(engineOutcome.STAGED, {
+        version: manifest.version ?? null,
       });
     }
-    notifyUpdateState();
-  } catch (err) {
+    const installError = (ev && ev.error) || "the installer did not finish";
     updateState.writeState(WAYNE_HOME, {
       phase: "failed",
       attempts: (updateState.readState(WAYNE_HOME).attempts || 0) + 1,
-      lastError: String((err && err.message) || err),
+      lastError: installError,
+      lastErrorStage: (ev && ev.stage) || "repository",
+    });
+    notifyUpdateState();
+    return engineOutcome.outcome(engineOutcome.INSTALL_FAILED, { error: installError });
+  } catch (err) {
+    const message = String((err && err.message) || err);
+    updateState.writeState(WAYNE_HOME, {
+      phase: "failed",
+      attempts: (updateState.readState(WAYNE_HOME).attempts || 0) + 1,
+      lastError: message,
       lastErrorStage: "background",
     });
     notifyUpdateState();
+    return engineOutcome.outcome(engineOutcome.INSTALL_FAILED, { error: message });
   } finally {
     engine.updating = false;
   }
@@ -2101,17 +2132,21 @@ function registerCloudIpc() {
  * disk and restarting is instant. A repeatedly failing update gets its own,
  * louder answer instead of pretending nothing is happening.
  */
-// `null` means "could NOT check"; `{available:false}` means "checked, nothing
-// to install". Collapsing both into null is why a perfectly healthy, fully
-// up-to-date machine was told "Não deu para verificar atualizações agora" —
-// the caller had no way to tell success-with-nothing from failure.
+// Answers as a LAYER (see unified-check.cjs): available / up-to-date / unknown
+// / in-progress. It used to read ONLY local state — readStaged() plus the
+// on-disk update state — and report "nothing staged locally" as "the remote
+// engine is up to date". It never fetched the manifest, so that claim had no
+// evidence behind it at all.
 async function checkEngineUpdate() {
   try {
-    // No local engine to update at all — that is an answer, not a failure.
-    if (CLOUD_SHELL || engine.usingCloud) return { available: false };
+    // No local engine to update on this install — genuinely nothing to verify.
+    if (CLOUD_SHELL || engine.usingCloud) return unifiedCheck.skipped();
     const staged = readStaged();
     if (staged && engineSlots.isComplete(staged.root)) {
-      return { available: true, version: staged.version || null, kind: "ready" };
+      return unifiedCheck.layer(unifiedCheck.AVAILABLE, {
+        version: staged.version || null,
+        kind: "ready",
+      });
     }
     const state = updateState.readState(WAYNE_HOME);
     // Two independent reasons to tell the user the update is not going through:
@@ -2121,18 +2156,41 @@ async function checkEngineUpdate() {
     //    right after the user's own attempt failed — the worst possible moment
     //    to go silent.
     if (updateState.shouldWarnUser(state)) {
-      return {
-        available: true,
+      return unifiedCheck.layer(unifiedCheck.AVAILABLE, {
         version: state.version || null,
         kind: "stalled",
         attempts: state.attempts || 0,
         stage: state.lastErrorStage || null,
         reason: state.lastError || null,
-      };
+      });
     }
-    return { available: false }; // checked; nothing to install
+    // An update being installed right now is not "up to date" — it is unfinished.
+    if (engine.updating || state.phase === "installing") {
+      return unifiedCheck.layer(unifiedCheck.IN_PROGRESS, {
+        version: state.version || null,
+      });
+    }
+    // Nothing local to offer. To say "up to date" we must actually ASK, and the
+    // only source of truth is the remote manifest.
+    const manifest = await fetchEngineManifest();
+    if (!manifest || !manifest.zipUrl) {
+      return unifiedCheck.layer(unifiedCheck.UNKNOWN, {
+        reason: "could not reach the update manifest",
+      });
+    }
+    const current = readEngineSource();
+    if (current && current.zipUrl === manifest.zipUrl) {
+      return unifiedCheck.layer(unifiedCheck.UP_TO_DATE, {
+        version: manifest.version ?? null,
+      });
+    }
+    // The manifest names a build we do not have. It is not staged yet (that was
+    // checked above), so the background sweep still owes the download.
+    return unifiedCheck.layer(unifiedCheck.IN_PROGRESS, {
+      version: manifest.version ?? null,
+    });
   } catch {
-    return null; // genuinely could not check
+    return unifiedCheck.layer(unifiedCheck.UNKNOWN, { reason: "engine check threw" });
   }
 }
 
@@ -2171,19 +2229,24 @@ async function retryEngineUpdate() {
     const joined = !handle.started;
     const res = await handle.promise;
 
-    const after = updateState.readState(WAYNE_HOME);
-    const failed = !res.ok || after.phase === "failed";
-    if (failed) {
-      updateState.writeState(WAYNE_HOME, { manualRetryFailed: true });
+    // The run's OWN answer decides. Reading `phase` back could only ever agree
+    // with the "idle" written three lines up, which is precisely how an offline
+    // retry evaluated `false || false` and reported success — clearing the
+    // warning the user had just clicked. A joined run is judged by the same
+    // rule, on the shared operation's real result.
+    const verdict = engineOutcome.judgeManualRetry({
+      result: res.ok ? res.value : { status: engineOutcome.CHECK_FAILED, error: res.error },
+      stateAfter: updateState.readState(WAYNE_HOME),
+    });
+    if (!verdict.ok) {
+      if (verdict.keepChip) {
+        updateState.writeState(WAYNE_HOME, { manualRetryFailed: true });
+      }
       notifyUpdateState({ reason: "retry-failed" });
-      return {
-        ok: false,
-        joined,
-        error: res.ok ? after.lastError || "update failed" : res.error,
-      };
+      return { ok: false, joined, status: verdict.status, error: verdict.error };
     }
     notifyUpdateState({ reason: "retry-done" });
-    return { ok: true, joined };
+    return { ok: true, joined, status: verdict.status };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
   }
@@ -2277,24 +2340,60 @@ function updaterLog(line) {
 }
 
 async function checkUnifiedUpdate() {
-  const shellRes = await shellUpdater.check(); // null = fail-open (offline/dev)
-  if (shellRes && shellRes.available) {
-    const token = rememberSnapshot({ kind: "shell", version: shellRes.version || null });
-    return { available: true, version: shellRes.version, token };
-  }
-  const res = await checkEngineUpdate();
-  if (!res) return null; // could not check — the caller must say exactly that
-  // Checked and there is nothing to install. No snapshot: a token only exists
-  // to pin a plan, and there is no plan.
-  if (!res.available) return { available: false, version: null, token: null };
-  // The snapshot records whether clicking means "restart into the version
-  // already on disk" or "try the download again" — bound to THIS check.
-  const token = rememberSnapshot({
-    kind: "engine",
-    engineKind: res.kind || "ready",
-    version: res.version || null,
+  // `shellUpdater.check()` is fail-open BY DESIGN: an unreachable feed, a dev
+  // run and a broken electron-updater all answer null. Treating that as "no
+  // shell update" is how a machine that verified nothing was told it was
+  // current, so null becomes `unknown` here — a third state, not a silent yes.
+  const shellRes = await shellUpdater.check();
+  const shellLayer = !shellRes
+    ? unifiedCheck.layer(unifiedCheck.UNKNOWN, { reason: "shell feed unreachable" })
+    : shellRes.available
+      ? unifiedCheck.layer(unifiedCheck.AVAILABLE, { version: shellRes.version || null })
+      : unifiedCheck.layer(unifiedCheck.UP_TO_DATE, { version: shellRes.version || null });
+
+  const engineLayer = await checkEngineUpdate();
+
+  const combined = unifiedCheck.combineUpdateLayers({
+    shell: shellLayer,
+    engine: engineLayer,
   });
-  return { ...res, token };
+  // A transient check failure must not erase a plan we already proved: the
+  // bytes of a staged update are on disk and a stalled one still needs the
+  // user. Only a verified answer may clear the chip.
+  const merged = unifiedCheck.preferPreviousPlan(lastProvenPlan, combined);
+
+  if (merged.status !== unifiedCheck.AVAILABLE) {
+    // Nothing to pin. `available:false` now means VERIFIED-and-current;
+    // `unknown` means we could not tell, and the caller must say exactly that.
+    if (merged.status !== unifiedCheck.UNKNOWN) lastProvenPlan = null;
+    return {
+      available: false,
+      status: merged.status,
+      unverified: merged.unverified,
+      version: null,
+      token: null,
+    };
+  }
+
+  const isShell = merged.source === "shell";
+  const token = rememberSnapshot(
+    isShell
+      ? { kind: "shell", version: merged.version }
+      : {
+          kind: "engine",
+          engineKind: merged.kind || "ready",
+          version: merged.version,
+        },
+  );
+  lastProvenPlan = { ...merged, stale: false };
+  return {
+    available: true,
+    status: unifiedCheck.AVAILABLE,
+    unverified: merged.unverified,
+    version: merged.version,
+    kind: merged.kind,
+    token,
+  };
 }
 
 /**
@@ -2365,9 +2464,17 @@ async function applyUnifiedUpdate(token) {
     const outcome = await flight.promise;
     // runShellApplyWithFallback never throws, so outcome.ok===false can only
     // mean the flight machinery itself failed — report it, do not re-act.
-    if (!outcome.ok) return { ok: false, error: outcome.error };
+    if (!outcome.ok) return { ok: false, outcome: "failed", error: outcome.error };
     const r = outcome.value;
-    return r.ok ? { ok: true } : { ok: false, error: r.error };
+    if (!r.ok) return { ok: false, outcome: "failed", error: r.error };
+    // via:"shell"    → the new build is installed.
+    // via:"fallback" → the install FAILED and we reopened the current build.
+    //                  Operationally recovered, but NOT an update — and
+    //                  `r.error` is the original install failure, which the
+    //                  previous code threw away along with `via`.
+    return r.via === "fallback"
+      ? { ok: true, outcome: "recovered", error: r.error || null }
+      : { ok: true, outcome: "applied" };
   }
   return applyEngineUpdate();
 }
@@ -2879,6 +2986,8 @@ async function trayCheckForUpdates() {
       const message =
         kind === "applied"
           ? "Atualização aplicada. Se o app não reiniciar sozinho, reinicie para concluir."
+          : kind === "recovered"
+          ? "A atualização falhou. O aplicativo foi reaberto na versão atual — tente de novo mais tarde."
           : kind === "up-to-date"
           ? "Você já está na versão mais recente."
           : kind === "check-failed"
@@ -2888,7 +2997,12 @@ async function trayCheckForUpdates() {
         type: kind === "up-to-date" || kind === "applied" ? "info" : "warning",
         title: "Work4You",
         message,
-        detail: kind === "apply-failed" && detail && detail.reason ? String(detail.reason) : undefined,
+        detail:
+          kind === "apply-failed" && detail && detail.reason
+            ? String(detail.reason)
+            : kind === "recovered" && detail && detail.error
+              ? String(detail.error)
+              : undefined,
       });
       return undefined;
     },

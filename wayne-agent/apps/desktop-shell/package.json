@@ -60,6 +60,8 @@
       "update-scheduler.cjs",
       "shell-apply-flow.cjs",
       "tray-update-flow.cjs",
+      "engine-update-outcome.cjs",
+      "unified-check.cjs",
       "package-manifest-check.cjs",
       "assets/**",
       "node_modules/**/*",

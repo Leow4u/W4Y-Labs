@@ -26,8 +26,8 @@
  * @param {(token?: string) => Promise<any>} deps.apply  → {ok, error?, reason?}
  * @param {(kind: string, detail?: object) => Promise<any>} deps.notify
  *        Called with one of: "up-to-date" | "check-failed" | "stale-plan" |
- *        "apply-failed". Only "stale-plan" reads the return value, as a
- *        boolean "the user wants to try again".
+ *        "apply-failed" | "applied" | "recovered". Only "stale-plan" reads the
+ *        return value, as a boolean "the user wants to try again".
  * @param {(line: string) => void} [deps.log]
  * @param {number} [deps.maxRetries] how many extra rounds a stale plan may buy.
  * @returns {Promise<{ok: boolean, applied: boolean, reason?: string, attempts: number}>}
@@ -50,8 +50,10 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
     log(`tray check threw: ${String((e && e.message) || e)}`);
     plan = null;
   }
-  if (!plan) {
-    await say("check-failed");
+  // Three answers, not two. `unknown` means some layer was never verified —
+  // saying "you are on the latest version" there is a claim with no evidence.
+  if (!plan || plan.status === "unknown") {
+    await say("check-failed", { unverified: (plan && plan.unverified) || [] });
     return { ok: false, applied: false, reason: "check-failed", attempts: 0 };
   }
   if (!plan.available) {
@@ -71,15 +73,26 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
       res = { ok: false, error: String((e && e.message) || e) };
     }
     if (res && res.ok) {
-      log(`tray apply ok (version=${plan.version || "?"})`);
+      // `recovered` = the shell install FAILED and the fallback reopened the
+      // current build. Operationally fine, but it is not an update, and the
+      // log and the dialog must not read as if it were.
+      const recovered = res.outcome === "recovered";
+      log(
+        recovered
+          ? `tray apply RECOVERED (update failed: ${res.error || "unknown"})`
+          : `tray apply applied (version=${plan.version || "?"})`,
+      );
       // Tell the user it worked. On the shell/relaunch paths this never renders
       // because the process dies inside the apply — which is exactly why it was
       // missing. But a STALLED engine retry survives: it downloads for minutes
       // and returns ok without relaunching, so without this the tray closed and
       // nothing ever happened on screen. The same silence this flow exists to
       // end.
-      await say("applied", { version: plan.version || null });
-      return { ok: true, applied: true, attempts };
+      await say(recovered ? "recovered" : "applied", {
+        version: plan.version || null,
+        error: res.error || null,
+      });
+      return { ok: true, applied: !recovered, recovered, attempts };
     }
 
     const reason = (res && (res.reason || res.error)) || "unknown";

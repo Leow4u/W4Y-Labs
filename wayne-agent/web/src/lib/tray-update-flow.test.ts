@@ -41,7 +41,8 @@ describe("runTrayUpdateCheck — the token actually reaches apply", () => {
       notify,
     });
     expect(apply).not.toHaveBeenCalled();
-    expect(notify).toHaveBeenCalledWith("check-failed", undefined);
+    // A null check now carries the (empty) list of layers it could not verify.
+    expect(notify).toHaveBeenCalledWith("check-failed", { unverified: [] });
     expect(res).toMatchObject({ ok: false, reason: "check-failed" });
   });
 
@@ -170,7 +171,9 @@ describe("runTrayUpdateCheck — a success that does NOT relaunch is still annou
       apply: vi.fn().mockResolvedValue({ ok: true }),
       notify,
     });
-    expect(notify).toHaveBeenCalledWith("applied", { version: "0.4.1" });
+    // `error` rides along so a recovery can name the install failure; on a real
+    // apply it is null.
+    expect(notify).toHaveBeenCalledWith("applied", { version: "0.4.1", error: null });
   });
 
   it("a failing dialog still does not break the success path", async () => {
@@ -180,5 +183,117 @@ describe("runTrayUpdateCheck — a success that does NOT relaunch is still annou
       notify: vi.fn().mockRejectedValue(new Error("no display")),
     });
     expect(res).toMatchObject({ ok: true, applied: true });
+  });
+});
+
+/**
+ * Round: chip truth. The tray must not say "up to date" on an unverified check,
+ * and must not call a fallback recovery an applied update.
+ */
+describe("runTrayUpdateCheck — three states, not two", () => {
+  it("an UNKNOWN check is reported as a check failure, never as up-to-date", async () => {
+    const notify = vi.fn();
+    const res = await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue({
+        available: false,
+        status: "unknown",
+        unverified: ["shell"],
+      }),
+      apply: vi.fn(),
+      notify,
+    });
+    expect(notify).toHaveBeenCalledWith("check-failed", { unverified: ["shell"] });
+    expect(res).toMatchObject({ ok: false, reason: "check-failed" });
+  });
+
+  it("a VERIFIED up-to-date is still reported as up-to-date", async () => {
+    const notify = vi.fn();
+    const res = await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue({
+        available: false,
+        status: "up-to-date",
+        version: "0.4.0",
+      }),
+      apply: vi.fn(),
+      notify,
+    });
+    expect(notify).toHaveBeenCalledWith("up-to-date", { version: "0.4.0" });
+    expect(res).toMatchObject({ ok: true, applied: false });
+  });
+
+  it("never applies anything on an unknown check", async () => {
+    const apply = vi.fn();
+    await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue({ available: false, status: "unknown" }),
+      apply,
+      notify: vi.fn(),
+    });
+    expect(apply).not.toHaveBeenCalled();
+  });
+});
+
+describe("runTrayUpdateCheck — applied vs recovered", () => {
+  it("outcome 'applied' says the update was applied", async () => {
+    const notify = vi.fn();
+    const log = vi.fn();
+    const res = await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue(plan()),
+      apply: vi.fn().mockResolvedValue({ ok: true, outcome: "applied" }),
+      notify,
+      log,
+    });
+    expect(notify).toHaveBeenCalledWith("applied", { version: "0.4.1", error: null });
+    expect(res).toMatchObject({ applied: true, recovered: false });
+    expect(log.mock.calls.flat().join(" ")).toContain("applied");
+  });
+
+  it("outcome 'recovered' must NOT read as an applied update", async () => {
+    // via:"fallback" means the install failed and the CURRENT build was
+    // reopened. Operationally fine, but it is not an update.
+    const notify = vi.fn();
+    const log = vi.fn();
+    const res = await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue(plan()),
+      apply: vi
+        .fn()
+        .mockResolvedValue({ ok: true, outcome: "recovered", error: "download 404" }),
+      notify,
+      log,
+    });
+    expect(notify).toHaveBeenCalledWith("recovered", {
+      version: "0.4.1",
+      error: "download 404",
+    });
+    expect(notify).not.toHaveBeenCalledWith("applied", expect.anything());
+    expect(res).toMatchObject({ applied: false, recovered: true });
+    const logged = log.mock.calls.flat().join(" ");
+    expect(logged).toContain("RECOVERED");
+    expect(logged).not.toContain("tray apply applied");
+  });
+
+  it("the original install error survives to the message", async () => {
+    const notify = vi.fn();
+    await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue(plan()),
+      apply: vi
+        .fn()
+        .mockResolvedValue({ ok: true, outcome: "recovered", error: "installer died" }),
+      notify,
+    });
+    expect(notify).toHaveBeenCalledWith(
+      "recovered",
+      expect.objectContaining({ error: "installer died" }),
+    );
+  });
+
+  it("a total failure still reports failure and leaves the retry path", async () => {
+    const notify = vi.fn();
+    const res = await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue(plan()),
+      apply: vi.fn().mockResolvedValue({ ok: false, outcome: "failed", error: "boom" }),
+      notify,
+    });
+    expect(notify).toHaveBeenCalledWith("apply-failed", { reason: "boom" });
+    expect(res).toMatchObject({ ok: false, applied: false });
   });
 });
