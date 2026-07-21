@@ -514,6 +514,46 @@ code { font-size: 0.875rem; }
 }
 
 /* ------------------------------------------------------------------ */
+/* Form controls must not be typewritten.                              */
+/*                                                                     */
+/* The design system hardcodes `font-courier` — which its globals.css  */
+/* resolves to `'Courier New', var(--font-mono), monospace` — into     */
+/* every Input (input.tsx) and Select (select.tsx: both the <button>   */
+/* trigger and the <div aria-selected> options). We consume those      */
+/* components across the product, so every text field and dropdown     */
+/* renders in Courier New. A few of our own components (ScheduleBuilder*/
+/* , CronPage, ChannelsPage) copied the class onto their fields too.   */
+/*                                                                     */
+/* Monospace earns its place on a LITERAL value — a command, a path,   */
+/* an env var — where character-for-character fidelity is the point.   */
+/* A text field is not a literal value. So this targets form controls  */
+/* by ELEMENT and leaves `.font-courier` itself intact: our            */
+/* `<code className="font-courier">` keeps Courier, as it should.      */
+/*                                                                     */
+/* This does not reach the chat transcript: replies, tool activity     */
+/* lines and tool cards use our own `.font-mono` / `.font-mono-ui`     */
+/* and stay monospaced on purpose. */
+
+/* Step 1: Courier New leaves the product entirely. Whatever stays     */
+/* monospaced — a bot handle, an env var, a path — renders in OUR      */
+/* mono stack, so it matches the terminal and the tool output instead  */
+/* of introducing a third typeface nobody chose. */
+.font-courier {
+  font-family: var(--theme-font-mono);
+}
+
+/* Step 2: form controls are not literal values, so they go to the     */
+/* product's sans. Higher specificity than the rule above, so it wins. */
+input.font-courier,
+textarea.font-courier,
+button.font-courier,
+select.font-courier,
+[role='combobox'].font-courier,
+[aria-selected].font-courier {
+  font-family: var(--theme-font-sans);
+}
+
+/* ------------------------------------------------------------------ */
 /* UX — Title Case GLOBAL (menos MAIÚSCULO agressivo).                  */
 /* O design-system força MAIÚSCULO em títulos de card (CardTitle tem a  */
 /* classe `uppercase`), na navegação lateral (`uppercase`) e nos        */
@@ -547,6 +587,84 @@ code { font-size: 0.875rem; }
 .text-display {
   font-family: var(--theme-font-sans);
   letter-spacing: normal;
+}
+
+/* As duas últimas fontes do design-system que ainda escapavam.
+ *
+ * O DS declara SEIS faces (globals.css: font-compressed, font-expanded,
+ * font-mondwest, font-courier, text-display, font-serif). Mapeamos quatro e
+ * deixamos duas de pé — e "duas de pé" não é detalhe: `font-compressed` está
+ * dentro do Badge (badge.tsx:6), então TODO selo do produto — "Desligado",
+ * "Não configurada", "Conectado" — renderizava numa face de display estreita
+ * que ninguém escolheu. Foi o que sobrou visível na tela de Canais depois da
+ * varredura anterior, que parou no Courier e não conferiu as irmãs.
+ *
+ * font-serif é 'Times New Roman' no DS. Nossas telas já a contornavam com
+ * style inline apontando pra Source Serif; mapear aqui torna a gambiarra
+ * desnecessária e protege quem esquecer de repeti-la. */
+.font-compressed {
+  font-family: var(--theme-font-sans);
+}
+.font-serif {
+  font-family: var(--theme-font-serif);
+}
+
+/* <code> deixa de nascer com fundo pintado.
+ *
+ * O design-system agrupa `*::selection` e `code` na MESMA regra
+ * (globals.css:390-394): os dois recebem `background: var(--midground)` e
+ * texto na cor do papel. Pra seleção de texto isso está certo e continua
+ * valendo — a regra dele segue intacta pra `::selection`. Pra `code` não:
+ * o elemento passa a carregar um fundo escuro que ninguém pediu, e quando a
+ * tela também define a cor do texto (`text-foreground`, que é utility e
+ * ganha), sobra escuro-sobre-escuro. É assim que o código de pareamento do
+ * login (OAuthLoginModal) vira um retângulo preto sem nada legível dentro.
+ *
+ * Aqui o fundo sai e a cor volta a ser herdada, deixando cada uso decidir —
+ * que é o que as telas já fazem via classe. */
+code {
+  background: transparent;
+  color: inherit;
+}
+
+/* ------------------------------------------------------------------ */
+/* The button stops looking like a system button.                      */
+/*                                                                     */
+/* button.tsx declares no radius at all (square corners come from the  */
+/* omission) and paints a bevel with a double inset shadow —           */
+/* `inset -1px -1px #00000080, inset 1px 1px #ffffff80`: light on top, */
+/* dark below, the Windows 95 chamfer. It also ships font-bold. The    */
+/* rest of the product runs on --theme-radius and weight 500.          */
+/*                                                                     */
+/* The hook is `.leading-0`, which is the button's exclusive           */
+/* signature: it appears once in the whole design system               */
+/* (button.tsx:20) and once in ours (DocsPage.tsx:13, a link that      */
+/* hand-copied the button classes). Scoping to <button> and <a> keeps  */
+/* it off anything else. Letter-spacing and case were already          */
+/* neutralised by the `.text-display` rules above; they are restated   */
+/* here so the button does not depend on a neighbouring rule.          */
+:is(button, a).leading-0 {
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  letter-spacing: normal;
+  box-shadow: none;
+}
+
+/* The `outlined` variant drew its own border WITH the bevel, so with  */
+/* no background and no shadow it would vanish. It gets a flat 1px     */
+/* ring instead. Identified by `bg-transparent` without `shadow-none`: */
+/* catches both outlined variants, skips `ghost` (which carries        */
+/* shadow-none and is meant to be borderless) and `outlined            */
+/* destructive` (which already has a real border). */
+:is(button, a).leading-0.bg-transparent:not(.shadow-none):not(:disabled) {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 30%, transparent);
+}
+
+/* Exception: on mobile the Button is used as a full-screen BACKDROP   */
+/* (ChatTerminalPage.tsx, `fixed inset-0 bg-black/60`). With a radius  */
+/* the screen would show four notched corners. */
+:is(button, a).leading-0.fixed.inset-0 {
+  border-radius: 0;
 }
 
 /* Subtle grain overlay for badges. */

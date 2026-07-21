@@ -41,6 +41,7 @@ import {
   windowChromeBridge,
 } from "@/lib/desktopChrome";
 import { registerFolderProject } from "@/lib/projects";
+import { useTheme } from "@/themes/context";
 
 /** -webkit-app-region needs a widened CSSProperties (not in React's types). */
 type AppRegionStyle = CSSProperties & { WebkitAppRegion?: "drag" | "no-drag" };
@@ -71,6 +72,7 @@ export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) 
   const { t } = useI18n();
   const navigate = useNavigate();
   const bridge = windowChromeBridge();
+  const { theme } = useTheme();
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [dialog, setDialog] = useState<DialogState | null>(null);
   const barRef = useRef<HTMLDivElement>(null);
@@ -115,6 +117,16 @@ export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) 
       else if (action === "open-folder") void openFolder();
     });
   }, [bridge, newSession, openFolder]);
+
+  // The native window buttons ride Electron's titleBarOverlay, painted by the
+  // OS from construction-time colors — it cannot read CSS, and the shell has
+  // no way to know the active theme either (ours is a NAMED preset kept in
+  // the app's storage, not an OS light/dark preference). So this bar reports
+  // its own colors and the shell repaints the overlay to match, including
+  // when the theme changes at runtime. Renders nothing.
+  useEffect(() => {
+    bridge?.setTitleBarTheme?.(theme.palette.background.hex, theme.palette.midground.hex);
+  }, [bridge, theme]);
 
   const showAbout = useCallback(async () => {
     if (!bridge) return;

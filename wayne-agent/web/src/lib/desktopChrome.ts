@@ -31,6 +31,12 @@ export interface WindowChromeBridge {
   /** Window-scoped accelerators the main can't resolve alone (Ctrl+N /
    *  Ctrl+O) arrive here; returns the unsubscribe. */
   onMenuAction: (cb: (action: string) => void) => () => void;
+  /** Reports the active theme's bar color and ink so the native window
+   *  buttons match the bar and stay legible — the overlay is painted by the
+   *  OS from fixed colors, and the shell can't tell which named theme is
+   *  active. Optional: shells older than this feature simply don't have it,
+   *  hence the guarded call. */
+  setTitleBarTheme?: (barColor: string, symbolColor: string) => void;
 }
 
 interface DesktopUpdateBridge {

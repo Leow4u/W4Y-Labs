@@ -732,6 +732,12 @@ export default function ChannelsPage() {
                           checked={platform.enabled}
                           onCheckedChange={() => void handleToggle(platform)}
                           aria-label={c.enableAria.replace("{name}", copy.name)}
+                          // Um canal sem credencial não tem como atender. Deixar
+                          // a chave ligável produzia o cartão que o dono viu: a
+                          // chave acesa ao lado do selo "Não configurado" — dois
+                          // fatos contraditórios no mesmo cartão. Quem manda é o
+                          // botão Configurar ao lado.
+                          disabled={!platform.configured}
                         />
                       )}
                     </div>

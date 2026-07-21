@@ -433,7 +433,7 @@ export default function AgentsPage() {
                           <span
                             key={`${s.name}-${i}`}
                             title={s.name}
-                            className="grid h-5 w-5 place-items-center rounded-full bg-muted text-[8px] font-semibold text-foreground ring-2 ring-card"
+                            className="grid h-5 w-5 place-items-center rounded-full bg-muted text-xs font-semibold text-foreground ring-2 ring-card"
                           >
                             {monogram(s.name)}
                           </span>

@@ -1191,7 +1191,15 @@ export default function CronPage() {
               <div className="grid gap-2">
                 <Label htmlFor="cron-agent">{t.cron.agent}</Label>
                 <Select id="cron-agent" value={createProfile} onValueChange={(v) => setCreateProfile(v)}>
-                  <SelectOption value="">{t.agents.opsPickAgent}</SelectOption>
+                  {/* Deixar em branco é uma escolha legítima, não um campo por
+                      preencher: a rotina passa a ser do agente principal — o
+                      mesmo que atende no Nova tarefa. O rótulo antigo
+                      ("Escolher agente") lia como ordem e fazia o dono achar
+                      que tinha esquecido algo. Reusa t.agents.teamPrincipal,
+                      que já existe nos 16 idiomas. */}
+                  <SelectOption value="">
+                    {t.agents.teamPrincipal.charAt(0).toUpperCase() + t.agents.teamPrincipal.slice(1)}
+                  </SelectOption>
                   {agentProfiles.map((profile) => (
                     <SelectOption key={profile.name} value={profile.name}>
                       {profileLabel(profile.name)}

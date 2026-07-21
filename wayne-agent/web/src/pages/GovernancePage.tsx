@@ -517,7 +517,7 @@ export default function GovernancePage() {
                         </span>
                         {task.assignee && (
                           <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                            <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-foreground/80 text-[8px] font-semibold text-background">
+                            <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-foreground/80 text-xs font-semibold text-background">
                               {monogram(task.assignee)}
                             </span>
                             <span className="truncate">{prettify(task.assignee)}</span>

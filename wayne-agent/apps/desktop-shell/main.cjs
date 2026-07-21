@@ -90,6 +90,7 @@ const {
   dialog,
   net,
   session,
+  nativeTheme,
 } = require("electron");
 const fs = require("node:fs");
 const os = require("node:os");
@@ -214,17 +215,55 @@ let defaultWorkspace = "";
 // anterior: carregar work4you.ai direto, sem motor local).
 const CLOUD_SHELL = process.env.W4Y_CLOUD_SHELL === "1";
 
-// Fonte principal do motor pro install.ps1 (env WAYNE_SOURCE_ZIP_URL — sem ela
-// o instalador falha com erro claro). ATUALIZAR a cada release do motor.
-// Override pro dev/CI: env W4Y_ENGINE_ZIP_URL (ou WAYNE_SOURCE_ZIP_URL direto).
+// Fonte do motor pro install.ps1 (env WAYNE_SOURCE_ZIP_URL — sem ela o
+// instalador falha com erro claro).
+//
+// Este valor é a REDE DE SEGURANÇA, não a fonte da verdade: vale quando o
+// manifesto não responde (offline, bucket fora do ar). A fonte da verdade é o
+// latest.json — ver resolveEngineZipUrlLive() logo abaixo.
+//
+// Por que isso mudou: a constante era o único caminho da instalação, com um
+// comentário pedindo "atualizar a cada release" que ninguém cumpria. Em
+// 20/07/2026 uma publicação nova disparou reinstalação e o app baixou este
+// ZIP fixo de 17/07 — rebaixando a máquina em três dias de trabalho (nomes
+// da navegação, trava da raiz de Arquivos, formulário de canais). Um passo
+// manual que, se esquecido, reverte o produto em silêncio não é um passo:
+// é uma armadilha.
 const DEFAULT_ENGINE_ZIP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260717l.zip";
+  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260720g.zip";
+
+/** Override explícito (dev/CI) > rede de segurança. Síncrono, sem rede. */
 function resolveEngineZipUrl() {
   return (
     (process.env.W4Y_ENGINE_ZIP_URL || "").trim() ||
     (process.env.WAYNE_SOURCE_ZIP_URL || "").trim() ||
     DEFAULT_ENGINE_ZIP_URL
   );
+}
+
+/**
+ * O que instalar de verdade: o manifesto manda, a constante socorre.
+ *
+ * Um override explícito continua ganhando de tudo (é o dev dizendo "quero
+ * ESTE"). Sem override, consulta o latest.json — a mesma fonte que a
+ * verificação de atualização já usa, então instalar e atualizar deixam de
+ * poder discordar. Qualquer falha de rede cai na constante, e o boot nunca
+ * trava por causa disso (fetchEngineManifest tem orçamento de 5s e resolve
+ * null em qualquer problema).
+ */
+async function resolveEngineZipUrlLive() {
+  const explicit =
+    (process.env.W4Y_ENGINE_ZIP_URL || "").trim() ||
+    (process.env.WAYNE_SOURCE_ZIP_URL || "").trim();
+  if (explicit) return explicit;
+  try {
+    const manifest = await fetchEngineManifest();
+    const fromManifest = manifest && typeof manifest.zipUrl === "string" ? manifest.zipUrl.trim() : "";
+    if (fromManifest) return fromManifest;
+  } catch {
+    /* manifesto indisponível — segue pra rede de segurança */
+  }
+  return DEFAULT_ENGINE_ZIP_URL;
 }
 
 // ── Engine update manifest (0.3.2) ─────────────────────────────────────────
@@ -1481,7 +1520,8 @@ async function startLocalEngine() {
       setPhase("bootstrap", "Instalando o motor local…");
       // Fonte do motor pro install.ps1: o runner espalha process.env no spawn,
       // então setar aqui chega ao script como WAYNE_SOURCE_ZIP_URL.
-      process.env.WAYNE_SOURCE_ZIP_URL = resolveEngineZipUrl();
+      const engineZipUrl = await resolveEngineZipUrlLive();
+      process.env.WAYNE_SOURCE_ZIP_URL = engineZipUrl;
       const result = await bootstrapRunner.runBootstrap({
         installStamp: readInstallStamp(),
         activeRoot: ENGINE_ROOT,
@@ -1515,7 +1555,9 @@ async function startLocalEngine() {
       // above) so the boot-time update check has a baseline to compare against.
       writeEngineSource({
         version: null,
-        zipUrl: resolveEngineZipUrl(),
+        // O MESMO valor entregue ao install.ps1 acima — não resolver de novo,
+        // senão o marcador pode registrar uma fonte diferente da instalada.
+        zipUrl: engineZipUrl,
         updatedAt: new Date().toISOString(),
       });
     } else if (backend.root === ENGINE_ROOT && BOOT_UPDATE_ESCAPE_HATCH) {
@@ -2146,19 +2188,53 @@ function iconPath() {
 // ── Frameless chrome (0.3.7, Codex Desktop reference) ──────────────────────
 // titleBarStyle hidden + titleBarOverlay: the native window controls float
 // over the web's own 36px top bar (WindowChrome component; boot.html carries
-// its own drag strip at the same height). Overlay colors track the shell's
-// fixed dark palette. Applied to BOTH shell modes — the web bar is gated on
-// the preload's `windowChrome` group, so the pairing is always consistent.
+// its own drag strip at the same height). Applied to BOTH shell modes — the
+// web bar is gated on the preload's `windowChrome` group, so the pairing is
+// always consistent.
+//
+// The overlay used to be a hardcoded "#0e0e0e" background with "#ececea"
+// glyphs — written when the shell was assumedly dark. The product moved to
+// the light editorial palette and left a black rectangle glued to the corner.
+//
+// A TRANSPARENT background is NOT the answer here: measured on this Electron
+// build, rgba(1,0,0,0) makes the whole overlay vanish — glyphs included, so
+// the window loses its close/minimize buttons. Both colors are therefore
+// OPAQUE and come from the renderer, which is the only side that knows the
+// active theme: ours is a NAMED preset (white / mono / cyberpunk / rose +
+// user YAMLs) kept in the app's storage, not an OS light/dark preference.
+// nativeTheme is only a first-paint guess, used until the renderer reports.
 const TITLEBAR_HEIGHT = 36;
-function framelessWindowOptions() {
+
+let rendererBarColor = null;
+let rendererSymbolColor = null;
+const isHexColor = (value) => typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value);
+
+function titleBarOverlayOptions() {
+  const dark = nativeTheme.shouldUseDarkColors;
   return {
-    titleBarStyle: "hidden",
-    titleBarOverlay: {
-      color: "#0e0e0e",
-      symbolColor: "#ececea",
-      height: TITLEBAR_HEIGHT,
-    },
+    color: isHexColor(rendererBarColor) ? rendererBarColor : dark ? "#0e0e0e" : "#faf9f5",
+    symbolColor: isHexColor(rendererSymbolColor)
+      ? rendererSymbolColor
+      : dark
+        ? "#ececea"
+        : "#1a1915",
+    height: TITLEBAR_HEIGHT,
   };
+}
+
+function framelessWindowOptions() {
+  return { titleBarStyle: "hidden", titleBarOverlay: titleBarOverlayOptions() };
+}
+
+// Pushes the refreshed overlay onto a live window, so switching themes at
+// runtime repaints the glyphs instead of waiting for a restart.
+function applyTitleBarOverlay(win) {
+  if (!win || win.isDestroyed()) return;
+  try {
+    win.setTitleBarOverlay?.(titleBarOverlayOptions());
+  } catch {
+    /* overlay unsupported on this platform/build — leave the window as is */
+  }
 }
 
 // Real quit — the ONE path that takes the engine down with the app (tray
@@ -2288,6 +2364,19 @@ function createSecondaryWindow() {
 const EDIT_ROLES = new Set(["undo", "redo", "cut", "copy", "paste", "selectAll"]);
 
 function registerChromeIpc() {
+  // The renderer reports the active theme's ink so the native window glyphs
+  // stay legible on it. Fire-and-forget, and applied to every window: a theme
+  // is an app-wide choice, not a per-window one.
+  ipcMain.on("w4y:titlebar:theme", (_e, payload) => {
+    const bar = payload && payload.barColor;
+    const symbol = payload && payload.symbolColor;
+    if (!isHexColor(bar) || !isHexColor(symbol)) return;
+    if (bar === rendererBarColor && symbol === rendererSymbolColor) return;
+    rendererBarColor = bar;
+    rendererSymbolColor = symbol;
+    for (const win of BrowserWindow.getAllWindows()) applyTitleBarOverlay(win);
+  });
+
   ipcMain.handle("w4y:window:new", () => createSecondaryWindow());
   ipcMain.handle("w4y:window:close", (e) => {
     const win = BrowserWindow.fromWebContents(e.sender);

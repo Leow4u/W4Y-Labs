@@ -156,6 +156,13 @@ if (_isAppOrigin()) {
       toggleFullscreen: () => ipcRenderer.invoke("w4y:view:fullscreen"),
       reload: () => ipcRenderer.invoke("w4y:view:reload"),
       appInfo: () => ipcRenderer.invoke("w4y:app:info"),
+      // Reports the active theme's bar color and ink so the native window
+      // buttons match it and stay legible. Fire-and-forget: nothing waits.
+      setTitleBarTheme: (barColor, symbolColor) =>
+        ipcRenderer.send("w4y:titlebar:theme", {
+          barColor: String(barColor || ""),
+          symbolColor: String(symbolColor || ""),
+        }),
       onMenuAction: (cb) => {
         const listener = (_e, payload) => {
           try {

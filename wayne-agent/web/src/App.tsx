@@ -240,17 +240,32 @@ const BUILTIN_NAV_REST: NavItem[] = [
   { path: "/logs", labelKey: "logs", label: "Logs", icon: FileText },
   { path: "/cron", labelKey: "cron", label: "Cron", icon: Clock },
   { path: "/skills", labelKey: "skills", label: "Skills", icon: Package },
-  // "Integrações" — everything that connects the agents to the outside world.
-  // Plugins (skills + connectors) and Channels used to sit as two sibling
-  // entries with no relationship on screen, and the owner could not tell what
-  // each one was for (UX audit 20/07). One parent, two children.
+  // "Integrações" — tudo que liga os agentes ao mundo de fora, em três
+  // destinos nomeados pelo que são:
+  //   Conectores  (/mcp)      as ferramentas: Gmail, Planilhas, Notion…
+  //   Habilidades (/skills)   o que o agente sabe fazer
+  //   Canais      (/channels) por onde as pessoas falam com ele
+  //
+  // Antes o primeiro filho era "Aplicativos" (/plugins), um hub que juntava
+  // Conectores e Habilidades numa tela só. O resultado eram QUATRO nomes para
+  // a mesma família — a lateral dizia "Aplicativos", a página dizia "Plugins",
+  // e dentro dela as seções diziam "Conectores" e "Habilidades". O dono abriu,
+  // não soube o que era o quê, e pediu os três explícitos (20/07).
+  //
+  // O hub (/plugins) continua montado para link direto e para o console
+  // técnico (?full=1); só saiu da navegação.
+  // A âncora do grupo segue sendo /plugins — de propósito. O filtro de
+  // navegação compara por PATH, e existe uma entrada solta de /mcp logo abaixo
+  // (visão interna). Ancorar o grupo em /mcp fazia as duas passarem no filtro
+  // e "Conectores" aparecia duas vezes na lateral.
   {
     path: "/plugins",
     labelKey: "integrations",
     label: "Integrations",
     icon: Puzzle,
     children: [
-      { path: "/plugins", end: true, getLabel: (tt) => tt.app.nav.apps },
+      { path: "/mcp", end: true, getLabel: (tt) => tt.app.nav.connectors },
+      { path: "/skills", getLabel: (tt) => tt.app.nav.skills },
       { path: "/channels", getLabel: (tt) => tt.app.nav.channels },
     ],
   },
@@ -298,12 +313,11 @@ const USER_NAV_PATHS = new Set<string>([
   // cron, empty ones). The route stays mounted for deep-link and admin actions.
   "/files",
   "/cron",
-  // Manus-style merge: Skills (/skills) and Connectors (/mcp) LEFT the user nav
-  // — they became ONE single hub, "Plugins" (/plugins → PluginsHub). The /skills
-  // and /mcp routes stay mounted (deep-link + ?full=1 admin); only the nav item
-  // disappears. The technical plugins console lives at /plugins?full=1 (PluginsPage).
-  // /plugins carries "Integrações"; /channels rides in as its child, so it is
-  // deliberately NOT a top-level entry anymore.
+  // "/plugins" ancora o grupo "Integrações"; Conectores (/mcp), Habilidades
+  // (/skills) e Canais (/channels) entram como FILHOS, então nenhum dos três
+  // é entrada de topo — e a âncora não colide com a entrada solta de /mcp da
+  // visão interna. O hub PluginsHub em si saiu da navegação: continua montado
+  // para link direto, e o console técnico segue em /plugins?full=1.
   "/plugins",
   "/profiles",
 ]);

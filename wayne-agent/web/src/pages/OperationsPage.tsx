@@ -351,7 +351,7 @@ export default function OperationsPage() {
                         <div className="mt-2.5 flex items-center gap-2 border-t border-border/70 pt-2">
                           {task.assignee && (
                             <span className="inline-flex min-w-0 items-center gap-1.5 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-                              <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-foreground/80 text-[8px] font-semibold text-background">
+                              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-foreground/80 text-xs font-semibold text-background">
                                 {agentMonogram(task.assignee)}
                               </span>
                               <span className="truncate">{agentLabel(task.assignee)}</span>
@@ -438,7 +438,7 @@ export default function OperationsPage() {
                   <div className="mt-1 flex items-center gap-1.5">
                     {task.assignee && (
                       <>
-                        <span className="grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full bg-foreground/80 text-[7px] font-semibold text-background">
+                        <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-foreground/80 text-xs font-semibold text-background">
                           {agentMonogram(task.assignee)}
                         </span>
                         <span className="truncate text-xs text-muted-foreground">
