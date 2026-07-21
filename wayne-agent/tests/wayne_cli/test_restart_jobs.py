@@ -35,14 +35,20 @@ class Harness:
         self.procs = {}
         self.health = {}
         self.spawn_error = {}
+        self.generation = {}
         self.tmp = tmp_path
         self.coord = rj.RestartCoordinator(
             spawn=self._spawn,
-            probe=lambda p: self.health.get(rj.profile_key(p), rj.HealthReport()),
+            probe=lambda p, baseline: self.health.get(rj.profile_key(p), rj.HealthReport()),
             home_for=self.home_for,
+            identity=self.identity,
             clock=lambda: self.now,
             timeout=timeout,
         )
+
+    def identity(self, profile):
+        """Pre-restart gateway identity; the fake bumps it when a restart lands."""
+        return self.generation.get(rj.profile_key(profile), 0)
 
     def home_for(self, profile):
         home = self.tmp / (rj.profile_key(profile) or "__global__")
@@ -52,7 +58,8 @@ class Harness:
     def _spawn(self, profile):
         key = rj.profile_key(profile)
         if key in self.spawn_error:
-            raise RuntimeError(self.spawn_error[key])
+            err = self.spawn_error[key]
+            raise err if isinstance(err, BaseException) else RuntimeError(err)
         self.spawned.append(key)
         proc = FakeProc(pid=9000 + len(self.spawned))
         self.procs[key] = proc
@@ -360,3 +367,97 @@ class TestLiveness:
         harness.now += 1
         assert harness.coord.get(a.job_id).state == rj.SUCCEEDED
         assert harness.coord.get(b.job_id).state == rj.RUNNING  # slot released
+
+
+class TestBusyIsNotFailure:
+    """A spawner that refuses because the OS slot is taken must not lose work."""
+
+    def test_a_busy_spawner_requeues_instead_of_failing_the_job(self, h):
+        h.spawn_error["vendas"] = rj.RestartBusy("already in progress")
+        job = h.coord.request("vendas")
+        assert job.state == rj.QUEUED  # still owed, not FAILED
+        assert h.coord.pending_profiles() == ["vendas"]
+
+    def test_busy_does_not_drain_the_rest_of_the_queue(self, h):
+        # The regression: _spawn_gateway_restart raises for a DIFFERENT profile,
+        # and letting that surface as a job failure emptied the whole queue into
+        # FAILED in one _pump pass — the refusal had been moved, not removed.
+        h.spawn_error["vendas"] = rj.RestartBusy("already in progress")
+        h.spawn_error["suporte"] = rj.RestartBusy("already in progress")
+        a = h.coord.request("vendas")
+        b = h.coord.request("suporte")
+        assert h.coord.get(a.job_id).state == rj.QUEUED
+        assert h.coord.get(b.job_id).state == rj.QUEUED
+
+    def test_a_requeued_job_starts_once_the_slot_frees_up(self, h):
+        h.spawn_error["vendas"] = rj.RestartBusy("already in progress")
+        job = h.coord.request("vendas")
+        assert h.coord.get(job.job_id).state == rj.QUEUED
+        del h.spawn_error["vendas"]  # the outside restart finished
+        assert h.coord.get(job.job_id).state == rj.RUNNING
+
+
+class TestRealProbeSemantics:
+    """The verdict rules the identity-based probe has to satisfy.
+
+    These drive judge_restart with what _gateway_identity/_restart_probe
+    actually produce, so the rules are pinned independently of the web_server
+    wiring — which is where the first version's two blockers lived.
+    """
+
+    def probe_result(self, *, gateway_present, baseline, current):
+        """Mirror of _restart_probe's decision, kept in lockstep by review."""
+        if not gateway_present:
+            return rj.HealthReport(healthy=False, config_applied=None)
+        if baseline is None:
+            return rj.HealthReport(healthy=True, config_applied=None)
+        return rj.HealthReport(healthy=True, config_applied=current != baseline)
+
+    def judge(self, health, elapsed=1.0):
+        return rj.judge_restart(
+            exited=False, exit_code=None, health=health, elapsed=elapsed, timeout=90.0
+        )
+
+    def test_the_OLD_gateway_still_answering_is_not_success(self):
+        # This was the credential-change blocker: nothing about the platform set
+        # changes, so the first poll ~1s in reported SUCCEEDED against the very
+        # gateway that still held the old token.
+        h = self.probe_result(gateway_present=True, baseline=(111, "t0"), current=(111, "t0"))
+        assert self.judge(h)[0] == rj.RUNNING
+
+    def test_a_replaced_gateway_is_success(self):
+        h = self.probe_result(gateway_present=True, baseline=(111, "t0"), current=(222, "t1"))
+        assert self.judge(h)[0] == rj.SUCCEEDED
+
+    def test_the_same_pid_reused_with_a_new_start_time_still_counts_as_replaced(self):
+        # The OS reuses pids; start_time is what stops a restart reading as
+        # "nothing changed".
+        h = self.probe_result(gateway_present=True, baseline=(111, "t0"), current=(111, "t1"))
+        assert self.judge(h)[0] == rj.SUCCEEDED
+
+    def test_a_disable_no_longer_depends_on_the_cumulative_platform_map(self):
+        # gateway_state.json only ever merges — nothing removes a platform key —
+        # so "known to the gateway" was monotonic and a DISABLE could never
+        # satisfy the old check, failing at the 90s timeout every time. Identity
+        # does not consult that map at all.
+        h = self.probe_result(gateway_present=True, baseline=(111, "t0"), current=(222, "t1"))
+        assert self.judge(h)[0] == rj.SUCCEEDED
+
+    def test_a_gateway_that_is_briefly_gone_keeps_waiting(self):
+        h = self.probe_result(gateway_present=False, baseline=(111, "t0"), current=None)
+        assert self.judge(h)[0] == rj.RUNNING
+
+    def test_an_unknown_baseline_never_claims_success(self):
+        h = self.probe_result(gateway_present=True, baseline=None, current=(222, "t1"))
+        assert self.judge(h)[0] == rj.RUNNING
+        assert self.judge(h, elapsed=90.0)[0] == rj.FAILED  # and times out honestly
+
+    def test_the_marker_survives_a_restart_that_never_replaced_the_gateway(self, h):
+        home = h.home_for("vendas")
+        rj.mark_restart_needed(home, reason=rj.REASON_CREDENTIALS, platform="slack")
+        job = h.coord.request("vendas")
+        # Identity never changes: same gateway throughout.
+        h.health["vendas"] = rj.HealthReport(healthy=True, config_applied=False)
+        h.now += 91
+        assert h.coord.get(job.job_id).state == rj.FAILED
+        assert rj.is_restart_needed(home) is True

@@ -3902,82 +3902,121 @@ def _restart_home_for(profile: Optional[str]) -> Optional[Path]:
         return None
 
 
-def _restart_probe(profile: Optional[str]) -> restart_jobs.HealthReport:
-    """Is ``profile``'s gateway up AND running the config we asked for?
+def _gateway_identity(profile: Optional[str]) -> Optional[tuple]:
+    """Who is serving ``profile`` right now: (pid, start_time), or None.
 
-    Exit codes were never enough (the gateway can run in the foreground and
-    never exit), and "the process started" is not evidence of anything. This
-    reuses the status data the dashboard already derives:
-
-    * healthy — the profile's gateway answers with a live PID.
-    * config_applied — for every platform, what the RUNNING gateway reports
-      matches what config now says. The second half is what makes a DISABLE
-      verifiable: the backend reports ``disabled`` the instant config is
-      written, while the old gateway happily keeps serving the channel, so the
-      only proof is that the runtime no longer lists it.
-
-    ``None`` anywhere means "could not tell" — never an invented verdict.
+    ``start_time`` matters as much as the pid — the OS reuses pids, and a
+    restart that happens to land on the same number must not read as "nothing
+    changed". Both come from the gateway's own status record
+    (gateway/status.py writes ``pid`` and ``start_time`` at :763-765).
     """
     try:
         with _profile_scope(profile):
-            if get_running_pid() is None:
-                return restart_jobs.HealthReport(healthy=False, config_applied=None)
+            pid = get_running_pid()
+            if pid is None:
+                return None
             runtime = read_runtime_status()
-            if not isinstance(runtime, dict):
-                return restart_jobs.HealthReport(healthy=True, config_applied=None)
-            live = runtime.get("platforms")
-            if not isinstance(live, dict):
-                return restart_jobs.HealthReport(healthy=True, config_applied=None)
-            env_on_disk = load_env()
-            applied = True
-            for entry in _messaging_platform_catalog():
-                payload = _messaging_platform_payload(
-                    entry, env_on_disk, runtime, scoped=True
-                )
-                desired_on = bool(payload.get("enabled") and payload.get("configured"))
-                runtime_entry = live.get(entry["id"])
-                known_to_gateway = isinstance(runtime_entry, dict) and bool(
-                    runtime_entry.get("state")
-                )
-                if desired_on and not known_to_gateway:
-                    applied = False  # enable not picked up yet
-                elif not desired_on and known_to_gateway:
-                    applied = False  # disable not picked up yet
-            return restart_jobs.HealthReport(healthy=True, config_applied=applied)
-    except Exception:  # noqa: BLE001 - unknown, never "failed" and never "ok"
-        _log.debug("restart probe failed for profile %r", profile, exc_info=True)
-        return restart_jobs.HealthReport()
+            start = runtime.get("start_time") if isinstance(runtime, dict) else None
+            return (pid, start)
+    except Exception:  # noqa: BLE001 - unknown identity, never a verdict
+        _log.debug("gateway identity unreadable for profile %r", profile, exc_info=True)
+        return None
+
+
+def _restart_probe(profile: Optional[str], baseline: Any = None) -> restart_jobs.HealthReport:
+    """Is ``profile``'s gateway up, and is it a DIFFERENT process than before?
+
+    The first version of this compared the running gateway's platform map
+    against config. That was wrong twice over, and an independent review proved
+    both with a repro:
+
+    * ``gateway_state.json`` only ever merges — nothing removes a key from
+      ``platforms`` (base.py writes ``disconnected`` on shutdown, run.py writes
+      ``disabled``). "Known to the gateway" is therefore monotonic, so a DISABLE
+      could never satisfy the check and ran to the 90s timeout, failing forever.
+      The exact case the durable marker was built for.
+    * A CREDENTIAL change alters no platform at all, so the check passed on the
+      first poll ~1s in — against the OLD gateway, still holding the old token.
+      A green badge over config that was never applied.
+
+    Identity is the honest signal: a restart means the process was replaced, and
+    a new process reads config and .env from disk on the way up. Whether a
+    channel then connects is a separate question the channel badge already
+    answers — it is not what "the restart applied" means.
+
+    ``None`` anywhere still means "could not tell", never an invented verdict.
+    """
+    current = _gateway_identity(profile)
+    if current is None:
+        # Mid-restart the gateway is legitimately absent; judge_restart keeps
+        # the job running until the timeout rather than calling this a failure.
+        return restart_jobs.HealthReport(healthy=False, config_applied=None)
+    if baseline is None:
+        # No baseline (identity unreadable when the job started): we cannot
+        # prove the process was replaced, so we do not claim it was.
+        return restart_jobs.HealthReport(healthy=True, config_applied=None)
+    return restart_jobs.HealthReport(healthy=True, config_applied=current != baseline)
+
+
+def _coordinated_spawn(profile: Optional[str]):
+    """Spawn for the coordinator, translating "busy" into a requeue.
+
+    ``_spawn_gateway_restart`` raises when a restart for a DIFFERENT profile is
+    still alive. Letting that surface as a job failure drained the whole queue
+    to FAILED in one pass — the refusal had merely been moved, not removed. It
+    is a busy signal, so the job goes back in the queue and waits its turn.
+    """
+    try:
+        proc, _reused = _spawn_gateway_restart(profile)
+    except RuntimeError as exc:
+        if "already in progress" in str(exc):
+            raise restart_jobs.RestartBusy(str(exc)) from exc
+        raise
+    return proc
 
 
 #: The ONE owner of restart ordering, identity and completion. Lives here, not
 #: in a React hook: pages, drawers, tabs and profiles all need the same answer,
 #: and a queue inside one browser tab is lost on reload.
 _RESTART_COORDINATOR = restart_jobs.RestartCoordinator(
-    spawn=lambda profile: _spawn_gateway_restart(profile)[0],
+    spawn=_coordinated_spawn,
     probe=_restart_probe,
     home_for=_restart_home_for,
+    identity=_gateway_identity,
 )
 
 
 def _restart_gateway_after_webhook_enable(profile: Optional[str] = None) -> dict[str, Any]:
     """Best-effort gateway restart after enabling the webhook platform."""
+    # Routed through the coordinator, not spawned directly. Bypassing it meant
+    # no job identity, no queue position, no health verdict and no marker —
+    # and it poisoned the OS-level slot, which is how a coordinator restart for
+    # another profile then hit "already in progress".
+    home = _restart_home_for(profile)
+    if home is not None:
+        try:
+            restart_jobs.mark_restart_needed(
+                home, reason=restart_jobs.REASON_ENABLE, platform="webhook"
+            )
+        except Exception:  # noqa: BLE001 - the restart still matters more
+            _log.debug("could not mark restart pending for %r", profile, exc_info=True)
     try:
-        proc, reused = _spawn_gateway_restart(profile)
+        job = _RESTART_COORDINATOR.request(profile)
     except Exception as exc:
         _log.exception("Failed to auto-restart gateway after enabling webhooks")
         return {
             "restart_started": False,
             "restart_error": str(exc),
         }
-    if reused:
-        _log.info(
-            "Webhook enable: reusing in-flight gateway restart (pid %s)",
-            proc.pid,
-        )
+    if job.state == restart_jobs.FAILED:
+        return {"restart_started": False, "restart_error": job.error or "restart refused"}
+    if job.reused:
+        _log.info("Webhook enable: joined in-flight restart (job %s)", job.job_id)
     return {
         "restart_started": True,
         "restart_action": "gateway-restart",
-        "restart_pid": proc.pid,
+        "restart_job_id": job.job_id,
+        "restart_pid": job.pid,
     }
 
 
@@ -7235,23 +7274,35 @@ def _restart_gateway_after_telegram_onboarding(profile: Optional[str] = None) ->
     broken from the chat side. Keep the config save authoritative, but report
     restart failures so the UI can fall back to the existing manual banner.
     """
+    # Routed through the coordinator, not spawned directly. Bypassing it meant
+    # no job identity, no queue position, no health verdict and no marker —
+    # and it poisoned the OS-level slot, which is how a coordinator restart for
+    # another profile then hit "already in progress".
+    home = _restart_home_for(profile)
+    if home is not None:
+        try:
+            restart_jobs.mark_restart_needed(
+                home, reason=restart_jobs.REASON_CREDENTIALS, platform="telegram"
+            )
+        except Exception:  # noqa: BLE001 - the restart still matters more
+            _log.debug("could not mark restart pending for %r", profile, exc_info=True)
     try:
-        proc, reused = _spawn_gateway_restart(profile)
+        job = _RESTART_COORDINATOR.request(profile)
     except Exception as exc:
         _log.exception("Failed to auto-restart gateway after Telegram onboarding")
         return {
             "restart_started": False,
             "restart_error": str(exc),
         }
-    if reused:
-        _log.info(
-            "Telegram onboarding: reusing in-flight gateway restart (pid %s)",
-            proc.pid,
-        )
+    if job.state == restart_jobs.FAILED:
+        return {"restart_started": False, "restart_error": job.error or "restart refused"}
+    if job.reused:
+        _log.info("Telegram onboarding: joined in-flight restart (job %s)", job.job_id)
     return {
         "restart_started": True,
         "restart_action": "gateway-restart",
-        "restart_pid": proc.pid,
+        "restart_job_id": job.job_id,
+        "restart_pid": job.pid,
     }
 
 

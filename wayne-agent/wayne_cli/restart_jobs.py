@@ -51,6 +51,16 @@ REASON_CREDENTIALS = "credentials"
 VALID_REASONS = (REASON_ENABLE, REASON_DISABLE, REASON_CREDENTIALS)
 
 
+class RestartBusy(Exception):
+    """The spawner refused because another restart still holds the OS-level slot.
+
+    Not a failure of the job: the work is still owed. `_pump` puts the job back
+    at the head of the queue. Draining the queue to FAILED on this (what the
+    injected spawner's RuntimeError used to cause) is exactly the "second
+    profile is lost" behaviour the coordinator exists to end.
+    """
+
+
 def profile_key(profile: Optional[str]) -> str:
     """Stable key for a target; the global gateway is the empty string."""
     return (profile or "").strip()
@@ -210,6 +220,9 @@ class RestartJob:
     created_at: float = 0.0
     started_at: Optional[float] = None
     finished_at: Optional[float] = None
+    #: Gateway identity (pid, start_time) captured just BEFORE spawning. The
+    #: only trustworthy proof that config was re-read is that this changed.
+    baseline: Any = None
 
     @property
     def key(self) -> str:
@@ -247,14 +260,16 @@ class RestartCoordinator:
         self,
         *,
         spawn: Callable[[Optional[str]], Any],
-        probe: Callable[[Optional[str]], HealthReport],
+        probe: Callable[[Optional[str], Any], HealthReport],
         home_for: Callable[[Optional[str]], Optional[Path]],
+        identity: Callable[[Optional[str]], Any] = lambda _p: None,
         clock: Callable[[], float] = time.time,
         timeout: float = 90.0,
     ) -> None:
         self._spawn = spawn
         self._probe = probe
         self._home_for = home_for
+        self._identity = identity
         self._clock = clock
         self._timeout = timeout
         self._lock = threading.RLock()
@@ -313,6 +328,10 @@ class RestartCoordinator:
                 if active is not None:
                     self._advance(active)
             self._advance(job)
+            # A job requeued by RestartBusy leaves the slot free with work
+            # waiting; nothing else would ever pick it up.
+            if self._active is None and self._queue:
+                self._pump()
             return job
 
     def pending_profiles(self) -> List[str]:
@@ -342,7 +361,18 @@ class RestartCoordinator:
             job = self._jobs[self._queue[0]]
             self._queue.pop(0)
             try:
+                # Captured BEFORE the spawn: everything after this must be able
+                # to tell the new gateway from the one already running.
+                job.baseline = self._identity(job.profile)
+            except Exception:  # noqa: BLE001 - unknown baseline, never a failure
+                job.baseline = None
+            try:
                 proc = self._spawn(job.profile)
+            except RestartBusy:
+                # Somebody outside the coordinator holds the OS slot. The job is
+                # still owed — put it back and stop; a later poll retries.
+                self._queue.insert(0, job.job_id)
+                return
             except Exception as exc:  # noqa: BLE001 - reported, not raised
                 job.state = FAILED
                 job.error = str(exc)
@@ -371,7 +401,7 @@ class RestartCoordinator:
             exited = code is not None
 
         try:
-            health = self._probe(job.profile)
+            health = self._probe(job.profile, job.baseline)
         except Exception:  # noqa: BLE001 - unknown, not failed
             health = HealthReport()
 
