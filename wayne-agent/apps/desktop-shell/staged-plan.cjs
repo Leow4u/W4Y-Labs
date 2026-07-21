@@ -27,9 +27,12 @@
  */
 function stagedIdentity(staged) {
   if (!staged || typeof staged !== "object") return null;
-  const root = typeof staged.root === "string" ? staged.root : null;
-  const zipUrl = typeof staged.zipUrl === "string" ? staged.zipUrl : null;
-  if (!root && !zipUrl) return null;
+  const root = typeof staged.root === "string" && staged.root ? staged.root : null;
+  const zipUrl = typeof staged.zipUrl === "string" && staged.zipUrl ? staged.zipUrl : null;
+  // BOTH, not either. The doc claimed root+zipUrl identify the artifact while
+  // the code accepted half of it, so a marker with only a root compared equal
+  // to a different download that happened to land in the same slot.
+  if (!root || !zipUrl) return null;
   return { root, zipUrl, version: staged.version ?? null };
 }
 

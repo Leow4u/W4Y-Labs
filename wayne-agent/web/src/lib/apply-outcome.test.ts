@@ -56,9 +56,28 @@ describe("normalizeApplyResult", () => {
   });
 
   it("an UNRECOGNISED explicit outcome does not pass as success", () => {
-    expect(ao.normalizeApplyResult({ ok: true, outcome: "brand-new" }).outcome).toBe(
-      "applied",
-    );
+    // This test asserted `"applied"` — it was named as if it proved the
+    // opposite of what it checked, so the defect had a green guard on it.
+    // ok:true alongside an outcome this build cannot read means nothing.
+    const r = ao.normalizeApplyResult({ ok: true, outcome: "brand-new" });
+    expect(r.outcome).toBe("failed");
+    expect(r.ok).toBe(false);
+  });
+
+  it("an empty object is a failure, not an applied update", () => {
+    expect(ao.normalizeApplyResult({}).outcome).toBe("failed");
+  });
+
+  it("recovered is ok:false — the update did NOT happen", () => {
+    expect(ao.normalizeApplyResult({ ok: true, outcome: "recovered" })).toMatchObject({
+      outcome: "recovered",
+      ok: false,
+    });
+  });
+
+  it("the bare ok:true legacy read can be refused explicitly", () => {
+    expect(ao.normalizeApplyResult({ ok: true }, { legacy: false }).outcome).toBe("failed");
+    expect(ao.normalizeApplyResult({ ok: true }).outcome).toBe("applied");
   });
 
   it("stale-plan is its own outcome, from either field", () => {
@@ -75,10 +94,6 @@ describe("normalizeApplyResult", () => {
     });
   });
 
-  it("a bare ok:true (the shell/relaunch path) reads as applied", () => {
-    expect(ao.normalizeApplyResult({ ok: true }).outcome).toBe("applied");
-  });
-
   it("nothing at all is a failure, not a success", () => {
     expect(ao.normalizeApplyResult(null).outcome).toBe("failed");
     expect(ao.normalizeApplyResult(undefined).ok).toBe(false);
@@ -89,5 +104,61 @@ describe("normalizeApplyResult", () => {
       ao.normalizeApplyResult({ ok: true, outcome: "recovered", error: "download 404" })
         .error,
     ).toBe("download 404");
+  });
+});
+
+describe("judgeTokenlessApply — the tokenless path stopped saying no-update", () => {
+  const answer = (fresh: unknown) => ao.judgeTokenlessApply(fresh);
+
+  it("available with a token → apply that token", () => {
+    expect(answer({ status: "available", token: "t" })).toEqual({
+      action: "apply",
+      token: "t",
+    });
+  });
+
+  it("a genuine up-to-date is the ONLY no-update", () => {
+    expect(answer({ status: "up-to-date" }).result).toMatchObject({
+      ok: true,
+      outcome: "no-update",
+    });
+  });
+
+  it.each(["unknown", "in-progress", "preparing"])(
+    "%s never becomes no-update",
+    (status) => {
+      const r = answer({ status }).result;
+      expect(r.outcome).not.toBe("no-update");
+      expect(r.ok).toBe(false);
+    },
+  );
+
+  it("unknown reports a check failure and carries what was unverified", () => {
+    expect(answer({ status: "unknown", unverified: ["shell"] }).result).toMatchObject({
+      outcome: "failed",
+      error: "check-failed",
+      unverified: ["shell"],
+    });
+  });
+
+  it("in-progress and preparing name their own reason", () => {
+    expect(answer({ status: "in-progress" }).result.error).toBe("update-in-progress");
+    expect(answer({ status: "preparing" }).result.error).toBe("update-not-ready");
+  });
+
+  it("available WITHOUT a token is refused, not applied", () => {
+    expect(answer({ status: "available" }).result).toMatchObject({
+      outcome: "stale-plan",
+      ok: false,
+    });
+  });
+
+  it("a legacy available with a token still works", () => {
+    expect(answer({ available: true, token: "t" })).toEqual({ action: "apply", token: "t" });
+  });
+
+  it("null and unknown shapes fail closed", () => {
+    expect(answer(null).result.outcome).toBe("failed");
+    expect(answer({ status: "brand-new" }).result.outcome).toBe("failed");
   });
 });
