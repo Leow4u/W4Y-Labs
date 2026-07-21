@@ -51,6 +51,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from wayne_cli import __version__, __release_date__
+from wayne_cli import restart_jobs
 from wayne_cli.config import (
     cfg_get,
     DEFAULT_CONFIG,
@@ -3878,6 +3879,76 @@ def _spawn_gateway_restart(profile: Optional[str] = None) -> Tuple[subprocess.Po
     return _spawn_wayne_action(subcommand, "gateway-restart"), False
 
 
+def _restart_home_for(profile: Optional[str]) -> Optional[Path]:
+    """The WAYNE_HOME that owns ``profile``'s durable restart marker."""
+    name = (profile or "").strip()
+    if not name:
+        return _get_default_wayne_home()
+    try:
+        from wayne_cli import profiles as profiles_mod
+
+        return Path(profiles_mod.get_profile_dir(name))
+    except Exception:  # noqa: BLE001 - an unknown profile has no marker
+        return None
+
+
+def _restart_probe(profile: Optional[str]) -> restart_jobs.HealthReport:
+    """Is ``profile``'s gateway up AND running the config we asked for?
+
+    Exit codes were never enough (the gateway can run in the foreground and
+    never exit), and "the process started" is not evidence of anything. This
+    reuses the status data the dashboard already derives:
+
+    * healthy — the profile's gateway answers with a live PID.
+    * config_applied — for every platform, what the RUNNING gateway reports
+      matches what config now says. The second half is what makes a DISABLE
+      verifiable: the backend reports ``disabled`` the instant config is
+      written, while the old gateway happily keeps serving the channel, so the
+      only proof is that the runtime no longer lists it.
+
+    ``None`` anywhere means "could not tell" — never an invented verdict.
+    """
+    try:
+        with _profile_scope(profile):
+            if get_running_pid() is None:
+                return restart_jobs.HealthReport(healthy=False, config_applied=None)
+            runtime = read_runtime_status()
+            if not isinstance(runtime, dict):
+                return restart_jobs.HealthReport(healthy=True, config_applied=None)
+            live = runtime.get("platforms")
+            if not isinstance(live, dict):
+                return restart_jobs.HealthReport(healthy=True, config_applied=None)
+            env_on_disk = load_env()
+            applied = True
+            for entry in _messaging_platform_catalog():
+                payload = _messaging_platform_payload(
+                    entry, env_on_disk, runtime, scoped=True
+                )
+                desired_on = bool(payload.get("enabled") and payload.get("configured"))
+                runtime_entry = live.get(entry["id"])
+                known_to_gateway = isinstance(runtime_entry, dict) and bool(
+                    runtime_entry.get("state")
+                )
+                if desired_on and not known_to_gateway:
+                    applied = False  # enable not picked up yet
+                elif not desired_on and known_to_gateway:
+                    applied = False  # disable not picked up yet
+            return restart_jobs.HealthReport(healthy=True, config_applied=applied)
+    except Exception:  # noqa: BLE001 - unknown, never "failed" and never "ok"
+        _log.debug("restart probe failed for profile %r", profile, exc_info=True)
+        return restart_jobs.HealthReport()
+
+
+#: The ONE owner of restart ordering, identity and completion. Lives here, not
+#: in a React hook: pages, drawers, tabs and profiles all need the same answer,
+#: and a queue inside one browser tab is lost on reload.
+_RESTART_COORDINATOR = restart_jobs.RestartCoordinator(
+    spawn=lambda profile: _spawn_gateway_restart(profile)[0],
+    probe=_restart_probe,
+    home_for=_restart_home_for,
+)
+
+
 def _restart_gateway_after_webhook_enable(profile: Optional[str] = None) -> dict[str, Any]:
     """Best-effort gateway restart after enabling the webhook platform."""
     try:
@@ -3902,18 +3973,54 @@ def _restart_gateway_after_webhook_enable(profile: Optional[str] = None) -> dict
 
 @app.post("/api/gateway/restart")
 async def restart_gateway(profile: Optional[str] = None):
-    """Kick off a ``wayne gateway restart`` in the background."""
+    """Start (or join) a restart of ``profile``'s gateway and identify it.
+
+    The old answer was ``{ok, pid, name: "gateway-restart"}`` — a GLOBAL name.
+    Two profiles restarting in sequence were indistinguishable through it, so a
+    status read could hand job A the result of process B, and the older global
+    slot refused a second profile outright instead of queueing it. The reply now
+    carries an opaque per-operation ``job_id`` that ``GET`` below reads back.
+    """
     try:
-        proc, _reused = _spawn_gateway_restart(profile)
+        job = _RESTART_COORDINATOR.request(profile)
     except HTTPException:
         raise
     except Exception as exc:
-        _log.exception("Failed to spawn gateway restart")
+        _log.exception("Failed to queue gateway restart")
         raise HTTPException(status_code=500, detail=f"Failed to restart gateway: {exc}")
+    payload = job.to_dict()
+    # `name` is kept for older clients that still poll the action log; it is no
+    # longer how this operation is identified.
+    payload.update({"ok": job.state != restart_jobs.FAILED, "name": "gateway-restart"})
+    return payload
+
+
+@app.get("/api/gateway/restart/{job_id}")
+async def get_restart_job(job_id: str):
+    """Status of ONE restart operation — never another one's process."""
+    job = _RESTART_COORDINATOR.get(job_id)
+    if job is None:
+        raise HTTPException(status_code=404, detail="Unknown restart job")
+    payload = job.to_dict()
+    payload["ok"] = job.state != restart_jobs.FAILED
+    return payload
+
+
+@app.get("/api/gateway/restart-pending")
+async def get_restart_pending(profile: Optional[str] = None):
+    """Durable "this profile owes a restart" mark, for hydration after a reload.
+
+    Read from disk, not from anyone's memory: this is what survives a remount, a
+    second tab and a restart of the web server itself.
+    """
+    home = _restart_home_for(profile)
+    pending = restart_jobs.read_pending(home) if home is not None else {}
     return {
-        "ok": True,
-        "pid": proc.pid,
-        "name": "gateway-restart",
+        "profile": profile,
+        "pending": bool(pending.get("pending")),
+        "reasons": pending.get("reasons") or [],
+        "platforms": pending.get("platforms") or [],
+        "since": pending.get("since"),
     }
 
 
@@ -7246,6 +7353,12 @@ async def update_messaging_platform(
         )
 
     allowed_env = set(entry["env_vars"])
+    target_profile = body.profile or profile
+    # What kind of change this is, recorded as it happens. Deriving it later
+    # from platform state cannot see a DISABLE: the moment config says
+    # disabled the backend reports "disabled", while the running gateway is
+    # still serving the channel — indistinguishable from "nothing to do".
+    reasons: list[str] = []
     try:
         with _profile_scope(body.profile or profile):
             for key in body.clear_env:
@@ -7255,6 +7368,7 @@ async def update_messaging_platform(
                         detail=f"{key} is not configurable for {entry['name']}",
                     )
                 remove_env_value(key)
+                reasons.append(restart_jobs.REASON_CREDENTIALS)
 
             for key, value in body.env.items():
                 if key not in allowed_env:
@@ -7266,11 +7380,26 @@ async def update_messaging_platform(
                 if trimmed:
                     _validate_messaging_env_value(platform_id, key, trimmed)
                     save_env_value(key, trimmed)
+                    reasons.append(restart_jobs.REASON_CREDENTIALS)
 
             if body.enabled is not None:
                 _write_platform_enabled(platform_id, body.enabled)
+                reasons.append(
+                    restart_jobs.REASON_ENABLE
+                    if body.enabled
+                    else restart_jobs.REASON_DISABLE
+                )
 
-        return {"ok": True, "platform": platform_id}
+        pending = False
+        if reasons:
+            home = _restart_home_for(target_profile)
+            if home is not None:
+                for reason in sorted(set(reasons)):
+                    restart_jobs.mark_restart_needed(
+                        home, reason=reason, platform=platform_id
+                    )
+                pending = True
+        return {"ok": True, "platform": platform_id, "restart_pending": pending}
     except HTTPException:
         raise
     except Exception:

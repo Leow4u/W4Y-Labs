@@ -1,0 +1,393 @@
+"""Gateway restart jobs — identity, queue and a durable "needs restart" mark.
+
+Why this module exists
+----------------------
+Restart coordination used to live in a React hook. That put the queue, the
+"is a restart pending" truth and the success/failure verdict inside one browser
+tab, while pages, drawers, tabs and profiles all watched a single global action
+name, ``gateway-restart``. Three consequences, all observed:
+
+* **Identity.** ``POST /api/gateway/restart`` answered with the global action
+  name, so a status read could not tell job A's process from job B's. Two
+  profiles restarting in sequence were indistinguishable, and the older global
+  slot even refused the second profile outright.
+* **Ownership.** A change on agent B made while agent A was restarting lived in
+  one boolean inside one hook. Reload the page and the queue was gone; the
+  gateway kept running the old config with nothing on screen able to fix it.
+* **Truth.** "Saved but not live" was derived from ``platform.state ==
+  "pending_restart"``. That derivation cannot see a DISABLE: the backend reports
+  ``disabled`` the moment config is written, while the running gateway still has
+  the channel live. The marker below is written when the change is written, so
+  it does not depend on inferring intent from current state.
+
+Everything here is dependency-injected (spawn, health probe, clock, home
+resolver) so the state machine can be tested without a gateway, a subprocess or
+a filesystem. ``web_server`` supplies the real ones.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import tempfile
+import threading
+import time
+import uuid
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Any, Callable, Dict, List, Optional
+
+# ── Durable marker ────────────────────────────────────────────────────────────
+# One file per profile home, alongside the other WAYNE_HOME state files. It
+# survives a reload, a remount, a second tab and a restart of the web server —
+# none of which the React-only version did.
+PENDING_FILENAME = "restart_pending.json"
+
+#: Why a restart is owed. Kept explicit because the three cases are NOT
+#: interchangeable: a disable looks like "nothing to do" from current state.
+REASON_ENABLE = "enable"
+REASON_DISABLE = "disable"
+REASON_CREDENTIALS = "credentials"
+VALID_REASONS = (REASON_ENABLE, REASON_DISABLE, REASON_CREDENTIALS)
+
+
+def profile_key(profile: Optional[str]) -> str:
+    """Stable key for a target; the global gateway is the empty string."""
+    return (profile or "").strip()
+
+
+def _pending_path(home: Path) -> Path:
+    return Path(home) / PENDING_FILENAME
+
+
+def read_pending(home: Path) -> Dict[str, Any]:
+    """Durable "this profile owes a restart" record, or {} when it owes none."""
+    try:
+        raw = _pending_path(home).read_text(encoding="utf-8")
+    except (FileNotFoundError, NotADirectoryError):
+        return {}
+    except OSError:
+        return {}
+    try:
+        data = json.loads(raw)
+    except (ValueError, TypeError):
+        # A truncated/corrupt marker must not brick the screen. Treating it as
+        # "nothing pending" is wrong in the safe direction only if we ALSO keep
+        # deriving from platform state, which the caller does.
+        return {}
+    return data if isinstance(data, dict) else {}
+
+
+def _atomic_write(path: Path, payload: Dict[str, Any]) -> None:
+    """Write via a temp file + replace so a crash never leaves half a marker."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".restart-", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, indent=2, sort_keys=True)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
+def mark_restart_needed(
+    home: Path,
+    *,
+    reason: str,
+    platform: Optional[str] = None,
+    now: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Record that config changed and the running gateway has not picked it up.
+
+    Called at the moment the config is written — not inferred later from
+    whatever the platform list happens to say, which is exactly how a disable
+    went missing.
+    """
+    if reason not in VALID_REASONS:
+        raise ValueError(f"unknown restart reason: {reason!r}")
+    current = read_pending(Path(home))
+    reasons = set(current.get("reasons") or [])
+    reasons.add(reason)
+    platforms = set(current.get("platforms") or [])
+    if platform:
+        platforms.add(platform)
+    payload = {
+        "pending": True,
+        "reasons": sorted(reasons),
+        "platforms": sorted(platforms),
+        "since": current.get("since") or (now if now is not None else time.time()),
+        "updated_at": now if now is not None else time.time(),
+    }
+    _atomic_write(_pending_path(Path(home)), payload)
+    return payload
+
+
+def clear_restart_needed(home: Path) -> None:
+    """Drop the marker — ONLY after a restart was confirmed applied."""
+    try:
+        _pending_path(Path(home)).unlink()
+    except FileNotFoundError:
+        return
+    except OSError:
+        return
+
+
+def is_restart_needed(home: Path) -> bool:
+    return bool(read_pending(Path(home)).get("pending"))
+
+
+# ── Verdict ───────────────────────────────────────────────────────────────────
+RUNNING = "running"
+SUCCEEDED = "succeeded"
+FAILED = "failed"
+QUEUED = "queued"
+
+
+@dataclass(frozen=True)
+class HealthReport:
+    """What the probe could establish about a profile's gateway.
+
+    ``None`` means "could not tell", which is deliberately NOT the same as
+    ``False``: an unreadable probe keeps the job running until the timeout
+    rather than inventing a failure — or, worse, a success.
+    """
+
+    healthy: Optional[bool] = None
+    config_applied: Optional[bool] = None
+
+
+def judge_restart(
+    *,
+    exited: bool,
+    exit_code: Optional[int],
+    health: HealthReport,
+    elapsed: float,
+    timeout: float,
+) -> tuple[str, Optional[str]]:
+    """Decide a restart's fate from process state AND real gateway health.
+
+    Exit code alone was never enough. On Linux/macOS the gateway can run in the
+    FOREGROUND, so the supervising process legitimately never exits — waiting
+    for it meant a healthy gateway timing out. The reverse is worse: a process
+    that exits 0 proves only that a command ran, and the previous code called
+    that success (along with ``exit_code: null`` and a missing status), which is
+    how a green badge appeared over config that was never applied.
+
+    Returns ``(state, error)``.
+    """
+    # A restart command that died with an error is a failure, full stop. The
+    # gateway may well still be "healthy" here — running the OLD config, which
+    # is precisely the state we must not report as success.
+    if exited and exit_code is not None and exit_code != 0:
+        return FAILED, f"restart exited with code {exit_code}"
+
+    # The only positive evidence accepted: the gateway answers AND it is running
+    # the config we asked for. True even if the supervisor is still alive.
+    if health.healthy is True and health.config_applied is True:
+        return SUCCEEDED, None
+
+    if elapsed >= timeout:
+        # Never "done-unverified". Unconfirmed is a failure the user can retry.
+        detail = "gateway did not report healthy" if health.healthy is not True else "configuration not applied"
+        return FAILED, f"restart timed out after {int(timeout)}s ({detail})"
+
+    return RUNNING, None
+
+
+# ── Jobs ──────────────────────────────────────────────────────────────────────
+@dataclass
+class RestartJob:
+    job_id: str
+    profile: Optional[str]
+    state: str = QUEUED
+    pid: Optional[int] = None
+    reused: bool = False
+    error: Optional[str] = None
+    created_at: float = 0.0
+    started_at: Optional[float] = None
+    finished_at: Optional[float] = None
+
+    @property
+    def key(self) -> str:
+        return profile_key(self.profile)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "job_id": self.job_id,
+            "profile": self.profile,
+            "state": self.state,
+            "pid": self.pid,
+            "reused": self.reused,
+            "error": self.error,
+            "created_at": self.created_at,
+            "started_at": self.started_at,
+            "finished_at": self.finished_at,
+        }
+
+
+class RestartCoordinator:
+    """The single owner of restart ordering, identity and completion.
+
+    Serialized globally on purpose: two concurrent ``wayne gateway restart``
+    children race on the kill-and-start path (the reason the old code refused a
+    second profile outright). The difference is that refusing is now replaced by
+    an explicit FIFO queue, so a second profile WAITS instead of being lost.
+
+    Deduplication is per profile: another change to a profile that already has a
+    job waiting is folded into that job. A change to a DIFFERENT profile always
+    gets its own — they are different gateways, and collapsing them is how one
+    agent's config silently never went live.
+    """
+
+    def __init__(
+        self,
+        *,
+        spawn: Callable[[Optional[str]], Any],
+        probe: Callable[[Optional[str]], HealthReport],
+        home_for: Callable[[Optional[str]], Optional[Path]],
+        clock: Callable[[], float] = time.time,
+        timeout: float = 90.0,
+    ) -> None:
+        self._spawn = spawn
+        self._probe = probe
+        self._home_for = home_for
+        self._clock = clock
+        self._timeout = timeout
+        self._lock = threading.RLock()
+        self._jobs: Dict[str, RestartJob] = {}
+        self._queue: List[str] = []  # job_ids waiting for the global slot
+        self._active: Optional[str] = None  # job_id holding the slot
+        self._procs: Dict[str, Any] = {}  # job_id -> process handle
+
+    # -- public API ------------------------------------------------------------
+    def request(self, profile: Optional[str]) -> RestartJob:
+        """Ask for a restart of ``profile``; returns the job that will do it."""
+        with self._lock:
+            key = profile_key(profile)
+            # Fold into a job for the same profile that has not run yet, or that
+            # is running but whose config read may already be stale.
+            for job_id in [self._active, *self._queue]:
+                if not job_id:
+                    continue
+                job = self._jobs[job_id]
+                if job.key == key and job.state in (QUEUED, RUNNING):
+                    if job.state == QUEUED:
+                        job.reused = True
+                        return job
+                    # Running: the in-flight restart may already have read the
+                    # config, so the newer change needs its own run — but only
+                    # one, no matter how many changes land.
+                    follow = self._find_queued(key)
+                    if follow is not None:
+                        follow.reused = True
+                        return follow
+                    break
+
+            job = RestartJob(
+                job_id=uuid.uuid4().hex,
+                profile=profile,
+                created_at=self._clock(),
+            )
+            self._jobs[job.job_id] = job
+            self._queue.append(job.job_id)
+            self._pump()
+            return job
+
+    def get(self, job_id: str) -> Optional[RestartJob]:
+        """Status of ONE job. Never another job's process — that is the point."""
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None:
+                return None
+            self._advance(job)
+            return job
+
+    def pending_profiles(self) -> List[str]:
+        with self._lock:
+            return [self._jobs[j].key for j in self._queue]
+
+    def snapshot(self) -> List[Dict[str, Any]]:
+        with self._lock:
+            return [j.to_dict() for j in self._jobs.values()]
+
+    # -- internals -------------------------------------------------------------
+    def _find_queued(self, key: str) -> Optional[RestartJob]:
+        for job_id in self._queue:
+            job = self._jobs[job_id]
+            if job.key == key and job.state == QUEUED:
+                return job
+        return None
+
+    def _pump(self) -> None:
+        """Start the next queued job if the global slot is free."""
+        if self._active is not None:
+            active = self._jobs.get(self._active)
+            if active is not None and active.state == RUNNING:
+                return
+            self._active = None
+        while self._queue:
+            job = self._jobs[self._queue[0]]
+            self._queue.pop(0)
+            try:
+                proc = self._spawn(job.profile)
+            except Exception as exc:  # noqa: BLE001 - reported, not raised
+                job.state = FAILED
+                job.error = str(exc)
+                job.finished_at = self._clock()
+                # A failure must NOT drain the rest: other profiles are other
+                # gateways and their changes are still owed.
+                continue
+            job.state = RUNNING
+            job.started_at = self._clock()
+            job.pid = getattr(proc, "pid", None)
+            self._procs[job.job_id] = proc
+            self._active = job.job_id
+            return
+
+    def _advance(self, job: RestartJob) -> None:
+        if job.state != RUNNING:
+            return
+        proc = self._procs.get(job.job_id)
+        code = None
+        exited = False
+        if proc is not None:
+            try:
+                code = proc.poll()
+            except Exception:  # noqa: BLE001 - an unreadable handle is "unknown"
+                code = None
+            exited = code is not None
+
+        try:
+            health = self._probe(job.profile)
+        except Exception:  # noqa: BLE001 - unknown, not failed
+            health = HealthReport()
+
+        elapsed = self._clock() - (job.started_at or self._clock())
+        state, error = judge_restart(
+            exited=exited,
+            exit_code=code,
+            health=health,
+            elapsed=elapsed,
+            timeout=self._timeout,
+        )
+        if state == RUNNING:
+            return
+
+        job.state = state
+        job.error = error
+        job.finished_at = self._clock()
+        self._procs.pop(job.job_id, None)
+        if state == SUCCEEDED:
+            # The marker is dropped ONLY here — after confirmed health with the
+            # desired config applied.
+            home = self._home_for(job.profile)
+            if home is not None:
+                clear_restart_needed(home)
+        if self._active == job.job_id:
+            self._active = None
+        # Whatever happened to this profile, the others are still owed.
+        self._pump()
