@@ -32,6 +32,52 @@
  * @param {number} [deps.maxRetries] how many extra rounds a stale plan may buy.
  * @returns {Promise<{ok: boolean, applied: boolean, reason?: string, attempts: number}>}
  */
+/**
+ * Everything that is NOT "here is a plan you can apply".
+ *
+ * Exhaustive and FAIL-CLOSED on purpose: the previous shape asked
+ * `if (!plan.available)` and said "you are on the latest version", so every
+ * status that was not `available` — including `in-progress`, `preparing` and
+ * anything added later — silently claimed the machine was current. Only an
+ * explicit `up-to-date` may say that now; an unrecognised status is treated as
+ * a failed verification.
+ *
+ * @returns a terminal result, or null when the caller should apply the plan.
+ */
+async function settleNonApplicable(plan, say, attempts = 0) {
+  const status = plan && plan.status;
+  if (!plan) {
+    await say("check-failed", { unverified: [] });
+    return { ok: false, applied: false, reason: "check-failed", attempts };
+  }
+  switch (status) {
+    case "available":
+      return null; // the caller applies it
+    case "up-to-date":
+      await say("up-to-date", { version: plan.version || null });
+      return { ok: true, applied: false, attempts };
+    case "in-progress":
+    case "preparing":
+      // A newer build exists but cannot be applied yet. Never "up to date".
+      await say(status, { version: plan.version || null });
+      return { ok: true, applied: false, pending: true, attempts };
+    case "unknown":
+      await say("check-failed", { unverified: plan.unverified || [] });
+      return { ok: false, applied: false, reason: "check-failed", attempts };
+    default:
+      // No status at all (an older shell), or one this build does not know.
+      // Fail closed: an unrecognised answer is not evidence of being current.
+      if (plan.available) return null;
+      await say("check-failed", { unverified: plan.unverified || [] });
+      return {
+        ok: false,
+        applied: false,
+        reason: status ? `unknown-status:${status}` : "check-failed",
+        attempts,
+      };
+  }
+}
+
 async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRetries = 1 }) {
   const say = async (kind, detail) => {
     try {
@@ -50,16 +96,8 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
     log(`tray check threw: ${String((e && e.message) || e)}`);
     plan = null;
   }
-  // Three answers, not two. `unknown` means some layer was never verified —
-  // saying "you are on the latest version" there is a claim with no evidence.
-  if (!plan || plan.status === "unknown") {
-    await say("check-failed", { unverified: (plan && plan.unverified) || [] });
-    return { ok: false, applied: false, reason: "check-failed", attempts: 0 };
-  }
-  if (!plan.available) {
-    await say("up-to-date", { version: plan.version || null });
-    return { ok: true, applied: false, attempts: 0 };
-  }
+  const first = await settleNonApplicable(plan, say);
+  if (first) return first;
 
   let attempts = 0;
   for (;;) {
@@ -76,11 +114,16 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
       // `recovered` = the shell install FAILED and the fallback reopened the
       // current build. Operationally fine, but it is not an update, and the
       // log and the dialog must not read as if it were.
-      const recovered = res.outcome === "recovered";
+      // `staged`    = bytes are ready; the update lands on the NEXT restart.
+      // `recovered`  = the install failed and the current build was reopened.
+      // `applied`    = the install actually fired.
+      const outcome = res.outcome || (res.status === "staged" ? "staged" : "applied");
       log(
-        recovered
+        outcome === "recovered"
           ? `tray apply RECOVERED (update failed: ${res.error || "unknown"})`
-          : `tray apply applied (version=${plan.version || "?"})`,
+          : outcome === "staged"
+            ? `tray apply STAGED (restart to finish, version=${plan.version || "?"})`
+            : `tray apply applied (version=${plan.version || "?"})`,
       );
       // Tell the user it worked. On the shell/relaunch paths this never renders
       // because the process dies inside the apply — which is exactly why it was
@@ -88,11 +131,17 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
       // and returns ok without relaunching, so without this the tray closed and
       // nothing ever happened on screen. The same silence this flow exists to
       // end.
-      await say(recovered ? "recovered" : "applied", {
+      await say(outcome, {
         version: plan.version || null,
         error: res.error || null,
       });
-      return { ok: true, applied: !recovered, recovered, attempts };
+      return {
+        ok: true,
+        applied: outcome === "applied",
+        recovered: outcome === "recovered",
+        staged: outcome === "staged",
+        attempts,
+      };
     }
 
     const reason = (res && (res.reason || res.error)) || "unknown";
@@ -116,15 +165,11 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
       log(`tray recheck threw: ${String((e && e.message) || e)}`);
       fresh = null;
     }
-    if (!fresh) {
-      await say("check-failed");
-      return { ok: false, applied: false, reason: "check-failed", attempts };
-    }
-    if (!fresh.available) {
-      // Nothing left to install — somebody else already applied it.
-      await say("up-to-date", { version: fresh.version || null });
-      return { ok: true, applied: false, attempts };
-    }
+    // The recheck goes through the SAME exhaustive rule. It used to decide on
+    // `available` alone, so an in-progress or unverified recheck reported "you
+    // are on the latest version" just like the first check did.
+    const settled = await settleNonApplicable(fresh, say, attempts);
+    if (settled) return settled;
     plan = fresh;
   }
 }

@@ -139,6 +139,8 @@ export const ja: Translations = {
     updateChecking: "アップデートを確認中…",
     updateUpToDate: "すでに最新バージョンです。",
     updateCheckFailed: "アップデートを確認できませんでした。後でもう一度お試しください。",
+    updateInProgress: "現在アップデートをインストール中です。少し待ってからもう一度お試しください。",
+    updatePreparing: "新しいバージョンを準備しています。まもなく利用できます。",
     productSwitcher: "製品",
     productCode4YouSoon: "近日公開",
   },

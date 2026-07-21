@@ -168,6 +168,10 @@ export interface Translations {
     updateChecking: string;
     updateUpToDate: string;
     updateCheckFailed: string;
+    /** An install is running right now — NOT the same as up to date. */
+    updateInProgress: string;
+    /** A newer build exists but is not staged yet, so nothing can be applied. */
+    updatePreparing: string;
     /** aria-label of the "Work4You ⌄" chip. */
     productSwitcher: string;
     /** Badge on the disabled Code4You entry. */

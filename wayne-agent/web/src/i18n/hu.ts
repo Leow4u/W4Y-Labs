@@ -139,6 +139,8 @@ export const hu: Translations = {
     updateChecking: "Frissítések keresése…",
     updateUpToDate: "Már a legújabb verziót használod.",
     updateCheckFailed: "Most nem sikerült frissítéseket keresni. Próbáld újra később.",
+    updateInProgress: "Épp most települ egy frissítés. Próbáld újra egy pillanat múlva.",
+    updatePreparing: "Egy újabb verzió készül. Hamarosan elérhető lesz.",
     productSwitcher: "Termék",
     productCode4YouSoon: "hamarosan",
   },

@@ -139,6 +139,8 @@ export const zhHant: Translations = {
     updateChecking: "正在檢查更新…",
     updateUpToDate: "你已經是最新版本。",
     updateCheckFailed: "目前無法檢查更新，請稍後再試。",
+    updateInProgress: "正在安裝更新，請稍後再試。",
+    updatePreparing: "正在準備更新版本，很快就會可用。",
     productSwitcher: "產品",
     productCode4YouSoon: "即將推出",
   },

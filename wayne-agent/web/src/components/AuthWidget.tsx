@@ -51,6 +51,7 @@ import type { Locale } from "@/i18n";
 import { isLocalEngine } from "@/lib/projects";
 import { cloudGetJson } from "@/lib/cloudSession";
 import { desktopUpdateBridge } from "@/lib/desktopChrome";
+import { nextChipPlan } from "@/lib/update-surface";
 
 interface AuthWidgetProps {
   className?: string;
@@ -122,13 +123,22 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
         .then((r) => {
           if (cancelled) return;
           setUpdate(
-            r && r.available
-              ? {
-                  version: typeof r.version === "string" && r.version ? r.version : null,
-                  kind: typeof r.kind === "string" ? r.kind : undefined,
-                  token: typeof r.token === "string" ? r.token : undefined,
-                }
-              : null,
+            // An inconclusive check (unknown / preparing / installing) must not
+            // wipe a plan the user could act on — the bytes of a staged update
+            // are already on disk. Only a VERIFIED "up to date" clears it.
+            (prev) => {
+              const next = nextChipPlan(prev ? { ...prev, status: "available", available: true } : null, r);
+              return next && next !== prev
+                ? {
+                    version:
+                      typeof next.version === "string" && next.version ? next.version : null,
+                    kind: typeof next.kind === "string" ? next.kind : undefined,
+                    token: typeof next.token === "string" ? next.token : undefined,
+                  }
+                : next === null
+                  ? null
+                  : prev;
+            },
           );
         })
         .catch(() => {});
@@ -182,13 +192,22 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
           res && typeof res === "object" && (res as { error?: string }).error === "stale-plan";
         if (refused) void bridge.check().then((r) => {
           setUpdate(
-            r && r.available
-              ? {
-                  version: typeof r.version === "string" && r.version ? r.version : null,
-                  kind: typeof r.kind === "string" ? r.kind : undefined,
-                  token: typeof r.token === "string" ? r.token : undefined,
-                }
-              : null,
+            // An inconclusive check (unknown / preparing / installing) must not
+            // wipe a plan the user could act on — the bytes of a staged update
+            // are already on disk. Only a VERIFIED "up to date" clears it.
+            (prev) => {
+              const next = nextChipPlan(prev ? { ...prev, status: "available", available: true } : null, r);
+              return next && next !== prev
+                ? {
+                    version:
+                      typeof next.version === "string" && next.version ? next.version : null,
+                    kind: typeof next.kind === "string" ? next.kind : undefined,
+                    token: typeof next.token === "string" ? next.token : undefined,
+                  }
+                : next === null
+                  ? null
+                  : prev;
+            },
           );
         });
       })

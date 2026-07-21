@@ -139,6 +139,8 @@ export const ga: Translations = {
     updateChecking: "Ag seiceáil nuashonruithe…",
     updateUpToDate: "Tá an leagan is déanaí agat cheana.",
     updateCheckFailed: "Níorbh fhéidir nuashonruithe a sheiceáil anois. Bain triail eile as ar ball.",
+    updateInProgress: "Tá nuashonrú á shuiteáil faoi láthair. Bain triail eile as ar ball.",
+    updatePreparing: "Tá leagan níos nuaí á ullmhú. Beidh sé ar fáil go luath.",
     productSwitcher: "Táirge",
     productCode4YouSoon: "ag teacht go luath",
   },

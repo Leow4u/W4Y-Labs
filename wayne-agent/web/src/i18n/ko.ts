@@ -139,6 +139,8 @@ export const ko: Translations = {
     updateChecking: "업데이트 확인 중…",
     updateUpToDate: "이미 최신 버전입니다.",
     updateCheckFailed: "지금은 업데이트를 확인할 수 없습니다. 나중에 다시 시도하세요.",
+    updateInProgress: "지금 업데이트를 설치하는 중입니다. 잠시 후 다시 시도해 주세요.",
+    updatePreparing: "새 버전을 준비하고 있습니다. 곧 사용할 수 있습니다.",
     productSwitcher: "제품",
     productCode4YouSoon: "곧 제공",
   },

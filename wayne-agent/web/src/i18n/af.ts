@@ -139,6 +139,8 @@ export const af: Translations = {
     updateChecking: "Kyk tans vir opdaterings…",
     updateUpToDate: "Jy is reeds op die nuutste weergawe.",
     updateCheckFailed: "Kon nie nou vir opdaterings kyk nie. Probeer later weer.",
+    updateInProgress: "'n Opdatering word tans geïnstalleer. Probeer oor 'n oomblik weer.",
+    updatePreparing: "'n Nuwer weergawe word voorberei. Dit sal binnekort beskikbaar wees.",
     productSwitcher: "Produk",
     productCode4YouSoon: "binnekort",
   },

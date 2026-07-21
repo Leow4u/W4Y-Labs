@@ -139,6 +139,8 @@ export const tr: Translations = {
     updateChecking: "Güncellemeler denetleniyor…",
     updateUpToDate: "Zaten en son sürümdesiniz.",
     updateCheckFailed: "Güncellemeler şu anda denetlenemedi. Daha sonra tekrar deneyin.",
+    updateInProgress: "Şu anda bir güncelleme yükleniyor. Birazdan tekrar deneyin.",
+    updatePreparing: "Daha yeni bir sürüm hazırlanıyor. Kısa süre içinde kullanılabilir olacak.",
     productSwitcher: "Ürün",
     productCode4YouSoon: "çok yakında",
   },

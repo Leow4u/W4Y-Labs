@@ -2184,9 +2184,11 @@ async function checkEngineUpdate() {
         version: manifest.version ?? null,
       });
     }
-    // The manifest names a build we do not have. It is not staged yet (that was
-    // checked above), so the background sweep still owes the download.
-    return unifiedCheck.layer(unifiedCheck.IN_PROGRESS, {
+    // The manifest names a build we do not have, and it is not staged (checked
+    // above). Reading a manifest starts NO download, so calling this
+    // "in-progress" was simply false. It is discovered-and-not-ready: the
+    // background sweep still owes the bytes, and there is nothing to apply yet.
+    return unifiedCheck.layer(unifiedCheck.PREPARING, {
       version: manifest.version ?? null,
     });
   } catch {
@@ -2423,7 +2425,12 @@ async function applyUnifiedUpdate(token) {
   // A stalled engine update has nothing staged — restarting would land on the
   // same version and look like the click did nothing. Retry instead.
   if (snap.kind === "engine" && snap.engineKind === "stalled") {
-    return retryEngineUpdate();
+    // A successful retry usually ends STAGED: the bytes are ready and the
+    // update lands on the next restart. That is not an applied install, and
+    // the tray must not announce one.
+    const res = await retryEngineUpdate();
+    if (!res.ok) return { ...res, outcome: "failed" };
+    return { ...res, outcome: res.status === "staged" ? "staged" : "applied" };
   }
   if (snap.kind === "shell") {
     // The plan named a shell version; refuse if the updater no longer holds
@@ -2986,6 +2993,12 @@ async function trayCheckForUpdates() {
       const message =
         kind === "applied"
           ? "Atualização aplicada. Se o app não reiniciar sozinho, reinicie para concluir."
+          : kind === "staged"
+          ? "Atualização preparada. Reinicie para concluir."
+          : kind === "in-progress"
+          ? "Uma atualização está sendo instalada agora. Tente de novo em instantes."
+          : kind === "preparing"
+          ? "Existe uma versão mais nova sendo preparada. Ela ficará disponível em breve."
           : kind === "recovered"
           ? "A atualização falhou. O aplicativo foi reaberto na versão atual — tente de novo mais tarde."
           : kind === "up-to-date"
@@ -2994,7 +3007,14 @@ async function trayCheckForUpdates() {
             ? "Não deu para verificar atualizações agora. Tente de novo mais tarde."
             : "Não deu para aplicar a atualização agora. Tente de novo pela bandeja.";
       await dialog.showMessageBox({
-        type: kind === "up-to-date" || kind === "applied" ? "info" : "warning",
+        type:
+          kind === "up-to-date" ||
+          kind === "applied" ||
+          kind === "staged" ||
+          kind === "in-progress" ||
+          kind === "preparing"
+            ? "info"
+            : "warning",
         title: "Work4You",
         message,
         detail:

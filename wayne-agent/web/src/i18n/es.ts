@@ -139,6 +139,8 @@ export const es: Translations = {
     updateChecking: "Buscando actualizaciones…",
     updateUpToDate: "Ya estás en la versión más reciente.",
     updateCheckFailed: "No se pudieron comprobar las actualizaciones ahora. Inténtalo más tarde.",
+    updateInProgress: "Se está instalando una actualización. Inténtalo de nuevo en un momento.",
+    updatePreparing: "Se está preparando una versión más reciente. Estará disponible en breve.",
     productSwitcher: "Producto",
     productCode4YouSoon: "muy pronto",
   },

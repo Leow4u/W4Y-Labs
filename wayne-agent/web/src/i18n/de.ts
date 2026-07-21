@@ -139,6 +139,8 @@ export const de: Translations = {
     updateChecking: "Suche nach Updates…",
     updateUpToDate: "Du bist bereits auf der neuesten Version.",
     updateCheckFailed: "Updates konnten gerade nicht geprüft werden. Versuch es später noch mal.",
+    updateInProgress: "Ein Update wird gerade installiert. Bitte gleich erneut versuchen.",
+    updatePreparing: "Eine neuere Version wird vorbereitet. Sie ist bald verfügbar.",
     productSwitcher: "Produkt",
     productCode4YouSoon: "bald verfügbar",
   },

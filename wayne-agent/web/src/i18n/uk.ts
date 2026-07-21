@@ -139,6 +139,8 @@ export const uk: Translations = {
     updateChecking: "Перевірка оновлень…",
     updateUpToDate: "У вас уже остання версія.",
     updateCheckFailed: "Не вдалося перевірити оновлення. Спробуйте пізніше.",
+    updateInProgress: "Зараз встановлюється оновлення. Спробуйте ще раз за мить.",
+    updatePreparing: "Готується новіша версія. Незабаром вона стане доступною.",
     productSwitcher: "Продукт",
     productCode4YouSoon: "незабаром",
   },

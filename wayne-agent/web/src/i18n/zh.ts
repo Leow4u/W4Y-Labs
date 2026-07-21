@@ -138,6 +138,8 @@ export const zh: Translations = {
     updateChecking: "正在检查更新…",
     updateUpToDate: "你已经是最新版本。",
     updateCheckFailed: "目前无法检查更新，请稍后再试。",
+    updateInProgress: "正在安装更新，请稍后再试。",
+    updatePreparing: "正在准备更新版本，很快就会可用。",
     productSwitcher: "产品",
     productCode4YouSoon: "即将推出",
   },

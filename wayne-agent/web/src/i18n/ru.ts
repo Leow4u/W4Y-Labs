@@ -139,6 +139,8 @@ export const ru: Translations = {
     updateChecking: "Проверка обновлений…",
     updateUpToDate: "У вас уже последняя версия.",
     updateCheckFailed: "Не удалось проверить обновления. Попробуйте позже.",
+    updateInProgress: "Сейчас устанавливается обновление. Повторите попытку через мгновение.",
+    updatePreparing: "Готовится более новая версия. Она скоро будет доступна.",
     productSwitcher: "Продукт",
     productCode4YouSoon: "скоро",
   },

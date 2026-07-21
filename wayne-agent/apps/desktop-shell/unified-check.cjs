@@ -27,8 +27,15 @@ const AVAILABLE = "available";
 const UP_TO_DATE = "up-to-date";
 /** This layer could not be checked. Says nothing either way. */
 const UNKNOWN = "unknown";
-/** This layer is mid-flight (downloading/installing). Not "up to date". */
+/** This layer is mid-flight (downloading/installing) RIGHT NOW. */
 const IN_PROGRESS = "in-progress";
+/**
+ * A newer build exists but is not usable yet: discovered in the manifest and
+ * not staged, so there is nothing to apply. Distinct from IN_PROGRESS, which
+ * used to cover this and was simply untrue — merely reading a manifest starts
+ * no download. Either way it is NOT "up to date".
+ */
+const PREPARING = "preparing";
 
 /**
  * A layer's answer.
@@ -78,11 +85,14 @@ function combineUpdateLayers(layers = {}) {
     };
   }
 
-  // An in-flight layer is not "up to date" — it is not finished.
-  const busy = named.find(([, v]) => v.status === IN_PROGRESS);
+  // A layer that is working, or that knows a newer build exists, is not "up to
+  // date". Neither may fall through to the verified-current branch.
+  const busy = named.find(
+    ([, v]) => v.status === IN_PROGRESS || v.status === PREPARING,
+  );
   if (busy) {
     return {
-      status: IN_PROGRESS,
+      status: busy[1].status,
       source: busy[0],
       version: busy[1].version ?? null,
       kind: busy[1].kind ?? null,
@@ -121,6 +131,7 @@ module.exports = {
   UP_TO_DATE,
   UNKNOWN,
   IN_PROGRESS,
+  PREPARING,
   layer,
   skipped,
   combineUpdateLayers,

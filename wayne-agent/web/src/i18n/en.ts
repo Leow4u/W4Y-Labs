@@ -146,6 +146,8 @@ export const en: Translations = {
     updateChecking: "Checking for updates…",
     updateUpToDate: "You're on the latest version.",
     updateCheckFailed: "Couldn't check for updates right now. Try again later.",
+    updateInProgress: "An update is installing right now. Try again in a moment.",
+    updatePreparing: "A newer version is being prepared. It will be available shortly.",
     productSwitcher: "Product",
     productCode4YouSoon: "coming soon",
   },

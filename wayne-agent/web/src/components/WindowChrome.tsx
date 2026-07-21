@@ -33,6 +33,7 @@ import { ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
+import { isApplicable, updateMessageKey } from "@/lib/update-surface";
 import {
   desktopFolderBridge,
   desktopOpenExternal,
@@ -150,18 +151,19 @@ export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) 
     }
     setDialog({ kind: "update-checking" });
     const r = await upd.check().catch(() => null);
-    if (r && r.available) {
+    if (isApplicable(r)) {
       // Same token the check just produced. Calling apply() bare made it throw
       // the plan away and run a second check, so a blip between the two
       // silently cancelled an update the user had just been shown — the exact
       // bug fixed in the tray, still live here.
-      void upd.apply(r.token);
+      void upd.apply(r!.token);
       return;
     }
-    setDialog({
-      kind: "update-result",
-      message: r ? t.desktop.updateUpToDate : t.desktop.updateCheckFailed,
-    });
+    // `r ? updateUpToDate : updateCheckFailed` printed "you are on the latest
+    // version" for ANY non-null answer — including {available:false,
+    // status:"unknown"}, which means we could not check at all. The decision is
+    // exhaustive and fail-closed now (lib/update-surface).
+    setDialog({ kind: "update-result", message: t.desktop[updateMessageKey(r)] });
   }, [t]);
 
   if (!bridge) return null;
