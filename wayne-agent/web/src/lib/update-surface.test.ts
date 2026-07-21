@@ -21,6 +21,7 @@ import {
   isApplicable,
   isBusy,
   nextChipState,
+  normalizeApply,
   recoverFromStalePlan,
   sameIntention,
   updateMessageKey,
@@ -171,11 +172,14 @@ describe("stale-plan recovery — one controlled attempt, never a loop", () => {
   });
 
   it("shows the truth when the recheck is inconclusive", () => {
+    // This asserted that the plan SURVIVED — i.e. that the very token the main
+    // had just refused stayed clickable. A stale-plan means that token is dead;
+    // keeping it is the silent second click all over again.
     const d = recoverFromStalePlan(before, { status: "unknown" }, chip);
     expect(d.action).toBe("show");
     expect(d.action === "show" && d.changed).toBe(false);
-    // The plan survives an inconclusive recheck.
-    expect(d.action === "show" && d.chip.plan).toBe(before);
+    expect(d.action === "show" && d.chip.plan).toBeNull();
+    expect(d.action === "show" && d.chip.error).toBeTruthy();
   });
 
   it("drops the plan when the recheck says preparing", () => {
@@ -192,5 +196,93 @@ describe("stale-plan recovery — one controlled attempt, never a loop", () => {
     expect(sameIntention(before, plan({ version: "9" }))).toBe(false);
     expect(sameIntention(before, plan({ kind: "stalled" }))).toBe(false);
     expect(sameIntention(before, null)).toBe(false);
+  });
+});
+
+/**
+ * The two surfaces must read ONE reply the same way. They did not:
+ * `{ok:true,status:"staged"}` was `applied` in the chip and a failure in the
+ * Help menu, and `{ok:false,error:"stale-plan"}` never entered recovery.
+ */
+describe("normalizeApply — one reading, shared by chip and Help menu", () => {
+  it("an unknown outcome fails closed even with ok:true", () => {
+    const r = normalizeApply({ ok: true, outcome: "brand-new" } as never);
+    expect(r).toMatchObject({ outcome: "failed", ok: false });
+  });
+
+  it("null, {} and a malformed reply are failures, never applied", () => {
+    expect(normalizeApply(null).outcome).toBe("failed");
+    expect(normalizeApply(undefined).outcome).toBe("failed");
+    expect(normalizeApply({}).outcome).toBe("failed");
+  });
+
+  it("recovered is ok:false — reopening is not updating", () => {
+    expect(normalizeApply({ ok: true, outcome: "recovered" })).toMatchObject({
+      outcome: "recovered",
+      ok: false,
+    });
+  });
+
+  it.each([
+    ["applied", true],
+    ["staged", true],
+    ["no-update", true],
+    ["recovered", false],
+    ["failed", false],
+    ["stale-plan", false],
+  ] as const)("%s → ok:%s", (outcome, ok) => {
+    expect(normalizeApply({ outcome }).ok).toBe(ok);
+  });
+
+  it("legacy status:staged and already-staged both read as staged", () => {
+    expect(normalizeApply({ ok: true, status: "staged" }).outcome).toBe("staged");
+    expect(normalizeApply({ ok: true, status: "already-staged" }).outcome).toBe("staged");
+  });
+
+  it("legacy status:no-update is a no-op, not an install", () => {
+    expect(normalizeApply({ ok: true, status: "no-update" }).outcome).toBe("no-update");
+  });
+
+  it("legacy check-failed / install-failed are failures", () => {
+    expect(normalizeApply({ ok: true, status: "check-failed" }).ok).toBe(false);
+    expect(normalizeApply({ ok: true, status: "install-failed" }).ok).toBe(false);
+  });
+
+  it("legacy error:stale-plan enters the recovery path", () => {
+    expect(normalizeApply({ ok: false, error: "stale-plan" }).outcome).toBe("stale-plan");
+  });
+
+  it("a truly bare ok:true is the only legacy applied", () => {
+    expect(normalizeApply({ ok: true }).outcome).toBe("applied");
+  });
+});
+
+describe("stale recovery never keeps the dead token", () => {
+  const before = plan({ token: "dead" });
+  const chip = { plan: before, notice: null, error: null };
+
+  it.each([
+    ["unknown", { status: "unknown" as const }],
+    ["null", null],
+    ["preparing", { status: "preparing" as const }],
+  ])("%s removes the action and states the fact", (_label, fresh) => {
+    const d = recoverFromStalePlan(before, fresh, chip);
+    expect(d.action).toBe("show");
+    // The token the main just refused may NEVER stay clickable.
+    expect(d.action === "show" && d.chip.plan).toBeNull();
+    expect(d.action === "show" && d.chip.error).toBeTruthy();
+  });
+
+  it("a different plan is offered but NOT applied, and flagged as changed", () => {
+    const d = recoverFromStalePlan(before, plan({ token: "new", version: "9" }), chip);
+    expect(d.action).toBe("show");
+    expect(d.action === "show" && d.changed).toBe(true);
+    expect(d.action === "show" && d.chip.plan?.token).toBe("new");
+  });
+
+  it("the same intention with a fresh token reapplies exactly once", () => {
+    const d = recoverFromStalePlan(before, plan({ token: "fresh" }), chip);
+    expect(d.action).toBe("reapply");
+    expect(d.action === "reapply" && d.plan.token).toBe("fresh");
   });
 });

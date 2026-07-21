@@ -33,7 +33,12 @@ import { ArrowLeft, ArrowRight, PanelLeftClose, PanelLeftOpen } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
-import { applyMessageKey, isApplicable, updateMessageKey } from "@/lib/update-surface";
+import {
+  applyMessageKey,
+  isApplicable,
+  normalizeApply,
+  updateMessageKey,
+} from "@/lib/update-surface";
 import {
   desktopFolderBridge,
   desktopOpenExternal,
@@ -161,10 +166,10 @@ export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) 
       setDialog({ kind: "update-applying" });
       try {
         const res = await upd.apply(r!.token);
-        setDialog({
-          kind: "update-result",
-          message: t.desktop[applyMessageKey(res?.outcome)],
-        });
+        // The SAME normalizer the chip uses: `{ok:true,status:"staged"}` read as
+        // applied there and as a failure here, from one reply.
+        const { outcome } = normalizeApply(res);
+        setDialog({ kind: "update-result", message: t.desktop[applyMessageKey(outcome)] });
       } catch {
         // A rejected IPC is still an answer.
         setDialog({ kind: "update-result", message: t.desktop.updateApplyFailed });

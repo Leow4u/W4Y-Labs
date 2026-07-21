@@ -7,9 +7,9 @@
  * DOM, Electron or the network; the components only wire it up.
  */
 
-import type { UpdateApplyResult, UpdateCheckResult } from "./desktopChrome";
+import type { UpdateApplyResult, UpdateCheckResult, UpdateOutcome } from "./desktopChrome";
 
-export type { UpdateApplyResult, UpdateCheckResult };
+export type { UpdateApplyResult, UpdateCheckResult, UpdateOutcome };
 
 /** Which `t.desktop.*` string the Help menu shows for a CHECK. */
 export type UpdateMessageKey =
@@ -35,6 +35,60 @@ export function updateMessageKey(result: UpdateCheckResult | null): UpdateMessag
     default:
       return "updateCheckFailed";
   }
+}
+
+/**
+ * ONE normalization of an apply reply, used by BOTH surfaces.
+ *
+ * They disagreed: `{ok:true, status:"staged"}` became `applied` in the chip and
+ * a failure in the Help menu; `{ok:false, error:"stale-plan"}` never entered
+ * the controlled recovery. Same reply, three readings.
+ *
+ * Understands the modern vocabulary and the legacy shapes, and fails CLOSED on
+ * null, `{}`, a rejected call or an outcome this build does not know.
+ */
+export type NormalizedApply = { outcome: UpdateOutcome; ok: boolean; error: string | null };
+
+const KNOWN_OUTCOMES = new Set<UpdateOutcome>([
+  "applied",
+  "staged",
+  "no-update",
+  "recovered",
+  "failed",
+  "stale-plan",
+]);
+/** Outcomes where the requested update reached a correct, non-failed state. */
+const OK_OUTCOMES = new Set<UpdateOutcome>(["applied", "staged", "no-update"]);
+
+export function normalizeApply(res: UpdateApplyResult | null | undefined): NormalizedApply {
+  if (!res || typeof res !== "object") {
+    return { outcome: "failed", ok: false, error: "apply returned nothing" };
+  }
+  const error = typeof res.error === "string" ? res.error : null;
+  if (res.outcome) {
+    // Unknown outcome + ok:true still means we cannot tell — fail closed.
+    if (!KNOWN_OUTCOMES.has(res.outcome)) {
+      return { outcome: "failed", ok: false, error: error ?? `unknown outcome: ${res.outcome}` };
+    }
+    return { outcome: res.outcome, ok: OK_OUTCOMES.has(res.outcome), error };
+  }
+  if (res.error === "stale-plan") return { outcome: "stale-plan", ok: false, error };
+  if (res.ok === false) return { outcome: "failed", ok: false, error };
+  switch (res.status) {
+    case "staged":
+    case "already-staged":
+      return { outcome: "staged", ok: true, error };
+    case "no-update":
+      return { outcome: "no-update", ok: true, error };
+    case "check-failed":
+    case "install-failed":
+      return { outcome: "failed", ok: false, error };
+    default:
+      break;
+  }
+  // Truly legacy: a bare {ok:true} from a shell that predates the vocabulary.
+  if (res.ok === true) return { outcome: "applied", ok: true, error };
+  return { outcome: "failed", ok: false, error: error ?? "apply reported nothing usable" };
 }
 
 /** Which `t.desktop.*` string the Help menu shows for an APPLY. */
@@ -157,11 +211,27 @@ export function recoverFromStalePlan(
   fresh: UpdateCheckResult | null,
   chip: ChipState,
 ): StaleRecovery {
-  const next = nextChipState(chip, fresh);
+  // The token that produced this stale-plan is DEAD — consumed or expired. It
+  // may never stay actionable, so recovery always starts from a chip with no
+  // plan. Folding the recheck onto the old chip (what this did) let an
+  // `unknown` recheck "preserve" the very token the main had just refused,
+  // which is the silent second click all over again.
+  const base: ChipState = { plan: null, notice: chip.notice, error: chip.error };
   if (isApplicable(fresh) && sameIntention(previousPlan, fresh)) {
     return { action: "reapply", plan: fresh! };
   }
-  return { action: "show", chip: next, changed: isApplicable(fresh) };
+  if (isApplicable(fresh)) {
+    // A different plan: offer it, but never perform it — the user chose the
+    // other one.
+    return { action: "show", chip: { plan: fresh, notice: null, error: null }, changed: true };
+  }
+  const next = nextChipState(base, fresh);
+  return {
+    action: "show",
+    // No usable plan came back. State the fact instead of leaving a dead button.
+    chip: { ...next, plan: null, error: next.error ?? "update plan expired" },
+    changed: false,
+  };
 }
 
 /** Same layer, same kind, same version — anything else is another decision. */

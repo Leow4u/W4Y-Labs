@@ -54,6 +54,7 @@ import { desktopUpdateBridge } from "@/lib/desktopChrome";
 import {
   emptyChip,
   nextChipState,
+  normalizeApply,
   recoverFromStalePlan,
   type ChipState,
   type UpdateApplyResult,
@@ -184,7 +185,10 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     // otherwise show what changed. The old code just re-checked in silence and
     // left the user to guess that a second click was now required.
     const settle = (res: UpdateApplyResult | null, recovered: boolean) => {
-      const outcome = res?.outcome ?? (res?.ok === false ? "failed" : "applied");
+      // `res?.outcome ?? (ok === false ? "failed" : "applied")` turned null,
+      // {} and any malformed reply into "applied". One normalizer, shared with
+      // the Help menu, fails closed on all of them.
+      const { outcome, error } = normalizeApply(res);
       if (outcome === "stale-plan" && !recovered) {
         void bridge
           .check()
@@ -205,14 +209,19 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
         return;
       }
       if (outcome === "staged") {
-        // Bytes are ready; the update lands on the next restart. Show that
-        // immediately instead of leaving a stale "update available" pill.
-        setChip({ plan: null, notice: "preparing", error: null });
+        // Bytes are ready; the update lands on the NEXT restart. `preparing`
+        // meant the opposite (no staged build), so re-check to pick up the
+        // fresh `ready` plan and its new token; if that fails, at least say
+        // the truth instead of showing a stale "update available" pill.
+        void bridge
+          .check()
+          .then((fresh) => setChip((prev) => nextChipState(prev, fresh)))
+          .catch(() => setChip({ plan: null, notice: null, error: "update-staged" }));
       } else if (outcome === "applied" || outcome === "no-update") {
         setChip(emptyChip);
       } else {
         // failed / recovered / anything unrecognised: keep a real retry path.
-        setChip((prev) => ({ ...prev, error: res?.error ?? "update failed" }));
+        setChip((prev) => ({ ...prev, plan: null, error: error ?? "update failed" }));
       }
       finish();
     };
