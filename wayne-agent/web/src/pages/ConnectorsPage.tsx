@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { PluginSlot } from "@/plugins";
 import { ConnectorEventsPanel } from "@/components/connectors/ConnectorEventsPanel";
 import { ConnectorCard } from "@/components/connectors/ConnectorCard";
-import { useConnectors, filterConnectors } from "@/hooks/useConnectors";
+import { useConnectors, filterConnectors, catalogPhase } from "@/hooks/useConnectors";
 
 export default function ConnectorsPage() {
   const { t } = useI18n();
@@ -38,11 +38,34 @@ export default function ConnectorsPage() {
   const [eventsFor, setEventsFor] = useState<ConnectorToolkit | null>(null);
 
   const shown = filterConnectors(c.toolkits, search, activeCat);
+  const phase = catalogPhase({
+    loading: c.loading,
+    error: c.error,
+    total: c.toolkits.length,
+  });
 
-  if (c.loading) {
+  if (phase === "loading") {
     return (
       <div className="flex items-center justify-center py-24">
         <Spinner className="text-2xl text-primary" />
+      </div>
+    );
+  }
+
+  // A catalog we could not read is not an empty catalog. Say so, and stay
+  // saying it — the toast that used to carry this vanished in seconds and
+  // left the screen looking like "there are no connectors".
+  if (phase === "error") {
+    return (
+      <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-14 text-center">
+        <p className="max-w-sm text-sm text-muted-foreground">{c.error}</p>
+        <button
+          type="button"
+          onClick={c.reloadCatalog}
+          className="rounded-full border border-border px-4 py-1.5 text-xs text-foreground transition-colors hover:border-foreground/40"
+        >
+          {t.common.retry}
+        </button>
       </div>
     );
   }

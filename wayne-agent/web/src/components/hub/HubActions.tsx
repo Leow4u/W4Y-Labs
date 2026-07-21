@@ -23,6 +23,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { api } from "@/lib/api";
 import type { McpServerCreate } from "@/lib/api";
+import { errorMessage, logApiError } from "@/lib/error-message";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Input } from "@nous-research/ui/ui/components/input";
 import { useI18n } from "@/i18n";
@@ -348,7 +349,8 @@ function HubDialog({
       onClose();
       onCreated();
     } catch (e) {
-      showToast(`${e}`, "error");
+      logApiError("hub:add-mcp", e);
+      showToast(errorMessage(e, t.errors), "error");
     } finally {
       setBusy(false);
     }
@@ -391,7 +393,8 @@ function HubDialog({
         onClose();
         onCreated();
       } catch (e) {
-        showToast(`${e}`, "error");
+        logApiError("hub:install-skill", e);
+        showToast(errorMessage(e, t.errors), "error");
       } finally {
         setBusy(false);
       }

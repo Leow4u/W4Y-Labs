@@ -10,9 +10,33 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import type { ConnectorAccount, ConnectorToolkit, ProfileInfo } from "@/lib/api";
+import { errorMessage, logApiError } from "@/lib/error-message";
 import { useI18n } from "@/i18n";
 
 export type ToolkitState = "connected" | "pending" | "broken" | "none";
+
+/**
+ * What the catalog screen must render — the three outcomes told apart.
+ *
+ * A failed catalog load used to be indistinguishable from an empty catalog:
+ * the fetch rejected, a toast flashed, `toolkits` stayed `[]`, and the page
+ * settled on the "no connectors" empty state. Down is not empty. This is the
+ * derivation, pure so it can be tested without mounting anything.
+ */
+export type CatalogPhase = "loading" | "error" | "empty" | "ready";
+
+export function catalogPhase(input: {
+  loading: boolean;
+  error: string | null;
+  total: number;
+}): CatalogPhase {
+  if (input.loading) return "loading";
+  // Failure outranks emptiness: a catalog we could not read says nothing
+  // about whether there are connectors.
+  if (input.error) return "error";
+  if (input.total === 0) return "empty";
+  return "ready";
+}
 
 /** Aggregated toolkit state within the scope (ACTIVE beats everything). */
 export function stateOf(accounts: ConnectorAccount[]): ToolkitState {
@@ -47,12 +71,15 @@ type ShowToast = (msg: string, variant: "success" | "error") => void;
 export function useConnectors(showToast: ShowToast) {
   const { t } = useI18n();
   const tc = t.connectors;
+  const te = t.errors;
 
   const [toolkits, setToolkits] = useState<ConnectorToolkit[]>([]);
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   const [scope, setScope] = useState("global");
   const [accounts, setAccounts] = useState<ConnectorAccount[]>([]);
   const [loading, setLoading] = useState(true);
+  /** Human sentence when the catalog could not be read; null while it can. */
+  const [error, setError] = useState<string | null>(null);
   const [connecting, setConnecting] = useState<string | null>(null);
   const [disconnecting, setDisconnecting] = useState<string | null>(null);
   const aliveRef = useRef(true);
@@ -66,12 +93,41 @@ export function useConnectors(showToast: ShowToast) {
     };
   }, []);
 
+  /**
+   * Load the catalog, keeping the failure ON the page.
+   *
+   * The old version reported the failure with a toast built from `String(e)` —
+   * so the user got "ApiError: 502: {…}" for a second and was then left
+   * staring at what looked like an empty catalog. Now the sentence is human,
+   * the status/body go to the console, and the state survives so the screen
+   * can offer a retry.
+   */
+  const fetchCatalog = useCallback(
+    () =>
+      api
+        .getConnectorsCatalog()
+        .then((r) => {
+          if (aliveRef.current) setToolkits(r.toolkits);
+        })
+        .catch((e) => {
+          logApiError("connectors:catalog", e);
+          if (aliveRef.current) setError(errorMessage(e, te));
+        })
+        .finally(() => aliveRef.current && setLoading(false)),
+    [te],
+  );
+
+  /** Retry after a failure — the action the error state offers. */
+  const reloadCatalog = useCallback(() => {
+    setLoading(true);
+    setError(null);
+    void fetchCatalog();
+  }, [fetchCatalog]);
+
   useEffect(() => {
-    api
-      .getConnectorsCatalog()
-      .then((r) => aliveRef.current && setToolkits(r.toolkits))
-      .catch((e) => showToast(String(e), "error"))
-      .finally(() => aliveRef.current && setLoading(false));
+    // No setLoading/setError here: the initial state IS "loading, no error",
+    // so the first load only has to resolve it.
+    void fetchCatalog();
     api.getProfiles().then((r) => aliveRef.current && setProfiles(r.profiles)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -152,10 +208,11 @@ export function useConnectors(showToast: ShowToast) {
         }
       } catch (e) {
         setConnecting(null);
-        showToast(`${tc.connectFailed}: ${e}`, "error");
+        logApiError("connectors:connect", e);
+        showToast(`${tc.connectFailed}: ${errorMessage(e, te)}`, "error");
       }
     },
-    [scope, showToast, tc, refreshStatus, pollUntilActive],
+    [scope, showToast, tc, te, refreshStatus, pollUntilActive],
   );
 
   const disconnect = useCallback(
@@ -170,12 +227,13 @@ export function useConnectors(showToast: ShowToast) {
         showToast(tc.disconnectedToast, "success");
         await refreshStatus();
       } catch (e) {
-        showToast(`${e}`, "error");
+        logApiError("connectors:disconnect", e);
+        showToast(errorMessage(e, te), "error");
       } finally {
         setDisconnecting(null);
       }
     },
-    [byToolkit, showToast, tc.disconnectedToast, refreshStatus],
+    [byToolkit, showToast, tc.disconnectedToast, te, refreshStatus],
   );
 
   return {
@@ -187,6 +245,8 @@ export function useConnectors(showToast: ShowToast) {
     byToolkit,
     categories,
     loading,
+    error,
+    reloadCatalog,
     connecting,
     disconnecting,
     connect,

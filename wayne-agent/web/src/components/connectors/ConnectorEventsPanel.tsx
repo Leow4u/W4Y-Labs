@@ -13,6 +13,7 @@ import { Loader2, X, Zap } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { ConnectorTrigger, ConnectorTriggerType } from "@/lib/api";
+import { errorMessage, logApiError } from "@/lib/error-message";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
@@ -81,7 +82,8 @@ export function ConnectorEventsPanel({
         onToast(tc.eventOff.replace("{name}", ty.name), "success");
       }
     } catch (e) {
-      onToast(`${e}`, "error");
+      logApiError("connectors:trigger", e);
+      onToast(errorMessage(e, t.errors), "error");
     } finally {
       setBusy(null);
     }
