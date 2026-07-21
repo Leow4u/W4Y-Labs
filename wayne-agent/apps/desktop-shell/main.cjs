@@ -2101,9 +2101,14 @@ function registerCloudIpc() {
  * disk and restarting is instant. A repeatedly failing update gets its own,
  * louder answer instead of pretending nothing is happening.
  */
+// `null` means "could NOT check"; `{available:false}` means "checked, nothing
+// to install". Collapsing both into null is why a perfectly healthy, fully
+// up-to-date machine was told "Não deu para verificar atualizações agora" —
+// the caller had no way to tell success-with-nothing from failure.
 async function checkEngineUpdate() {
   try {
-    if (CLOUD_SHELL || engine.usingCloud) return null;
+    // No local engine to update at all — that is an answer, not a failure.
+    if (CLOUD_SHELL || engine.usingCloud) return { available: false };
     const staged = readStaged();
     if (staged && engineSlots.isComplete(staged.root)) {
       return { available: true, version: staged.version || null, kind: "ready" };
@@ -2125,9 +2130,9 @@ async function checkEngineUpdate() {
         reason: state.lastError || null,
       };
     }
-    return null;
+    return { available: false }; // checked; nothing to install
   } catch {
-    return null;
+    return null; // genuinely could not check
   }
 }
 
@@ -2278,14 +2283,18 @@ async function checkUnifiedUpdate() {
     return { available: true, version: shellRes.version, token };
   }
   const res = await checkEngineUpdate();
+  if (!res) return null; // could not check — the caller must say exactly that
+  // Checked and there is nothing to install. No snapshot: a token only exists
+  // to pin a plan, and there is no plan.
+  if (!res.available) return { available: false, version: null, token: null };
   // The snapshot records whether clicking means "restart into the version
   // already on disk" or "try the download again" — bound to THIS check.
   const token = rememberSnapshot({
     kind: "engine",
-    engineKind: res ? res.kind || "ready" : null,
-    version: res ? res.version || null : null,
+    engineKind: res.kind || "ready",
+    version: res.version || null,
   });
-  return res ? { ...res, token } : null;
+  return { ...res, token };
 }
 
 /**
@@ -2868,13 +2877,15 @@ async function trayCheckForUpdates() {
         return res.response === 0;
       }
       const message =
-        kind === "up-to-date"
+        kind === "applied"
+          ? "Atualização aplicada. Se o app não reiniciar sozinho, reinicie para concluir."
+          : kind === "up-to-date"
           ? "Você já está na versão mais recente."
           : kind === "check-failed"
             ? "Não deu para verificar atualizações agora. Tente de novo mais tarde."
             : "Não deu para aplicar a atualização agora. Tente de novo pela bandeja.";
       await dialog.showMessageBox({
-        type: kind === "up-to-date" ? "info" : "warning",
+        type: kind === "up-to-date" || kind === "applied" ? "info" : "warning",
         title: "Work4You",
         message,
         detail: kind === "apply-failed" && detail && detail.reason ? String(detail.reason) : undefined,

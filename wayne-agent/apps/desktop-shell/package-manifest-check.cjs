@@ -22,8 +22,21 @@
 const fs = require("fs");
 const path = require("path");
 
-/** Matches require("./x.cjs") and require('./x.cjs') in real code. */
-const LOCAL_REQUIRE = /require\(\s*(['"])\.\/([^'"]+)\1\s*\)/g;
+/**
+ * Matches a RELATIVE require in real code, in all three quote styles.
+ *
+ * Two blind spots an independent review found in the first version, both of
+ * which would have shipped a broken app under a green check:
+ *
+ *  - Only a leading "./" matched. `require("../../shared/log.cjs")` is just as
+ *    local and just as unpackagable (electron-builder packs only this folder),
+ *    and it was invisible. A test even asserted that miss as correct, locking
+ *    the hole in.
+ *  - The header bragged that "QUOTE STYLES MATTER" while listing two of
+ *    JavaScript's three. ``require(`./single-flight.cjs`)`` is a static,
+ *    working require the scanner could not see at all.
+ */
+const LOCAL_REQUIRE = /require\(\s*(['"`])(\.\.?\/[^'"`]+)\1\s*\)/g;
 
 /**
  * Blanks out line comments, block comments and template literals, preserving
@@ -39,6 +52,24 @@ const LOCAL_REQUIRE = /require\(\s*(['"])\.\/([^'"]+)\1\s*\)/g;
  * data would still be reported — deliberate, since a false alarm here is cheap
  * and a miss ships a broken app.
  */
+/**
+ * Can a regex literal legally start here, given what came before?
+ *
+ * Without this, a quote inside a regex (`.replace(/'/g, "")`) opened a FAKE
+ * string, and because string contents are emitted verbatim by design, the rest
+ * of the line — including a `//` comment that mentions a require — leaked into
+ * the scanner. The result was a phantom module reported as missing, failing
+ * pack/dist:win/dist:mac/dist:linux with a finding nobody could act on.
+ */
+function regexCanStart(out) {
+  const prev = out.replace(/\s+$/, "").slice(-1);
+  if (!prev) return true; // start of file
+  if ("(,=:[!&|?{};+-*%<>~^".includes(prev)) return true;
+  return /(return|typeof|instanceof|in|of|new|delete|void|case|do|else|yield|await)$/.test(
+    out.replace(/\s+$/, ""),
+  );
+}
+
 function stripNonCode(source) {
   const s = String(source);
   let out = "";
@@ -47,6 +78,28 @@ function stripNonCode(source) {
   while (i < N) {
     const c = s[i];
     const next = s[i + 1];
+    // Regex literal: blanked like a comment. It can contain quotes, slashes and
+    // escapes that would otherwise be read as code.
+    if (c === "/" && next !== "/" && next !== "*" && regexCanStart(out)) {
+      let j = i + 1;
+      let inClass = false;
+      let closed = false;
+      while (j < N) {
+        const ch = s[j];
+        if (ch === "\\") { j += 2; continue; }
+        if (ch === "\n") break; // unterminated — not a regex after all
+        if (ch === "[") inClass = true;
+        else if (ch === "]") inClass = false;
+        else if (ch === "/" && !inClass) { closed = true; break; }
+        j += 1;
+      }
+      if (closed) {
+        out += " ".repeat(j - i + 1);
+        i = j + 1;
+        while (i < N && /[a-z]/.test(s[i])) { out += " "; i += 1; } // flags
+        continue;
+      }
+    }
     if (c === "/" && next === "/") {
       while (i < N && s[i] !== "\n") { out += " "; i++; }
       continue;
@@ -58,11 +111,31 @@ function stripNonCode(source) {
         out += s[i] === "\n" ? "\n" : " ";
         i++;
       }
-      out += "  ";
-      i += 2;
+      // Pad only for a closer that is actually there; an unterminated block
+      // comment must not make the output LONGER than the input, or the
+      // "offsets are preserved" promise above is a lie.
+      if (i < N) {
+        out += "  ";
+        i += 2;
+      }
       continue;
     }
     if (c === "`") {
+      // Find the closer first: a template with NO ${...} is just a string, and
+      // a require specifier IS a string — blanking those unconditionally is why
+      // require(`./single-flight.cjs`) was invisible to the scanner.
+      let j = i + 1;
+      let interpolated = false;
+      while (j < N && s[j] !== "`") {
+        if (s[j] === "\\") { j += 2; continue; }
+        if (s[j] === "$" && s[j + 1] === "{") interpolated = true;
+        j += 1;
+      }
+      if (!interpolated && j < N) {
+        out += s.slice(i, j + 1); // emit verbatim, exactly like a plain string
+        i = j + 1;
+        continue;
+      }
       out += " ";
       i++;
       while (i < N && s[i] !== "`") {
@@ -101,7 +174,11 @@ function stripNonCode(source) {
  */
 function localRequires(source) {
   const found = new Set();
-  for (const m of stripNonCode(source).matchAll(LOCAL_REQUIRE)) found.add(m[2]);
+  for (const m of stripNonCode(source).matchAll(LOCAL_REQUIRE)) {
+    // Normalize the common "./" prefix away; "../" is kept because it is the
+    // whole point — resolvesInsideShell has to see it.
+    found.add(m[2].startsWith("./") ? m[2].slice(2) : m[2]);
+  }
   return [...found];
 }
 
@@ -248,7 +325,24 @@ function checkPackageManifest(dir = __dirname) {
       // real resolution is re-verified before trusting anything about it.
       const rel = path.relative(root, target);
       if (rel.startsWith("..") || path.isAbsolute(rel)) return false;
-      return fs.existsSync(target);
+      // `fs.existsSync` is CASE-INSENSITIVE on Windows — the only platform this
+      // is built on — so require("./Single-Flight.cjs") passed all three bars
+      // while the asar, whose lookups ARE case-sensitive, held the real
+      // lower-case name. Green check, `Cannot find module` on the user's
+      // machine. Compare the entry against the directory listing instead, and
+      // refuse a directory: a folder is not a module.
+      let stat;
+      try {
+        stat = fs.statSync(target);
+      } catch {
+        return false;
+      }
+      if (!stat.isFile()) return false;
+      try {
+        return fs.readdirSync(path.dirname(target)).includes(path.basename(target));
+      } catch {
+        return false;
+      }
     },
   });
 }

@@ -72,6 +72,13 @@ async function runTrayUpdateCheck({ check, apply, notify, log = () => {}, maxRet
     }
     if (res && res.ok) {
       log(`tray apply ok (version=${plan.version || "?"})`);
+      // Tell the user it worked. On the shell/relaunch paths this never renders
+      // because the process dies inside the apply — which is exactly why it was
+      // missing. But a STALLED engine retry survives: it downloads for minutes
+      // and returns ok without relaunching, so without this the tray closed and
+      // nothing ever happened on screen. The same silence this flow exists to
+      // end.
+      await say("applied", { version: plan.version || null });
       return { ok: true, applied: true, attempts };
     }
 

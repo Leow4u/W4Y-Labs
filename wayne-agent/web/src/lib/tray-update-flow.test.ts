@@ -157,3 +157,28 @@ describe("runTrayUpdateCheck — a stale plan gets a real second chance", () => 
     expect(res).toMatchObject({ ok: true, applied: false });
   });
 });
+
+describe("runTrayUpdateCheck — a success that does NOT relaunch is still announced", () => {
+  it("notifies on apply success", async () => {
+    // On the shell/relaunch paths this never renders (the process dies inside
+    // the apply) — which is why it was missing. A STALLED engine retry survives
+    // it: minutes of download, ok returned, no relaunch. Without this the tray
+    // closed and nothing ever appeared.
+    const notify = vi.fn();
+    await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue(plan()),
+      apply: vi.fn().mockResolvedValue({ ok: true }),
+      notify,
+    });
+    expect(notify).toHaveBeenCalledWith("applied", { version: "0.4.1" });
+  });
+
+  it("a failing dialog still does not break the success path", async () => {
+    const res = await runTrayUpdateCheck({
+      check: vi.fn().mockResolvedValue(plan()),
+      apply: vi.fn().mockResolvedValue({ ok: true }),
+      notify: vi.fn().mockRejectedValue(new Error("no display")),
+    });
+    expect(res).toMatchObject({ ok: true, applied: true });
+  });
+});

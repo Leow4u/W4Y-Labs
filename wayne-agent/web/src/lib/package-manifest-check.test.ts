@@ -43,14 +43,31 @@ describe("localRequires", () => {
     expect(localRequires(src)).toEqual(["real.cjs"]);
   });
 
-  it("ignores bare-module and parent-path requires", () => {
+  it("ignores bare modules but SEES parent-path requires", () => {
+    // This test used to assert that `../outside.cjs` was correctly ignored.
+    // It was not correct: electron-builder packs only this folder, so a
+    // parent-path require can never be in the asar no matter what build.files
+    // says — the app dies on `Cannot find module` under a green check. The
+    // test was locking in the exact hole the guard exists to close.
     const src = `
       require("electron");
       require("node:fs");
       require("../outside.cjs");
       require("./inside.cjs");
     `;
-    expect(localRequires(src)).toEqual(["inside.cjs"]);
+    expect(localRequires(src).sort()).toEqual(["../outside.cjs", "inside.cjs"]);
+  });
+
+  it("sees a backtick require — the third quote style", () => {
+    // The header bragged that quote styles matter while listing two of three.
+    expect(localRequires("require(`./single-flight.cjs`);")).toEqual([
+      "single-flight.cjs",
+    ]);
+  });
+
+  it("still blanks a template that actually interpolates", () => {
+    const src = "const u = `${base}/require(\"./ghost.cjs\")`; require(\"./real.cjs\");";
+    expect(localRequires(src)).toEqual(["real.cjs"]);
   });
 
   it("does not confuse an apostrophe in a comment for a string", () => {
@@ -250,5 +267,54 @@ describe("the real shell manifest, fully audited", () => {
     // filesystem: a module added without build.files, or listed with no file
     // behind it, fails here rather than in a user's installer.
     expect(checkPackageManifest()).toEqual([]);
+  });
+});
+
+/**
+ * Round 3, second pass: what the independent review proved the scanner could
+ * not see, and what made it cry wolf. Every case below was a repro before it
+ * was a test.
+ */
+describe("stripNonCode — regex literals are code, not strings", () => {
+  it("does not let a quote inside a regex swallow the rest of the line", () => {
+    // `.replace(/'/g, "")` opened a FAKE string; because string contents are
+    // emitted verbatim by design, the trailing comment leaked into the scanner
+    // and a phantom module failed pack/dist:* with an unactionable finding.
+    const src = `const q = s.replace(/'/g, ""); // require("./ghost.cjs")`;
+    expect(localRequires(src)).toEqual([]);
+  });
+
+  it("handles a double quote inside a regex too", () => {
+    const src = `const q = s.split(/"/); // require("./ghost2.cjs")`;
+    expect(localRequires(src)).toEqual([]);
+  });
+
+  it("does not mistake DIVISION for a regex and eat real code", () => {
+    const src = `const r = a / b; require("./real.cjs");`;
+    expect(localRequires(src)).toEqual(["real.cjs"]);
+  });
+
+  it("handles a slash inside a character class", () => {
+    const src = `const r = /[/'"]/g; require("./real.cjs");`;
+    expect(localRequires(src)).toEqual(["real.cjs"]);
+  });
+
+  it("never makes the output longer than the input", () => {
+    // An unterminated block comment used to gain two characters, breaking the
+    // offset promise the doc comment makes.
+    for (const src of ["/*abc", "/* a */ b", "const x = /re/g;", "`t`"]) {
+      expect(stripNonCode(src).length).toBe(src.length);
+    }
+  });
+});
+
+describe("auditLocalModules — a parent-path require can never ship", () => {
+  it("condemns it even when build.files lists it verbatim", () => {
+    const found = auditLocalModules({
+      sources: { "main.cjs": 'require("../../shared/log.cjs");' },
+      files: ["main.cjs", "../../shared/log.cjs"],
+      exists: () => true,
+    });
+    expect(found[0].problems).toContain("escapes");
   });
 });
