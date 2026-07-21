@@ -19,7 +19,8 @@ import { Toast } from "@nous-research/ui/ui/components/toast";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { useI18n } from "@/i18n";
 import type { ConnectorToolkit } from "@/lib/api";
-import { useConnectors, filterConnectors } from "@/hooks/useConnectors";
+import { useConnectors, filterConnectors, catalogPhase } from "@/hooks/useConnectors";
+import { CatalogError } from "@/components/connectors/CatalogError";
 import { useSkillHub, filterSkills } from "@/hooks/useSkillHub";
 import { ConnectorCard } from "@/components/connectors/ConnectorCard";
 import { SkillHubCard } from "@/components/skills/SkillHubCard";
@@ -107,6 +108,18 @@ export default function PluginsHub() {
     () => filterConnectors(c.toolkits, search, null),
     [c.toolkits, search],
   );
+
+  // The hub is REACHABLE by the end user: with the sidebar collapsed the
+  // "Integrações" group cannot expand into its children, so pressing it
+  // navigates to its anchor and lands here. It therefore owes the same honesty
+  // as the Connectors page — it was branching on  alone, so a catalog
+  // that FAILED to load rendered the empty-state copy and read as "you have no
+  // connectors". Reuses the same pure derivation, not a second opinion.
+  const connPhase = catalogPhase({
+    loading: c.loading,
+    error: c.error,
+    total: c.toolkits.length,
+  });
   const skills = useMemo(() => filterSkills(sk.skills, search, null), [sk.skills, search]);
 
   const connCard = (tk: ConnectorToolkit) => (
@@ -136,7 +149,7 @@ export default function PluginsHub() {
       </div>
 
       {/* Highlights on top (Manus look): featured connectors, always visible. */}
-      {!c.loading && (
+      {connPhase === "ready" && (
         <UseCaseCarousel toolkits={c.toolkits} byToolkit={c.byToolkit} />
       )}
 
@@ -165,8 +178,14 @@ export default function PluginsHub() {
 
       {/* CONNECTORS */}
       <div ref={connSectionRef}>
-        {c.loading ? (
+        {connPhase === "loading" ? (
         <RowSpinner />
+      ) : connPhase === "error" ? (
+        <CatalogError
+          message={c.error!}
+          onRetry={c.reloadCatalog}
+          retryLabel={t.common.retry}
+        />
       ) : showAllConn ? (
         <section className="flex flex-col gap-3">
           <SectionHead

@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { PluginSlot } from "@/plugins";
 import { ConnectorEventsPanel } from "@/components/connectors/ConnectorEventsPanel";
 import { ConnectorCard } from "@/components/connectors/ConnectorCard";
+import { CatalogError } from "@/components/connectors/CatalogError";
 import { useConnectors, filterConnectors, catalogPhase } from "@/hooks/useConnectors";
 
 export default function ConnectorsPage() {
@@ -57,16 +58,7 @@ export default function ConnectorsPage() {
   // left the screen looking like "there are no connectors".
   if (phase === "error") {
     return (
-      <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-border py-14 text-center">
-        <p className="max-w-sm text-sm text-muted-foreground">{c.error}</p>
-        <button
-          type="button"
-          onClick={c.reloadCatalog}
-          className="rounded-full border border-border px-4 py-1.5 text-xs text-foreground transition-colors hover:border-foreground/40"
-        >
-          {t.common.retry}
-        </button>
-      </div>
+      <CatalogError message={c.error!} onRetry={c.reloadCatalog} retryLabel={t.common.retry} />
     );
   }
 
