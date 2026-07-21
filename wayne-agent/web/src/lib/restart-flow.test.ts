@@ -3,12 +3,12 @@ import {
   hasPendingRestart,
   hydrateRestartFlow,
   initialRestartFlow,
-  judgeRestartAction,
   isRestarting,
   reduceRestartFlow,
   restartNoticeMode,
   type RestartFlowEvent,
   type RestartFlowState,
+  type RestartProfile,
   type RestartSource,
 } from "./restart-flow";
 
@@ -267,55 +267,20 @@ describe("queueing while a restart is in flight", () => {
   });
 });
 
-describe("judgeRestartAction — success means FINISHED, not spawned", () => {
-  const T = 90_000;
-
-  it("keeps waiting while the action runs", () => {
-    expect(judgeRestartAction({ running: true, exit_code: null }, 1_000, T)).toEqual({
-      kind: "waiting",
-    });
-  });
-
-  it("succeeds only on exit code 0", () => {
-    expect(judgeRestartAction({ running: false, exit_code: 0 }, 5_000, T)).toEqual({
-      kind: "done",
-    });
-  });
-
-  it("reports a non-zero exit as a failure, with the code", () => {
-    // This is the case that used to surface as a green badge: the POST had
-    // returned ok because the PROCESS started, and it then died.
-    const v = judgeRestartAction({ running: false, exit_code: 1 }, 5_000, T);
-    expect(v.kind).toBe("failed");
-    expect(v.kind === "failed" && v.error).toContain("1");
-  });
-
-  it("does not claim verified success when there is no exit code", () => {
-    expect(judgeRestartAction({ running: false, exit_code: null }, 5_000, T)).toEqual({
-      kind: "done-unverified",
-    });
-  });
-
-  it("fails a restart that never finishes, instead of polling forever", () => {
-    const v = judgeRestartAction({ running: true, exit_code: null }, T, T);
-    expect(v.kind).toBe("failed");
-  });
-});
-
 describe("hydrateRestartFlow — surviving a remount", () => {
   it("rebuilds pending from the backend's own pending_restart", () => {
-    const s = hydrateRestartFlow([{ state: "connected" }, { state: "pending_restart" }], "vendas");
+    const s = hydrateRestartFlow({ pending: true, reasons: ["disable"] }, "vendas");
     expect(s).toMatchObject({ phase: "pending", profile: "vendas", hydrated: true });
   });
 
   it("stays null when nothing is waiting", () => {
-    expect(hydrateRestartFlow([{ state: "connected" }, { state: "disabled" }], null)).toBeNull();
+    expect(hydrateRestartFlow({ pending: false, reasons: [] }, null)).toBeNull();
   });
 
   it("shows the notice to the END USER, not only the internal view", () => {
     // The whole point: after a remount nobody is acting on it, so a user with
     // no affordance is stuck exactly as before.
-    const s = hydrateRestartFlow([{ state: "pending_restart" }], null)!;
+    const s = hydrateRestartFlow({ pending: true, reasons: ["enable"] }, null)!;
     expect(restartNoticeMode(s, false)).toBe("pending");
   });
 
@@ -328,5 +293,89 @@ describe("hydrateRestartFlow — surviving a remount", () => {
     }).state;
     expect(restartNoticeMode(s, false)).toBe("hidden");
     expect(restartNoticeMode(s, true)).toBe("pending");
+  });
+});
+
+/**
+ * Round 3: a failure on one gateway must not throw away another one's change.
+ *
+ * `restart-failed` used to clear the whole queue. With one gateway that was
+ * defensible (the retry re-reads that profile's config from disk). With two it
+ * silently discarded the other agent's saved change — and the retry the user
+ * pressed restarts the FAILED profile, which cannot apply anybody else's
+ * config. The change was simply lost, with the screen showing success.
+ */
+describe("a failure never drains another profile's queue", () => {
+  const startWith = (profile: RestartProfile) =>
+    reduceRestartFlow(initialRestartFlow(), {
+      type: "change-applied",
+      source: "channel-toggle",
+      auto: true,
+      profile,
+    }).state;
+
+  const queue = (state: RestartFlowState, profile: RestartProfile) =>
+    reduceRestartFlow(state, {
+      type: "change-applied",
+      source: "channel-toggle",
+      auto: true,
+      profile,
+    }).state;
+
+  it("A failing keeps B queued", () => {
+    let s = startWith("vendas");
+    s = queue(s, "suporte");
+    s = reduceRestartFlow(s, { type: "restart-failed", error: "boom" }).state;
+    expect(s.phase).toBe("failed");
+    expect(s.queued).toEqual(["suporte"]); // B's change is still owed
+  });
+
+  it("global failing keeps an agent queued", () => {
+    let s = startWith(null);
+    s = queue(s, "vendas");
+    s = reduceRestartFlow(s, { type: "restart-failed", error: "boom" }).state;
+    expect(s.queued).toEqual(["vendas"]);
+  });
+
+  it("an agent failing keeps global queued", () => {
+    let s = startWith("vendas");
+    s = queue(s, null);
+    s = reduceRestartFlow(s, { type: "restart-failed", error: "boom" }).state;
+    expect(s.queued).toEqual([null]);
+  });
+
+  it("only the FAILED profile is dropped — its retry re-reads that config", () => {
+    let s = startWith("vendas");
+    s = queue(s, "vendas"); // a change landed mid-restart for the same profile
+    s = queue(s, "suporte");
+    s = reduceRestartFlow(s, { type: "restart-failed", error: "boom" }).state;
+    expect(s.queued).toEqual(["suporte"]);
+  });
+
+  it("retrying the failed profile still leaves the others queued", () => {
+    let s = startWith("vendas");
+    s = queue(s, "suporte");
+    s = reduceRestartFlow(s, { type: "restart-failed", error: "boom" }).state;
+    const retry = reduceRestartFlow(s, { type: "restart-requested", profile: "vendas" });
+    expect(retry.effect).toBe("restart");
+    expect(retry.state.profile).toBe("vendas");
+    expect(retry.state.queued).toEqual(["suporte"]); // NOT wiped by the retry
+    // …and when the retry lands, suporte is next in line.
+    const after = reduceRestartFlow(retry.state, { type: "restart-accepted" });
+    expect(after.effect).toBe("restart");
+    expect(after.state.profile).toBe("suporte");
+  });
+
+  it("starting a fresh restart does not discard a waiting profile", () => {
+    let s = startWith("vendas");
+    s = queue(s, "suporte");
+    s = reduceRestartFlow(s, { type: "restart-failed", error: "boom" }).state;
+    const fresh = reduceRestartFlow(s, {
+      type: "change-applied",
+      source: "channel-config",
+      auto: true,
+      profile: "vendas",
+    });
+    expect(fresh.state.queued).toEqual(["suporte"]);
   });
 });
