@@ -9,7 +9,7 @@
  */
 import { describe, expect, it, vi } from "vitest";
 
-import { observeRestart, type RestartJobLike } from "./restart-observer";
+import { observeRestart, watchRestartJob, type RestartJobLike } from "./restart-observer";
 
 const job = (over: Partial<RestartJobLike> = {}): RestartJobLike => ({
   job_id: "job-1",
@@ -183,5 +183,87 @@ describe("observeRestart — failures that are not verdicts", () => {
     const res = await observeRestart(null, d);
     expect(res).toMatchObject({ ok: false });
     expect(res.ok === false && res.error).toContain("network down");
+  });
+});
+
+/**
+ * Release gate: the flows that do NOT start the restart themselves.
+ *
+ * Telegram onboarding and enabling a webhook both restart as a side effect and
+ * hand back `restart_job_id`. Both screens were still polling the global
+ * `gateway-restart` action and judging it by exit code — the same defect the
+ * channels flow had already shed. With two profiles that name cannot say whose
+ * process it reports, and on a no-service install the restart command BECOMES
+ * the foreground gateway and never exits, so there is no exit code to read.
+ */
+describe("watchRestartJob — following a restart somebody else started", () => {
+  const clock = () => {
+    let t = 0;
+    return { now: () => t, sleep: async () => { t += 1500; } };
+  };
+
+  it("polls the given job id and nothing else", async () => {
+    const c = clock();
+    const poll = vi.fn().mockResolvedValue(job({ job_id: "tg-1", state: "succeeded" }));
+    const res = await watchRestartJob("tg-1", { poll, sleep: c.sleep, now: c.now });
+    expect(poll).toHaveBeenCalledWith("tg-1");
+    expect(res).toMatchObject({ ok: true, jobId: "tg-1" });
+  });
+
+  it("succeeds only when the BACKEND says succeeded", async () => {
+    const c = clock();
+    const states = ["queued", "running", "running", "succeeded"];
+    let i = 0;
+    const poll = vi.fn(async () => job({ state: states[i++] ?? "succeeded" }));
+    await expect(
+      watchRestartJob("j", { poll, sleep: c.sleep, now: c.now }),
+    ).resolves.toMatchObject({ ok: true });
+    expect(poll).toHaveBeenCalledTimes(4);
+  });
+
+  it("reports the backend's own failure reason", async () => {
+    const c = clock();
+    const poll = vi.fn().mockResolvedValue(
+      job({ state: "failed", error: "restart timed out after 90s" }),
+    );
+    const res = await watchRestartJob("j", { poll, sleep: c.sleep, now: c.now });
+    expect(res).toMatchObject({ ok: false, error: "restart timed out after 90s" });
+  });
+
+  it("survives transient poll errors — the gateway bouncing breaks requests", async () => {
+    const c = clock();
+    let n = 0;
+    const poll = vi.fn(async () => {
+      n += 1;
+      if (n < 3) throw new Error("connection reset");
+      return job({ state: "succeeded" });
+    });
+    await expect(
+      watchRestartJob("j", { poll, sleep: c.sleep, now: c.now }),
+    ).resolves.toMatchObject({ ok: true });
+  });
+
+  it("a foreground gateway that never exits still reaches success", async () => {
+    // No-service install: the command IS the gateway. Exit code never arrives,
+    // and pid stays alive — the backend's health verdict is the only answer.
+    const c = clock();
+    const poll = vi.fn().mockResolvedValue(job({ state: "succeeded", pid: 4242 }));
+    await expect(
+      watchRestartJob("j", { poll, sleep: c.sleep, now: c.now }),
+    ).resolves.toMatchObject({ ok: true });
+  });
+
+  it("stopping being able to follow is NOT a gateway failure", async () => {
+    const c = clock();
+    const poll = vi.fn().mockRejectedValue(new Error("gone"));
+    const res = await watchRestartJob("j", {
+      poll,
+      sleep: c.sleep,
+      now: c.now,
+      timeoutMs: 4500,
+    });
+    expect(res.ok).toBe(false);
+    // The wording must say we lost track, not that the gateway failed.
+    expect(res.ok === false && res.error).toBe("restart did not confirm in time");
   });
 });

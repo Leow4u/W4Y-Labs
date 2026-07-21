@@ -2084,6 +2084,8 @@ export interface WebhookEnableResponse {
   enabled: true;
   needs_restart: boolean;
   restart_started?: boolean;
+  /** Identity of the restart this call kicked off — poll THIS, not a global name. */
+  restart_job_id?: string | null;
   restart_action?: string;
   restart_pid?: number | null;
   restart_error?: string;
@@ -2368,6 +2370,8 @@ export interface TelegramOnboardingApplyResponse {
   bot_username?: string;
   needs_restart: boolean;
   restart_started?: boolean;
+  /** Identity of the restart this call kicked off — poll THIS, not a global name. */
+  restart_job_id?: string | null;
   restart_action?: string;
   restart_pid?: number | null;
   restart_error?: string;

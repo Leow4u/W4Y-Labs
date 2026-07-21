@@ -35,6 +35,7 @@ import type {
 import { channelFieldMeta, channelStateLabel, isTruthyEnv } from "@/lib/channel-fields";
 import { isInternalView } from "@/lib/internal-view";
 import { hasPendingRestart, isRestarting, restartNoticeMode } from "@/lib/restart-flow";
+import { watchRestartJob } from "@/lib/restart-observer";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { useRestartFlow } from "@/hooks/useRestartFlow";
 import { usePageHeader } from "@/contexts/usePageHeader";
@@ -978,29 +979,23 @@ function TelegramOnboardingPanel({
     setNewAllowedId("");
   };
 
-  // restart_started only means the `wayne gateway restart` child spawned —
-  // not that the restart will succeed (e.g. systemd linger missing, service
-  // manager failure). Poll the action status briefly and surface a non-zero
-  // exit via the manual-restart banner. Note: in no-service installs the
-  // child becomes the foreground gateway and never exits, so "still running
-  // when the window closes" counts as success.
-  const watchRestartOutcome = async () => {
-    for (let i = 0; i < 20; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      try {
-        const st = await api.getActionStatus("gateway-restart", 5);
-        if (st.running) continue;
-        if (st.exit_code !== 0 && st.exit_code !== null) {
-          onRestartOutcome(false, String(st.exit_code));
-          showToast(
-            c.tgRestartFailedExit.replace("{code}", String(st.exit_code)),
-            "error",
-          );
-        }
-        return;
-      } catch {
-        // transient fetch error; keep polling
-      }
+  // Watch THE job the backend created, not the global `gateway-restart` action.
+  //
+  // Polling that global name judged the restart by exit code, which cannot
+  // answer the question: with two profiles the name cannot tell whose process
+  // it is reporting, and on a no-service install the command BECOMES the
+  // foreground gateway and never exits. The backend already decides success
+  // from real gateway health; this only follows its verdict.
+  const watchRestartOutcome = async (jobId?: string | null) => {
+    if (!jobId) return; // nothing to follow — do not invent an outcome
+    const res = await watchRestartJob(jobId, {
+      poll: (id) => api.getRestartJob(id),
+      sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+      now: () => Date.now(),
+    });
+    if (!res.ok) {
+      onRestartOutcome(false, res.error);
+      showToast(c.tgRestartFailedExit.replace("{code}", res.error), "error");
     }
   };
 
@@ -1022,7 +1017,7 @@ function TelegramOnboardingPanel({
         showToast(c.tgSaved, "success");
         onRestartOutcome(true);
         setTimeout(() => void onChanged(), 4000);
-        void watchRestartOutcome();
+        void watchRestartOutcome(result.restart_job_id);
       } else if (result.restart_started === undefined && result.needs_restart) {
         try {
           await api.restartGateway();

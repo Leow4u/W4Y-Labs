@@ -45,7 +45,7 @@ export async function observeRestart(
   profile: string | null,
   deps: ObserveDeps,
 ): Promise<ObserveResult> {
-  const { start, poll, sleep, now, intervalMs = 1500, timeoutMs = 90_000 } = deps;
+  const { start } = deps;
 
   let job: RestartJobLike;
   try {
@@ -64,8 +64,25 @@ export async function observeRestart(
   if (job.state === "succeeded") {
     return { ok: true, jobId: job.job_id, reused: !!job.reused };
   }
+  return watchRestartJob(job.job_id, deps);
+}
 
-  const jobId = job.job_id;
+/**
+ * Watch a restart the BACKEND already started, by its own id.
+ *
+ * Split out for the flows that do not start the restart themselves — Telegram
+ * onboarding and enabling a webhook both restart as a side effect and hand back
+ * `restart_job_id`. Those two screens were still polling the global
+ * `gateway-restart` action and judging it by exit code, which is the same
+ * defect the channels flow already shed: with two profiles the global name
+ * cannot tell whose process it is reporting, and on a no-service install the
+ * command BECOMES the foreground gateway and never exits at all.
+ */
+export async function watchRestartJob(
+  jobId: string,
+  deps: Omit<ObserveDeps, "start">,
+): Promise<ObserveResult> {
+  const { poll, sleep, now, intervalMs = 1500, timeoutMs = 90_000 } = deps;
   const startedAt = now();
   for (;;) {
     await sleep(intervalMs);
@@ -86,6 +103,7 @@ export async function observeRestart(
       }
     }
     if (now() - startedAt >= timeoutMs) {
+      // NOT a gateway failure: we simply stopped being able to follow it.
       return { ok: false, error: "restart did not confirm in time", jobId };
     }
   }

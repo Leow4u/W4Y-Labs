@@ -15,6 +15,7 @@ import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { H2 } from "@nous-research/ui/ui/components/typography/h2";
 import { api } from "@/lib/api";
+import { watchRestartJob } from "@/lib/restart-observer";
 import type { WebhookRoute, WebhooksResponse } from "@/lib/api";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
@@ -103,43 +104,47 @@ export default function WebhooksPage() {
     loadWebhooks();
   }, [loadWebhooks]);
 
-  const watchRestartOutcome = useCallback(async () => {
-    for (let i = 0; i < 20; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      try {
-        const st = await api.getActionStatus("gateway-restart", 5);
-        if (st.running) continue;
-        if (st.exit_code !== 0 && st.exit_code !== null) {
-          setRestartMessage(null);
-          setRestartNeeded(true);
-          setRestartError(`Gateway restart failed with exit ${st.exit_code}.`);
-          showToast(
-            `Gateway restart failed (exit ${st.exit_code}) — restart manually`,
-            "error",
-          );
-        } else {
-          setRestartMessage(null);
-          setRestartNeeded(false);
-          setRestartError(null);
-        }
+  // Watch THE job the backend created, not the global `gateway-restart` action.
+  // That global name is shared by every profile, and on a no-service install
+  // the restart command becomes the foreground gateway and never exits — so
+  // judging it by exit code could not work. The backend decides from real
+  // gateway health; this follows its verdict.
+  const watchRestartOutcome = useCallback(
+    async (jobId?: string | null) => {
+      if (!jobId) {
+        // No identity to follow. Say nothing rather than claim an outcome.
+        setRestartMessage(null);
         return;
-      } catch {
-        // The dashboard may briefly lose its connection while the gateway restarts.
       }
-    }
-    setRestartMessage(null);
-  }, [showToast]);
+      const res = await watchRestartJob(jobId, {
+        poll: (id) => api.getRestartJob(id),
+        sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
+        now: () => Date.now(),
+      });
+      if (res.ok) {
+        setRestartMessage(null);
+        setRestartNeeded(false);
+        setRestartError(null);
+      } else {
+        setRestartMessage(null);
+        setRestartNeeded(true);
+        setRestartError(`Gateway restart failed: ${res.error}`);
+        showToast(`Gateway restart failed — restart manually`, "error");
+      }
+    },
+    [showToast],
+  );
 
   const handleRestart = useCallback(async () => {
     setRestarting(true);
     try {
-      await api.restartGateway();
+      const job = await api.restartGateway();
       setRestartNeeded(false);
       setRestartError(null);
       setRestartMessage("Gateway restarting…");
       showToast("Gateway restarting…", "success");
       setTimeout(() => void loadWebhooks(), 4000);
-      void watchRestartOutcome();
+      void watchRestartOutcome(job.job_id);
     } catch (e) {
       setRestartNeeded(true);
       setRestartError(String(e));
@@ -160,7 +165,7 @@ export default function WebhooksPage() {
         setRestartMessage("Webhooks enabled; gateway restarting…");
         showToast("Webhooks enabled; gateway restarting…", "success");
         setTimeout(() => void loadWebhooks(), 4000);
-        void watchRestartOutcome();
+        void watchRestartOutcome(result.restart_job_id);
       } else {
         const detail = result.restart_error ? `: ${result.restart_error}` : ".";
         setRestartMessage(null);
