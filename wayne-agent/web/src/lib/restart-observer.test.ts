@@ -118,8 +118,10 @@ describe("observeRestart — verdict comes from the backend", () => {
     expect(d.poll).toHaveBeenCalledTimes(4);
   });
 
-  it("succeeds when the backend says succeeded — even with the process alive", async () => {
-    // Foreground gateway on Linux/macOS: pid is still there, and that is fine.
+  it("accepts the backend succeeded verdict without relying on an exit code", async () => {
+    // Only proves that a `succeeded` verdict is honoured while a pid is still
+    // reported. It creates no process and says nothing about foreground
+    // gateways or slot release — that belongs to the backend/E2E round.
     const d = deps({
       poll: vi.fn().mockResolvedValue(job({ state: "succeeded", pid: 4242 })),
     });
@@ -243,9 +245,10 @@ describe("watchRestartJob — following a restart somebody else started", () => 
     ).resolves.toMatchObject({ ok: true });
   });
 
-  it("a foreground gateway that never exits still reaches success", async () => {
-    // No-service install: the command IS the gateway. Exit code never arrives,
-    // and pid stays alive — the backend's health verdict is the only answer.
+  it("accepts the backend succeeded verdict without relying on an exit code", async () => {
+    // Same narrow claim as above: a `succeeded` verdict is honoured even though
+    // a pid is still reported and no exit code ever appears. No process is
+    // created here, so this proves nothing about a real foreground gateway.
     const c = clock();
     const poll = vi.fn().mockResolvedValue(job({ state: "succeeded", pid: 4242 }));
     await expect(
@@ -265,5 +268,64 @@ describe("watchRestartJob — following a restart somebody else started", () => 
     expect(res.ok).toBe(false);
     // The wording must say we lost track, not that the gateway failed.
     expect(res.ok === false && res.error).toBe("restart did not confirm in time");
+    expect(res.ok === false && res.reason).toBe("unconfirmed");
+  });
+});
+
+/**
+ * Closing gate: "the backend judged it" and "we lost track" are different
+ * facts, and the screens act on them differently — a proven failure names the
+ * gateway, an unconfirmed one only says we could not follow. Neither may clear
+ * a pending state.
+ */
+describe("failure is discriminated: proven vs unconfirmed", () => {
+  const clock = () => {
+    let t = 0;
+    return { now: () => t, sleep: async () => { t += 1500; } };
+  };
+
+  it("a backend verdict is reason 'failed' and carries its reason", async () => {
+    const c = clock();
+    const poll = vi.fn().mockResolvedValue(
+      job({ state: "failed", error: "restart exited with code 1" }),
+    );
+    const res = await watchRestartJob("j", { poll, sleep: c.sleep, now: c.now });
+    expect(res).toMatchObject({
+      ok: false,
+      reason: "failed",
+      error: "restart exited with code 1",
+    });
+  });
+
+  it("running out of time is reason 'unconfirmed', not a gateway failure", async () => {
+    const c = clock();
+    const poll = vi.fn().mockResolvedValue(job({ state: "running" }));
+    const res = await watchRestartJob("j", {
+      poll,
+      sleep: c.sleep,
+      now: c.now,
+      timeoutMs: 4500,
+    });
+    expect(res).toMatchObject({ ok: false, reason: "unconfirmed" });
+  });
+
+  it("a POST that throws is 'unconfirmed' — nothing was judged", async () => {
+    const d = deps({ start: vi.fn().mockRejectedValue(new Error("network down")) });
+    const res = await observeRestart(null, d);
+    expect(res).toMatchObject({ ok: false, reason: "unconfirmed" });
+  });
+
+  it("a response with no job identity is 'unconfirmed', never a failure", async () => {
+    const d = deps({ start: vi.fn().mockResolvedValue({ ...job(), job_id: "" }) });
+    const res = await observeRestart(null, d);
+    expect(res).toMatchObject({ ok: false, reason: "unconfirmed" });
+  });
+
+  it("a job the POST already failed is 'failed' — that one WAS judged", async () => {
+    const d = deps({
+      start: vi.fn().mockResolvedValue(job({ state: "failed", error: "no such profile" })),
+    });
+    const res = await observeRestart("ghost", d);
+    expect(res).toMatchObject({ ok: false, reason: "failed", error: "no such profile" });
   });
 });

@@ -986,17 +986,43 @@ function TelegramOnboardingPanel({
   // it is reporting, and on a no-service install the command BECOMES the
   // foreground gateway and never exits. The backend already decides success
   // from real gateway health; this only follows its verdict.
+  // Owns the RESTART verdict. Saving the Telegram config and restarting the
+  // gateway are two different facts, and this reports only the second.
+  //
+  // The bug: `restart_started` merely means the backend queued a job, and the
+  // screen was calling onRestartOutcome(true) right there — which fires
+  // restart-accepted and can clear the pending state while the job is still
+  // queued or running. Success is now claimed only for a job that reached
+  // state:"succeeded".
   const watchRestartOutcome = async (jobId?: string | null) => {
-    if (!jobId) return; // nothing to follow — do not invent an outcome
+    if (!jobId) {
+      // Restart started but we were given no identity to follow. Not a success
+      // and not a proven failure: keep the change pending and say so, so the
+      // user still has the retry affordance.
+      onRestartOutcome(false, c.restartPending);
+      showToast(c.restartPending, "error");
+      return;
+    }
     const res = await watchRestartJob(jobId, {
       poll: (id) => api.getRestartJob(id),
       sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
       now: () => Date.now(),
     });
-    if (!res.ok) {
-      onRestartOutcome(false, res.error);
-      showToast(c.tgRestartFailedExit.replace("{code}", res.error), "error");
+    if (res.ok) {
+      // Only here is the restart actually done.
+      onRestartOutcome(true);
+      return;
     }
+    if (res.reason === "failed") {
+      // The backend judged it, and `error` is its own reason.
+      onRestartOutcome(false, res.error);
+      showToast(c.restartFailed.replace("{error}", res.error), "error");
+      return;
+    }
+    // "unconfirmed": we lost track. Never present this as a gateway failure —
+    // but never clear the pending state on it either.
+    onRestartOutcome(false, c.restartPending);
+    showToast(c.restartPending, "error");
   };
 
   const apply = async () => {
@@ -1014,16 +1040,19 @@ function TelegramOnboardingPanel({
       });
       resetSetup();
       if (result.restart_started) {
+        // The CONFIG is genuinely persisted — that toast is honest and stays.
+        // The restart is a separate fact, decided by the watcher below.
         showToast(c.tgSaved, "success");
-        onRestartOutcome(true);
         setTimeout(() => void onChanged(), 4000);
         void watchRestartOutcome(result.restart_job_id);
       } else if (result.restart_started === undefined && result.needs_restart) {
+        // Legacy path: we start the restart ourselves. Keep the job it created
+        // and follow THAT one — a POST being accepted is not a restart.
         try {
-          await api.restartGateway();
+          const job = await api.restartGateway(profile || undefined);
           showToast(c.tgSaved, "success");
-          onRestartOutcome(true);
           setTimeout(() => void onChanged(), 4000);
+          void watchRestartOutcome(job.job_id);
         } catch (restartError) {
           onRestartOutcome(false, String(restartError));
           showToast(

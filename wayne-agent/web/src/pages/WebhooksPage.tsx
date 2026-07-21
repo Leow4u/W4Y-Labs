@@ -112,8 +112,11 @@ export default function WebhooksPage() {
   const watchRestartOutcome = useCallback(
     async (jobId?: string | null) => {
       if (!jobId) {
-        // No identity to follow. Say nothing rather than claim an outcome.
+        // Restart started but no identity to follow. Not a success and not a
+        // proven failure — keep it flagged so the manual restart stays offered.
         setRestartMessage(null);
+        setRestartNeeded(true);
+        setRestartError("Could not follow the restart — it may not have applied.");
         return;
       }
       const res = await watchRestartJob(jobId, {
@@ -122,14 +125,21 @@ export default function WebhooksPage() {
         now: () => Date.now(),
       });
       if (res.ok) {
+        // Only a job that reached state:"succeeded" clears the flag.
         setRestartMessage(null);
         setRestartNeeded(false);
         setRestartError(null);
-      } else {
-        setRestartMessage(null);
-        setRestartNeeded(true);
+        return;
+      }
+      setRestartMessage(null);
+      setRestartNeeded(true);
+      if (res.reason === "failed") {
         setRestartError(`Gateway restart failed: ${res.error}`);
-        showToast(`Gateway restart failed — restart manually`, "error");
+        showToast("Gateway restart failed — restart manually", "error");
+      } else {
+        // Lost track. Do not call it a gateway failure; do not clear the flag.
+        setRestartError("Could not follow the restart — it may not have applied.");
+        showToast("Could not confirm the restart — check and restart if needed", "error");
       }
     },
     [showToast],

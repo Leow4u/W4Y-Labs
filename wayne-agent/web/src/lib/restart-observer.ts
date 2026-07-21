@@ -24,7 +24,20 @@ export interface RestartJobLike {
 
 export type ObserveResult =
   | { ok: true; jobId: string; reused: boolean }
-  | { ok: false; error: string; jobId?: string };
+  | {
+      ok: false;
+      /**
+       * `failed` — the BACKEND judged this restart failed, and `error` is its
+       *   own reason. That is proof.
+       * `unconfirmed` — we stopped being able to follow it (deadline, dead
+       *   polling). The restart may well have worked; we simply do not know.
+       *   Callers must not present this as a gateway failure, and must not
+       *   clear a pending state on it either.
+       */
+      reason: "failed" | "unconfirmed";
+      error: string;
+      jobId?: string;
+    };
 
 export interface ObserveDeps {
   /** POST the restart; must answer with the identity of THIS operation. */
@@ -51,15 +64,24 @@ export async function observeRestart(
   try {
     job = await start(profile);
   } catch (e) {
-    return { ok: false, error: String(e) };
+    return { ok: false, reason: "unconfirmed", error: String(e) };
   }
   if (!job || !job.job_id) {
-    return { ok: false, error: (job && job.error) || "restart refused" };
+    return {
+      ok: false,
+      reason: "unconfirmed",
+      error: (job && job.error) || "restart refused",
+    };
   }
   // A job the backend already failed (an unknown profile, a spawn that blew up)
   // must not be polled — it will never change.
   if (job.state === "failed") {
-    return { ok: false, error: job.error || "restart refused", jobId: job.job_id };
+    return {
+      ok: false,
+      reason: "failed",
+      error: job.error || "restart refused",
+      jobId: job.job_id,
+    };
   }
   if (job.state === "succeeded") {
     return { ok: true, jobId: job.job_id, reused: !!job.reused };
@@ -99,12 +121,15 @@ export async function watchRestartJob(
         return { ok: true, jobId, reused: !!current.reused };
       }
       if (current.state === "failed") {
-        return { ok: false, error: current.error || "restart failed", jobId };
+        // The backend judged it. That is proof, and `error` is its own reason.
+        return { ok: false, reason: "failed", error: current.error || "restart failed", jobId };
       }
     }
     if (now() - startedAt >= timeoutMs) {
-      // NOT a gateway failure: we simply stopped being able to follow it.
-      return { ok: false, error: "restart did not confirm in time", jobId };
+      // NOT a gateway failure: we simply stopped being able to follow it. The
+      // restart may well have worked — callers must say so honestly and must
+      // not clear a pending state on this.
+      return { ok: false, reason: "unconfirmed", error: "restart did not confirm in time", jobId };
     }
   }
 }
