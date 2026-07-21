@@ -61,13 +61,34 @@ const LOCAL_REQUIRE = /require\(\s*(['"`])(\.\.?\/[^'"`]+)\1\s*\)/g;
  * the scanner. The result was a phantom module reported as missing, failing
  * pack/dist:win/dist:mac/dist:linux with a finding nobody could act on.
  */
+/** Keywords a regex literal may legally follow. */
+const REGEX_PRECEDING_KEYWORDS = new Set([
+  "return",
+  "typeof",
+  "instanceof",
+  "in",
+  "of",
+  "new",
+  "delete",
+  "void",
+  "case",
+  "do",
+  "else",
+  "yield",
+  "await",
+]);
+
 function regexCanStart(out) {
   const prev = out.replace(/\s+$/, "").slice(-1);
   if (!prev) return true; // start of file
   if ("(,=:[!&|?{};+-*%<>~^".includes(prev)) return true;
-  return /(return|typeof|instanceof|in|of|new|delete|void|case|do|else|yield|await)$/.test(
-    out.replace(/\s+$/, ""),
-  );
+  // Explicit word extraction rather than a \b regex. Two reasons: a stray
+  // BACKSPACE byte once landed here in place of the escape, silently killing
+  // this whole branch (a regex after `return` then read as a string and leaked
+  // the rest of the line to the scanner); and without a real boundary, a
+  // pattern like /(in|of)$/ happily matches the tail of `join` or `typeof`.
+  const word = (out.replace(/\s+$/, "").match(/[A-Za-z_$][\w$]*$/) || [""])[0];
+  return REGEX_PRECEDING_KEYWORDS.has(word);
 }
 
 function stripNonCode(source) {

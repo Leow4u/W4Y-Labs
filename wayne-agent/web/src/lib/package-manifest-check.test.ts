@@ -318,3 +318,66 @@ describe("auditLocalModules — a parent-path require can never ship", () => {
     expect(found[0].problems).toContain("escapes");
   });
 });
+
+/**
+ * Release gate: the keyword branch of `regexCanStart` was DEAD.
+ *
+ * A stray BACKSPACE byte (0x08) had landed where the `\b` escape belonged, so
+ * `/\x08(return|typeof|...)$/` could never match. Every regex written after a
+ * keyword was therefore read as a string, and the rest of that line — comments
+ * included — leaked into the scanner. `return /'/; // require("./ghost.cjs")`
+ * reported a module that does not exist, which fails `check:manifest` and with
+ * it pack, dist:win, dist:mac and dist:linux.
+ *
+ * The escape is gone entirely now: the tail word is extracted and looked up in
+ * a Set, which also removes a second latent bug — without a real boundary,
+ * `(in|of)$` matches the end of `join` and `typeof`.
+ */
+describe("regexCanStart — regex after a keyword", () => {
+  const KEYWORD_CASES: [string, string][] = [
+    ["return", `return /'/; // require("./ghost.cjs")`],
+    ["await", `await /'/ ; // require("./g2.cjs")`],
+    ["yield", `yield /'/ ; // require("./g3.cjs")`],
+    ["typeof", `typeof /'/ ; // require("./g4.cjs")`],
+    ["case", `case /'/ : break; // require("./g5.cjs")`],
+    ["new", `new RegExp(); x = /'/; // require("./g6.cjs")`],
+    ["else", `else /'/ ; // require("./g7.cjs")`],
+  ];
+
+  it.each(KEYWORD_CASES)("no phantom module after `%s`", (_kw, src) => {
+    expect(localRequires(src)).toEqual([]);
+  });
+
+  it("no phantom module after an assignment or an open paren", () => {
+    expect(localRequires(`const x = /'/; // require("./g8.cjs")`)).toEqual([]);
+    expect(localRequires(`f( /'/ ); // require("./g9.cjs")`)).toEqual([]);
+  });
+
+  it("still reads DIVISION as division, including right after a keyword", () => {
+    expect(localRequires(`const r = a / b; require("./real.cjs");`)).toEqual(["real.cjs"]);
+    expect(localRequires(`return a / b; require("./real.cjs");`)).toEqual(["real.cjs"]);
+  });
+
+  it("does not treat a word ENDING in a keyword as that keyword", () => {
+    // `(in|of)$` with no boundary matches the tail of `join`. The division here
+    // must stay division, so the require after it is still found.
+    expect(localRequires(`const j = x.join / 2; require("./real.cjs");`)).toEqual([
+      "real.cjs",
+    ]);
+  });
+
+  it("the source file itself contains no stray control bytes", () => {
+    // The defect was invisible in an editor and in the Read tool; only `cat -A`
+    // showed it. Pin it so it cannot come back unnoticed.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const fs = require("fs");
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const path = require("path");
+    const src: string = fs.readFileSync(
+      path.join(__dirname, "../../../apps/desktop-shell/package-manifest-check.cjs"),
+      "utf8",
+    );
+    // eslint-disable-next-line no-control-regex
+    expect(src.match(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g)).toBeNull();
+  });
+});
