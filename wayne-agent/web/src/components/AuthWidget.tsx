@@ -141,12 +141,32 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     };
   }, [localEngine]);
 
-  // Click = restart-and-update (the shell exits immediately; the guard only
-  // covers the brief teardown window against double-clicks).
+  // Clique = reiniciar-e-atualizar. A trava existe só contra clique duplo na
+  // janela em que a casca está se desmontando.
+  //
+  // Ela PRECISA ser liberada quando a promessa termina. A versão anterior a
+  // marcava e nunca a soltava, apostando que o app sempre sairia logo depois —
+  // e o chip "Atualização pendente" é, por definição, o caso em que NÃO sai:
+  // ele só aparece depois da atualização falhar três vezes. Resultado: o
+  // tooltip prometia "clique para tentar de novo", o primeiro clique matava o
+  // botão em silêncio, e o dono ficava sem caminho nenhum para atualizar.
+  //
+  // Se a atualização der certo, o processo morre antes do finally — a trava
+  // solta só nos casos em que o app continua vivo, que são os que importam.
   const applyUpdate = useCallback(() => {
     if (applyingRef.current) return;
+    const bridge = desktopUpdateBridge();
+    // Sem ponte (web pura, ou casca antiga) não há o que aplicar: não trava.
+    if (!bridge) return;
     applyingRef.current = true;
-    void desktopUpdateBridge()?.apply();
+    void bridge
+      .apply()
+      .catch(() => {
+        /* a casca já registra o motivo; aqui só garantimos o retry */
+      })
+      .finally(() => {
+        applyingRef.current = false;
+      });
   }, []);
 
   // Opens the language submenu with the current language in view. Runs ONLY on
