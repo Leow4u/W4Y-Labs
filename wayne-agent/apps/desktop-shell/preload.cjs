@@ -139,7 +139,33 @@ if (_isAppOrigin()) {
     // performs the actual refresh with its progress UI.
     update: {
       check: () => ipcRenderer.invoke("w4y:update:check"),
-      apply: () => ipcRenderer.invoke("w4y:update:apply"),
+      // The token comes from the check this apply belongs to, so the main can
+      // reject a plan a later check overwrote.
+      apply: (token) =>
+        ipcRenderer.invoke("w4y:update:apply", typeof token === "string" ? token : undefined),
+      /**
+       * Live update events (progress, success, failure, stalled).
+       *
+       * The main has been emitting "w4y:update:event" all along with nobody
+       * listening: the bridge exposed no subscription, so the chip only ever
+       * learned about state from its own check() on mount and a 30-minute
+       * poll — a failed update could sit invisible for half an hour.
+       *
+       * Only the event's plain payload crosses; the IpcRendererEvent stays on
+       * this side so no privileged object leaks into the page. Returns the
+       * unsubscribe.
+       */
+      onEvent: (cb) => {
+        const listener = (_e, payload) => {
+          try {
+            cb(payload && typeof payload === "object" ? payload : {});
+          } catch {
+            /* a renderer handler must never break the bridge */
+          }
+        };
+        ipcRenderer.on("w4y:update:event", listener);
+        return () => ipcRenderer.removeListener("w4y:update:event", listener);
+      },
     },
     // ── Window chrome (0.3.7, Codex-style frameless) ──────────────────────
     // The web's top bar gates its whole render on THIS group existing —

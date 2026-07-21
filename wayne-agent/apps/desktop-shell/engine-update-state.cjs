@@ -53,9 +53,35 @@ function writeState(wayneHome, patch) {
   return next;
 }
 
-/** True once the user deserves to be told the update is not going through. */
+/** True once the AUTOMATIC retries have given up. */
 function isStalled(state) {
   return state.phase === "failed" && (state.attempts || 0) >= STALLED_AFTER;
 }
 
-module.exports = { EMPTY, STALLED_AFTER, isStalled, readState, stateFile, writeState };
+/**
+ * True when the user deserves to be told the update is not going through.
+ *
+ * Two independent reasons, and the second one is not optional:
+ *
+ *   a) the automatic retries gave up — isStalled(), attempts >= STALLED_AFTER;
+ *   b) the user asked for a retry and THAT failed.
+ *
+ * (b) exists because a manual retry resets `attempts` to 0 by design (it is
+ * what makes "try again" mean something). Without this flag the pill would
+ * disappear the instant the user's own attempt failed — going silent at
+ * exactly the moment they were watching. The attempt counter and the warning
+ * are therefore deliberately NOT the same question.
+ */
+function shouldWarnUser(state) {
+  return isStalled(state) || state.manualRetryFailed === true;
+}
+
+module.exports = {
+  EMPTY,
+  STALLED_AFTER,
+  isStalled,
+  shouldWarnUser,
+  readState,
+  stateFile,
+  writeState,
+};

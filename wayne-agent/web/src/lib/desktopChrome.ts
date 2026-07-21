@@ -39,9 +39,33 @@ export interface WindowChromeBridge {
   setTitleBarTheme?: (barColor: string, symbolColor: string) => void;
 }
 
+/** Live state pushed by the shell while an engine update runs. */
+export interface DesktopUpdateEvent {
+  type?: string;
+  phase?: string;
+  version?: string | null;
+  attempts?: number;
+  stalled?: boolean;
+  running?: boolean;
+  lastError?: string | null;
+  lastErrorStage?: string | null;
+  reason?: string;
+}
+
 interface DesktopUpdateBridge {
-  check: () => Promise<{ available?: boolean; version?: string | null } | null>;
-  apply: () => Promise<unknown>;
+  check: () => Promise<{
+    available?: boolean;
+    version?: string | null;
+    kind?: string;
+    /** Identifies THIS check, so apply acts on the plan it produced. */
+    token?: string;
+  } | null>;
+  apply: (token?: string) => Promise<unknown>;
+  /**
+   * Subscribe to update progress. Optional: shells older than this feature
+   * simply don't have it, and the chip falls back to polling.
+   */
+  onEvent?: (cb: (payload: DesktopUpdateEvent) => void) => () => void;
 }
 
 interface DesktopBridge {

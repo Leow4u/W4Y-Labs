@@ -50,6 +50,7 @@ import { LOCALE_META } from "@/i18n";
 import type { Locale } from "@/i18n";
 import { isLocalEngine } from "@/lib/projects";
 import { cloudGetJson } from "@/lib/cloudSession";
+import { desktopUpdateBridge } from "@/lib/desktopChrome";
 
 interface AuthWidgetProps {
   className?: string;
@@ -57,24 +58,13 @@ interface AuthWidgetProps {
   onOpenSettings?: () => void;
 }
 
-/** Shell bridge for the engine-update chip (0.3.4+ shells; older ones simply
- *  lack `update` and the pill never renders). */
-interface DesktopUpdateBridge {
-  check: () => Promise<{
-    available?: boolean;
-    version?: string | null;
-    /** "ready" (already downloaded) | "stalled" (install keeps failing). */
-    kind?: string;
-  } | null>;
-  apply: () => Promise<unknown>;
-}
-
-function desktopUpdateBridge(): DesktopUpdateBridge | null {
-  if (typeof window === "undefined") return null;
-  const d = (window as unknown as { work4youDesktop?: { update?: DesktopUpdateBridge } })
-    .work4youDesktop;
-  return d?.update ?? null;
-}
+// The update bridge comes from lib/desktopChrome — this file used to declare
+// its OWN copy of the interface and its own accessor. That duplicate is what
+// let the bridge grow `token` and `onEvent` in lib/ while this component still
+// compiled against the older shape: same failure mode as the channel state
+// map, one contract living in two places. Behaviourally identical (preload
+// always sets isDesktop: true, so the shared accessor's extra gate never
+// changes the answer).
 
 function truncateUserId(id: string): string {
   return id.length <= 14 ? id : `${id.slice(0, 14)}…`;
@@ -105,18 +95,27 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   // `kind` (shell 0.3.9): "ready" = the engine is already downloaded and a
   // restart is instant; "stalled" = the background install keeps failing and
   // the click means "try again", not "restart".
-  const [update, setUpdate] = useState<{ version: string | null; kind?: string } | null>(
-    null,
-  );
+  const [update, setUpdate] = useState<{
+    version: string | null;
+    kind?: string;
+    /** Token of the check that produced this state — echoed back on apply. */
+    token?: string;
+  } | null>(null);
   const applyingRef = useRef(false);
 
-  // Update probe: on mount + every 30 min. check() is fail-open (null on any
-  // problem), so offline windows just leave the pill hidden.
+  // Update state: pushed by the shell, with polling kept only as a fallback.
+  //
+  // The main process has always emitted "w4y:update:event", but the bridge
+  // exposed no way to listen, so this chip learned about the world from its
+  // own check() on mount and a 30-minute interval. A failure could therefore
+  // stay invisible for half an hour. Now an event repaints it at once, and
+  // the interval only covers shells too old to have onEvent.
   useEffect(() => {
     if (!localEngine) return;
     const bridge = desktopUpdateBridge();
     if (!bridge) return; // pre-0.3.4 shell — no update surface
     let cancelled = false;
+
     const probe = () => {
       bridge
         .check()
@@ -127,6 +126,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               ? {
                   version: typeof r.version === "string" && r.version ? r.version : null,
                   kind: typeof r.kind === "string" ? r.kind : undefined,
+                  token: typeof r.token === "string" ? r.token : undefined,
                 }
               : null,
           );
@@ -134,10 +134,21 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
         .catch(() => {});
     };
     probe();
-    const id = window.setInterval(probe, 30 * 60 * 1000);
+
+    // An event tells us something moved; we re-check to get the authoritative
+    // shape (including the fresh token) instead of reconstructing it here.
+    const unsubscribe = bridge.onEvent?.((payload) => {
+      if (cancelled) return;
+      // A run that is still going should not clear the pill mid-flight.
+      if (payload && payload.running === true) return;
+      probe();
+    });
+
+    const id = window.setInterval(probe, unsubscribe ? 30 * 60 * 1000 : 5 * 60 * 1000);
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      unsubscribe?.();
     };
   }, [localEngine]);
 
@@ -160,14 +171,18 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     if (!bridge) return;
     applyingRef.current = true;
     void bridge
-      .apply()
+      // Echoes the token from the check that produced this chip, so the main
+      // cannot apply a plan a later check overwrote.
+      .apply(update?.token)
       .catch(() => {
         /* a casca já registra o motivo; aqui só garantimos o retry */
       })
       .finally(() => {
         applyingRef.current = false;
       });
-  }, []);
+    // Depends on the token: with an empty array the callback would close over
+    // the FIRST update it ever saw and keep applying that stale plan.
+  }, [update?.token]);
 
   // Opens the language submenu with the current language in view. Runs ONLY on
   // open (not on every render): an inline callback ref would re-run on

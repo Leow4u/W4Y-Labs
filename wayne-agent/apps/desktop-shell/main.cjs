@@ -109,6 +109,13 @@ const bootstrapRunner = require("./bootstrap-runner.cjs");
 const bootPreview = require("./boot-preview.cjs");
 const engineSlots = require("./engine-slots.cjs");
 const updateState = require("./engine-update-state.cjs");
+const { createSingleFlight } = require("./single-flight.cjs");
+
+// One engine update at a time, across EVERY entry point: the 30-minute timer,
+// the tray, and the renderer's retry. The previous guard (`engine.updating`)
+// was read before the first await and written after it, so two callers could
+// both walk past it and install over the same slot tree.
+const engineUpdateFlight = createSingleFlight();
 // 0.3.8: shell self-update (electron-updater atrás de um seam fail-open).
 const shellUpdater = require("./shell-updater.cjs");
 // Desktop-2: fs/git locais portados do Hermes (módulos git/fs puros). O executor
@@ -1689,8 +1696,24 @@ function scheduleBackgroundEngineUpdate() {
   }, FIRST_DELAY);
 }
 
-async function runBackgroundEngineUpdate() {
-  if (CLOUD_SHELL || isQuitting || engine.updating) return;
+/**
+ * Starts a background engine update unless one is already in flight.
+ *
+ * Returns the single-flight handle so callers can AWAIT the real work.
+ * `retryEngineUpdate` needs that: it used to fire-and-forget and answer
+ * `{ok:true}` immediately, which told the renderer "done" while the install
+ * had not even started — and released the chip's guard far too early.
+ */
+function runBackgroundEngineUpdate() {
+  if (CLOUD_SHELL || isQuitting) {
+    return { started: false, token: null, promise: Promise.resolve({ ok: false, error: "unavailable" }) };
+  }
+  // The lock is taken synchronously inside run(); the work below only starts
+  // on the next microtask, so no second caller can slip in during the awaits.
+  return engineUpdateFlight.run(() => runBackgroundEngineUpdateWork());
+}
+
+async function runBackgroundEngineUpdateWork() {
   try {
     const manifest = await fetchEngineManifest();
     updateState.writeState(WAYNE_HOME, { lastCheckAt: new Date().toISOString() });
@@ -1794,11 +1817,28 @@ async function runBackgroundEngineUpdate() {
   }
 }
 
-/** Push the current update state to the window so the pill can react at once. */
-function notifyUpdateState() {
+/**
+ * Push the current update state to the window so the pill can react at once.
+ *
+ * Carries the state itself now, not just a "something changed" ping: the chip
+ * used to learn about progress only from its own check() on mount and a
+ * 30-minute poll, so a failure could sit invisible for half an hour.
+ */
+function notifyUpdateState(extra) {
   try {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send("w4y:update:event", { type: "engine-state" });
+      const state = updateState.readState(WAYNE_HOME);
+      mainWindow.webContents.send("w4y:update:event", {
+        type: "engine-state",
+        phase: state.phase || "idle",
+        version: state.version || null,
+        attempts: state.attempts || 0,
+        stalled: updateState.isStalled(state),
+        running: engineUpdateFlight.isRunning(),
+        lastError: state.lastError || null,
+        lastErrorStage: state.lastErrorStage || null,
+        ...(extra || {}),
+      });
     }
   } catch {
     /* window gone */
@@ -2013,7 +2053,13 @@ async function checkEngineUpdate() {
       return { available: true, version: staged.version || null, kind: "ready" };
     }
     const state = updateState.readState(WAYNE_HOME);
-    if (updateState.isStalled(state)) {
+    // Two independent reasons to tell the user the update is not going through:
+    //  - the automatic retries gave up (attempts >= STALLED_AFTER), or
+    //  - the user asked for a retry and THAT failed. The manual path resets
+    //    attempts to 0, so without this second reason the chip would disappear
+    //    right after the user's own attempt failed — the worst possible moment
+    //    to go silent.
+    if (updateState.shouldWarnUser(state)) {
       return {
         available: true,
         version: state.version || null,
@@ -2029,16 +2075,53 @@ async function checkEngineUpdate() {
   }
 }
 
-/** Let the user retry a stalled update on demand (resets the backoff). */
-function retryEngineUpdate() {
+/**
+ * Let the user retry a stalled update on demand (resets the backoff).
+ *
+ * AWAITS the real work. It used to `void` the call and answer `{ok:true}` at
+ * once, so the renderer released its click guard while the install had not
+ * started — the chip looked done, then went dead. The answer now describes
+ * what actually happened.
+ *
+ * COHERENCE NOTE (attempts vs. stalled): resetting `attempts` to 0 is what
+ * makes a manual retry meaningful, but it also means a failure here leaves
+ * attempts=1, below STALLED_AFTER=3 — so the chip would vanish and the user
+ * would never learn their retry failed. `manualRetryFailed` is therefore
+ * carried in the state, and checkEngineUpdate surfaces it independently of
+ * the attempt count.
+ */
+async function retryEngineUpdate() {
   try {
     updateState.writeState(WAYNE_HOME, {
       phase: "idle",
       attempts: 0,
       lastError: null,
       lastErrorStage: null,
+      manualRetryFailed: false,
     });
-    void runBackgroundEngineUpdate();
+    notifyUpdateState({ reason: "retry-started" });
+
+    const handle = runBackgroundEngineUpdate();
+    if (!handle.started) {
+      // Someone else already holds the lock — join it rather than firing a
+      // second install over the same tree.
+      await handle.promise;
+      return { ok: true, joined: true };
+    }
+    const res = await handle.promise;
+    if (!res.ok) {
+      updateState.writeState(WAYNE_HOME, { manualRetryFailed: true });
+      notifyUpdateState({ reason: "retry-failed" });
+      return { ok: false, error: res.error };
+    }
+    // The work may have completed without staging anything (already current).
+    const after = updateState.readState(WAYNE_HOME);
+    if (after.phase === "failed") {
+      updateState.writeState(WAYNE_HOME, { manualRetryFailed: true });
+      notifyUpdateState({ reason: "retry-failed" });
+      return { ok: false, error: after.lastError || "update failed" };
+    }
+    notifyUpdateState({ reason: "retry-done" });
     return { ok: true };
   } catch (e) {
     return { ok: false, error: String((e && e.message) || e) };
@@ -2068,7 +2151,35 @@ function applyEngineUpdate() {
 // applies), quitAndInstall (silent NSIS + relaunch; the fresh boot handles
 // the engine as always). Any shell failure falls back to the engine-style
 // relaunch, which brings the CURRENT shell + engine back — fail-open total.
-const unifiedUpdate = { kind: null }; // "shell" | "engine" | null
+// Every check() produces an immutable SNAPSHOT with its own token, and apply()
+// acts on the snapshot it is handed. The previous shape was a single mutable
+// object shared by the renderer, the tray and the automatic checks: a check
+// firing between someone's check and their apply silently rewrote `kind`, so
+// apply could take the shell branch for a decision made about the engine.
+// Snapshots are kept briefly so a stale apply can be rejected instead of
+// acting on the wrong plan.
+const updateSnapshots = new Map(); // token -> { kind, engineKind, version, at }
+let snapshotSeq = 0;
+const SNAPSHOT_TTL_MS = 10 * 60 * 1000;
+
+function rememberSnapshot(snap) {
+  const token = `u${++snapshotSeq}`;
+  const now = Date.now();
+  for (const [k, v] of updateSnapshots) {
+    if (now - v.at > SNAPSHOT_TTL_MS) updateSnapshots.delete(k);
+  }
+  updateSnapshots.set(token, { ...snap, at: now });
+  return token;
+}
+
+/** Most recent snapshot — the fallback for callers that pass no token. */
+function latestSnapshot() {
+  let best = null;
+  for (const v of updateSnapshots.values()) {
+    if (!best || v.at >= best.at) best = v;
+  }
+  return best;
+}
 
 function updaterLog(line) {
   // engine.log-style, same file: greppable next to the engine's own lines.
@@ -2086,24 +2197,33 @@ function updaterLog(line) {
 async function checkUnifiedUpdate() {
   const shellRes = await shellUpdater.check(); // null = fail-open (offline/dev)
   if (shellRes && shellRes.available) {
-    unifiedUpdate.kind = "shell";
-    return { available: true, version: shellRes.version };
+    const token = rememberSnapshot({ kind: "shell", version: shellRes.version || null });
+    return { available: true, version: shellRes.version, token };
   }
-  unifiedUpdate.kind = "engine";
   const res = await checkEngineUpdate();
-  // Remembered main-side so apply() knows whether clicking means "restart into
-  // the version already on disk" or "try the download again".
-  unifiedUpdate.engineKind = res ? res.kind || "ready" : null;
-  return res;
+  // The snapshot records whether clicking means "restart into the version
+  // already on disk" or "try the download again" — bound to THIS check.
+  const token = rememberSnapshot({
+    kind: "engine",
+    engineKind: res ? res.kind || "ready" : null,
+    version: res ? res.version || null : null,
+  });
+  return res ? { ...res, token } : null;
 }
 
-async function applyUnifiedUpdate() {
+/**
+ * @param {string} [token] snapshot returned by the check this apply belongs to
+ */
+async function applyUnifiedUpdate(token) {
+  const snap = (token && updateSnapshots.get(token)) || latestSnapshot();
+  if (!snap) return applyEngineUpdate();
+
   // A stalled engine update has nothing staged — restarting would land on the
   // same version and look like the click did nothing. Retry instead.
-  if (unifiedUpdate.kind === "engine" && unifiedUpdate.engineKind === "stalled") {
+  if (snap.kind === "engine" && snap.engineKind === "stalled") {
     return retryEngineUpdate();
   }
-  if (unifiedUpdate.kind === "shell" && shellUpdater.hasPending()) {
+  if (snap.kind === "shell" && shellUpdater.hasPending()) {
     try {
       killEngine();
       const r = await shellUpdater.apply({
@@ -2129,7 +2249,11 @@ async function applyUnifiedUpdate() {
 function registerUpdateIpc() {
   shellUpdater.init({ log: updaterLog });
   ipcMain.handle("w4y:update:check", () => checkUnifiedUpdate());
-  ipcMain.handle("w4y:update:apply", () => applyUnifiedUpdate());
+  // The renderer echoes back the token from ITS check, so an apply can never
+  // act on a plan some other check overwrote in between.
+  ipcMain.handle("w4y:update:apply", (_e, token) =>
+    applyUnifiedUpdate(typeof token === "string" ? token : undefined),
+  );
 }
 // ══ fim do bloco do motor local ═══════════════════════════════════════════
 
