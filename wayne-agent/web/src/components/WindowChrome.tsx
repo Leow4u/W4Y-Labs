@@ -151,7 +151,11 @@ export function WindowChrome({ collapsed, onToggleSidebar }: WindowChromeProps) 
     setDialog({ kind: "update-checking" });
     const r = await upd.check().catch(() => null);
     if (r && r.available) {
-      void upd.apply();
+      // Same token the check just produced. Calling apply() bare made it throw
+      // the plan away and run a second check, so a blip between the two
+      // silently cancelled an update the user had just been shown — the exact
+      // bug fixed in the tray, still live here.
+      void upd.apply(r.token);
       return;
     }
     setDialog({

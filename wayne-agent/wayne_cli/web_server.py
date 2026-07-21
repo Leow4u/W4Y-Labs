@@ -3881,12 +3881,22 @@ def _spawn_gateway_restart(profile: Optional[str] = None) -> Tuple[subprocess.Po
 
 def _restart_home_for(profile: Optional[str]) -> Optional[Path]:
     """The WAYNE_HOME that owns ``profile``'s durable restart marker."""
-    name = (profile or "").strip()
-    if not name:
-        return _get_default_wayne_home()
+    # Both imports are function-local: `_get_default_wayne_home` is NOT imported
+    # at module scope in this file (every other use imports it inside a
+    # function), and calling it bare raised NameError on the most common path of
+    # all — no ?profile=. That escaped through the restart-pending endpoint as a
+    # 500 AND, because it fired inside the coordinator before the active slot was
+    # released, wedged the restart queue permanently.
     try:
+        from wayne_cli.profiles import _get_default_wayne_home as _default_home
         from wayne_cli import profiles as profiles_mod
 
+        # `current`/`default` mean "the dashboard's own profile" everywhere else
+        # in this file (_profile_cli_args), so they must not resolve to a
+        # phantom profiles/<name> directory the rest of the app never touches.
+        name = (profile or "").strip().lower()
+        if name in ("", "current", "default"):
+            return _default_home()
         return Path(profiles_mod.get_profile_dir(name))
     except Exception:  # noqa: BLE001 - an unknown profile has no marker
         return None

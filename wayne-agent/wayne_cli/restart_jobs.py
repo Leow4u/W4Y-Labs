@@ -303,6 +303,15 @@ class RestartCoordinator:
             job = self._jobs.get(job_id)
             if job is None:
                 return None
+            # Advance the ACTIVE job too, not just the one asked about. Nothing
+            # here runs on a timer, so the queue only moves when somebody polls;
+            # if that only ever advanced the polled job, a client watching its
+            # own QUEUED job would wait forever for a slot whose holder nobody
+            # was looking at — including past that holder's timeout.
+            if self._active and self._active != job_id:
+                active = self._jobs.get(self._active)
+                if active is not None:
+                    self._advance(active)
             self._advance(job)
             return job
 
@@ -381,13 +390,20 @@ class RestartCoordinator:
         job.error = error
         job.finished_at = self._clock()
         self._procs.pop(job.job_id, None)
+        # Release the slot FIRST. Clearing the marker calls out to injected code
+        # that can raise (it did: a NameError in the home resolver left _active
+        # held forever and wedged every queued profile behind a job that had
+        # already finished). Ownership must never depend on a callback.
+        if self._active == job.job_id:
+            self._active = None
         if state == SUCCEEDED:
             # The marker is dropped ONLY here — after confirmed health with the
             # desired config applied.
-            home = self._home_for(job.profile)
-            if home is not None:
-                clear_restart_needed(home)
-        if self._active == job.job_id:
-            self._active = None
+            try:
+                home = self._home_for(job.profile)
+                if home is not None:
+                    clear_restart_needed(home)
+            except Exception:  # noqa: BLE001 - a stuck marker beats a stuck queue
+                pass
         # Whatever happened to this profile, the others are still owed.
         self._pump()

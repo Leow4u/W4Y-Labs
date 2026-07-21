@@ -321,3 +321,42 @@ class TestDurableMarker:
         assert rj.is_restart_needed(h.home_for("vendas")) is True
         assert rj.is_restart_needed(h.home_for("suporte")) is False
         assert rj.is_restart_needed(h.home_for(None)) is False
+
+
+class TestLiveness:
+    """Found by independent review AFTER the first pass — both confirmed live."""
+
+    def test_polling_a_queued_job_advances_the_one_holding_the_slot(self, h):
+        # Nothing here runs on a timer. Advancing only the polled job meant a
+        # client watching its OWN queued job waited forever for a slot whose
+        # holder nobody was looking at — past that holder's timeout included.
+        a = h.coord.request("vendas")
+        b = h.coord.request("suporte")
+        h.healthy("vendas")
+        h.now += 1
+        assert h.coord.get(b.job_id).state == rj.RUNNING  # polled B, A advanced
+        assert h.coord.get(a.job_id).state == rj.SUCCEEDED
+
+    def test_a_queued_job_still_starts_when_the_holder_times_out(self, h):
+        a = h.coord.request("vendas")
+        b = h.coord.request("suporte")
+        h.now += 91  # A never reports healthy
+        assert h.coord.get(b.job_id).state == rj.RUNNING
+        assert h.coord.get(a.job_id).state == rj.FAILED
+
+    def test_a_throwing_home_resolver_never_wedges_the_queue(self, tmp_path):
+        # This was real: _restart_home_for(None) raised NameError, and because
+        # the marker was cleared BEFORE the slot was released, one successful
+        # global restart left _active held forever.
+        harness = Harness(tmp_path)
+
+        def boom(_profile):
+            raise RuntimeError("home resolver exploded")
+
+        harness.coord._home_for = boom
+        a = harness.coord.request(None)
+        b = harness.coord.request("vendas")
+        harness.healthy(None)
+        harness.now += 1
+        assert harness.coord.get(a.job_id).state == rj.SUCCEEDED
+        assert harness.coord.get(b.job_id).state == rj.RUNNING  # slot released
