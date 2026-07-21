@@ -115,6 +115,8 @@ const shellApplyFlow = require("./shell-apply-flow.cjs");
 const trayUpdateFlow = require("./tray-update-flow.cjs");
 const engineOutcome = require("./engine-update-outcome.cjs");
 const unifiedCheck = require("./unified-check.cjs");
+const applyOutcome = require("./apply-outcome.cjs");
+const stagedPlan = require("./staged-plan.cjs");
 
 // One engine update at a time, across EVERY entry point: the 30-minute timer,
 // the tray, and the renderer's retry. The previous guard (`engine.updating`)
@@ -2146,9 +2148,20 @@ async function checkEngineUpdate() {
       return unifiedCheck.layer(unifiedCheck.AVAILABLE, {
         version: staged.version || null,
         kind: "ready",
+        // WHICH artifact this plan is about. Without it the apply could only
+        // trust a minutes-old proof that a complete staged build existed.
+        staged: stagedPlan.stagedIdentity(staged),
       });
     }
     const state = updateState.readState(WAYNE_HOME);
+    // Work happening RIGHT NOW outranks an old warning. Evaluating
+    // shouldWarnUser() first let a live install still surface as "stalled",
+    // which offers a retry for something already running.
+    if (engine.updating || state.phase === "installing") {
+      return unifiedCheck.layer(unifiedCheck.IN_PROGRESS, {
+        version: state.version || null,
+      });
+    }
     // Two independent reasons to tell the user the update is not going through:
     //  - the automatic retries gave up (attempts >= STALLED_AFTER), or
     //  - the user asked for a retry and THAT failed. The manual path resets
@@ -2162,12 +2175,6 @@ async function checkEngineUpdate() {
         attempts: state.attempts || 0,
         stage: state.lastErrorStage || null,
         reason: state.lastError || null,
-      });
-    }
-    // An update being installed right now is not "up to date" — it is unfinished.
-    if (engine.updating || state.phase === "installing") {
-      return unifiedCheck.layer(unifiedCheck.IN_PROGRESS, {
-        version: state.version || null,
       });
     }
     // Nothing local to offer. To say "up to date" we must actually ASK, and the
@@ -2213,22 +2220,31 @@ async function checkEngineUpdate() {
  */
 async function retryEngineUpdate() {
   try {
-    updateState.writeState(WAYNE_HOME, {
-      phase: "idle",
-      attempts: 0,
-      lastError: null,
-      lastErrorStage: null,
-      manualRetryFailed: false,
-    });
-    notifyUpdateState({ reason: "retry-started" });
+    // Take the handle FIRST. This used to reset phase, attempts and errors
+    // before knowing whether we own the run — so a joiner wiped the OWNER's
+    // backoff and error state mid-install, and emitted a second "retry-started".
+    //
+    // Ordering premise (covered by test): createSingleFlight assigns its slot
+    // synchronously and defers the work to a microtask, so the owner's writes
+    // below land BEFORE the run reads any state.
+    const handle = runBackgroundEngineUpdate();
+    const joined = !handle.started;
+    if (handle.started) {
+      updateState.writeState(WAYNE_HOME, {
+        phase: "idle",
+        attempts: 0,
+        lastError: null,
+        lastErrorStage: null,
+        manualRetryFailed: false,
+      });
+      notifyUpdateState({ reason: "retry-started" });
+    }
 
     // Joining an in-flight run is NOT a shortcut to success. The previous
     // version awaited the shared promise, threw the result away and answered
     // {ok:true} — so a retry that piggybacked on a failing install reported
     // success, cleared the warning, and left the user with nothing to click.
     // Both paths are judged by the same two questions below.
-    const handle = runBackgroundEngineUpdate();
-    const joined = !handle.started;
     const res = await handle.promise;
 
     // The run's OWN answer decides. Reading `phase` back could only ever agree
@@ -2385,6 +2401,7 @@ async function checkUnifiedUpdate() {
           kind: "engine",
           engineKind: merged.kind || "ready",
           version: merged.version,
+          staged: merged.staged ?? null,
         },
   );
   lastProvenPlan = { ...merged, stale: false };
@@ -2407,7 +2424,7 @@ async function applyUnifiedUpdate(token) {
     const resolved = resolveSnapshot(token);
     if (!resolved.ok) {
       // Never guess. The caller's plan is gone; it must check again.
-      return { ok: false, error: "stale-plan", reason: resolved.reason };
+      return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: resolved.reason };
     }
     snap = resolved.snapshot;
     consumeSnapshot(token);
@@ -2415,32 +2432,60 @@ async function applyUnifiedUpdate(token) {
     // Tray and pre-token clients have no plan of their own. Rather than borrow
     // somebody else's, take a fresh decision right now.
     const fresh = await checkUnifiedUpdate();
-    if (!fresh || !fresh.available) return { ok: false, error: "no-update" };
+    if (!fresh || !fresh.available) {
+      return { ok: false, outcome: applyOutcome.NO_UPDATE, error: "no-update" };
+    }
     const resolved = resolveSnapshot(fresh.token);
-    if (!resolved.ok) return { ok: false, error: "stale-plan", reason: resolved.reason };
+    if (!resolved.ok) return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: resolved.reason };
     snap = resolved.snapshot;
     consumeSnapshot(fresh.token);
   }
 
   // A stalled engine update has nothing staged — restarting would land on the
   // same version and look like the click did nothing. Retry instead.
+  // An engine plan of kind "ready" means "restart into the build already on
+  // disk". It used to go straight to applyEngineUpdate() — kill, relaunch,
+  // exit — trusting the check's minutes-old proof. If the staged build was
+  // deleted, replaced or left half-written in between, the app bounced and
+  // installed NOTHING while reporting success. Re-prove it here, and refuse
+  // rather than restart on a guess.
+  if (snap.kind === "engine" && snap.engineKind === "ready") {
+    const current = readStaged();
+    const verdict = stagedPlan.validateStagedPlan({
+      pinned: snap.staged || null,
+      current,
+      complete: current ? engineSlots.isComplete(current.root) : false,
+    });
+    if (!verdict.ok) {
+      updaterLog(`engine apply refused: ${verdict.reason}`);
+      // No killEngine, no relaunch, no success.
+      return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: verdict.reason };
+    }
+    const res = applyEngineUpdate();
+    return res && res.ok
+      ? { ok: true, outcome: applyOutcome.APPLIED }
+      : { ok: false, outcome: applyOutcome.FAILED, error: (res && res.error) || "relaunch failed" };
+  }
+
   if (snap.kind === "engine" && snap.engineKind === "stalled") {
     // A successful retry usually ends STAGED: the bytes are ready and the
     // update lands on the next restart. That is not an applied install, and
     // the tray must not announce one.
     const res = await retryEngineUpdate();
-    if (!res.ok) return { ...res, outcome: "failed" };
-    return { ...res, outcome: res.status === "staged" ? "staged" : "applied" };
+    if (!res.ok) return { ...res, outcome: applyOutcome.FAILED };
+    // `no-update` and `already-staged` used to land on "applied" through a
+    // blanket fallback. They are a true no-op and a restart-pending state.
+    return { ...res, outcome: applyOutcome.fromEngineStatus(res.status) };
   }
   if (snap.kind === "shell") {
     // The plan named a shell version; refuse if the updater no longer holds
     // that same one (a newer feed check can swap what is pending underneath).
     const pendingVersion = shellUpdater.pendingVersion?.() ?? null;
     if (!shellUpdater.hasPending()) {
-      return { ok: false, error: "stale-plan", reason: "shell-not-pending" };
+      return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: "shell-not-pending" };
     }
     if (snap.version && pendingVersion && String(pendingVersion) !== String(snap.version)) {
-      return { ok: false, error: "stale-plan", reason: "shell-version-changed" };
+      return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: "shell-version-changed" };
     }
   }
   if (snap.kind === "shell" && shellUpdater.hasPending()) {
