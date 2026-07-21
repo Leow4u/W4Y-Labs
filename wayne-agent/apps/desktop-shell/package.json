@@ -10,8 +10,8 @@
     "start": "electron .",
     "pack": "npm run check:manifest && electron-builder --dir",
     "dist:win": "npm run check:manifest && electron-builder --win nsis",
-    "dist:mac": "electron-builder --mac dmg",
-    "dist:linux": "electron-builder --linux AppImage",
+    "dist:mac": "npm run check:manifest && electron-builder --mac dmg",
+    "dist:linux": "npm run check:manifest && electron-builder --linux AppImage",
     "check:manifest": "node package-manifest-check.cjs"
   },
   "devDependencies": {
@@ -58,6 +58,8 @@
       "shell-updater.cjs",
       "single-flight.cjs",
       "update-scheduler.cjs",
+      "shell-apply-flow.cjs",
+      "tray-update-flow.cjs",
       "package-manifest-check.cjs",
       "assets/**",
       "node_modules/**/*",

@@ -150,7 +150,85 @@ function findUnpackagedLocalModules({ sources, files }) {
     .sort((a, b) => a.specifier.localeCompare(b.specifier));
 }
 
-/** Reads the shell's own .cjs files + build.files and runs the check. */
+/**
+ * Does `specifier` stay inside the shell directory?
+ *
+ * `require("./x")` looks local, but `./../../secrets.cjs` is equally a "./"
+ * require and resolves OUTSIDE the folder electron-builder packs. Such a module
+ * can never be in the asar no matter what build.files says, so a checker that
+ * only asked "is it listed?" would happily bless a path that cannot ship.
+ * Purely lexical — no filesystem — so it is testable and cannot be fooled by
+ * a symlink that exists today and not on the build machine.
+ */
+function resolvesInsideShell(specifier) {
+  const normalized = String(specifier).replace(/\\/g, "/");
+  // An absolute path or a Windows drive is never inside the shell folder.
+  if (normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) return false;
+  let depth = 0;
+  for (const part of normalized.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") {
+      depth -= 1;
+      if (depth < 0) return false; // climbed above the shell root
+    } else {
+      depth += 1;
+    }
+  }
+  return true;
+}
+
+/** The three ways a required local module fails to be shippable. */
+const PROBLEM_LABEL = {
+  unlisted: "not covered by build.files",
+  missing: "does not exist on disk",
+  escapes: "resolves outside the shell directory",
+};
+
+/**
+ * Full audit of every local module the shell requires.
+ *
+ * Listing a name in build.files was never proof of anything: electron-builder
+ * silently packs nothing for an entry with no file behind it, so a typo, a
+ * rename or a deleted module produced exactly the failure this guard exists to
+ * prevent — a green check and an app that dies on `Cannot find module`. Each
+ * specifier must now clear all three bars: covered by the allowlist, present on
+ * disk, and resolving inside the folder that actually gets packed.
+ *
+ * `exists` is injected so the logic is unit-testable without touching a real
+ * filesystem; the CLI passes the real one.
+ *
+ * @param {object} input
+ * @param {Record<string,string>} input.sources filename -> contents
+ * @param {string[]} input.files                build.files
+ * @param {(specifier: string) => boolean} [input.exists]
+ * @returns {{specifier: string, requiredBy: string[], problems: string[]}[]}
+ */
+function auditLocalModules({ sources, files, exists = () => true }) {
+  /** @type {Map<string, string[]>} */
+  const bySpecifier = new Map();
+  for (const [name, source] of Object.entries(sources)) {
+    for (const spec of localRequires(source)) {
+      const list = bySpecifier.get(spec) || [];
+      list.push(name);
+      bySpecifier.set(spec, list);
+    }
+  }
+
+  const findings = [];
+  for (const [specifier, requiredBy] of bySpecifier) {
+    const problems = [];
+    const inside = resolvesInsideShell(specifier);
+    if (!inside) problems.push("escapes");
+    if (!isCovered(specifier, files)) problems.push("unlisted");
+    // Only ask the filesystem about paths that could legitimately be there;
+    // an escaping specifier is already condemned and must not be resolved.
+    if (inside && !exists(specifier)) problems.push("missing");
+    if (problems.length) findings.push({ specifier, requiredBy: requiredBy.sort(), problems });
+  }
+  return findings.sort((a, b) => a.specifier.localeCompare(b.specifier));
+}
+
+/** Reads the shell's own .cjs files + build.files and runs the full audit. */
 function checkPackageManifest(dir = __dirname) {
   const pkg = JSON.parse(fs.readFileSync(path.join(dir, "package.json"), "utf8"));
   const files = (pkg.build && pkg.build.files) || [];
@@ -160,27 +238,43 @@ function checkPackageManifest(dir = __dirname) {
     if (!name.endsWith(".cjs")) continue;
     sources[name] = fs.readFileSync(path.join(dir, name), "utf8");
   }
-  return findUnpackagedLocalModules({ sources, files });
+  const root = path.resolve(dir);
+  return auditLocalModules({
+    sources,
+    files,
+    exists: (specifier) => {
+      const target = path.resolve(root, specifier);
+      // Belt and braces: the lexical check already rejected escapes, but the
+      // real resolution is re-verified before trusting anything about it.
+      const rel = path.relative(root, target);
+      if (rel.startsWith("..") || path.isAbsolute(rel)) return false;
+      return fs.existsSync(target);
+    },
+  });
 }
 
 module.exports = {
   stripNonCode,
   localRequires,
   isCovered,
+  resolvesInsideShell,
   findUnpackagedLocalModules,
+  auditLocalModules,
   checkPackageManifest,
+  PROBLEM_LABEL,
 };
 
 // CLI: `node package-manifest-check.cjs` — exit 1 lists the offenders.
 if (require.main === module) {
-  const missing = checkPackageManifest();
-  if (missing.length === 0) {
-    console.log("package manifest OK — every local module is in build.files");
+  const findings = checkPackageManifest();
+  if (findings.length === 0) {
+    console.log("package manifest OK — every required local module is listed, present and inside the shell");
     process.exit(0);
   }
-  console.error("Local modules required but MISSING from build.files:");
-  for (const m of missing) {
-    console.error(`  ${m.specifier}  (required by ${m.requiredBy.join(", ")})`);
+  console.error("Local modules that cannot ship:");
+  for (const f of findings) {
+    const why = f.problems.map((p) => PROBLEM_LABEL[p] || p).join("; ");
+    console.error(`  ${f.specifier}  — ${why}  (required by ${f.requiredBy.join(", ")})`);
   }
   process.exit(1);
 }
