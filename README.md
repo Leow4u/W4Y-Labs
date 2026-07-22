@@ -10,6 +10,7 @@ ativo.
 > orquestramos o que já existe no mercado. Ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 > O app desktop do Work4You é `wayne-agent/apps/desktop-shell`. O renderer original do Hermes upstream (base do fork) foi removido do tree — continua no histórico git e no upstream público NousResearch/hermes-agent (MIT).
+> O instalador Tauri do Hermes upstream (apps/bootstrap-installer) também foi removido do tree pelo mesmo motivo — continua no histórico git e no upstream público.
 
 ## Estrutura do repositório
 
