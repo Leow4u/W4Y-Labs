@@ -25,11 +25,16 @@ import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 import { api } from "@/lib/api";
 import { PROJECTS_DIR } from "@/lib/projects";
+import {
+  cloudMutateAvailable,
+  cloudMutateJson,
+} from "@/lib/cloudSession";
 
 export function TaskHeaderActions({
   storedId,
   project,
   busy = false,
+  cloud = false,
   schedulePrompt = null,
   scheduleProfile = null,
   onRenamed,
@@ -40,6 +45,8 @@ export function TaskHeaderActions({
   storedId: string | null;
   project: string | null;
   busy?: boolean;
+  /** Session runs on the cloud brain (desktop bridge) — REST must not hit local. */
+  cloud?: boolean;
   /** Last user prompt — enables "Agendar rotina" → /cron prefilled (E9). */
   schedulePrompt?: string | null;
   scheduleProfile?: string | null;
@@ -64,16 +71,42 @@ export function TaskHeaderActions({
     setRenaming(false);
     if (!title) return;
     try {
-      await api.renameSession(storedId, title);
+      if (cloud) {
+        if (!cloudMutateAvailable()) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+        const r = await cloudMutateJson<{ ok?: boolean }>(
+          `/api/sessions/${encodeURIComponent(storedId)}`,
+          "PATCH",
+          { title },
+          8000,
+        );
+        if (!r) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+      } else {
+        await api.renameSession(storedId, title);
+      }
       onRenamed?.(title);
       showToast(t.chat.renamed, "success");
     } catch (e) {
       showToast(`${t.status.error}: ${e}`, "error");
     }
-  }, [storedId, renameValue, onRenamed, showToast, t.chat.renamed, t.status.error]);
+  }, [
+    storedId,
+    renameValue,
+    cloud,
+    onRenamed,
+    showToast,
+    t.chat.renamed,
+    t.cron.cloudUnavailable,
+    t.status.error,
+  ]);
 
   const exportSession = useCallback(async () => {
-    if (!storedId) return;
+    if (!storedId || cloud) return; // export = same-origin blob; cloud needs a later bridge
     try {
       const res = await fetch(api.exportSessionUrl(storedId), {
         credentials: "include",
@@ -94,31 +127,75 @@ export function TaskHeaderActions({
     } catch (e) {
       showToast(`${t.status.error}: ${e}`, "error");
     }
-  }, [storedId, showToast, t.status.error]);
+  }, [storedId, cloud, showToast, t.status.error]);
 
   const archiveTask = useCallback(async () => {
     if (!storedId) return;
     try {
-      await api.setSessionArchived(storedId, true);
+      if (cloud) {
+        if (!cloudMutateAvailable()) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+        const r = await cloudMutateJson<{ ok?: boolean }>(
+          `/api/sessions/${encodeURIComponent(storedId)}`,
+          "PATCH",
+          { archived: true },
+          8000,
+        );
+        if (!r) {
+          showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+      } else {
+        await api.setSessionArchived(storedId, true);
+      }
       showToast(t.chat.archived, "success");
-      navigate("/chat");
+      navigate(cloud ? "/chat?run=cloud" : "/chat");
     } catch (e) {
       showToast(`${t.status.error}: ${e}`, "error");
     }
-  }, [storedId, navigate, showToast, t.chat.archived, t.status.error]);
+  }, [
+    storedId,
+    cloud,
+    navigate,
+    showToast,
+    t.chat.archived,
+    t.cron.cloudUnavailable,
+    t.status.error,
+  ]);
 
   const taskDelete = useConfirmDelete<string>({
     onDelete: useCallback(
       async (id: string) => {
         try {
-          await api.deleteSession(id);
-          navigate("/chat");
+          if (cloud) {
+            if (!cloudMutateAvailable()) {
+              showToast(t.cron.cloudUnavailable, "error");
+              throw new Error("cloud-unavailable");
+            }
+            const r = await cloudMutateJson<{ ok?: boolean }>(
+              `/api/sessions/${encodeURIComponent(id)}`,
+              "DELETE",
+              undefined,
+              8000,
+            );
+            if (!r) {
+              showToast(t.cron.cloudUnavailable, "error");
+              throw new Error("cloud-unavailable");
+            }
+          } else {
+            await api.deleteSession(id);
+          }
+          navigate(cloud ? "/chat?run=cloud" : "/chat");
         } catch (e) {
-          showToast(`${t.status.error}: ${e}`, "error");
+          if (!(e instanceof Error && e.message === "cloud-unavailable")) {
+            showToast(`${t.status.error}: ${e}`, "error");
+          }
           throw e;
         }
       },
-      [navigate, showToast, t.status.error],
+      [cloud, navigate, showToast, t.cron.cloudUnavailable, t.status.error],
     ),
   });
 
@@ -274,23 +351,25 @@ export function TaskHeaderActions({
             {t.chat.scheduleRoutine}
           </button>
           <div className="mx-2 my-1 h-px bg-border" />
+          {!cloud && (
+            <button
+              type="button"
+              role="menuitem"
+              disabled={!storedId}
+              onClick={() => {
+                setMenuOpen(false);
+                void exportSession();
+              }}
+              className={`${itemCls} disabled:opacity-40`}
+            >
+              <Download className="h-4 w-4 shrink-0 opacity-80" />
+              {t.chat.export}
+            </button>
+          )}
           <button
             type="button"
             role="menuitem"
-            disabled={!storedId}
-            onClick={() => {
-              setMenuOpen(false);
-              void exportSession();
-            }}
-            className={`${itemCls} disabled:opacity-40`}
-          >
-            <Download className="h-4 w-4 shrink-0 opacity-80" />
-            {t.chat.export}
-          </button>
-          <button
-            type="button"
-            role="menuitem"
-            disabled={!storedId}
+            disabled={!storedId || (cloud && !cloudMutateAvailable())}
             onClick={() => {
               setMenuOpen(false);
               void archiveTask();
@@ -304,7 +383,7 @@ export function TaskHeaderActions({
           <button
             type="button"
             role="menuitem"
-            disabled={!storedId}
+            disabled={!storedId || (cloud && !cloudMutateAvailable())}
             onClick={() => {
               setMenuOpen(false);
               if (storedId) taskDelete.requestDelete(storedId);

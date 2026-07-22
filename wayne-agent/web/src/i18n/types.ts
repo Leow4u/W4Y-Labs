@@ -476,7 +476,9 @@ export interface Translations {
     ctxRunInCloud: string;
     runWhereTooltip: string;
     runLocalOption: string;
+    runLocalHint: string;
     runCloudOption: string;
+    runCloudHint: string;
     runLockedHint: string;
     runCloudSignIn: string;
     connectorsLabel: string;

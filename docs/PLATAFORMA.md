@@ -60,49 +60,55 @@ O runtime **24/7 na nuvem** alcançável de todas as superfícies — não a igu
 ### Trilha 1 — Ponte Cloud Agents no desktop (**valor**)
 
 Desktop lança/acompanha agentes 24/7 na nuvem, mantendo o motor local para o que é local.  
-Já existe base S1/S2 (“Executar na nuvem”, bridge WS/REST, merge de Recentes/Agenda).  
-**Plano curto e gaps:** ver seção abaixo — **construção só após ok do CEO**.
+Base S1/S2 já existe. **Ok CEO 22/07:** construir (1) paridade sessão-nuvem + (2) copy “neste PC vs nuvem 24/7”. Hand-off mid-session (#5) depois.
 
 ### Trilha 2 — Sincronia de UI (**higiene**, menor)
 
-Trilho de release único (deploy Fly + engine ZIP no mesmo ciclo) + idealmente patch **UI-only** leve (evitar re-mandar o motor Python a cada mudança de tela — risco de “motor local não subiu”).  
-Não é o que define o produto; é disciplina de distribuição.
+Trilho de release único (deploy Fly + engine ZIP no mesmo ciclo) + idealmente patch **UI-only** leve. Higiene separada — não bloqueia a Trilha 1.
 
 ---
 
-## Trilha 1 — plano curto (aguardando ok do CEO)
-
-### Já existe (evidência)
+## Já existe na ponte (evidência)
 
 | Peça | Onde |
 |------|------|
-| Seletor Local × Nuvem no composer | `RunTargetPicker`, `cloudRunAvailable()` — só desktop motor-local + bridge |
+| Seletor Local × Nuvem | `RunTargetPicker`, `cloudRunAvailable()` |
 | Sessão na nuvem na mesma SPA | `runTarget=cloud` / `?run=cloud` → WS ticketado |
-| Bridge na casca | `w4y:cloud:wsUrl`, `w4y:cloud:api` (`desktop-shell/main.cjs`, `web/src/lib/cloudSession.ts`) |
-| Login → cookies → mint ticket | fluxo Entrar com Work4You / gate |
-| Recentes + Agenda mesclados (S2) | sidebar + CronPage; criação de rotina → nuvem por padrão (24/7) |
-| Mutações nuvem (0.3.5+) | rename/archive/delete sessão; edit/delete rotina (`canMutate`) |
+| Bridge na casca | `w4y:cloud:wsUrl`, `w4y:cloud:api` |
+| Recentes + Agenda mesclados (S2) | sidebar + CronPage |
+| Mutações nuvem (0.3.5+) | `canMutate` + `cloudMutateJson` |
 
-Contratos e degradações: [BACKEND-MAP.md](./BACKEND-MAP.md) (blocos S1 / S2 / 0.3.5).
+Detalhe: [BACKEND-MAP.md](./BACKEND-MAP.md) (S1 / S2 / 0.3.5).
 
-### O que ainda falta / está degradado (candidatos — priorizar com CEO)
+---
 
-1. **Paridade de sessão-nuvem no chat** — itens ainda “degradados” desde S1: ModePicker/TaskHeaderActions, visão de imagem, dock git/Files/projeto, espectador de subagente só-local, etc.
-2. **Clareza de produto** — copy/UX que distinga “neste PC” vs “na nuvem 24/7” (sem parecer dois produtos).
-3. **Gating comercial** (se aplicável) — hoje o seletor é capability da casca (`cloudRunAvailable`), não plano Stripe; decidir se Cloud Agents no desktop é free/Pro/Business.
-4. **Confiabilidade 24/7 do tenant** — Fly `autostop=suspend` vs cron/agentes sempre-vivos (decisão de custo já anotada no BACKEND-MAP; afeta a promessa, não só a UI).
-5. **Hand-off explícito** local → nuvem no meio da tarefa (hoje a escolha trava na 1ª mensagem) — só se o CEO quiser paridade com o handoff Cursor.
+## Decisões comerciais e de custo (CEO, 22/07/2026)
 
-### Esforço estimado (ordem de grandeza)
+### #3 — Gating por plano (24/7 na nuvem = pago, em camadas)
 
-| Fatia | Esforço | Nota |
-|-------|---------|------|
-| Inventário + AC da “paridade sessão-nuvem” | P | Lista fechada a partir do BACKEND-MAP S1 degradado |
-| Fechar lacunas de UI/bridge já mapeadas | M | Incremental sobre S2 |
-| Gating plano + copy | P | Se decisão comercial existir |
-| Hand-off mid-session / multi-agent cloud rich | G | Só com ok explícito |
+| Camada | Comportamento |
+|--------|----------------|
+| **Trial** | Agente na nuvem **visível** (não esconder). **Pausa** quando o usuário sai (sem keep-alive). Prova a feature e bate no muro no momento de valor (“seu agente pausou — assine pra manter 24/7”). |
+| **Pago (entrada)** | Agentes **24/7 agendados** (dorme e acorda). |
+| **Premium** | Canais **sempre-conectados** (WhatsApp / Slack socket vivo) = tier de máquina sempre-ligada. |
 
-**Não construir** Trilha 1 além de doc/investigação até o CEO priorizar a fatia.
+### #4 — Suspend vs sempre-vivo
+
+- **Default continua** `auto_stop_machines=suspend` + `min_machines_running=0`. **Não** ligar máquina sempre para todo tenant pago.
+- **24/7 agendado** → suspend + **wake na hora** (Cloud Scheduler → acorda → roda) → paga o run, não custo fixo.
+- **Sempre-ligado** (`min=1`, ~US$11/mês) → **só** tier premium de canal sempre-conectado; custo coberto pelo preço do premium.
+
+### Verificação wake (obrigatória — não assumir pronto)
+
+Com suspend, o scheduler de cron do Wayne roda **in-process** e congela com a máquina. Sem HTTP de entrada (ou job externo de wake), rotina noturna **não dispara na hora** — só catch-up no próximo acesso.
+
+**Status 22/07:** `fly.wayne-w4y.toml` ainda `min_machines_running = 0` + suspend. ROADMAP cita Cloud Scheduler `wayne-cron-wake` como feito no M0, mas **não há** script/job correspondente em `platform/infra/`.
+
+→ **“24/7 agendado no caminho barato” = GAP** até o wake estar ligado e verificado. Ver [BACKEND-MAP.md](./BACKEND-MAP.md).
+
+### #5 — Hand-off local → nuvem mid-session
+
+Depois (fora do escopo aprovado agora).
 
 ---
 
@@ -111,7 +117,7 @@ Contratos e degradações: [BACKEND-MAP.md](./BACKEND-MAP.md) (blocos S1 / S2 / 
 | Doc | Papel |
 |-----|--------|
 | Este arquivo | Estrela-guia de produto |
-| [BACKEND-MAP.md](./BACKEND-MAP.md) | Fatos verificados: UMA UI SÓ, ponte S1/S2, updates |
+| [BACKEND-MAP.md](./BACKEND-MAP.md) | Fatos verificados: UMA UI SÓ, ponte S1/S2, GAP wake |
 | [ARQUITETURA.md](./ARQUITETURA.md) | Onde roda cada superfície (v5) |
 | [AUDITORIA-PRODUTO-WORK4YOU.md](./AUDITORIA-PRODUTO-WORK4YOU.md) Fase 10 §9 / PR-DESKTOP | **OBSOLETO** — premissa `apps/desktop` morta |
-| `wayne-agent/AGENTS.md` (§ Electron `apps/desktop`) | **OBSOLETO** no fork W4Y — apontar para desktop-shell + este doc |
+| `wayne-agent/AGENTS.md` (§ Electron) | Aponta para desktop-shell + este doc |

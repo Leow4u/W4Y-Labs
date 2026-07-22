@@ -1197,12 +1197,9 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
 
   // Task actions in the header's TOP RIGHT corner (usage / folder / "…" menu)
   // — only when there is a real conversation on screen.
+  // Cloud session: same menu, but REST mutates go through the shell bridge
+  // (TaskHeaderActions cloud=true) so we never hit the local gateway.
   useEffect(() => {
-    // Cloud session (S1): these actions are REST against the LOCAL gateway
-    // (rename/export/archive/delete/detail) — for a session that lives on the
-    // cloud computer they would hit the wrong machine. Hidden rather than
-    // broken; the WS-borne actions (undo/compress/branch) return with S2's
-    // api routing.
     if (!isActive || emptyHero) {
       setEnd(null);
       return;
@@ -1211,6 +1208,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
       <TaskHeaderActions
         storedId={storedSessionId}
         project={cloudSession ? null : project}
+        cloud={cloudSession}
         busy={busy}
         schedulePrompt={
           [...messages].reverse().find((m) => m.role === "user")?.content ?? null
