@@ -50,6 +50,7 @@ import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { isInternalView } from "@/lib/internal-view";
 import { api, httpStatus } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import type { KnowledgeDoc, ManagedFileEntry, ManagedFilesResponse } from "@/lib/api";
 import { FileTypeIcon } from "@/lib/file-icons";
 import { partitionEntries, sortEntries, isSystemEntry } from "@/lib/file-curation";
@@ -264,7 +265,7 @@ export default function FilesPage() {
   /** The agents that can own knowledge — the installation is not one of them. */
   useEffect(() => {
     let dead = false;
-    void api
+    void inventory
       .getProfiles()
       .then((r) => {
         if (dead) return;
@@ -285,7 +286,10 @@ export default function FilesPage() {
       setKnowledgeLoading(true);
       setError(null);
       try {
-        const r = await api.getKnowledge(slug);
+        const r = (await inventory.getKnowledge(slug)) as {
+          documents: KnowledgeDoc[];
+          provider: string | null;
+        };
         setKnowledgeDocs(r.documents ?? []);
         setKnowledgeProvider(r.provider ?? null);
       } catch (e) {
@@ -495,7 +499,7 @@ export default function FilesPage() {
     try {
       const known = parseKnowledgePath(pendingDelete.path);
       if (known) {
-        await api.deleteKnowledge(known.name, known.slug);
+        await inventory.deleteKnowledge(known.name, known.slug);
         showToast(tf.deleted, "success");
         setPendingDelete(null);
         await loadKnowledge(known.slug);

@@ -41,6 +41,7 @@ import { useI18n } from "@/i18n";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { isBootPreview } from "@/lib/boot-preview";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { applyChatDisplay } from "@/lib/chat-display";
 import {
   cloudGetJson,
@@ -245,7 +246,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
       try {
         const cfg = cloudSession
           ? await cloudGetJson<Record<string, unknown>>("/api/config", 8000)
-          : await api.getConfig();
+          : await inventory.getConfig();
         if (cancelled || !cfg) return;
         const appr = (cfg.approvals as Record<string, unknown> | undefined) ?? {};
         setApprovalsMode(appr.mode === "smart" ? "smart" : "manual");
@@ -964,7 +965,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
           return;
         }
         try {
-          await api.saveConfig({ approvals: { mode: m } });
+          await inventory.saveConfig({ approvals: { mode: m } });
         } catch {
           /* local save best-effort — same as before */
         }

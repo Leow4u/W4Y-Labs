@@ -33,6 +33,7 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import type {
   CronJob,
   CronDeliveryTarget,
@@ -816,7 +817,10 @@ export default function CronPage() {
   }, [selectedProfile, showToast, t.common.loading]);
 
   useEffect(() => {
-    api.getProfiles().then((res) => setProfiles(res.profiles)).catch(() => setProfiles([]));
+    inventory
+      .getProfilesFiltered()
+      .then(setProfiles)
+      .catch(() => setProfiles([]));
   }, []);
 
   useEffect(() => {

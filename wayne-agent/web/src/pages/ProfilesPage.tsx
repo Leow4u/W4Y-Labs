@@ -25,6 +25,7 @@ import {
 import spinners from "unicode-animations";
 import { H2 } from "@nous-research/ui/ui/components/typography/h2";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import type { ActiveProfileInfo, ProfileInfo } from "@/lib/api";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
@@ -393,9 +394,12 @@ export default function ProfilesPage() {
   }, [modelChoices]);
 
   const load = useCallback(() => {
-    Promise.all([api.getProfiles(), api.getActiveProfile().catch(() => null)])
-      .then(([res, active]) => {
-        setProfiles(res.profiles);
+    Promise.all([
+      inventory.getProfilesFiltered(),
+      api.getActiveProfile().catch(() => null),
+    ])
+      .then(([profiles, active]) => {
+        setProfiles(profiles);
         setActiveInfo(active);
       })
       .catch((e) => showToast(`${t.status.error}: ${e}`, "error"))

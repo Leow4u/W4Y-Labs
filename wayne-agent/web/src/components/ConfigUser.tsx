@@ -48,6 +48,7 @@ import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { api, type AuthMeResponse, type SystemStats, type StatusResponse, type AnalyticsResponse } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { creditBand, creditBandFill, creditBandText, formatCredits, usdToCredits } from "@/lib/credits";
 import { fetchPlan, openBillingPortal, planLabel } from "@/lib/plans";
 import {
@@ -304,7 +305,7 @@ export default function ConfigUser() {
     if (active !== "planTab") return;
     let cancelled = false;
     void fetchPlan().then((p) => { if (!cancelled) setPlan(p); });
-    api.getAnalytics(30).then((u) => { if (!cancelled) setUsage(u); }).catch(() => {});
+    inventory.getAnalytics(30).then((u) => { if (!cancelled) setUsage(u); }).catch(() => {});
     void (async () => {
       const { GatewayClient } = await import("@/lib/gatewayClient");
       const gw = new GatewayClient();
@@ -339,7 +340,7 @@ export default function ConfigUser() {
   };
 
   useEffect(() => {
-    api.getConfig().then(setConfig).catch(() => {});
+    inventory.getConfig().then(setConfig).catch(() => {});
     api.getAuthMe().then(setMe).catch(() => {});
     api
       .getUserProfile()
@@ -359,7 +360,7 @@ export default function ConfigUser() {
 
   const persist = async (next: Record<string, unknown>) => {
     try {
-      await api.saveConfig(next);
+      await inventory.saveConfig(next);
     } catch (e) {
       showToast(`${t.config.failedToSave}: ${e}`, "error");
     }
@@ -402,10 +403,10 @@ export default function ConfigUser() {
     setBusy(true);
     try {
       for (let guard = 0; guard < 200; guard++) {
-        const page = await api.getSessions(200, 0);
+        const page = await inventory.getSessions(200, 0);
         const ids = page.sessions.map((s) => s.id);
         if (ids.length === 0) break;
-        await api.bulkDeleteSessions(ids);
+        await inventory.bulkDeleteSessions(ids);
         if (ids.length < 200) break;
       }
       showToast(cu.done, "success");

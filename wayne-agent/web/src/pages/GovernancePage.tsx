@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { agentLabel, agentMonogram, isInstallation } from "@/lib/agents";
 import { modelCommercialName } from "@/components/agents/ModelCatalogPicker";
 import type {
@@ -99,9 +100,9 @@ export default function GovernancePage() {
 
   /* ------------------------- polling: inbox (5s) ------------------------- */
   const loadInbox = useCallback(() => {
-    api
+    inventory
       .getApprovalsInbox()
-      .then((r) => setInbox(r.items))
+      .then((r) => setInbox((r as { items: typeof inbox }).items))
       .catch(() => {});
     api
       .getKanbanBoard()
@@ -119,9 +120,9 @@ export default function GovernancePage() {
 
   /* ------------------------- polling: pulse (15s) ------------------------ */
   const loadPulse = useCallback(() => {
-    api
+    inventory
       .getProfilesPulse()
-      .then(setPulse)
+      .then((r) => setPulse(r as Parameters<typeof setPulse>[0]))
       .catch(() => {});
   }, []);
 
@@ -136,11 +137,11 @@ export default function GovernancePage() {
   /* --------------------- team table (one-shot enrich) -------------------- */
   useEffect(() => {
     let dead = false;
-    api
-      .getProfiles()
-      .then((r) => {
+    inventory
+      .getProfilesFiltered()
+      .then((profiles) => {
         if (dead) return;
-        const base: GovRow[] = r.profiles.map((p) => ({
+        const base: GovRow[] = profiles.map((p) => ({
           name: p.name,
           isDefault: Boolean(p.is_default),
           model: null,
@@ -151,14 +152,21 @@ export default function GovernancePage() {
         }));
         setRows(base);
         // Parallel enrichment, row by row (the table breathes).
-        for (const p of r.profiles) {
+        for (const p of profiles) {
           void Promise.all([
             api.getModelInfo(p.name).catch(() => null),
-            api.getAnalytics(30, p.name).catch(() => null),
+            inventory.getAnalytics(30, p.name).catch(() => null),
             api.getCronJobs(p.name).catch(() => []),
-            api.getConfig(p.name).catch(() => ({}) as Record<string, unknown>),
-          ]).then(([model, usage, jobs, cfg]) => {
+            inventory.getConfig(p.name).catch(() => ({}) as Record<string, unknown>),
+          ]).then(([model, usageRaw, jobs, cfg]) => {
             if (dead) return;
+            const usage = usageRaw as {
+              totals: {
+                total_actual_cost: number;
+                total_estimated_cost: number;
+                total_sessions: number;
+              };
+            } | null;
             const usd = usage
               ? usage.totals.total_actual_cost > 0
                 ? usage.totals.total_actual_cost
@@ -197,7 +205,7 @@ export default function GovernancePage() {
       try {
         // Deep-merge into THE agent's config (config.set RPC is a trap — always
         // PUT /api/config?profile=, the path validated in Settings).
-        await api.saveConfig({ approvals: { mode } }, name);
+        await inventory.saveConfig({ approvals: { mode } }, name);
         setRows((prev) =>
           (prev ?? []).map((r) => (r.name === name ? { ...r, approval: mode } : r)),
         );
@@ -225,10 +233,10 @@ export default function GovernancePage() {
     ) => {
       setBusyItem(key);
       try {
-        await api.respondApprovalInbox(body);
+        await inventory.respondApprovalInbox(body);
         setReply((m) => ({ ...m, [key]: "" }));
-        const r = await api.getApprovalsInbox();
-        setInbox(r.items);
+        const r = await inventory.getApprovalsInbox();
+        setInbox(r.items as typeof inbox);
       } catch (e) {
         showToast(`${t.status.error}: ${e}`, "error");
       } finally {
@@ -271,7 +279,7 @@ export default function GovernancePage() {
       const clear = raw === "" || !Number.isFinite(v) || v <= 0;
       setSavingCap(name);
       try {
-        await api.saveConfig(
+        await inventory.saveConfig(
           { limits: { monthly_credits: clear ? null : Math.round(v) } },
           name,
         );

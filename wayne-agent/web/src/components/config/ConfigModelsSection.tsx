@@ -11,6 +11,7 @@ import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import {
   uiModeFromConfig,
   uiModePreset,
@@ -71,7 +72,7 @@ export function ConfigModelsSection({
         provider: "openrouter",
         model: preset.model,
       });
-      const cfg = ((await api.getConfig()) ?? {}) as Record<string, unknown>;
+      const cfg = ((await inventory.getConfig()) ?? {}) as Record<string, unknown>;
       const agent =
         cfg.agent && typeof cfg.agent === "object"
           ? { ...(cfg.agent as Record<string, unknown>) }
@@ -85,7 +86,7 @@ export function ConfigModelsSection({
       del.reasoning_effort = preset.delegationReasoning;
       if (preset.maxConcurrentChildren) del.max_concurrent_children = preset.maxConcurrentChildren;
       const next = { ...cfg, agent, delegation: del };
-      await api.saveConfig(next);
+      await inventory.saveConfig(next);
       onConfigSaved(next);
       showToast(cu.tierAppliedToast, "success");
     } catch (e) {
@@ -107,7 +108,7 @@ export function ConfigModelsSection({
       },
     };
     try {
-      await api.saveConfig(next);
+      await inventory.saveConfig(next);
       onConfigSaved(next);
     } catch (e) {
       showToast(`${t.config.failedToSave}: ${e}`, "error");
@@ -122,7 +123,7 @@ export function ConfigModelsSection({
     del.model = value;
     const next = { ...config, delegation: del };
     try {
-      await api.saveConfig(next);
+      await inventory.saveConfig(next);
       onConfigSaved(next);
     } catch (e) {
       showToast(`${t.config.failedToSave}: ${e}`, "error");

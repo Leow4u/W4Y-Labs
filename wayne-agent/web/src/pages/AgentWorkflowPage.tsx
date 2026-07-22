@@ -43,6 +43,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { modelCommercialName } from "@/components/agents/ModelCatalogPicker";
 import { usdToCredits, formatCredits } from "@/lib/credits";
 import { AgentDrawer, type AgentDrawerTab } from "@/components/agents/AgentDrawer";
@@ -225,15 +226,15 @@ export default function AgentWorkflowPage() {
     if (!name) return;
     let dead = false;
     Promise.all([
-      api.getProfiles().catch(() => ({ profiles: [] })),
+      inventory.getProfiles().catch(() => ({ profiles: [] })),
       api.getActiveProfile().catch(() => null),
       api.getModelInfo(name).catch(() => null),
       api.getSkills(name).catch(() => []),
       api.getMcpServers(name).catch(() => ({ servers: [] })),
-      api.getMessagingPlatforms(name).catch(() => ({ platforms: [] })),
+      inventory.getMessagingPlatforms(name).catch(() => ({ platforms: [] })),
       api.getCronJobs(name).catch(() => []),
-      api.getAnalytics(30, name).catch(() => null),
-      api.getKnowledge(name).catch(() => null),
+      inventory.getAnalytics(30, name).catch(() => null),
+      inventory.getKnowledge(name).catch(() => null),
       api.getProfileTeam(name).catch(() => null),
       api.getAgentTrace(name).catch(() => null),
     ]).then(([profs, active, model, skills, mcp, msg, jobs, usage, knowledge, team, trace]) => {

@@ -37,6 +37,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { getNestedValue, setNestedValue } from "@/lib/nested";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
@@ -163,18 +164,18 @@ export default function ConfigPage() {
   }
 
   useEffect(() => {
-    api
+    inventory
       .getConfig()
       .then(setConfig)
       .catch(() => {});
-    api
+    inventory
       .getSchema()
       .then((resp) => {
         setSchema(resp.fields as Record<string, Record<string, unknown>>);
         setCategoryOrder(resp.category_order ?? []);
       })
       .catch(() => {});
-    api
+    inventory
       .getDefaults()
       .then(setDefaults)
       .catch(() => {});
@@ -182,7 +183,7 @@ export default function ConfigPage() {
     // `path` reflects the switched profile's config.yaml. /api/status's
     // config_path is machine-global (the dashboard's own profile) — wrong
     // header under the global profile switcher, so it's only a fallback.
-    api
+    inventory
       .getConfigRaw()
       .then((resp) => {
         if (resp.path) setConfigPath(resp.path);
@@ -205,7 +206,7 @@ export default function ConfigPage() {
   useEffect(() => {
     if (yamlMode) {
       setYamlLoading(true);
-      api
+      inventory
         .getConfigRaw()
         .then((resp) => setYamlText(resp.yaml))
         .catch(() => showToast(t.config.failedToLoadRaw, "error"))
@@ -272,7 +273,7 @@ export default function ConfigPage() {
     if (!config) return;
     setSaving(true);
     try {
-      await api.saveConfig(config);
+      await inventory.saveConfig(config);
       showToast(t.config.configSaved, "success");
     } catch (e) {
       showToast(`${t.config.failedToSave}: ${e}`, "error");
@@ -284,12 +285,17 @@ export default function ConfigPage() {
   const handleYamlSave = async () => {
     setYamlSaving(true);
     try {
-      await api.saveConfigRaw(yamlText);
+      await inventory.saveConfigRaw(yamlText);
       showToast(t.config.yamlConfigSaved, "success");
-      api
+      inventory
         .getConfig()
         .then(setConfig)
         .catch(() => {});
+      api
+        .getConfigRaw()
+        .then((resp) => setYamlText(resp.yaml))
+        .catch(() => showToast(t.config.failedToLoadRaw, "error"))
+        .finally(() => setYamlLoading(false));
     } catch (e) {
       showToast(`${t.config.failedToSaveYaml}: ${e}`, "error");
     } finally {

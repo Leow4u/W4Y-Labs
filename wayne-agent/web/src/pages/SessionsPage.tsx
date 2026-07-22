@@ -29,6 +29,7 @@ import {
   Archive,
 } from "lucide-react";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { shouldRefreshSessions } from "@/lib/session-refresh";
 import type {
   SessionInfo,
@@ -585,11 +586,11 @@ export default function SessionsPage() {
     // another process) don't flicker the whole page or drop the user's
     // scroll position.
     if (!silent) setLoading(true);
-    api
+    inventory
       .getSessions(PAGE_SIZE, p * PAGE_SIZE)
-      .then((resp) => {
-        setSessions(resp.sessions);
-        setTotal(resp.total);
+      .then((r) => {
+        setSessions(r.sessions);
+        setTotal(r.total);
       })
       .catch(() => {})
       .finally(() => {
@@ -628,7 +629,7 @@ export default function SessionsPage() {
         .getStatus()
         .then(setStatus)
         .catch(() => {});
-      api
+      inventory
         .getSessions(50)
         .then((r) => {
           setOverviewSessions(r.sessions);
@@ -715,7 +716,7 @@ export default function SessionsPage() {
     onDelete: useCallback(
       async (id: string) => {
         try {
-          await api.deleteSession(id);
+          await inventory.deleteSession(id);
           setSessions((prev) => prev.filter((s) => s.id !== id));
           setTotal((prev) => prev - 1);
           if (expandedId === id) setExpandedId(null);

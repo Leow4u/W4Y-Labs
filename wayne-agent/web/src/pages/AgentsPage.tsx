@@ -18,6 +18,7 @@ import { useNavigate } from "react-router-dom";
 import { CalendarClock, Coins, Plus } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import type {
   ActiveProfileInfo,
   ProfileInfo,
@@ -147,9 +148,10 @@ export default function AgentsPage() {
 
   // Live pulse — polled every 10s (only while the tab is visible).
   const loadPulse = useCallback(() => {
-    api
+    inventory
       .getProfilesPulse()
-      .then((r) => {
+      .then((raw) => {
+        const r = raw as { profiles: ProfilePulse[] };
         const m: Record<string, ProfilePulse> = {};
         for (const p of r.profiles) m[p.name] = p;
         setPulse(m);
@@ -177,8 +179,9 @@ export default function AgentsPage() {
         void Promise.all([
           api.getProfileTeam(name).catch(() => null),
           api.getCronJobs(name).catch(() => [] as Awaited<ReturnType<typeof api.getCronJobs>>),
-          api.getMessagingPlatforms(name).catch(() => null),
-        ]).then(([team, jobs, msg]) => {
+          inventory.getMessagingPlatforms(name).catch(() => null),
+        ]).then(([team, jobs, msgRaw]) => {
+          const msg = msgRaw as { platforms: Array<{ name: string; configured?: boolean; enabled?: boolean }> } | null;
           const enabled = jobs.filter((j) => j.enabled);
           const next = enabled[0] ?? jobs[0];
           setExtras((prev) => ({

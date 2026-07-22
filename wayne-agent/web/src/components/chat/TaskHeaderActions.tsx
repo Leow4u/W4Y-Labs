@@ -24,6 +24,7 @@ import { Toast } from "@nous-research/ui/ui/components/toast";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { PROJECTS_DIR } from "@/lib/projects";
 import {
   cloudMutateAvailable,
@@ -185,7 +186,7 @@ export function TaskHeaderActions({
               throw new Error("cloud-unavailable");
             }
           } else {
-            await api.deleteSession(id);
+            await inventory.deleteSession(id);
           }
           navigate(cloud ? "/chat?run=cloud" : "/chat");
         } catch (e) {

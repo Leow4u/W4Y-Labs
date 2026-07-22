@@ -16,6 +16,7 @@ import { Check, ChevronDown, Lock } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 import { fetchPlan, openUpgrade, planUnlocksMax } from "@/lib/plans";
@@ -108,7 +109,7 @@ export function RelayPicker({
           provider: "openrouter",
           model: preset.model,
         })
-        .then(() => api.getConfig())
+        .then(() => inventory.getConfig())
         .then((cfg) => {
           const base = (cfg ?? {}) as Record<string, unknown>;
           const agent =
@@ -125,7 +126,7 @@ export function RelayPicker({
           if (preset.maxConcurrentChildren) {
             delegation.max_concurrent_children = preset.maxConcurrentChildren;
           }
-          return api.saveConfig({ ...base, agent, delegation });
+          return inventory.saveConfig({ ...base, agent, delegation });
         })
         .then(() => onChanged?.(next))
         .catch(() => setMode(prev)) // revert on failure

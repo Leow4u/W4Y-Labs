@@ -25,6 +25,7 @@ import { Toast } from "@nous-research/ui/ui/components/toast";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { api } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import type {
   MessagingPlatform,
   MessagingPlatformEnvVar,
@@ -285,12 +286,17 @@ export default function ChannelsPage() {
     : [...featured, ...(showMore ? extra : [])];
 
   const load = useCallback(() => {
-    return api
+    return inventory
       .getMessagingPlatforms(profileParam)
       .then((res) => {
-        setPlatforms(res.platforms);
-        setEnvPath(res.env_path || "~/.wayne/.env");
-        setGatewayStartCommand(res.gateway_start_command || "wayne gateway start");
+        const r = res as {
+          platforms: MessagingPlatform[];
+          env_path?: string;
+          gateway_start_command?: string;
+        };
+        setPlatforms(r.platforms);
+        setEnvPath(r.env_path || "~/.wayne/.env");
+        setGatewayStartCommand(r.gateway_start_command || "wayne gateway start");
       })
       .catch((e) => showToast(c.loadError.replace("{error}", String(e)), "error"));
   }, [showToast, profileParam, c]);
@@ -389,7 +395,7 @@ export default function ChannelsPage() {
     setSaving(true);
     try {
       const body: MessagingPlatformUpdate = { env, enabled: true, profile: profileParam };
-      await api.updateMessagingPlatform(editing.id, body);
+      await inventory.updateMessagingPlatform(editing.id, body);
       setEditing(null);
       // Saving a channel turns it on — same "needs a restart" change as the
       // toggle, so it goes through the same flow instead of only flagging the
@@ -412,7 +418,7 @@ export default function ChannelsPage() {
     const next = !platform.enabled;
     setTogglingId(platform.id);
     try {
-      await api.updateMessagingPlatform(platform.id, { enabled: next, profile: profileParam });
+      await inventory.updateMessagingPlatform(platform.id, { enabled: next, profile: profileParam });
       setPlatforms((prev) =>
         prev.map((p) =>
           p.id === platform.id

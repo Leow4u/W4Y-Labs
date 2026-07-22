@@ -64,6 +64,7 @@ import {
   type ProjectsTreeResponse,
   type SessionInfo,
 } from "@/lib/api";
+import { inventory } from "@/lib/inventoryApi";
 import {
   LOCAL_PATH_RE,
   PROJECTS_DIR,
@@ -787,7 +788,7 @@ export function SidebarTasks({
               throw new Error("cloud-unavailable");
             }
           } else {
-            await api.deleteSession(id);
+            await inventory.deleteSession(id);
           }
           reload();
         } catch (e) {
@@ -814,9 +815,11 @@ export function SidebarTasks({
   // BULK soft-archive of a project's cloud sessions (native PATCH per session;
   // there is no bulk in the backend). 200 covers any real project.
   const archiveSessionsUnder = useCallback(async (cwdPrefix: string) => {
-    const res = await api.getSessions(200, 0, "", "recent", { cwdPrefix });
+    const res = await inventory.getSessions(200, 0, "", "recent", { cwdPrefix });
     await Promise.all(
-      (res.sessions ?? []).map((s) => api.setSessionArchived(s.id, true).catch(() => {})),
+      (res.sessions ?? []).map((s) =>
+        inventory.setSessionArchived(s.id, true).catch(() => {}),
+      ),
     );
   }, []);
 
