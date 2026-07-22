@@ -492,6 +492,7 @@ export const zhHant: Translations = {
     undoTurn: "復原上一輪",
     compressChat: "壓縮對話",
     branchChat: "分支對話",
+    scheduleRoutine: "排程為例程",
     undone: "已復原上一輪",
     compressed: "對話已壓縮",
     branched: "已建立分支",
@@ -731,6 +732,7 @@ export const zhHant: Translations = {
     modelPickerCatalog: "完整目錄 · {count} 個經審核模型",
     chConfigure: "設定",
     chPending: "引擎重啟後生效",
+    chNeedsSetup: "尚未設定 — 請在「頻道」設定",
     skillsShowAll: "顯示全部（{count}）",
     qsAddToTeam: "加入團隊",
   },
@@ -887,6 +889,12 @@ export const zhHant: Translations = {
     clearTaskFilter: "查看全部",
     openTask: "開啟任務",
     switchToWorkspace: "開啟進階工作區 →",
+    exportPack: "匯出封裝",
+    exportPackDone: "封裝已下載。",
+    shareLink: "複製連結",
+    shareLinkCopied: "連結已複製。",
+    shareLinkFailed: "無法複製連結。",
+    shareRequiresPlan: "Pro 與 Business 可用。",
   },
   cron: {
     confirmDeleteMessage:

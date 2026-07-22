@@ -507,6 +507,7 @@ export const en: Translations = {
     undoTurn: "Undo last turn",
     compressChat: "Compact conversation",
     branchChat: "Branch conversation",
+    scheduleRoutine: "Schedule as routine",
     undone: "Last turn undone",
     compressed: "Conversation compacted",
     branched: "Conversation branched",
@@ -746,6 +747,7 @@ export const en: Translations = {
     modelPickerCatalog: "Full catalog · {count} vetted models",
     chConfigure: "Configure",
     chPending: "takes effect after the engine restarts",
+    chNeedsSetup: "Not configured yet — set up under Channels",
     skillsShowAll: "Show all ({count})",
     qsAddToTeam: "Add to the team",
   },
@@ -903,6 +905,12 @@ export const en: Translations = {
     clearTaskFilter: "Show all",
     openTask: "Open task",
     switchToWorkspace: "Open advanced workspace →",
+    exportPack: "Export pack",
+    exportPackDone: "Pack downloaded.",
+    shareLink: "Copy link",
+    shareLinkCopied: "Link copied.",
+    shareLinkFailed: "Could not copy the link.",
+    shareRequiresPlan: "Available on Pro and Business.",
   },
   cron: {
     confirmDeleteMessage:

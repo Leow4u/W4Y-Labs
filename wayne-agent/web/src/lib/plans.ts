@@ -42,6 +42,12 @@ export function planUnlocksMax(raw: string | null | undefined): boolean {
   return k === "pro" || k === "business";
 }
 
+/** Entregas share/export pack — Pro+ (Business full; Pro partial per audit matrix). */
+export function planUnlocksDeliverableShare(raw: string | null | undefined): boolean {
+  const k = normalizePlan(raw);
+  return k === "pro" || k === "business";
+}
+
 /** Reads the tenant plan from the shell. null = unknown (fail-open). */
 export async function fetchPlan(): Promise<string | null> {
   try {

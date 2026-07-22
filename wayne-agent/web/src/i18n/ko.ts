@@ -492,6 +492,7 @@ export const ko: Translations = {
     undoTurn: "마지막 턴 취소",
     compressChat: "대화 압축",
     branchChat: "대화 분기",
+    scheduleRoutine: "루틴으로 예약",
     undone: "마지막 턴을 취소했어요",
     compressed: "대화를 압축했어요",
     branched: "대화를 분기했어요",
@@ -731,6 +732,7 @@ export const ko: Translations = {
     modelPickerCatalog: "전체 카탈로그 · 승인된 모델 {count}개",
     chConfigure: "설정",
     chPending: "엔진 재시작 후 적용",
+    chNeedsSetup: "아직 설정되지 않음 — 채널에서 설정",
     skillsShowAll: "모두 보기({count})",
     qsAddToTeam: "팀에 추가",
   },
@@ -888,6 +890,12 @@ export const ko: Translations = {
     clearTaskFilter: "전체 보기",
     openTask: "작업 열기",
     switchToWorkspace: "고급 워크스페이스 열기 →",
+    exportPack: "팩 내보내기",
+    exportPackDone: "팩을 다운로드했습니다.",
+    shareLink: "링크 복사",
+    shareLinkCopied: "링크를 복사했습니다.",
+    shareLinkFailed: "링크를 복사할 수 없습니다.",
+    shareRequiresPlan: "Pro 및 Business에서 사용 가능합니다.",
   },
   cron: {
     confirmDeleteMessage:

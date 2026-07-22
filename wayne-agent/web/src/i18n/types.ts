@@ -537,6 +537,7 @@ export interface Translations {
     undoTurn: string;
     compressChat: string;
     branchChat: string;
+    scheduleRoutine: string;
     undone: string;
     compressed: string;
     branched: string;
@@ -783,6 +784,7 @@ export interface Translations {
     modelPickerCatalog: string;
     chConfigure: string;
     chPending: string;
+    chNeedsSetup: string;
     skillsShowAll: string;
     qsAddToTeam: string;
   };
@@ -948,6 +950,12 @@ export interface Translations {
     clearTaskFilter: string;
     openTask: string;
     switchToWorkspace: string;
+    exportPack: string;
+    exportPackDone: string;
+    shareLink: string;
+    shareLinkCopied: string;
+    shareLinkFailed: string;
+    shareRequiresPlan: string;
   };
 
   // ── Cron page ──

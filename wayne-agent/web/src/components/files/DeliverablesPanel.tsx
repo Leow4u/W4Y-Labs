@@ -5,7 +5,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Download, ExternalLink, Loader2, X } from "lucide-react";
+import { Download, ExternalLink, Link2, Loader2, Package, X } from "lucide-react";
 
 import { FilePreview, isPreviewable } from "@/components/files/FilePreview";
 import { FileTypeIcon } from "@/lib/file-icons";
@@ -16,8 +16,12 @@ import {
   type DeliverableTimeGroup,
 } from "@/lib/file-curation";
 import { api, type ManagedFileEntry, type SessionInfo } from "@/lib/api";
+import { fetchPlan, openUpgrade, planUnlocksDeliverableShare } from "@/lib/plans";
+import { buildStoreZip, dataUrlToBytes } from "@/lib/zip-store";
 import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
+import { useToast } from "@nous-research/ui/hooks/use-toast";
+import { Toast } from "@nous-research/ui/ui/components/toast";
 
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 
@@ -46,11 +50,25 @@ export function DeliverablesPanel({
   const { t } = useI18n();
   const tf = t.files;
   const navigate = useNavigate();
+  const { toast, showToast } = useToast();
   const [items, setItems] = useState<ManagedFileEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [canShare, setCanShare] = useState(false);
   const [session, setSession] = useState<SessionInfo | null>(null);
   const [preview, setPreview] = useState<ManagedFileEntry | null>(null);
   const highlightRef = useRef<HTMLLIElement | null>(null);
+
+  useEffect(() => {
+    let dead = false;
+    void fetchPlan().then((p) => {
+      // Unknown plan (local shell without /planos) → fail-open so Entregas keep working.
+      if (!dead) setCanShare(p == null || planUnlocksDeliverableShare(p));
+    });
+    return () => {
+      dead = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!sessionId) {
@@ -113,6 +131,64 @@ export function DeliverablesPanel({
     }
   };
 
+  // E7: zip of the current Entregas list (session-filtered when applicable).
+  const exportPack = async () => {
+    if (!canShare) {
+      openUpgrade("business");
+      return;
+    }
+    if (!filtered.length) return;
+    setExporting(true);
+    try {
+      const files: Array<{ name: string; data: Uint8Array }> = [];
+      const used = new Set<string>();
+      for (const e of filtered) {
+        const file = await api.readFile(e.path);
+        let name = file.name || e.name || "file";
+        if (used.has(name)) {
+          const stem = name.replace(/(\.[^.]+)?$/, "");
+          const ext = (name.match(/(\.[^.]+)$/) || ["", ""])[1];
+          let n = 2;
+          while (used.has(`${stem}-${n}${ext}`)) n += 1;
+          name = `${stem}-${n}${ext}`;
+        }
+        used.add(name);
+        files.push({ name, data: dataUrlToBytes(file.data_url) });
+      }
+      const blob = buildStoreZip(files);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `entregas-${sessionId?.slice(0, 8) || "pack"}.zip`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(tf.exportPackDone, "success");
+    } catch (err) {
+      showToast(`${t.status.error}: ${err}`, "error");
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // E7: in-product deep link (same tenant) — not a public CDN URL.
+  const copyShareLink = async () => {
+    if (!canShare) {
+      openUpgrade("business");
+      return;
+    }
+    if (!sessionId) return;
+    const q = new URLSearchParams();
+    q.set("layer", "deliverables");
+    q.set("session", sessionId);
+    const url = `${window.location.origin}/files?${q.toString()}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast(tf.shareLinkCopied, "success");
+    } catch {
+      showToast(tf.shareLinkFailed, "error");
+    }
+  };
+
   const openEntry = (entry: ManagedFileEntry) => {
     if (isPreviewable(entry.name, entry.mime_type)) setPreview(entry);
     else void downloadFile(entry);
@@ -141,6 +217,7 @@ export function DeliverablesPanel({
 
   return (
     <div className="flex min-w-0 flex-1 flex-col gap-4">
+      <Toast toast={toast} />
       {sessionId && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm">
           <span className="text-muted-foreground">{tf.filterThisTask}</span>
@@ -150,10 +227,54 @@ export function DeliverablesPanel({
           <button
             type="button"
             onClick={clearSessionFilter}
-            className="ml-auto inline-flex items-center gap-1 rounded-md px-2 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <X className="h-3.5 w-3.5" />
             {tf.clearTaskFilter}
+          </button>
+          <div className="ml-auto flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => void copyShareLink()}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 type-ui text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              title={canShare ? undefined : tf.shareRequiresPlan}
+            >
+              <Link2 className="h-3.5 w-3.5" />
+              {tf.shareLink}
+            </button>
+            <button
+              type="button"
+              disabled={exporting || filtered.length === 0}
+              onClick={() => void exportPack()}
+              className="inline-flex items-center gap-1 rounded-md px-2 py-1 type-ui text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+              title={canShare ? undefined : tf.shareRequiresPlan}
+            >
+              {exporting ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Package className="h-3.5 w-3.5" />
+              )}
+              {tf.exportPack}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {!sessionId && filtered.length > 0 && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            disabled={exporting}
+            onClick={() => void exportPack()}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 type-ui text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:opacity-40"
+            title={canShare ? undefined : tf.shareRequiresPlan}
+          >
+            {exporting ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : (
+              <Package className="h-3.5 w-3.5" />
+            )}
+            {tf.exportPack}
           </button>
         </div>
       )}

@@ -492,6 +492,7 @@ export const af: Translations = {
     undoTurn: "Ontdoen laaste beurt",
     compressChat: "Kompakteer gesprek",
     branchChat: "Vertak gesprek",
+    scheduleRoutine: "Skeduleer as roetine",
     undone: "Laaste beurt ontdoen",
     compressed: "Gesprek gekompakteer",
     branched: "Gesprek vertak",
@@ -731,6 +732,7 @@ export const af: Translations = {
     modelPickerCatalog: "Volledige katalogus · {count} gekeurde modelle",
     chConfigure: "Stel op",
     chPending: "geld ná enjin-herbegin",
+    chNeedsSetup: "Nog nie opgestel nie — stel onder Kanale op",
     skillsShowAll: "Wys alles ({count})",
     qsAddToTeam: "Voeg by span",
   },
@@ -888,6 +890,12 @@ export const af: Translations = {
     clearTaskFilter: "Wys alles",
     openTask: "Open taak",
     switchToWorkspace: "Open gevorderde workspace →",
+    exportPack: "Voer pak uit",
+    exportPackDone: "Pak afgelaai.",
+    shareLink: "Kopieer skakel",
+    shareLinkCopied: "Skakel gekopieer.",
+    shareLinkFailed: "Kon nie die skakel kopieer nie.",
+    shareRequiresPlan: "Beskikbaar op Pro en Business.",
   },
   cron: {
     confirmDeleteMessage:

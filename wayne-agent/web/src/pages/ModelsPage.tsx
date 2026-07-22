@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import {
   Brain,
   ChevronDown,
@@ -23,6 +24,7 @@ import type {
 } from "@/lib/api";
 import { timeAgo, cn, themedBody } from "@/lib/utils";
 import { formatTokenCount } from "@/lib/format";
+import { isInternalView } from "@/lib/internal-view";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Spinner } from "@nous-research/ui/ui/components/spinner";
 import { Stats } from "@nous-research/ui/ui/components/stats";
@@ -1063,6 +1065,16 @@ function ModelSettingsPanel({
 /* ──────────────────────────────────────────────────────────────────── */
 
 export default function ModelsPage() {
+  // E10 (GAP-CFG-15): analytics stay on /models behind ?full=1 — PME Modelos live in Config.
+  // Gate after hooks would still mount analytics fetches; wrap so the lean redirect
+  // never runs the admin page body.
+  if (!isInternalView()) {
+    return <Navigate to="/config" replace />;
+  }
+  return <ModelsPageAdmin />;
+}
+
+function ModelsPageAdmin() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState<ModelsAnalyticsResponse | null>(null);
   const [aux, setAux] = useState<AuxiliaryModelsResponse | null>(null);

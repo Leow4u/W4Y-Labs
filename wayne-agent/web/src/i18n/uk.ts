@@ -492,6 +492,7 @@ export const uk: Translations = {
     undoTurn: "Скасувати останній хід",
     compressChat: "Стиснути розмову",
     branchChat: "Відгалузити розмову",
+    scheduleRoutine: "Запланувати рутину",
     undone: "Останній хід скасовано",
     compressed: "Розмову стиснуто",
     branched: "Створено гілку",
@@ -731,6 +732,7 @@ export const uk: Translations = {
     modelPickerCatalog: "Повний каталог · {count} перевірених моделей",
     chConfigure: "Налаштувати",
     chPending: "набуде чинності після перезапуску рушія",
+    chNeedsSetup: "Ще не налаштовано — налаштуйте в Каналах",
     skillsShowAll: "Показати всі ({count})",
     qsAddToTeam: "Додати до команди",
   },
@@ -888,6 +890,12 @@ export const uk: Translations = {
     clearTaskFilter: "Показати все",
     openTask: "Відкрити завдання",
     switchToWorkspace: "Відкрити розширений workspace →",
+    exportPack: "Експорт пакета",
+    exportPackDone: "Пакет завантажено.",
+    shareLink: "Копіювати посилання",
+    shareLinkCopied: "Посилання скопійовано.",
+    shareLinkFailed: "Не вдалося скопіювати посилання.",
+    shareRequiresPlan: "Доступно на Pro та Business.",
   },
   cron: {
     confirmDeleteMessage:

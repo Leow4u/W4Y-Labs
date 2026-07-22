@@ -2483,6 +2483,8 @@ Crew **não** é tier — capacidade em Agentes (`delegate_task`, team.json).
 | **E9** | CTA agendar desde Nova tarefa | P2 | GAP-AG-06 |
 | **E10** | `/models` admin analytics `?full=1` | P2 | GAP-CFG-15 |
 
+> **P2 E7–E10 ✅ FEITO 22/07** — export pack + link Entregas (Pro+) · drawer canais toggle + setup CTA · ⋯ Agendar rotina → `/cron?prompt=` · `/models` redireciona sem `?full=1`.
+
 ---
 
 ### 8. Acceptance criteria — wireframe → produção
@@ -2513,6 +2515,7 @@ PR-7  C4 + C7 ✅ FEITO 21/07  (Integrações: featured BR · Meu MCP no Conecto
 PR-8  C5 + C6 ✅ FEITO 21/07  (Modelos ~12 toggles · explore i18n · Agenda blueprints PT · chips PME)
 PR-9  D1–D7 ✅ FEITO 21/07  (pontes Agenda↔Agentes · vocabulário planos · créditos 50/75/90 · Gerir assinatura · chip plano avatar · deep links /planos)
 PR-10 E1–E6 ✅ FEITO 22/07  (skills displayName PT · Governança↔Config copy · entry único config agente · canvas ?full=1 · EN residual cron→i18n · CTA webhook na Agenda)
+PR-11 E7–E10 ✅ FEITO 22/07  (Entregas share/export pack · drawer canais editável · CTA agendar rotina · /models admin ?full=1)
 PR-DESKTOP  paridade Hermes               (portar PR-1..10 para apps/desktop — bloco final)
 ```
 

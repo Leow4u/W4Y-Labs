@@ -25,7 +25,7 @@
  * gated on cloudMutateAvailable(): older shells coerced those verbs to GET,
  * so there the affordances stay hidden as before.
  */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Clock, Cloud, Pause, Play, Plus, Trash2, User, X, Zap } from "lucide-react";
 import { Badge } from "@nous-research/ui/ui/components/badge";
@@ -775,6 +775,24 @@ export default function CronPage() {
     },
     [selectedProfile, agentProfiles],
   );
+
+  // E9: /cron?prompt=…&profile=… opens the create modal prefilled (from chat ⋯).
+  const prefillConsumed = useRef(false);
+  useEffect(() => {
+    if (prefillConsumed.current) return;
+    const prompt = (searchParams.get("prompt") || searchParams.get("ask") || "").trim();
+    if (!prompt) return;
+    prefillConsumed.current = true;
+    const fromUrl =
+      searchParams.get("agent") ||
+      (searchParams.get("profile") && searchParams.get("profile") !== "all"
+        ? searchParams.get("profile")
+        : null);
+    setCreateProfile(fromUrl || agentProfiles[0]?.name || "");
+    if (fromUrl) setSelectedProfile(fromUrl);
+    setCreateForm({ ...emptyCronJobForm(), prompt });
+    setCreateModalOpen(true);
+  }, [searchParams, agentProfiles]);
 
   const loadJobs = useCallback(() => {
     api

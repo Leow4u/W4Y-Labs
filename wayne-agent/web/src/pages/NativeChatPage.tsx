@@ -1212,6 +1212,10 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
         storedId={storedSessionId}
         project={cloudSession ? null : project}
         busy={busy}
+        schedulePrompt={
+          [...messages].reverse().find((m) => m.role === "user")?.content ?? null
+        }
+        scheduleProfile={agentParam}
         onRenamed={setTitleOverride}
         onUndo={undoTurn}
         onCompress={compressChat}
@@ -1226,6 +1230,8 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     storedSessionId,
     project,
     busy,
+    messages,
+    agentParam,
     undoTurn,
     compressChat,
     handleBranch,

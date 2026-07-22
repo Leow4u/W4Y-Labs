@@ -492,6 +492,7 @@ export const hu: Translations = {
     undoTurn: "Utolsó kör visszavonása",
     compressChat: "Beszélgetés tömörítése",
     branchChat: "Beszélgetés elágaztatása",
+    scheduleRoutine: "Rutin ütemezése",
     undone: "Utolsó kör visszavonva",
     compressed: "Beszélgetés tömörítve",
     branched: "Beszélgetés elágaztatva",
@@ -731,6 +732,7 @@ export const hu: Translations = {
     modelPickerCatalog: "Teljes katalógus · {count} jóváhagyott modell",
     chConfigure: "Beállítás",
     chPending: "a motor újraindítása után érvényes",
+    chNeedsSetup: "Még nincs beállítva — állítsa be a Csatornákban",
     skillsShowAll: "Összes megjelenítése ({count})",
     qsAddToTeam: "Hozzáadás a csapathoz",
   },
@@ -888,6 +890,12 @@ export const hu: Translations = {
     clearTaskFilter: "Összes megjelenítése",
     openTask: "Feladat megnyitása",
     switchToWorkspace: "Speciális workspace megnyitása →",
+    exportPack: "Csomag exportálása",
+    exportPackDone: "Csomag letöltve.",
+    shareLink: "Link másolása",
+    shareLinkCopied: "Link másolva.",
+    shareLinkFailed: "A linket nem sikerült másolni.",
+    shareRequiresPlan: "Pro és Business csomagokban elérhető.",
   },
   cron: {
     confirmDeleteMessage:

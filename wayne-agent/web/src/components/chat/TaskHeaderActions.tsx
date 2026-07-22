@@ -4,6 +4,7 @@
  */
 import {
   Archive,
+  CalendarClock,
   Download,
   FolderClosed,
   GitBranch,
@@ -29,6 +30,8 @@ export function TaskHeaderActions({
   storedId,
   project,
   busy = false,
+  schedulePrompt = null,
+  scheduleProfile = null,
   onRenamed,
   onUndo,
   onCompress,
@@ -37,6 +40,9 @@ export function TaskHeaderActions({
   storedId: string | null;
   project: string | null;
   busy?: boolean;
+  /** Last user prompt — enables "Agendar rotina" → /cron prefilled (E9). */
+  schedulePrompt?: string | null;
+  scheduleProfile?: string | null;
   onRenamed?: (title: string) => void;
   onUndo?: () => Promise<boolean>;
   onCompress?: () => Promise<boolean>;
@@ -249,6 +255,24 @@ export function TaskHeaderActions({
               {t.chat.branchChat}
             </button>
           )}
+          <button
+            type="button"
+            role="menuitem"
+            disabled={!schedulePrompt?.trim()}
+            onClick={() => {
+              setMenuOpen(false);
+              const text = schedulePrompt?.trim();
+              if (!text) return;
+              const q = new URLSearchParams();
+              q.set("prompt", text.slice(0, 4000));
+              if (scheduleProfile) q.set("profile", scheduleProfile);
+              navigate(`/cron?${q.toString()}`);
+            }}
+            className={`${itemCls} disabled:opacity-40`}
+          >
+            <CalendarClock className="h-4 w-4 shrink-0 opacity-80" />
+            {t.chat.scheduleRoutine}
+          </button>
           <div className="mx-2 my-1 h-px bg-border" />
           <button
             type="button"

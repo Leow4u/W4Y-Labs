@@ -492,6 +492,7 @@ export const ru: Translations = {
     undoTurn: "Отменить последний ход",
     compressChat: "Сжать беседу",
     branchChat: "Ответвить беседу",
+    scheduleRoutine: "Запланировать рутину",
     undone: "Последний ход отменён",
     compressed: "Беседа сжата",
     branched: "Создана ветка",
@@ -731,6 +732,7 @@ export const ru: Translations = {
     modelPickerCatalog: "Полный каталог · {count} проверенных моделей",
     chConfigure: "Настроить",
     chPending: "вступит в силу после перезапуска движка",
+    chNeedsSetup: "Ещё не настроено — настройте в Каналах",
     skillsShowAll: "Показать все ({count})",
     qsAddToTeam: "Добавить в команду",
   },
@@ -888,6 +890,12 @@ export const ru: Translations = {
     clearTaskFilter: "Показать все",
     openTask: "Открыть задачу",
     switchToWorkspace: "Открыть расширенный workspace →",
+    exportPack: "Экспорт пакета",
+    exportPackDone: "Пакет скачан.",
+    shareLink: "Копировать ссылку",
+    shareLinkCopied: "Ссылка скопирована.",
+    shareLinkFailed: "Не удалось скопировать ссылку.",
+    shareRequiresPlan: "Доступно на Pro и Business.",
   },
   cron: {
     confirmDeleteMessage:

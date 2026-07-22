@@ -8,7 +8,7 @@
  *                + instructions (SOUL.md) + cost pulse in credits
  *   Schedule     the agent's OWN cron routines (create/pause/trigger/remove)
  *   Skills       skills with a per-agent toggle
- *   Channels     status of the agent's connections (read-only, v1)
+ *   Channels     per-agent on/off for configured platforms (deep setup → /channels)
  *
  * Rendered via createPortal(document.body): ancestors with transform (the
  * sidebar drawer) become the containing block for position:fixed — lesson
@@ -308,7 +308,9 @@ export function AgentDrawer({
       .catch(() => setPlatforms([]));
   }, [tab, platforms, agent.name]);
 
-  const connected = (platforms ?? []).filter((p) => p.configured || p.enabled);
+  const connected = platforms ?? [];
+  const readyChannels = connected.filter((p) => p.configured || p.enabled);
+  const setupChannels = connected.filter((p) => !p.configured && !p.enabled);
 
   // Per-agent channel on/off (v3): PUT platforms/{id} {enabled, profile}
   // writes the AGENT's config.yaml. Native contract: it only takes effect once
@@ -769,13 +771,13 @@ export function AgentDrawer({
             <div className="grid gap-4">
               {platforms === null ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">…</p>
-              ) : connected.length === 0 ? (
+              ) : readyChannels.length === 0 && setupChannels.length === 0 ? (
                 <div className="rounded-xl border border-dashed border-border py-8 text-center">
                   <p className="text-sm text-muted-foreground">{ag.eqChannelsNone}</p>
                 </div>
               ) : (
                 <div className="grid gap-2">
-                  {connected.map((p) => (
+                  {readyChannels.map((p) => (
                     <div
                       key={p.id}
                       className="flex min-w-0 items-center gap-3 rounded-xl border border-border bg-card px-3.5 py-2.5"
@@ -809,6 +811,25 @@ export function AgentDrawer({
                           )}
                         />
                       </button>
+                    </div>
+                  ))}
+                  {setupChannels.map((p) => (
+                    <div
+                      key={p.id}
+                      className="flex min-w-0 items-center gap-3 rounded-xl border border-dashed border-border bg-card/60 px-3.5 py-2.5"
+                    >
+                      <span className="h-2 w-2 shrink-0 rounded-full bg-muted-foreground/40" />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-foreground">{p.name}</div>
+                        <div className="truncate text-xs text-muted-foreground">{ag.chNeedsSetup}</div>
+                      </div>
+                      <Link
+                        to="/channels"
+                        onClick={onClose}
+                        className="shrink-0 type-caption text-live underline-offset-4 hover:underline"
+                      >
+                        {ag.eqChannelsManage} →
+                      </Link>
                     </div>
                   ))}
                 </div>

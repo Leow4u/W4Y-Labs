@@ -492,6 +492,7 @@ export const ga: Translations = {
     undoTurn: "Cealaigh an seal deireanach",
     compressChat: "Comhbhrúigh an comhrá",
     branchChat: "Brainseáil an comhrá",
+    scheduleRoutine: "Sceideal mar ghnáthamh",
     undone: "Cealaíodh an seal deireanach",
     compressed: "Comhbhrúdh an comhrá",
     branched: "Brainseáladh an comhrá",
@@ -731,6 +732,7 @@ export const ga: Translations = {
     modelPickerCatalog: "Catalóg iomlán · {count} múnla faofa",
     chConfigure: "Cumraigh",
     chPending: "i bhfeidhm tar éis atosú an innill",
+    chNeedsSetup: "Gan cumraíocht fós — socraigh faoi Cainéil",
     skillsShowAll: "Taispeáin gach ceann ({count})",
     qsAddToTeam: "Cuir leis an bhfoireann",
   },
@@ -888,6 +890,12 @@ export const ga: Translations = {
     clearTaskFilter: "Taispeáin uile",
     openTask: "Oscail tasc",
     switchToWorkspace: "Oscail workspace ardleibhéil →",
+    exportPack: "Easpórtáil pacáiste",
+    exportPackDone: "Pacáiste íoslódáilte.",
+    shareLink: "Cóipeáil nasc",
+    shareLinkCopied: "Nasc cóipeáilte.",
+    shareLinkFailed: "Níorbh fhéidir an nasc a chóipeáil.",
+    shareRequiresPlan: "Ar fáil ar Pro agus Business.",
   },
   cron: {
     confirmDeleteMessage:

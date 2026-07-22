@@ -492,6 +492,7 @@ export const pt: Translations = {
     undoTurn: "Desfazer último turno",
     compressChat: "Compactar conversa",
     branchChat: "Ramificar conversa",
+    scheduleRoutine: "Agendar rotina",
     undone: "Último turno desfeito",
     compressed: "Conversa compactada",
     branched: "Conversa ramificada",
@@ -731,6 +732,7 @@ export const pt: Translations = {
     modelPickerCatalog: "Catálogo completo · {count} modelos homologados",
     chConfigure: "Configurar",
     chPending: "vale após reiniciar o motor",
+    chNeedsSetup: "Ainda sem credenciais — configure em Canais",
     skillsShowAll: "Mostrar todas ({count})",
     qsAddToTeam: "Adicionar à equipe",
   },
@@ -888,6 +890,12 @@ export const pt: Translations = {
     clearTaskFilter: "Ver todas",
     openTask: "Abrir tarefa",
     switchToWorkspace: "Ver workspace avançado →",
+    exportPack: "Exportar pack",
+    exportPackDone: "Pack baixado.",
+    shareLink: "Copiar link",
+    shareLinkCopied: "Link copiado.",
+    shareLinkFailed: "Não foi possível copiar o link.",
+    shareRequiresPlan: "Disponível no Pro e Business.",
   },
   cron: {
     confirmDeleteMessage:

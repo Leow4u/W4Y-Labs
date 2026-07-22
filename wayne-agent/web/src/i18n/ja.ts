@@ -492,6 +492,7 @@ export const ja: Translations = {
     undoTurn: "直前のターンを取り消す",
     compressChat: "会話を圧縮",
     branchChat: "会話を分岐",
+    scheduleRoutine: "ルーティンとして予定",
     undone: "直前のターンを取り消しました",
     compressed: "会話を圧縮しました",
     branched: "会話を分岐しました",
@@ -731,6 +732,7 @@ export const ja: Translations = {
     modelPickerCatalog: "全カタログ · 承認済みモデル{count}件",
     chConfigure: "設定",
     chPending: "エンジン再起動後に有効",
+    chNeedsSetup: "未設定 — チャンネルで設定",
     skillsShowAll: "すべて表示（{count}）",
     qsAddToTeam: "チームに加える",
   },
@@ -888,6 +890,12 @@ export const ja: Translations = {
     clearTaskFilter: "すべて表示",
     openTask: "タスクを開く",
     switchToWorkspace: "詳細ワークスペースを開く →",
+    exportPack: "パックを書き出し",
+    exportPackDone: "パックをダウンロードしました。",
+    shareLink: "リンクをコピー",
+    shareLinkCopied: "リンクをコピーしました。",
+    shareLinkFailed: "リンクをコピーできませんでした。",
+    shareRequiresPlan: "Pro と Business で利用できます。",
   },
   cron: {
     confirmDeleteMessage:

@@ -492,6 +492,7 @@ export const tr: Translations = {
     undoTurn: "Son turu geri al",
     compressChat: "Sohbeti sıkıştır",
     branchChat: "Sohbeti dallandır",
+    scheduleRoutine: "Rutin olarak zamanla",
     undone: "Son tur geri alındı",
     compressed: "Sohbet sıkıştırıldı",
     branched: "Sohbet dallandırıldı",
@@ -731,6 +732,7 @@ export const tr: Translations = {
     modelPickerCatalog: "Tam katalog · {count} onaylı model",
     chConfigure: "Yapılandır",
     chPending: "motor yeniden başlatılınca geçerli",
+    chNeedsSetup: "Henüz yapılandırılmadı — Kanallar’da ayarlayın",
     skillsShowAll: "Tümünü göster ({count})",
     qsAddToTeam: "Ekibe ekle",
   },
@@ -888,6 +890,12 @@ export const tr: Translations = {
     clearTaskFilter: "Tümünü göster",
     openTask: "Görevi aç",
     switchToWorkspace: "Gelişmiş workspace'i aç →",
+    exportPack: "Paketi dışa aktar",
+    exportPackDone: "Paket indirildi.",
+    shareLink: "Bağlantıyı kopyala",
+    shareLinkCopied: "Bağlantı kopyalandı.",
+    shareLinkFailed: "Bağlantı kopyalanamadı.",
+    shareRequiresPlan: "Pro ve Business’ta kullanılabilir.",
   },
   cron: {
     confirmDeleteMessage:
