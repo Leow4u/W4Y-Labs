@@ -100,11 +100,16 @@ Detalhe: [BACKEND-MAP.md](./BACKEND-MAP.md) (S1 / S2 / 0.3.5).
 
 ### Verificação wake (obrigatória — não assumir pronto)
 
-Com suspend, o scheduler de cron do Wayne roda **in-process** e congela com a máquina. Sem HTTP de entrada (ou job externo de wake), rotina noturna **não dispara na hora** — só catch-up no próximo acesso.
+Com suspend, o scheduler de cron do Wayne roda **in-process** e congela com a máquina. Precisa de HTTP de entrada (ou job externo) para acordar.
 
-**Status 22/07:** `fly.wayne-w4y.toml` ainda `min_machines_running = 0` + suspend. ROADMAP cita Cloud Scheduler `wayne-cron-wake` como feito no M0, mas **não há** script/job correspondente em `platform/infra/`.
+**Status 22/07 (verificado):** job GCP `wayne-cron-wake` está **LIVE** — `*/15 * * * *` UTC → `GET https://wayne-w4y.fly.dev/api/auth/providers` (rota pública). Acorda a máquina e o ticker faz **catch-up** de jobs atrasados.
 
-→ **“24/7 agendado no caminho barato” = GAP** até o wake estar ligado e verificado. Ver [BACKEND-MAP.md](./BACKEND-MAP.md).
+**Ainda GAP para “24/7 agendado pronto”:**
+- Não é na hora exata (até ~15 min de atraso + tick ≤60s).
+- Sem IaC em `platform/infra/` (recriar o job não está no repo).
+- Crons de alta frequência (ex. a cada 5 min) colapsam misses em um único fire.
+
+→ Caminho barato = **PARTIAL** (wake existe; pontualidade/produto ainda não). Ver [BACKEND-MAP.md](./BACKEND-MAP.md).
 
 ### #5 — Hand-off local → nuvem mid-session
 
