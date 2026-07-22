@@ -9,6 +9,8 @@ ativo.
 > Princípio inegociável: **não construímos infraestrutura própria**. Reusamos e
 > orquestramos o que já existe no mercado. Ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
+> O app desktop do Work4You é `wayne-agent/apps/desktop-shell`. O renderer original do Hermes upstream (base do fork) foi removido do tree — continua no histórico git e no upstream público NousResearch/hermes-agent (MIT).
+
 ## Estrutura do repositório
 
 ```
