@@ -1869,26 +1869,55 @@ async function runBackgroundEngineUpdateWork() {
       emit: () => {},
     });
 
+    // A virgin slot is source-only after `repository`. The completion marker
+    // (and a bootable venv) only appear after the later install stages.
+    // Running repository alone always failed isComplete() → "Atualização
+    // pendente" with lastError "the installer did not finish".
+    // Skip interactive / PATH / desktop stages: this slot is not a first-run
+    // machine setup, and the running engine must keep serving until promote.
+    const SLOT_STAGES = ["uv", "python", "repository", "venv", "dependencies", "bootstrap-marker"];
+    const emitInstall = (ev) => {
+      try {
+        if (!ev || typeof ev !== "object") return;
+        if (ev.type === "log" && ev.line) {
+          updaterLog(`slot[${ev.stage || "?"}] ${String(ev.line).slice(0, 300)}`);
+        } else if (ev.state === "failed" || ev.type === "failed") {
+          updaterLog(`slot stage failed: ${ev.name || ev.stage || "?"} ${ev.error || ""}`);
+        } else if (ev.type === "stage" && (ev.state === "succeeded" || ev.state === "skipped")) {
+          updaterLog(`slot stage ${ev.state}: ${ev.state}`);
+        }
+      } catch {
+        /* log is best-effort */
+      }
+    };
+
     const abort = new AbortController();
     const cap = setTimeout(() => abort.abort(), 30 * 60_000);
-    let ev = null;
+    let lastEv = null;
+    let failedStage = null;
     try {
-      ev = await bootstrapRunner.runStage({
-        scriptPath: scriptInfo.path,
-        installerKind: scriptInfo.kind || "powershell",
-        stage: { name: "repository" },
-        emit: () => {},
-        wayneHome: WAYNE_HOME,
-        activeRoot: target,
-        installDir: target,
-        abortSignal: abort.signal,
-        installStamp: null,
-      });
+      for (const name of SLOT_STAGES) {
+        lastEv = await bootstrapRunner.runStage({
+          scriptPath: scriptInfo.path,
+          installerKind: scriptInfo.kind || "powershell",
+          stage: { name },
+          emit: emitInstall,
+          wayneHome: WAYNE_HOME,
+          activeRoot: target,
+          installDir: target,
+          abortSignal: abort.signal,
+          installStamp: null,
+        });
+        if (!lastEv || (lastEv.state !== "succeeded" && lastEv.state !== "skipped")) {
+          failedStage = name;
+          break;
+        }
+      }
     } finally {
       clearTimeout(cap);
     }
 
-    if (ev && ev.state === "succeeded" && engineSlots.isComplete(target)) {
+    if (!failedStage && engineSlots.isComplete(target)) {
       fs.writeFileSync(
         stagedFile(),
         JSON.stringify(
@@ -1918,12 +1947,17 @@ async function runBackgroundEngineUpdateWork() {
         version: manifest.version ?? null,
       });
     }
-    const installError = (ev && ev.error) || "the installer did not finish";
+    const installError =
+      (lastEv && lastEv.error) ||
+      (failedStage ? `stage ${failedStage} failed` : null) ||
+      (!engineSlots.isComplete(target)
+        ? "install finished without completion marker"
+        : "the installer did not finish");
     updateState.writeState(WAYNE_HOME, {
       phase: "failed",
       attempts: (updateState.readState(WAYNE_HOME).attempts || 0) + 1,
       lastError: installError,
-      lastErrorStage: (ev && ev.stage) || "repository",
+      lastErrorStage: failedStage || (lastEv && lastEv.name) || "repository",
     });
     notifyUpdateState();
     return engineOutcome.outcome(engineOutcome.INSTALL_FAILED, { error: installError });
