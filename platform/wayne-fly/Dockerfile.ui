@@ -3,7 +3,7 @@
 # ajustes de frontend do Wayne (reorganização de UX). Contexto de build =
 # wayne-agent/ (onde vive wayne_cli/web_dist, gerado por `npm run build` em
 # wayne-agent/web).
-ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly226
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly227
 FROM ${BASE_IMAGE}
 # APAGA antes de copiar: o COPY do Docker MESCLA na pasta destino, ele não a
 # substitui. Sem este rm, cada overlay soma um index-<hash>.js e nunca remove os
