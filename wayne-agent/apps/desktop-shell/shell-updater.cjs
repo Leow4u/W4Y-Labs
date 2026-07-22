@@ -33,10 +33,10 @@
  *   order for auto updating to work", electron.build/docs/features/auto-update).
  * - autoDownload=false: "Whether to automatically download an update when it
  *   is found" (AppUpdater docs) — we only download inside apply().
- * - quitAndInstall(isSilent=true, isForceRunAfter=true): "isSilent (windows-
- *   only): Runs the installer in silent mode"; "isForceRunAfter: Run the app
- *   after finish even on silent install" (AppUpdater docs) — NSIS installs
- *   with /S and relaunches the app; the fresh boot handles the engine.
+ * - quitAndInstall(isSilent=false, isForceRunAfter=true): the NSIS installer
+ *   shows its own small native progress window and relaunches the app when it
+ *   finishes. Silent mode was worse in practice: every window closed and
+ *   nothing visible replaced them, so the app simply looked dead.
  * - Feed override W4Y_UPDATE_FEED_URL exists for testability (smoke against a
  *   local http server); default is the bucket baked into app-update.yml. In a
  *   non-packaged run the override also flips forceDevUpdateConfig, otherwise
@@ -189,7 +189,10 @@ async function apply(opts) {
     } catch {
       /* the latch is best-effort — quitAndInstall quits regardless */
     }
-    updater.quitAndInstall(true, true); // silent NSIS install + relaunch
+    // isSilent=FALSE so the NSIS installer shows its own small native progress
+    // window. Silent gave the user a dead app and no sign anything was
+    // happening. isForceRunAfter=true still reopens Work4You when it finishes.
+    updater.quitAndInstall(false, true);
     return { ok: true };
   } catch (e) {
     const msg = String((e && e.message) || e);

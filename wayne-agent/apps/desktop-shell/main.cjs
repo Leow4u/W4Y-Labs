@@ -255,7 +255,7 @@ const CLOUD_SHELL = process.env.W4Y_CLOUD_SHELL === "1";
 // manual que, se esquecido, reverte o produto em silêncio não é um passo:
 // é uma armadilha.
 const DEFAULT_ENGINE_ZIP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260720g.zip";
+  "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260722b.zip";
 
 /** Override explícito (dev/CI) > rede de segurança. Síncrono, sem rede. */
 function resolveEngineZipUrl() {
@@ -389,6 +389,19 @@ function fetchEngineManifest(timeoutMs = 5000) {
 // The boot no longer installs anything. Set W4Y_ENGINE_BOOT_UPDATE=1 to bring
 // the old blocking path back for one release if the staged flow misbehaves.
 const BOOT_UPDATE_ESCAPE_HATCH = process.env.W4Y_ENGINE_BOOT_UPDATE === "1";
+
+// Was THIS boot asked for by the user's "Atualizar" click? Read exactly once
+// per process and cached: the marker is deleted as it is read, so a second call
+// must return the same answer rather than a fresh (empty) one.
+let _updateRequestChecked = false;
+let _updateRequested = false;
+function bootWasRequestedForUpdate() {
+  if (!_updateRequestChecked) {
+    _updateRequestChecked = true;
+    _updateRequested = consumeEngineUpdateRequest();
+  }
+  return _updateRequested;
+}
 
 // Where a background install parks its result until the next boot.
 function stagedFile() {
@@ -1531,7 +1544,10 @@ async function startLocalEngine() {
     // HERE, and switching is only a junction repoint — no download, no
     // install, no waiting. This is why the update screen is gone.
     promoteStagedEngine();
-    setPhase("resolve", "Verificando o motor local…");
+    // Friendly copy while the (possibly cold) import probe runs — can take
+    // tens of seconds on Windows; the renderer keeps the spinner alive.
+    // Error UI only after the probe budget is exhausted (backend-probes 60s).
+    setPhase("resolve", "Preparando o Work4You…");
     let backend = resolveEngineBackend();
 
     // The window shows the PRODUCT while the engine starts behind it. Only a
@@ -1542,7 +1558,12 @@ async function startLocalEngine() {
     }
 
     if (backend.kind === "bootstrap-needed") {
-      setPhase("bootstrap", "Instalando o motor local…");
+      // Compact for the FIRST real install too: it is the same "please wait"
+      // moment as an update, and the full-size window with a fake sidebar, a
+      // giant logo and an auto-opened technical console was the aggressive
+      // experience the owner refused.
+      enterCompactMode();
+      setPhase("bootstrap", "Preparando o Work4You…");
       // Fonte do motor pro install.ps1: o runner espalha process.env no spawn,
       // então setar aqui chega ao script como WAYNE_SOURCE_ZIP_URL.
       const engineZipUrl = await resolveEngineZipUrlLive();
@@ -1585,6 +1606,17 @@ async function startLocalEngine() {
         zipUrl: engineZipUrl,
         updatedAt: new Date().toISOString(),
       });
+    } else if (backend.root === ENGINE_ROOT && bootWasRequestedForUpdate()) {
+      // The user clicked "Atualizar" and we relaunched for it. This is the ONLY
+      // boot that touches the engine — a normal open never gets here.
+      enterCompactMode();
+      const refreshedTree = await maybeUpdateEngine();
+      if (aborted()) return;
+      if (refreshedTree) {
+        const refreshed = resolveEngineBackend();
+        if (refreshed.kind !== "bootstrap-needed") backend = refreshed;
+      }
+      leaveCompactMode();
     } else if (backend.root === ENGINE_ROOT && BOOT_UPDATE_ESCAPE_HATCH) {
       // Legacy blocking path, now OFF by default (W4Y_ENGINE_BOOT_UPDATE=1 to
       // bring it back for one release). It downloaded and installed the engine
@@ -1645,6 +1677,9 @@ async function startLocalEngine() {
     setPhase("ready", "Abrindo…");
     // O servidor injeta window.__WAYNE_SESSION_TOKEN__ no index.html que serve
     // (web_server.py:15055-15075) — o loadURL abaixo já entra autenticado.
+    // Back to the user's own window size before the product loads. Covers both
+    // the first bootstrap and an explicit engine update.
+    leaveCompactMode();
     if (mainWindow && !mainWindow.isDestroyed()) {
       await mainWindow.loadURL(engine.origin);
     }
@@ -1653,7 +1688,13 @@ async function startLocalEngine() {
     // The app is on screen. Only now is a promotion proven good, and only now
     // may we spend bandwidth on the next one.
     verifyPromotion();
-    scheduleBackgroundEngineUpdate();
+    // PARKED (product decision): a normal boot no longer checks, downloads or
+    // installs an engine update. The background sweep is what produced the
+    // aggressive experience — a machine that was merely opened started spending
+    // bandwidth and could later restart into a build the user never asked for.
+    // The chip is the single entry point now; scheduleBackgroundEngineUpdate()
+    // is left in place, uncalled, for the separate cleanup task.
+    // scheduleBackgroundEngineUpdate();
   } catch (err) {
     if (!aborted()) {
       killEngine();
@@ -2478,6 +2519,9 @@ async function applyUnifiedUpdate(token) {
       // No killEngine, no relaunch, no success.
       return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: verdict.reason };
     }
+    // Mark the reopen as user-requested, THEN relaunch. The next boot sees the
+    // marker, shows the compact window and finishes the engine update.
+    requestEngineUpdateOnNextBoot();
     const res = applyEngineUpdate();
     return res && res.ok
       ? { ok: true, outcome: applyOutcome.APPLIED }
@@ -2572,7 +2616,76 @@ function loadWindowState() {
   }
   return { width: 1280, height: 832 };
 }
+// ── One-shot "the user asked for this" marker ────────────────────────────────
+// A plain file in WAYNE_HOME, written when the chip starts an engine update and
+// consumed by the very next boot. No TTL, no token, no snapshot: it exists or it
+// does not, and reading it deletes it. A file rather than an argv flag because
+// the shell update relaunches through the NSIS installer, which cannot carry
+// our arguments.
+const ENGINE_UPDATE_REQUEST = path.join(WAYNE_HOME, ".engine-update-requested");
+
+function requestEngineUpdateOnNextBoot() {
+  try {
+    fs.mkdirSync(WAYNE_HOME, { recursive: true });
+    fs.writeFileSync(ENGINE_UPDATE_REQUEST, new Date().toISOString(), "utf8");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** True exactly once per request; the marker is removed as it is read. */
+function consumeEngineUpdateRequest() {
+  try {
+    if (!fs.existsSync(ENGINE_UPDATE_REQUEST)) return false;
+    fs.unlinkSync(ENGINE_UPDATE_REQUEST);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Compact update window: the SAME main window, resized. quitAndInstall() closes
+// every BrowserWindow, so a dedicated one would vanish anyway — and a second
+// window is lifecycle risk this flow does not need.
+let compactMode = false;
+
+function enterCompactMode() {
+  compactMode = true;
+  sendBootEvent({ type: "compact", on: true });
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.setResizable(false);
+    mainWindow.setMinimumSize(420, 220);
+    mainWindow.setSize(420, 220);
+    mainWindow.center();
+  } catch {
+    /* best-effort — a wrong size must never block the update */
+  }
+}
+
+function leaveCompactMode() {
+  compactMode = false;
+  sendBootEvent({ type: "compact", on: false });
+  try {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    const normal = loadWindowState();
+    mainWindow.setMinimumSize(640, 480);
+    mainWindow.setResizable(true);
+    mainWindow.setSize(normal.width || 1280, normal.height || 832);
+    if (typeof normal.x === "number" && typeof normal.y === "number") {
+      mainWindow.setPosition(normal.x, normal.y);
+    } else {
+      mainWindow.center();
+    }
+  } catch {
+    /* best-effort */
+  }
+}
+
 function saveWindowState(win) {
+  // Never let the compact update window overwrite the size the user chose.
+  if (compactMode) return;
   try {
     if (!win || win.isDestroyed() || win.isMinimized() || !win.isVisible()) return;
     const b = win.getBounds();

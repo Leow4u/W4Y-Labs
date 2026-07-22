@@ -61,6 +61,20 @@
     padding: 44px 24px 24px;
   }
   @media (max-width: 720px) { .rail { display: none; } }
+  /* Compact update window (420x220). The rail already hides itself at this
+     width; this only tightens the card so logo + one line + spinner fit, and
+     removes everything that is not those three things. */
+  body.compact .stage-area { padding: 0 20px; }
+  body.compact .card { width: 100%; gap: 14px; align-items: center; text-align: center; }
+  body.compact .brand { height: 26px; }
+  body.compact .status { justify-content: center; }
+  body.compact #hint,
+  body.compact #log-box,
+  body.compact #notice,
+  body.compact #gate { display: none !important; }
+  /* Failure is the ONLY case that may offer technical detail, and only folded. */
+  body.compact.failed #log-box { display: block !important; }
+  body.compact.failed #log-box[open] { max-height: 120px; overflow: auto; }
   .card {
     width: min(560px, 100%);
     display: flex;
@@ -361,14 +375,19 @@
   // técnicos". A única fase que ainda explica é a PRIMEIRA instalação, porque
   // ali a espera é longa e calar seria pior do que dizer.
   const PHASES = {
-    resolve: { text: "Abrindo…", hint: "" },
+    // Cold import of the local engine can take ~30–40s on Windows — keep the
+    // spinner + calm copy; the real error only arrives after the probe budget.
+    resolve: {
+      text: "Preparando o Work4You…",
+      hint: "Na primeira abertura do dia pode levar um momento.",
+    },
     bootstrap: {
-      text: "Preparando na primeira vez…",
+      text: "Preparando o Work4You…",
       hint: "Só agora, uma vez. Pode deixar rodando — continua sozinho.",
     },
     update: {
-      text: "Preparando na primeira vez…",
-      hint: "Só agora, uma vez. Depois as atualizações acontecem sozinhas.",
+      text: "Preparando o Work4You…",
+      hint: "Atualizando. Pode deixar rodando — continua sozinho.",
     },
     key: { text: "Quase lá.", hint: "" },
     spawn: { text: "Abrindo…", hint: "" },
@@ -483,6 +502,10 @@
 
   function apply(ev) {
     if (!ev || typeof ev !== "object") return;
+    if (ev.type === "compact") {
+      document.body.classList.toggle("compact", !!ev.on);
+      return;
+    }
     if (ev.type === "phase") {
       if (ev.gate) lastGate = ev.gate;
       setStatus(ev.phase, ev.message);

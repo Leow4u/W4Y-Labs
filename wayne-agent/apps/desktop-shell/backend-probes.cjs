@@ -19,9 +19,11 @@
  * sentinel, which is exactly what we want when nothing pre-existing
  * actually works.
  *
- * Both probes are deliberately fast and forgiving:
- *   - 5s timeout (a hung interpreter beats forever, but we still give
- *     slow disks / cold caches room to breathe)
+ * Both probes are deliberately forgiving:
+ *   - 60s timeout (Windows cold import of wayne_cli.config was measured at
+ *     ~34s; 5s produced a false "motor não utilizável" after a successful
+ *     install). Still fails in under a minute if the interpreter is truly
+ *     hung. Override per-call via opts.timeoutMs when a caller knows better.
  *   - stdio ignored (we only care about exit code; stdout/stderr are
  *     not surfaced to the user, just to the boot log for forensics
  *     via the caller's catch block if it chooses)
@@ -33,7 +35,9 @@
 
 const { execFileSync } = require('node:child_process')
 
-const PROBE_TIMEOUT_MS = 5000
+// Cold Windows import of yaml+dotenv+wayne_cli.config ~34s (2026-07-22).
+// 5s was a false-error factory; 60s covers that with margin.
+const PROBE_TIMEOUT_MS = 60_000
 
 /**
  * Return the Python snippet used to verify the Wayne runtime can import far
@@ -67,11 +71,18 @@ function wayneRuntimeImportProbe() {
  */
 function canImportWayneCli(pythonPath, opts = {}) {
   if (!pythonPath) return false
+  const timeoutMs =
+    typeof opts.timeoutMs === 'number' && opts.timeoutMs > 0
+      ? opts.timeoutMs
+      : PROBE_TIMEOUT_MS
   try {
+    // execFileSync kills the child on timeout — so a live, progressing import
+    // is waited out until it exits or the budget expires (no false fail while
+    // the process is still working).
     execFileSync(pythonPath, ['-c', wayneRuntimeImportProbe()], {
       env: { ...process.env, ...(opts.env || {}) },
       stdio: 'ignore',
-      timeout: PROBE_TIMEOUT_MS,
+      timeout: timeoutMs,
       windowsHide: true
     })
     return true
@@ -103,10 +114,14 @@ function canImportWayneCli(pythonPath, opts = {}) {
  */
 function verifyWayneCli(wayneCommand, opts = {}) {
   if (!wayneCommand) return false
+  const timeoutMs =
+    typeof opts.timeoutMs === 'number' && opts.timeoutMs > 0
+      ? opts.timeoutMs
+      : PROBE_TIMEOUT_MS
   try {
     execFileSync(wayneCommand, ['--version'], {
       stdio: 'ignore',
-      timeout: PROBE_TIMEOUT_MS,
+      timeout: timeoutMs,
       shell: Boolean(opts.shell),
       windowsHide: true
     })
