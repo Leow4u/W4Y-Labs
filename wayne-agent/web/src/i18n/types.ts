@@ -391,6 +391,12 @@ export interface Translations {
     envBrowser: string;
     envSources: string;
     envChanges: string;
+    envTerminal: string;
+    envChipAgents: string;
+    usageFooterRemaining: string;
+    usageFooterUnavailable: string;
+    usageFooterContext: string;
+    usageFooterDepleted: string;
     reconnecting: string;
 
     turnStalled: string;
@@ -451,6 +457,7 @@ export interface Translations {
     pinProject: string;
     unpinProject: string;
     openInFilesApp: string;
+    viewInDeliverables: string;
     archiveChats: string;
     archiveProject: string;
     removeProject: string;
@@ -684,6 +691,7 @@ export interface Translations {
     teamStatsWorking: string;
     teamStatsMonthCost: string;
     teamViewTeam: string;
+    viewRoutines: string;
     teamNewAgent: string;
     teamNewAgentHint: string;
     teamSubagents: string;
@@ -706,6 +714,7 @@ export interface Translations {
     teamRemoveSub: string;
     teamBackTeam: string;
     teamOpenStudio: string;
+    configure: string;
     delegatesUpTo: string;
     delegateTitle: string;
     delegatePlaceholder: string;
@@ -733,6 +742,7 @@ export interface Translations {
     govReply: string;
     govSend: string;
     govLimits: string;
+    govDefaultPolicyHint: string;
     govCap: string;
     govNoCap: string;
     govSetCap: string;
@@ -866,6 +876,11 @@ export interface Translations {
     connectFailed: string;
     toolsCount: string;
     empty: string;
+    featuredSection: string;
+    connectedSection: string;
+    devSection: string;
+    viewFullCatalog: string;
+    backToFeatured: string;
   };
   files: {
     home: string;
@@ -922,6 +937,17 @@ export interface Translations {
     conflict: string;
     tooLarge: string;
     unsupportedFormat: string;
+    layerDeliverables: string;
+    layerWorkspace: string;
+    deliverablesEmpty: string;
+    deliverablesEmptyHint: string;
+    groupToday: string;
+    groupThisWeek: string;
+    groupOlder: string;
+    filterThisTask: string;
+    clearTaskFilter: string;
+    openTask: string;
+    switchToWorkspace: string;
   };
 
   // ── Cron page ──
@@ -1000,6 +1026,17 @@ export interface Translations {
     chip1: string;
     chip2: string;
     chip3: string;
+    chipDev1: string;
+    chipDev2: string;
+    chipDev3: string;
+    blueprintsMoreSection: string;
+    viewAgent: string;
+    webhookCta: string;
+    skillsOptional: string;
+    noSkillsForProfile: string;
+    noAgentNeedsScript: string;
+    defaultJobTitle: string;
+    fieldsRequired: string;
     delivery: {
       local: string;
       telegram: string;
@@ -1373,6 +1410,10 @@ export interface Translations {
     balanceTitle: string;
     balanceSoon: string;
     noUsage: string;
+    planLabel: string;
+    creditsRemaining: string;
+    manageSubscription: string;
+    upgradePlan: string;
     themeDescWhite: string;
     themeDescMono: string;
     themeDescCyberpunk: string;
@@ -1424,6 +1465,47 @@ export interface Translations {
     budgetAmple: string;
     writeApproval: string;
     writeApprovalHint: string;
+    modelsTab: string;
+    resourcesTab: string;
+    securityTab: string;
+    rulesTab: string;
+    browserTab: string;
+    hooksTab: string;
+    advancedTab: string;
+    modelsDefaultTitle: string;
+    modelsDefaultHint: string;
+    relaySubtitle: string;
+    maxSubtitle: string;
+    exploreSubagentTitle: string;
+    exploreSubagentAuto: string;
+    featuredModelsTitle: string;
+    featuredModelsHint: string;
+    featuredViewAll: string;
+    byokTitle: string;
+    byokHint: string;
+    resourcesIntro: string;
+    resourcesConnectors: string;
+    resourcesSkills: string;
+    resourcesChannels: string;
+    resourcesEmpty: string;
+    resourcesConnected: string;
+    resourcesSkillsHint: string;
+    resourcesChannelsHint: string;
+    goToIntegrations: string;
+    securityIntro: string;
+    securityApprovalsTitle: string;
+    securityApprovalsHint: string;
+    securityDestructiveTitle: string;
+    securityDestructiveHint: string;
+    rulesIntro: string;
+    browserIntro: string;
+    browserPrivateUrls: string;
+    browserPrivateUrlsHint: string;
+    hooksIntro: string;
+    advancedIntro: string;
+    openFullConfig: string;
+    tierGroupRelay: string;
+    tierGroupMax: string;
     skills: string;
     connectors: string;
     channels: string;

@@ -87,6 +87,37 @@ export const TIER_ORDER: TierKey[] = ["gratis", "flash", "auto", "expert", "crew
 export const DEFAULT_TIER: TierKey = "auto";
 
 /**
+ * UI-facing model modes (Fase 10 · Onda B). The customer never sees the five
+ * internal tiers — the composer and Config expose exactly TWO product names:
+ *
+ *   Relay → `auto` preset (the router; fast + economical; every plan)
+ *   MAX   → `expert` preset (premium reasoning; Pro+)
+ *
+ * Crew stays a *capability* in Agentes (delegate_task), NOT a UI model mode.
+ */
+export type UiMode = "relay" | "max";
+export const UI_MODE_ORDER: UiMode[] = ["relay", "max"];
+/** UI mode → internal tier preset key. Single source of truth. */
+export const UI_MODE_TIER: Record<UiMode, TierKey> = { relay: "auto", max: "expert" };
+/** Product name shown for a UI mode (brand names, not localized). */
+export const UI_MODE_LABEL: Record<UiMode, string> = { relay: "Relay", max: "MAX" };
+
+/** Collapses any internal tier onto the two UI modes (expert/crew → MAX). */
+export function uiModeFromTier(tier: TierKey | null): UiMode {
+  return tier === "expert" || tier === "crew" ? "max" : "relay";
+}
+
+/** Resolves the active UI mode straight from the config's (model, reasoning). */
+export function uiModeFromConfig(model: string, reasoning: string): UiMode {
+  return uiModeFromTier(tierFromConfig(model, reasoning));
+}
+
+/** The tier preset a UI mode applies. */
+export function uiModePreset(mode: UiMode): TierPreset {
+  return TIER_PRESETS[UI_MODE_TIER[mode]];
+}
+
+/**
  * Display label for a tier. "gratis" is localized (×16 via i18n); Flash/Auto/
  * Expert/Crew are product names shown as-is everywhere.
  */

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Download,
   ExternalLink,
@@ -90,8 +91,16 @@ function PageGlyph({ kind }: { kind: FileKind }) {
  * Local files download via api.readFile → data URL → <a download> (same as the
  * Files page). Remote URLs just open.
  */
-export function FileRefCard({ file }: { file: FileRef }) {
+export function FileRefCard({
+  file,
+  sessionId = null,
+}: {
+  file: FileRef;
+  /** When set, shows "Ver em Entregas" → /files?session=… */
+  sessionId?: string | null;
+}) {
   const { t } = useI18n();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [preview, setPreview] = useState<ManagedFileEntry | null>(null);
@@ -200,9 +209,20 @@ export function FileRefCard({ file }: { file: FileRef }) {
   const ext = (file.name.split(".").pop() ?? "").toUpperCase();
   const displayName = file.name.replace(/\.[A-Za-z0-9]{1,8}$/, "") || file.name;
 
+  const openInDeliverables = () => {
+    const q = new URLSearchParams();
+    q.set("layer", "deliverables");
+    if (sessionId) q.set("session", sessionId);
+    if (file.path) q.set("highlight", file.path);
+    navigate(`/files?${q.toString()}`);
+  };
+
+  const showDeliverablesLink = Boolean(sessionId && file.path && !file.url);
+
   return (
     <>
-      <div className="flex w-full items-center gap-3.5 rounded-xl border border-border bg-card px-4 py-3 font-sans shadow-card transition-shadow hover:shadow-pop">
+      <div className="flex w-full flex-col gap-2 rounded-xl border border-border bg-card px-4 py-3 font-sans shadow-card transition-shadow hover:shadow-pop">
+        <div className="flex w-full items-center gap-3.5">
         <button
           type="button"
           onClick={openPrimary}
@@ -245,6 +265,16 @@ export function FileRefCard({ file }: { file: FileRef }) {
             </span>
           )}
         </button>
+        </div>
+        {showDeliverablesLink && (
+          <button
+            type="button"
+            onClick={openInDeliverables}
+            className="self-start type-caption text-primary underline-offset-2 hover:underline"
+          >
+            {t.chat.viewInDeliverables}
+          </button>
+        )}
       </div>
       {preview && (
         <FilePreview

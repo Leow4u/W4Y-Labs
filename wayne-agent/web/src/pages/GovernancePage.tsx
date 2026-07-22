@@ -562,6 +562,9 @@ export default function GovernancePage() {
             {ag.govLimits}
             <ShieldCheck className="h-3 w-3 opacity-60" />
           </h2>
+          {/* E2: these per-agent limits OVERRIDE the default policy set in
+              Config → Segurança. */}
+          <p className="mt-1 px-0.5 type-caption text-muted-foreground/80">{ag.govDefaultPolicyHint}</p>
           <div className="mt-2 space-y-2">
             {rows === null ? (
               <div className="py-10 text-center text-sm text-muted-foreground">…</div>

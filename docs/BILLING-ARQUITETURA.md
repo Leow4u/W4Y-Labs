@@ -1,8 +1,26 @@
 # Work4You — Arquitetura de Billing & Modelo de Negócio
 
-> Referência oficial (2026-07-07). Fechado com o Leonardo. Números são **estimativas de
-> planejamento** (preço de LLM, câmbio e consumo real só o piloto calibra); a **arquitetura,
-> os tiers e a lógica de margem** estão decididos. Câmbio assumido ~R$5,5/US$.
+> Referência oficial (2026-07-07, **atualizado 2026-07-21** — alinhado à Auditoria Produto Fase 10).
+> Fechado com o Leonardo. Números são **estimativas de planejamento**; a **arquitetura e a lógica de margem** estão decididos. Câmbio assumido ~R$5,5/US$.
+
+## ⚠️ Atualização v2 — vocabulário UI (jul/2026)
+
+A auditoria produto (**Fase 10**) substitui na **interface**:
+
+| Antes (doc v1) | Agora (UI PT) | Plano platform |
+|----------------|---------------|----------------|
+| Flash / Auto / Expert / Crew | **Relay ⭐** / **MAX** | — |
+| Essencial | **Hobby** | free / starter |
+| Pro | **Pro** | pro |
+| Business | **Business** | max |
+| Crew (tier) | *(removido da UI)* → capacidade **Agentes** (esquadrão, delegate) | Business |
+
+**Relay ⭐** = preset `auto` (roteador; todos os planos). **MAX** = preset `expert` + reasoning alto (Pro+).  
+Créditos, teto OpenRouter por tenant e Stripe **permanecem** — só mudam labels e gating no menu.
+
+Implementação: `web/src/lib/tier-presets.ts`, `TierPicker`→Relay picker, `ConfigUser` → Modelos, `docs/AUDITORIA-PRODUTO-WORK4YOU.md` Fase 10.
+
+---
 
 ## 1. Princípios (decididos)
 
@@ -11,15 +29,24 @@
 2. **Teto rígido via chave OpenRouter por tenant.** Cada tenant usa uma chave OpenRouter
    **provisionada com limite de gasto**. É um teto físico em US$ — o tenant **não consegue**
    gastar além do plano. **Nunca perdemos dinheiro** além do allowance. É o pilar de proteção.
-3. **Tiers próprios escondem as LLMs.** 4 "modelos Work4You" (Flash/Auto/Expert/Crew). Trocamos
-   a LLM por trás quando quiser (preço/qualidade) sem o usuário perceber.
-4. **Auto é o padrão.** Melhor UX (sem fricção) e melhor margem (roteia barato quando dá).
-5. **Gating por plano = upsell.** Expert (Pro+) e Crew (Business) puxam upgrade.
+3. **Tiers próprios escondem as LLMs.** Na UI v2: **Relay** e **MAX** (antes Flash/Auto/Expert/Crew). Trocamos a LLM por trás sem o usuário perceber.
+4. **Relay é o padrão.** Melhor UX (sem fricção) e melhor margem (roteia barato quando dá).
+5. **Gating por plano = upsell.** MAX (Pro+) puxa upgrade. Multi-agente = **Agentes**, não tier.
 
-## 2. Os 4 tiers (Flash · Auto · Expert · Crew)
+## 2. Tiers UI v2 (Relay · MAX) — mapeamento interno
 
-Cada tier é um preset nativo de **modelo × esforço de raciocínio × nº de agentes** (tudo já
-existe no Wayne: roteador OpenRouter, `reasoning_effort` low→xhigh, `delegate_task` multi-agente).
+| UI | Preset legacy | LLM por trás (ex.) | Esforço | Agentes | Plano |
+|---|---|---|---|---|---|
+| **Relay ⭐** | Auto | Flash ↔ Expert (roteador) | auto | 1 | todos *(padrão)* |
+| **MAX** | Expert | Claude Sonnet/Opus | alto | 1 | Pro+ |
+
+Multi-agente (esquadrão, `delegate_task`, team.json) → módulo **Agentes**, gated Business — **não** é pill no composer.
+
+---
+
+## 2b. Tiers legacy (Flash · Auto · Expert · Crew) — referência interna
+
+> Mantido para migration de config e código backend até PR B1. **Não exibir na UI v1.**
 
 | Tier | Subtítulo | LLM por trás (ex., trocável) | Esforço | Agentes | Consumo de crédito | Disponível em |
 |---|---|---|---|---|---|---|
@@ -51,12 +78,12 @@ Consumo ilustrativo (calibrar no piloto):
 
 ## 4. Planos (ponto de partida — calibrar no piloto)
 
-| Plano | Preço R$/mês | ~US$ | Créditos/mês | Diários | Tiers | Imagem/Vídeo | Margem bruta (uso máx) |
+| Plano (UI) | Legacy doc | Preço R$/mês | ~US$ | Créditos/mês | Diários | Tiers UI | Imagem/Vídeo |
 |---|---|---|---|---|---|---|---|
-| **Trial** | 0 (14 dias, CAC ~$5) | 0 | — | 150/dia | Flash, Auto | 5 img | *CAC de aquisição* |
-| **Essencial** | 97 | 17,6 | 3.000 | 100/dia | Flash, Auto | 50 img | **~49%** |
-| **Pro** | 247 | 44,9 | 10.000 | 200/dia | + Expert | 200 img · vídeo básico | **~62%** |
-| **Business** | 597 | 108,5 | 30.000 | 300/dia | + Crew | 800 img · vídeo | **~63%** |
+| **Hobby** | Essencial | 97 | 17,6 | 3.000 | 100/dia | Relay | 50 img |
+| **Pro** | Pro | 247 | 44,9 | 10.000 | 200/dia | Relay + MAX | 200 img · vídeo básico |
+| **Business** | Business | 597 | 108,5 | 30.000 | 300/dia | Relay + MAX + Agentes | 800 img · vídeo |
+| **Trial** | Trial | 0 (14 dias) | 0 | — | 150/dia | Relay | 5 img |
 | **Top-up** | R$29 | — | +1.500 | — | — | — | ~mesma |
 
 > Benchmark Manus: $20 = 4.000/mês + 300/dia · $40 = 8.000 · $200 = 40.000 (~200 cr/US$).
@@ -119,12 +146,14 @@ tier no menu, mapeamento tier→(modelo, esforço, agentes).
 
 ## 9. Roadmap de construção (billing)
 
+> **Sequência detalhada:** `docs/AUDITORIA-PRODUTO-WORK4YOU.md` — Fase 10, Onda D (D2–D6).
+
 1. **Fundação:** Stripe (planos + webhooks) · Provisioner (plano→chave OpenRouter com limite).
-2. **Tiers:** mapear Flash/Auto/Expert/Crew → (modelo, esforço, agentes); menu com gating.
+2. **Tiers UI v2:** Relay/MAX → (modelo, esforço); menu com gating; migration Flash/Expert/Crew.
 3. **Créditos:** conversor uso→créditos · dashboard (mensal + diário) · avisos 50/75/90/402.
-4. **Imagem/vídeo:** ligar provedor (fal/openrouter, nano-banana) na chave do tenant.
-5. **Upsell fase 2:** sugestão de tier no meio da conversa · top-up.
-6. **Piloto:** 10–20 tenants reais → medir consumo por perfil → **calibrar créditos/preços**.
+4. **Imagem/vídeo:** ligar provedor na chave do tenant.
+5. **Upsell fase 2:** sugestão MAX no meio da conversa · top-up.
+6. **Piloto:** 10–20 tenants reais → calibrar créditos/preços.
 
 ## 10. Pendências para o piloto (calibração)
 

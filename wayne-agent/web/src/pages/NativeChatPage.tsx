@@ -34,6 +34,7 @@ import {
 import { isWebSourceTool } from "@/components/chat/ToolLine";
 import { extractFileRefs, type FileRef } from "@/components/chat/FileRefCard";
 import { TaskHeaderActions } from "@/components/chat/TaskHeaderActions";
+import { UsageFooter } from "@/components/chat/UsageFooter";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useI18n } from "@/i18n";
@@ -273,7 +274,6 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     title,
     error,
     progress,
-    usage,
     lastResult,
     liveInfo,
     notices,
@@ -1203,21 +1203,19 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     // cloud computer they would hit the wrong machine. Hidden rather than
     // broken; the WS-borne actions (undo/compress/branch) return with S2's
     // api routing.
-    if (!isActive || emptyHero || cloudSession) {
+    if (!isActive || emptyHero) {
       setEnd(null);
       return;
     }
     setEnd(
       <TaskHeaderActions
         storedId={storedSessionId}
-        project={project}
-        usage={usage}
+        project={cloudSession ? null : project}
         busy={busy}
         onRenamed={setTitleOverride}
         onUndo={undoTurn}
         onCompress={compressChat}
         onBranch={handleBranch}
-        onContext={contextBreakdown}
       />,
     );
     return () => setEnd(null);
@@ -1227,12 +1225,10 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
     cloudSession,
     storedSessionId,
     project,
-    usage,
     busy,
     undoTurn,
     compressChat,
     handleBranch,
-    contextBreakdown,
     setEnd,
   ]);
 
@@ -1390,18 +1386,12 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
           }}
           onInterrupt={interrupt}
           modePicker={
-            // Cloud session (S1): the Manual/Auto choice writes the LOCAL
-            // config (REST), which the cloud computer never reads — hidden
-            // rather than a switch that does nothing. Approvals themselves
-            // still work (they ride the session WS and surface in the panel).
-            cloudSession ? undefined : (
-              <ModePicker
-                approvalsMode={approvalsMode}
-                yoloLive={liveInfo?.yolo ?? false}
-                onSetApprovalsMode={handleSetApprovalsMode}
-                onSetSessionYolo={(on) => void setSessionYolo(on)}
-              />
-            )
+            <ModePicker
+              approvalsMode={approvalsMode}
+              yoloLive={liveInfo?.yolo ?? false}
+              onSetApprovalsMode={handleSetApprovalsMode}
+              onSetSessionYolo={(on) => void setSessionYolo(on)}
+            />
           }
           onAttach={(files) => void handleAttach(files)}
           onAttachPath={(p) => void handleAttachPath(p)}
@@ -1460,6 +1450,11 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
           />
         )}
       </div>
+
+      <UsageFooter
+        sessionActive={!emptyHero}
+        onContextBreakdown={contextBreakdown}
+      />
 
       <p className="pt-2.5 text-center text-xs text-text-tertiary">
         {t.chat.disclaimer}
@@ -1558,6 +1553,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
                       onDetailModeChange={setDetailModePersist}
                       steps={turn.isLast && busy ? progress.steps : []}
                       statusText={turn.isLast && busy ? progress.statusText : null}
+                      sessionId={storedSessionId}
                       onRegenerate={busy ? undefined : () => void handleRegenerate()}
                       onBranch={() => void handleBranch()}
                     />
@@ -1631,6 +1627,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
           sources={dockSources}
           usedApps={usedAppSlugs}
           result={lastResult}
+          sessionId={storedSessionId}
           onAttachFiles={(files) => void handleAttach(files)}
           onSendPrompt={(text) => void handleSend(text)}
           onSeedComposer={seedComposer}

@@ -13,7 +13,7 @@
  * happens (model with ALL of OpenRouter, cron routines, skill toggles...).
  * Route: /profiles/agent?name=<slug>.
  */
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import dagre from "dagre";
 import {
@@ -54,6 +54,7 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
+import { isInternalView } from "@/lib/internal-view";
 
 function prettify(name: string): string {
   const s = name.replace(/[-_]+/g, " ").trim();
@@ -201,6 +202,19 @@ export default function AgentWorkflowPage() {
   const [reloadNonce, setReloadNonce] = useState(0);
   const [drawerTab, setDrawerTab] = useState<AgentDrawerTab | null>(null);
   const [activating, setActivating] = useState(false);
+  // GAP-AG-02 / GAP-AG-WF-01 (E3 + E4): the node canvas is the ADMIN X-ray. For
+  // the PME journey it is skipped entirely — this route opens the AgentDrawer
+  // directly ("Configurar"), so there is a single config surface. The canvas
+  // returns only behind ?full=1. Closing the drawer in PME mode goes back to
+  // the team (Ver time), never leaving the user on an empty canvas.
+  const internal = isInternalView();
+  const autoOpened = useRef(false);
+  useEffect(() => {
+    if (!internal && data && !autoOpened.current) {
+      autoOpened.current = true;
+      setDrawerTab("profile");
+    }
+  }, [internal, data]);
 
   useEffect(() => {
     setTitle(displayName || null);
@@ -460,7 +474,9 @@ export default function AgentWorkflowPage() {
         )}
       </div>
 
-      {/* The workflow (React Flow LR). */}
+      {/* The workflow (React Flow LR) — ADMIN only (?full=1). PME gets the
+          drawer directly (auto-opened above). */}
+      {internal && (
       <div className="w4y-flow relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-background/60">
         {/* Last-run overlay pill: WHEN it ran, tool volume, honest cost —
             straight from state.db via /api/agent-trace. Clicking opens the
@@ -511,6 +527,7 @@ export default function AgentWorkflowPage() {
           <Background variant={BackgroundVariant.Dots} gap={26} size={1.4} color="currentColor" />
         </ReactFlow>
       </div>
+      )}
 
       <DeleteConfirmDialog
         open={agentDelete.isOpen}
@@ -532,7 +549,12 @@ export default function AgentWorkflowPage() {
             isDefault: data.isDefault,
           }}
           initialTab={drawerTab}
-          onClose={() => setDrawerTab(null)}
+          onClose={() => {
+            setDrawerTab(null);
+            // PME: this route IS the drawer — closing returns to Ver time
+            // rather than exposing the bare canvas behind it.
+            if (!internal) navigate(`/profiles/team?name=${encodeURIComponent(name)}`);
+          }}
           onChanged={() => setReloadNonce((v) => v + 1)}
           onActivate={() => void activate()}
           onRequestDelete={(slug) => {

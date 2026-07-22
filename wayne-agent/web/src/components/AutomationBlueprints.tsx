@@ -8,9 +8,10 @@
  * else. It instantiates on the agent (profile) picked up top. Zero new backend
  * — just a reskin.
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
+  ChevronDown,
   Clock,
   FileText,
   FlaskConical,
@@ -35,6 +36,7 @@ import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { isLocalEngine } from "@/lib/projects";
 import { cloudBridge, cloudPostJson } from "@/lib/cloudSession";
+import { localizeBlueprint, sortBlueprintsForDisplay } from "@/lib/blueprint-i18n";
 
 interface AutomationBlueprintsProps {
   profile: string;
@@ -222,11 +224,32 @@ function BlueprintCard({
   );
 }
 
+function BlueprintGrid({
+  items,
+  profile,
+  showToast,
+  onCreated,
+}: {
+  items: AutomationBlueprint[];
+  profile: string;
+  showToast: (message: string, type: "error" | "success") => void;
+  onCreated?: () => void;
+}) {
+  return (
+    <div className={cn("grid grid-cols-1 gap-2.5 md:grid-cols-2")}>
+      {items.map((bp) => (
+        <BlueprintCard key={bp.key} blueprint={bp} profile={profile} showToast={showToast} onCreated={onCreated} />
+      ))}
+    </div>
+  );
+}
+
 export function AutomationBlueprints({ profile, onCreated }: AutomationBlueprintsProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const { toast, showToast } = useToast();
   const [blueprints, setBlueprints] = useState<AutomationBlueprint[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -242,6 +265,12 @@ export function AutomationBlueprints({ profile, onCreated }: AutomationBlueprint
       cancelled = true;
     };
   }, []);
+
+  const { featured, more } = useMemo(() => {
+    if (!blueprints?.length) return { featured: [], more: [] };
+    const localized = blueprints.map((bp) => localizeBlueprint(bp, locale));
+    return sortBlueprintsForDisplay(localized);
+  }, [blueprints, locale]);
 
   if (loadError) {
     return <p className="type-caption text-destructive">{loadError}</p>;
@@ -260,10 +289,23 @@ export function AutomationBlueprints({ profile, onCreated }: AutomationBlueprint
   return (
     <>
       <Toast toast={toast} />
-      <div className={cn("grid grid-cols-1 gap-2.5 md:grid-cols-2")}>
-        {blueprints.map((bp) => (
-          <BlueprintCard key={bp.key} blueprint={bp} profile={profile} showToast={showToast} onCreated={onCreated} />
-        ))}
+      <div className="grid gap-4">
+        <BlueprintGrid items={featured} profile={profile} showToast={showToast} onCreated={onCreated} />
+        {more.length > 0 && (
+          <div className="grid gap-2">
+            <button
+              type="button"
+              className="flex items-center gap-2 text-left type-ui font-medium text-muted-foreground hover:text-foreground"
+              onClick={() => setMoreOpen((v) => !v)}
+            >
+              <ChevronDown className={cn("h-4 w-4 transition-transform", moreOpen && "rotate-180")} />
+              {t.cron.blueprintsMoreSection}
+            </button>
+            {moreOpen && (
+              <BlueprintGrid items={more} profile={profile} showToast={showToast} onCreated={onCreated} />
+            )}
+          </div>
+        )}
       </div>
     </>
   );

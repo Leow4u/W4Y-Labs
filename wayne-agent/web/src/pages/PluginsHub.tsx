@@ -20,6 +20,7 @@ import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { useI18n } from "@/i18n";
 import type { ConnectorToolkit } from "@/lib/api";
 import { useConnectors, filterConnectors, catalogPhase } from "@/hooks/useConnectors";
+import { resolveFeaturedConnectors } from "@/lib/connector-curation";
 import { CatalogError } from "@/components/connectors/CatalogError";
 import { useSkillHub, filterSkills } from "@/hooks/useSkillHub";
 import { ConnectorCard } from "@/components/connectors/ConnectorCard";
@@ -108,6 +109,8 @@ export default function PluginsHub() {
     () => filterConnectors(c.toolkits, search, null),
     [c.toolkits, search],
   );
+  const connFeatured = useMemo(() => resolveFeaturedConnectors(c.toolkits), [c.toolkits]);
+  const connRow = search.trim() ? conn : connFeatured;
 
   // The hub is REACHABLE by the end user: with the sidebar collapsed the
   // "Integrações" group cannot expand into its children, so pressing it
@@ -207,10 +210,10 @@ export default function PluginsHub() {
       ) : (
         <CardGrid
           title={t.app.nav.connectors}
-          count={conn.length}
+          count={connRow.length}
           seeAllLabel={t.chat.viewAll}
           onSeeAll={conn.length > PAGE_SIZE ? () => setShowAllConn(true) : undefined}
-          items={conn}
+          items={connRow}
           pageSize={PAGE_SIZE}
           renderItem={(tk) => <div key={tk.slug}>{connCard(tk)}</div>}
         />

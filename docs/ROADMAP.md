@@ -14,7 +14,7 @@
 > M0 concluído em 2026-07-05: instância `wayne-w4y` em GRU atrás de work4you.ai, SSO,
 > despertador de cron (Cloud Scheduler `wayne-cron-wake`).
 
-Ordem: **Fundação → Novo Trabalho → Conectores → Artefatos → Uso/Observabilidade → Rotinas → Agent Studio.**
+> **Auditoria produto v1 (jul/2026):** roadmap executável em `docs/AUDITORIA-PRODUTO-WORK4YOU.md` — Fase 10 (ondas A–E, 10 PRs). Este doc permanece visão infra/plataforma histórica.
 
 ---
 

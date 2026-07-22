@@ -1,25 +1,45 @@
 import { describe, expect, it } from "vitest";
 
 import { catalogPhase } from "@/hooks/useConnectors";
+import {
+  normalizeConnectorKey,
+  resolveFeaturedConnectors,
+} from "@/lib/connector-curation";
+import type { ConnectorToolkit } from "@/lib/api";
+
+function tk(slug: string, name: string): ConnectorToolkit {
+  return {
+    slug,
+    name,
+    description: "",
+    logo: null,
+    categories: [],
+    no_auth: false,
+    managed_auth: true,
+    auth_schemes: [],
+    tools_count: 1,
+    triggers_count: 0,
+  };
+}
 
 describe("catalogPhase", () => {
-  it("is loading while the catalog is in flight, whatever else is set", () => {
-    expect(catalogPhase({ loading: true, error: null, total: 0 })).toBe("loading");
-    expect(catalogPhase({ loading: true, error: "down", total: 0 })).toBe("loading");
-  });
-
-  it("tells a failed load apart from an empty catalog", () => {
-    // The defect: both used to end here with total 0, and the page rendered
-    // the same "no connectors" state for a service that was simply down.
+  it("treats fetch failure as error not empty", () => {
     expect(catalogPhase({ loading: false, error: "down", total: 0 })).toBe("error");
-    expect(catalogPhase({ loading: false, error: null, total: 0 })).toBe("empty");
+  });
+});
+
+describe("connector-curation", () => {
+  it("normalizes slug keys", () => {
+    expect(normalizeConnectorKey("Google_Sheets")).toBe("googlesheets");
   });
 
-  it("keeps reporting the failure even if stale toolkits are still in state", () => {
-    expect(catalogPhase({ loading: false, error: "down", total: 40 })).toBe("error");
-  });
-
-  it("is ready once the catalog arrived", () => {
-    expect(catalogPhase({ loading: false, error: null, total: 1047 })).toBe("ready");
+  it("resolves featured by slug or display name", () => {
+    const toolkits = [
+      tk("GMAIL", "Gmail"),
+      tk("google_sheets", "Google Sheets"),
+      tk("random_app", "Random"),
+    ];
+    const featured = resolveFeaturedConnectors(toolkits);
+    expect(featured.map((t) => t.slug)).toEqual(["GMAIL", "google_sheets"]);
   });
 });

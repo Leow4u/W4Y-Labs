@@ -25,6 +25,8 @@ import {
 } from "lucide-react";
 import type { SkillHubResult } from "@/lib/api";
 import { useI18n } from "@/i18n";
+import { cn } from "@/lib/utils";
+import { hasCuratedSkillName, skillDisplayName } from "@/lib/skill-curation";
 
 const CAT_ICON: Record<string, LucideIcon> = {
   general: Package,
@@ -150,8 +152,13 @@ export function SkillHubCard({
   /** Card body click → read the skill before installing. Omitted = inert body. */
   onOpen?: (skill: SkillHubResult) => void;
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const Icon = catIcon(skill.category);
+
+  // E1 (GAP-INT-05): featured skills get a friendly pt-BR title; the technical
+  // identifier stays as a subtitle so nothing gets lost in translation.
+  const title = skillDisplayName(skill.name, locale);
+  const curated = hasCuratedSkillName(skill.name, locale);
 
   const body = (
     <>
@@ -160,13 +167,20 @@ export function SkillHubCard({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <span className="truncate font-mono-ui text-sm text-foreground">{skill.name}</span>
+          <span className={cn("truncate text-sm text-foreground", curated ? "font-medium" : "font-mono-ui")}>
+            {title}
+          </span>
           {skill.category && skill.category !== "general" && (
             <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 type-micro text-muted-foreground">
               {prettyCat(skill.category, t.common.general)}
             </span>
           )}
         </div>
+        {curated && (
+          <span className="mt-0.5 block truncate font-mono-ui text-[0.6875rem] text-muted-foreground/80">
+            {skill.name}
+          </span>
+        )}
         <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
           {skill.description}
         </p>

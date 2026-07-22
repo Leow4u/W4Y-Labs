@@ -19,7 +19,7 @@ import {
   type MouseEvent as ReactMouseEvent,
 } from "react";
 import { createPortal } from "react-dom";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -64,6 +64,7 @@ import { uploadKnowledgeDocument } from "@/lib/knowledge-upload";
 import { agentLabel, realAgents } from "@/lib/agents";
 import { prettifyProject } from "@/lib/projects";
 import { isFilePinned, toggleFilePin, removePinnedFile, onPinnedFilesChange } from "@/lib/pinned-files";
+import { DeliverablesPanel } from "@/components/files/DeliverablesPanel";
 import { FilesRail, type RailProject } from "@/components/files/FilesRail";
 import { FilePreview, isPreviewable } from "@/components/files/FilePreview";
 import { useI18n } from "@/i18n";
@@ -72,6 +73,14 @@ import { PluginSlot } from "@/plugins";
 
 const DATE_FORMAT = new Intl.DateTimeFormat(undefined, { dateStyle: "medium", timeStyle: "short" });
 const VIEW_KEY = "w4y-files-view";
+type FilesLayer = "deliverables" | "workspace";
+
+function parseFilesLayer(search: string): FilesLayer {
+  const q = new URLSearchParams(search);
+  if (q.get("layer") === "workspace") return "workspace";
+  if (q.get("path") || q.get("src") === "knowledge") return "workspace";
+  return "deliverables";
+}
 // Transfer type of the INTERNAL drag-to-move (tells it apart from the upload of
 // external files, which carries the "Files" type).
 const MOVE_MIME = "application/x-w4y-move";
@@ -146,6 +155,7 @@ export default function FilesPage() {
   const { toast, showToast } = useToast();
   const { setAfterTitle, setEnd } = usePageHeader();
   const routeLocation = useLocation();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const dragDepthRef = useRef(0);
 
@@ -199,6 +209,19 @@ export default function FilesPage() {
 
   const internal = isInternalView();
   const onKnowledge = source === "knowledge" && activeAgent !== null;
+  const layer = useMemo(
+    () => parseFilesLayer(routeLocation.search),
+    [routeLocation.search],
+  );
+  const sessionFilter = useMemo(
+    () => new URLSearchParams(routeLocation.search).get("session"),
+    [routeLocation.search],
+  );
+  const highlightPath = useMemo(
+    () => new URLSearchParams(routeLocation.search).get("highlight"),
+    [routeLocation.search],
+  );
+  const onDeliverablesLayer = layer === "deliverables" && !onKnowledge;
   const caps: FileCaps = capsFor(onKnowledge ? "knowledge" : "cloud");
   const activePath = listing?.path ?? currentPath ?? "";
   const canUpload = onKnowledge
@@ -235,8 +258,8 @@ export default function FilesPage() {
   useEffect(() => {
     if (onKnowledge) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void load(currentPath);
-  }, [currentPath, onKnowledge]); // eslint-disable-line react-hooks/exhaustive-deps
+    void load(onDeliverablesLayer ? undefined : currentPath);
+  }, [currentPath, onKnowledge, onDeliverablesLayer]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** The agents that can own knowledge — the installation is not one of them. */
   useEffect(() => {
@@ -300,16 +323,46 @@ export default function FilesPage() {
     if (path) setCurrentPath(path);
   }, [routeLocation.search]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const setLayer = useCallback(
+    (next: FilesLayer) => {
+      const q = new URLSearchParams(window.location.search);
+      q.set("layer", next);
+      if (next === "deliverables") {
+        q.delete("path");
+      } else {
+        q.delete("session");
+        q.delete("highlight");
+      }
+      navigate(`/files?${q.toString()}`, { replace: true });
+    },
+    [navigate],
+  );
+
   // …and write it back, so F5 lands where the user is.
   useEffect(() => {
     const q = new URLSearchParams(window.location.search);
     if (onKnowledge && activeAgent) {
       q.delete("path");
+      q.delete("layer");
+      q.delete("session");
+      q.delete("highlight");
       q.set("src", "knowledge");
       q.set("agent", activeAgent);
+    } else if (onDeliverablesLayer) {
+      q.delete("src");
+      q.delete("agent");
+      q.set("layer", "deliverables");
+      q.delete("path");
+      if (sessionFilter) q.set("session", sessionFilter);
+      else q.delete("session");
+      if (highlightPath) q.set("highlight", highlightPath);
+      else q.delete("highlight");
     } else {
       q.delete("src");
       q.delete("agent");
+      q.set("layer", "workspace");
+      q.delete("session");
+      q.delete("highlight");
       if (activePath) q.set("path", activePath);
       else q.delete("path");
     }
@@ -317,7 +370,7 @@ export default function FilesPage() {
     if (next !== window.location.pathname + window.location.search) {
       window.history.replaceState(null, "", next);
     }
-  }, [onKnowledge, activeAgent, activePath]);
+  }, [onKnowledge, activeAgent, activePath, onDeliverablesLayer, sessionFilter, highlightPath]);
 
   // Navigation breadcrumb built from the absolute path relative to the root.
   const crumbs = useMemo<Crumb[]>(() => {
@@ -688,8 +741,8 @@ export default function FilesPage() {
       />
 
       <FilesRail
-        root={root}
-        activePath={onKnowledge ? "" : activePath}
+        root={onDeliverablesLayer ? null : root}
+        activePath={onKnowledge || onDeliverablesLayer ? "" : activePath}
         projects={projects}
         onNavigate={goCloud}
         onPreview={setPreview}
@@ -704,10 +757,48 @@ export default function FilesPage() {
 
       <div
         className="flex min-h-[calc(100dvh-160px)] min-w-0 flex-1 flex-col gap-4"
-        onContextMenu={(e) => openMenu(e, null)}
+        onContextMenu={(e) => !onDeliverablesLayer && openMenu(e, null)}
       >
       <PluginSlot name="files:top" />
 
+      {!onKnowledge && (
+        <div className="flex gap-1 rounded-lg border border-border p-0.5 w-fit">
+          <button
+            type="button"
+            onClick={() => setLayer("deliverables")}
+            className={cn(
+              "rounded-md px-3 py-1.5 type-ui font-medium transition-colors",
+              onDeliverablesLayer
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tf.layerDeliverables}
+          </button>
+          <button
+            type="button"
+            onClick={() => setLayer("workspace")}
+            className={cn(
+              "rounded-md px-3 py-1.5 type-ui font-medium transition-colors",
+              !onDeliverablesLayer
+                ? "bg-muted text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {tf.layerWorkspace}
+          </button>
+        </div>
+      )}
+
+      {onDeliverablesLayer ? (
+        <DeliverablesPanel
+          root={root}
+          sessionId={sessionFilter}
+          highlightPath={highlightPath}
+          onSwitchWorkspace={() => setLayer("workspace")}
+        />
+      ) : (
+        <>
       {/* Bar: back + breadcrumb (left) · view + actions (right). */}
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         <Button
@@ -890,6 +981,9 @@ export default function FilesPage() {
           ) : (
             <FileList entries={user} ops={ops} tf={tf} caps={caps} />
           )}
+        </>
+      )}
+
         </>
       )}
 

@@ -141,11 +141,13 @@ function TextWithFiles({
   text,
   streaming,
   seen,
+  sessionId,
 }: {
   id: string;
   text: string;
   streaming?: boolean;
   seen: Set<string>;
+  sessionId?: string | null;
 }) {
   const { text: cleanFiles, files } = extractFileRefs(text);
   const { text: clean, links } = extractConnectLinks(cleanFiles);
@@ -167,7 +169,7 @@ function TextWithFiles({
       {(fresh.length > 0 || freshLinks.length > 0) && (
         <div className="flex flex-wrap gap-2 py-1">
           {fresh.map((f) => (
-            <FileRefCard key={f.path ?? f.url ?? f.name} file={f} />
+            <FileRefCard key={f.path ?? f.url ?? f.name} file={f} sessionId={sessionId} />
           ))}
           {freshLinks.map((u) => (
             <ConnectLinkCard key={u} url={u} context={clean} />
@@ -182,14 +184,23 @@ function TextWithFiles({
 function ResponseProse({
   parts,
   seen,
+  sessionId,
 }: {
   parts: Array<{ id: string; text: string; streaming: boolean }>;
   seen: Set<string>;
+  sessionId?: string | null;
 }) {
   return (
     <div className="prose-serif min-w-0 space-y-2.5 text-foreground">
       {parts.map((p) => (
-        <TextWithFiles key={p.id} id={p.id} text={p.text} streaming={p.streaming} seen={seen} />
+        <TextWithFiles
+          key={p.id}
+          id={p.id}
+          text={p.text}
+          streaming={p.streaming}
+          seen={seen}
+          sessionId={sessionId}
+        />
       ))}
     </div>
   );
@@ -272,6 +283,7 @@ export function AssistantTurn({
   onDetailModeChange,
   steps = [],
   statusText = null,
+  sessionId = null,
   onCopy,
   onRegenerate,
   onBranch,
@@ -286,6 +298,7 @@ export function AssistantTurn({
   steps?: TaskStep[];
   /** Transient status line ("analisando o resultado…"). */
   statusText?: string | null;
+  sessionId?: string | null;
   onCopy?: (text: string) => void;
   onRegenerate?: () => void;
   onBranch?: () => void;
@@ -471,7 +484,7 @@ export function AssistantTurn({
           pattern), with no labeled line. */}
       {hasResponse && (
         <div className={showActivity ? "mt-3" : undefined}>
-          <ResponseProse parts={response} seen={seenFiles} />
+          <ResponseProse parts={response} seen={seenFiles} sessionId={sessionId} />
         </div>
       )}
 

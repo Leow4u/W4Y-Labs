@@ -1,7 +1,8 @@
 /**
  * ConfigUser — the user's LEAN Settings (benchmark: Manus web).
- * Sections: Conta · Geral · Personalização · Privacidade · Controle de dados —
- * only controls with REAL backing (curation in docs/CONFIG-CURADORIA.md).
+ * Sections: Conta · Geral · Aparência · Plano · Modelos · Memória · Privacidade ·
+ * Notificações · Computador · Recursos · Segurança · Regras · Navegador · Hooks
+ * (+ Avançado em ?full=1). Recursos = permissões + link-out (sem embed).
  *
  * Block 3 — AUTO-SAVE: there is no Save button. Toggles/selects write on the
  * spot (api.saveConfig); the Instructions textarea writes on blur
@@ -12,11 +13,33 @@
  * Controle de dados=resetMemory + bulkDeleteSessions. Technical screen: ?full=1.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { UserCircle, SlidersHorizontal, Sparkles, Shield, LogOut, Package, Plug, Puzzle, Radio, Search, Monitor, Bell, Brain, Laptop, HardDrive, Cpu, MemoryStick, Archive, ExternalLink, Gauge, Check } from "lucide-react";
-import SkillsPage from "@/pages/SkillsPage";
-import ConnectorsPage from "@/pages/ConnectorsPage";
-import ChannelsPage from "@/pages/ChannelsPage";
-import PluginsPage from "@/pages/PluginsPage";
+import { Link } from "react-router-dom";
+import {
+  UserCircle,
+  SlidersHorizontal,
+  Sparkles,
+  Shield,
+  ShieldCheck,
+  LogOut,
+  Search,
+  Monitor,
+  Bell,
+  Brain,
+  Laptop,
+  HardDrive,
+  Cpu,
+  MemoryStick,
+  Archive,
+  ExternalLink,
+  Gauge,
+  Puzzle,
+  Palette,
+  Globe,
+  BookOpen,
+  Wrench,
+} from "lucide-react";
+import { ConfigModelsSection } from "@/components/config/ConfigModelsSection";
+import { ConfigResourcesSection } from "@/components/config/ConfigResourcesSection";
 import { Switch } from "@nous-research/ui/ui/components/switch";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
@@ -25,15 +48,8 @@ import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { Toast } from "@nous-research/ui/ui/components/toast";
 import { api, type AuthMeResponse, type SystemStats, type StatusResponse, type AnalyticsResponse } from "@/lib/api";
-import {
-  TIER_ORDER,
-  TIER_PRESETS,
-  tierFromConfig,
-  tierLabel,
-  tierSubtitle,
-  type TierKey,
-} from "@/lib/tier-presets";
-import { formatCredits, usdToCredits } from "@/lib/credits";
+import { creditBand, creditBandFill, creditBandText, formatCredits, usdToCredits } from "@/lib/credits";
+import { fetchPlan, openBillingPortal, planLabel } from "@/lib/plans";
 import {
   getChatDisplay,
   setChatDisplay,
@@ -43,7 +59,7 @@ import {
 import { isNotifyEnabled, setNotifyKind } from "@/lib/notify-prefs";
 import { getNestedValue, setNestedValue } from "@/lib/nested";
 import { useI18n, LOCALE_META } from "@/i18n";
-import type { Locale } from "@/i18n";
+import type { Locale, Translations } from "@/i18n";
 import { useTheme, THEME_DEFAULT_FONT_ID } from "@/themes";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
@@ -52,32 +68,61 @@ import { isDesktopApp } from "@/lib/desktopChrome";
 import { isLocalEngine } from "@/lib/projects";
 
 type SectionKey =
-  | "general" | "account" | "computer" | "planTab" | "notificationsTab" | "memoryTab" | "privacyData"
-  | "skills" | "connectors" | "channels" | "plugins";
+  | "account"
+  | "general"
+  | "appearance"
+  | "planTab"
+  | "modelsTab"
+  | "memoryTab"
+  | "privacyData"
+  | "notificationsTab"
+  | "computer"
+  | "resourcesTab"
+  | "securityTab"
+  | "rulesTab"
+  | "browserTab"
+  | "hooksTab"
+  | "advancedTab";
 type NavItem = { key: SectionKey; icon: React.ComponentType<{ className?: string }> };
 
-// "Configurações" group — Onda A (10/07): Claude structure, native backing.
-// Geral absorbed Personalização (instructions); Privacidade+Controle became
-// "Privacidade e dados"; Memória got its own section; Computador and
-// Notificações are new (Manus "My Computer" / Claude benchmark).
 const SECTIONS: NavItem[] = [
-  { key: "general", icon: SlidersHorizontal },
   { key: "account", icon: UserCircle },
-  { key: "computer", icon: Monitor },
+  { key: "general", icon: SlidersHorizontal },
+  { key: "appearance", icon: Palette },
   { key: "planTab", icon: Gauge },
-  { key: "notificationsTab", icon: Bell },
+  { key: "modelsTab", icon: Cpu },
   { key: "memoryTab", icon: Brain },
   { key: "privacyData", icon: Shield },
+  { key: "notificationsTab", icon: Bell },
+  { key: "computer", icon: Monitor },
+  { key: "resourcesTab", icon: Puzzle },
+  { key: "securityTab", icon: ShieldCheck },
+  { key: "rulesTab", icon: BookOpen },
+  { key: "browserTab", icon: Globe },
+  { key: "hooksTab", icon: Wrench },
 ];
-// "Personalizar" group — reuses the existing PAGES (same backing/API), mounted
-// here in the modal the way Claude/Manus do. They are NOT new screens.
-const PAGES: NavItem[] = [
-  { key: "skills", icon: Package },
-  { key: "connectors", icon: Plug },
-  { key: "channels", icon: Radio },
-  { key: "plugins", icon: Puzzle },
-];
-const PAGE_KEYS: SectionKey[] = ["skills", "connectors", "channels", "plugins"];
+const ADVANCED_SECTION: NavItem = { key: "advancedTab", icon: HardDrive };
+
+function sectionLabel(key: SectionKey, cu: Translations["configUser"]): string {
+  const map: Record<SectionKey, keyof Translations["configUser"]> = {
+    account: "account",
+    general: "general",
+    appearance: "appearance",
+    planTab: "planTab",
+    modelsTab: "modelsTab",
+    memoryTab: "memoryTab",
+    privacyData: "privacyData",
+    notificationsTab: "notificationsTab",
+    computer: "computer",
+    resourcesTab: "resourcesTab",
+    securityTab: "securityTab",
+    rulesTab: "rulesTab",
+    browserTab: "browserTab",
+    hooksTab: "hooksTab",
+    advancedTab: "advancedTab",
+  };
+  return cu[map[key]];
+}
 
 /** Theme gallery (benchmark: the Hermes desktop's Appearance tab) — each card
  *  shows a real MINI-PREVIEW of the theme (background, surface, text and
@@ -159,8 +204,15 @@ function Segmented<T extends string>({
 /** Computer resource meter (memory/storage/CPU): label, reading and a bar that
  *  heats up with usage (green→amber 70%→red 90%). */
 function Meter({
-  icon: Icon, label, detail, percent,
-}: { icon: React.ComponentType<{ className?: string }>; label: string; detail: string; percent: number | null }) {
+  icon: Icon, label, detail, percent, fillClass,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  detail: string;
+  percent: number | null;
+  /** Overrides the default 70/90 band color (credits use 50/75/90 — see D4). */
+  fillClass?: string;
+}) {
   const pct = percent == null ? null : Math.max(0, Math.min(100, percent));
   return (
     <div className="flex flex-col gap-1.5">
@@ -176,7 +228,7 @@ function Meter({
           <div
             className={cn(
               "h-full rounded-full transition-[width] duration-500",
-              pct >= 90 ? "bg-destructive" : pct >= 70 ? "bg-warning" : "bg-live",
+              fillClass ?? (pct >= 90 ? "bg-destructive" : pct >= 70 ? "bg-warning" : "bg-live"),
             )}
             style={{ width: `${pct}%` }}
           />
@@ -240,16 +292,18 @@ export default function ConfigUser() {
   // lib/credits.ts) from /api/analytics/usage; global DEFAULT tier (same
   // mechanics as the TierPicker: setModelAssignment + reasoning/delegation).
   const [usage, setUsage] = useState<AnalyticsResponse | null>(null);
-  const [tierBusy, setTierBusy] = useState(false);
   // Cycle meter — the gateway's usage.account RPC (percentage of the tenant's
   // OpenRouter key quota; NEVER $ nor the key). Ephemeral client: opens, asks,
   // closes — the Plan tab is REST for everything else.
   const [cycleMeter, setCycleMeter] = useState<
     { configured: boolean; used_percent: number | null; depleted: boolean } | null
   >(null);
+  // Tenant plan (D2/D6) — read live from the shell (/planos/plan). null = unknown.
+  const [plan, setPlan] = useState<string | null>(null);
   useEffect(() => {
     if (active !== "planTab") return;
     let cancelled = false;
+    void fetchPlan().then((p) => { if (!cancelled) setPlan(p); });
     api.getAnalytics(30).then((u) => { if (!cancelled) setUsage(u); }).catch(() => {});
     void (async () => {
       const { GatewayClient } = await import("@/lib/gatewayClient");
@@ -270,39 +324,6 @@ export default function ConfigUser() {
     })();
     return () => { cancelled = true; };
   }, [active]);
-
-  const applyDefaultTier = async (k: TierKey) => {
-    if (tierBusy || k === currentTier) return;
-    setTierBusy(true);
-    const preset = TIER_PRESETS[k];
-    try {
-      await api.setModelAssignment({
-        confirm_expensive_model: true,
-        scope: "main",
-        provider: "openrouter",
-        model: preset.model,
-      });
-      const cfg = ((await api.getConfig()) ?? {}) as Record<string, unknown>;
-      const agent =
-        cfg.agent && typeof cfg.agent === "object" ? { ...(cfg.agent as Record<string, unknown>) } : {};
-      agent.reasoning_effort = preset.reasoning;
-      const delegation =
-        cfg.delegation && typeof cfg.delegation === "object"
-          ? { ...(cfg.delegation as Record<string, unknown>) }
-          : {};
-      delegation.model = preset.delegationModel;
-      delegation.reasoning_effort = preset.delegationReasoning;
-      if (preset.maxConcurrentChildren) delegation.max_concurrent_children = preset.maxConcurrentChildren;
-      const next = { ...cfg, agent, delegation };
-      await api.saveConfig(next);
-      setConfig(next);
-      showToast(cu.tierAppliedToast, "success");
-    } catch (e) {
-      showToast(`${t.config.failedToSave}: ${e}`, "error");
-    } finally {
-      setTierBusy(false);
-    }
-  };
 
   const runBackup = async () => {
     setBackupBusy(true);
@@ -326,21 +347,13 @@ export default function ConfigUser() {
       .catch(() => {});
   }, []);
 
-  // In the settings sections the provider bar stays clean (auto-save, no
-  // toolbar). On the PAGES (Skills/Connectors/Plugins) we do NOT clear it —
-  // they inject their own toolbar (search/Add) via usePageHeader.
-  // Plugins is the RAW extension ENGINE (installing a git repo = executing code,
-  // removing folders, swapping the memory engine). It is not a product surface:
-  // it stays only in the internal hatch (?full=1), like Sessions/Terminal. Skills
-  // and Connectors stay user-facing (they have a curated marketplace). [decision 13/07]
+  // In the settings sections the provider bar stays clean (auto-save, no toolbar).
   const internal = isInternalView();
 
-  const isPage = PAGE_KEYS.includes(active);
   useEffect(() => {
-    if (isPage) return;
     setEnd(null);
     return () => setEnd(null);
-  }, [setEnd, isPage]);
+  }, [setEnd]);
 
   const val = (key: string) => getNestedValue(config ?? {}, key);
 
@@ -404,12 +417,6 @@ export default function ConfigUser() {
     }
   };
 
-  // Active default tier — depends on `val` (the config loaded above).
-  const currentTier: TierKey | null = tierFromConfig(
-    String(val("model") ?? ""),
-    String(val("agent.reasoning_effort") ?? "medium"),
-  );
-
   const tzValue = String(val("timezone") ?? "");
   const timezones = useMemo(
     () => (tzValue && !TIMEZONES.includes(tzValue) ? [tzValue, ...TIMEZONES] : TIMEZONES),
@@ -422,22 +429,35 @@ export default function ConfigUser() {
   // "memória"/"perfil" find "Privacidade"). A simple, useful v1.
   const q = navQuery.trim().toLowerCase();
   const searchText = (key: SectionKey): string => {
-    const p: string[] = [cu[key]];
+    const p: string[] = [sectionLabel(key, cu)];
     if (key === "account") p.push(cu.logout);
     else if (key === "general")
-      p.push(cu.language, cu.appearance, cu.font, cu.timezone, cu.instructions, cu.textSize, cu.chatWidth, cu.memoryNotif);
+      p.push(cu.language, cu.timezone, cu.communication, cu.memoryNotif);
+    else if (key === "appearance")
+      p.push(cu.appearance, cu.font, cu.textSize, cu.chatWidth);
     else if (key === "computer")
       p.push(cu.cloudTab, cu.localTab, cu.resMemory, cu.resDisk, cu.resCpu, cu.backupTitle);
-    else if (key === "planTab") p.push(cu.defaultTier, cu.usageTitle, cu.creditsUsed, cu.balanceTitle);
+    else if (key === "planTab") p.push(cu.usageTitle, cu.creditsUsed, cu.balanceTitle);
+    else if (key === "modelsTab")
+      p.push(cu.modelsDefaultTitle, cu.relaySubtitle, cu.maxSubtitle, cu.featuredModelsTitle);
     else if (key === "notificationsTab") p.push(cu.notifyTurnDone, cu.notifyNeedsYou);
     else if (key === "memoryTab") p.push(cu.memoryBetween, cu.userProfile, cu.memoryBudget, cu.clearMemory);
     else if (key === "privacyData") p.push(cu.redactPii, cu.writeApproval, cu.clearSessions);
+    else if (key === "resourcesTab")
+      p.push(cu.resourcesIntro, cu.resourcesConnectors, cu.resourcesSkills, cu.resourcesChannels);
+    else if (key === "securityTab")
+      p.push(cu.securityApprovalsTitle, cu.securityDestructiveTitle);
+    else if (key === "rulesTab") p.push(cu.rulesIntro, cu.instructions);
+    else if (key === "browserTab") p.push(cu.browserIntro, cu.browserPrivateUrls);
+    else if (key === "hooksTab") p.push(cu.hooksIntro);
+    else if (key === "advancedTab") p.push(cu.advancedIntro, cu.openFullConfig);
     return p.join(" ").toLowerCase();
   };
   const matches = (key: SectionKey) => !q || searchText(key).includes(q);
   const visibleSections = SECTIONS.filter((s) => matches(s.key));
-  const pages = internal ? PAGES : PAGES.filter((s) => s.key !== "plugins");
-  const visiblePages = pages.filter((s) => matches(s.key));
+  const navItems = internal && matches("advancedTab")
+    ? [...visibleSections, ADVANCED_SECTION]
+    : visibleSections;
 
   if (!config) {
     return (
@@ -467,7 +487,7 @@ export default function ConfigUser() {
             />
           </div>
           <div className="flex gap-1 overflow-x-auto p-1 max-sm:scrollbar-none sm:flex-col sm:gap-0.5 sm:overflow-x-hidden">
-            {visibleSections.map(({ key, icon: Icon }) => (
+            {navItems.map(({ key, icon: Icon }) => (
               <button
                 key={key}
                 type="button"
@@ -481,30 +501,10 @@ export default function ConfigUser() {
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0 opacity-70" />
-                <span className="flex-1 truncate">{cu[key]}</span>
-              </button>
-            ))}
-            {/* "Personalizar" group — existing pages mounted in the modal. */}
-            {visiblePages.length > 0 && (
-              <div className="hidden px-3 pb-1 pt-4 font-sans text-display text-xs tracking-[0.12em] text-text-tertiary sm:block">
-                {cu.personalize}
-              </div>
-            )}
-            {visiblePages.map(({ key, icon: Icon }) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setActive(key)}
-                aria-current={active === key ? "true" : undefined}
-                className={cn(
-                  "flex w-full items-center gap-2.5 whitespace-nowrap rounded-lg px-3 py-2 text-left font-sans text-sm transition-colors",
-                  active === key
-                    ? "bg-midground/10 font-medium text-foreground"
-                    : "text-text-secondary hover:bg-midground/5 hover:text-foreground",
+                <span className="flex-1 truncate">{sectionLabel(key, cu)}</span>
+                {key === "advancedTab" && (
+                  <span className="text-xs text-text-tertiary">?full=1</span>
                 )}
-              >
-                <Icon className="h-4 w-4 shrink-0 opacity-70" />
-                <span className="flex-1 truncate">{cu[key]}</span>
               </button>
             ))}
           </div>
@@ -567,76 +567,6 @@ export default function ConfigUser() {
                     </select>
                   </label>
 
-                  <div className="flex flex-col gap-1.5 border-t border-border pt-4">
-                    <span className="text-sm">{cu.appearance}</span>
-                    {/* Gallery with a real mini-preview of each theme (desktop). */}
-                    <div className="mt-1 grid grid-cols-2 gap-3 xl:grid-cols-4">
-                      {THEME_PREVIEWS.map((tb) => {
-                        const activeTheme = themeName === tb.key;
-                        return (
-                          <button
-                            key={tb.key}
-                            type="button"
-                            onClick={() => setTheme(tb.key)}
-                            aria-pressed={activeTheme}
-                            className={cn(
-                              "group flex flex-col overflow-hidden rounded-xl border text-left transition-all",
-                              activeTheme
-                                ? "border-live shadow-card ring-1 ring-live/40"
-                                : "border-border hover:border-foreground/30",
-                            )}
-                          >
-                            <span
-                              aria-hidden
-                              className="block h-20 w-full p-2.5"
-                              style={{ backgroundColor: tb.bg }}
-                            >
-                              <span className="flex h-full gap-2">
-                                <span
-                                  className="block w-8 shrink-0 rounded-md"
-                                  style={{ backgroundColor: tb.surface }}
-                                />
-                                <span className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
-                                  <span
-                                    className="block h-2 w-3/4 rounded-full"
-                                    style={{ backgroundColor: tb.fg, opacity: 0.85 }}
-                                  />
-                                  <span
-                                    className="block h-2 w-1/2 rounded-full"
-                                    style={{ backgroundColor: tb.fg, opacity: 0.35 }}
-                                  />
-                                  <span
-                                    className="ml-auto block h-4 w-10 rounded-full"
-                                    style={{ backgroundColor: tb.accent }}
-                                  />
-                                </span>
-                              </span>
-                            </span>
-                            <span className="flex flex-col gap-0.5 border-t border-border bg-card px-3 py-2">
-                              <span className="text-sm font-medium text-foreground">
-                                {tb.labelKey ? cu[tb.labelKey] : tb.literal}
-                              </span>
-                              <span className="text-xs text-text-secondary">{cu[tb.descKey]}</span>
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* Font — reuses the useTheme font picker (dashboard.font).
-                      "Padrão do tema" = the active theme's font (IBM Plex Sans on
-                      the default theme). The others persist even across themes. */}
-                  <label className="flex flex-col gap-1.5 border-t border-border pt-4">
-                    <span className="text-sm">{cu.font}</span>
-                    <select className={cn(inputCls, "mt-1")} value={fontId} onChange={(e) => setFont(e.target.value)}>
-                      <option value={THEME_DEFAULT_FONT_ID}>{cu.fontThemeDefault}</option>
-                      {fontChoices.map((f) => (
-                        <option key={f.id} value={f.id}>{f.label}</option>
-                      ))}
-                    </select>
-                  </label>
-
                   <label className="flex flex-col gap-1.5 border-t border-border pt-4">
                     <span className="text-sm">{cu.timezone}</span>
                     <select className={cn(inputCls, "mt-1")} value={tzValue} onChange={(e) => update("timezone", e.target.value)}>
@@ -646,33 +576,6 @@ export default function ConfigUser() {
                       ))}
                     </select>
                   </label>
-
-                  {/* Transcript (Claude Code benchmark): conversation size +
-                      width, live via CSS vars (lib/chat-display.ts). */}
-                  <div className="flex flex-col gap-1.5 border-t border-border pt-4">
-                    <span className="text-sm">{cu.textSize}</span>
-                    <Segmented<ChatTextSize>
-                      value={getChatDisplay().size}
-                      options={[
-                        { v: "small", label: cu.sizeSmall },
-                        { v: "medium", label: cu.sizeMedium },
-                        { v: "large", label: cu.sizeLarge },
-                      ]}
-                      onChange={(v) => { setChatDisplay({ size: v }); bumpPrefs(); }}
-                    />
-                  </div>
-                  <div className="flex flex-col gap-1.5 border-t border-border pt-4">
-                    <span className="text-sm">{cu.chatWidth}</span>
-                    <Segmented<ChatWidth>
-                      value={getChatDisplay().width}
-                      options={[
-                        { v: "narrow", label: cu.widthNarrow },
-                        { v: "medium", label: cu.widthMedium },
-                        { v: "wide", label: cu.widthWide },
-                      ]}
-                      onChange={(v) => { setChatDisplay({ width: v }); bumpPrefs(); }}
-                    />
-                  </div>
                 </CardContent>
               </Card>
 
@@ -692,17 +595,122 @@ export default function ConfigUser() {
             </>
           )}
 
-          {/* Instructions — moved from the old "Personalização" into Geral
-              (like Claude: profile + preferences in a single tab). */}
-          {active === "general" && (
+          {/* ---------- APPEARANCE ---------- */}
+          {active === "appearance" && (
             <Card>
               <CardHeader className="px-5 py-4">
                 <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
-                  <Sparkles className="h-4 w-4" />
-                  {cu.instructions}
+                  <Palette className="h-4 w-4" />
+                  {cu.appearance}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-5 px-5 pb-5">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-sm">{cu.appearance}</span>
+                  <div className="mt-1 grid grid-cols-2 gap-3 xl:grid-cols-4">
+                    {THEME_PREVIEWS.map((tb) => {
+                      const activeTheme = themeName === tb.key;
+                      return (
+                        <button
+                          key={tb.key}
+                          type="button"
+                          onClick={() => setTheme(tb.key)}
+                          aria-pressed={activeTheme}
+                          className={cn(
+                            "group flex flex-col overflow-hidden rounded-xl border text-left transition-all",
+                            activeTheme
+                              ? "border-live shadow-card ring-1 ring-live/40"
+                              : "border-border hover:border-foreground/30",
+                          )}
+                        >
+                          <span
+                            aria-hidden
+                            className="block h-20 w-full p-2.5"
+                            style={{ backgroundColor: tb.bg }}
+                          >
+                            <span className="flex h-full gap-2">
+                              <span
+                                className="block w-8 shrink-0 rounded-md"
+                                style={{ backgroundColor: tb.surface }}
+                              />
+                              <span className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
+                                <span
+                                  className="block h-2 w-3/4 rounded-full"
+                                  style={{ backgroundColor: tb.fg, opacity: 0.85 }}
+                                />
+                                <span
+                                  className="block h-2 w-1/2 rounded-full"
+                                  style={{ backgroundColor: tb.fg, opacity: 0.35 }}
+                                />
+                                <span
+                                  className="ml-auto block h-4 w-10 rounded-full"
+                                  style={{ backgroundColor: tb.accent }}
+                                />
+                              </span>
+                            </span>
+                          </span>
+                          <span className="flex flex-col gap-0.5 border-t border-border bg-card px-3 py-2">
+                            <span className="text-sm font-medium text-foreground">
+                              {tb.labelKey ? cu[tb.labelKey] : tb.literal}
+                            </span>
+                            <span className="text-xs text-text-secondary">{cu[tb.descKey]}</span>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <label className="flex flex-col gap-1.5 border-t border-border pt-4">
+                  <span className="text-sm">{cu.font}</span>
+                  <select className={cn(inputCls, "mt-1")} value={fontId} onChange={(e) => setFont(e.target.value)}>
+                    <option value={THEME_DEFAULT_FONT_ID}>{cu.fontThemeDefault}</option>
+                    {fontChoices.map((f) => (
+                      <option key={f.id} value={f.id}>{f.label}</option>
+                    ))}
+                  </select>
+                </label>
+
+                <div className="flex flex-col gap-1.5 border-t border-border pt-4">
+                  <span className="text-sm">{cu.textSize}</span>
+                  <Segmented<ChatTextSize>
+                    value={getChatDisplay().size}
+                    options={[
+                      { v: "small", label: cu.sizeSmall },
+                      { v: "medium", label: cu.sizeMedium },
+                      { v: "large", label: cu.sizeLarge },
+                    ]}
+                    onChange={(v) => { setChatDisplay({ size: v }); bumpPrefs(); }}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5 border-t border-border pt-4">
+                  <span className="text-sm">{cu.chatWidth}</span>
+                  <Segmented<ChatWidth>
+                    value={getChatDisplay().width}
+                    options={[
+                      { v: "narrow", label: cu.widthNarrow },
+                      { v: "medium", label: cu.widthMedium },
+                      { v: "wide", label: cu.widthWide },
+                    ]}
+                    onChange={(v) => { setChatDisplay({ width: v }); bumpPrefs(); }}
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* ---------- RULES ---------- */}
+          {active === "rulesTab" && (
+            <Card>
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
+                  <BookOpen className="h-4 w-4" />
+                  {cu.rulesTab}
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col gap-2 px-5 pb-5">
+                <p className="text-xs text-text-secondary">{cu.rulesIntro}</p>
+                <span className="text-sm font-medium">{cu.instructions}</span>
                 <textarea
                   className="min-h-[160px] w-full resize-y rounded-lg border border-border bg-background px-3 py-2.5 text-sm leading-relaxed focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-live/50"
                   placeholder={cu.instructionsPlaceholder}
@@ -986,48 +994,23 @@ export default function ConfigUser() {
           {/* ---------- PLAN & USAGE (Onda C — credits, NEVER US$) ---------- */}
           {active === "planTab" && (
             <>
-              {/* The account's DEFAULT tier — applies to new tasks everywhere;
-                  in the chat you can still switch it per task (TierPicker). */}
+              {/* Plan header (D2/D5) — brand plan name (Hobby/Pro/Business) +
+                  "Manage subscription" → Stripe customer portal via the
+                  platform. Never surfaces Essencial/Flash/Crew. */}
               <Card>
-                <CardHeader className="px-5 py-4">
-                  <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
-                    <Gauge className="h-4 w-4" />
-                    {cu.defaultTier}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-3 px-5 pb-5">
-                  <span className="text-xs text-text-secondary">{cu.defaultTierHint}</span>
-                  <div className="grid grid-cols-2 gap-3 xl:grid-cols-5">
-                    {TIER_ORDER.map((k) => {
-                      const isCur = currentTier === k;
-                      return (
-                        <button
-                          key={k}
-                          type="button"
-                          disabled={tierBusy}
-                          onClick={() => void applyDefaultTier(k)}
-                          aria-pressed={isCur}
-                          className={cn(
-                            "flex flex-col gap-0.5 rounded-xl border px-4 py-3 text-left transition-all disabled:opacity-60",
-                            isCur
-                              ? "border-live bg-live/5 ring-1 ring-live/40"
-                              : "border-border hover:border-foreground/30",
-                          )}
-                        >
-                          <span className="flex items-center gap-1.5 text-sm font-semibold text-foreground">
-                            {tierLabel(t, k)}
-                            {k === "gratis" && (
-                              <span className="rounded-full bg-live/10 px-1.5 py-px text-xs font-medium text-live">
-                                {t.tiers.gratisBadge}
-                              </span>
-                            )}
-                            {isCur && <Check className="h-3.5 w-3.5 text-live" />}
-                          </span>
-                          <span className="text-xs text-text-secondary">{tierSubtitle(t, k)}</span>
-                        </button>
-                      );
-                    })}
+                <CardContent className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
+                  <div className="flex items-center gap-3">
+                    <Sparkles className="h-5 w-5 shrink-0 text-live" />
+                    <div className="flex flex-col">
+                      <span className="text-xs text-text-secondary">{cu.planLabel}</span>
+                      <span className="text-lg font-semibold text-foreground">
+                        {planLabel(plan)}
+                      </span>
+                    </div>
                   </div>
+                  <Button outlined size="sm" onClick={() => openBillingPortal()}>
+                    {cu.manageSubscription}
+                  </Button>
                 </CardContent>
               </Card>
 
@@ -1054,15 +1037,15 @@ export default function ConfigUser() {
                       const days = usage.daily.slice(-14);
                       const maxDay = Math.max(1, ...days.map(dayCredits));
                       const groups = [
-                        { label: cu.tierGroupFast, credits: 0 },
-                        { label: cu.tierGroupDeep, credits: 0 },
+                        { label: cu.tierGroupRelay, credits: 0 },
+                        { label: cu.tierGroupMax, credits: 0 },
                         { label: cu.tierGroupOther, credits: 0 },
                       ];
                       for (const m of usage.by_model) {
                         const cr = usdToCredits(m.estimated_cost);
                         const name = (m.model || "").toLowerCase();
-                        if (/claude|anthropic|opus|sonnet/.test(name)) groups[1].credits += cr;
-                        else if (/gemini|deepseek|flash|mistral|llama|qwen|gpt/.test(name))
+                        if (/claude|anthropic|opus|sonnet|crew|expert/.test(name)) groups[1].credits += cr;
+                        else if (/gemini|deepseek|flash|mistral|llama|qwen|gpt|auto/.test(name))
                           groups[0].credits += cr;
                         else groups[2].credits += cr;
                       }
@@ -1170,11 +1153,14 @@ export default function ConfigUser() {
                       label={cu.usageTitle}
                       detail={`${Math.round(cycleMeter.used_percent)}%`}
                       percent={cycleMeter.used_percent}
+                      fillClass={creditBandFill(creditBand(cycleMeter.used_percent))}
                     />
                     <span
                       className={cn(
                         "text-xs",
-                        cycleMeter.depleted ? "text-destructive" : "text-text-secondary",
+                        cycleMeter.depleted
+                          ? "text-destructive"
+                          : creditBandText(creditBand(cycleMeter.used_percent)),
                       )}
                     >
                       {cycleMeter.depleted
@@ -1244,16 +1230,102 @@ export default function ConfigUser() {
             </Card>
           )}
 
-          {/* ---------- PERSONALIZE (existing pages) ---------- */}
-          {/* The SAME pages as the Dashboard: Skills = SkillsPage (which already
-              lands on the marketplace outside ?full=1), Connectors =
-              ConnectorsPage (the marketplace of the 1,047 apps — not the
-              technical McpPage, which lives only in ?full=1). ConfigUser is the
-              user-facing surface. */}
-          {active === "skills" && <SkillsPage />}
-          {active === "connectors" && <ConnectorsPage />}
-          {active === "channels" && <ChannelsPage />}
-          {active === "plugins" && internal && <PluginsPage />}
+          {active === "modelsTab" && (
+            <ConfigModelsSection
+              config={config}
+              onConfigSaved={setConfig}
+              showToast={showToast}
+            />
+          )}
+
+          {active === "resourcesTab" && <ConfigResourcesSection />}
+
+          {active === "securityTab" && (
+            <Card>
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
+                  <ShieldCheck className="h-4 w-4" />
+                  {cu.securityTab}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-5 px-5 pb-5">
+                {/* E2 (GAP-CFG-07/GAP-AG-07): this is the DEFAULT policy for
+                    every agent. The operational inbox + per-agent override live
+                    in Agentes → Governança. */}
+                <p className="rounded-lg border border-border bg-muted/40 px-3 py-2.5 text-xs text-text-secondary">
+                  {cu.securityIntro}
+                </p>
+                <ToggleRow
+                  label={cu.securityApprovalsTitle}
+                  hint={cu.securityApprovalsHint}
+                  checked={val("approvals.mode") === "smart"}
+                  onChange={(v) => update("approvals.mode", v ? "smart" : "manual")}
+                />
+                <ToggleRow
+                  border
+                  label={cu.securityDestructiveTitle}
+                  hint={cu.securityDestructiveHint}
+                  checked={val("approvals.destructive_slash_confirm") !== false}
+                  onChange={(v) => update("approvals.destructive_slash_confirm", v)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {active === "browserTab" && (
+            <Card>
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
+                  <Globe className="h-4 w-4" />
+                  {cu.browserTab}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-5 px-5 pb-5">
+                <p className="text-xs text-text-secondary">{cu.browserIntro}</p>
+                <ToggleRow
+                  label={cu.browserPrivateUrls}
+                  hint={cu.browserPrivateUrlsHint}
+                  checked={val("security.allow_private_urls") === true}
+                  onChange={(v) => update("security.allow_private_urls", v)}
+                />
+              </CardContent>
+            </Card>
+          )}
+
+          {active === "hooksTab" && (
+            <Card>
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
+                  <Wrench className="h-4 w-4" />
+                  {cu.hooksTab}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-5 pb-5">
+                <p className="text-sm text-text-secondary">{cu.hooksIntro}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {active === "advancedTab" && internal && (
+            <Card>
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="flex items-center gap-2 font-sans text-[15px] font-semibold">
+                  <HardDrive className="h-4 w-4" />
+                  {cu.advancedTab}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-3 px-5 pb-5">
+                <p className="text-sm text-text-secondary">{cu.advancedIntro}</p>
+                <Link
+                  to="/?full=1"
+                  className="inline-flex w-fit items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm transition-colors hover:bg-muted/50"
+                >
+                  {cu.openFullConfig}
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </Link>
+              </CardContent>
+            </Card>
+          )}
         </div>
       </div>
 

@@ -1,22 +1,20 @@
 /**
- * ChatModelBar — the model picker (Flash/Auto/Expert/Crew tier) in a thin bar
- * BELOW the terminal, next to the composer, in the same spot as the Claude
- * benchmark. It used to live in the sidebar (ChatSidebar); here it is SELF-
- * CONTAINED: it reads its own model-info (the TierPicker still reads the config
- * by itself on mount, so `currentModel` is just a trigger) and shows the
- * "apply on /new" notice inline. Chat curation — Etapa B.
+ * ChatModelBar — the model-mode picker (Relay / MAX) in a thin bar next to the
+ * composer, in the same spot as the Claude benchmark. It used to live in the
+ * sidebar (ChatSidebar); here it is SELF-CONTAINED: it reads its own model-info
+ * (the RelayPicker still reads the config by itself on mount, so `currentModel`
+ * is just a trigger) and shows the "apply on /new" notice inline. Chat
+ * curation — Fase 10 · Onda B.
  */
 
 import { useEffect, useState } from "react";
 
-import { TierPicker } from "@/components/TierPicker";
-import { useI18n } from "@/i18n";
+import { RelayPicker } from "@/components/RelayPicker";
 import { api } from "@/lib/api";
-import { tierLabel, type TierKey } from "@/lib/tier-presets";
+import { UI_MODE_LABEL, type UiMode } from "@/lib/tier-presets";
 import { cn } from "@/lib/utils";
 
 export function ChatModelBar({ light }: { light: boolean }) {
-  const { t } = useI18n();
   const [model, setModel] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -55,10 +53,10 @@ export function ChatModelBar({ light }: { light: boolean }) {
           {notice}
         </span>
       )}
-      <TierPicker
+      <RelayPicker
         currentModel={model}
-        onChanged={(tier: TierKey) =>
-          setNotice(`${tierLabel(t, tier)} — aplica na próxima tarefa`)
+        onChanged={(mode: UiMode) =>
+          setNotice(`${UI_MODE_LABEL[mode]} — aplica na próxima tarefa`)
         }
       />
     </div>

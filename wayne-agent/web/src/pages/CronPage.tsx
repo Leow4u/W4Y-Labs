@@ -26,7 +26,8 @@
  * so there the affordances stay hidden as before.
  */
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
-import { Clock, Cloud, Pause, Play, Plus, Trash2, X, Zap } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Clock, Cloud, Pause, Play, Plus, Trash2, User, X, Zap } from "lucide-react";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { Button } from "@nous-research/ui/ui/components/button";
 import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
@@ -412,13 +413,13 @@ function CronJobFormFields({ idPrefix, autoFocus, form, resources, onChange }: C
       </div>
 
       <div className="grid gap-2">
-        <Label htmlFor={`${idPrefix}-skills`}>Skills (optional)</Label>
+        <Label htmlFor={`${idPrefix}-skills`}>{t.cron.skillsOptional}</Label>
         <NameCheckboxPicker
           id={`${idPrefix}-skills`}
           available={availableSkills}
           selected={form.skills}
           onChange={(skills) => update("skills", skills)}
-          emptyLabel="No skills installed for this profile."
+          emptyLabel={t.cron.noSkillsForProfile}
         />
       </div>
 
@@ -442,14 +443,14 @@ function getJobName(job: CronJob): string {
   return asText(job.name).trim();
 }
 
-function getJobTitle(job: CronJob): string {
+function getJobTitle(job: CronJob, fallback = "Cron job"): string {
   const name = getJobName(job);
   if (name) return name;
   const prompt = getJobPrompt(job);
   if (prompt) return truncateText(prompt, 60);
   const script = asText(job.script);
   if (script) return truncateText(script, 60);
-  return job.id || "Cron job";
+  return job.id || fallback;
 }
 
 function getJobScheduleDisplay(job: CronJob, strings: ScheduleDescribeStrings): string {
@@ -589,6 +590,7 @@ function RoutineCard({
   onTrigger,
   onEdit,
   onDelete,
+  onViewAgent,
   t,
 }: {
   job: CronJob;
@@ -600,10 +602,13 @@ function RoutineCard({
   onTrigger: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  /** Bridge to Agentes (D1): jumps to this routine's owning agent. Omitted for
+   *  the installation ("default"), which is not an assignable agent. */
+  onViewAgent?: () => void;
   t: ReturnType<typeof useI18n>["t"];
 }) {
   const state = getJobState(job);
-  const title = getJobTitle(job);
+  const title = getJobTitle(job, t.cron.defaultJobTitle);
   const profile = getJobProfile(job);
   const paused = state === "paused" || state === "disabled";
   const deliver = asText(job.deliver);
@@ -654,6 +659,17 @@ function RoutineCard({
         </div>
       )}
       <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
+        {onViewAgent && (
+          <Button
+            ghost
+            size="icon"
+            title={t.cron.viewAgent}
+            aria-label={t.cron.viewAgent}
+            onClick={onViewAgent}
+          >
+            <User />
+          </Button>
+        )}
         <Button
           ghost
           size="icon"
@@ -693,7 +709,14 @@ export default function CronPage() {
   const [profiles, setProfiles] = useState<ProfileInfo[]>([]);
   // Every picker on this screen offers agents only — never the installation.
   const agentProfiles = useMemo(() => realAgents(profiles), [profiles]);
-  const [selectedProfile, setSelectedProfile] = useState("all");
+  const navigate = useNavigate();
+  // D1 bridge: /cron?profile=<slug> lands pre-filtered on that agent's routines
+  // (Agentes → "Rotinas"). Read once for the initial value; the picker owns it
+  // afterwards.
+  const [searchParams] = useSearchParams();
+  const [selectedProfile, setSelectedProfile] = useState(
+    () => searchParams.get("profile") || "all",
+  );
   const blueprintProfile =
     selectedProfile === "all" ? (agentProfiles[0]?.name ?? "") : selectedProfile;
   const [tab, setTab] = useState<"routines" | "calendar">("routines");
@@ -811,11 +834,14 @@ export default function CronPage() {
   const handleCreate = async () => {
     const payload = buildCronJobPayloadFromEditor(createForm);
     if (!payload.schedule || (!payload.no_agent && !cronJobHasExecutionContent(payload))) {
-      showToast(`${t.cron.prompt} & ${t.cron.schedule} required`, "error");
+      showToast(
+        t.cron.fieldsRequired.replace("{a}", t.cron.prompt).replace("{b}", t.cron.schedule),
+        "error",
+      );
       return;
     }
     if (payload.no_agent && !payload.script) {
-      showToast("no_agent jobs require a script", "error");
+      showToast(t.cron.noAgentNeedsScript, "error");
       return;
     }
     setCreating(true);
@@ -858,11 +884,14 @@ export default function CronPage() {
     if (!editJob) return;
     const payload = buildCronJobPayloadFromEditor(editForm);
     if (!payload.schedule || (!payload.no_agent && !cronJobHasExecutionContent(payload))) {
-      showToast(`${t.cron.prompt} & ${t.cron.schedule} required`, "error");
+      showToast(
+        t.cron.fieldsRequired.replace("{a}", t.cron.prompt).replace("{b}", t.cron.schedule),
+        "error",
+      );
       return;
     }
     if (payload.no_agent && !payload.script) {
-      showToast("no_agent jobs require a script", "error");
+      showToast(t.cron.noAgentNeedsScript, "error");
       return;
     }
     setSaving(true);
@@ -933,7 +962,7 @@ export default function CronPage() {
       } else {
         await api.triggerCronJob(job.id, getJobProfile(job));
       }
-      showToast(`${t.cron.triggerNow}: "${truncateText(getJobTitle(job), 30)}"`, "success");
+      showToast(`${t.cron.triggerNow}: "${truncateText(getJobTitle(job, t.cron.defaultJobTitle), 30)}"`, "success");
       loadJobs();
     } catch (e) {
       showToast(`${t.status.error}: ${e}`, "error");
@@ -1067,10 +1096,24 @@ export default function CronPage() {
         <>
           {/* Composer hero (fiel ao Claude). */}
           <div className="grid gap-3">
-            <p className="type-body text-muted-foreground">{t.cron.routinesSubtitle}</p>
+            <p className="type-body text-muted-foreground">
+              {t.cron.routinesSubtitle}{" "}
+              {/* E6: the subtitle promises API/webhook — make it actionable. */}
+              <button
+                type="button"
+                onClick={() => navigate("/webhooks")}
+                className="font-medium text-live underline-offset-4 hover:underline"
+              >
+                {t.cron.webhookCta} →
+              </button>
+            </p>
             <RoutineComposer
               onCreate={openCreateWithPrompt}
-              chips={[t.cron.chip1, t.cron.chip2, t.cron.chip3]}
+              chips={
+                internal
+                  ? [t.cron.chipDev1, t.cron.chipDev2, t.cron.chipDev3]
+                  : [t.cron.chip1, t.cron.chip2, t.cron.chip3]
+              }
               placeholder={t.cron.composerPlaceholder}
               createLabel={t.cron.createRoutine}
             />
@@ -1130,6 +1173,14 @@ export default function CronPage() {
                             cloud ? CLOUD_JOB_KEY_PREFIX + getJobKey(job) : getJobKey(job),
                           )
                   }
+                  onViewAgent={
+                    getJobProfile(job) === "default"
+                      ? undefined
+                      : () =>
+                          navigate(
+                            `/profiles/team?name=${encodeURIComponent(getJobProfile(job))}`,
+                          )
+                  }
                   t={t}
                 />
               ))}
@@ -1156,7 +1207,7 @@ export default function CronPage() {
         title={t.cron.confirmDeleteTitle}
         description={
           pendingJob
-            ? `"${truncateText(getJobTitle(pendingJob), 40)}" — ${t.cron.confirmDeleteMessage}`
+            ? `"${truncateText(getJobTitle(pendingJob, t.cron.defaultJobTitle), 40)}" — ${t.cron.confirmDeleteMessage}`
             : t.cron.confirmDeleteMessage
         }
         loading={jobDelete.isDeleting}
@@ -1250,7 +1301,7 @@ export default function CronPage() {
             </Button>
             <header className="border-b border-border p-5 pb-3">
               <h2 id="edit-cron-title" className="type-body font-medium text-foreground">
-                {getJobTitle(editJob)}
+                {getJobTitle(editJob, t.cron.defaultJobTitle)}
               </h2>
             </header>
             <div className="grid min-h-0 gap-4 overflow-y-auto p-5">

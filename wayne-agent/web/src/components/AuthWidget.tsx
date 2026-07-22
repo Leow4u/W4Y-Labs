@@ -50,6 +50,7 @@ import { LOCALE_META } from "@/i18n";
 import type { Locale } from "@/i18n";
 import { isLocalEngine } from "@/lib/projects";
 import { cloudGetJson } from "@/lib/cloudSession";
+import { fetchPlan, openPlans, planLabel } from "@/lib/plans";
 import { desktopUpdateBridge } from "@/lib/desktopChrome";
 import {
   emptyChip,
@@ -92,6 +93,11 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [langOpen, setLangOpen] = useState(false);
+  // Tenant plan + cycle credits (D6) — plan read live from the shell; the cycle
+  // meter is fetched lazily when the menu opens (keeps the always-mounted footer
+  // cheap). null = unknown → the chip/row simply do not render.
+  const [plan, setPlan] = useState<string | null>(null);
+  const [cyclePct, setCyclePct] = useState<number | null>(null);
   const { locale, setLocale, t } = useI18n();
   const navigate = useNavigate();
   // Stable per page load (origin + shell bridge never change mid-session).
@@ -284,6 +290,41 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     return () => { cancelled = true; };
   }, [localEngine]);
 
+  // Tenant plan (D6) — read once from the shell (same origin, cheap). null =
+  // unknown → the plan chip/row stay hidden (never fabricate a plan).
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPlan().then((p) => { if (!cancelled) setPlan(p); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Cycle credits — fetched lazily the first time the menu opens (the gateway
+  // client is heavy for an always-mounted footer). usage.account = % of the
+  // tenant's OpenRouter cap; "remaining" = 100 − used. Fail-open: stays null.
+  useEffect(() => {
+    if (!open || cyclePct != null) return;
+    let cancelled = false;
+    void (async () => {
+      const { GatewayClient } = await import("@/lib/gatewayClient");
+      const gw = new GatewayClient();
+      try {
+        await gw.connect();
+        const res = await gw.request<{ configured: boolean; used_percent: number | null }>(
+          "usage.account",
+          {},
+        );
+        if (!cancelled && res.configured && res.used_percent != null) {
+          setCyclePct(Math.max(0, Math.min(100, res.used_percent)));
+        }
+      } catch {
+        /* fail-open — no credits line */
+      } finally {
+        gw.close();
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [open, cyclePct]);
+
   const close = useCallback(() => {
     setOpen(false);
     setLangOpen(false);
@@ -365,6 +406,13 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
         <span className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/90" title={me?.user_id}>
           {label}
         </span>
+        {/* Plan chip (D6) — brand plan name (Hobby/Pro/Business). Only when the
+            shell confirmed a plan; hidden while unknown. */}
+        {plan && (
+          <span className="shrink-0 rounded-full bg-midground/15 px-2 py-0.5 text-[0.625rem] font-semibold leading-4 text-foreground/80">
+            {planLabel(plan)}
+          </span>
+        )}
         {/* Engine update pill (ChatGPT Desktop pattern: accent pill next to the
             account name). Nested interactive: a span[role=button] with
             stopPropagation so the chip's menu toggle doesn't fire. */}
@@ -428,6 +476,25 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
             )}
             style={rect ? { bottom: window.innerHeight - rect.top + 4, left: rect.left, width: rect.width } : undefined}
           >
+            {/* Plan + remaining credits (D6) — a read-only header, not a menu
+                item. Hidden entirely when the plan is unknown. */}
+            {plan && (
+              <div className="flex items-center justify-between gap-2 border-b border-current/10 px-3 py-2">
+                <span className="text-xs text-muted-foreground">{t.configUser.planLabel}</span>
+                <span className="flex items-center gap-2">
+                  <span className="text-xs font-semibold text-foreground/90">{planLabel(plan)}</span>
+                  {cyclePct != null && (
+                    <span className="rounded-full bg-current/10 px-1.5 py-0.5 text-[0.625rem] font-medium tabular-nums text-muted-foreground">
+                      {t.configUser.creditsRemaining.replace(
+                        "{pct}",
+                        String(Math.max(0, Math.round(100 - cyclePct))),
+                      )}
+                    </span>
+                  )}
+                </span>
+              </div>
+            )}
+
             <button
               type="button"
               role="menuitem"
@@ -505,33 +572,19 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
               )}
             </div>
 
-            {/* "Atualizar plano" → deep-link to the subscription page. Cloud:
-                same work4you.ai origin, the LB routes /planos to Next —
-                full-page navigation (leaves the agent SPA), intentional.
-                Local-engine: the SPA origin is the loopback gateway, so /planos
-                does not exist here — open work4you.ai/planos as a child window
-                (the shell allows work4you.ai children). */}
-            {localEngine ? (
-              <button
-                type="button"
-                role="menuitem"
-                className={cn(menuRow, "border-t border-current/10")}
-                onClick={() => { close(); window.open("https://work4you.ai/planos"); }}
-              >
-                <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/80" />
-                Atualizar plano
-              </button>
-            ) : (
-              <a
-                href="/planos"
-                role="menuitem"
-                className={cn(menuRow, "border-t border-current/10")}
-                onClick={() => close()}
-              >
-                <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/80" />
-                Atualizar plano
-              </a>
-            )}
+            {/* "Atualizar plano" → subscription page via the shared deep link
+                (D7). Cloud: same origin, the LB routes /planos to the platform
+                (full-page nav). Local-engine: opens work4you.ai/planos as a
+                child window. Single source of truth in lib/plans. */}
+            <button
+              type="button"
+              role="menuitem"
+              className={cn(menuRow, "border-t border-current/10")}
+              onClick={() => { close(); openPlans(); }}
+            >
+              <Sparkles className="h-4 w-4 shrink-0 text-muted-foreground/80" />
+              {t.configUser.upgradePlan}
+            </button>
 
             {/* "Conquistas" — the collectible badges screen. It left the
                 sidebar (a bundled plugin tab used to plant it there, in

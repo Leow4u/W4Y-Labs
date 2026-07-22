@@ -213,7 +213,7 @@ export default function AgentsPage() {
   useEffect(() => {
     setEnd(
       <div className="flex items-center gap-2">
-        <Button ghost size="sm" onClick={() => navigate("/profiles/operations?delegate=1")}>
+        <Button ghost size="sm" onClick={() => navigate("/profiles?tab=work&delegate=1")}>
           {ag.teamDelegateGoal}
         </Button>
         <Button size="sm" onClick={() => navigate("/profiles/quickstart")}>
@@ -456,13 +456,30 @@ export default function AgentsPage() {
                         +{channels.length - 2}
                       </span>
                     )}
+                    {/* D1 bridge → Agenda pre-filtered on this agent's routines. */}
+                    {(ex?.routineCount ?? 0) > 0 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/cron?profile=${encodeURIComponent(p.name)}`);
+                        }}
+                        className="ml-auto inline-flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+                      >
+                        <CalendarClock className="h-3 w-3" />
+                        {ag.viewRoutines}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         navigate(teamUrl(p.name));
                       }}
-                      className="ml-auto shrink-0 text-xs font-medium text-live underline-offset-4 hover:underline"
+                      className={cn(
+                        "shrink-0 text-xs font-medium text-live underline-offset-4 hover:underline",
+                        (ex?.routineCount ?? 0) > 0 ? "" : "ml-auto",
+                      )}
                     >
                       {ag.teamViewTeam} →
                     </button>

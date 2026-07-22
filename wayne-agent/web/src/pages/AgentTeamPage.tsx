@@ -49,6 +49,7 @@ import { Button } from "@nous-research/ui/ui/components/button";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
+import { isInternalView } from "@/lib/internal-view";
 
 /** "redator-financeiro" → "Redator Financeiro" (display name). */
 function prettify(name: string): string {
@@ -485,13 +486,15 @@ export default function AgentTeamPage() {
           )}
         </div>
         <div className="flex-1" />
+        {/* E3/E4: single config entry. PME → AgentDrawer ("Configurar"); admin
+            (?full=1) → the node canvas ("Studio"). Same route, drawer-first. */}
         <Button
           size="sm"
           ghost
           onClick={() => navigate(`/profiles/agent?name=${encodeURIComponent(name)}`)}
         >
           <SlidersHorizontal className="h-4 w-4" />
-          {ag.teamOpenStudio}
+          {isInternalView() ? ag.teamOpenStudio : ag.configure}
         </Button>
         <Button size="sm" onClick={() => navigate(`/chat?agent=${encodeURIComponent(name)}`)}>
           <MessagesSquare className="h-4 w-4" />

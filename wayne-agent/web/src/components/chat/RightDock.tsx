@@ -63,6 +63,7 @@ import {
   Smartphone,
   SquareArrowOutUpRight,
   Table,
+  Terminal,
   Users,
   X,
   XCircle,
@@ -1197,11 +1198,13 @@ function OutputsBlock({
   onToggle,
   outputs,
   onSeedComposer,
+  sessionId,
 }: {
   open: boolean;
   onToggle: () => void;
   outputs: FileRef[];
   onSeedComposer: (text: string) => void;
+  sessionId?: string | null;
 }) {
   const { t } = useI18n();
   const [menu, setMenu] = useState(false);
@@ -1270,7 +1273,7 @@ function OutputsBlock({
       ) : (
         <div className="space-y-1.5 px-2.5 pb-2.5">
           {outputs.map((f) => (
-            <FileRefCard key={f.path ?? f.url ?? f.name} file={f} />
+            <FileRefCard key={f.path ?? f.url ?? f.name} file={f} sessionId={sessionId} />
           ))}
         </div>
       )}
@@ -2212,6 +2215,51 @@ function ProjectTab({ project, cwd }: { project: string | null; cwd: string | nu
   );
 }
 
+/** Unified Ambiente toolbar — Browser · Terminal · Alterações (BUG-NT-02). */
+function EnvToolbar({
+  onBrowser,
+  onTerminal,
+  onChanges,
+  browserDisabled,
+  changesDisabled,
+}: {
+  onBrowser: () => void;
+  onTerminal: () => void;
+  onChanges: () => void;
+  browserDisabled?: boolean;
+  changesDisabled?: boolean;
+}) {
+  const { t } = useI18n();
+  const btnCls =
+    "inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 type-caption text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40";
+  return (
+    <div className="flex flex-wrap gap-1.5 border-b border-border/70 px-3 py-2">
+      <button
+        type="button"
+        onClick={onBrowser}
+        disabled={browserDisabled}
+        className={btnCls}
+      >
+        <Globe className="h-3.5 w-3.5 shrink-0" />
+        {t.chat.envBrowser}
+      </button>
+      <button type="button" onClick={onTerminal} className={btnCls}>
+        <Terminal className="h-3.5 w-3.5 shrink-0" />
+        {t.chat.envTerminal}
+      </button>
+      <button
+        type="button"
+        onClick={onChanges}
+        disabled={changesDisabled}
+        className={btnCls}
+      >
+        <FileDiff className="h-3.5 w-3.5 shrink-0" />
+        {t.chat.envChanges}
+      </button>
+    </div>
+  );
+}
+
 /* ── Dock shell ──────────────────────────────────────────────────────── */
 
 export function RightDock({
@@ -2231,6 +2279,7 @@ export function RightDock({
   sources,
   usedApps,
   result,
+  sessionId = null,
   onAttachFiles,
   onSendPrompt,
   onSeedComposer,
@@ -2258,6 +2307,8 @@ export function RightDock({
   usedApps: string[];
   /** How the LAST turn ended (useChatSession lastResult) — Resultados block. */
   result: TurnResult | null;
+  /** Current chat session — powers "Ver em Entregas" on Saídas cards. */
+  sessionId?: string | null;
   /** SAME attach flow as the composer (NativeChatPage owns `attached`). */
   onAttachFiles: (files: File[]) => void;
   /** Sends a prompt in the current session (connect-by-chat). */
@@ -2373,6 +2424,36 @@ export function RightDock({
   const hasEnvContent =
     steps.length > 0 || subagents.length > 0 || urls.length > 0 || outputs.length > 0;
 
+  const runningAgents = subagents.filter((s) => s.status === "running").length;
+  const prevRunningRef = useRef(0);
+  const userDockTouchRef = useRef(false);
+  const collapseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // B5: subagent.start (running count rises) → expand the dock + agents block.
+  useEffect(() => {
+    if (runningAgents > prevRunningRef.current) {
+      setOpenPersist(true);
+      setAgentsOpen(true);
+    }
+    prevRunningRef.current = runningAgents;
+  }, [runningAgents, setOpenPersist]);
+
+  // B5: turn ends → collapse after ~3s unless the user touched the dock.
+  useEffect(() => {
+    if (collapseTimerRef.current) {
+      clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+    if (busy) return;
+    if (runningAgents > 0) return;
+    collapseTimerRef.current = setTimeout(() => {
+      if (!userDockTouchRef.current) setOpenPersist(false);
+    }, 3000);
+    return () => {
+      if (collapseTimerRef.current) clearTimeout(collapseTimerRef.current);
+    };
+  }, [busy, runningAgents, setOpenPersist]);
+
   // Auto-opens the 1st time a turn runs with content (with no saved pref).
   const autoOpenedRef = useRef(false);
   useEffect(() => {
@@ -2441,12 +2522,50 @@ export function RightDock({
   const domains = [...new Set(urls.map((u) => u.domain))];
   if (domains.length > 0) bits.push(domains[domains.length - 1]);
 
+  const openBrowserPanel = useCallback(() => {
+    userDockTouchRef.current = true;
+    const htmlOut = outputs.find((o) => o.path && /\.html?$/i.test(o.path));
+    if (htmlOut?.path) {
+      setPreviewPath(htmlOut.path);
+      setPreviewOpen(true);
+      setOpenPersist(true);
+      return;
+    }
+    const lastUrl = urls[urls.length - 1];
+    if (lastUrl) {
+      window.open(lastUrl.url, "_blank", "noopener,noreferrer");
+      setOpenPersist(true);
+      return;
+    }
+    if (previewPath) setPreviewOpen(true);
+    setOpenPersist(true);
+  }, [outputs, urls, previewPath, setOpenPersist]);
+
+  const openTerminalPanel = useCallback(() => {
+    userDockTouchRef.current = true;
+    setFilesOpen(true);
+    setOpenPersist(true);
+  }, [setOpenPersist]);
+
+  const openChangesPanel = useCallback(() => {
+    userDockTouchRef.current = true;
+    setChangesOpen(true);
+    setOpenPersist(true);
+  }, [setOpenPersist]);
+
   if (!open) {
-    // Handle; with activity, a rich "Ambiente · summary" chip.
+    // Handle; with activity, a rich "N agentes · Ambiente" chip (B5).
+    const chipLabel =
+      runningAgents > 0
+        ? t.chat.envChipAgents.replace("{n}", String(runningAgents))
+        : null;
     const chipBits: string[] = [];
-    if (subagents.length > 0)
-      chipBits.push(`${subagents.length} ${t.chat.envAgents.toLowerCase()}`);
-    if (added + removed > 0) chipBits.push(`+${added} −${removed}`);
+    if (chipLabel) chipBits.push(chipLabel);
+    else {
+      if (subagents.length > 0)
+        chipBits.push(`${subagents.length} ${t.chat.envAgents.toLowerCase()}`);
+      if (added + removed > 0) chipBits.push(`+${added} −${removed}`);
+    }
     return (
       <div className="pointer-events-none absolute inset-y-0 right-0 z-20 flex flex-col items-end justify-start pt-4 max-md:hidden">
         {busy || hasEnvContent ? (
@@ -2464,10 +2583,18 @@ export function RightDock({
             ) : (
               <Monitor className="h-3.5 w-3.5 text-muted-foreground" />
             )}
-            <span className="type-ui font-medium text-foreground">{t.chat.envTitle}</span>
-            {chipBits.length > 0 && (
+            <span className="type-ui font-medium text-foreground">
+              {chipLabel ?? t.chat.envTitle}
+            </span>
+            {!chipLabel && chipBits.length > 0 && (
               <span className="type-caption tabular-nums text-muted-foreground">
                 {chipBits.join(" · ")}
+              </span>
+            )}
+            {chipLabel && runningAgents > 0 && busy && (
+              <span className="relative grid h-3 w-3 shrink-0 place-items-center">
+                <span className="absolute h-2.5 w-2.5 animate-ping rounded-full bg-live/40" />
+                <span className="relative h-1.5 w-1.5 rounded-full bg-live" />
               </span>
             )}
           </button>
@@ -2490,6 +2617,9 @@ export function RightDock({
     <aside
       style={{ width }}
       className="relative flex h-full shrink-0 flex-col border-l border-border bg-card max-lg:hidden"
+      onPointerDown={() => {
+        userDockTouchRef.current = true;
+      }}
     >
       {/* Resize handle — drag to widen/narrow. */}
       <div
@@ -2529,6 +2659,14 @@ export function RightDock({
           <PanelRightClose className="h-3.5 w-3.5" />
         </button>
       </div>
+
+      <EnvToolbar
+        onBrowser={openBrowserPanel}
+        onTerminal={openTerminalPanel}
+        onChanges={openChangesPanel}
+        browserDisabled={urls.length === 0 && !outputs.some((o) => o.path && /\.html?$/i.test(o.path ?? ""))}
+        changesDisabled={!hasChanges}
+      />
 
       {/* Reactive block stack. The relative wrapper hosts the subagent
           spectator overlay OUTSIDE the scroll container, so it stays pinned
@@ -2581,6 +2719,7 @@ export function RightDock({
           onToggle={() => setOutputsOpen((v) => !v)}
           outputs={outputs}
           onSeedComposer={onSeedComposer}
+          sessionId={sessionId}
         />
 
         {previewPath && (

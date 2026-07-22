@@ -90,16 +90,13 @@ import ProfileBuilderPage from "@/pages/ProfileBuilderPage";
 import AgentQuickstartPage from "@/pages/AgentQuickstartPage";
 import AgentWorkflowPage from "@/pages/AgentWorkflowPage";
 import AgentTeamPage from "@/pages/AgentTeamPage";
-import OperationsPage from "@/pages/OperationsPage";
-import GovernancePage from "@/pages/GovernancePage";
-import AgentsPage from "@/pages/AgentsPage";
+import AgentsShell from "@/pages/AgentsShell";
 import AchievementsPage from "@/pages/AchievementsPage";
 import JourneyPage from "@/pages/JourneyPage";
 import SkillsPage from "@/pages/SkillsPage";
 import PluginsPage from "@/pages/PluginsPage";
-import PluginsHub from "@/pages/PluginsHub";
+import IntegrationsShell from "@/pages/IntegrationsShell";
 import McpPage from "@/pages/McpPage";
-import ConnectorsPage from "@/pages/ConnectorsPage";
 import PairingPage from "@/pages/PairingPage";
 import ChannelsPage from "@/pages/ChannelsPage";
 import WebhooksPage from "@/pages/WebhooksPage";
@@ -107,6 +104,7 @@ import SystemPage from "@/pages/SystemPage";
 import ChatPage from "@/pages/ChatPage";
 import ConfigUser from "@/components/ConfigUser";
 import { SettingsOverlay, isFullConfigRequested } from "@/components/SettingsOverlay";
+import MockupsRouter from "@/pages/mockups/MockupsRouter";
 import { useI18n } from "@/i18n";
 
 // /config route (deep-link): the user's lean screen by default; the full
@@ -119,17 +117,15 @@ function ConfigRoute() {
 // the profiles admin (5-step wizard, raw model, skills, MCP, gateway) lives
 // behind the internal `?full=1` hatch — same pattern as Config.
 function ProfilesRoute() {
-  return isFullConfigRequested() ? <ProfilesPage /> : <AgentsPage />;
+  return isFullConfigRequested() ? <ProfilesPage /> : <AgentsShell />;
 }
 
-// /plugins route (product curation): the end user sees the unified HUB
-// (Connectors + Skills, Manus style — PluginsHub); the technical plugins
-// console (install repo, providers, remove) lives behind the `?full=1` hatch
-// (PluginsPage). Same split as Config/Agents/Connectors — it solves the name
-// collision with no new path (the user on /plugins sees the hub,
-// /plugins?full=1 the admin).
+// /plugins route: the user-facing hub moved into the Integrações shell
+// (Fase 10 · Onda A2). The end user is redirected to /integrations; the
+// technical plugins console (install repo, providers, remove) stays behind
+// the `?full=1` hatch (PluginsPage) for us/support.
 function PluginsRoute() {
-  return isFullConfigRequested() ? <PluginsPage /> : <PluginsHub />;
+  return isFullConfigRequested() ? <PluginsPage /> : <Navigate to="/integrations" replace />;
 }
 import type { Translations } from "@/i18n/types";
 import { PluginPage, PluginSlot, usePlugins } from "@/plugins";
@@ -183,11 +179,12 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/models": ModelsPage,
   "/logs": LogsPage,
   "/cron": CronPage,
-  "/skills": SkillsPage,
+  "/integrations": IntegrationsShell,
+  "/skills": SkillsRoute,
   "/plugins": PluginsRoute,
   "/mcp": ConnectorsRoute,
   "/pairing": PairingPage,
-  "/channels": ChannelsPage,
+  "/channels": ChannelsRoute,
   "/webhooks": WebhooksPage,
   "/system": SystemPage,
   "/profiles": ProfilesRoute,
@@ -196,8 +193,8 @@ const BUILTIN_ROUTES_CORE: Record<string, ComponentType> = {
   "/profiles/quickstart": AgentQuickstartPage,
   "/profiles/agent": AgentWorkflowPage,
   "/profiles/team": AgentTeamPage,
-  "/profiles/operations": OperationsPage,
-  "/profiles/governance": GovernancePage,
+  "/profiles/operations": OperationsRedirect,
+  "/profiles/governance": GovernanceRedirect,
   "/config": ConfigRoute,
   "/env": EnvPage,
   "/docs": DocsPage,
@@ -238,54 +235,36 @@ const BUILTIN_NAV_REST: NavItem[] = [
     icon: Cpu,
   },
   { path: "/logs", labelKey: "logs", label: "Logs", icon: FileText },
-  { path: "/cron", labelKey: "cron", label: "Cron", icon: Clock },
   { path: "/skills", labelKey: "skills", label: "Skills", icon: Package },
-  // "Integrações" — tudo que liga os agentes ao mundo de fora, em três
-  // destinos nomeados pelo que são:
-  //   Conectores  (/mcp)      as ferramentas: Gmail, Planilhas, Notion…
-  //   Habilidades (/skills)   o que o agente sabe fazer
-  //   Canais      (/channels) por onde as pessoas falam com ele
-  //
-  // Antes o primeiro filho era "Aplicativos" (/plugins), um hub que juntava
-  // Conectores e Habilidades numa tela só. O resultado eram QUATRO nomes para
-  // a mesma família — a lateral dizia "Aplicativos", a página dizia "Plugins",
-  // e dentro dela as seções diziam "Conectores" e "Habilidades". O dono abriu,
-  // não soube o que era o quê, e pediu os três explícitos (20/07).
-  //
-  // O hub (/plugins) continua montado para link direto e para o console
-  // técnico (?full=1); só saiu da navegação.
-  // A âncora do grupo segue sendo /plugins — de propósito. O filtro de
-  // navegação compara por PATH, e existe uma entrada solta de /mcp logo abaixo
-  // (visão interna). Ancorar o grupo em /mcp fazia as duas passarem no filtro
-  // e "Conectores" aparecia duas vezes na lateral.
+  // "Integrações" — item FLAT que abre o SHELL com abas internas Conectores ·
+  // Habilidades · Canais (Fase 10 · Onda A2, `/integrations?tab=`). As rotas
+  // soltas /mcp, /skills, /channels redirecionam para as abas do shell
+  // (usuário) e seguem acessíveis em ?full=1 (admin). O console técnico de
+  // plugins fica em /plugins?full=1.
   {
-    path: "/plugins",
+    path: "/integrations",
     labelKey: "integrations",
     label: "Integrations",
     icon: Puzzle,
-    children: [
-      { path: "/mcp", end: true, getLabel: (tt) => tt.app.nav.connectors },
-      { path: "/skills", getLabel: (tt) => tt.app.nav.skills },
-      { path: "/channels", getLabel: (tt) => tt.app.nav.channels },
-    ],
   },
   { path: "/mcp", labelKey: "connectors", label: "Connectors", icon: Plug },
   { path: "/channels", labelKey: "channels", label: "Channels", icon: Radio },
   { path: "/webhooks", label: "Webhooks", icon: Webhook },
   { path: "/pairing", label: "Pairing", icon: ShieldCheck },
+  // "Agentes" — item FLAT, sem dropdown (Fase 10 · Onda A1). Âncora em
+  // /profiles (AgentsPage — vista Equipe). As abas Equipe · Trabalho ·
+  // Governança entram no PR-2 (A3 — shell `/profiles?tab=`). As rotas filhas
+  // (/profiles/quickstart|operations|governance) seguem montadas para
+  // deep-link/admin.
   {
     path: "/profiles",
     labelKey: "profiles",
     label: "Agents",
     icon: Bot,
-    // Submodules of the Agents module (Claude Console-style dropdown).
-    children: [
-      { path: "/profiles/quickstart", getLabel: (tt) => tt.agents.quickTab },
-      { path: "/profiles", end: true, getLabel: (tt) => tt.agents.teamTab },
-      { path: "/profiles/operations", getLabel: (tt) => tt.agents.opsTab },
-      { path: "/profiles/governance", getLabel: (tt) => tt.agents.govTab },
-    ],
   },
+  // Agenda por último na navegação do usuário (wireframe Fase 9: Nova tarefa ·
+  // Entregas · Integrações · Agentes · Agenda).
+  { path: "/cron", labelKey: "cron", label: "Cron", icon: Clock },
   // Config left the main navigation — it now opens from the user chip's menu,
   // as an overlay (the /config route still exists for deep-links).
   { path: "/env", labelKey: "keys", label: "Keys", icon: KeyRound },
@@ -313,20 +292,54 @@ const USER_NAV_PATHS = new Set<string>([
   // cron, empty ones). The route stays mounted for deep-link and admin actions.
   "/files",
   "/cron",
-  // "/plugins" ancora o grupo "Integrações"; Conectores (/mcp), Habilidades
-  // (/skills) e Canais (/channels) entram como FILHOS, então nenhum dos três
-  // é entrada de topo — e a âncora não colide com a entrada solta de /mcp da
-  // visão interna. O hub PluginsHub em si saiu da navegação: continua montado
-  // para link direto, e o console técnico segue em /plugins?full=1.
-  "/plugins",
+  // "/integrations" é o shell com abas Conectores · Habilidades · Canais
+  // (Fase 10 · Onda A2). As rotas soltas /mcp, /skills, /channels, /plugins
+  // saíram da navegação do usuário — redirecionam para o shell (usuário) e
+  // seguem em ?full=1 (admin). "/profiles" é o shell de Agentes (abas Equipe ·
+  // Trabalho · Governança).
+  "/integrations",
   "/profiles",
 ]);
 
-// Connectors: the user sees the MARKETPLACE (Composio bridge); the technical MCP
-// screen (manual servers + Nous catalog) stays behind ?full=1 — same
-// Config/Skills pattern. Function declaration (hoisted) for the route map above.
+// Connectors: the user-facing marketplace now lives as the "Conectores" tab of
+// the Integrações shell (Fase 10 · Onda A2), so /mcp redirects there. The
+// technical MCP screen (manual servers + Nous catalog) stays behind ?full=1.
 function ConnectorsRoute() {
-  return isFullConfigRequested() ? <McpPage /> : <ConnectorsPage />;
+  return isFullConfigRequested() ? (
+    <McpPage />
+  ) : (
+    <Navigate to="/integrations?tab=connectors" replace />
+  );
+}
+
+// Skills / Channels: same split — the user tab lives inside the Integrações
+// shell; the standalone route redirects there (admin keeps ?full=1 direct).
+function SkillsRoute() {
+  return isFullConfigRequested() ? (
+    <SkillsPage />
+  ) : (
+    <Navigate to="/integrations?tab=skills" replace />
+  );
+}
+function ChannelsRoute() {
+  return isFullConfigRequested() ? (
+    <ChannelsPage />
+  ) : (
+    <Navigate to="/integrations?tab=channels" replace />
+  );
+}
+
+// Agents submodules: Operations/Governance became tabs of the Agents shell
+// (Fase 10 · Onda A3); the old standalone paths redirect into the shell,
+// preserving any query (e.g. ?delegate=1 → work tab).
+function OperationsRedirect() {
+  const { search } = useLocation();
+  const extra = search.replace(/^\?/, "");
+  const to = `/profiles?tab=work${extra ? `&${extra}` : ""}`;
+  return <Navigate to={to} replace />;
+}
+function GovernanceRedirect() {
+  return <Navigate to="/profiles?tab=governance" replace />;
 }
 
 const ICON_MAP: Record<string, ComponentType<{ className?: string }>> = {
@@ -638,6 +651,11 @@ export default function App() {
     mql.addEventListener("change", onChange);
     return () => mql.removeEventListener("change", onChange);
   }, []);
+
+  // Spec preview gallery (Fase 9) — isolated shell, no production nav mutation.
+  if (pathname.startsWith("/mockups")) {
+    return <MockupsRouter />;
+  }
 
   return (
     <ProfileProvider>
