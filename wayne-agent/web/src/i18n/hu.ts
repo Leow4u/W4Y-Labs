@@ -1269,6 +1269,8 @@ export const hu: Translations = {
     updateChipTooltip: "Elérhető a(z) {version} verzió — újraindul és frissül.",
     updateChipStalled: "Frissítés függőben",
     updateChipStalledTooltip: "Nem tudtuk befejezni a frissítést. Kattintson az újrapróbáláshoz.",
+    updateChipBusy: "Frissites...",
+    updateChipBusyTooltip: "Az uj verzio a hatterben telepul.",
     personalization: "Személyre szabás",
     identityNote: "Ezek az adatok a bejelentkezésedből származnak, és itt nem szerkeszthetők.",
     logout: "Kijelentkezés",

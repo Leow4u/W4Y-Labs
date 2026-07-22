@@ -1269,6 +1269,8 @@ export const tr: Translations = {
     updateChipTooltip: "Sürüm {version} mevcut — yeniden başlatır ve günceller.",
     updateChipStalled: "Güncelleme bekliyor",
     updateChipStalledTooltip: "Güncellemeyi tamamlayamadık. Yeniden denemek için tıklayın.",
+    updateChipBusy: "Guncelleniyor...",
+    updateChipBusyTooltip: "Yeni surum arka planda yukleniyor.",
     personalization: "Kişiselleştirme",
     identityNote: "Bu bilgiler girişinizden gelir ve burada düzenlenemez.",
     logout: "Çıkış yap",

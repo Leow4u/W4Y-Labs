@@ -1270,6 +1270,8 @@ export const es: Translations = {
     updateChipTooltip: "Versión {version} disponible — se reinicia y actualiza.",
     updateChipStalled: "Actualización pendiente",
     updateChipStalledTooltip: "No pudimos completar la actualización. Haz clic para reintentar.",
+    updateChipBusy: "Actualizando...",
+    updateChipBusyTooltip: "Instalando la nueva version en segundo plano.",
     personalization: "Personalización",
     identityNote: "Estos datos vienen de tu inicio de sesión y no se pueden editar aquí.",
     logout: "Cerrar sesión",

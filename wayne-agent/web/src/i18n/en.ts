@@ -1330,6 +1330,8 @@ export const en: Translations = {
     updateChipTooltip: "Version {version} available — restarts and updates.",
     updateChipStalled: "Update pending",
     updateChipStalledTooltip: "We couldn't finish the update. Click to try again.",
+    updateChipBusy: "Updating…",
+    updateChipBusyTooltip: "Installing the new version in the background. This can take a few minutes.",
     personalization: "Personalization",
     identityNote: "This comes from your login and can't be edited here.",
     logout: "Log out",

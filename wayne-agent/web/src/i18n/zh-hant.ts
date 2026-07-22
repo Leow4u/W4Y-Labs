@@ -1267,6 +1267,8 @@ export const zhHant: Translations = {
     updateChipTooltip: "新版本 {version} 可用 — 重新啟動並更新。",
     updateChipStalled: "更新未完成",
     updateChipStalledTooltip: "我們沒能完成更新。點擊重試。",
+    updateChipBusy: "更新中...",
+    updateChipBusyTooltip: "正在背景安裝新版本。",
     personalization: "個人化",
     identityNote: "這些資訊來自你的登入，無法在此編輯。",
     logout: "登出",

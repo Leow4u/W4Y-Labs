@@ -1377,6 +1377,9 @@ export interface Translations {
     updateChipTooltip: string;
     updateChipStalled: string;
     updateChipStalledTooltip: string;
+    /** Visible while bytes/venv install runs — chip must not vanish (Hermes pattern). */
+    updateChipBusy: string;
+    updateChipBusyTooltip: string;
     personalization: string;
     identityNote: string;
     logout: string;

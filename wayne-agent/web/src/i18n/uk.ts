@@ -1270,6 +1270,8 @@ export const uk: Translations = {
     updateChipTooltip: "Доступна версія {version} — перезапустить і оновить.",
     updateChipStalled: "Оновлення не завершено",
     updateChipStalledTooltip: "Не вдалося завершити оновлення. Натисніть, щоб повторити.",
+    updateChipBusy: "Оновлення...",
+    updateChipBusyTooltip: "Нова версія встановлюється у фоні.",
     personalization: "Персоналізація",
     identityNote: "Ці дані беруться з вашого входу й тут не редагуються.",
     logout: "Вийти",

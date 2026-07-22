@@ -1277,6 +1277,8 @@ export const ga: Translations = {
     updateChipTooltip: "Leagan {version} ar fáil — atosóidh agus nuashonróidh sé.",
     updateChipStalled: "Nuashonrú ar feitheamh",
     updateChipStalledTooltip: "Níorbh fhéidir linn an nuashonrú a chríochnú. Cliceáil chun triail eile a bhaint as.",
+    updateChipBusy: "A nuashonru...",
+    updateChipBusyTooltip: "Ag suiteail an leagan nua sa chulra.",
     personalization: "Pearsantú",
     identityNote: "Tagann na sonraí seo ó do logáil isteach agus ní féidir iad a chur in eagar anseo.",
     logout: "Logáil amach",

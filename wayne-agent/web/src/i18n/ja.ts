@@ -1268,6 +1268,8 @@ export const ja: Translations = {
     updateChipTooltip: "バージョン {version} が利用可能 — 再起動して更新します。",
     updateChipStalled: "更新が未完了",
     updateChipStalledTooltip: "更新を完了できませんでした。クリックして再試行します。",
+    updateChipBusy: "更新中...",
+    updateChipBusyTooltip: "新しいバージョンをインストールしています。",
     personalization: "パーソナライズ",
     identityNote: "これらの情報はログインから取得され、ここでは編集できません。",
     logout: "ログアウト",

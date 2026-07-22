@@ -1269,6 +1269,8 @@ export const ru: Translations = {
     updateChipTooltip: "Доступна версия {version} — перезапустит и обновит.",
     updateChipStalled: "Обновление не завершено",
     updateChipStalledTooltip: "Не удалось завершить обновление. Нажмите, чтобы повторить.",
+    updateChipBusy: "Обновление...",
+    updateChipBusyTooltip: "Новая версия устанавливается в фоне.",
     personalization: "Персонализация",
     identityNote: "Эти данные берутся из вашего входа и здесь не редактируются.",
     logout: "Выйти",

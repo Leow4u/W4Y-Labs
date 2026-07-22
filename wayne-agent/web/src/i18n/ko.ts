@@ -1268,6 +1268,8 @@ export const ko: Translations = {
     updateChipTooltip: "버전 {version} 사용 가능 — 재시작하고 업데이트합니다.",
     updateChipStalled: "업데이트 미완료",
     updateChipStalledTooltip: "업데이트를 완료하지 못했습니다. 클릭하면 다시 시도합니다.",
+    updateChipBusy: "업데이트 중...",
+    updateChipBusyTooltip: "새 버전을 설치하는 중입니다.",
     personalization: "개인화",
     identityNote: "이 정보는 로그인에서 가져오며 여기서 편집할 수 없습니다.",
     logout: "로그아웃",

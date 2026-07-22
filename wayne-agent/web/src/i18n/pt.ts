@@ -1270,6 +1270,8 @@ export const pt: Translations = {
     updateChipTooltip: "Versão {version} disponível — reinicia e atualiza.",
     updateChipStalled: "Atualização pendente",
     updateChipStalledTooltip: "Não conseguimos concluir a atualização. Clique para tentar de novo.",
+    updateChipBusy: "Atualizando…",
+    updateChipBusyTooltip: "Instalando a nova versão em segundo plano. Pode levar alguns minutos.",
     personalization: "Personalização",
     identityNote: "Estes dados vêm do seu login e não podem ser editados aqui.",
     logout: "Sair",

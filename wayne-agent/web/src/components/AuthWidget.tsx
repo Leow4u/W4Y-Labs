@@ -117,6 +117,9 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
   const [applying, setApplying] = useState(false);
   const applyingRef = useRef(false);
   const update = chip.plan;
+  // Plan OR notice OR local applying — never blank the pill mid-install.
+  const updateBusy = applying || chip.notice === "in-progress";
+  const showUpdatePill = !!(update || chip.notice || applying);
 
   // Update state: pushed by the shell, with polling kept only as a fallback.
   //
@@ -147,8 +150,17 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     // shape (including the fresh token) instead of reconstructing it here.
     const unsubscribe = bridge.onEvent?.((payload) => {
       if (cancelled) return;
-      // A run that is still going should not clear the pill mid-flight.
-      if (payload && payload.running === true) return;
+      // Keep a visible busy pill while work runs (Hermes keeps the statusbar
+      // chip + spinner). Ignoring running:true used to erase the only signal
+      // the user had, so a multi-minute venv install looked like a dead click.
+      if (payload && payload.running === true) {
+        setChip((prev) => ({
+          plan: null,
+          notice: "in-progress",
+          error: prev.error,
+        }));
+        return;
+      }
       probe();
     });
 
@@ -416,48 +428,54 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
         {/* Engine update pill (ChatGPT Desktop pattern: accent pill next to the
             account name). Nested interactive: a span[role=button] with
             stopPropagation so the chip's menu toggle doesn't fire. */}
-        {update && (
+        {showUpdatePill && (
           <span
             role="button"
-            tabIndex={0}
+            tabIndex={updateBusy || chip.notice === "preparing" ? -1 : 0}
             title={
-              update.kind === "stalled"
-                ? t.configUser.updateChipStalledTooltip
-                : update.version
-                  ? t.configUser.updateChipTooltip.replace("{version}", update.version)
-                  : t.configUser.updateChip
+              updateBusy
+                ? t.configUser.updateChipBusyTooltip
+                : chip.notice === "preparing"
+                  ? t.desktop.updatePreparing
+                  : update?.kind === "stalled"
+                    ? t.configUser.updateChipStalledTooltip
+                    : update?.version
+                      ? t.configUser.updateChipTooltip.replace("{version}", update.version)
+                      : t.configUser.updateChip
             }
             className={cn(
               "shrink-0 rounded-full px-2 py-0.5 text-[0.625rem] font-semibold leading-4",
               "transition-colors focus-visible:outline-none focus-visible:ring-1",
-              // Two meanings, two looks: the engine is ready to switch to
-              // (accent) vs. the update keeps failing and needs a nudge
-              // (warning). Same pill, never the same promise.
-              update.kind === "stalled"
-                ? "bg-warning/15 text-warning ring-warning/40 hover:bg-warning/25 focus-visible:ring-warning/60"
-                : "bg-live text-background hover:bg-live/85 focus-visible:ring-live/60",
+              // Busy / stalled / ready — three looks, never a vanished pill.
+              updateBusy || chip.notice === "preparing"
+                ? "bg-midground/20 text-foreground/80 ring-current/20"
+                : update?.kind === "stalled"
+                  ? "bg-warning/15 text-warning ring-warning/40 hover:bg-warning/25 focus-visible:ring-warning/60"
+                  : "bg-live text-background hover:bg-live/85 focus-visible:ring-live/60",
             )}
-            // Busy is stated, not just guarded: a concurrent click was already
-            // dropped by applyingRef, but the user had no way to know why.
-            aria-busy={applying || undefined}
-            aria-disabled={applying || undefined}
+            aria-busy={updateBusy || undefined}
+            aria-disabled={updateBusy || chip.notice === "preparing" || undefined}
             onClick={(e) => {
               e.stopPropagation();
-              if (applying) return;
+              if (updateBusy || chip.notice === "preparing" || !update) return;
               applyUpdate();
             }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 e.stopPropagation();
-                if (applying) return;
+                if (updateBusy || chip.notice === "preparing" || !update) return;
                 applyUpdate();
               }
             }}
           >
-            {update.kind === "stalled"
-              ? t.configUser.updateChipStalled
-              : t.configUser.updateChip}
+            {updateBusy
+              ? t.configUser.updateChipBusy
+              : chip.notice === "preparing"
+                ? t.configUser.updateChipBusy
+                : update?.kind === "stalled"
+                  ? t.configUser.updateChipStalled
+                  : t.configUser.updateChip}
           </span>
         )}
         <ChevronUp className={cn("h-3.5 w-3.5 shrink-0 text-text-tertiary transition-transform", !open && "rotate-180")} />

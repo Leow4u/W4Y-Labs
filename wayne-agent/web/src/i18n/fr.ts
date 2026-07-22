@@ -1270,6 +1270,8 @@ export const fr: Translations = {
     updateChipTooltip: "Version {version} disponible — redémarre et met à jour.",
     updateChipStalled: "Mise à jour en attente",
     updateChipStalledTooltip: "Nous n'avons pas pu terminer la mise à jour. Cliquez pour réessayer.",
+    updateChipBusy: "Mise a jour...",
+    updateChipBusyTooltip: "Installation de la nouvelle version en arriere-plan.",
     personalization: "Personnalisation",
     identityNote: "Ces informations proviennent de votre connexion et ne sont pas modifiables ici.",
     logout: "Se déconnecter",

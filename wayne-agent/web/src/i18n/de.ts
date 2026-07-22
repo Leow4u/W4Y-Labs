@@ -1269,6 +1269,8 @@ export const de: Translations = {
     updateChipTooltip: "Version {version} verfügbar — startet neu und aktualisiert.",
     updateChipStalled: "Update ausstehend",
     updateChipStalledTooltip: "Wir konnten das Update nicht abschließen. Zum erneuten Versuch klicken.",
+    updateChipBusy: "Wird aktualisiert...",
+    updateChipBusyTooltip: "Die neue Version wird im Hintergrund installiert.",
     personalization: "Personalisierung",
     identityNote: "Diese Daten stammen aus deiner Anmeldung und können hier nicht bearbeitet werden.",
     logout: "Abmelden",
