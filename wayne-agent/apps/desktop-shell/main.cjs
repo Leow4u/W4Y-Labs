@@ -1692,8 +1692,10 @@ async function startLocalEngine() {
     // installs an engine update. The background sweep is what produced the
     // aggressive experience — a machine that was merely opened started spending
     // bandwidth and could later restart into a build the user never asked for.
-    // The chip is the single entry point now; scheduleBackgroundEngineUpdate()
-    // is left in place, uncalled, for the separate cleanup task.
+    // The chip is the single entry point now: checkEngineUpdate reports
+    // kind:"pending" when a newer manifest exists, and a click runs the same
+    // download path as a stalled retry. scheduleBackgroundEngineUpdate() is
+    // left in place, uncalled, for the separate cleanup task.
     // scheduleBackgroundEngineUpdate();
   } catch (err) {
     if (!aborted()) {
@@ -2241,11 +2243,15 @@ async function checkEngineUpdate() {
       });
     }
     // The manifest names a build we do not have, and it is not staged (checked
-    // above). Reading a manifest starts NO download, so calling this
-    // "in-progress" was simply false. It is discovered-and-not-ready: the
-    // background sweep still owes the bytes, and there is nothing to apply yet.
-    return unifiedCheck.layer(unifiedCheck.PREPARING, {
+    // above). Reading a manifest starts NO download — and the background sweep
+    // is parked (product: no silent bandwidth on mere open). Without a chip
+    // here the user would never learn a newer build exists. `pending` is the
+    // discoverable plan: click starts the download (same path as `stalled`).
+    // PREPARING used to mean the same discovery but was not actionable, so the
+    // renderer never painted an "Atualizar" pill.
+    return unifiedCheck.layer(unifiedCheck.AVAILABLE, {
       version: manifest.version ?? null,
+      kind: "pending",
     });
   } catch {
     return unifiedCheck.layer(unifiedCheck.UNKNOWN, { reason: "engine check threw" });
@@ -2528,10 +2534,14 @@ async function applyUnifiedUpdate(token) {
       : { ok: false, outcome: applyOutcome.FAILED, error: (res && res.error) || "relaunch failed" };
   }
 
-  if (snap.kind === "engine" && snap.engineKind === "stalled") {
-    // A successful retry usually ends STAGED: the bytes are ready and the
-    // update lands on the next restart. That is not an applied install, and
-    // the tray must not announce one.
+  if (
+    snap.kind === "engine" &&
+    (snap.engineKind === "stalled" || snap.engineKind === "pending")
+  ) {
+    // Nothing staged yet. `stalled` = prior auto/manual attempts failed;
+    // `pending` = newer manifest, download never started (background sweep
+    // parked). Both clicks mean "fetch the bytes now". A successful run
+    // usually ends STAGED — restart is a second click on the ready pill.
     const res = await retryEngineUpdate();
     if (!res.ok) return { ...res, outcome: applyOutcome.FAILED };
     // `no-update` and `already-staged` used to land on "applied" through a
