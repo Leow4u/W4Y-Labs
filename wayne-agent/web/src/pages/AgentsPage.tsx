@@ -24,6 +24,8 @@ import type {
   ProfilePulse,
   TeamSubagent,
 } from "@/lib/api";
+import { accountGetJson } from "@/lib/accountApi";
+import { realAgents } from "@/lib/agents";
 import { formatCredits } from "@/lib/credits";
 import { useScheduleText } from "@/hooks/useScheduleText";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
@@ -127,10 +129,13 @@ export default function AgentsPage() {
 
   const load = useCallback(() => {
     setLoading(true);
-    Promise.all([api.getProfiles(), api.getActiveProfile()])
+    void Promise.all([
+      accountGetJson<{ profiles: ProfileInfo[] }>("/api/profiles", 8000),
+      accountGetJson<ActiveProfileInfo>("/api/profiles/active", 8000),
+    ])
       .then(([p, a]) => {
-        setProfiles(p.profiles);
-        setActive(a);
+        setProfiles(realAgents(p?.profiles ?? []));
+        if (a) setActive(a);
       })
       .catch((e) => showToast(`${t.status.error}: ${e}`, "error"))
       .finally(() => setLoading(false));
@@ -197,7 +202,7 @@ export default function AgentsPage() {
   );
 
   useEffect(() => {
-    if (profiles.length) loadExtras(profiles.filter((p) => !p.is_default).map((p) => p.name));
+    if (profiles.length) loadExtras(profiles.map((p) => p.name));
   }, [profiles, loadExtras]);
 
   const activeName = active?.active || "default";
@@ -264,8 +269,9 @@ export default function AgentsPage() {
     [extras, showToast, t.status.error],
   );
 
-  // The Team shows the agents the user CREATED — never the installation root.
-  const teamProfiles = profiles.filter((p) => !p.is_default);
+  // The Team shows the agents the user CREATED — never the installation root
+  // (realAgents already applied at load).
+  const teamProfiles = profiles;
 
   const workingCount = teamProfiles.filter((p) => {
     const s = pulse[p.name]?.live_status;

@@ -6,7 +6,9 @@ import {
   type ReactNode,
 } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
-import { api, setManagementProfile } from "@/lib/api";
+import { setManagementProfile, type ProfileInfo } from "@/lib/api";
+import { accountGetJson } from "@/lib/accountApi";
+import { isInstallation, realAgents } from "@/lib/agents";
 import { ProfileContext } from "@/contexts/profile-context";
 
 /**
@@ -82,26 +84,27 @@ export function ProfileProvider({ children }: { children: ReactNode }) {
     let cancelled = false;
     const urlProfile = searchParams.get("profile");
 
-    Promise.all([api.getProfiles(), api.getActiveProfile()])
-      .then(([profilesRes, info]) => {
-        if (cancelled) return;
+    // Account surface: profiles come from the cloud when the desktop is
+    // logged in (single brain). Installation "default" never enters the
+    // switcher list (realAgents).
+    void Promise.all([
+      accountGetJson<{ profiles: ProfileInfo[] }>("/api/profiles", 8000),
+      accountGetJson<{ current?: string; active?: string }>("/api/profiles/active", 8000),
+    ]).then(([profilesRes, info]) => {
+      if (cancelled) return;
 
-        setProfiles(profilesRes.profiles.map((p) => p.name));
+      const list = realAgents(profilesRes?.profiles ?? []);
+      setProfiles(list.map((p) => p.name));
 
-        const current = info.current || "default";
-        const active = info.active || "default";
-        setCurrentProfile(current);
+      const current = info?.current || "default";
+      const active = info?.active || "default";
+      setCurrentProfile(current);
 
-        // Deep links (?profile=) win. Otherwise align the switcher with the
-        // sticky active profile so Chat and management pages match what the
-        // Profiles page shows as "active" (machine dashboard runs as
-        // `current`, usually default).
-        if (urlProfile === null && active !== current) {
-          setManagementProfile(active);
-          setProfileState(active);
-        }
-      })
-      .catch(() => {});
+      if (urlProfile === null && active !== current && !isInstallation(active)) {
+        setManagementProfile(active);
+        setProfileState(active);
+      }
+    });
 
     return () => {
       cancelled = true;

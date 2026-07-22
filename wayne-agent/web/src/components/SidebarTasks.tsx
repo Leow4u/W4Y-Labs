@@ -81,6 +81,7 @@ import {
   cloudMutateAvailable,
   cloudMutateJson,
 } from "@/lib/cloudSession";
+import { accountGetJson, shouldUseAccountCloud } from "@/lib/accountApi";
 import { isPinned, onPinnedChange, togglePin } from "@/lib/pinned-sessions";
 import {
   isProjectPinned,
@@ -302,6 +303,10 @@ export function SidebarTasks({
   // one list, one history — the folder decides where the agent runs, so there
   // is nothing else to pick.
   const [projectRows, setProjectRows] = useState<ProjectRow[] | null>(null);
+  /** Account-cloud project slugs — badge when the desktop is logged in. */
+  const [cloudProjectSlugs, setCloudProjectSlugs] = useState<Set<string>>(
+    () => new Set(),
+  );
   /** Slugs, in row order — what the rows below render and the meta sidecar keys on. */
   const [projects, setProjects] = useState<string[] | null>(null);
   const [projRoot, setProjRoot] = useState<string | null>(null);
@@ -363,6 +368,25 @@ export function SidebarTasks({
           }
         }
 
+        // Account surface: merge cloud project rows when logged in (single brain).
+        let cloudSlugs = new Set<string>();
+        if (await shouldUseAccountCloud()) {
+          const cloud = await accountGetJson<{ projects?: ProjectRow[] }>(
+            "/api/projects",
+            5000,
+          );
+          const cloudRows = (cloud?.projects ?? []).filter((r) => !r.archived);
+          cloudSlugs = new Set(cloudRows.map((r) => r.slug));
+          const bySlug = new Map(rows.map((r) => [r.slug, r]));
+          for (const r of cloudRows) {
+            if (!bySlug.has(r.slug)) {
+              rows = [...rows, r];
+              bySlug.set(r.slug, r);
+            }
+          }
+        }
+        setCloudProjectSlugs(cloudSlugs);
+
         setProjectRows(rows);
         const slugs = rows.map((r) => r.slug);
         setProjects(slugs);
@@ -372,6 +396,7 @@ export function SidebarTasks({
       } catch {
         setProjectRows([]);
         setProjects([]);
+        setCloudProjectSlugs(new Set());
       }
     })();
   }, []);
@@ -384,11 +409,14 @@ export function SidebarTasks({
   const pickProject = useCallback(
     (name: string) => {
       onNavigate?.();
-      // Opens the project SPACE (?home=1). The new-chat screen with the chip is
-      // up to the ProjectPicker/Nova tarefa (?project without home).
-      navigate(`/chat?project=${encodeURIComponent(name)}&home=1`);
+      // Account-cloud-only project: open on the cloud brain (cwd lives there).
+      const cloudOnly = cloudProjectSlugs.has(name);
+      const q = cloudOnly
+        ? `/chat?project=${encodeURIComponent(name)}&home=1&run=cloud`
+        : `/chat?project=${encodeURIComponent(name)}&home=1`;
+      navigate(q);
     },
-    [navigate, onNavigate],
+    [navigate, onNavigate, cloudProjectSlugs],
   );
 
   // Creates the project (mkdir), optional subfolders (mkdir inside it) and
@@ -1158,6 +1186,14 @@ export function SidebarTasks({
                   <span className={cn("min-w-0 flex-1 truncate", isActive && "font-medium")}>
                     {projectDisplayName(p)}
                   </span>
+                  {cloudProjectSlugs.has(p) && (
+                    <span
+                      title={t.chat.cloudOriginTooltip}
+                      className="grid h-4 w-4 shrink-0 place-items-center"
+                    >
+                      <Cloud className="h-3 w-3 text-text-tertiary" aria-hidden />
+                    </span>
+                  )}
                   {projectColorHex(p) && getProjectMetaCached(p).icon && (
                     <span
                       aria-hidden

@@ -14,6 +14,7 @@ import { ChevronDown } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { ConnectorToolkit } from "@/lib/api";
+import { accountGetJson } from "@/lib/accountApi";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
 import { LogoTile } from "@/components/connectors/ConnectorCard";
@@ -55,7 +56,40 @@ export function ConnectorsPicker({
     let alive = true;
     void (async () => {
       try {
-        const status = await api.getConnectorsStatus("global");
+        // Account surface: when the desktop is logged in, list the CONTA's
+        // connectors (cloud), not the local worker's copy — single brain.
+        const status = await accountGetJson<{
+          accounts: { status?: string; toolkit?: string }[];
+        }>("/api/connectors/status?scope=global", 8000);
+        if (!alive) return;
+        if (!status) {
+          // Fall back to local worker so a signed-out desktop still works.
+          const local = await api.getConnectorsStatus("global").catch(() => null);
+          if (!alive) return;
+          if (!local) {
+            setConnected([]);
+            return;
+          }
+          const localSlugs = [
+            ...new Set(
+              local.accounts
+                .filter((a) => a.status === "ACTIVE")
+                .map((a) => (a.toolkit || "").toLowerCase())
+                .filter(Boolean),
+            ),
+          ];
+          if (localSlugs.length === 0) {
+            setConnected([]);
+            return;
+          }
+          const catalog = await api.getConnectorsCatalog().catch(() => null);
+          if (!alive) return;
+          const bySlug = new Map(
+            (catalog?.toolkits ?? []).map((tk) => [tk.slug.toLowerCase(), tk]),
+          );
+          setConnected(localSlugs.map((slug) => bySlug.get(slug) ?? fallbackToolkit(slug)));
+          return;
+        }
         const slugs = [
           ...new Set(
             status.accounts
@@ -64,13 +98,14 @@ export function ConnectorsPicker({
               .filter(Boolean),
           ),
         ];
-        if (!alive) return;
         if (slugs.length === 0) {
           setConnected([]);
           return;
         }
-        // Resolve names/logos; the catalog is server-cached (Plugins uses it).
-        const catalog = await api.getConnectorsCatalog().catch(() => null);
+        const catalog = await accountGetJson<{ toolkits: ConnectorToolkit[] }>(
+          "/api/connectors/catalog",
+          8000,
+        );
         if (!alive) return;
         const bySlug = new Map(
           (catalog?.toolkits ?? []).map((tk) => [tk.slug.toLowerCase(), tk]),

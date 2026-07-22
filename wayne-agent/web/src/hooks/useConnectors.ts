@@ -8,8 +8,13 @@
  * connect (opens the OAuth Connect Link and polls until ACTIVE) / disconnect actions.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "@/lib/api";
 import type { ConnectorAccount, ConnectorToolkit, ProfileInfo } from "@/lib/api";
+import {
+  accountGetJson,
+  accountMutateJson,
+  accountPostJson,
+} from "@/lib/accountApi";
+import { realAgents } from "@/lib/agents";
 import { errorMessage, logApiError } from "@/lib/error-message";
 import { useI18n } from "@/i18n";
 
@@ -104,10 +109,12 @@ export function useConnectors(showToast: ShowToast) {
    */
   const fetchCatalog = useCallback(
     () =>
-      api
-        .getConnectorsCatalog()
+      accountGetJson<{ toolkits: ConnectorToolkit[] }>("/api/connectors/catalog", 15000)
         .then((r) => {
-          if (aliveRef.current) setToolkits(r.toolkits);
+          if (aliveRef.current) {
+            if (r?.toolkits) setToolkits(r.toolkits);
+            else setError(errorMessage(new Error("catalog unavailable"), te));
+          }
         })
         .catch((e) => {
           logApiError("connectors:catalog", e);
@@ -128,19 +135,21 @@ export function useConnectors(showToast: ShowToast) {
     // No setLoading/setError here: the initial state IS "loading, no error",
     // so the first load only has to resolve it.
     void fetchCatalog();
-    api.getProfiles().then((r) => aliveRef.current && setProfiles(r.profiles)).catch(() => {});
+    void accountGetJson<{ profiles: ProfileInfo[] }>("/api/profiles", 8000).then((r) => {
+      if (aliveRef.current && r?.profiles) setProfiles(realAgents(r.profiles));
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const refreshStatus = useCallback(
     (s = scope) =>
-      api
-        .getConnectorsStatus(s)
-        .then((r) => {
-          if (aliveRef.current) setAccounts(r.accounts);
-          return r;
-        })
-        .catch(() => null),
+      accountGetJson<{ accounts: ConnectorAccount[] }>(
+        `/api/connectors/status?scope=${encodeURIComponent(s)}`,
+        8000,
+      ).then((r) => {
+        if (aliveRef.current && r) setAccounts(r.accounts);
+        return r;
+      }),
     [scope],
   );
 
@@ -191,7 +200,15 @@ export function useConnectors(showToast: ShowToast) {
     async (tk: ConnectorToolkit) => {
       setConnecting(tk.slug);
       try {
-        const res = await api.connectConnector(tk.slug, scope);
+        const res = await accountPostJson<{
+          no_auth?: boolean;
+          redirect_url?: string;
+        }>("/api/connectors/connect", { toolkit: tk.slug, scope }, 15000);
+        if (!res) {
+          setConnecting(null);
+          showToast(tc.connectFailed, "error");
+          return;
+        }
         if (res.no_auth) {
           setConnecting(null);
           showToast(tc.connectedToast.replace("{name}", tk.name), "success");
@@ -222,7 +239,14 @@ export function useConnectors(showToast: ShowToast) {
       setDisconnecting(tk.slug);
       try {
         for (const a of accs) {
-          if (a.id) await api.disconnectConnectorAccount(a.id);
+          if (a.id) {
+            await accountMutateJson(
+              `/api/connectors/accounts/${encodeURIComponent(a.id)}`,
+              "DELETE",
+              undefined,
+              15000,
+            );
+          }
         }
         showToast(tc.disconnectedToast, "success");
         await refreshStatus();
