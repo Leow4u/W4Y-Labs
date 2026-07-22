@@ -38,10 +38,14 @@ import { UsageFooter } from "@/components/chat/UsageFooter";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useI18n } from "@/i18n";
+import { useToast } from "@nous-research/ui/hooks/use-toast";
 import { isBootPreview } from "@/lib/boot-preview";
 import { api } from "@/lib/api";
 import { applyChatDisplay } from "@/lib/chat-display";
 import {
+  cloudGetJson,
+  cloudMutateAvailable,
+  cloudMutateJson,
   cloudReadFile,
   cloudRunAvailable,
   setCloudSessionActive,
@@ -148,6 +152,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   const wantsBranch = searchParams.get("branch") === "1";
   const { setTitle, setEnd } = usePageHeader();
   const { t } = useI18n();
+  const { showToast } = useToast();
 
   // Current tier → agent badge AND PER-SESSION overrides of session.create
   // (desktop contract: the composer sends model/effort on every create — so
@@ -155,6 +160,8 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   // reload, and without depending on the global config reloading on a cold start).
   const [modeBadge, setModeBadge] = useState<string | null>(null);
   // Global permissions mode (approvals.mode manual|smart) — Piece 7.
+  // On a cloud session this mirrors the CLOUD brain (bridge), not the local
+  // engine — same pattern as TaskHeaderActions rename/archive.
   const [approvalsMode, setApprovalsMode] = useState<ApprovalsMode>("manual");
   const [overrides, setOverrides] = useState<SessionCreateOverrides | null>(null);
   useEffect(() => {
@@ -169,8 +176,6 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
         const agent = (base.agent as Record<string, unknown> | undefined) ?? {};
         const reasoning =
           typeof agent.reasoning_effort === "string" ? agent.reasoning_effort : "medium";
-        const appr = (base.approvals as Record<string, unknown> | undefined) ?? {};
-        setApprovalsMode(appr.mode === "smart" ? "smart" : "manual");
         const tier = tierFromConfig(model, reasoning) as TierKey | null;
         setModeBadge(tier ? tierLabel(t, tier) : null);
         setOverrides({ model: model || undefined, provider, reasoningEffort: reasoning });
@@ -231,6 +236,27 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   const cloudResume = !!resumeId && searchParams.get("run") === "cloud" && cloudRunAvailable();
   const cloudSession =
     cloudResume || (!resumeId && runTarget === "cloud" && cloudRunAvailable());
+
+  // ModePicker Manual/Auto: load approvals.mode from the brain that owns the
+  // session (cloud bridge vs local /api/config). Re-runs when run target flips.
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        const cfg = cloudSession
+          ? await cloudGetJson<Record<string, unknown>>("/api/config", 8000)
+          : await api.getConfig();
+        if (cancelled || !cfg) return;
+        const appr = (cfg.approvals as Record<string, unknown> | undefined) ?? {};
+        setApprovalsMode(appr.mode === "smart" ? "smart" : "manual");
+      } catch {
+        /* keep previous mode — picker still usable */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [cloudSession]);
 
   // cwd: absolute ?cwd (existing folder) wins; otherwise projects/<slug>.
   // A CLOUD session is born with NO cwd on purpose: every folder this page
@@ -917,10 +943,35 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
   }, [busy, dockChanges, dockOutputs]);
 
   // ── "Code" piece: permissions mode + automatic repo clone ───────────
-  const handleSetApprovalsMode = useCallback((m: ApprovalsMode) => {
-    setApprovalsMode(m);
-    void api.saveConfig({ approvals: { mode: m } }).catch(() => {});
-  }, []);
+  // Cloud session → PUT /api/config on the cloud brain via bridge (TaskHeader
+  // pattern). Local → same-origin api.saveConfig as before.
+  const handleSetApprovalsMode = useCallback(
+    (m: ApprovalsMode) => {
+      setApprovalsMode(m);
+      void (async () => {
+        if (cloudSession) {
+          if (!cloudMutateAvailable()) {
+            showToast(t.cron.cloudUnavailable, "error");
+            return;
+          }
+          const r = await cloudMutateJson<{ ok?: boolean }>(
+            "/api/config",
+            "PUT",
+            { config: { approvals: { mode: m } } },
+            8000,
+          );
+          if (!r) showToast(t.cron.cloudUnavailable, "error");
+          return;
+        }
+        try {
+          await api.saveConfig({ approvals: { mode: m } });
+        } catch {
+          /* local save best-effort — same as before */
+        }
+      })();
+    },
+    [cloudSession, showToast, t.cron.cloudUnavailable],
+  );
 
   // ?clone=<url> (coming from "Selecionar repo…"): once the project session is
   // ready, fires the clone prompt ONCE and clears the parameter.
