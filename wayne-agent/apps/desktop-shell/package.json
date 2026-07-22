@@ -2,7 +2,7 @@
   "name": "work4you-desktop",
   "productName": "Work4You",
   "private": true,
-  "version": "0.3.17",
+  "version": "0.3.18",
   "description": "Work4You desktop — native shell for work4you.ai.",
   "author": "W4Y Labs",
   "main": "main.cjs",
@@ -33,7 +33,7 @@
     "icon": "assets/icon",
     "afterPack": "./afterPack.cjs",
     "directories": {
-      "output": "release17"
+      "output": "release18"
     },
     "files": [
       "main.cjs",
@@ -64,6 +64,8 @@
       "unified-check.cjs",
       "apply-outcome.cjs",
       "staged-plan.cjs",
+      "ui-update.cjs",
+      "slot-venv.cjs",
       "package-manifest-check.cjs",
       "assets/**",
       "node_modules/**/*",

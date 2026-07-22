@@ -117,6 +117,8 @@ const engineOutcome = require("./engine-update-outcome.cjs");
 const unifiedCheck = require("./unified-check.cjs");
 const applyOutcome = require("./apply-outcome.cjs");
 const stagedPlan = require("./staged-plan.cjs");
+const uiUpdate = require("./ui-update.cjs");
+const slotVenv = require("./slot-venv.cjs");
 
 // One engine update at a time, across EVERY entry point: the 30-minute timer,
 // the tray, and the renderer's retry. The previous guard (`engine.updating`)
@@ -1869,13 +1871,9 @@ async function runBackgroundEngineUpdateWork() {
       emit: () => {},
     });
 
-    // A virgin slot is source-only after `repository`. The completion marker
-    // (and a bootable venv) only appear after the later install stages.
-    // Running repository alone always failed isComplete() → "Atualização
-    // pendente" with lastError "the installer did not finish".
-    // Skip interactive / PATH / desktop stages: this slot is not a first-run
-    // machine setup, and the running engine must keep serving until promote.
-    const SLOT_STAGES = ["uv", "python", "repository", "venv", "dependencies", "bootstrap-marker"];
+    // Virgin slot: repository first (no venv -> install.ps1 won't kill the live
+    // engine), then reuse previous venv when possible and uv sync only if
+    // uv.lock changed. Full recreate remains the fallback.
     const emitInstall = (ev) => {
       try {
         if (!ev || typeof ev !== "object") return;
@@ -1884,33 +1882,68 @@ async function runBackgroundEngineUpdateWork() {
         } else if (ev.state === "failed" || ev.type === "failed") {
           updaterLog(`slot stage failed: ${ev.name || ev.stage || "?"} ${ev.error || ""}`);
         } else if (ev.type === "stage" && (ev.state === "succeeded" || ev.state === "skipped")) {
-          updaterLog(`slot stage ${ev.state}: ${ev.state}`);
+          updaterLog(`slot stage ${ev.name}: ${ev.state}`);
         }
       } catch {
         /* log is best-effort */
       }
     };
 
+    const runOneStage = (name, abortSignal) =>
+      bootstrapRunner.runStage({
+        scriptPath: scriptInfo.path,
+        installerKind: scriptInfo.kind || "powershell",
+        stage: { name },
+        emit: emitInstall,
+        wayneHome: WAYNE_HOME,
+        activeRoot: target,
+        installDir: target,
+        abortSignal,
+        installStamp: null,
+      });
+
     const abort = new AbortController();
     const cap = setTimeout(() => abort.abort(), 30 * 60_000);
     let lastEv = null;
     let failedStage = null;
     try {
-      for (const name of SLOT_STAGES) {
-        lastEv = await bootstrapRunner.runStage({
-          scriptPath: scriptInfo.path,
-          installerKind: scriptInfo.kind || "powershell",
-          stage: { name },
-          emit: emitInstall,
-          wayneHome: WAYNE_HOME,
-          activeRoot: target,
-          installDir: target,
-          abortSignal: abort.signal,
-          installStamp: null,
-        });
+      for (const name of ["uv", "python", "repository"]) {
+        lastEv = await runOneStage(name, abort.signal);
         if (!lastEv || (lastEv.state !== "succeeded" && lastEv.state !== "skipped")) {
           failedStage = name;
           break;
+        }
+      }
+      let skipVenv = false;
+      let skipDependencies = false;
+      if (!failedStage) {
+        const donor = slotVenv.resolveDonorRoot({
+          wayneHome: WAYNE_HOME,
+          engineRoot: ENGINE_ROOT,
+          readEngineSource,
+          isLink: engineSlots.isLink,
+          exists: engineSlots.exists,
+        });
+        const plan = slotVenv.planVenvReuse({
+          donorRoot: donor,
+          targetRoot: target,
+          log: updaterLog,
+        });
+        skipVenv = plan.skipVenv;
+        skipDependencies = plan.skipDependencies;
+      }
+      if (!failedStage) {
+        const rest = [
+          ...(skipVenv ? [] : ["venv"]),
+          ...(skipDependencies ? [] : ["dependencies"]),
+          "bootstrap-marker",
+        ];
+        for (const name of rest) {
+          lastEv = await runOneStage(name, abort.signal);
+          if (!lastEv || (lastEv.state !== "succeeded" && lastEv.state !== "skipped")) {
+            failedStage = name;
+            break;
+          }
         }
       }
     } finally {
@@ -2459,10 +2492,27 @@ async function checkUnifiedUpdate() {
       : unifiedCheck.layer(unifiedCheck.UP_TO_DATE, { version: shellRes.version || null });
 
   const engineLayer = await checkEngineUpdate();
+  // UI-only channel: same combine rules. Insertion order = preference when
+  // multiple layers are AVAILABLE — shell, then engine (motor), then UI patch.
+  // So a pending motor still wins over a UI patch; when the motor is current,
+  // a newer ui-latest.json surfaces as a seconds-long apply.
+  const uiLayer =
+    CLOUD_SHELL || engine.usingCloud
+      ? unifiedCheck.skipped()
+      : await uiUpdate.checkUiUpdate({
+          wayneHome: WAYNE_HOME,
+          engineRoot: ENGINE_ROOT,
+          layer: unifiedCheck.layer,
+          skipped: unifiedCheck.skipped,
+          AVAILABLE: unifiedCheck.AVAILABLE,
+          UP_TO_DATE: unifiedCheck.UP_TO_DATE,
+          UNKNOWN: unifiedCheck.UNKNOWN,
+        });
 
   const combined = unifiedCheck.combineUpdateLayers({
     shell: shellLayer,
     engine: engineLayer,
+    ui: uiLayer,
   });
   // A transient check failure must not erase a plan we already proved: the
   // bytes of a staged update are on disk and a stalled one still needs the
@@ -2483,15 +2533,22 @@ async function checkUnifiedUpdate() {
   }
 
   const isShell = merged.source === "shell";
+  const isUi = merged.source === "ui";
   const token = rememberSnapshot(
     isShell
       ? { kind: "shell", version: merged.version }
-      : {
-          kind: "engine",
-          engineKind: merged.kind || "ready",
-          version: merged.version,
-          staged: merged.staged ?? null,
-        },
+      : isUi
+        ? {
+            kind: "ui",
+            version: merged.version,
+            zipUrl: (uiLayer && uiLayer.zipUrl) || null,
+          }
+        : {
+            kind: "engine",
+            engineKind: merged.kind || "ready",
+            version: merged.version,
+            staged: merged.staged ?? null,
+          },
   );
   lastProvenPlan = { ...merged, stale: false };
   return {
@@ -2499,7 +2556,7 @@ async function checkUnifiedUpdate() {
     status: unifiedCheck.AVAILABLE,
     unverified: merged.unverified,
     version: merged.version,
-    kind: merged.kind,
+    kind: merged.kind || (isUi ? "ui" : null),
     token,
   };
 }
@@ -2581,6 +2638,33 @@ async function applyUnifiedUpdate(token) {
     // `no-update` and `already-staged` used to land on "applied" through a
     // blanket fallback. They are a true no-op and a restart-pending state.
     return { ...res, outcome: applyOutcome.fromEngineStatus(res.status) };
+  }
+
+  if (snap.kind === "ui") {
+    const zipUrl = snap.zipUrl;
+    if (!zipUrl || typeof zipUrl !== "string") {
+      return { ok: false, outcome: applyOutcome.STALE_PLAN, error: "stale-plan", reason: "ui-zip-missing" };
+    }
+    const res = await uiUpdate.applyUiUpdate({
+      wayneHome: WAYNE_HOME,
+      engineRoot: ENGINE_ROOT,
+      zipUrl,
+      version: snap.version ?? null,
+      log: updaterLog,
+    });
+    if (!res.ok) {
+      return { ok: false, outcome: applyOutcome.FAILED, error: res.error || "ui-apply-failed" };
+    }
+    // Live UI is served by the engine from wayne_cli/web_dist — reload every
+    // window so the new bundle paints without a motor reinstall.
+    for (const win of BrowserWindow.getAllWindows()) {
+      try {
+        if (win && !win.isDestroyed()) win.webContents.reloadIgnoringCache();
+      } catch {
+        /* */
+      }
+    }
+    return { ok: true, outcome: applyOutcome.APPLIED };
   }
   if (snap.kind === "shell") {
     // The plan named a shell version; refuse if the updater no longer holds
