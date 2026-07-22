@@ -2516,10 +2516,21 @@ PR-8  C5 + C6 ✅ FEITO 21/07  (Modelos ~12 toggles · explore i18n · Agenda bl
 PR-9  D1–D7 ✅ FEITO 21/07  (pontes Agenda↔Agentes · vocabulário planos · créditos 50/75/90 · Gerir assinatura · chip plano avatar · deep links /planos)
 PR-10 E1–E6 ✅ FEITO 22/07  (skills displayName PT · Governança↔Config copy · entry único config agente · canvas ?full=1 · EN residual cron→i18n · CTA webhook na Agenda)
 PR-11 E7–E10 ✅ FEITO 22/07  (Entregas share/export pack · drawer canais editável · CTA agendar rotina · /models admin ?full=1)
-PR-DESKTOP  paridade Hermes               (portar PR-1..10 para apps/desktop — bloco final)
+~~PR-DESKTOP  paridade Hermes~~ — **CANCELADO 22/07** (ver nota abaixo)
 ```
 
 Cada PR: screenshot comparando mock vs. produção + smoke manual checklist.
+
+> **⚠ OBSOLETO (22/07/2026) — não seguir.** O bloco abaixo (escopo web-first +
+> **PR-DESKTOP** + “Estratégia de convergência desktop”) assumia duas apps React
+> (`web` × `apps/desktop`). O renderer Hermes `apps/desktop` foi **removido**
+> (`f9cad21`); o desktop real é `apps/desktop-shell` + o **mesmo** `web_dist`.
+> A unificação do produto é no **runtime na nuvem**, não em espelhar UI.
+> Estrela-guia: [`docs/PLATAFORMA.md`](./PLATAFORMA.md). Fatos: BACKEND-MAP
+> “UMA UI SÓ”. Trilha de valor = ponte Cloud Agents no desktop (já S1/S2), não
+> porta de PRs pro renderer morto.
+
+<details><summary>Texto histórico (congelado — não executar)</summary>
 
 > **Escopo web-first (decisão 21/07):** todos os PRs acima incidem sobre o
 > **dashboard web** (`wayne-agent/web`). O app **desktop Hermes**
@@ -2529,7 +2540,7 @@ Cada PR: screenshot comparando mock vs. produção + smoke manual checklist.
 > dedicado (**PR-DESKTOP**) após o web estar completo — não é regressão, é
 > sequência. Dev servers distintos: web = Vite :5173 · desktop = Vite :5174.
 
-#### Estratégia de convergência desktop (a decidir no PR-DESKTOP)
+#### Estratégia de convergência desktop (a decidir no PR-DESKTOP) — OBSOLETO
 
 **Contexto:** hoje `web` e `apps/desktop` são duas apps React independentes que
 compartilham só o transporte (`@wayne/shared`: `json-rpc-gateway.ts` +
@@ -2547,11 +2558,10 @@ Três caminhos, do mais barato ao mais estrutural:
 | 2 | **Pacote de UI compartilhado** (`@wayne/ui`) — mover `tier-presets`, i18n e componentes de Config/pickers para um pacote importado pelos dois apps | médio | elimina a duplicação nova; cada PR novo nasce nos dois lugares |
 | 3 | **Modelo Cursor/VS Code** — workbench único em camadas + DI | alto | correção definitiva; provável exagero para o momento do produto |
 
-**Recomendação:** avaliar a **opção 2** ao entrar no PR-DESKTOP — começar
-extraindo `lib/tier-presets.ts`, os `i18n/*` e os componentes de Config/pickers
-(`ConfigModelsSection`, `RelayPicker`, `ModePicker`) para um pacote comum, e
-fazer os dois apps consumirem. A partir daí a paridade passa a ser automática,
-sem reescrever tudo como no caminho 3.
+**Recomendação (histórica):** avaliar a **opção 2** ao entrar no PR-DESKTOP —
+substituída por [`docs/PLATAFORMA.md`](./PLATAFORMA.md).
+
+</details>
 
 ---
 

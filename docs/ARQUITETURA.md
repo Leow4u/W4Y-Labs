@@ -28,6 +28,10 @@
 > do provisionador. Modelo de negócio: tiers + créditos + top-up via Stripe (cliente de
 > billing já existe no fork; lado servidor = Stripe + OpenRouter Provisioning por tenant).
 
+> **Definição de produto (22/07):** [PLATAFORMA.md](./PLATAFORMA.md) — nuvem =
+> coração 24/7; web = janela; desktop = poder local + ponte. Unificação no
+> **runtime**, não em espelhar UI.
+
 > **Revisão 2026-07-22 (v5 — REALIDADE ATUAL VERIFICADA):** as seções §2–§8 abaixo
 > descrevem a **arquitetura-alvo** (plano de 2.000 usuários) e ainda citam "Wayne em
 > Cloud Run" — isso é **planejamento superado pela v4**. O que está **de fato no ar hoje**

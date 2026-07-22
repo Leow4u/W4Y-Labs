@@ -9,6 +9,9 @@ ativo.
 > Princípio inegociável: **não construímos infraestrutura própria**. Reusamos e
 > orquestramos o que já existe no mercado. Ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
+> **Estrela-guia de produto:** [docs/PLATAFORMA.md](docs/PLATAFORMA.md) — um
+> produto (nuvem 24/7 + web + desktop); unificação no runtime, não em espelhar UI.
+
 > O app desktop do Work4You é `wayne-agent/apps/desktop-shell`. O renderer original do Hermes upstream (base do fork) foi removido do tree — continua no histórico git e no upstream público NousResearch/hermes-agent (MIT).
 > O instalador Tauri do Hermes upstream (apps/bootstrap-installer) também foi removido do tree pelo mesmo motivo — continua no histórico git e no upstream público.
 
@@ -17,6 +20,7 @@ ativo.
 ```
 W4Y Labs/
 ├── docs/           Arquitetura e roadmap da plataforma
+│   ├── PLATAFORMA.md   ← definição de produto (estrela-guia)
 │   ├── ARQUITETURA.md
 │   └── ROADMAP.md
 ├── platform/       UX proprietária da W4Y (7 módulos) + cola de orquestração  [em construção]

@@ -489,20 +489,29 @@ The dashboard embeds the real `wayne --tui` — **not** a rewrite.  See `wayne_c
 
 **Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
 
-### Electron Desktop Chat App (`apps/desktop/`)
+### Electron Desktop (`apps/desktop-shell/`) — Work4You
 
-A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@wayne/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `wayne serve` backend server (the same gateway `dashboard` serves, minus the browser UI). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.cjs` + `backendSupportsServe()` in `main.cjs`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `wayne` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `wayne --tui` — it has its own composer, transcript, and slash-command pipeline. Route desktop bugs to the `wayne-desktop-app-work` skill, not `wayne-dashboard-work`.
+> **⚠ W4Y fork:** the upstream Hermes section that described a separate React
+> renderer under `apps/desktop/` is **obsolete**. That tree was removed
+> (`f9cad21`). Product definition: repo-root
+> [`docs/PLATAFORMA.md`](../docs/PLATAFORMA.md). Verified facts: “UMA UI SÓ” in
+> [`docs/BACKEND-MAP.md`](../docs/BACKEND-MAP.md).
 
-**Slash commands in the desktop app are curated client-side, then dispatched to the backend.** The pipeline:
+**What ships:** `apps/desktop-shell` — thin Electron casca. Default mode spawns
+a local `wayne serve` (motor local) and `loadURL`s `http://127.0.0.1:<port>`.
+The product UI is the **same** Vite SPA as the cloud dashboard
+(`wayne-agent/web` → `wayne_cli/web_dist`), also packaged in the engine ZIP.
+Escape: `W4Y_CLOUD_SHELL=1` loads `work4you.ai` (not the product default).
 
-- **Backend already provides everything.** `tui_gateway/server.py` `commands.catalog` (empty-query list) and `complete.slash` (typed-query completions) both include built-in commands, user `quick_commands`, AND skill-derived commands (`scan_skill_commands()` / `get_skill_commands()`). The desktop app does not need a new RPC to see skills.
-- **The renderer curates via `apps/desktop/src/lib/desktop-slash-commands.ts`.** This is the load-bearing file. It holds `DESKTOP_COMMANDS` (the ~19 built-ins shown in the palette) plus block-lists for terminal-only / messaging-only / picker-owned / settings-owned / advanced commands that should NOT clutter the desktop popover.
-  - `isDesktopSlashCommand(name)` — gates **execution**. Returns true for built-ins AND for any non-built-in (skill / quick command), so typed extension commands run.
-  - `isDesktopSlashSuggestion(name)` — gates **discovery/completion**. Used by BOTH completion paths in `app/chat/composer/hooks/use-slash-completions.ts` (empty-query catalog filter + typed-query `complete.slash` filter) and by `filterDesktopCommandsCatalog`.
-  - `isDesktopSlashExtensionCommand(name)` — true when the command is NOT a known Wayne built-in (i.e. a skill or user quick command). Both suggestion and catalog-filter paths allow extensions through so skill commands surface in the palette. (Added when fixing "skill commands missing from the desktop slash palette" — the curated allow-list was silently dropping every skill/quick command from completions even though they executed fine when typed.)
-- **Dispatch** lives in `app/session/hooks/use-prompt-actions.ts` (`runSlash`): built-ins that the desktop owns (`/skin`, `/help`, `/new`, …) are handled locally or via `commands.catalog`; everything else goes to `slash.exec`, falling back to `command.dispatch` (which the gateway resolves into skill / alias / exec directives). A skill command resolves to `{type: "skill", message}` and is submitted as a normal prompt.
+**What unifies the product:** the **cloud runtime** (24/7 agents), reachable
+from web and from desktop via the Local × Cloud bridge (`RunTargetPicker`,
+`w4y:cloud:wsUrl` / `w4y:cloud:api`) — not pixel-parity of two UIs.
 
-**Rule:** the desktop slash palette's curation is about hiding noise (terminal-only / messaging-only built-ins), NOT about hiding user-activated extensions. Skill commands and `quick_commands` are extensions the backend surfaces — they belong in completions. If you tighten `desktop-slash-commands.ts`, keep `isDesktopSlashExtensionCommand` flowing into both the suggestion and catalog-filter paths. Tests: `apps/desktop/src/lib/desktop-slash-commands.test.ts` (run via the repo-root `vitest`, since `apps/desktop` resolves deps from the root workspace install).
+**Do not** reintroduce a second React desktop app, `@wayne/ui` “big split” for
+convergence, or treat the shell as a pure browser chrome over the site.
+
+`@wayne/shared` remains the web dashboard’s WS/JSON-RPC helpers; the shell does
+not import it (bridge is IPC in `main.cjs` / `preload.cjs`).
 
 ---
 

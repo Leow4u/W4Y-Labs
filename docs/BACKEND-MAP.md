@@ -339,6 +339,11 @@ ANTES de declarar o instalador pronto. (Erro real 17/07: os 5 módulos portados 
 git-*/hardening ficaram fora da lista; 0.2.0 crashou; 0.2.1 os incluiu.)
 
 ## PIVÔ DESKTOP (17/07) — fatos verificados p/ o desktop com motor local (Cursor×VS Code)
+
+> **Produto (22/07):** a estrela-guia é [`docs/PLATAFORMA.md`](./PLATAFORMA.md).
+> Este bloco permanece a evidência técnica (“UMA UI SÓ”, bridge S1/S2). Não
+> reabrir “espelhar renderer Hermes”.
+
 Decisão do Leonardo: desktop = Hermes COMPLETO local com marca Work4You; o que é nosso protegido
 na nuvem. Fatos que sustentam o plano (2 investigações 17/07, arquivo:linha nos transcripts):
 - **UMA UI SÓ — CONFIRMADO:** o gateway local serve o MESMO web_dist da nuvem (web_server.py:121,
@@ -545,16 +550,20 @@ gatilhos aprovados: abuso real / medidor ao vivo / enterprise): `model.base_url`
 Gotcha do flip: base_url fora de openrouter.ai faz o runtime preferir OPENAI_API_KEY antes de
 OPENROUTER_API_KEY (cli.py:3841) — tenant só tem a segunda, fallback ok, conferir antes. GOTCHAS ativos: `wayne update` NÃO funciona em instalação ZIP (update = re-rodar estágio repository); `-IncludeDesktop` incompatível c/ ZIP; SOUL.md ainda Nous (rebrand em lockstep c/ default_soul.py, pendente). Provisioner — INCIDENTE REAL confirmado (investigação 17/07, ao vivo no Fly/GCP): o deploy de 11/07 22:24 (opção A Composio, commit 8a8751c) **reutilizou a tag de imagem `p3`** por cima da imagem billing de 07/07 — o `provisioner-w4y` em produção (release v10, digest `2b2dcd74…`) NÃO tem `/ensure-key` desde então. A casca em produção É a feat/billing (Cloud Run digest `61f0fb09…`, go-live 07/07) e o Cloud Scheduler `wayne-reconcile-keys` (ENABLED, `*/5min` → `/internal/reconcile-keys`) segue chamando `/ensure-key` → 404 **silencioso** (a rota devolve 200 c/ `falhas[]`); a injeção de chave capada na ativação Stripe (`webhooks/stripe`) falha igual → tenant pago fica na chave antiga sem teto. CONSERTO: merge `integ/billing-merge` (server.js unificado: /provision /archive /reconfigure /ensure-key /device-key + Composio A + redact + HMAC constant-time); deploy DEVE sair dessa branch. REGRA NOVA: **NUNCA reutilizar tag de imagem** (`p3` 2× = causa-raiz; sempre tag nova `p4, p5…` ou digest; rollback só por digest — a imagem billing do `p3` foi sobrescrita e não existe mais). Pós-deploy: conferir se alguma ativação paga ocorreu entre 11/07 e o fix (`billing_events`/logs).
 
-## ⚠️ 24/7 NÃO FUNCIONA HOJE — decisão de custo pendente (verificado 17/07)
+## ⚠️ 24/7 agendado — GAP de wake (atualizado 22/07)
 
 `platform/wayne-fly/fly.wayne-w4y.toml:30-32`: `auto_stop_machines = "suspend"` +
-`min_machines_running = 0`. A máquina da nuvem **DORME quando ocioso** e só acorda com request
-HTTP de ENTRADA. O agendador de rotinas roda IN-PROCESS → congela junto; timer não gera tráfego,
-não se auto-acorda. **Consequência: rotina noturna / agente 24h NÃO dispara com ninguém acessando**
-— quebra o diferencial central do produto ("nuvem sempre ligada que Cursor/Codex não têm").
-**Conserto:** `min_machines_running = 1` (1 máquina sempre viva). Trade-off = custo: hoje paga por
-rajada (escala a zero, barato); com min=1 paga compute contínuo. Recomendação CTO: ligar no MVP
-(custo modesto, sem isso o 24/7 não existe pra validar). DECISÃO DO LEONARDO (custo).
+`min_machines_running = 0`. A máquina **dorme quando ociosa**; o scheduler de rotinas roda
+**IN-PROCESS** → congela junto; timer não gera HTTP, não se auto-acorda.
+
+**Decisão CEO (22/07):** default **permanece** suspend/min=0. `min=1` (~US$11/mês) só no
+**tier premium** de canal sempre-conectado. 24/7 do plano pago = **agendado** via wake
+(Cloud Scheduler → acorda → roda), não máquina sempre ligada.
+
+**Status do wake:** ROADMAP cita `wayne-cron-wake` no M0, mas **não há** job/script em
+`platform/infra/`. Sem wake externo verificado, rotina noturna **não dispara na hora** —
+só catch-up no próximo acesso humano. → **GAP** — não tratar “24/7 agendado barato” como
+pronto. Ver [`PLATAFORMA.md`](./PLATAFORMA.md) decisões #3/#4.
 
 ## Backlog canônico de paridade do chat
 Ver memória `desktop-parity-checklist` (upstream em `C:/DEV/hermes-upstream`).
@@ -563,3 +572,4 @@ Ver memória `desktop-parity-checklist` (upstream em `C:/DEV/hermes-upstream`).
 - fly195 (item 1) — deploy.
 - #102 — AgentWorkflowPage ainda escreve "Default" no cabeçalho (alcançável só por URL).
 - #103 — bundles acumulados: **corrigido** nos 2 Dockerfiles, provado no fly194 (1 bundle).
+- **GAP wake cron** — ligar/verificar Cloud Scheduler → HTTP wake → tick na hora (Trilha 1 infra).
