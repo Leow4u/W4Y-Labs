@@ -563,7 +563,8 @@ não máquina sempre ligada. Provisioner já espelha: premium → `min=1` / auto
 
 **Wake verificado (GCP, 22/07):** job `wayne-cron-wake` **ENABLED**, cron `*/15`,
 `GET https://wayne-w4y.fly.dev/api/auth/providers` → acorda Fly → ticker catch-up.
-**LIVE**, mas **não pontual** (até ~15 min late). Sem script em `platform/infra/` (só GCP).
+**LIVE**, mas **não pontual** (até ~15 min late). IaC: `platform/infra/wake-cron.ps1`
+(idempotente create-or-update; **não** re-aplica no deploy — só DR/recreate).
 
 → Produto “24/7 agendado barato” = **PARTIAL**, não pronto. Ver [`PLATAFORMA.md`](./PLATAFORMA.md).
 
@@ -574,5 +575,5 @@ Ver memória `desktop-parity-checklist` (upstream em `C:/DEV/hermes-upstream`).
 - fly195 (item 1) — deploy.
 - #102 — AgentWorkflowPage ainda escreve "Default" no cabeçalho (alcançável só por URL).
 - #103 — bundles acumulados: **corrigido** nos 2 Dockerfiles, provado no fly194 (1 bundle).
-- **Wake cron** — IaC do `wayne-cron-wake` em `platform/infra/` + apertar intervalo se quiser
-  pontualidade (hoje */15 = PARTIAL).
+- **Wake cron** — `platform/infra/wake-cron.ps1` captura o job vivo; apertar intervalo
+  (hoje `*/15`) se quiser pontualidade = PARTIAL → mais perto de “na hora”.

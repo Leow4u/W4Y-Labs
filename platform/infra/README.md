@@ -22,6 +22,13 @@ Alvo de plataforma: **linux/amd64**.
 
 `<tag>` = short SHA do git (com `-dirty` se houver mudanças não commitadas), ou timestamp UTC como fallback.
 
+## Scripts
+| Script | Papel |
+|--------|--------|
+| `build-wayne-local.ps1` / `push-wayne-image.ps1` / `deploy-wayne-cloudrun.ps1` | Imagem Wayne → Artifact Registry → Cloud Run (legado M0) |
+| `deploy-web.ps1` | Casca pública Next.js → Cloud Run `w4y-web` |
+| `wake-cron.ps1` | **IaC do despertador** Cloud Scheduler `wayne-cron-wake` (`*/15` UTC → GET Fly). Idempotente; **não** re-aplica no fluxo de deploy — só DR/recreate. Ver docs/BACKEND-MAP.md. |
+
 ## Passos
 ```powershell
 cd "C:\DEV\W4Y Labs\platform\infra"

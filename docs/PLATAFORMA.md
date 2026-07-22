@@ -106,8 +106,10 @@ Com suspend, o scheduler de cron do Wayne roda **in-process** e congela com a m�
 
 **Ainda GAP para “24/7 agendado pronto”:**
 - Não é na hora exata (até ~15 min de atraso + tick ≤60s).
-- Sem IaC em `platform/infra/` (recriar o job não está no repo).
 - Crons de alta frequência (ex. a cada 5 min) colapsam misses em um único fire.
+
+**IaC (fantasma morto):** `platform/infra/wake-cron.ps1` reproduz o job vivo
+(idempotente). Não roda no deploy — só DR/recreate.
 
 → Caminho barato = **PARTIAL** (wake existe; pontualidade/produto ainda não). Ver [BACKEND-MAP.md](./BACKEND-MAP.md).
 
