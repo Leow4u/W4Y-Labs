@@ -7,3 +7,4 @@ node_modules/
 *.json.key
 
 # O wayne-agent/ tem o próprio .gitignore (herdado do upstream)
+graphify-out/
