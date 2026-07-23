@@ -1,0 +1,171 @@
+import { useCallback, useEffect, useState } from 'react'
+import { useStore } from '@nanostores/react'
+
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger
+} from '@/components/ui/dropdown-menu'
+import { getHermesConfigRecord, saveHermesConfig, type HermesGateway } from '@/hermes'
+import { useI18n } from '@/i18n'
+import { Check, ChevronDown, iconSize, ShieldCheck, Zap } from '@/lib/icons'
+import { setSessionYolo } from '@/lib/yolo-session'
+import { cn } from '@/lib/utils'
+import { $yoloActive, setYoloActive } from '@/store/session'
+
+export type ApprovalsMode = 'manual' | 'smart'
+
+const CHIP =
+  'flex h-7 max-w-[14rem] items-center gap-1 rounded-lg px-2 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
+
+function readApprovalsMode(config: Record<string, unknown>): ApprovalsMode {
+  const approvals = config.approvals
+  if (approvals && typeof approvals === 'object' && !Array.isArray(approvals)) {
+    const mode = (approvals as Record<string, unknown>).mode
+    if (mode === 'smart') return 'smart'
+  }
+  return 'manual'
+}
+
+export function ModeChip({
+  gateway,
+  sessionId
+}: {
+  gateway?: HermesGateway | null
+  sessionId?: null | string
+}) {
+  const { t } = useI18n()
+  const yoloLive = useStore($yoloActive)
+  const [approvalsMode, setApprovalsMode] = useState<ApprovalsMode>('manual')
+  const [armedYolo, setArmedYolo] = useState(false)
+  const [open, setOpen] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    void getHermesConfigRecord()
+      .then(cfg => {
+        if (!cancelled) setApprovalsMode(readApprovalsMode(cfg))
+      })
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!armedYolo) return
+    const timer = window.setTimeout(() => setArmedYolo(false), 5000)
+    return () => window.clearTimeout(timer)
+  }, [armedYolo])
+
+  const persistApprovalsMode = useCallback(async (mode: ApprovalsMode) => {
+    setApprovalsMode(mode)
+    try {
+      const cfg = await getHermesConfigRecord()
+      const prev =
+        cfg.approvals && typeof cfg.approvals === 'object' && !Array.isArray(cfg.approvals)
+          ? (cfg.approvals as Record<string, unknown>)
+          : {}
+      await saveHermesConfig({ ...cfg, approvals: { ...prev, mode } })
+    } catch {
+      /* best-effort — picker stays usable */
+    }
+  }, [])
+
+  const applySessionYolo = useCallback(
+    async (on: boolean) => {
+      setYoloActive(on)
+      if (!sessionId || !gateway) return
+      try {
+        await setSessionYolo((method, params) => gateway.request(method, params), sessionId, on)
+      } catch {
+        setYoloActive(!on)
+      }
+    },
+    [gateway, sessionId]
+  )
+
+  const pick = useCallback(
+    (key: 'manual' | 'smart' | 'yolo') => {
+      if (key === 'yolo') {
+        if (!armedYolo) {
+          setArmedYolo(true)
+          return
+        }
+        setArmedYolo(false)
+        void applySessionYolo(true)
+        setOpen(false)
+        return
+      }
+      setArmedYolo(false)
+      if (yoloLive) void applySessionYolo(false)
+      void persistApprovalsMode(key)
+      setOpen(false)
+    },
+    [armedYolo, applySessionYolo, persistApprovalsMode, yoloLive]
+  )
+
+  const current: 'manual' | 'smart' | 'yolo' = yoloLive ? 'yolo' : approvalsMode
+  const label =
+    current === 'yolo' ? t.composer.modeYolo : current === 'smart' ? t.composer.modeAuto : t.composer.modeManual
+
+  const items = [
+    { key: 'manual' as const, label: t.composer.modeManual, hint: t.composer.modeManualHint },
+    { key: 'smart' as const, label: t.composer.modeAuto, hint: t.composer.modeAutoHint },
+    { key: 'yolo' as const, label: t.composer.modeYolo, hint: t.composer.modeYoloHint }
+  ]
+
+  return (
+    <DropdownMenu
+      onOpenChange={next => {
+        setOpen(next)
+        if (!next) setArmedYolo(false)
+      }}
+      open={open}
+    >
+      <DropdownMenuTrigger
+        aria-label={t.composer.modeTitle}
+        className={cn(CHIP, current === 'yolo' && 'bg-amber-500/15 text-amber-700 dark:text-amber-300')}
+        title={t.composer.modeTitle}
+        type="button"
+      >
+        {current === 'yolo' ? (
+          <Zap className={iconSize.sm} />
+        ) : (
+          <ShieldCheck className={iconSize.sm} />
+        )}
+        <span className="truncate">{label}</span>
+        <ChevronDown className={cn(iconSize.sm, 'opacity-60')} />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-64" side="top" sideOffset={8}>
+        <DropdownMenuLabel className="text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">
+          {t.composer.modeTitle}
+        </DropdownMenuLabel>
+        {items.map(item => {
+          const active = current === item.key
+          const armed = item.key === 'yolo' && armedYolo
+          return (
+            <DropdownMenuItem
+              className={cn('flex flex-col items-start gap-0.5 py-2', armed && 'bg-amber-500/15')}
+              key={item.key}
+              onSelect={event => {
+                event.preventDefault()
+                pick(item.key)
+              }}
+            >
+              <span className="flex w-full items-center gap-2">
+                <span className={cn('min-w-0 flex-1 font-medium', item.key === 'yolo' && 'text-amber-700 dark:text-amber-300')}>
+                  {armed ? t.composer.modeYoloConfirm : item.label}
+                </span>
+                {active && <Check className={cn(iconSize.sm, 'shrink-0')} />}
+              </span>
+              <span className="text-[0.7rem] text-muted-foreground">{item.hint}</span>
+            </DropdownMenuItem>
+          )
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}

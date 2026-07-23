@@ -42,6 +42,8 @@ import { useComposerUrlDialog } from './hooks/use-composer-url-dialog'
 import { useComposerVoice } from './hooks/use-composer-voice'
 import { useSlashCompletions } from './hooks/use-slash-completions'
 import { useSessionStatusPresence } from './hooks/use-status-presence'
+import { ModeChip } from './mode-chip'
+import { ProjectChip } from './project-chip'
 import { QueuePanel } from './queue-panel'
 import {
   composerPlainText,
@@ -976,6 +978,13 @@ export function ChatBar({
                 </div>
               </div>
             </div>
+          </div>
+          <div
+            className="relative z-4 mt-1.5 flex flex-wrap items-center gap-1.5 px-1"
+            data-slot="composer-journey-chips"
+          >
+            <ModeChip gateway={gateway} sessionId={sessionId} />
+            <ProjectChip />
           </div>
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>

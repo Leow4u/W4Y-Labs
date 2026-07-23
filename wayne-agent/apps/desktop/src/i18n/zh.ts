@@ -1087,6 +1087,9 @@ export const zh: Translations = {
     importedBadge: '导入的图谱',
     resetToMine: '返回我的图谱'
   },
+  intro: {
+    emptyTitle: '我们要做什么？'
+  },
   agents: {
     close: '关闭代理',
     title: '派生树',
@@ -1796,6 +1799,17 @@ export const zh: Translations = {
       '再深入一点',
       '调整或继续'
     ],
+    modeTitle: '审批',
+    modeManual: '请求批准',
+    modeManualHint: '编辑文件或使用网络前始终询问',
+    modeAuto: '代我批准',
+    modeAutoHint: '仅对潜在不安全操作询问',
+    modeYolo: '跳过权限',
+    modeYoloHint: '本会话不限制文件与网络访问',
+    modeYoloConfirm: '再次点击以确认',
+    projectNone: '无项目',
+    projectChipAria: '选择项目',
+    projectNew: '新建项目',
     startVoice: '开始语音对话',
     queueMessage: '排队消息',
     steer: '引导当前运行',

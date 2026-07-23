@@ -24,6 +24,12 @@ export const LOCALE_OPTIONS = [
     configValue: 'zh-hant'
   },
   {
+    id: 'pt',
+    name: 'Português',
+    englishName: 'Portuguese',
+    configValue: 'pt'
+  },
+  {
     id: 'ja',
     name: '日本語',
     englishName: 'Japanese',
@@ -64,7 +70,12 @@ const LOCALE_ALIASES: Record<string, Locale> = {
   zh_hant_hk: 'zh-hant',
   ja: 'ja',
   'ja-jp': 'ja',
-  ja_jp: 'ja'
+  ja_jp: 'ja',
+  pt: 'pt',
+  'pt-br': 'pt',
+  pt_br: 'pt',
+  'pt-pt': 'pt',
+  pt_pt: 'pt'
 }
 
 export function isLocale(value: unknown): value is Locale {

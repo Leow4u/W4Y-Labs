@@ -906,6 +906,9 @@ export const en: Translations = {
     importedBadge: 'imported map',
     resetToMine: 'Back to my map'
   },
+  intro: {
+    emptyTitle: 'What are we working on?'
+  },
   agents: {
     close: 'Close agents',
     title: 'Spawn tree',
@@ -1604,6 +1607,7 @@ export const en: Translations = {
     placeholderReconnecting: 'Reconnecting to Work4You…',
     placeholderFollowUp: 'Send follow-up',
     newSessionPlaceholders: [
+      'Write a message…',
       'What are we building?',
       'Give Work4You a task',
       "What's on your mind?",
@@ -1621,6 +1625,17 @@ export const en: Translations = {
       'Push it further',
       'Adjust or continue'
     ],
+    modeTitle: 'Approvals',
+    modeManual: 'Ask for approval',
+    modeManualHint: 'Always ask before editing files or using the network',
+    modeAuto: 'Approve for me',
+    modeAutoHint: 'Ask only for potentially unsafe actions',
+    modeYolo: 'Skip permissions',
+    modeYoloHint: 'Unrestricted file and network access for this session',
+    modeYoloConfirm: 'Click again to confirm',
+    projectNone: 'No project',
+    projectChipAria: 'Choose project',
+    projectNew: 'New project',
     startVoice: 'Start voice conversation',
     queueMessage: 'Queue message',
     steer: 'Steer the current run',

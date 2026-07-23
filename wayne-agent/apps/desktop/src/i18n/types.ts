@@ -5,7 +5,7 @@
 // partial locales should use `defineLocale()` so missing desktop-only strings
 // fall back to English while new keys remain type-checked.
 
-export type Locale = 'en' | 'zh' | 'zh-hant' | 'ja'
+export type Locale = 'en' | 'zh' | 'zh-hant' | 'ja' | 'pt'
 
 export type ToolTitleKey =
   | 'browser_click'
@@ -791,6 +791,11 @@ export interface Translations {
     importedBadge: string
     resetToMine: string
   }
+
+  intro: {
+    emptyTitle: string
+  }
+
   agents: {
     close: string
     title: string
@@ -1335,6 +1340,17 @@ export interface Translations {
     placeholderFollowUp: string
     newSessionPlaceholders: readonly string[]
     followUpPlaceholders: readonly string[]
+    modeTitle: string
+    modeManual: string
+    modeManualHint: string
+    modeAuto: string
+    modeAutoHint: string
+    modeYolo: string
+    modeYoloHint: string
+    modeYoloConfirm: string
+    projectNone: string
+    projectChipAria: string
+    projectNew: string
     startVoice: string
     queueMessage: string
     steer: string

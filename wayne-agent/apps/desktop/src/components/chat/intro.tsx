@@ -1,6 +1,7 @@
 import { useState } from 'react'
 
 import { capitalize, normalize } from '@/lib/text'
+import { useI18n } from '@/i18n'
 
 import introCopyJsonl from './intro-copy.jsonl?raw'
 
@@ -158,6 +159,7 @@ function resolveCopy(personality?: string, seed?: number): IntroCopy {
 }
 
 export function Intro({ personality, seed }: IntroProps) {
+  const { t } = useI18n()
   const [mountSeed] = useState(() => Math.floor(Math.random() * 100000))
   const copy = resolveCopy(personality, mountSeed + (seed ?? 0))
 
@@ -167,7 +169,7 @@ export function Intro({ personality, seed }: IntroProps) {
       data-slot="aui_intro"
     >
       <div className="w-full min-w-0">
-        <div className="mx-auto mb-4 flex w-[min(100%-1rem,36rem)] items-center justify-center">
+        <div className="mx-auto mb-3 flex w-[min(100%-1rem,36rem)] items-center justify-center">
           <img
             alt={WORDMARK_LABEL}
             aria-label={WORDMARK_LABEL}
@@ -177,6 +179,10 @@ export function Intro({ personality, seed }: IntroProps) {
             src={WORDMARK_SRC}
           />
         </div>
+
+        <h1 className="m-0 mb-2 text-center text-[1.65rem] font-semibold leading-tight tracking-tight text-foreground sm:text-[1.85rem]">
+          {t.intro.emptyTitle}
+        </h1>
 
         <p className="m-0 text-center leading-normal tracking-tight">{copy.body}</p>
       </div>
