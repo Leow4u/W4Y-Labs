@@ -37,7 +37,7 @@ Branch de trabalho: `integ/billing-merge` (ou `fix/reparo-plataforma` se bifurca
 
 ## Fases
 
-### Fase 0 — Spike D0-B (dias 0–3) ← **agora**
+### Fase 0 — Spike D0-B (dias 0–3) ← **fechada** (`f3586cd`)
 
 **Objetivo:** mapa honesto Hermes `apps/desktop` × W4Y `desktop-shell` + go/no-go de encaixe.
 
@@ -89,16 +89,16 @@ Fallback D0-A só se o PR1 (árvore desktop no monorepo) bloquear build por mais
 
 ---
 
-### Fase 1 — Parar a sangria (dias 1–4, overlap com spike)
+### Fase 1 — Parar a sangria (dias 1–4) ← **agora**
 
-| # | Item | Pronto quando |
-|---|---|---|
-| 1.1 | Canal UI / CDN | Manifesto público = GCS; publish com `Cache-Control: no-store` |
-| 1.2 | Chip plano desktop | Igual web quando logado |
-| 1.3 | Inventário residual loopback | Call sites restantes via account/inventory |
-| 1.4 | Chip update honesto | Sem sumir no meio; sem nova state-machine |
+| # | Item | Pronto quando | Status |
+|---|---|---|---|
+| 1.1 | Canal UI / CDN | Manifesto público = GCS; publish com `Cache-Control: no-store` | ✅ `publish-ui.ps1` + `assert-ui-manifest.ps1`; CDN já = `ui-202607222110` + `no-store` |
+| 1.2 | Chip plano desktop | Igual web quando logado | ✅ código em `ec15660` + Fly `fly229`; validar no desktop após UI update |
+| 1.3 | Inventário residual loopback | Call sites restantes via account/inventory | ⏳ |
+| 1.4 | Chip update honesto | Sem sumir no meio; sem nova state-machine | ⏳ (sem nova state-machine; só patch se mentir) |
 
-**Gates:** `npm run typecheck && npm run build` (web). **Push** + deploy UI/Fly se couber.
+**Gates:** `npm run typecheck && npm run build` (web); `assert-ui-manifest.ps1`. **Push** + deploy UI/Fly se couber.
 
 ---
 
