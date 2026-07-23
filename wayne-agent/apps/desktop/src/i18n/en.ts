@@ -940,7 +940,7 @@ export const en: Translations = {
   },
 
   commandCenter: {
-    close: 'Close command center',
+    close: 'Close control panel',
     paletteTitle: 'Command palette',
     back: 'Back',
     searchPlaceholder: 'Search sessions, views, and actions',
@@ -1023,9 +1023,9 @@ export const en: Translations = {
     nav: {
       newChat: { title: 'New session', detail: 'Start a fresh session' },
       settings: { title: 'Settings', detail: 'Configure Work4You desktop' },
-      skills: { title: 'Capabilities', detail: 'Skills, tools, and MCP servers' },
-      messaging: { title: 'Messaging', detail: 'Set up Telegram, Slack, Discord, and more' },
-      artifacts: { title: 'Artifacts', detail: 'Browse generated outputs' }
+      skills: { title: 'Capabilities', detail: 'Skills, tools, and integrations' },
+      messaging: { title: 'Channels', detail: 'Set up Telegram, Slack, Discord, and more' },
+      artifacts: { title: 'Deliverables', detail: 'Browse generated outputs' }
     },
     sectionEntries: {
       sessions: { title: 'Sessions panel', detail: 'Search, pin, and manage sessions' },
@@ -1483,7 +1483,7 @@ export const en: Translations = {
   sidebar: {
     nav: {
       'new-session': 'New session',
-      skills: 'Skills',
+      skills: 'Capabilities',
       messaging: 'Channels',
       artifacts: 'Deliverables'
     },
@@ -1494,7 +1494,7 @@ export const en: Translations = {
     results: 'Results',
     pinned: 'Pinned',
     sessions: 'Sessions',
-    cronJobs: 'Cron jobs',
+    cronJobs: 'Schedule',
     groupAriaGrouped: 'Show sessions as a single list',
     groupAriaUngrouped: 'Group sessions by workspace',
     showProjects: 'Show projects',
@@ -1637,7 +1637,7 @@ export const en: Translations = {
     projectChipAria: 'Choose project',
     projectNew: 'New project',
     connectorsLabel: 'Connectors',
-    connectorsHint: 'Open MCP servers and integrations',
+    connectorsHint: 'Open integrations and servers',
     startVoice: 'Start voice conversation',
     queueMessage: 'Queue message',
     steer: 'Steer the current run',
@@ -2047,8 +2047,8 @@ export const en: Translations = {
       backendLabel: version => `backend v${version}`,
       commit: sha => `commit ${sha}`,
       branch: branch => `branch ${branch}`,
-      closeCommandCenter: 'Close Command Center',
-      openCommandCenter: 'Open Command Center',
+      closeCommandCenter: 'Close control panel',
+      openCommandCenter: 'Open control panel',
       showTerminal: 'Show terminal',
       hideTerminal: 'Hide terminal',
       gateway: 'Gateway',
@@ -2092,8 +2092,10 @@ export const en: Translations = {
       openContextUsage: 'Open context usage breakdown',
       session: 'Session',
       runtimeSessionElapsed: 'Runtime session elapsed',
-      yoloOn: 'YOLO on — auto-approving dangerous commands. Click to turn off. Shift+click toggles it globally.',
-      yoloOff: 'YOLO off — click to auto-approve dangerous commands. Shift+click toggles it globally.',
+      yoloOn:
+        'Approving freely — dangerous commands auto-approved. Click to turn off. Shift+click toggles it globally.',
+      yoloOff:
+        'Approvals on — click to approve freely for this chat. Shift+click toggles it globally.',
       modelNone: 'none',
       noModel: 'no model',
       switchModel: 'Switch model',
@@ -2405,11 +2407,12 @@ export const en: Translations = {
     desktopCommands: 'Desktop commands',
     skillCommandsAvailable: count => `${count} skill commands available.`,
     warningLine: message => `warning: ${message}`,
-    yoloArmed: 'YOLO armed for this chat',
-    yoloOff: 'YOLO off',
-    yoloSystem: active => `YOLO ${active ? 'on' : 'off'} for this session`,
-    yoloTitle: 'YOLO',
-    yoloToggleFailed: 'Could not toggle YOLO',
+    yoloArmed: 'Approving freely for this chat',
+    yoloOff: 'Approvals restored',
+    yoloSystem: active =>
+      active ? 'Approving freely for this session' : 'Approvals restored for this session',
+    yoloTitle: 'Approvals',
+    yoloToggleFailed: 'Could not change approval mode',
     profileStatus: current =>
       `Profile: ${current}. Use /profile <name> or the "New session" picker to start a chat in another profile.`,
     unknownProfile: 'Unknown profile',
