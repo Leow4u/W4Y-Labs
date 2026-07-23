@@ -5,6 +5,7 @@
   "private": true,
   "workspaces": [
     "apps/shared",
+    "apps/desktop",
     "ui-tui",
     "ui-tui/packages/*",
     "web"

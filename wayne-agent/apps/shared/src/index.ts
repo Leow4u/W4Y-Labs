@@ -11,11 +11,13 @@ export {
 export {
   GatewayReauthRequiredError,
   buildWayneWebSocketUrl,
+  buildWayneWebSocketUrl as buildHermesWebSocketUrl,
   isGatewayReauthRequired,
   resolveGatewayWsUrl,
   type GatewayAuthMode,
   type GatewayWsConnection,
   type WayneWebSocketUrlOptions,
+  type WayneWebSocketUrlOptions as HermesWebSocketUrlOptions,
   type ResolveGatewayWsUrlDeps,
   type WebSocketAuthParam
 } from './websocket-url'
