@@ -797,6 +797,28 @@ export interface Translations {
     emptyTitle: string
   }
 
+  agentStudio: {
+    title: string
+    subtitle: string
+    identityHint: string
+    newAgent: string
+    searchPlaceholder: string
+    count: (n: number) => string
+    loading: string
+    emptyTitle: string
+    empty: string
+    emptySearch: string
+    loadFailed: string
+    colName: string
+    colChannels: string
+    colStatus: string
+    colModel: string
+    colSkills: string
+    noChannels: string
+    statusIdle: string
+    statusWorking: string
+  }
+
   agents: {
     close: string
     title: string
@@ -1203,6 +1225,8 @@ export interface Translations {
     devSection: string
     viewFullCatalog: string
     backToFeatured: string
+    /** Work (day-to-day) vs Studio agents identity plane. */
+    workScopeHint: string
   }
 
   artifacts: {

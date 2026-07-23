@@ -285,6 +285,9 @@ export function ConnectorsTab() {
 
   return (
     <div className="flex flex-col gap-4 p-1">
+      <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
+        {tc.workScopeHint}
+      </p>
       <div className="flex flex-wrap items-center gap-2">
         <Input
           className="max-w-sm"

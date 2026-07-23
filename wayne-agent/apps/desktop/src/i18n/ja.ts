@@ -1437,7 +1437,9 @@ export const ja = defineLocale({
     connectedSection: '接続済み',
     devSection: '開発',
     viewFullCatalog: 'カタログ全体を表示 →',
-    backToFeatured: 'おすすめに戻る'
+    backToFeatured: 'おすすめに戻る',
+    workScopeHint:
+      'これらのコネクタは日常の Work エージェント用です。Studio のエージェントは、明示的に共有しない限り独自のアカウントを使います。'
   },
 
   artifacts: {
@@ -1478,6 +1480,7 @@ export const ja = defineLocale({
   sidebar: {
     nav: {
       'new-session': '新しいセッション',
+      'agent-studio': 'Agent Studio',
       skills: 'スキルとツール',
       messaging: 'メッセージング',
       artifacts: 'アーティファクト'

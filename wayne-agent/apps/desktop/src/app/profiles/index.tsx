@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import type * as React from 'react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import { CodeEditor } from '@/components/chat/code-editor'
 import { PageLoader } from '@/components/page-loader'
@@ -62,8 +63,10 @@ interface ProfilesViewProps {
 export function ProfilesView({ onClose }: ProfilesViewProps) {
   const { t } = useI18n()
   const p = t.profiles
+  const [searchParams] = useSearchParams()
+  const deepLinkName = searchParams.get('name')?.trim() || null
   const [profiles, setProfiles] = useState<null | ProfileInfo[]>(null)
-  const [selectedName, setSelectedName] = useState<null | string>(null)
+  const [selectedName, setSelectedName] = useState<null | string>(deepLinkName)
   const [query, setQuery] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [pendingRename, setPendingRename] = useState<null | ProfileInfo>(null)
@@ -75,16 +78,19 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
       const list = await refreshProfiles()
       setProfiles(list)
       setSelectedName(current => {
-        if (current && list.some(p => p.name === current)) {
+        if (deepLinkName && list.some(row => row.name === deepLinkName)) {
+          return deepLinkName
+        }
+        if (current && list.some(row => row.name === current)) {
           return current
         }
 
-        return list.find(p => p.is_default)?.name ?? list[0]?.name ?? null
+        return list.find(row => row.is_default)?.name ?? list[0]?.name ?? null
       })
     } catch (err) {
       notifyError(err, p.failedLoad)
     }
-  }, [p])
+  }, [deepLinkName, p])
 
   useRefreshHotkey(refresh)
 

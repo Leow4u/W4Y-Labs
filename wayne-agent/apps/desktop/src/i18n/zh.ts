@@ -1091,6 +1091,28 @@ export const zh: Translations = {
   intro: {
     emptyTitle: '我们要做什么？'
   },
+  agentStudio: {
+    title: 'Agent Studio',
+    subtitle: '你拥有的代理 — 各自独立的主目录、频道与记忆。',
+    identityHint:
+      '日常 Work 代理保持独立。Studio 代理不会静默复用你的 Gmail、WhatsApp 或 LinkedIn — 仅在你选择「使用我的」时共享凭据。',
+    newAgent: '新建代理',
+    searchPlaceholder: '搜索代理…',
+    count: n => `${n} 个代理`,
+    loading: '正在加载代理…',
+    emptyTitle: '还没有代理',
+    empty: '为客户、角色或工作流创建一个代理。它会获得独立的配置档案。',
+    emptySearch: '没有匹配的代理。',
+    loadFailed: '无法加载代理',
+    colName: '代理',
+    colChannels: '频道',
+    colStatus: '状态',
+    colModel: '模型',
+    colSkills: '技能',
+    noChannels: '暂无',
+    statusIdle: '空闲',
+    statusWorking: '工作中'
+  },
   agents: {
     close: '关闭代理',
     title: '派生树',
@@ -1639,7 +1661,9 @@ export const zh: Translations = {
     connectedSection: '已连接',
     devSection: '开发',
     viewFullCatalog: '查看完整目录 →',
-    backToFeatured: '返回精选'
+    backToFeatured: '返回精选',
+    workScopeHint:
+      '这些连接器属于你的日常 Work 代理。Studio 代理使用各自的账号，除非你明确共享。'
   },
 
   artifacts: {
@@ -1680,6 +1704,7 @@ export const zh: Translations = {
   sidebar: {
     nav: {
       'new-session': '新建会话',
+      'agent-studio': 'Agent Studio',
       skills: '技能与工具',
       messaging: '消息平台',
       artifacts: '产物'

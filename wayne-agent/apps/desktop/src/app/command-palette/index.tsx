@@ -460,8 +460,8 @@ export function CommandPalette() {
           {
             icon: Layers3,
             id: 'nav-agent-studio',
-            keywords: ['agent studio', 'create agent', 'template', 'workflow', 'work4you'],
-            label: 'Agent Studio',
+            keywords: ['agent studio', 'create agent', 'template', 'workflow', 'work4you', 'equipe'],
+            label: t.agentStudio.title,
             run: go(AGENT_STUDIO_ROUTE)
           },
           {

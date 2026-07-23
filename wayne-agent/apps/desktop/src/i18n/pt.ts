@@ -6,6 +6,29 @@ export const pt = defineLocale({
     emptyTitle: 'No que vamos trabalhar?'
   },
 
+  agentStudio: {
+    title: 'Agent Studio',
+    subtitle: 'Agentes seus — cada um com casa, canais e memória próprios.',
+    identityHint:
+      'O seu agente de Work (dia a dia) fica separado. Agentes do Studio não reutilizam em silêncio o seu Gmail, WhatsApp ou LinkedIn — partilha credenciais só quando escolher “Usar as minhas”.',
+    newAgent: 'Novo agente',
+    searchPlaceholder: 'Buscar agentes…',
+    count: n => `${n} ${n === 1 ? 'agente' : 'agentes'}`,
+    loading: 'A carregar agentes…',
+    emptyTitle: 'Ainda sem agentes',
+    empty: 'Crie um agente para um cliente, papel ou fluxo. Ele ganha o próprio perfil isolado.',
+    emptySearch: 'Nenhum agente corresponde a essa busca.',
+    loadFailed: 'Não foi possível carregar os agentes',
+    colName: 'Agente',
+    colChannels: 'Canais',
+    colStatus: 'Estado',
+    colModel: 'Modelo',
+    colSkills: 'Skills',
+    noChannels: 'Ainda nenhum',
+    statusIdle: 'Parado',
+    statusWorking: 'A trabalhar'
+  },
+
   composer: {
     newSessionPlaceholders: [
       'Escreva uma mensagem…',
@@ -37,7 +60,7 @@ export const pt = defineLocale({
     projectNew: 'Novo projeto',
     connectorsLabel: 'Conectores',
     connectorsHint: 'Abrir integrações',
-    connectorsSession: 'Conectores neste chat',
+    connectorsSession: 'Conectores do Work neste chat',
     connectorsManage: 'Gerir conectores…',
     placeholderFollowUp: 'Enviar follow-up'
   },
@@ -62,13 +85,16 @@ export const pt = defineLocale({
     connectedSection: 'Conectados',
     devSection: 'Desenvolvimento',
     viewFullCatalog: 'Ver catálogo completo →',
-    backToFeatured: 'Voltar aos destaques'
+    backToFeatured: 'Voltar aos destaques',
+    workScopeHint:
+      'Estes conectores são do seu agente de Work (dia a dia). Agentes do Studio mantêm contas próprias, salvo se partilhar explicitamente.'
   },
 
   sidebar: {
     nav: {
       'session.new': 'Nova sessão',
       'new-session': 'Nova sessão',
+      'agent-studio': 'Agent Studio',
       skills: 'Habilidades',
       messaging: 'Canais',
       artifacts: 'Entregas'

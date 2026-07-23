@@ -910,6 +910,28 @@ export const en: Translations = {
   intro: {
     emptyTitle: 'What are we working on?'
   },
+  agentStudio: {
+    title: 'Agent Studio',
+    subtitle: 'Agents you own — each with its own home, channels, and memory.',
+    identityHint:
+      'Your day-to-day Work agent stays separate. Studio agents do not silently reuse your Gmail, WhatsApp, or LinkedIn — share credentials only when you choose “Use mine”.',
+    newAgent: 'New agent',
+    searchPlaceholder: 'Search agents…',
+    count: n => `${n} ${n === 1 ? 'agent' : 'agents'}`,
+    loading: 'Loading agents…',
+    emptyTitle: 'No agents yet',
+    empty: 'Create an agent for a client, role, or workflow. It gets its own profile island.',
+    emptySearch: 'No agents match that search.',
+    loadFailed: 'Could not load agents',
+    colName: 'Agent',
+    colChannels: 'Channels',
+    colStatus: 'Status',
+    colModel: 'Model',
+    colSkills: 'Skills',
+    noChannels: 'None yet',
+    statusIdle: 'Idle',
+    statusWorking: 'Working'
+  },
   agents: {
     close: 'Close agents',
     title: 'Spawn tree',
@@ -1462,7 +1484,9 @@ export const en: Translations = {
     connectedSection: 'Connected',
     devSection: 'Development',
     viewFullCatalog: 'View full catalog →',
-    backToFeatured: 'Back to featured'
+    backToFeatured: 'Back to featured',
+    workScopeHint:
+      'These connectors belong to your Work agent (day-to-day). Studio agents keep their own accounts unless you explicitly share.'
   },
 
   artifacts: {
@@ -1503,6 +1527,7 @@ export const en: Translations = {
   sidebar: {
     nav: {
       'new-session': 'New session',
+      'agent-studio': 'Agent Studio',
       skills: 'Capabilities',
       messaging: 'Channels',
       artifacts: 'Deliverables'
@@ -1658,7 +1683,7 @@ export const en: Translations = {
     projectNew: 'New project',
     connectorsLabel: 'Connectors',
     connectorsHint: 'Open integrations',
-    connectorsSession: 'Connectors in this chat',
+    connectorsSession: 'Work connectors in this chat',
     connectorsManage: 'Manage connectors…',
     startVoice: 'Start voice conversation',
     queueMessage: 'Queue message',

@@ -723,9 +723,31 @@ export function grantComputerUsePermissions(): Promise<ActionResponse> {
   })
 }
 
-export function getMessagingPlatforms(): Promise<MessagingPlatformsResponse> {
+export function getMessagingPlatforms(profile?: string | null): Promise<MessagingPlatformsResponse> {
+  const q =
+    profile && profile.trim() && profile !== 'default'
+      ? `?profile=${encodeURIComponent(profile.trim())}`
+      : ''
   return window.hermesDesktop.api<MessagingPlatformsResponse>({
-    path: '/api/messaging/platforms'
+    path: `/api/messaging/platforms${q}`
+  })
+}
+
+export interface ProfilePulseRow {
+  name: string
+  is_default: boolean
+  live_status?: string | null
+  live_title?: string | null
+  last_active?: number | null
+  sessions_today?: number
+  month_credits?: number
+  cap_credits?: number
+}
+
+export function getProfilesPulse(): Promise<{ profiles: ProfilePulseRow[]; now?: string }> {
+  return window.hermesDesktop.api<{ profiles: ProfilePulseRow[]; now?: string }>({
+    path: '/api/profiles/pulse',
+    timeoutMs: STARTUP_REQUEST_TIMEOUT_MS
   })
 }
 

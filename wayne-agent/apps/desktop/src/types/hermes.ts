@@ -600,6 +600,9 @@ export interface ProfileInfo {
   path: string
   provider: null | string
   skill_count: number
+  /** Present on newer backends — human blurb for the Studio list. */
+  description?: null | string
+  gateway_running?: boolean
 }
 
 export interface ProfileSetupCommand {

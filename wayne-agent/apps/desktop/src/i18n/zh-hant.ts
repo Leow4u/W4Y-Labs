@@ -1389,7 +1389,9 @@ export const zhHant = defineLocale({
     connectedSection: '已連接',
     devSection: '開發',
     viewFullCatalog: '查看完整目錄 →',
-    backToFeatured: '返回精選'
+    backToFeatured: '返回精選',
+    workScopeHint:
+      '這些連接器屬於你的日常 Work 代理。Studio 代理使用各自的帳號，除非你明確共用。'
   },
 
   artifacts: {
@@ -1430,6 +1432,7 @@ export const zhHant = defineLocale({
   sidebar: {
     nav: {
       'new-session': '新工作階段',
+      'agent-studio': 'Agent Studio',
       skills: '技能與工具',
       messaging: '訊息平台',
       artifacts: '成品'
