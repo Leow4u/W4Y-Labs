@@ -1353,7 +1353,10 @@ export const en: Translations = {
     failedLoadSoul: 'Failed to load SOUL.md',
     failedSaveSoul: 'Failed to save SOUL.md',
     failedCreate: 'Failed to create profile',
-    failedRename: 'Failed to rename profile'
+    failedRename: 'Failed to rename profile',
+    workLockedTitle: 'Work agent',
+    workLocked:
+      'Work (Default) is your day-to-day agent — it is not a Studio agent and cannot be edited, renamed, or deleted here.'
   },
 
   cron: {

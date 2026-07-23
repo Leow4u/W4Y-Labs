@@ -1,5 +1,25 @@
 import type { ProfileInfo } from '@/types/hermes'
 
+/**
+ * Work (Default) vs Studio agents — see docs/PRODUTO.md.
+ *
+ * The installation `default` profile IS Work: day-to-day agent, not a Studio
+ * agent. It must never appear in Studio/Profiles as an editable agent, and
+ * users must not edit its SOUL.md / rename / delete it via those surfaces.
+ * Lapidation of Work is a future product step, not user self-service.
+ */
+
+/** True for the Work home profile (never a Studio agent). */
+export function isWorkProfile(
+  profile: Pick<ProfileInfo, 'is_default' | 'name'> | null | string | undefined
+): boolean {
+  if (profile == null) return false
+  if (typeof profile === 'string') {
+    return profile.trim().toLowerCase() === 'default'
+  }
+  return Boolean(profile.is_default) || profile.name.trim().toLowerCase() === 'default'
+}
+
 /** "redator-financeiro" → "Redator Financeiro". */
 export function prettifyAgentName(name: string): string {
   const s = name.replace(/[-_]+/g, ' ').trim()
@@ -14,9 +34,8 @@ export function agentMonogram(name: string): string {
 }
 
 /**
- * Agents the owner manages in Studio — excludes the installation "default"
- * profile (the Work / day-to-day agent home). Same curation as web Equipe.
+ * Agents the owner manages in Studio / Profiles — excludes Work (default).
  */
 export function realAgents(profiles: ProfileInfo[]): ProfileInfo[] {
-  return profiles.filter(p => !p.is_default && p.name !== 'default')
+  return profiles.filter(p => !isWorkProfile(p))
 }

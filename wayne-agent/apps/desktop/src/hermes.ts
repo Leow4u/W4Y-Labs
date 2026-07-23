@@ -850,6 +850,9 @@ export function createProfile(body: ProfileCreatePayload): Promise<{ name: strin
 }
 
 export function renameProfile(name: string, newName: string): Promise<{ name: string; ok: boolean; path: string }> {
+  if (name.trim().toLowerCase() === 'default') {
+    return Promise.reject(new Error('Work (default) cannot be renamed'))
+  }
   return window.hermesDesktop.api<{ name: string; ok: boolean; path: string }>({
     path: `/api/profiles/${encodeURIComponent(name)}`,
     method: 'PATCH',
@@ -858,6 +861,9 @@ export function renameProfile(name: string, newName: string): Promise<{ name: st
 }
 
 export function deleteProfile(name: string): Promise<{ ok: boolean; path: string }> {
+  if (name.trim().toLowerCase() === 'default') {
+    return Promise.reject(new Error('Work (default) cannot be deleted'))
+  }
   return window.hermesDesktop.api<{ ok: boolean; path: string }>({
     path: `/api/profiles/${encodeURIComponent(name)}`,
     method: 'DELETE'
@@ -871,6 +877,10 @@ export function getProfileSoul(name: string): Promise<ProfileSoul> {
 }
 
 export function updateProfileSoul(name: string, content: string): Promise<{ ok: boolean }> {
+  // Work (default) is not a Studio agent — see docs/PRODUTO.md.
+  if (name.trim().toLowerCase() === 'default') {
+    return Promise.reject(new Error('Work (default) SOUL.md is not user-editable'))
+  }
   return window.hermesDesktop.api<{ ok: boolean }>({
     path: `/api/profiles/${encodeURIComponent(name)}/soul`,
     method: 'PUT',

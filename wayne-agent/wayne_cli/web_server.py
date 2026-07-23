@@ -12208,6 +12208,19 @@ def _resolve_profile_dir(name: str) -> Path:
     return profiles_mod.get_profile_dir(name)
 
 
+def _assert_studio_profile_mutable(name: str) -> None:
+    """Work (default) is not a Studio agent — refuse mutate endpoints.
+
+    Product rule: docs/PRODUTO.md — users must not rename/delete/edit SOUL of Work.
+    Cloning FROM default remains allowed via create_profile.
+    """
+    if (name or "").strip().casefold() == "default":
+        raise HTTPException(
+            status_code=403,
+            detail="Work (default) is not editable as a Studio agent.",
+        )
+
+
 def _profile_setup_command(name: str) -> str:
     """Return the shell command used to configure a profile in the CLI."""
     _resolve_profile_dir(name)
@@ -12887,6 +12900,7 @@ async def open_profile_terminal_endpoint(name: str):
 @app.patch("/api/profiles/{name}")
 async def rename_profile_endpoint(name: str, body: ProfileRename):
     from wayne_cli import profiles as profiles_mod
+    _assert_studio_profile_mutable(name)
     try:
         path = profiles_mod.rename_profile(name, body.new_name)
     except FileNotFoundError as e:
@@ -12905,6 +12919,7 @@ async def delete_profile_endpoint(name: str):
     its own dialog before this request, so we always pass ``yes=True`` to
     skip the CLI's interactive prompt."""
     from wayne_cli import profiles as profiles_mod
+    _assert_studio_profile_mutable(name)
     try:
         path = profiles_mod.delete_profile(name, yes=True)
     except FileNotFoundError as e:
@@ -12930,6 +12945,7 @@ async def get_profile_soul(name: str):
 
 @app.put("/api/profiles/{name}/soul")
 async def update_profile_soul(name: str, body: ProfileSoulUpdate):
+    _assert_studio_profile_mutable(name)
     soul_path = _resolve_profile_dir(name) / "SOUL.md"
     try:
         soul_path.write_text(body.content, encoding="utf-8")

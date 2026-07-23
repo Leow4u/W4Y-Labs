@@ -29,6 +29,12 @@ export const pt = defineLocale({
     statusWorking: 'A trabalhar'
   },
 
+  profiles: {
+    workLockedTitle: 'Agente Work',
+    workLocked:
+      'O Work (Default) é o seu agente do dia a dia — não é um agente do Studio e não pode ser editado, renomeado ou apagado aqui.'
+  },
+
   composer: {
     newSessionPlaceholders: [
       'Escreva uma mensagem…',

@@ -1531,7 +1531,10 @@ export const zh: Translations = {
     failedLoadSoul: '加载 SOUL.md 失败',
     failedSaveSoul: '保存 SOUL.md 失败',
     failedCreate: '创建配置档案失败',
-    failedRename: '重命名配置档案失败'
+    failedRename: '重命名配置档案失败',
+    workLockedTitle: 'Work 代理',
+    workLocked:
+      'Work（Default）是你的日常代理 — 不是 Studio 代理，不能在此编辑、重命名或删除。'
   },
 
   cron: {

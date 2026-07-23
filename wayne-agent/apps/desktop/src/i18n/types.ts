@@ -1134,6 +1134,9 @@ export interface Translations {
     failedSaveSoul: string
     failedCreate: string
     failedRename: string
+    /** Work (default) is not editable as a Studio agent — docs/PRODUTO.md */
+    workLockedTitle: string
+    workLocked: string
   }
 
   cron: {

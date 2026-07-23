@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { createProfile, updateProfileSoul } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { isWorkProfile } from '@/lib/agents'
 import { AlertTriangle } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import type { ProfileInfo } from '@/types/hermes'
@@ -130,7 +131,8 @@ export function CreateProfileDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">{p.cloneFromNone}</SelectItem>
-                {profiles.map(profile => (
+                <SelectItem value="default">{p.cloneFromDefault}</SelectItem>
+                {profiles.filter(profile => !isWorkProfile(profile)).map(profile => (
                   <SelectItem key={profile.name} value={profile.name}>
                     {profile.name}
                   </SelectItem>

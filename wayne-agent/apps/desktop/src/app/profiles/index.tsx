@@ -26,6 +26,7 @@ import {
   updateProfileSoul
 } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { isWorkProfile, realAgents } from '@/lib/agents'
 import { AlertTriangle, Save } from '@/lib/icons'
 import { profileColorSoft, resolveProfileColor } from '@/lib/profile-color'
 import { slug } from '@/lib/sanitize'
@@ -76,16 +77,18 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
   const refresh = useCallback(async () => {
     try {
       const list = await refreshProfiles()
-      setProfiles(list)
+      // Work (default) is never an editable Studio agent — see docs/PRODUTO.md.
+      const studio = realAgents(list)
+      setProfiles(studio)
       setSelectedName(current => {
-        if (deepLinkName && list.some(row => row.name === deepLinkName)) {
+        if (deepLinkName && !isWorkProfile(deepLinkName) && studio.some(row => row.name === deepLinkName)) {
           return deepLinkName
         }
-        if (current && list.some(row => row.name === current)) {
+        if (current && studio.some(row => row.name === current)) {
           return current
         }
 
-        return list.find(row => row.is_default)?.name ?? list[0]?.name ?? null
+        return studio[0]?.name ?? null
       })
     } catch (err) {
       notifyError(err, p.failedLoad)
@@ -136,6 +139,10 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
 
   const handleRename = useCallback(
     async (from: string, to: string): Promise<void> => {
+      if (isWorkProfile(from)) {
+        throw new Error(p.workLocked)
+      }
+
       const target = to.trim()
 
       if (target === from) {
@@ -155,7 +162,7 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
   )
 
   const handleConfirmDelete = useCallback(async () => {
-    if (!pendingDelete) {
+    if (!pendingDelete || isWorkProfile(pendingDelete)) {
       return
     }
 
@@ -205,19 +212,15 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
                   key={profile.name}
                   menu={
                     <PanelRowMenu
-                      items={
-                        profile.is_default
-                          ? []
-                          : [
-                              { icon: 'edit', label: p.renameMenu, onSelect: () => setPendingRename(profile) },
-                              {
-                                icon: 'trash',
-                                label: t.common.delete,
-                                onSelect: () => setPendingDelete(profile),
-                                tone: 'danger'
-                              }
-                            ]
-                      }
+                      items={[
+                        { icon: 'edit', label: p.renameMenu, onSelect: () => setPendingRename(profile) },
+                        {
+                          icon: 'trash',
+                          label: t.common.delete,
+                          onSelect: () => setPendingDelete(profile),
+                          tone: 'danger'
+                        }
+                      ]}
                     />
                   }
                   onSelect={() => setSelectedName(profile.name)}
@@ -346,6 +349,7 @@ function ProfileGlyph({ color, isDefault, name }: { color: null | string; isDefa
 function ProfileDetail({ profile }: { profile: ProfileInfo }) {
   const { t } = useI18n()
   const p = t.profiles
+  const work = isWorkProfile(profile)
 
   return (
     <PanelDetail>
@@ -353,7 +357,6 @@ function ProfileDetail({ profile }: { profile: ProfileInfo }) {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h3 className="text-[0.95rem] font-semibold tracking-tight text-foreground">{profile.name}</h3>
-            {profile.is_default && <PanelPill tone="good">{p.defaultBadge}</PanelPill>}
             {profile.has_env && <PanelPill tone="muted">.env</PanelPill>}
           </div>
           <p className="mt-1 truncate font-mono text-[0.66rem] text-muted-foreground/55" title={profile.path}>
@@ -379,7 +382,13 @@ function ProfileDetail({ profile }: { profile: ProfileInfo }) {
         />
       </header>
 
-      <SoulEditor profileName={profile.name} />
+      {work ? (
+        <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
+          {p.workLocked}
+        </p>
+      ) : (
+        <SoulEditor profileName={profile.name} />
+      )}
     </PanelDetail>
   )
 }
@@ -395,6 +404,12 @@ function SoulEditor({ profileName }: { profileName: string }) {
   const requestRef = useRef<string>(profileName)
 
   useEffect(() => {
+    if (isWorkProfile(profileName)) {
+      setLoading(false)
+      setError(p.workLocked)
+      return
+    }
+
     requestRef.current = profileName
     setLoading(true)
     setError(null)
@@ -424,6 +439,11 @@ function SoulEditor({ profileName }: { profileName: string }) {
   const dirty = content !== original
 
   async function handleSave() {
+    if (isWorkProfile(profileName)) {
+      setError(p.workLocked)
+      return
+    }
+
     setSaving(true)
     setError(null)
 
@@ -574,7 +594,9 @@ function CreateProfileDialog({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="__none__">{p.cloneFromNone}</SelectItem>
-                {profiles.map(profile => (
+                {/* Work may be cloned as a template; it is never listed as an editable agent. */}
+                <SelectItem value="default">{p.cloneFromDefault}</SelectItem>
+                {profiles.filter(profile => !isWorkProfile(profile)).map(profile => (
                   <SelectItem key={profile.name} value={profile.name}>
                     {profile.name}
                   </SelectItem>

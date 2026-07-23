@@ -33,6 +33,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tip, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { getProfileSoul, updateProfileSoul } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { isWorkProfile } from '@/lib/agents'
 import { triggerHaptic } from '@/lib/haptics'
 import { PROFILE_SWATCHES, profileColorSoft, resolveProfileColor } from '@/lib/profile-color'
 import { cn } from '@/lib/utils'
@@ -297,10 +298,7 @@ export function ProfileRail() {
         </div>
       )}
 
-      {/* Always reachable, even with only the default profile: the manage
-          overlay is the only place to edit a profile's SOUL.md, and a
-          single-profile user must be able to edit the default's persona
-          without first creating a throwaway second profile. */}
+      {/* Manage overlay lists Studio agents only (Work/default is excluded). */}
       <ProfilePill active={false} glyph="ellipsis" label={p.manageProfiles} onSelect={() => navigate(PROFILES_ROUTE)} />
 
       {/* Land in the new profile on a fresh chat (selectProfile triggers the
@@ -345,7 +343,7 @@ function EditSoulDialog({ onClose, profileName }: { onClose: () => void; profile
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (!profileName) {
+    if (!profileName || isWorkProfile(profileName)) {
       return
     }
 
@@ -362,7 +360,10 @@ function EditSoulDialog({ onClose, profileName }: { onClose: () => void; profile
   }, [p, profileName])
 
   const save = async () => {
-    if (!profileName) {
+    if (!profileName || isWorkProfile(profileName)) {
+      if (profileName && isWorkProfile(profileName)) {
+        notifyError(new Error(p.workLocked), p.workLocked)
+      }
       return
     }
 
@@ -377,6 +378,25 @@ function EditSoulDialog({ onClose, profileName }: { onClose: () => void; profile
     } finally {
       setSaving(false)
     }
+  }
+
+  // Work (default) is never editable as a Studio agent — see docs/PRODUTO.md.
+  if (profileName && isWorkProfile(profileName)) {
+    return (
+      <Dialog onOpenChange={open => !open && onClose()} open>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{p.workLockedTitle}</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">{p.workLocked}</p>
+          <DialogFooter>
+            <Button onClick={onClose} type="button">
+              {t.common.close}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    )
   }
 
   return (
