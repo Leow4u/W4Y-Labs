@@ -7,10 +7,25 @@
 - Studio: [`docs/AGENT-STUDIO.md`](../../../docs/AGENT-STUDIO.md)
 - Linguagem PME: [`docs/LINGUAGEM-PME.md`](../../../docs/LINGUAGEM-PME.md)
 
-## W4Y deltas
+## W4Y deltas (Fase 3)
 
-`electron/w4y-deltas.cjs` — login Work4You, feeds GCS (engine/UI), canais de bridge.
-Wiring completo = Fase 3 do plano de reparo (ZIP/slots, cookies, update simples).
+| Módulo | Papel |
+|---|---|
+| `w4y-cloud.cjs` | Bridge real `w4y:cloud:*` (cookies → ticket/API) |
+| `w4y-login.cjs` | Login Work4You + `POST /device/engine-key` → `%LOCALAPPDATA%\wayne\.env` |
+| `w4y-wayne-resolve.cjs` | Prefere motor Wayne (monorepo / ZIP install) sobre Hermes git |
+| `w4y-deltas.cjs` | API estável + policy GCS |
+
+Renderer = React Hermes. Backend = `wayne_cli.main serve` quando o tree Wayne existir.
+
+```bash
+# from wayne-agent/
+npm install
+cd apps/desktop && npm run typecheck
+npm run dev   # precisa venv Wayne em ../../venv ou %LOCALAPPDATA%\wayne\wayne-agent
+```
+
+IPC renderer: `work4youDesktop.w4y.login()` / `.cloud.wsUrl()`.
 
 ## Legado
 

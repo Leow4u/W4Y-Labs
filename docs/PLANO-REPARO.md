@@ -70,14 +70,15 @@ Só manter a luz acesa. Sem feature nova na casca.
 
 ---
 
-### Fase 3 — Deltas W4Y no desktop Hermes
+### Fase 3 — Deltas W4Y no desktop Hermes ← **parcial shipável**
 
-1. Login Work4You + engine-key + connector-bootstrap  
-2. Spawn motor ZIP/slots (não git-only)  
-3. Bridge `w4y:cloud:*` / um cérebro  
-4. Update GCS (shell/engine) — trilho mínimo  
-5. Stop-ship + doc depreciação `desktop-shell`  
+1. ✅ Login Work4You + engine-key (`w4y-login.cjs` / `work4youDesktop.w4y.login()`)  
+2. ✅ Preferir motor Wayne existente (monorepo / `%LOCALAPPDATA%\wayne\wayne-agent`) — ZIP virgin install ainda via shell/`install.ps1`  
+3. ✅ Bridge `w4y:cloud:*` real (`w4y-cloud.cjs`)  
+4. ✅ Policy GCS documentada; update chip Hermes git permanece legado até cutover  
+5. ✅ Stop-ship `desktop-shell`  
 
+**Como abrir:** `cd wayne-agent && npm install && cd apps/desktop && npm run dev`  
 **Push** por fatia.
 
 ---

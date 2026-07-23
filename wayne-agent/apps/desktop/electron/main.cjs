@@ -25,8 +25,11 @@ const os = require('node:os')
 const path = require('node:path')
 const { pathToFileURL } = require('node:url')
 const { execFileSync, spawn } = require('node:child_process')
-// Work4You deltas (login / ZIP / bridge / GCS) — wire gradually; see w4y-deltas.cjs.
+// Work4You deltas (login / ZIP / bridge / GCS) — see w4y-*.cjs.
 const w4yDeltas = require('./w4y-deltas.cjs')
+const w4yCloud = require('./w4y-cloud.cjs')
+const w4yLogin = require('./w4y-login.cjs')
+const w4yWayne = require('./w4y-wayne-resolve.cjs')
 const { installEmbedReferer } = require('./embed-referer.cjs')
 const { detectRemoteDisplay, isWindowsBinaryPathInWsl, isWslEnvironment } = require('./bootstrap-platform.cjs')
 const { runBootstrap } = require('./bootstrap-runner.cjs')
@@ -1472,7 +1475,16 @@ function looksLikeDesktopAppBinary(commandPath) {
 }
 
 function isHermesSourceRoot(root) {
-  return directoryExists(root) && fileExists(path.join(root, 'hermes_cli', 'main.py'))
+  return (
+    directoryExists(root) &&
+    (fileExists(path.join(root, 'hermes_cli', 'main.py')) ||
+      fileExists(path.join(root, 'wayne_cli', 'main.py')))
+  )
+}
+
+function cliModuleForRoot(root) {
+  if (fileExists(path.join(root, 'wayne_cli', 'main.py'))) return 'wayne_cli.main'
+  return 'hermes_cli.main'
 }
 
 function findPythonForRoot(root) {
@@ -2943,20 +2955,29 @@ function createPythonBackend(root, label, backendArgs, options = {}) {
   const venvRoot = path.join(root, 'venv')
   const venvPython = getVenvPython(venvRoot)
   const command = IS_WINDOWS && fileExists(venvPython) ? venvPython : python
+  const cliMod = cliModuleForRoot(root)
+  const isWayne = cliMod.startsWith('wayne_')
+  const home = isWayne ? w4yLogin.resolveWayneHome() : HERMES_HOME
 
   return {
     kind: 'python',
     label,
     command,
-    args: ['-m', 'hermes_cli.main', ...backendArgs],
-    env: buildDesktopBackendEnv({
-      hermesHome: HERMES_HOME,
-      pythonPathEntries: [root, ...getVenvSitePackagesEntries(venvRoot)],
-      venvRoot
-    }),
+    args: ['-m', cliMod, ...backendArgs],
+    env: {
+      ...buildDesktopBackendEnv({
+        hermesHome: home,
+        pythonPathEntries: [root, ...getVenvSitePackagesEntries(venvRoot)],
+        venvRoot
+      }),
+      ...(isWayne
+        ? { WAYNE_HOME: home, WAYNE_DESKTOP: '1' }
+        : {})
+    },
     root,
     bootstrap: Boolean(options.bootstrap),
-    shell: false
+    shell: false,
+    w4yWayne: isWayne
   }
 }
 
@@ -2985,6 +3006,21 @@ function createActiveBackend(backendArgs) {
 }
 
 function resolveHermesBackend(backendArgs) {
+  // 0. Work4You — prefer Wayne motor (ZIP install or monorepo) over Hermes git.
+  try {
+    const wayneBackend = w4yWayne.tryResolveWayneBackend(backendArgs, {
+      findPythonForRoot,
+      buildDesktopBackendEnv,
+      devSourceRoot: SOURCE_REPO_ROOT
+    })
+    if (wayneBackend) {
+      rememberLog(`Using Work4You Wayne backend: ${wayneBackend.label}`)
+      return wayneBackend
+    }
+  } catch (err) {
+    rememberLog(`Wayne backend resolve skipped: ${err && err.message}`)
+  }
+
   // 1. Explicit override -- HERMES_DESKTOP_HERMES_ROOT points at a developer
   //    checkout. Honour it as-is (no bootstrap; the user is driving).
   const overrideRoot = process.env.HERMES_DESKTOP_HERMES_ROOT && path.resolve(process.env.HERMES_DESKTOP_HERMES_ROOT)
@@ -5591,6 +5627,27 @@ async function startHermes() {
     await advanceBootProgress('backend.spawn', `Starting Hermes backend via ${backend.label}`, 84)
     rememberLog(`Starting Hermes backend via ${backend.label}`)
 
+    const isWayneBackend =
+      Boolean(backend.w4yWayne) ||
+      (Array.isArray(backend.args) && backend.args.includes('wayne_cli.main'))
+    const homePin = isWayneBackend
+      ? {
+          WAYNE_HOME: backend.env?.WAYNE_HOME || w4yLogin.resolveWayneHome(),
+          WAYNE_DESKTOP: '1',
+          WAYNE_DASHBOARD_SESSION_TOKEN: token,
+          WAYNE_WEB_DIST: webDist,
+          ...(readyFile ? { WAYNE_DESKTOP_READY_FILE: readyFile } : {})
+        }
+      : {
+          // Explicitly pin HERMES_HOME for the child so Python's get_hermes_home()
+          // resolves to the SAME location our resolveHermesHome() picked.
+          HERMES_HOME,
+          HERMES_DASHBOARD_SESSION_TOKEN: token,
+          HERMES_DESKTOP: '1',
+          HERMES_WEB_DIST: webDist,
+          ...(readyFile ? { HERMES_DESKTOP_READY_FILE: readyFile } : {})
+        }
+
     hermesProcess = spawn(
       backend.command,
       backend.args,
@@ -5598,23 +5655,9 @@ async function startHermes() {
         cwd: hermesCwd,
         env: {
           ...process.env,
-          // Explicitly pin HERMES_HOME for the child so Python's get_hermes_home()
-          // resolves to the SAME location our resolveHermesHome() picked. Without
-          // this pin, Python falls back to ~/.hermes on every platform — fine on
-          // mac/linux (where our default matches), but on Windows our default is
-          // %LOCALAPPDATA%\hermes, which differs from C:\Users\<u>\.hermes.
-          // Mismatch would split config / sessions / .env / logs across two
-          // directories. install.ps1 sets HERMES_HOME via setx; the desktop
-          // can't reliably do that, so we set it inline for every spawn.
-          HERMES_HOME,
           ...backend.env,
           TERMINAL_CWD: hermesCwd,
-          HERMES_DASHBOARD_SESSION_TOKEN: token,
-          // Marks this dashboard backend as desktop-spawned so it runs the cron
-          // scheduler tick loop (the gateway isn't running under the app).
-          HERMES_DESKTOP: '1',
-          HERMES_WEB_DIST: webDist,
-          ...(readyFile ? { HERMES_DESKTOP_READY_FILE: readyFile } : {})
+          ...homePin
         },
         shell: backend.shell,
         stdio: ['ignore', 'pipe', 'pipe']
@@ -7632,21 +7675,13 @@ app.whenReady().then(() => {
     /* fail-open */
   }
 
-  // W4Y bridge stubs — real cloud session + ZIP motor come next (PLANO-REPARO Fase 3).
-  ipcMain.handle('w4y:login:url', () => w4yDeltas.getWork4YouLoginUrl())
+  // Work4You Fase 3: real cloud bridge + login IPC; Wayne motor via resolver.
   ipcMain.handle('w4y:distribution:get', () => w4yDeltas.getW4YDistributionConfig())
   ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
-  ipcMain.handle('w4y:cloud:wsUrl', async () => ({
-    ok: false,
-    error: 'not-wired',
-    hint: 'Fase 3: port cloud bridge from desktop-shell'
-  }))
-  ipcMain.handle('w4y:cloud:api', async () => ({
-    ok: false,
-    status: 0,
-    error: 'not-wired'
-  }))
-  ipcMain.handle('w4y:cloud:canMutate', async () => false)
+  w4yCloud.registerCloudIpc(ipcMain)
+  w4yLogin.registerLoginIpc(ipcMain, {
+    getMainWindow: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null)
+  })
   if (IS_MAC) {
     Menu.setApplicationMenu(buildApplicationMenu())
   } else {
