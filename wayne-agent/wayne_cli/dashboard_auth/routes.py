@@ -12,10 +12,12 @@ The routes:
   POST /auth/logout        → clears cookies, best-effort revoke
   GET  /api/auth/providers → list registered providers (login bootstrap)
   GET  /api/auth/me        → current Session as JSON (auth-required)
+  GET  /api/account/plan   → tenant plan via platform /planos/plan (auth-required)
 """
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import time
 from collections import defaultdict, deque
@@ -595,6 +597,49 @@ async def api_auth_me(request: Request):
         "provider": sess.provider,
         "expires_at": sess.expires_at,
     }
+
+
+@router.get("/api/account/plan", name="account_plan")
+async def api_account_plan(request: Request):
+    """Tenant plan for the SPA plan chip (desktop bridge + web).
+
+    Billing lives on the platform at ``GET /planos/plan`` (outside ``/api/*``
+    by LB design). The desktop shell bridge only ferries ``/api/*``, so this
+    route proxies to the platform with the caller's Cookie header — same
+    session the Electron login already holds. Fail-open for the UI: 503 when
+    the platform is unreachable (chip stays hidden).
+    """
+    sess = getattr(request.state, "session", None)
+    if sess is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    cookie = request.headers.get("cookie") or ""
+    if not cookie.strip():
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    import httpx
+
+    platform = (
+        os.environ.get("W4Y_PLATFORM_ORIGIN") or "https://work4you.ai"
+    ).rstrip("/")
+    try:
+        with httpx.Client(timeout=httpx.Timeout(8.0), follow_redirects=True) as client:
+            r = client.get(
+                f"{platform}/planos/plan",
+                headers={"cookie": cookie, "accept": "application/json"},
+            )
+    except httpx.RequestError as exc:
+        logging.getLogger(__name__).warning("account/plan platform unreachable: %s", exc)
+        raise HTTPException(status_code=503, detail="platform_unavailable") from exc
+    if r.status_code == 401:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if r.status_code >= 400:
+        raise HTTPException(status_code=503, detail="plan_unavailable")
+    try:
+        data = r.json()
+    except ValueError as exc:
+        raise HTTPException(status_code=503, detail="plan_unavailable") from exc
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=503, detail="plan_unavailable")
+    return data
 
 
 # ---------------------------------------------------------------------------

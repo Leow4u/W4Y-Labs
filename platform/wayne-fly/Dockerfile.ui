@@ -12,3 +12,5 @@ FROM ${BASE_IMAGE}
 # um grep por string antiga acha nos bundles mortos e finge que o deploy falhou.
 RUN rm -rf /opt/wayne/wayne_cli/web_dist
 COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+# Plan chip (desktop bridge): /api/account/plan proxies platform /planos/plan.
+COPY wayne_cli/dashboard_auth/routes.py /opt/wayne/wayne_cli/dashboard_auth/routes.py

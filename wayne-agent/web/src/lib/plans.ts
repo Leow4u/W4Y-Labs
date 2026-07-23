@@ -1,15 +1,18 @@
 /**
  * plans — plan vocabulary + upgrade/portal deep links (Onda D · PR-9 D2/D5/D7).
  *
- * The tenant plan lives in the PLATFORM, read live from the shell:
- *   GET /planos/plan → { plan: string }   (same origin; the LB routes /planos*
- *   to the platform, so the session cookie rides along). null = unknown.
+ * The tenant plan lives in the PLATFORM (GET /planos/plan). Web hits that
+ * same-origin (LB routes /planos* to the platform). Local-engine desktop
+ * logged-in cannot reach /planos on loopback and the shell bridge is /api/*
+ * only — so the desktop uses GET /api/account/plan on the cloud tenant
+ * (Wayne proxies to the platform with the session cookies). null = unknown.
  *
  * The customer UI shows exactly THREE product names — Hobby · Pro · Business —
  * plus Trial. Internal platform keys (free/starter/pro/max/…) map onto them
  * HERE, the single source of truth. Never surface Essencial/Flash/Crew in the
  * UI (see docs/BILLING-ARQUITETURA.md §v2).
  */
+import { accountGetJson, shouldUseAccountCloud } from "@/lib/accountApi";
 import { isLocalEngine } from "@/lib/projects";
 
 export type PlanKey = "hobby" | "pro" | "business" | "trial";
@@ -48,15 +51,24 @@ export function planUnlocksDeliverableShare(raw: string | null | undefined): boo
   return k === "pro" || k === "business";
 }
 
-/** Reads the tenant plan from the shell. null = unknown (fail-open). */
+/** Reads the tenant plan from the platform. null = unknown (fail-open). */
 export async function fetchPlan(): Promise<string | null> {
   try {
+    // Desktop logado → account bridge → /api/account/plan (Wayne→platform).
+    // Web → same-origin /planos/plan (LB→platform).
+    if (await shouldUseAccountCloud()) {
+      const d = await accountGetJson<{ plan?: string }>(
+        "/api/account/plan",
+        8000,
+      );
+      return d?.plan ? String(d.plan) : null;
+    }
     const r = await fetch("/planos/plan", { credentials: "include" });
     if (!r.ok) return null;
     const d = (await r.json()) as { plan?: string };
     return d?.plan ? String(d.plan) : null;
   } catch {
-    return null; // shell unavailable → unknown → fail-open (no lock)
+    return null; // platform unavailable → unknown → fail-open (no lock)
   }
 }
 

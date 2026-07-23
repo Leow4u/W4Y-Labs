@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 
 import { api } from "@/lib/api";
+import { fetchPlan } from "@/lib/plans";
 import { ModelCatalogPicker } from "@/components/agents/ModelCatalogPicker";
 import { draftAgent, defaultRoutineSchedule } from "@/lib/agent-draft";
 import type { AgentDraft, AgentRoutineDraft } from "@/lib/agent-draft";
@@ -101,16 +102,13 @@ export default function AgentQuickstartPage() {
     return () => setTitle(null);
   }, [setTitle, ag.quickTab]);
 
-  // Tenant plan (gating for the premium templates) — TierPicker's rule.
+  // Tenant plan (gating for the premium templates) — same source as AuthWidget.
   const [plan, setPlan] = useState<string | null>(null);
   useEffect(() => {
     let cancelled = false;
-    fetch("/planos/plan", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled && d?.plan) setPlan(String(d.plan));
-      })
-      .catch(() => {});
+    void fetchPlan().then((p) => {
+      if (!cancelled && p) setPlan(p);
+    });
     return () => {
       cancelled = true;
     };
