@@ -1,5 +1,6 @@
 /**
  * Agent Studio — Copilot-style agent list over Hermes profiles.
+ * In-shell page (same pattern as Skills / Messaging / Artifacts), not an overlay.
  * Editor / canvas / connected-agents come later; this is the owner roster.
  */
 import { useStore } from '@nanostores/react'
@@ -7,8 +8,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { CreateProfileDialog } from '@/app/profiles/create-profile-dialog'
+import { PageLoader } from '@/components/page-loader'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { getMessagingPlatforms, getProfilesPulse, type ProfilePulseRow } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { agentMonogram, prettifyAgentName, realAgents } from '@/lib/agents'
@@ -18,8 +19,10 @@ import { $profileColors, refreshActiveProfile, refreshProfiles } from '@/store/p
 import { notifyError } from '@/store/notifications'
 import type { ProfileInfo } from '@/types/hermes'
 
-import { Panel, PanelEmpty, PanelHeader } from '../overlays/panel'
+import { PanelEmpty } from '../overlays/panel'
+import { PageSearchShell } from '../page-search-shell'
 import { PROFILES_ROUTE } from '../routes'
+import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
 function StatusChip({
   pulse,
@@ -45,7 +48,14 @@ function StatusChip({
   )
 }
 
-export function AgentStudioView({ onClose }: { onClose: () => void }) {
+interface AgentStudioViewProps extends React.ComponentProps<'section'> {
+  setStatusbarItemGroup?: SetStatusbarItemGroup
+}
+
+export function AgentStudioView({
+  setStatusbarItemGroup: _setStatusbarItemGroup,
+  ...props
+}: AgentStudioViewProps) {
   const { t } = useI18n()
   const s = t.agentStudio
   const navigate = useNavigate()
@@ -115,37 +125,25 @@ export function AgentStudioView({ onClose }: { onClose: () => void }) {
   }, [profiles, search])
 
   return (
-    <Panel closeLabel={t.common.close} onClose={onClose}>
-      <PanelHeader
-        actions={
-          <div className="flex items-center gap-1.5">
-            <Button onClick={() => setCreateOpen(true)} size="sm">
-              {s.newAgent}
-            </Button>
-          </div>
-        }
-        subtitle={s.subtitle}
-        title={s.title}
-      />
-
-      <p className="mb-3 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
-        {s.identityHint}
-      </p>
-
-      <div className="mb-3 flex items-center gap-2">
-        <Input
-          className="max-w-sm"
-          onChange={e => setSearch(e.target.value)}
-          placeholder={s.searchPlaceholder}
-          value={search}
-        />
-        <span className="text-[0.75rem] text-muted-foreground">
-          {s.count(agents.length)}
-        </span>
-      </div>
-
+    <PageSearchShell
+      {...props}
+      filters={
+        <p className="w-full rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
+          {s.identityHint}
+        </p>
+      }
+      onSearchChange={setSearch}
+      searchHidden={loading && profiles.length === 0}
+      searchPlaceholder={s.searchPlaceholder}
+      searchTrailingAction={
+        <Button onClick={() => setCreateOpen(true)} size="sm">
+          {s.newAgent}
+        </Button>
+      }
+      searchValue={search}
+    >
       {loading ? (
-        <PanelEmpty description={s.loading} icon="loading~spin" title={s.title} />
+        <PageLoader label={s.loading} />
       ) : agents.length === 0 ? (
         <PanelEmpty
           action={
@@ -158,9 +156,10 @@ export function AgentStudioView({ onClose }: { onClose: () => void }) {
           title={s.emptyTitle}
         />
       ) : (
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="h-full overflow-y-auto px-3 pb-4 [scrollbar-gutter:stable]">
+          <div className="mb-2 text-[0.75rem] text-muted-foreground">{s.count(agents.length)}</div>
           <table className="w-full border-collapse text-left text-[0.8125rem]">
-            <thead className="sticky top-0 z-1 bg-background text-[0.7rem] uppercase tracking-[0.04em] text-muted-foreground">
+            <thead className="sticky top-0 z-1 bg-(--ui-chat-surface-background) text-[0.7rem] uppercase tracking-[0.04em] text-muted-foreground">
               <tr className="border-b border-border">
                 <th className="px-2 py-2 font-medium">{s.colName}</th>
                 <th className="hidden px-2 py-2 font-medium sm:table-cell">{s.colChannels}</th>
@@ -178,7 +177,6 @@ export function AgentStudioView({ onClose }: { onClose: () => void }) {
                     className="cursor-pointer border-b border-border/60 transition-colors hover:bg-(--chrome-action-hover)"
                     key={agent.name}
                     onClick={() => {
-                      onClose()
                       navigate(`${PROFILES_ROUTE}?name=${encodeURIComponent(agent.name)}`)
                     }}
                   >
@@ -254,6 +252,6 @@ export function AgentStudioView({ onClose }: { onClose: () => void }) {
         open={createOpen}
         profiles={profiles}
       />
-    </Panel>
+    </PageSearchShell>
   )
 }

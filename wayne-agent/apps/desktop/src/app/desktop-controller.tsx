@@ -217,7 +217,6 @@ export function DesktopController() {
   const getRouteToken = useCallback(() => routeTokenRef.current, [])
 
   const {
-    agentStudioOpen,
     agentsOpen,
     chatOpen,
     closeOverlayToPreviousRoute,
@@ -1113,12 +1112,6 @@ export function DesktopController() {
         </Suspense>
       )}
 
-      {agentStudioOpen && (
-        <Suspense fallback={null}>
-          <AgentStudioView onClose={closeOverlayToPreviousRoute} />
-        </Suspense>
-      )}
-
       {cronOpen && (
         <Suspense fallback={null}>
           <CronView
@@ -1347,12 +1340,19 @@ export function DesktopController() {
             }
             path="artifacts"
           />
+          <Route
+            element={
+              <Suspense fallback={null}>
+                <AgentStudioView setStatusbarItemGroup={setStatusbarItemGroup} />
+              </Suspense>
+            }
+            path="agent-studio"
+          />
           <Route element={null} path="cron" />
           <Route element={null} path="profiles" />
           <Route element={null} path="settings" />
           <Route element={null} path="command-center" />
           <Route element={null} path="agents" />
-          <Route element={null} path="agent-studio" />
           <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="new" />
           <Route element={<LegacySessionRedirect />} path="sessions/:sessionId" />
           <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="*" />
