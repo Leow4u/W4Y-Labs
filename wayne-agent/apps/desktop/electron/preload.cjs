@@ -228,3 +228,20 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     searchMarketplace: query => ipcRenderer.invoke('hermes:vscode-theme:search', query)
   }
 })
+
+// Work4You product bridge (parity with desktop-shell). Full ZIP/login wiring
+// lands in Fase 3 — handlers fail-open until then.
+contextBridge.exposeInMainWorld('work4youDesktop', {
+  isDesktop: true,
+  platform: process.platform,
+  cloud: {
+    wsUrl: () => ipcRenderer.invoke('w4y:cloud:wsUrl'),
+    api: args => ipcRenderer.invoke('w4y:cloud:api', args),
+    canMutate: () => ipcRenderer.invoke('w4y:cloud:canMutate')
+  },
+  w4y: {
+    loginUrl: () => ipcRenderer.invoke('w4y:login:url'),
+    distribution: () => ipcRenderer.invoke('w4y:distribution:get'),
+    updatePolicy: () => ipcRenderer.invoke('w4y:update:policy')
+  }
+})

@@ -7631,6 +7631,22 @@ app.whenReady().then(() => {
   } catch {
     /* fail-open */
   }
+
+  // W4Y bridge stubs — real cloud session + ZIP motor come next (PLANO-REPARO Fase 3).
+  ipcMain.handle('w4y:login:url', () => w4yDeltas.getWork4YouLoginUrl())
+  ipcMain.handle('w4y:distribution:get', () => w4yDeltas.getW4YDistributionConfig())
+  ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
+  ipcMain.handle('w4y:cloud:wsUrl', async () => ({
+    ok: false,
+    error: 'not-wired',
+    hint: 'Fase 3: port cloud bridge from desktop-shell'
+  }))
+  ipcMain.handle('w4y:cloud:api', async () => ({
+    ok: false,
+    status: 0,
+    error: 'not-wired'
+  }))
+  ipcMain.handle('w4y:cloud:canMutate', async () => false)
   if (IS_MAC) {
     Menu.setApplicationMenu(buildApplicationMenu())
   } else {
