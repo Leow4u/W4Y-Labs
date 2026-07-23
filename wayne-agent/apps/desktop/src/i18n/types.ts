@@ -673,6 +673,7 @@ export interface Translations {
   skills: {
     tabSkills: string
     tabToolsets: string
+    tabConnectors: string
     tabMcp: string
     tabHub: string
     all: string
@@ -1185,6 +1186,25 @@ export interface Translations {
     createAction: string
   }
 
+  connectors: {
+    searchPlaceholder: string
+    connect: string
+    connecting: string
+    connected: string
+    reconnect: string
+    disconnect: string
+    connectedToast: string
+    disconnectedToast: string
+    openedToast: string
+    connectFailed: string
+    empty: string
+    featuredSection: string
+    connectedSection: string
+    devSection: string
+    viewFullCatalog: string
+    backToFeatured: string
+  }
+
   artifacts: {
     search: string
     refresh: string
@@ -1353,6 +1373,8 @@ export interface Translations {
     projectNew: string
     connectorsLabel: string
     connectorsHint: string
+    connectorsSession: string
+    connectorsManage: string
     startVoice: string
     queueMessage: string
     steer: string

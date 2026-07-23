@@ -9,6 +9,27 @@ export {}
 
 declare global {
   interface Window {
+    work4youDesktop?: {
+      isDesktop: boolean
+      platform: string
+      cloud: {
+        wsUrl: () => Promise<{ ok: boolean; url?: string; error?: string }>
+        api: (args: {
+          method?: string
+          path: string
+          body?: unknown
+        }) => Promise<{ ok: boolean; status?: number; json?: unknown; error?: string }>
+        canMutate: () => Promise<boolean>
+      }
+      w4y: {
+        loginUrl: () => Promise<string>
+        login: () => Promise<{ ok: boolean; got?: string; reason?: string }>
+        loginCancel: () => Promise<{ ok: boolean }>
+        hasKey: () => Promise<{ ok: boolean; hasKey: boolean }>
+        distribution: () => Promise<unknown>
+        updatePolicy: () => Promise<unknown>
+      }
+    }
     hermesDesktop: {
       // Resolve a backend connection. Omit `profile` (or pass the primary) for
       // the window's backend; pass a named profile to lazily spawn/reuse that

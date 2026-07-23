@@ -8,6 +8,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { BrowserWindow, net, session, shell } = require("electron");
 const { platformOrigin } = require("./w4y-cloud.cjs");
+const { bootstrapLocalConnectors } = require("./w4y-composio.cjs");
 
 function resolveWayneHome() {
   if (process.env.WAYNE_HOME) return path.resolve(process.env.WAYNE_HOME);
@@ -212,6 +213,13 @@ async function runLoginFlow({ parentWindow } = {}) {
         const composio =
           res.json.composioApiKey || res.json.composio_api_key || "";
         if (composio) upsertEnvKey("COMPOSIO_API_KEY", String(composio));
+        // Best-effort: mint a device tool-router URL into mcp_servers.composio.
+        // Failures must not block login — marketplace attach can recover later.
+        try {
+          await bootstrapLocalConnectors();
+        } catch {
+          /* ignore */
+        }
         try {
           if (flow.win && !flow.win.isDestroyed()) flow.win.destroy();
         } catch {

@@ -36,8 +36,33 @@ export const pt = defineLocale({
     projectChipAria: 'Escolher projeto',
     projectNew: 'Novo projeto',
     connectorsLabel: 'Conectores',
-    connectorsHint: 'Abrir integrações e servidores',
+    connectorsHint: 'Abrir integrações',
+    connectorsSession: 'Conectores neste chat',
+    connectorsManage: 'Gerir conectores…',
     placeholderFollowUp: 'Enviar follow-up'
+  },
+
+  skills: {
+    tabConnectors: 'Conectores'
+  },
+
+  connectors: {
+    searchPlaceholder: 'Buscar conectores',
+    connect: 'Conectar',
+    connecting: 'A conectar…',
+    connected: 'Conectado',
+    reconnect: 'Reconectar',
+    disconnect: 'Desconectar',
+    connectedToast: '{name} conectado',
+    disconnectedToast: 'Desconectado',
+    openedToast: 'Autorize na janela que abriu',
+    connectFailed: 'Não foi possível conectar',
+    empty: 'Nenhum conector corresponde.',
+    featuredSection: 'Destaques',
+    connectedSection: 'Conectados',
+    devSection: 'Desenvolvimento',
+    viewFullCatalog: 'Ver catálogo completo →',
+    backToFeatured: 'Voltar aos destaques'
   },
 
   sidebar: {

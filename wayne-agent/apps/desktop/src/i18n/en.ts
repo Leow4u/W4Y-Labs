@@ -778,6 +778,7 @@ export const en: Translations = {
   skills: {
     tabSkills: 'Skills',
     tabToolsets: 'Tools',
+    tabConnectors: 'Connectors',
     tabMcp: 'MCP',
     tabHub: 'Browse Hub',
     all: 'All',
@@ -1445,6 +1446,25 @@ export const en: Translations = {
     createAction: 'Create schedule'
   },
 
+  connectors: {
+    searchPlaceholder: 'Search connectors',
+    connect: 'Connect',
+    connecting: 'Connecting…',
+    connected: 'Connected',
+    reconnect: 'Reconnect',
+    disconnect: 'Disconnect',
+    connectedToast: '{name} connected',
+    disconnectedToast: 'Disconnected',
+    openedToast: 'Authorize in the window that opened',
+    connectFailed: "Couldn't connect",
+    empty: 'No connectors match.',
+    featuredSection: 'Featured',
+    connectedSection: 'Connected',
+    devSection: 'Development',
+    viewFullCatalog: 'View full catalog →',
+    backToFeatured: 'Back to featured'
+  },
+
   artifacts: {
     search: 'Search deliverables...',
     refresh: 'Refresh deliverables',
@@ -1637,7 +1657,9 @@ export const en: Translations = {
     projectChipAria: 'Choose project',
     projectNew: 'New project',
     connectorsLabel: 'Connectors',
-    connectorsHint: 'Open integrations and servers',
+    connectorsHint: 'Open integrations',
+    connectorsSession: 'Connectors in this chat',
+    connectorsManage: 'Manage connectors…',
     startVoice: 'Start voice conversation',
     queueMessage: 'Queue message',
     steer: 'Steer the current run',

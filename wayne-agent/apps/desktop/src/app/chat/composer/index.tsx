@@ -1,11 +1,23 @@
 import { ComposerPrimitive } from '@assistant-ui/react'
 import { useStore } from '@nanostores/react'
-import { type ClipboardEvent, type FormEvent, type KeyboardEvent, useEffect, useRef } from 'react'
+import {
+  type ClipboardEvent,
+  type FormEvent,
+  type KeyboardEvent,
+  useEffect,
+  useRef,
+  useState
+} from 'react'
 
 import { composerFill, composerSurfaceGlass } from '@/components/chat/composer-dock'
 import { Button } from '@/components/ui/button'
 import { useI18n } from '@/i18n'
 import { chatMessageText } from '@/lib/chat-messages'
+import {
+  readConnectorsOff,
+  setSessionConnectorsDisabled,
+  writeConnectorsOff
+} from '@/lib/connectors-session'
 import { DATA_IMAGE_URL_RE } from '@/lib/embedded-images'
 import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
@@ -42,9 +54,9 @@ import { useComposerUrlDialog } from './hooks/use-composer-url-dialog'
 import { useComposerVoice } from './hooks/use-composer-voice'
 import { useSlashCompletions } from './hooks/use-slash-completions'
 import { useSessionStatusPresence } from './hooks/use-status-presence'
+import { ConnectorsPicker } from './connectors-picker'
 import { ModeChip } from './mode-chip'
 import { ProjectChip } from './project-chip'
-import { ConnectorsChip } from './connectors-chip'
 import { QueuePanel } from './queue-panel'
 import {
   composerPlainText,
@@ -99,6 +111,24 @@ export function ChatBar({
   // session id — gateway events and process.list both speak that id. Only the
   // queue uses the stored-session fallback key (prompts can queue pre-resume).
   const statusSessionId = sessionId ?? null
+
+  // Per-session connector OFF set (composer Conectores). Persist + re-assert
+  // on the engine gate — same contract as web NativeChatPage.
+  const [connectorsOff, setConnectorsOff] = useState<string[]>(() => readConnectorsOff(sessionId))
+  useEffect(() => {
+    setConnectorsOff(readConnectorsOff(sessionId))
+  }, [sessionId])
+  useEffect(() => {
+    writeConnectorsOff(sessionId, connectorsOff)
+  }, [sessionId, connectorsOff])
+  useEffect(() => {
+    if (!sessionId || !gateway) return
+    void setSessionConnectorsDisabled(
+      (method, params) => gateway.request(method, params),
+      sessionId,
+      connectorsOff
+    ).catch(() => undefined)
+  }, [sessionId, gateway, connectorsOff])
 
   // Coarse edge: re-renders ChatBar only when the stack shows/hides, NOT on
   // every per-item status mutation or other sessions' churn (see the hook).
@@ -986,7 +1016,7 @@ export function ChatBar({
           >
             <ModeChip gateway={gateway} sessionId={sessionId} />
             <ProjectChip />
-            <ConnectorsChip />
+            <ConnectorsPicker disabled={connectorsOff} onChange={setConnectorsOff} />
           </div>
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>

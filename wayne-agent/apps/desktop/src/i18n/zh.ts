@@ -961,6 +961,7 @@ export const zh: Translations = {
   skills: {
     tabSkills: '技能',
     tabToolsets: '工具集',
+    tabConnectors: '连接器',
     tabMcp: 'MCP',
     tabHub: '浏览技能中心',
     all: '全部',
@@ -1622,6 +1623,25 @@ export const zh: Translations = {
     createAction: '创建定时任务'
   },
 
+  connectors: {
+    searchPlaceholder: '搜索连接器',
+    connect: '连接',
+    connecting: '连接中…',
+    connected: '已连接',
+    reconnect: '重新连接',
+    disconnect: '断开',
+    connectedToast: '{name} 已连接',
+    disconnectedToast: '已断开',
+    openedToast: '请在打开的窗口中授权',
+    connectFailed: '无法连接',
+    empty: '没有匹配的连接器。',
+    featuredSection: '精选',
+    connectedSection: '已连接',
+    devSection: '开发',
+    viewFullCatalog: '查看完整目录 →',
+    backToFeatured: '返回精选'
+  },
+
   artifacts: {
     search: '搜索产物…',
     refresh: '刷新产物',
@@ -1811,7 +1831,9 @@ export const zh: Translations = {
     projectChipAria: '选择项目',
     projectNew: '新建项目',
     connectorsLabel: '连接器',
-    connectorsHint: '打开 MCP 服务器与集成',
+    connectorsHint: '打开集成',
+    connectorsSession: '此对话中的连接器',
+    connectorsManage: '管理连接器…',
     startVoice: '开始语音对话',
     queueMessage: '排队消息',
     steer: '引导当前运行',

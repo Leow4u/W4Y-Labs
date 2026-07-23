@@ -858,6 +858,7 @@ export const ja = defineLocale({
   skills: {
     tabSkills: 'スキル',
     tabToolsets: 'ツールセット',
+    tabConnectors: 'コネクタ',
     tabMcp: 'MCP',
     all: 'すべて',
     searchSkills: 'スキルを検索...',
@@ -1420,6 +1421,25 @@ export const ja = defineLocale({
     createAction: 'Cron を作成'
   },
 
+  connectors: {
+    searchPlaceholder: 'コネクタを検索',
+    connect: '接続',
+    connecting: '接続中…',
+    connected: '接続済み',
+    reconnect: '再接続',
+    disconnect: '切断',
+    connectedToast: '{name} を接続しました',
+    disconnectedToast: '切断しました',
+    openedToast: '開いたウィンドウで承認してください',
+    connectFailed: '接続できませんでした',
+    empty: '一致するコネクタがありません。',
+    featuredSection: 'おすすめ',
+    connectedSection: '接続済み',
+    devSection: '開発',
+    viewFullCatalog: 'カタログ全体を表示 →',
+    backToFeatured: 'おすすめに戻る'
+  },
+
   artifacts: {
     search: 'アーティファクトを検索...',
     refresh: 'アーティファクトを更新',
@@ -1597,6 +1617,10 @@ export const ja = defineLocale({
       'さらに進める',
       '調整または続行'
     ],
+    connectorsLabel: 'コネクタ',
+    connectorsHint: '連携を開く',
+    connectorsSession: 'このチャットのコネクタ',
+    connectorsManage: 'コネクタを管理…',
     startVoice: '音声会話を開始',
     queueMessage: 'メッセージをキューに入れる',
     stop: '停止',

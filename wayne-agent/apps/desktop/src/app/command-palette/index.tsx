@@ -27,6 +27,7 @@ import {
   Info,
   KeyRound,
   Layers3,
+  Link2,
   MessageCircle,
   Monitor,
   Moon,
@@ -620,6 +621,13 @@ export function CommandPalette() {
           keywords: ['tools', 'toolsets', 'capabilities'],
           label: `${capLabel}: ${t.skills.tabToolsets}`,
           run: go(`${SKILLS_ROUTE}?tab=toolsets`)
+        },
+        {
+          icon: Link2,
+          id: 'cap-connectors',
+          keywords: ['connectors', 'composio', 'integrations', 'gmail', 'slack'],
+          label: `${capLabel}: ${t.skills.tabConnectors}`,
+          run: go(`${SKILLS_ROUTE}?tab=connectors`)
         },
         {
           icon: Layers3,

@@ -829,6 +829,7 @@ export const zhHant = defineLocale({
   skills: {
     tabSkills: '技能',
     tabToolsets: '工具集',
+    tabConnectors: '連接器',
     tabMcp: 'MCP',
     all: '全部',
     searchSkills: '搜尋技能...',
@@ -1372,6 +1373,25 @@ export const zhHant = defineLocale({
     createAction: '建立排程工作'
   },
 
+  connectors: {
+    searchPlaceholder: '搜尋連接器',
+    connect: '連接',
+    connecting: '連接中…',
+    connected: '已連接',
+    reconnect: '重新連接',
+    disconnect: '中斷連接',
+    connectedToast: '{name} 已連接',
+    disconnectedToast: '已中斷連接',
+    openedToast: '請在開啟的視窗中授權',
+    connectFailed: '無法連接',
+    empty: '沒有符合的連接器。',
+    featuredSection: '精選',
+    connectedSection: '已連接',
+    devSection: '開發',
+    viewFullCatalog: '查看完整目錄 →',
+    backToFeatured: '返回精選'
+  },
+
   artifacts: {
     search: '搜尋成品…',
     refresh: '重新整理成品',
@@ -1546,6 +1566,10 @@ export const zhHant = defineLocale({
       '再深入一點',
       '調整或繼續'
     ],
+    connectorsLabel: '連接器',
+    connectorsHint: '開啟整合',
+    connectorsSession: '此對話中的連接器',
+    connectorsManage: '管理連接器…',
     startVoice: '開始語音對話',
     queueMessage: '排隊訊息',
     stop: '停止',
