@@ -43,16 +43,16 @@ Alinha com [ROADMAP.md](./ROADMAP.md) §2.
 
 ## Critério de “pode começar F1”
 
-- [ ] `apps/desktop` no tree, pack Windows ok  
+- [x] `apps/desktop` no tree (PR1 restaurado; pack Windows = follow-up após npm install)  
 - [ ] Login Work4You + motor ZIP no desktop Hermes  
 - [ ] Ponte nuvem básica (lançar/acompanhar)  
 - [ ] Update GCS sem state-machine nova  
-- [ ] `desktop-shell` em stop-ship / depreciação documentada  
+- [x] `desktop-shell` em stop-ship (`apps/desktop-shell/STOP-SHIP.md`)  
 
 ---
 
 ## Entrypoint (scaffold)
 
-Enquanto F1 não começa: pasta de produto documentada aqui; no desktop Hermes,
-rota/placeholder `Agent Studio` (nav) apontando para este doc / empty state PME
-(“Em breve: crie agentes em linguagem simples”) — sem canvas até F2.
+- Doc de produto: este arquivo.  
+- Desktop Hermes: rota `/agent-studio` + command palette **Agent Studio** + empty state
+  (`apps/desktop/src/app/agent-studio`). Sem canvas até F2.

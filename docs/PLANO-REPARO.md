@@ -54,8 +54,8 @@ Só manter a luz acesa. Sem feature nova na casca.
 |---|---|---|
 | 1.1 | Canal UI / CDN `no-store` | ✅ `publish-ui.ps1` + assert |
 | 1.2 | Chip plano via `/api/account/plan` | ✅ `ec15660` + fly229 |
-| 1.3 | Inventário residual loopback | ⏳ |
-| 1.4 | Chip update honesto | ⏳ |
+| 1.3 | Inventário residual loopback | ✅ sessions mutate + créditos via pulse/account |
+| 1.4 | Chip update honesto | ✅ preparing label distinta; notice não some o pill |
 
 **Gates:** typecheck+build web; assert manifesto. **Push.**
 

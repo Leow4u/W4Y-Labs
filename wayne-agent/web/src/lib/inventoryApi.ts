@@ -204,6 +204,49 @@ export const inventory = {
       );
     })();
   },
+
+  renameSession: (id: string, title: string, profile?: string) => {
+    return (async () => {
+      if (!(await shouldUseAccountCloud())) {
+        return api.renameSession(id, title, profile);
+      }
+      const p = profile ?? getManagementProfile();
+      return invPatch<{ ok: boolean }>(
+        `/api/sessions/${encodeURIComponent(id)}`,
+        { title, profile: p || undefined },
+      );
+    })();
+  },
+
+  deleteEmptySessions: (profile?: string) => {
+    return (async () => {
+      if (!(await shouldUseAccountCloud())) {
+        return api.deleteEmptySessions(profile);
+      }
+      const p = profile ?? getManagementProfile();
+      return invDelete<{ ok: boolean; deleted: number }>(
+        `/api/sessions/empty${pq(p)}`,
+      );
+    })();
+  },
+
+  pruneSessions: (
+    older_than_days: number,
+    source?: string,
+    profile?: string,
+  ) => {
+    return (async () => {
+      if (!(await shouldUseAccountCloud())) {
+        return api.pruneSessions(older_than_days, source, profile);
+      }
+      const p = profile ?? getManagementProfile();
+      return invPost<{ ok: boolean; removed: number }>("/api/sessions/prune", {
+        older_than_days,
+        source,
+        profile: p || undefined,
+      });
+    })();
+  },
 };
 
 export { shouldUseAccountCloud };

@@ -310,28 +310,55 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
     return () => { cancelled = true; };
   }, []);
 
-  // Cycle credits — fetched lazily the first time the menu opens (the gateway
-  // client is heavy for an always-mounted footer). usage.account = % of the
-  // tenant's OpenRouter cap; "remaining" = 100 − used. Fail-open: stays null.
+  // Cycle credits — lazy on first menu open. Desktop logado: profiles pulse
+  // via account bridge (loopback gateway has no tenant OpenRouter cap).
+  // Else: usage.account RPC. "remaining" = 100 − used. Fail-open: null.
   useEffect(() => {
     if (!open || cyclePct != null) return;
     let cancelled = false;
     void (async () => {
-      const { GatewayClient } = await import("@/lib/gatewayClient");
-      const gw = new GatewayClient();
       try {
-        await gw.connect();
-        const res = await gw.request<{ configured: boolean; used_percent: number | null }>(
-          "usage.account",
-          {},
-        );
-        if (!cancelled && res.configured && res.used_percent != null) {
-          setCyclePct(Math.max(0, Math.min(100, res.used_percent)));
+        const { shouldUseAccountCloud } = await import("@/lib/accountApi");
+        if (await shouldUseAccountCloud()) {
+          const { inventory } = await import("@/lib/inventoryApi");
+          const pulse = (await inventory.getProfilesPulse()) as {
+            profiles?: Array<{
+              month_credits?: number;
+              cap_credits?: number | null;
+            }>;
+          } | null;
+          const rows = pulse?.profiles;
+          if (cancelled || !Array.isArray(rows) || rows.length === 0) return;
+          let month = 0;
+          let cap: number | null = null;
+          for (const row of rows) {
+            month += Number(row.month_credits) || 0;
+            const c = row.cap_credits;
+            if (typeof c === "number" && c > 0) {
+              cap = cap == null ? c : Math.max(cap, c);
+            }
+          }
+          if (cap && cap > 0) {
+            setCyclePct(Math.max(0, Math.min(100, (month / cap) * 100)));
+          }
+          return;
+        }
+        const { GatewayClient } = await import("@/lib/gatewayClient");
+        const gw = new GatewayClient();
+        try {
+          await gw.connect();
+          const res = await gw.request<{
+            configured: boolean;
+            used_percent: number | null;
+          }>("usage.account", {});
+          if (!cancelled && res.configured && res.used_percent != null) {
+            setCyclePct(Math.max(0, Math.min(100, res.used_percent)));
+          }
+        } finally {
+          gw.close();
         }
       } catch {
         /* fail-open — no credits line */
-      } finally {
-        gw.close();
       }
     })();
     return () => { cancelled = true; };
@@ -472,7 +499,7 @@ export function AuthWidget({ className, onOpenSettings }: AuthWidgetProps) {
             {updateBusy
               ? t.configUser.updateChipBusy
               : chip.notice === "preparing"
-                ? t.configUser.updateChipBusy
+                ? (t.desktop.updatePreparing || t.configUser.updateChipBusy)
                 : update?.kind === "stalled"
                   ? t.configUser.updateChipStalled
                   : t.configUser.updateChip}

@@ -811,7 +811,7 @@ export default function SessionsPage() {
     }
     setDeletingSelected(true);
     try {
-      const resp = await api.bulkDeleteSessions(ids);
+      const resp = await inventory.bulkDeleteSessions(ids);
       showToast(
         t.sessions.selectedSessionsDeleted.replace(
           "{count}",
@@ -851,7 +851,7 @@ export default function SessionsPage() {
   const handleDeleteEmpty = useCallback(async () => {
     setDeletingEmpty(true);
     try {
-      const resp = await api.deleteEmptySessions();
+      const resp = await inventory.deleteEmptySessions();
       // Show count in the toast so users get confirmation of the actual
       // number removed (which may differ slightly from `emptyCount` if a
       // session entered/left the "empty" set between the count fetch and
@@ -887,7 +887,7 @@ export default function SessionsPage() {
   const handleRename = useCallback(
     async (id: string, title: string) => {
       try {
-        await api.renameSession(id, title);
+        await inventory.renameSession(id, title);
         setSessions((prev) =>
           prev.map((s) => (s.id === id ? { ...s, title } : s)),
         );
@@ -937,7 +937,7 @@ export default function SessionsPage() {
     }
     setPruning(true);
     try {
-      const resp = await api.pruneSessions(days);
+      const resp = await inventory.pruneSessions(days);
       showToast(
         `Pruned ${resp.removed} session${resp.removed === 1 ? "" : "s"}`,
         "success",
