@@ -1351,6 +1351,8 @@ export interface Translations {
     projectNone: string
     projectChipAria: string
     projectNew: string
+    connectorsLabel: string
+    connectorsHint: string
     startVoice: string
     queueMessage: string
     steer: string

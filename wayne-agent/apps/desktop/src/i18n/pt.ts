@@ -35,6 +35,8 @@ export const pt = defineLocale({
     projectNone: 'Sem projeto',
     projectChipAria: 'Escolher projeto',
     projectNew: 'Novo projeto',
+    connectorsLabel: 'Conectores',
+    connectorsHint: 'Abrir servidores MCP e integrações',
     placeholderFollowUp: 'Enviar follow-up'
   },
 

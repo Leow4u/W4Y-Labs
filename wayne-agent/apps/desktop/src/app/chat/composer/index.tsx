@@ -44,6 +44,7 @@ import { useSlashCompletions } from './hooks/use-slash-completions'
 import { useSessionStatusPresence } from './hooks/use-status-presence'
 import { ModeChip } from './mode-chip'
 import { ProjectChip } from './project-chip'
+import { ConnectorsChip } from './connectors-chip'
 import { QueuePanel } from './queue-panel'
 import {
   composerPlainText,
@@ -985,6 +986,7 @@ export function ChatBar({
           >
             <ModeChip gateway={gateway} sessionId={sessionId} />
             <ProjectChip />
+            <ConnectorsChip />
           </div>
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>

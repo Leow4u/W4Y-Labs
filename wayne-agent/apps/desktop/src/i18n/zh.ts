@@ -1810,6 +1810,8 @@ export const zh: Translations = {
     projectNone: '无项目',
     projectChipAria: '选择项目',
     projectNew: '新建项目',
+    connectorsLabel: '连接器',
+    connectorsHint: '打开 MCP 服务器与集成',
     startVoice: '开始语音对话',
     queueMessage: '排队消息',
     steer: '引导当前运行',

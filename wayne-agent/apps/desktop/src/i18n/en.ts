@@ -1636,6 +1636,8 @@ export const en: Translations = {
     projectNone: 'No project',
     projectChipAria: 'Choose project',
     projectNew: 'New project',
+    connectorsLabel: 'Connectors',
+    connectorsHint: 'Open MCP servers and integrations',
     startVoice: 'Start voice conversation',
     queueMessage: 'Queue message',
     steer: 'Steer the current run',
