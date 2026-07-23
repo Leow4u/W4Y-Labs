@@ -489,31 +489,27 @@ The dashboard embeds the real `wayne --tui` — **not** a rewrite.  See `wayne_c
 
 **Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
 
-### Electron Desktop (`apps/desktop-shell/`) — Work4You
+### Electron Desktop — Work4You (estrela-guia opção A)
 
-> **⚠ W4Y fork:** the upstream Hermes section that described a separate React
-> renderer under `apps/desktop/` is **obsolete**. That tree was removed
-> (`f9cad21`). Product definition: repo-root
-> [`docs/PLATAFORMA.md`](../docs/PLATAFORMA.md). Verified facts: “UMA UI SÓ” in
-> [`docs/BACKEND-MAP.md`](../docs/BACKEND-MAP.md).
-
-**What ships:** `apps/desktop-shell` — thin Electron casca. Default mode spawns
-a local `wayne serve` (motor local) and `loadURL`s `http://127.0.0.1:<port>`.
-The product UI is the **same** Vite SPA as the cloud dashboard
-(`wayne-agent/web` → `wayne_cli/web_dist`), also packaged in the engine ZIP.
-Escape: `W4Y_CLOUD_SHELL=1` loads `work4you.ai` (not the product default).
+> **Product definition:** repo-root [`docs/PLATAFORMA.md`](../docs/PLATAFORMA.md).
+> **Repair plan:** [`docs/PLANO-REPARO.md`](../docs/PLANO-REPARO.md).
+>
+> **Destination:** `apps/desktop/` — Hermes Electron + **native React renderer**
+> (chat, tools, panes). Improve language for PME; then Agent Studio
+> ([`docs/AGENT-STUDIO.md`](../docs/AGENT-STUDIO.md)). W4Y deltas (login,
+> ZIP/slots, cloud bridge, GCS update) plug into this tree.
+>
+> **Transition only:** `apps/desktop-shell/` still ships today (motor ZIP +
+> `loadURL` of `web_dist`). **Stop-ship** new features there — sangria fixes
+> only until the Hermes desktop port ships. Do not treat “UMA UI SÓ =
+> web_dist” as the product destination (that note in BACKEND-MAP is legado).
 
 **What unifies the product:** the **cloud runtime** (24/7 agents), reachable
-from web and from desktop via the Local × Cloud bridge (`RunTargetPicker`,
-`w4y:cloud:wsUrl` / `w4y:cloud:api`) — not pixel-parity of two UIs.
-
-**Do not** reintroduce a second React desktop app, `@wayne/ui` “big split” for
-convergence, or treat the shell as a pure browser chrome over the site.
-
-`@wayne/shared` remains the web dashboard’s WS/JSON-RPC helpers; the shell does
-not import it (bridge is IPC in `main.cjs` / `preload.cjs`).
+from web (window) and from desktop (Hermes app + bridge) — not forcing the
+desktop to be a browser chrome over the site.
 
 ---
+
 
 ## Adding New Tools
 

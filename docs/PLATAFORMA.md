@@ -1,7 +1,8 @@
 # Work4You — Definição de plataforma (estrela-guia)
 
-> **Status:** direção de produto alinhada com o CEO (22/07/2026), validada
-> contra as [docs oficiais do Cursor](https://cursor.com/docs/cloud-agent)
+> **Status:** direção de produto alinhada com o CEO (22/07/2026), **corrigida
+> 22/07/2026 (noite)** — opção A: desktop = renderer Hermes.  
+> Validada contra as [docs oficiais do Cursor](https://cursor.com/docs/cloud-agent)
 > (Cloud Agents / ex–Background Agents).  
 > **Este doc manda** quando houver tensão com auditorias, roadmaps ou notas
 > históricas. Não é spec de implementação.
@@ -15,15 +16,24 @@
 | Superfície | Papel |
 |------------|--------|
 | **Nuvem** | O coração **24/7**. Agentes/subagentes rodam lá, independente do PC do usuário estar ligado (igual Cloud Agents do Cursor: VM na nuvem — “feche o notebook e veja depois”). Vale para **todo** usuário. |
-| **Web** | Janela para essa nuvem. **Sem** execução local. |
-| **Desktop** | Poder **local** (arquivos, terminal, offline) + **ponte** para a nuvem (lançar/acompanhar os agentes 24/7). Mapeia no “Local Agent × Cloud Agent” do Cursor. |
+| **Web** | **Janela** para essa nuvem. Sem execução local. Superfície secundária — não é o app principal do produto no PC. |
+| **Desktop** | **App principal no PC.** Linhagem Hermes `apps/desktop` (Electron + React nativo): poder local (arquivos, terminal, offline) + ponte para a nuvem 24/7. Base a melhorar (linguagem acessível PME), depois **Agent Studio**. |
 
-Superfícies do **mesmo produto**, **não** espelhos.  
-A unificação é no **runtime** (um backend de agentes na nuvem, compartilhado), **não** no código da UI.
+Superfícies do **mesmo produto**, **não** espelhos pixel a pixel.  
+A unificação é no **runtime** (backend de agentes na nuvem compartilhado), **não** em forçar o desktop a ser um `loadURL` do `web_dist`.
+
+### Modelo mental de negócio (CEO — trilha correta)
+
+1. **Base = Hermes** — capacidades + UI desktop nativa (`apps/desktop`), não um shell vazio.
+2. **Produto W4Y = tornar acessível** — menos jargão técnico, linguagem PME (renomear, esconder, reordenar).
+3. **Depois = Agent Studio** — construção nova (ver [ROADMAP.md](./ROADMAP.md) §2).
+4. **Deltas C obrigatórios** — login Work4You, Stripe/tenant, motor ZIP/slots, ponte nuvem, update GCS. O Hermes não traz isso.
+
+O desvio (`desktop-shell` + “UMA UI SÓ = web_dist”) foi atalho pós-remoção do renderer; **não** é a estrela-guia.
 
 ### Histórico e superfícies
 
-- Desktop **pode** carregar / acompanhar histórico da **nuvem** (já há “Executar na nuvem” / `run=cloud`).
+- Desktop **pode** carregar / acompanhar histórico da **nuvem** (ponte Cloud Agents).
 - Web **não** precisa (nem deve) carregar histórico do desktop — na web nada roda local.
 
 ### O que faz ser “um produto”
@@ -34,51 +44,64 @@ O runtime **24/7 na nuvem** alcançável de todas as superfícies — não a igu
 
 ## O que isso mata (não perseguir)
 
+- Tratar `desktop-shell` + `web_dist` como UI definitiva do desktop.
+- Feature nova no `desktop-shell` (stop-ship: só sangria até o port Hermes shipar).
 - Espelhar web e desktop pixel a pixel.
-- Pacote `@wayne/ui` “build grande” como resposta à convergência — a UI do produto **já é uma só** (`wayne-agent/web` → `web_dist`; o desktop-shell reusa esse bundle). A premissa da Fase 10 §9 da auditoria era sobre `apps/desktop` (renderer Hermes), **removido** em `f9cad21` → **morta**.
-- Transformar o desktop em “janela pro site” (perde o poder local). Escape `W4Y_CLOUD_SHELL=1` existe; **não** é o default nem a estratégia.
+- Transformar o desktop em “janela pro site” como default (`W4Y_CLOUD_SHELL=1` é escape, não estratégia).
+- Nova state-machine de update; reescrever o agent core.
 
 ---
 
-## O que é verdade hoje
+## O que é verdade / destino
 
-- **UI já unificada** (`web_dist` compartilhado) = bônus de manutenção. Manter.
-- A UI **pode divergir por superfície** onde fizer sentido (ex.: desktop mostra arquivos locais; web não). Continua um produto porque o que une é o runtime na nuvem.
-- Desktop real = `wayne-agent/apps/desktop-shell` (casca Electron + motor local). Ver [BACKEND-MAP.md](./BACKEND-MAP.md) (“UMA UI SÓ”).
-- Cloud dashboard = Fly `wayne-w4y`. Landing/billing = Cloud Run `w4y-web`. Ver [ARQUITETURA.md](./ARQUITETURA.md) v5.
+| Hoje (transição) | Destino (estrela-guia) |
+|---|---|
+| Produção ainda no `apps/desktop-shell` + motor ZIP | App instalável = `wayne-agent/apps/desktop` (Hermes) + deltas W4Y |
+| `web_dist` = SPA do dashboard (nuvem + shell legado) | Web continua como janela da nuvem; **não** é a UI primária do desktop |
+| Notas “renderer Hermes morto” (Fase 10 §9 / f9cad21) | **OBSOLETAS** — renderer Hermes é a base de novo |
+
+- Cloud dashboard = Fly `wayne-w4y`. Landing/billing = Cloud Run `w4y-web`. Ver [ARQUITETURA.md](./ARQUITETURA.md).
+- Plano de execução: [PLANO-REPARO.md](./PLANO-REPARO.md).
 
 ### Benchmark Cursor (docs oficiais — o que usamos)
 
 1. Cloud Agents **continuam** na nuvem com o app/laptop fechados.
-2. Desktop e **cursor.com/agents** são entradas **de primeira classe** no mesmo backend de cloud agents (não “web = espelho do desktop”).
-3. Docs **não** exigem um único codebase de UI; exigem **mesmo backend**. Nossa unificação de `web_dist` é vantagem nossa, não requisito do espelho Cursor.
+2. Desktop e web são entradas **de primeira classe** no mesmo backend de cloud agents (não “web = espelho do desktop”).
+3. Docs **não** exigem um único codebase de UI; exigem **mesmo backend**. O desktop Hermes React e o dashboard web podem divergir — o que une é a nuvem.
 
 ---
 
-## Duas trilhas que fluem daqui
+## Trilhas
 
-### Trilha 1 — Ponte Cloud Agents no desktop (**valor**)
+### Trilha 1 — Restaurar desktop Hermes + deltas W4Y (**estrutura**)
 
-Desktop lança/acompanha agentes 24/7 na nuvem, mantendo o motor local para o que é local.  
-Base S1/S2 já existe. **Ok CEO 22/07:** construir (1) paridade sessão-nuvem + (2) copy “neste PC vs nuvem 24/7”. Hand-off mid-session (#5) depois.
+Ver [PLANO-REPARO.md](./PLANO-REPARO.md): PR1 árvore → login/ZIP/bridge/update GCS → deprecar `desktop-shell`.
 
-### Trilha 2 — Sincronia de UI (**higiene**, menor)
+### Trilha 2 — Linguagem acessível PME (**produto**)
 
-Trilho de release único (deploy Fly + engine ZIP no mesmo ciclo) + idealmente patch **UI-only** leve. Higiene separada — não bloqueia a Trilha 1.
+Passada de copy/nav/fluxo no renderer Hermes — não reinventar telas do zero.
+
+### Trilha 3 — Agent Studio (**construção nova**)
+
+Após base A+C estável. Spec de produto em [ROADMAP.md](./ROADMAP.md) §2 e [AGENT-STUDIO.md](./AGENT-STUDIO.md).
+
+### Trilha 4 — Ponte Cloud Agents (**valor contínuo**)
+
+Desktop lança/acompanha agentes 24/7 na nuvem, mantendo motor local. Hand-off mid-session depois.
 
 ---
 
-## Já existe na ponte (evidência)
+## Já existe na ponte (evidência — shell legado / nuvem)
 
 | Peça | Onde |
 |------|------|
-| Seletor Local × Nuvem | `RunTargetPicker`, `cloudRunAvailable()` |
-| Sessão na nuvem na mesma SPA | `runTarget=cloud` / `?run=cloud` → WS ticketado |
-| Bridge na casca | `w4y:cloud:wsUrl`, `w4y:cloud:api` |
-| Recentes + Agenda mesclados (S2) | sidebar + CronPage |
-| Mutações nuvem (0.3.5+) | `canMutate` + `cloudMutateJson` |
+| Seletor Local × Nuvem | `RunTargetPicker`, `cloudRunAvailable()` (web_dist) |
+| Sessão na nuvem | `runTarget=cloud` / `?run=cloud` → WS ticketado |
+| Bridge na casca legada | `w4y:cloud:wsUrl`, `w4y:cloud:api` |
+| Recentes + Agenda mesclados | sidebar + CronPage |
+| Mutações nuvem | `canMutate` + `cloudMutateJson` |
 
-Detalhe: [BACKEND-MAP.md](./BACKEND-MAP.md) (S1 / S2 / 0.3.5).
+Essas peças **migram** para o desktop Hermes na Fase de deltas W4Y; não são desculpa para manter o shell como produto.
 
 ---
 
@@ -123,8 +146,11 @@ Depois (fora do escopo aprovado agora).
 
 | Doc | Papel |
 |-----|--------|
-| Este arquivo | Estrela-guia de produto |
-| [BACKEND-MAP.md](./BACKEND-MAP.md) | Fatos verificados: UMA UI SÓ, ponte S1/S2, GAP wake |
-| [ARQUITETURA.md](./ARQUITETURA.md) | Onde roda cada superfície (v5) |
-| [AUDITORIA-PRODUTO-WORK4YOU.md](./AUDITORIA-PRODUTO-WORK4YOU.md) Fase 10 §9 / PR-DESKTOP | **OBSOLETO** — premissa `apps/desktop` morta |
-| `wayne-agent/AGENTS.md` (§ Electron) | Aponta para desktop-shell + este doc |
+| Este arquivo | Estrela-guia de produto (**opção A**) |
+| [PLANO-REPARO.md](./PLANO-REPARO.md) | Execução do port desktop Hermes + sangria |
+| [NATIVO-VS-CONSTRUIDO.md](./NATIVO-VS-CONSTRUIDO.md) | Auditoria A/B/C/D |
+| [AGENT-STUDIO.md](./AGENT-STUDIO.md) | Próxima construção de produto |
+| [BACKEND-MAP.md](./BACKEND-MAP.md) | Fatos verificados; trechos “UMA UI SÓ / renderer morto” = **legado** |
+| [ARQUITETURA.md](./ARQUITETURA.md) | Onde roda cada superfície |
+| [AUDITORIA-PRODUTO-WORK4YOU.md](./AUDITORIA-PRODUTO-WORK4YOU.md) Fase 10 §9 “apps/desktop morto” | **OBSOLETO** sob esta estrela |
+| `wayne-agent/AGENTS.md` (§ Electron) | Atualizar apontando para `apps/desktop` |

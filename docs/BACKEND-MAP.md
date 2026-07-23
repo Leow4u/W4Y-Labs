@@ -340,17 +340,20 @@ git-*/hardening ficaram fora da lista; 0.2.0 crashou; 0.2.1 os incluiu.)
 
 ## PIVÔ DESKTOP (17/07) — fatos verificados p/ o desktop com motor local (Cursor×VS Code)
 
-> **Produto (22/07):** a estrela-guia é [`docs/PLATAFORMA.md`](./PLATAFORMA.md).
-> Este bloco permanece a evidência técnica (“UMA UI SÓ”, bridge S1/S2). Não
-> reabrir “espelhar renderer Hermes”.
+> **Produto (22/07 noite — estrela-guia opção A):** [`docs/PLATAFORMA.md`](./PLATAFORMA.md).
+> Desktop primário = **`apps/desktop` Hermes (renderer React)**, não `desktop-shell`+`web_dist`.
+> Trechos abaixo que dizem “UMA UI SÓ / frontend apps/desktop DESCARTA-SE” são **legado do
+> atalho 17–22/07** — úteis como evidência do shell transitório e da ponte S1/S2, **não** como
+> destino de produto. Ver [PLANO-REPARO.md](./PLANO-REPARO.md).
 
-Decisão do Leonardo: desktop = Hermes COMPLETO local com marca Work4You; o que é nosso protegido
-na nuvem. Fatos que sustentam o plano (2 investigações 17/07, arquivo:linha nos transcripts):
-- **UMA UI SÓ — CONFIRMADO:** o gateway local serve o MESMO web_dist da nuvem (web_server.py:121,
+Decisão do Leonardo (corrigida): desktop = Hermes COMPLETO (Electron + React) com marca Work4You;
+deltas W4Y (ZIP, login, ponte nuvem) encaixam nessa linhagem. Fatos históricos do pivô shell
+(2 investigações 17/07, arquivo:linha nos transcripts) — **legado / transição**:
+- **LEGADO “UMA UI SÓ”:** o gateway local serve o MESMO web_dist da nuvem (web_server.py:121,
   :15113-15140) e injeta `window.__WAYNE_SESSION_TOKEN__` no index.html servido (:15055-15075) —
-  api.ts:102 já lê. Electron → `loadURL(http://127.0.0.1:<porta>)` e auth resolve sozinha. O
-  frontend próprio do apps/desktop (287 arquivos) DESCARTA-SE. Prontidão: linha
-  `WAYNE_DASHBOARD_READY port=N` (web_server.py:16439) ou ready-file (:16188).
+  api.ts:102 já lê. O shell legado faz Electron → `loadURL(http://127.0.0.1:<porta>)`.
+  **Destino opção A:** UI primária = renderer `apps/desktop`, não descartar esse frontend.
+  Prontidão do motor: linha `WAYNE_DASHBOARD_READY port=N` (web_server.py:16439) ou ready-file (:16188).
 - **Motor de boot transplantável:** ~1.300 linhas em 5 módulos puros/testados do apps/desktop
   (backend-command/ready/probes + bootstrap-runner) — instalam uv+Python3.11+PortableGit+ffmpeg/
   ripgrep+clone+`uv sync --extra all` via scripts/install.ps1 (já meio-Wayne; URLs do repo em
