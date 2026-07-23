@@ -1,5 +1,8 @@
 # W4Y Labs — Roadmap por Módulo
 
+> **Produto (23/07/2026):** [`PRODUTO.md`](./PRODUTO.md) manda. Este roadmap é
+> **histórico / infra** — Agent Studio com ReactFlow/canvas aqui **não** é o v1.
+
 > Ler junto com [ARQUITETURA.md](./ARQUITETURA.md). Fases:
 > **Fase 0 — Fundação** · **Fase 1 — MVP** · **Fase 2 — V1** · **Fase 3 — Escala**.
 

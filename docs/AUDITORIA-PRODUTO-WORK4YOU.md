@@ -1,5 +1,10 @@
 # Auditoria Produto Work4You v1
 
+> **LIXO para direção de produto atual (23/07/2026).**  
+> Norte canónico: [`PRODUTO.md`](./PRODUTO.md) (Work + Agent Studio).  
+> Esta auditoria (prints / mockups / Fase 10) é arquivo histórico — **não** seguir
+> para decidir Work vs Studio, canvas, ou escopo v1.
+
 Documento mestre da auditoria de produto (prints → UX → código → benchmark → gap → spec → prioridade).
 
 **Restrição:** auditoria/spec concluída na Fase 10 — **implementação liberada por ondas** (A→E). Mockups `/mockups/v1` = acceptance criteria visual.

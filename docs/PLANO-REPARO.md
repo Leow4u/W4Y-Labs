@@ -1,8 +1,11 @@
 # Plano de reparo Work4You
 
-Premissas: núcleo Hermes (**A**) não se reescreve; plataforma (**C**) se endurece; desperdício **B/D** se funde de volta ao upstream. Estrela-guia: [PLATAFORMA.md](./PLATAFORMA.md) (**opção A** — desktop = renderer Hermes). CEO sem ritual manual — gates + push automático.
+> **Produto:** fonte canónica = [`PRODUTO.md`](./PRODUTO.md). Fases/notas aqui sobre
+> Agent Studio + canvas / “construção nova” são **LIXO** para direção de produto.
 
-Referências: [`NATIVO-VS-CONSTRUIDO.md`](./NATIVO-VS-CONSTRUIDO.md) · [`AGENT-STUDIO.md`](./AGENT-STUDIO.md).
+Premissas técnicas: núcleo Hermes (**A**) não se reescreve; plataforma (**C**) se endurece; desperdício **B/D** se funde de volta ao upstream. Superfícies: [PLATAFORMA.md](./PLATAFORMA.md) (**opção A** — desktop = renderer Hermes).
+
+Referências de produto: [`PRODUTO.md`](./PRODUTO.md) · (histórico) [`AGENT-STUDIO.md`](./AGENT-STUDIO.md).
 
 ---
 

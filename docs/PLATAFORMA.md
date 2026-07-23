@@ -1,11 +1,15 @@
 # Work4You — Definição de plataforma (estrela-guia)
 
-> **Status:** direção de produto alinhada com o CEO (22/07/2026), **corrigida
+> **Produto (Work + Agent Studio):** a fonte canónica é [`PRODUTO.md`](./PRODUTO.md)
+> (23/07/2026). Alinhamentos de produto **anteriores** a esse doc são **LIXO**.
+> Este ficheiro fica só para **superfícies técnicas** (nuvem / web / desktop Hermes).
+> Em tensão de *o que é o produto*, manda `PRODUTO.md`.
+
+> **Status (infra):** direção de superfície alinhada com o CEO (22/07/2026), **corrigida
 > 22/07/2026 (noite)** — opção A: desktop = renderer Hermes.  
 > Validada contra as [docs oficiais do Cursor](https://cursor.com/docs/cloud-agent)
 > (Cloud Agents / ex–Background Agents).  
-> **Este doc manda** quando houver tensão com auditorias, roadmaps ou notas
-> históricas. Não é spec de implementação.
+> **Não é spec de implementação de produto.**
 
 ---
 
@@ -24,12 +28,13 @@ A unificação é no **runtime** (backend de agentes na nuvem compartilhado), **
 
 ### Modelo mental de negócio (CEO — trilha correta)
 
-1. **Base = Hermes** — capacidades + UI desktop nativa (`apps/desktop`), não um shell vazio.
-2. **Produto W4Y = tornar acessível** — menos jargão técnico, linguagem PME (renomear, esconder, reordenar).
-3. **Depois = Agent Studio** — construção nova (ver [ROADMAP.md](./ROADMAP.md) §2).
-4. **Deltas C obrigatórios** — login Work4You, Stripe/tenant, motor ZIP/slots, ponte nuvem, update GCS. O Hermes não traz isso.
+> **Superseded:** ver [`PRODUTO.md`](./PRODUTO.md). O bloco abaixo é histórico.
 
-O desvio (`desktop-shell` + “UMA UI SÓ = web_dist”) foi atalho pós-remoção do renderer; **não** é a estrela-guia.
+1. **Base = Hermes** — capacidades + UI desktop nativa (`apps/desktop`).
+2. **Dois produtos:** **Work** (Default) + **Agent Studio** (lista + connected) — não “Studio = canvas”.
+3. **Deltas C** — login Work4You, Stripe/tenant, motor ZIP/slots, ponte nuvem, update GCS.
+
+O desvio (`desktop-shell` + “UMA UI SÓ = web_dist”) foi atalho; **não** é a estrela-guia de superfície.
 
 ### Histórico e superfícies
 
