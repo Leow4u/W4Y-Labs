@@ -1,7 +1,7 @@
 import { atom, computed, type ReadableAtom } from 'nanostores'
 
 import { Codecs, persistentAtom } from '@/lib/persisted'
-import { arraysEqual, insertUniqueId } from '@/lib/storage'
+import { arraysEqual, insertUniqueId, readKey, writeKey } from '@/lib/storage'
 
 import { $paneStates, ensurePaneRegistered, setPaneOpen, setPaneWidthOverride, togglePane } from './panes'
 
@@ -18,6 +18,9 @@ export const SIDEBAR_SESSIONS_PAGE_SIZE = 50
 
 const SIDEBAR_PINNED_STORAGE_KEY = 'hermes.desktop.pinnedSessions'
 const SIDEBAR_AGENTS_GROUPED_STORAGE_KEY = 'hermes.desktop.agentsGroupedByWorkspace'
+// One-shot: Projetos is the normal sidebar structure (Cursor Repositories-like).
+// Flips users stuck on flat Sessões after ProjectChip landed; later toggles persist.
+const SIDEBAR_PROJECTS_DEFAULTED_KEY = 'hermes.desktop.sidebarProjectsDefaulted'
 const SIDEBAR_CRON_OPEN_STORAGE_KEY = 'hermes.desktop.sidebarCronOpen'
 const SIDEBAR_MESSAGING_OPEN_STORAGE_KEY = 'hermes.desktop.sidebarMessagingOpen'
 const SIDEBAR_SESSION_ORDER_STORAGE_KEY = 'hermes.desktop.sessionOrder'
@@ -136,7 +139,19 @@ export const $sidebarMessagingOpenIds = persistentAtom(
   [] as string[],
   Codecs.stringArray
 )
-export const $sidebarAgentsGrouped = persistentAtom(SIDEBAR_AGENTS_GROUPED_STORAGE_KEY, false, Codecs.bool)
+
+function migrateSidebarProjectsDefault(): void {
+  if (readKey(SIDEBAR_PROJECTS_DEFAULTED_KEY) === 'true') {
+    return
+  }
+
+  writeKey(SIDEBAR_PROJECTS_DEFAULTED_KEY, 'true')
+  writeKey(SIDEBAR_AGENTS_GROUPED_STORAGE_KEY, 'true')
+}
+
+migrateSidebarProjectsDefault()
+
+export const $sidebarAgentsGrouped = persistentAtom(SIDEBAR_AGENTS_GROUPED_STORAGE_KEY, true, Codecs.bool)
 // When true, the sessions sidebar moves to the right and the file browser +
 // preview rail move to the left — a mirror of the default layout.
 export const $panesFlipped = persistentAtom(PANES_FLIPPED_STORAGE_KEY, false, Codecs.bool)
