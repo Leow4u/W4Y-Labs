@@ -3,7 +3,7 @@
   "productName": "Work4You",
   "private": true,
   "version": "0.17.0",
-  "description": "Work4You desktop — Hermes Agent lineage + W4Y product deltas.",
+  "description": "Work4You desktop — native agent workspace.",
   "author": "Work4You",
   "type": "module",
   "main": "electron/main.cjs",
@@ -150,18 +150,18 @@
   },
   "build": {
     "electronVersion": "40.10.2",
-    "appId": "com.nousresearch.hermes",
-    "productName": "Hermes",
-    "executableName": "Hermes",
+    "appId": "com.work4you.desktop",
+    "productName": "Work4You",
+    "executableName": "Work4You",
     "protocols": [
       {
-        "name": "Hermes Protocol",
+        "name": "Work4You Protocol",
         "schemes": [
-          "hermes"
+          "work4you"
         ]
       }
     ],
-    "artifactName": "Hermes-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Work4You-${version}-${os}-${arch}.${ext}",
     "icon": "assets/icon",
     "directories": {
       "output": "release"

@@ -76,16 +76,17 @@ Só manter a luz acesa. Sem feature nova na casca.
 2. ✅ Preferir motor Wayne existente (monorepo / `%LOCALAPPDATA%\wayne\wayne-agent`) — ZIP virgin install ainda via shell/`install.ps1`  
 3. ✅ Bridge `w4y:cloud:*` real (`w4y-cloud.cjs`)  
 4. ✅ Policy GCS documentada; update chip Hermes git permanece legado até cutover  
-5. ✅ Stop-ship `desktop-shell`  
+5. ✅ Stop-ship `desktop-shell`
+6. ✅ Banho de UI marca — wordmark Work4You, tema `work4you`, copy EN/títulos (favicon depois)
 
 **Como abrir:** `cd wayne-agent && npm install && cd apps/desktop && npm run dev`  
 **Push** por fatia.
 
 ---
 
-### Fase 4 — Linguagem acessível PME
+### Fase 4 — Linguagem acessível (humanizar, não infantilizar)
 
-Passada de copy/nav/fluxo no renderer Hermes: menos jargão, jornada PME. Renomear / esconder / reordenar — não reinventar.
+Passada de copy/nav/fluxo no renderer: menos jargão, jornada clara. Renomear / esconder / reordenar — não reinventar nem rebaixar o produto. Marca visual já iniciada na Fase 3.6.
 
 **Push.**
 

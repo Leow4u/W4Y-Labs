@@ -27,10 +27,84 @@ const PSYCHE_WARM = '#FFE6CB'
 const nousTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFFFFF)`
 const nousTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
 
+const W4Y_OLIVE = '#5C6B3A'
+const W4Y_CHARCOAL = '#1A1A1A'
+const W4Y_CHARCOAL_SOFT = '#2A2A2A'
+
+const w4yTint = (pct: number) => `color-mix(in srgb, ${W4Y_OLIVE} ${pct}%, #FFFFFF)`
+const w4yTintTransparent = (pct: number) => `color-mix(in srgb, ${W4Y_OLIVE} ${pct}%, transparent)`
+
 /**
- * Nous — canonical Hermes desktop identity. The palette keeps the current
- * glass geometry neutral, then lets the old bb/gui blue and psyche cream
- * return as accent seeds.
+ * Work4You — product default. Light glass base with olive + charcoal accents
+ * from the approved wordmark. Human product identity, not a dumbed-down skin.
+ */
+export const work4youTheme: DesktopTheme = {
+  name: 'work4you',
+  label: 'Work4You',
+  description: 'Light glass with Work4You olive and charcoal',
+  colors: {
+    background: '#F7F7F5',
+    foreground: W4Y_CHARCOAL,
+    card: '#FFFFFF',
+    cardForeground: W4Y_CHARCOAL,
+    muted: w4yTint(6),
+    mutedForeground: '#5C5C56',
+    popover: '#FFFFFF',
+    popoverForeground: W4Y_CHARCOAL,
+    primary: W4Y_OLIVE,
+    primaryForeground: '#FCFCF8',
+    secondary: w4yTint(8),
+    secondaryForeground: W4Y_CHARCOAL_SOFT,
+    accent: w4yTint(12),
+    accentForeground: W4Y_CHARCOAL,
+    border: w4yTintTransparent(22),
+    input: w4yTintTransparent(28),
+    ring: W4Y_OLIVE,
+    midground: W4Y_OLIVE,
+    composerRing: W4Y_OLIVE,
+    destructive: '#C72E4D',
+    destructiveForeground: '#FFFFFF',
+    sidebarBackground: '#F1F1ED',
+    sidebarBorder: w4yTintTransparent(18),
+    userBubble: w4yTint(7),
+    userBubbleBorder: w4yTintTransparent(24)
+  },
+  darkColors: {
+    background: '#0E0E0C',
+    foreground: '#E8E6DF',
+    card: '#171714',
+    cardForeground: '#E8E6DF',
+    muted: '#1F1F1A',
+    mutedForeground: '#A8A69C',
+    popover: '#171714',
+    popoverForeground: '#E8E6DF',
+    primary: W4Y_OLIVE,
+    primaryForeground: '#FCFCF8',
+    secondary: '#24241F',
+    secondaryForeground: '#E8E6DF',
+    accent: '#2C3220',
+    accentForeground: '#E8E6DF',
+    border: '#2E2E28',
+    input: '#121210',
+    ring: W4Y_OLIVE,
+    midground: W4Y_OLIVE,
+    composerRing: W4Y_OLIVE,
+    destructive: '#C0473A',
+    destructiveForeground: '#FEF2F2',
+    sidebarBackground: '#0A0A08',
+    sidebarBorder: '#24241F',
+    userBubble: '#1A1F14',
+    userBubbleBorder: '#3A4228'
+  },
+  typography: {
+    fontSans: SYSTEM_SANS,
+    fontMono: SYSTEM_MONO
+  }
+}
+
+/**
+ * Nous — legacy Hermes desktop identity (kept as an optional skin).
+ * Glass neutrals with Nous blue / psyche cream accents.
  */
 export const nousTheme: DesktopTheme = {
   name: 'nous',
@@ -278,6 +352,7 @@ export const slateTheme: DesktopTheme = {
 }
 
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
+  work4you: work4youTheme,
   nous: nousTheme,
   midnight: midnightTheme,
   ember: emberTheme,
@@ -289,4 +364,4 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'nous'
+export const DEFAULT_SKIN_NAME = 'work4you'
