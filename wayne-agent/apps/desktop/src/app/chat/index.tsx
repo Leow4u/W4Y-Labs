@@ -314,7 +314,7 @@ export function ChatView({
   // waiting for the resume effect (which paints a frame later) to clear them.
   const routeSessionMismatch = isRoutedSessionView && routedSessionId !== selectedSessionId
 
-  // The compact new-session pop-out skips the wordmark/tagline intro — it's a
+  // The compact new-session pop-out skips the empty-state intro — it's a
   // scratch window, not the full-height empty state.
   const showIntro =
     !isSecondaryWindow() &&
