@@ -318,14 +318,16 @@ def _has_valid_session_token(request: Request) -> bool:
     The dedicated session header avoids collisions with reverse proxies that
     already use ``Authorization`` (for example Caddy ``basic_auth``). We still
     accept the legacy Bearer path for backward compatibility with older
-    dashboard bundles.
+    dashboard bundles. Hermes desktop also sends ``X-Hermes-Session-Token``;
+    accept that alias so the upstream renderer can talk to Wayne serve.
     """
-    session_header = request.headers.get(_SESSION_HEADER_NAME, "")
-    if session_header and hmac.compare_digest(
-        session_header.encode(),
-        _SESSION_TOKEN.encode(),
-    ):
-        return True
+    for header_name in (_SESSION_HEADER_NAME, "X-Hermes-Session-Token"):
+        session_header = request.headers.get(header_name, "")
+        if session_header and hmac.compare_digest(
+            session_header.encode(),
+            _SESSION_TOKEN.encode(),
+        ):
+            return True
 
     auth = request.headers.get("authorization", "")
     expected = f"Bearer {_SESSION_TOKEN}"

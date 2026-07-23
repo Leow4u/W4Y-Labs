@@ -3338,7 +3338,11 @@ function fetchJson(url, token, options = {}) {
         method: options.method || 'GET',
         headers: {
           'Content-Type': 'application/json',
+          // Hermes upstream header + Wayne dashboard header (web_server.py).
+          // Wayne only validates X-Wayne-Session-Token; keep Hermes for remote
+          // Hermes gateways that still expect the upstream name.
           'X-Hermes-Session-Token': token,
+          'X-Wayne-Session-Token': token,
           ...(body ? { 'Content-Length': String(body.length) } : {})
         }
       },

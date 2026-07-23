@@ -232,6 +232,32 @@ class TestSessionTokenInjection:
 
         assert ws._SESSION_TOKEN and len(ws._SESSION_TOKEN) >= 32
 
+    def test_accepts_hermes_session_header_alias(self, monkeypatch):
+        """Hermes desktop sends X-Hermes-Session-Token; Wayne must accept it."""
+        try:
+            from starlette.testclient import TestClient
+        except ImportError:
+            pytest.skip("fastapi/starlette not installed")
+
+        import importlib
+        import wayne_cli.web_server as ws
+
+        monkeypatch.setenv("WAYNE_DASHBOARD_SESSION_TOKEN", "hermes-alias-token")
+        try:
+            importlib.reload(ws)
+            client = TestClient(ws.app)
+            # Protected path: public /api/status would pass without a token.
+            denied = client.get("/api/config")
+            assert denied.status_code == 401
+            ok = client.get(
+                "/api/config",
+                headers={"X-Hermes-Session-Token": "hermes-alias-token"},
+            )
+            assert ok.status_code == 200
+        finally:
+            monkeypatch.delenv("WAYNE_DASHBOARD_SESSION_TOKEN", raising=False)
+            importlib.reload(ws)
+
 
 # ---------------------------------------------------------------------------
 # web_server tests (FastAPI endpoints)

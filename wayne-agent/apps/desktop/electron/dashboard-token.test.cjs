@@ -22,6 +22,11 @@ test('extractInjectedDashboardToken reads the JSON-encoded dashboard token', () 
   assert.equal(extractInjectedDashboardToken(html), 'served-token')
 })
 
+test('extractInjectedDashboardToken reads Wayne dashboard token injection', () => {
+  const html = '<script>window.__WAYNE_SESSION_TOKEN__="wayne-token";</script>'
+  assert.equal(extractInjectedDashboardToken(html), 'wayne-token')
+})
+
 test('extractInjectedDashboardToken handles escaped token strings', () => {
   const html = '<script>window.__HERMES_SESSION_TOKEN__="served\\\\token\\"quoted";</script>'
   assert.equal(extractInjectedDashboardToken(html), 'served\\token"quoted')

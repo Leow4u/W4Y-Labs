@@ -30,7 +30,9 @@ async function fetchPublicText(url, options = {}) {
 }
 
 function extractInjectedDashboardToken(html) {
-  const match = /window\.__HERMES_SESSION_TOKEN__\s*=\s*("(?:\\.|[^"\\])*")/.exec(String(html || ''))
+  // Wayne injects __WAYNE_SESSION_TOKEN__; Hermes upstream uses __HERMES_*.
+  const match =
+    /window\.__(?:WAYNE|HERMES)_SESSION_TOKEN__\s*=\s*("(?:\\.|[^"\\])*")/.exec(String(html || ''))
   if (!match) return null
   try {
     return JSON.parse(match[1])
