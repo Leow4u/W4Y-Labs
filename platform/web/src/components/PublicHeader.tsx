@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { getDevSession } from "@/lib/dev-auth";
 import MobileNav from "@/components/MobileNav";
@@ -21,8 +22,15 @@ export default async function PublicHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-neutral-100 bg-white/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-6">
-        <Link href="/" className="font-brand text-lg font-semibold text-neutral-900">
-          Work4You
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/brand/work4you-logo.png"
+            alt="Work4You"
+            width={2400}
+            height={244}
+            priority
+            className="h-[22px] w-auto"
+          />
         </Link>
 
         <nav className="hidden items-center gap-7 md:flex">

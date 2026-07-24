@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
@@ -30,7 +31,13 @@ export default function PublicFooter() {
     <footer className="border-t border-neutral-100 bg-white">
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
-          <p className="font-brand text-lg font-semibold text-neutral-900">Work4You</p>
+          <Image
+            src="/brand/work4you-logo.png"
+            alt="Work4You"
+            width={2400}
+            height={244}
+            className="h-5 w-auto"
+          />
           <p className="mt-2 max-w-xs text-sm leading-relaxed text-neutral-500">
             Funcionários digitais para o trabalho de todo dia — com aprovação
             humana, histórico e controle.
