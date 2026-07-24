@@ -13,7 +13,8 @@ const NAV = [
   { href: "/clientes", label: "Clientes" },
   { href: "/precos", label: "Preços" },
   { href: "/recursos", label: "Recursos", caret: true },
-  { href: "/baixar", label: "Baixar" },
+  // "/baixar" intentionally out of the nav: the desktop app is being reworked
+  // and downloads are paused. Re-add the entry when it ships.
 ];
 
 export default async function PublicHeader() {
