@@ -28,8 +28,8 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
 
 export default function PublicFooter() {
   return (
-    <footer className="border-t border-neutral-100 bg-white">
-      <div className="mx-auto grid max-w-6xl gap-10 px-6 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+    <footer className="border-t border-line bg-paper-deep px-6">
+      <div className="mx-auto grid max-w-6xl gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
         <div>
           <Image
             src="/brand/work4you-logo.png"
@@ -38,14 +38,13 @@ export default function PublicFooter() {
             height={244}
             className="h-5 w-auto"
           />
-          <p className="mt-2 max-w-xs text-sm leading-relaxed text-neutral-500">
-            Funcionários digitais para o trabalho de todo dia — com aprovação
-            humana, histórico e controle.
+          <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-soft">
+            Construa o seu agente de IA. Coloque ele pra rodar 24/7.
           </p>
         </div>
         {COLUMNS.map((c) => (
           <div key={c.title}>
-            <p className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+            <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-ink-faint">
               {c.title}
             </p>
             <ul className="mt-3 space-y-2">
@@ -53,7 +52,7 @@ export default function PublicFooter() {
                 <li key={l.href + l.label}>
                   <Link
                     href={l.href}
-                    className="text-sm text-neutral-600 transition-colors hover:text-neutral-900"
+                    className="text-sm text-ink-soft transition-colors hover:text-ink"
                   >
                     {l.label}
                   </Link>
@@ -63,12 +62,12 @@ export default function PublicFooter() {
           </div>
         ))}
       </div>
-      <div className="border-t border-neutral-100">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <p className="text-xs text-neutral-400">
-            © 2026 <span className="font-brand">W4Y-Labs</span>. Todos os direitos reservados.
+      <div className="border-t border-line">
+        <div className="mx-auto flex max-w-6xl items-center justify-between py-5">
+          <p className="text-xs text-ink-faint">
+            © 2026 W4Y-Labs. Todos os direitos reservados.
           </p>
-          <p className="font-brand text-xs text-neutral-400">work4you.ai</p>
+          <p className="font-mono text-xs text-ink-faint">work4you.ai</p>
         </div>
       </div>
     </footer>

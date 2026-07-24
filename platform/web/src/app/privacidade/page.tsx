@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 export const metadata = { title: "Política de Privacidade — Work4You" };
@@ -6,16 +7,23 @@ export const metadata = { title: "Política de Privacidade — Work4You" };
 // revisão jurídica formal antes da abertura comercial ampla.
 export default function PrivacidadePage() {
   return (
-    <main className="mx-auto max-w-2xl px-5 py-12 text-sm leading-relaxed text-neutral-800 dark:text-neutral-200">
-      <p className="font-brand text-xs tracking-wider text-neutral-400">
-        <Link href="/">Work4You</Link> · W4Y-Labs
-      </p>
-      <h1 className="mt-2 text-2xl font-semibold">Política de Privacidade</h1>
-      <p className="mt-1 text-xs text-neutral-500">Última atualização: 5 de julho de 2026 · Versão 1.0</p>
+    <main className="min-h-screen bg-paper px-5 py-12 text-sm leading-relaxed text-ink-soft">
+      <div className="mx-auto max-w-2xl">
+      <Link href="/" className="inline-flex">
+        <Image
+          src="/brand/work4you-logo.png"
+          alt="Work4You"
+          width={2400}
+          height={244}
+          className="h-[15px] w-auto"
+        />
+      </Link>
+      <h1 className="mt-7 text-3xl font-extrabold tracking-[-0.02em] text-ink">Política de Privacidade</h1>
+      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Última atualização: 5 de julho de 2026 · Versão 1.0</p>
 
       <section className="mt-8 space-y-6">
         <div>
-          <h2 className="font-semibold">1. Quem somos</h2>
+          <h2 className="font-bold text-ink">1. Quem somos</h2>
           <p className="mt-1">
             A <strong>W4Y-Labs</strong> é a controladora dos dados pessoais tratados na
             plataforma <strong>Work4You</strong> (work4you.ai), nos termos da Lei Geral de
@@ -24,17 +32,17 @@ export default function PrivacidadePage() {
           </p>
         </div>
         <div>
-          <h2 className="font-semibold">2. Dados que tratamos</h2>
+          <h2 className="font-bold text-ink">2. Dados que tratamos</h2>
           <p className="mt-1">
-            <strong>Conta:</strong> nome e e-mail fornecidos pelo provedor de login (Google,
-            Microsoft) ou por você. <strong>Conteúdo:</strong> mensagens, arquivos, memórias,
+            <strong>Conta:</strong> nome e e-mail fornecidos pelo provedor de login (Google)
+            ou por você. <strong>Conteúdo:</strong> mensagens, arquivos, memórias,
             rotinas e configurações que você cria ao usar o seu agente. <strong>Técnicos:</strong>{" "}
             registros de acesso (IP, data/hora, navegador) exigidos pelo Marco Civil da Internet,
             e métricas de uso/custo para operação e cobrança.
           </p>
         </div>
         <div>
-          <h2 className="font-semibold">3. Para que usamos (bases legais)</h2>
+          <h2 className="font-bold text-ink">3. Para que usamos (bases legais)</h2>
           <p className="mt-1">
             Prestar o serviço contratado (execução de contrato); segurança, prevenção a fraude e
             cumprimento de obrigações legais; melhoria do serviço e comunicação operacional
@@ -44,7 +52,7 @@ export default function PrivacidadePage() {
           </p>
         </div>
         <div>
-          <h2 className="font-semibold">4. Com quem compartilhamos (operadores)</h2>
+          <h2 className="font-bold text-ink">4. Com quem compartilhamos (operadores)</h2>
           <p className="mt-1">
             Operamos sobre provedores de infraestrutura e serviço sob contrato: Google Cloud
             (identidade, banco de dados, rede), Fly.io e Tigris Data (execução e armazenamento da
@@ -55,7 +63,7 @@ export default function PrivacidadePage() {
           </p>
         </div>
         <div>
-          <h2 className="font-semibold">5. Segurança e retenção</h2>
+          <h2 className="font-bold text-ink">5. Segurança e retenção</h2>
           <p className="mt-1">
             Usamos criptografia em trânsito (TLS), segredos em cofres gerenciados, isolamento por
             instância e backups com replicação contínua. Dados da conta e conteúdo são mantidos
@@ -64,7 +72,7 @@ export default function PrivacidadePage() {
           </p>
         </div>
         <div>
-          <h2 className="font-semibold">6. Seus direitos (LGPD)</h2>
+          <h2 className="font-bold text-ink">6. Seus direitos (LGPD)</h2>
           <p className="mt-1">
             Você pode solicitar confirmação de tratamento, acesso, correção, portabilidade,
             anonimização ou eliminação dos seus dados, além de revogar consentimentos, pelo
@@ -73,14 +81,14 @@ export default function PrivacidadePage() {
           </p>
         </div>
         <div>
-          <h2 className="font-semibold">7. Cookies</h2>
+          <h2 className="font-bold text-ink">7. Cookies</h2>
           <p className="mt-1">
             Usamos apenas cookies essenciais de sessão (autenticação da plataforma e do seu
             agente). Não usamos cookies de publicidade.
           </p>
         </div>
         <div>
-          <h2 className="font-semibold">8. Alterações</h2>
+          <h2 className="font-bold text-ink">8. Alterações</h2>
           <p className="mt-1">
             Esta Política pode ser atualizada; mudanças relevantes serão comunicadas na
             plataforma. O uso continuado após a vigência indica ciência da nova versão. Consulte
@@ -89,9 +97,10 @@ export default function PrivacidadePage() {
         </div>
       </section>
 
-      <footer className="mt-10 border-t border-neutral-200 pt-4 text-[11px] text-neutral-400 dark:border-neutral-800">
-        <p className="font-brand tracking-wider">© 2026 W4Y-Labs · Work4You</p>
+      <footer className="mt-10 border-t border-line pt-4 text-[11px] text-ink-faint">
+        <p className="font-mono uppercase tracking-[0.14em]">© 2026 W4Y-Labs · Work4You</p>
       </footer>
+      </div>
     </main>
   );
 }

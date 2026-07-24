@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
   GoogleAuthProvider,
-  OAuthProvider,
   createUserWithEmailAndPassword,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -36,17 +35,6 @@ function GoogleIcon() {
     </svg>
   );
 }
-function MicrosoftIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 23 23" aria-hidden>
-      <rect x="1" y="1" width="10" height="10" fill="#F25022" />
-      <rect x="12" y="1" width="10" height="10" fill="#7FBA00" />
-      <rect x="1" y="12" width="10" height="10" fill="#00A4EF" />
-      <rect x="12" y="12" width="10" height="10" fill="#FFB900" />
-    </svg>
-  );
-}
-
 // Turnstile (Cloudflare) — no passo do E-MAIL, protegendo já a entrada.
 declare global {
   interface Window { turnstile?: { render: (el: HTMLElement, opts: Record<string, unknown>) => string } }
@@ -114,10 +102,9 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
     setOcupado(false);
   }
 
-  async function social(provedor: "google" | "microsoft") {
+  async function social() {
     limpar(); setOcupado(true);
-    const provider = provedor === "google" ? new GoogleAuthProvider() : new OAuthProvider("microsoft.com");
-    try { await concluir(await signInWithPopup(firebaseAuth(), provider)); } catch (e) { falhou(e); }
+    try { await concluir(await signInWithPopup(firebaseAuth(), new GoogleAuthProvider())); } catch (e) { falhou(e); }
   }
 
   // Passo 1: e-mail → o servidor diz se a conta existe (com proteção de
@@ -177,19 +164,19 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   }
 
   const btnSocial =
-    "flex w-full items-center justify-center gap-3 rounded-lg border border-neutral-300 bg-white px-4 py-2.5 text-sm font-medium hover:bg-neutral-50 disabled:opacity-50 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:bg-neutral-800";
+    "flex w-full items-center justify-center gap-3 rounded-xl border border-line bg-white px-4 py-3 text-sm font-medium text-ink transition-colors hover:border-salvia disabled:opacity-50";
   const inputCls =
-    "w-full rounded-lg border border-neutral-300 px-3 py-2.5 text-sm outline-none focus:border-neutral-500 dark:border-neutral-700 dark:bg-neutral-900";
+    "w-full rounded-xl border border-line bg-white px-3.5 py-3 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-salvia";
   const btnPrim =
-    "font-brand w-full rounded-lg bg-neutral-900 px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50 dark:bg-white dark:text-neutral-900";
+    "w-full rounded-xl bg-mata px-4 py-3 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep disabled:opacity-50";
 
   const Mensagens = () => (
     <>
       {aviso && (
-        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">{aviso}</p>
+        <p className="rounded-lg border border-salvia/50 bg-salvia-soft px-3 py-2 text-xs text-mata">{aviso}</p>
       )}
       {erro && (
-        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {erro}
           {podeReenviar && <button type="button" onClick={reenviar} className="ml-1 underline">Reenviar link</button>}
         </div>
@@ -201,10 +188,9 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   if (etapa === "email") {
     return (
       <div className="flex w-full flex-col gap-3">
-        <button type="button" className={btnSocial} disabled={ocupado} onClick={() => social("google")}><GoogleIcon /> Continuar com Google</button>
-        <button type="button" className={btnSocial} disabled={ocupado} onClick={() => social("microsoft")}><MicrosoftIcon /> Continuar com Microsoft</button>
-        <div className="my-2 flex items-center gap-3 text-xs text-neutral-400">
-          <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" /> Ou <div className="h-px flex-1 bg-neutral-200 dark:bg-neutral-800" />
+        <button type="button" className={btnSocial} disabled={ocupado} onClick={social}><GoogleIcon /> Continuar com Google</button>
+        <div className="my-2 flex items-center gap-3 text-xs text-ink-faint">
+          <div className="h-px flex-1 bg-line" /> ou <div className="h-px flex-1 bg-line" />
         </div>
         <form onSubmit={avancarEmail} className="flex flex-col gap-3">
           <input type="email" required autoFocus placeholder="Introduza o seu endereço de e-mail" value={email} onChange={(e) => setEmail(e.target.value)} className={inputCls} />
@@ -220,23 +206,23 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   const registrando = etapa === "registrar";
   return (
     <form onSubmit={registrando ? registrar : entrar} className="flex w-full flex-col gap-3">
-      <div className="rounded-lg border border-neutral-200 px-3 py-2.5 text-sm dark:border-neutral-800">
+      <div className="rounded-xl border border-line bg-white px-3.5 py-3 text-sm">
         <div className="flex items-center justify-between">
-          <span className="truncate text-neutral-700 dark:text-neutral-300">{email}</span>
-          <button type="button" onClick={() => { setEtapa("email"); limpar(); setSenha(""); }} className="ml-3 shrink-0 text-xs text-blue-600 hover:underline">Editar</button>
+          <span className="truncate text-ink-soft">{email}</span>
+          <button type="button" onClick={() => { setEtapa("email"); limpar(); setSenha(""); }} className="ml-3 shrink-0 text-xs font-medium text-mata hover:underline">Editar</button>
         </div>
       </div>
-      {registrando && <p className="text-xs text-neutral-500">Novo por aqui — crie uma palavra-passe para começar.</p>}
+      {registrando && <p className="text-xs text-ink-soft">Novo por aqui — crie uma palavra-passe para começar.</p>}
       <input type="password" required autoFocus minLength={6} placeholder="Palavra-passe" autoComplete={registrando ? "new-password" : "current-password"} value={senha} onChange={(e) => setSenha(e.target.value)} className={inputCls} />
       {!registrando && (
-        <button type="button" onClick={esqueceu} className="-mt-1 self-end text-xs text-blue-600 hover:underline">Esqueceu a palavra-passe?</button>
+        <button type="button" onClick={esqueceu} className="-mt-1 self-end text-xs font-medium text-mata hover:underline">Esqueceu a palavra-passe?</button>
       )}
       <Mensagens />
       <button type="submit" disabled={ocupado} className={btnPrim}>{ocupado ? "Aguarde…" : registrando ? "Criar conta" : "Entrar"}</button>
       {!registrando && (
-        <p className="text-center text-xs text-neutral-500">
+        <p className="text-center text-xs text-ink-soft">
           Não tem conta?{" "}
-          <button type="button" onClick={() => { setEtapa("registrar"); limpar(); setSenha(""); }} className="font-medium underline">Registre-se</button>
+          <button type="button" onClick={() => { setEtapa("registrar"); limpar(); setSenha(""); }} className="font-medium text-mata underline">Registre-se</button>
         </p>
       )}
     </form>

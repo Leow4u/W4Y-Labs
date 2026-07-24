@@ -1,10 +1,10 @@
+import Image from "next/image";
 import Link from "next/link";
 import LoginClient from "./LoginClient";
 
-// Porta única da Work4You (estilo Manus): social + e-mail via Identity
-// Platform. A autenticação acontece no navegador (Firebase Auth); a sessão
-// da plataforma só nasce depois que /login/verify valida o ID token no
-// servidor (e a allowlist autoriza). Pós-login → SSO → Wayne em /chat.
+// Work4You single door (Claude-style split): form column on the left, living
+// forest video on the right. Auth mechanics are untouched — Firebase in the
+// browser, session born at /login/verify, then SSO → /chat.
 export default async function LoginPage({
   searchParams,
 }: {
@@ -13,31 +13,79 @@ export default async function LoginPage({
   const { next } = await searchParams;
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center gap-8 px-4 py-10">
-      <div className="text-center">
-        {/* Logo Work4You — a palavra em Cascadia Mono (branding W4Y). */}
-        <h1 className="font-brand text-3xl font-semibold">Work4You</h1>
-        <p className="mt-2 text-sm text-neutral-500">
-          Inicie sessão ou registre-se — comece a delegar ao seu funcionário digital.
-        </p>
+    <main className="flex min-h-screen bg-paper text-ink">
+      {/* ── Left: the door ─────────────────────────────────────────── */}
+      <div className="flex w-full flex-1 flex-col px-6 py-6 lg:px-12">
+        <Link href="/" className="inline-flex w-fit items-center">
+          <Image
+            src="/brand/work4you-logo.png"
+            alt="Work4You"
+            width={2400}
+            height={244}
+            priority
+            className="h-[17px] w-auto"
+          />
+        </Link>
+
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center gap-8 py-12">
+          <div className="text-center">
+            <h1 className="text-[2.5rem] font-extrabold leading-[1.08] tracking-[-0.025em] text-ink [text-wrap:balance] xl:text-[2.9rem]">
+              O novo jeito de trabalhar.
+            </h1>
+            <p className="mt-4 text-base leading-relaxed text-ink-soft">
+              Seu parceiro de trabalho para grandes resultados.
+            </p>
+          </div>
+
+          <LoginClient
+            next={next ?? ""}
+            turnstileSitekey={process.env.TURNSTILE_SITEKEY || undefined}
+          />
+
+          <footer className="text-center text-[11px] leading-relaxed text-ink-faint">
+            <p>
+              Ao continuar, você concorda com os nossos{" "}
+              <Link href="/termos" className="underline underline-offset-2 hover:text-ink">
+                Termos e Serviços
+              </Link>{" "}
+              e leu a nossa{" "}
+              <Link href="/privacidade" className="underline underline-offset-2 hover:text-ink">
+                Política de Privacidade
+              </Link>
+              .
+            </p>
+            <p className="mt-1.5 font-mono text-[10px] uppercase tracking-[0.16em]">
+              © 2026 W4Y-Labs
+            </p>
+          </footer>
+        </div>
       </div>
 
-      <LoginClient next={next ?? ""} turnstileSitekey={process.env.TURNSTILE_SITEKEY || undefined} />
-
-      <footer className="text-center text-[11px] leading-relaxed text-neutral-400">
-        <p>
-          Ao continuar, você concorda com os nossos{" "}
-          <Link href="/termos" className="underline hover:text-neutral-600 dark:hover:text-neutral-300">
-            Termos e Serviços
-          </Link>{" "}
-          e leu a nossa{" "}
-          <Link href="/privacidade" className="underline hover:text-neutral-600 dark:hover:text-neutral-300">
-            Política de Privacidade
-          </Link>
-          .
-        </p>
-        <p className="mt-1 font-brand tracking-wider">© 2026 W4Y-Labs</p>
-      </footer>
+      {/* ── Right: floating media card, Claude-style — air around it,
+             ~4:5, vertically centered. Swap the Image for a <video> when
+             a custom clip lands in public/media. ───────────────────────── */}
+      <div className="hidden shrink-0 items-center justify-center px-10 py-12 lg:flex lg:w-[45%]">
+        <div className="relative aspect-[4/5] max-h-[80vh] w-full max-w-[540px] overflow-hidden rounded-3xl">
+          <video
+            className="absolute inset-0 h-full w-full object-cover"
+            src="/media/login.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+          />
+          <div className="absolute inset-0 bg-mata-deep/10" />
+          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-mata-deep/70 to-transparent px-8 pb-7 pt-20">
+            <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/90">
+              Monte · Ligue · Ele continua
+            </p>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-paper/75">
+              O agente que você construiu, trabalhando 24/7 — mesmo quando você
+              não está olhando.
+            </p>
+          </div>
+        </div>
+      </div>
     </main>
   );
 }

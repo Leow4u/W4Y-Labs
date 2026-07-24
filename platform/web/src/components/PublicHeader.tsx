@@ -21,8 +21,8 @@ export default async function PublicHeader() {
   const session = await getDevSession();
 
   return (
-    <header className="sticky top-0 z-40 border-b border-neutral-100 bg-white/90 backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6 px-6">
+    <header className="sticky top-0 z-40 border-b border-line bg-paper/90 px-6 backdrop-blur">
+      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-6">
         <Link href="/" className="flex items-center">
           <Image
             src="/brand/work4you-logo.png"
@@ -30,7 +30,7 @@ export default async function PublicHeader() {
             width={2400}
             height={244}
             priority
-            className="h-[22px] w-auto"
+            className="h-[17px] w-auto"
           />
         </Link>
 
@@ -39,10 +39,10 @@ export default async function PublicHeader() {
             <Link
               key={n.href}
               href={n.href}
-              className="text-[13.5px] text-neutral-600 transition-colors hover:text-neutral-900"
+              className="text-[13.5px] text-ink-soft transition-colors hover:text-ink"
             >
               {n.label}
-              {n.caret && <span className="ml-1 text-[10px] text-neutral-400">▾</span>}
+              {n.caret && <span className="ml-1 text-[10px] text-ink-faint">▾</span>}
             </Link>
           ))}
         </nav>
@@ -51,14 +51,14 @@ export default async function PublicHeader() {
           {session ? (
             <Link
               href="/abrir"
-              className="font-brand rounded-full bg-neutral-100 px-5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-200"
+              className="inline-block whitespace-nowrap rounded-full bg-mata px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
             >
               Abrir o Work4You
             </Link>
           ) : (
             <Link
               href="/login"
-              className="font-brand rounded-full bg-neutral-100 px-5 py-2 text-sm font-medium text-neutral-800 transition-colors hover:bg-neutral-200"
+              className="inline-block whitespace-nowrap rounded-full bg-mata px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
             >
               Conecte-se
             </Link>

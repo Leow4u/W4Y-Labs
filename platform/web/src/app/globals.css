@@ -10,13 +10,62 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* W4Y brand palette — "Papel & Mata". Warm paper ground + the green family
+     from the logomarca. One accent family, hierarchy by tone. */
+  --paper: #fafaf7;
+  --paper-deep: #f1f1ea;
+  --cream: #f4f1e6;
+  --ink: #1a1c18;
+  --ink-soft: #565b4e;
+  --ink-faint: #8b9081;
+  --line: #e5e6dc;
+  --mata: #3f5233;
+  --mata-deep: #29331f;
+  --salvia: #8a9b6e;
+  --salvia-soft: #eef1e5;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-paper: var(--paper);
+  --color-paper-deep: var(--paper-deep);
+  --color-cream: var(--cream);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-faint: var(--ink-faint);
+  --color-line: var(--line);
+  --color-mata: var(--mata);
+  --color-mata-deep: var(--mata-deep);
+  --color-salvia: var(--salvia);
+  --color-salvia-soft: var(--salvia-soft);
   --font-sans: var(--font-jakarta);
   --font-mono: var(--font-jetbrains);
+}
+
+/* Slow drift for the login panel image — a quiet, video-like Ken Burns. */
+@keyframes w4y-kenburns {
+  0% { transform: scale(1) translateY(0); }
+  100% { transform: scale(1.12) translateY(-2.5%); }
+}
+.w4y-kenburns {
+  animation: w4y-kenburns 28s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .w4y-kenburns { animation: none; }
+}
+
+/* Soft pulse for "no ar" (live) dots. */
+@keyframes w4y-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
+}
+.w4y-live-dot {
+  animation: w4y-pulse 2.4s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .w4y-live-dot { animation: none; }
 }
 
 @media (prefers-color-scheme: dark) {
