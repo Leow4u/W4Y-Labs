@@ -32,7 +32,7 @@ const FEATURES: Record<string, string[]> = {
   starter: [
     "Todos os modelos essenciais (Flash e Auto)",
     "Chat e habilidades sem limite de recursos",
-    "Sua instância pessoal do Wayne",
+    "Sua instância pessoal na nuvem",
     "Suporte por e-mail",
   ],
   pro: [

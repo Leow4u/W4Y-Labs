@@ -25,8 +25,8 @@ export default function TermosPage() {
         <div>
           <h2 className="font-bold text-ink">1. O serviço</h2>
           <p className="mt-1">
-            A <strong>Work4You</strong> é uma plataforma de agentes de IA autônomos e persistentes
-            — o <strong>Wayne Agent</strong> — desenvolvida pela <strong>W4Y-Labs</strong>. O
+            A <strong>Work4You</strong> é uma plataforma de agentes de IA autônomos e
+            persistentes, desenvolvida pela <strong>W4Y-Labs</strong>. O
             serviço permite conversar, delegar tarefas, executar automações, gerenciar arquivos,
             rotinas e integrações a partir do domínio work4you.ai.
           </p>
