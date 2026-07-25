@@ -6,22 +6,26 @@ const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
     title: "Produto",
     links: [
       { href: "/plataforma", label: "Plataforma" },
-      { href: "/modelos", label: "Modelos de agentes" },
       { href: "/precos", label: "Preços" },
-    ],
-  },
-  {
-    title: "Soluções",
-    links: [
-      { href: "/solucoes", label: "Por área" },
-      { href: "/clientes", label: "Clientes" },
+      { href: "/login", label: "Entrar" },
     ],
   },
   {
     title: "Recursos",
     links: [
-      { href: "/recursos", label: "Central de recursos" },
-      { href: "/login", label: "Entrar" },
+      { href: "/documentacao", label: "Documentação" },
+      { href: "/ajuda", label: "Ajuda" },
+      { href: "/blog", label: "Blog" },
+      { href: "/comunidade", label: "Comunidade" },
+      { href: "/workshops", label: "Workshops" },
+      { href: "/carreiras", label: "Carreiras" },
+    ],
+  },
+  {
+    title: "Legal",
+    links: [
+      { href: "/termos", label: "Termos e Serviços" },
+      { href: "/privacidade", label: "Privacidade" },
     ],
   },
 ];

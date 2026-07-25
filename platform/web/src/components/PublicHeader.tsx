@@ -2,19 +2,24 @@ import Image from "next/image";
 import Link from "next/link";
 import { getDevSession } from "@/lib/dev-auth";
 import MobileNav from "@/components/MobileNav";
+import ResourcesMenu from "@/components/ResourcesMenu";
 
-// Header público da Work4You — fundo claro, espaçamento generoso, nada de
-// cara técnica. "Plataforma/Soluções/Recursos" carregam o marcador ▾ (terão
-// dropdown em fase futura; hoje levam às páginas de seção).
+// Public header — light ground, generous spacing. "Recursos" is a real
+// dropdown (ResourcesMenu); mobile gets the flattened list.
+// "/baixar" intentionally out of the nav: the desktop app is being reworked
+// and downloads are paused. Re-add the entry when it ships.
 const NAV = [
-  { href: "/plataforma", label: "Plataforma", caret: true },
-  { href: "/solucoes", label: "Soluções", caret: true },
-  { href: "/modelos", label: "Modelos" },
-  { href: "/clientes", label: "Clientes" },
+  { href: "/plataforma", label: "Plataforma" },
   { href: "/precos", label: "Preços" },
-  { href: "/recursos", label: "Recursos", caret: true },
-  // "/baixar" intentionally out of the nav: the desktop app is being reworked
-  // and downloads are paused. Re-add the entry when it ships.
+];
+
+const RESOURCES = [
+  { href: "/documentacao", label: "Documentação" },
+  { href: "/ajuda", label: "Ajuda" },
+  { href: "/blog", label: "Blog" },
+  { href: "/comunidade", label: "Comunidade" },
+  { href: "/workshops", label: "Workshops" },
+  { href: "/carreiras", label: "Carreiras" },
 ];
 
 export default async function PublicHeader() {
@@ -42,9 +47,9 @@ export default async function PublicHeader() {
               className="text-[13.5px] text-ink-soft transition-colors hover:text-ink"
             >
               {n.label}
-              {n.caret && <span className="ml-1 text-[10px] text-ink-faint">▾</span>}
             </Link>
           ))}
+          <ResourcesMenu />
         </nav>
 
         <div className="hidden md:block">
@@ -65,10 +70,7 @@ export default async function PublicHeader() {
           )}
         </div>
 
-        <MobileNav
-          items={NAV.map(({ href, label }) => ({ href, label }))}
-          authenticated={!!session}
-        />
+        <MobileNav items={[...NAV, ...RESOURCES]} authenticated={!!session} />
       </div>
     </header>
   );

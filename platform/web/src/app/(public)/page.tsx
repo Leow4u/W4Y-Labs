@@ -217,7 +217,7 @@ export default function LandingPage() {
               e trabalham juntos quando a tarefa pede.
             </p>
             <Link
-              href="/modelos"
+              href="/plataforma"
               className="mt-7 inline-block text-[15px] font-semibold text-mata underline-offset-4 hover:underline"
             >
               Conhecer o Agent Studio →
