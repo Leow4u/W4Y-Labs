@@ -1,3 +1,4 @@
+import { getSiteLocale } from "@/lib/site-locale";
 import HelpClient from "./HelpClient";
 
 export const metadata = {
@@ -6,6 +7,7 @@ export const metadata = {
     "Tire dúvidas sobre a Work4You: primeiros passos, planos e créditos, canais, conectores e conta.",
 };
 
-export default function AjudaPage() {
-  return <HelpClient />;
+export default async function AjudaPage() {
+  const locale = await getSiteLocale();
+  return <HelpClient locale={locale} />;
 }

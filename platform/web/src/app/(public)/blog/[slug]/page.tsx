@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { POSTS, postBySlug } from "../posts";
+import { POSTS as POSTS_PT, postBySlug } from "../posts";
+import { POSTS as POSTS_EN, postBySlug as postBySlugEn } from "../posts.en";
+import { getSiteLocale } from "@/lib/site-locale";
 
 export function generateStaticParams() {
-  return POSTS.map((p) => ({ slug: p.slug }));
+  return POSTS_PT.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({
@@ -17,15 +19,35 @@ export async function generateMetadata({
   return { title: `${post.title} — Blog Work4You`, description: post.description };
 }
 
-// One blog post: meta row, title, lead, body, more-posts footer.
+const T = {
+  pt: {
+    back: "← Blog",
+    min: "min",
+    ctaTitle: "Pronto pra colocar um agente pra trabalhar?",
+    cta: "Construir meu agente",
+    more: "Mais do blog",
+  },
+  en: {
+    back: "← Blog",
+    min: "min",
+    ctaTitle: "Ready to put an agent to work?",
+    cta: "Build my agent",
+    more: "More from the blog",
+  },
+} as const;
+
+// One blog post (locale-aware registry): meta row, title, lead, body, footer.
 export default async function BlogPostPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const post = postBySlug(slug);
+  const locale = await getSiteLocale();
+  const POSTS = locale === "en" ? POSTS_EN : POSTS_PT;
+  const post = locale === "en" ? postBySlugEn(slug) : postBySlug(slug);
   if (!post) notFound();
+  const t = T[locale];
 
   const others = POSTS.filter((p) => p.slug !== post.slug).slice(0, 2);
 
@@ -36,7 +58,7 @@ export default async function BlogPostPage({
           href="/blog"
           className="font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint transition-colors hover:text-ink"
         >
-          ← Blog
+          {t.back}
         </Link>
         <div className="mt-6 flex items-center gap-3 font-mono text-[10px] font-medium uppercase tracking-[0.16em]">
           <span className="rounded-full bg-salvia-soft px-2.5 py-1 text-mata">
@@ -45,7 +67,7 @@ export default async function BlogPostPage({
           <time dateTime={post.dateISO} className="text-ink-faint">
             {post.date}
           </time>
-          <span className="text-ink-faint">· {post.readingMinutes} min</span>
+          <span className="text-ink-faint">· {post.readingMinutes} {t.min}</span>
         </div>
         <h1 className="mt-4 text-[2.3rem] font-extrabold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance]">
           {post.title}
@@ -58,21 +80,19 @@ export default async function BlogPostPage({
         {post.body}
 
         <div className="mt-14 rounded-2xl border border-line bg-cream px-7 py-6 text-center">
-          <p className="font-semibold text-ink">
-            Pronto pra colocar um agente pra trabalhar?
-          </p>
+          <p className="font-semibold text-ink">{t.ctaTitle}</p>
           <Link
             href="/login"
             className="mt-3 inline-block rounded-full bg-mata px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
           >
-            Construir meu agente
+            {t.cta}
           </Link>
         </div>
 
         {others.length > 0 && (
           <nav className="mt-12 border-t border-line pt-8">
             <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-ink-faint">
-              Mais do blog
+              {t.more}
             </p>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {others.map((p) => (

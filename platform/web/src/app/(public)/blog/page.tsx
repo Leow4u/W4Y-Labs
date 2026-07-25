@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { POSTS } from "./posts";
+import { POSTS as POSTS_PT } from "./posts";
+import { POSTS as POSTS_EN } from "./posts.en";
+import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = {
   title: "Blog — Work4You",
@@ -7,23 +9,40 @@ export const metadata = {
     "Novidades do produto, bastidores e boas práticas de quem coloca agentes pra trabalhar.",
 };
 
-// Blog index: featured (latest) post + grid with the rest.
-export default function BlogIndexPage() {
+const T = {
+  pt: {
+    eyebrow: "Blog",
+    h1: "Novidades e bastidores",
+    lead: "O que estamos construindo, por que estamos construindo — e boas práticas de quem coloca agentes pra trabalhar.",
+    read: "Ler o post →",
+    minutes: "min de leitura",
+  },
+  en: {
+    eyebrow: "Blog",
+    h1: "News and behind the scenes",
+    lead: "What we're building, why we're building it — and best practices from people putting agents to work.",
+    read: "Read the post →",
+    minutes: "min read",
+  },
+} as const;
+
+// Blog index: featured (latest) post + grid with the rest (locale-aware).
+export default async function BlogIndexPage() {
+  const locale = await getSiteLocale();
+  const POSTS = locale === "en" ? POSTS_EN : POSTS_PT;
+  const t = T[locale];
   const [featured, ...rest] = POSTS;
 
   return (
     <div className="px-6">
       <div className="mx-auto max-w-4xl py-14">
         <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-          Blog
+          {t.eyebrow}
         </p>
         <h1 className="mt-3 text-4xl font-extrabold tracking-[-0.02em] text-ink [text-wrap:balance]">
-          Novidades e bastidores
+          {t.h1}
         </h1>
-        <p className="mt-4 max-w-xl leading-relaxed text-ink-soft">
-          O que estamos construindo, por que estamos construindo — e boas práticas
-          de quem coloca agentes pra trabalhar.
-        </p>
+        <p className="mt-4 max-w-xl leading-relaxed text-ink-soft">{t.lead}</p>
 
         {featured && (
           <Link
@@ -42,9 +61,7 @@ export default function BlogIndexPage() {
             <p className="mt-3 max-w-xl leading-relaxed text-ink-soft">
               {featured.description}
             </p>
-            <p className="mt-5 text-sm font-semibold text-mata">
-              Ler o post →
-            </p>
+            <p className="mt-5 text-sm font-semibold text-mata">{t.read}</p>
           </Link>
         )}
 
@@ -68,7 +85,7 @@ export default function BlogIndexPage() {
                 {p.description}
               </p>
               <p className="mt-4 font-mono text-[11px] text-ink-faint">
-                {p.readingMinutes} min de leitura
+                {p.readingMinutes} {t.minutes}
               </p>
             </Link>
           ))}

@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DOCS, docBySlug } from "../docs";
+import { DOCS as DOCS_PT, docBySlug } from "../docs";
+import { DOCS as DOCS_EN, docBySlug as docBySlugEn } from "../docs.en";
+import { getSiteLocale } from "@/lib/site-locale";
 
 export function generateStaticParams() {
-  return DOCS.map((d) => ({ slug: d.slug }));
+  return DOCS_PT.map((d) => ({ slug: d.slug }));
 }
 
 export async function generateMetadata({
@@ -17,15 +19,23 @@ export async function generateMetadata({
   return { title: `${doc.title} — Documentação Work4You`, description: doc.description };
 }
 
-// One doc article: category eyebrow, title, lead, body, prev/next.
+const T = {
+  pt: { prev: "← Anterior", next: "Próximo →" },
+  en: { prev: "← Previous", next: "Next →" },
+} as const;
+
+// One doc article (locale-aware registry): eyebrow, title, lead, body, prev/next.
 export default async function DocArticlePage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const doc = docBySlug(slug);
+  const locale = await getSiteLocale();
+  const DOCS = locale === "en" ? DOCS_EN : DOCS_PT;
+  const doc = locale === "en" ? docBySlugEn(slug) : docBySlug(slug);
   if (!doc) notFound();
+  const t = T[locale];
 
   const idx = DOCS.findIndex((d) => d.slug === doc.slug);
   const prev = idx > 0 ? DOCS[idx - 1] : null;
@@ -52,7 +62,7 @@ export default async function DocArticlePage({
             className="flex-1 rounded-2xl border border-line p-4 transition-colors hover:border-salvia hover:bg-paper-deep"
           >
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
-              ← Anterior
+              {t.prev}
             </p>
             <p className="mt-1 text-sm font-semibold text-ink">{prev.title}</p>
           </Link>
@@ -63,7 +73,7 @@ export default async function DocArticlePage({
             className="flex-1 rounded-2xl border border-line p-4 text-right transition-colors hover:border-salvia hover:bg-paper-deep"
           >
             <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
-              Próximo →
+              {t.next}
             </p>
             <p className="mt-1 text-sm font-semibold text-ink">{next.title}</p>
           </Link>

@@ -1,36 +1,78 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { SiteLocale } from "@/lib/site-locale";
 
-const COLUMNS: { title: string; links: { href: string; label: string }[] }[] = [
-  {
-    title: "Produto",
-    links: [
-      { href: "/plataforma", label: "Plataforma" },
-      { href: "/precos", label: "Preços" },
-      { href: "/login", label: "Entrar" },
+// Public footer — locale-aware columns (labels only; hrefs are shared).
+const CONTENT = {
+  pt: {
+    tagline: "Construa o seu agente de IA. Coloque ele pra rodar 24/7.",
+    rights: "Todos os direitos reservados.",
+    columns: [
+      {
+        title: "Produto",
+        links: [
+          { href: "/plataforma", label: "Plataforma" },
+          { href: "/precos", label: "Preços" },
+          { href: "/login", label: "Entrar" },
+        ],
+      },
+      {
+        title: "Recursos",
+        links: [
+          { href: "/documentacao", label: "Documentação" },
+          { href: "/ajuda", label: "Ajuda" },
+          { href: "/blog", label: "Blog" },
+          { href: "/comunidade", label: "Comunidade" },
+          { href: "/workshops", label: "Workshops" },
+          { href: "/carreiras", label: "Carreiras" },
+        ],
+      },
+      {
+        title: "Legal",
+        links: [
+          { href: "/termos", label: "Termos e Serviços" },
+          { href: "/privacidade", label: "Privacidade" },
+        ],
+      },
     ],
   },
-  {
-    title: "Recursos",
-    links: [
-      { href: "/documentacao", label: "Documentação" },
-      { href: "/ajuda", label: "Ajuda" },
-      { href: "/blog", label: "Blog" },
-      { href: "/comunidade", label: "Comunidade" },
-      { href: "/workshops", label: "Workshops" },
-      { href: "/carreiras", label: "Carreiras" },
+  en: {
+    tagline: "Build your AI agent. Put it to work 24/7.",
+    rights: "All rights reserved.",
+    columns: [
+      {
+        title: "Product",
+        links: [
+          { href: "/plataforma", label: "Platform" },
+          { href: "/precos", label: "Pricing" },
+          { href: "/login", label: "Sign in" },
+        ],
+      },
+      {
+        title: "Resources",
+        links: [
+          { href: "/documentacao", label: "Documentation" },
+          { href: "/ajuda", label: "Help" },
+          { href: "/blog", label: "Blog" },
+          { href: "/comunidade", label: "Community" },
+          { href: "/workshops", label: "Workshops" },
+          { href: "/carreiras", label: "Careers" },
+        ],
+      },
+      {
+        title: "Legal",
+        links: [
+          { href: "/termos", label: "Terms of Service" },
+          { href: "/privacidade", label: "Privacy" },
+        ],
+      },
     ],
   },
-  {
-    title: "Legal",
-    links: [
-      { href: "/termos", label: "Termos e Serviços" },
-      { href: "/privacidade", label: "Privacidade" },
-    ],
-  },
-];
+} as const;
 
-export default function PublicFooter() {
+export default function PublicFooter({ locale }: { locale: SiteLocale }) {
+  const t = CONTENT[locale];
+
   return (
     <footer className="border-t border-line bg-paper-deep px-6">
       <div className="mx-auto grid max-w-6xl gap-10 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
@@ -43,10 +85,10 @@ export default function PublicFooter() {
             className="h-5 w-auto"
           />
           <p className="mt-3 max-w-xs text-sm leading-relaxed text-ink-soft">
-            Construa o seu agente de IA. Coloque ele pra rodar 24/7.
+            {t.tagline}
           </p>
         </div>
-        {COLUMNS.map((c) => (
+        {t.columns.map((c) => (
           <div key={c.title}>
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-ink-faint">
               {c.title}
@@ -69,7 +111,7 @@ export default function PublicFooter() {
       <div className="border-t border-line">
         <div className="mx-auto flex max-w-6xl items-center justify-between py-5">
           <p className="text-xs text-ink-faint">
-            © 2026 W4Y-Labs. Todos os direitos reservados.
+            © 2026 W4Y-Labs. {t.rights}
           </p>
           <p className="font-mono text-xs text-ink-faint">work4you.ai</p>
         </div>

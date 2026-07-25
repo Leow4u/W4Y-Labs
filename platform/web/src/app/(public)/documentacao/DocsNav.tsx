@@ -14,9 +14,11 @@ export interface NavItem {
 export default function DocsNav({
   categories,
   items,
+  menuLabel = "Navegar na documentação",
 }: {
   categories: readonly string[];
   items: NavItem[];
+  menuLabel?: string;
 }) {
   const pathname = usePathname();
 
@@ -59,7 +61,7 @@ export default function DocsNav({
       {/* mobile: collapsible menu above the article */}
       <details className="rounded-xl border border-line bg-paper-deep px-4 py-3 lg:hidden">
         <summary className="cursor-pointer select-none text-sm font-semibold text-ink">
-          Navegar na documentação
+          {menuLabel}
         </summary>
         <div className="pt-4">{list}</div>
       </details>

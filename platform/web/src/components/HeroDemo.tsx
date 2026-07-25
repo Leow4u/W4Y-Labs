@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import type { SiteLocale } from "@/lib/site-locale-shared";
 
 // The landing's protagonist: a live product window cycling through real
 // scenarios with the REAL mechanics — every prompt is typed in the composer
 // and sent; multi-turn scenes supported (agent asks, user replies). Chat area
 // has fixed height like a real session (older content scrolls out the top).
-// Interaction routes to /login.
+// Interaction routes to /login. All copy is bilingual (pt/en) via the locale prop.
 
 type Item =
   | { kind: "line"; text: string }
@@ -25,104 +26,278 @@ type Item =
 type Turn = { user: string; items: Item[]; gap?: number };
 type Scenario = { turns: Turn[]; hold: number };
 
-const SCENARIOS: Scenario[] = [
-  // 1 · Instagram: connect → clarify → copy + art → published
-  {
-    turns: [
-      {
-        user: "Quero fazer um post vencedor pro meu Instagram.",
-        items: [
-          { kind: "line", text: "Thinking" },
-          { kind: "line", text: "Conectores · Instagram" },
-          { kind: "auth", app: "instagram", label: "Instagram" },
-          { kind: "connected", app: "instagram", text: "✓ Conectado — conta do Instagram ativa." },
-          { kind: "reply", text: "Conta conectada! Quer que eu escreva o copy e monte a arte pra publicar?" },
-        ],
-        gap: 950,
-      },
-      {
-        user: "Sim! Capricha — quero parar o feed.",
-        items: [
-          { kind: "line", text: "Thinking" },
-          { kind: "line", text: "Auto · criativo → Sonnet 5" },
-          { kind: "line", text: "Gerando  post-instagram.png" },
-          { kind: "reply", text: "Copy e arte prontos:" },
-          { kind: "igcopy" },
-          { kind: "igpost" },
-          { kind: "published" },
-        ],
-        gap: 850,
-      },
-    ],
-    hold: 5200,
+const SCENARIOS: Record<SiteLocale, Scenario[]> = {
+  pt: [
+    // 1 · Instagram: connect → clarify → copy + art → published
+    {
+      turns: [
+        {
+          user: "Quero fazer um post vencedor pro meu Instagram.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Conectores · Instagram" },
+            { kind: "auth", app: "instagram", label: "Instagram" },
+            { kind: "connected", app: "instagram", text: "✓ Conectado — conta do Instagram ativa." },
+            { kind: "reply", text: "Conta conectada! Quer que eu escreva o copy e monte a arte pra publicar?" },
+          ],
+          gap: 950,
+        },
+        {
+          user: "Sim! Capricha — quero parar o feed.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Auto · criativo → Sonnet 5" },
+            { kind: "line", text: "Gerando  post-instagram.png" },
+            { kind: "reply", text: "Copy e arte prontos:" },
+            { kind: "igcopy" },
+            { kind: "igpost" },
+            { kind: "published" },
+          ],
+          gap: 850,
+        },
+      ],
+      hold: 5200,
+    },
+    // 2 · Task with Auto routing → PDF delivery
+    {
+      turns: [
+        {
+          user: "Monte a proposta com os números de junho e me devolva em PDF até as 15h.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Auto · tarefa complexa → Opus 5" },
+            { kind: "line", text: "Lendo a pasta  /Propostas/junho" },
+            { kind: "line", text: "Gerando  proposta-junho.pdf" },
+            { kind: "reply", text: "Pronto! Proposta fechada com os números de junho:" },
+            { kind: "pdf" },
+          ],
+        },
+      ],
+      hold: 4200,
+    },
+    // 3 · The model picker (agnostic story)
+    {
+      turns: [
+        {
+          user: "Quais modelos posso usar?",
+          items: [
+            { kind: "line", text: "Thinking" },
+            {
+              kind: "reply",
+              text: "Todos os principais — ou deixa no Auto, que eu escolho o melhor pra cada tarefa e você gasta menos.",
+            },
+            { kind: "picker" },
+          ],
+          gap: 900,
+        },
+      ],
+      hold: 5200,
+    },
+    // 4 · Landing page built + side-panel preview
+    {
+      turns: [
+        {
+          user: "Cria uma landing page pro meu restaurante — e me mostra no preview.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Escrevendo  index.html" },
+            { kind: "line", text: "Browser · abrindo preview" },
+            { kind: "reply", text: "Prontinha — dá uma olhada:" },
+            { kind: "preview" },
+          ],
+        },
+      ],
+      hold: 5200,
+    },
+    // 5 · 24/7 routine
+    {
+      turns: [
+        {
+          user: "Toda sexta às 17h, manda as cobranças da semana pros clientes.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Agenda · rotina criada" },
+            { kind: "reply", text: "Rotina no ar — toda sexta, às 17h:" },
+            { kind: "routine" },
+          ],
+        },
+      ],
+      hold: 4200,
+    },
+  ],
+  en: [
+    // 1 · Instagram: connect → clarify → copy + art → published
+    {
+      turns: [
+        {
+          user: "I want a winning post for my Instagram.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Connectors · Instagram" },
+            { kind: "auth", app: "instagram", label: "Instagram" },
+            { kind: "connected", app: "instagram", text: "✓ Connected — Instagram account active." },
+            { kind: "reply", text: "Account connected! Want me to write the copy and build the art to publish?" },
+          ],
+          gap: 950,
+        },
+        {
+          user: "Yes! Make it good — I want to stop the scroll.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Auto · creative → Sonnet 5" },
+            { kind: "line", text: "Generating  instagram-post.png" },
+            { kind: "reply", text: "Copy and art ready:" },
+            { kind: "igcopy" },
+            { kind: "igpost" },
+            { kind: "published" },
+          ],
+          gap: 850,
+        },
+      ],
+      hold: 5200,
+    },
+    // 2 · Task with Auto routing → PDF delivery
+    {
+      turns: [
+        {
+          user: "Put together the proposal with the June numbers and send it back as a PDF by 3pm.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Auto · complex task → Opus 5" },
+            { kind: "line", text: "Reading folder  /Proposals/june" },
+            { kind: "line", text: "Generating  june-proposal.pdf" },
+            { kind: "reply", text: "Done! Proposal finalized with the June numbers:" },
+            { kind: "pdf" },
+          ],
+        },
+      ],
+      hold: 4200,
+    },
+    // 3 · The model picker (agnostic story)
+    {
+      turns: [
+        {
+          user: "Which models can I use?",
+          items: [
+            { kind: "line", text: "Thinking" },
+            {
+              kind: "reply",
+              text: "All the leading ones — or leave it on Auto and I'll pick the best one for each task, so you spend less.",
+            },
+            { kind: "picker" },
+          ],
+          gap: 900,
+        },
+      ],
+      hold: 5200,
+    },
+    // 4 · Landing page built + side-panel preview
+    {
+      turns: [
+        {
+          user: "Build a landing page for my restaurant — and show me the preview.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Writing  index.html" },
+            { kind: "line", text: "Browser · opening preview" },
+            { kind: "reply", text: "All set — take a look:" },
+            { kind: "preview" },
+          ],
+        },
+      ],
+      hold: 5200,
+    },
+    // 5 · 24/7 routine
+    {
+      turns: [
+        {
+          user: "Every Friday at 5pm, send the week's invoices to my clients.",
+          items: [
+            { kind: "line", text: "Thinking" },
+            { kind: "line", text: "Agenda · routine created" },
+            { kind: "reply", text: "Routine is live — every Friday at 5pm:" },
+            { kind: "routine" },
+          ],
+        },
+      ],
+      hold: 4200,
+    },
+  ],
+};
+
+// Window chrome, sidebar, composer, and card strings (per locale).
+const T = {
+  pt: {
+    windowTitle: "work4you.ai — seu agente",
+    live: "no ar",
+    newSession: "Nova sessão",
+    menu: ["Agent Studio", "Agenda", "Habilidades", "Canais", "Entregas"],
+    sessionsLabel: "Sessões",
+    sessions: ["Post pro Instagram", "Proposta de junho", "Cobranças da semana"],
+    emptyTitle: "No que vamos trabalhar?",
+    emptySub: "Descreva o objetivo — eu cuido da parte mecânica.",
+    searchModels: "Buscar modelos",
+    addModels: "Adicionar modelos",
+    chooseFolder: "Escolha uma pasta",
+    composerPlaceholder: "Descreva o que precisa",
+    askApproval: "Pedir aprovação ▾",
+    pdfName: "proposta-junho.pdf",
+    pdfSub: "Salvo em Entregas — pronto pra revisar",
+    pdfDone: "feito ✓",
+    authSub: "Autorização segura",
+    authorize: "Autorizar",
+    connectedBadge: "✓ Conectado",
+    captionLabel: "Legenda",
+    captionText:
+      "Enquanto você lê isso, o meu agente tá respondendo clientes e fechando a semana. Monte o seu em minutos — e deixa ligado 24/7.",
+    captionTags: "#IA #produtividade #automação",
+    artTop: "O meu agente",
+    artBox: "Trabalha",
+    artBottom: "enquanto eu durmo",
+    igHandle: "@suaempresa",
+    igNow: "agora",
+    published: "✓ Post publicado com sucesso — agora é só aguardar os bons resultados.",
+    previewLabel: "Preview",
+    trattoriaTag: "Cucina italiana",
+    trattoriaSub: "Massas frescas, todos os dias",
+    trattoriaCta: "Reservar mesa",
   },
-  // 2 · Task with Auto routing → PDF delivery
-  {
-    turns: [
-      {
-        user: "Monte a proposta com os números de junho e me devolva em PDF até as 15h.",
-        items: [
-          { kind: "line", text: "Thinking" },
-          { kind: "line", text: "Auto · tarefa complexa → Opus 5" },
-          { kind: "line", text: "Lendo a pasta  /Propostas/junho" },
-          { kind: "line", text: "Gerando  proposta-junho.pdf" },
-          { kind: "reply", text: "Pronto! Proposta fechada com os números de junho:" },
-          { kind: "pdf" },
-        ],
-      },
-    ],
-    hold: 4200,
+  en: {
+    windowTitle: "work4you.ai — your agent",
+    live: "live",
+    newSession: "New session",
+    menu: ["Agent Studio", "Agenda", "Skills", "Channels", "Deliveries"],
+    sessionsLabel: "Sessions",
+    sessions: ["Instagram post", "June proposal", "This week's invoices"],
+    emptyTitle: "What are we working on?",
+    emptySub: "Describe the goal — I'll handle the busywork.",
+    searchModels: "Search models",
+    addModels: "Add models",
+    chooseFolder: "Choose a folder",
+    composerPlaceholder: "Describe what you need",
+    askApproval: "Ask for approval ▾",
+    pdfName: "june-proposal.pdf",
+    pdfSub: "Saved to Deliveries — ready to review",
+    pdfDone: "done ✓",
+    authSub: "Secure authorization",
+    authorize: "Authorize",
+    connectedBadge: "✓ Connected",
+    captionLabel: "Caption",
+    captionText:
+      "While you're reading this, my agent is answering customers and closing out the week. Build yours in minutes — and leave it on 24/7.",
+    captionTags: "#AI #productivity #automation",
+    artTop: "My agent",
+    artBox: "Works",
+    artBottom: "while I sleep",
+    igHandle: "@yourcompany",
+    igNow: "now",
+    published: "✓ Post published — now just watch the results come in.",
+    previewLabel: "Preview",
+    trattoriaTag: "Cucina italiana",
+    trattoriaSub: "Fresh pasta, every day",
+    trattoriaCta: "Book a table",
   },
-  // 3 · The model picker (agnostic story)
-  {
-    turns: [
-      {
-        user: "Quais modelos posso usar?",
-        items: [
-          { kind: "line", text: "Thinking" },
-          {
-            kind: "reply",
-            text: "Todos os principais — ou deixa no Auto, que eu escolho o melhor pra cada tarefa e você gasta menos.",
-          },
-          { kind: "picker" },
-        ],
-        gap: 900,
-      },
-    ],
-    hold: 5200,
-  },
-  // 4 · Landing page built + side-panel preview
-  {
-    turns: [
-      {
-        user: "Cria uma landing page pro meu restaurante — e me mostra no preview.",
-        items: [
-          { kind: "line", text: "Thinking" },
-          { kind: "line", text: "Escrevendo  index.html" },
-          { kind: "line", text: "Browser · abrindo preview" },
-          { kind: "reply", text: "Prontinha — dá uma olhada:" },
-          { kind: "preview" },
-        ],
-      },
-    ],
-    hold: 5200,
-  },
-  // 5 · 24/7 routine
-  {
-    turns: [
-      {
-        user: "Toda sexta às 17h, manda as cobranças da semana pros clientes.",
-        items: [
-          { kind: "line", text: "Thinking" },
-          { kind: "line", text: "Agenda · rotina criada" },
-          { kind: "reply", text: "Rotina no ar — toda sexta, às 17h:" },
-          { kind: "routine" },
-        ],
-      },
-    ],
-    hold: 4200,
-  },
-];
+} satisfies Record<SiteLocale, unknown>;
 
 const MODELS = [
   { name: "Opus 5", tier: "High" },
@@ -138,7 +313,7 @@ const APP_ICONS = {
   instagram: "/brand/apps/instagram.svg",
 };
 
-export default function HeroDemo() {
+export default function HeroDemo({ locale }: { locale: SiteLocale }) {
   const router = useRouter();
   const [si, setSi] = useState(0);
   const [ti, setTi] = useState(0);
@@ -148,13 +323,17 @@ export default function HeroDemo() {
   const [revealed, setRevealed] = useState(0);
   const [reduced, setReduced] = useState(false);
 
+  const t = T[locale];
+  const scenarios = SCENARIOS[locale];
+
   useEffect(() => {
+    const scs = SCENARIOS[locale];
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       setReduced(true);
       setSi(1);
       setTi(0);
       setSent(true);
-      setRevealed(SCENARIOS[1].turns[0].items.length);
+      setRevealed(scs[1].turns[0].items.length);
       return;
     }
     let cancelled = false;
@@ -164,7 +343,7 @@ export default function HeroDemo() {
     };
 
     const play = (index: number) => {
-      const sc = SCENARIOS[index];
+      const sc = scs[index];
       setSi(index);
       let T = 0;
       sc.turns.forEach((turn, t) => {
@@ -179,13 +358,13 @@ export default function HeroDemo() {
         turn.items.forEach((_, idx) => at(base + idx * gap, () => setRevealed(idx + 1)));
         T = base + turn.items.length * gap + 700;
       });
-      at(T + sc.hold, () => play((index + 1) % SCENARIOS.length));
+      at(T + sc.hold, () => play((index + 1) % scs.length));
     };
     play(0);
     return () => { cancelled = true; timers.forEach(window.clearTimeout); };
-  }, []);
+  }, [locale]);
 
-  const sc = SCENARIOS[si];
+  const sc = scenarios[si];
   // items visible for a given turn (past turns fully, current turn progressive)
   const visibleItems = (t: number): Item[] => {
     if (t < ti) return sc.turns[t].items;
@@ -212,14 +391,14 @@ export default function HeroDemo() {
       </div>
       <div className="bg-[#faf5ec] px-5 pb-5 pt-4 text-center">
         <p className="font-mono text-[9px] uppercase tracking-[0.24em] text-[#b4552d]">
-          Cucina italiana
+          {t.trattoriaTag}
         </p>
         <p className="mt-1.5 text-[20px] font-extrabold tracking-tight text-[#38281a]">
           Trattoria Bella
         </p>
-        <p className="text-[11px] text-[#8a7663]">Massas frescas, todos os dias</p>
+        <p className="text-[11px] text-[#8a7663]">{t.trattoriaSub}</p>
         <span className="mt-2.5 inline-block rounded-full bg-[#b4552d] px-3.5 py-1.5 text-[10px] font-semibold text-white">
-          Reservar mesa
+          {t.trattoriaCta}
         </span>
         <div className="mt-4 grid grid-cols-3 gap-2">
           <div className="h-12 rounded-lg bg-gradient-to-br from-[#e8c9a0] to-[#c98d52]" />
@@ -253,11 +432,11 @@ export default function HeroDemo() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/apps/pdf.svg" alt="" width={26} height={26} className="h-7 w-7 shrink-0" />
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-ink">proposta-junho.pdf</p>
-            <p className="text-[12px] text-ink-soft">Salvo em Entregas — pronto pra revisar</p>
+            <p className="truncate text-sm font-semibold text-ink">{t.pdfName}</p>
+            <p className="text-[12px] text-ink-soft">{t.pdfSub}</p>
           </div>
           <span className="ml-auto shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-mata">
-            feito ✓
+            {t.pdfDone}
           </span>
         </div>
       );
@@ -270,15 +449,15 @@ export default function HeroDemo() {
           <img src={APP_ICONS[it.app]} alt="" width={22} height={22} className="h-6 w-6 shrink-0" />
           <div className="min-w-0">
             <p className="text-sm font-semibold text-ink">{it.label}</p>
-            <p className="text-[12px] text-ink-soft">Autorização segura</p>
+            <p className="text-[12px] text-ink-soft">{t.authSub}</p>
           </div>
           {connected ? (
             <span className="ml-auto shrink-0 rounded-lg border border-salvia/60 bg-salvia-soft px-3.5 py-1.5 text-[12px] font-semibold text-mata">
-              ✓ Conectado
+              {t.connectedBadge}
             </span>
           ) : (
             <span className="ml-auto shrink-0 rounded-lg bg-ink px-3.5 py-1.5 text-[12px] font-semibold text-paper">
-              Autorizar
+              {t.authorize}
             </span>
           )}
         </div>
@@ -295,12 +474,11 @@ export default function HeroDemo() {
       return (
         <div key={key} className="max-w-sm rounded-xl border-l-2 border-salvia bg-paper px-4 py-3">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-            Legenda
+            {t.captionLabel}
           </p>
           <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">
-            Enquanto você lê isso, o meu agente tá respondendo clientes e
-            fechando a semana. Monte o seu em minutos — e deixa ligado 24/7.{" "}
-            <span className="text-mata">#IA #produtividade #automação</span>
+            {t.captionText}{" "}
+            <span className="text-mata">{t.captionTags}</span>
           </p>
         </div>
       );
@@ -317,19 +495,19 @@ export default function HeroDemo() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/brand/work4you-favicon-transparent-1024.png" alt="" className="h-7 w-7" />
               <div className="mt-auto">
-                <p className="text-[13px] font-semibold text-white">O meu agente</p>
+                <p className="text-[13px] font-semibold text-white">{t.artTop}</p>
                 <p className="mx-auto mt-1 w-fit bg-red-600 px-2.5 py-0.5 text-[22px] font-extrabold uppercase leading-tight tracking-tight text-white">
-                  Trabalha
+                  {t.artBox}
                 </p>
-                <p className="mt-1 text-[13px] font-semibold text-white">enquanto eu durmo</p>
+                <p className="mt-1 text-[13px] font-semibold text-white">{t.artBottom}</p>
               </div>
             </div>
           </div>
           <div className="flex items-center gap-2 bg-white px-3 py-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/brand/apps/instagram.svg" alt="" width={13} height={13} className="h-3.5 w-3.5" />
-            <span className="text-[11px] font-medium text-ink-soft">@suaempresa</span>
-            <span className="ml-auto font-mono text-[10px] text-ink-faint">agora</span>
+            <span className="text-[11px] font-medium text-ink-soft">{t.igHandle}</span>
+            <span className="ml-auto font-mono text-[10px] text-ink-faint">{t.igNow}</span>
           </div>
         </div>
       );
@@ -337,7 +515,7 @@ export default function HeroDemo() {
     if (it.kind === "published") {
       return (
         <p key={key} className="px-1 text-[13px] font-medium text-mata">
-          ✓ Post publicado com sucesso — agora é só aguardar os bons resultados.
+          {t.published}
         </p>
       );
     }
@@ -359,11 +537,11 @@ export default function HeroDemo() {
         <span className="h-2.5 w-2.5 rounded-full bg-line" />
         <span className="h-2.5 w-2.5 rounded-full bg-line" />
         <span className="mx-auto rounded-md border border-line bg-white px-6 py-0.5 font-mono text-[11px] text-ink-faint">
-          work4you.ai — seu agente
+          {t.windowTitle}
         </span>
         <span className="hidden items-center gap-1.5 font-mono text-[10px] uppercase tracking-[0.14em] text-salvia sm:flex">
           <span className="w4y-live-dot h-1.5 w-1.5 rounded-full bg-salvia" />
-          no ar
+          {t.live}
         </span>
       </div>
 
@@ -371,20 +549,20 @@ export default function HeroDemo() {
         {/* sidebar — the product's real navigation */}
         <aside className="hidden border-r border-line bg-paper px-4 py-5 sm:block">
           <div className="space-y-2.5 text-[13px]">
-            <p className="font-semibold text-ink">Nova sessão</p>
-            {["Agent Studio", "Agenda", "Habilidades", "Canais", "Entregas"].map((m) => (
+            <p className="font-semibold text-ink">{t.newSession}</p>
+            {t.menu.map((m) => (
               <p key={m} className="text-ink-soft">{m}</p>
             ))}
           </div>
           <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
-            Sessões
+            {t.sessionsLabel}
           </p>
           <div className="mt-2.5 space-y-2 text-[12px] text-ink-soft">
             <p className="-mx-2 truncate rounded-md bg-paper-deep px-2 py-1 text-ink">
-              Post pro Instagram
+              {t.sessions[0]}
             </p>
-            <p className="truncate">Proposta de junho</p>
-            <p className="truncate">Cobranças da semana</p>
+            <p className="truncate">{t.sessions[1]}</p>
+            <p className="truncate">{t.sessions[2]}</p>
           </div>
         </aside>
 
@@ -397,10 +575,10 @@ export default function HeroDemo() {
             {!anythingSent ? (
               <div className="flex flex-1 flex-col items-center justify-center text-center">
                 <p className="text-xl font-bold tracking-tight text-ink">
-                  No que vamos trabalhar?
+                  {t.emptyTitle}
                 </p>
                 <p className="mt-2 max-w-xs text-[13px] leading-relaxed text-ink-faint">
-                  Descreva o objetivo — eu cuido da parte mecânica.
+                  {t.emptySub}
                 </p>
               </div>
             ) : (
@@ -425,7 +603,7 @@ export default function HeroDemo() {
             {pickerOpen && (
               <div className="absolute bottom-12 right-16 z-10 w-60 overflow-hidden rounded-xl border border-line bg-white shadow-[0_20px_60px_-20px_rgba(26,28,24,0.35)]">
                 <p className="border-b border-line px-3.5 py-2 text-[12px] text-ink-faint">
-                  Buscar modelos
+                  {t.searchModels}
                 </p>
                 <div className="flex items-center justify-between px-3.5 py-2">
                   <span className="text-[13px] font-semibold text-ink">Auto</span>
@@ -445,7 +623,7 @@ export default function HeroDemo() {
                   </div>
                 ))}
                 <p className="border-t border-line px-3.5 py-2 text-[12px] text-ink-soft">
-                  Adicionar modelos
+                  {t.addModels}
                 </p>
               </div>
             )}
@@ -457,7 +635,7 @@ export default function HeroDemo() {
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                   <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
                 </svg>
-                Escolha uma pasta
+                {t.chooseFolder}
               </span>
               <span className="block min-h-[2.9rem] px-4 py-3 text-[13.5px] leading-relaxed">
                 {!sent && typed > 0 ? (
@@ -468,12 +646,12 @@ export default function HeroDemo() {
                     )}
                   </span>
                 ) : (
-                  <span className="text-ink-faint">Descreva o que precisa</span>
+                  <span className="text-ink-faint">{t.composerPlaceholder}</span>
                 )}
               </span>
               <span className="flex items-center gap-3 px-4 pb-3 text-ink-faint">
                 <span className="text-base leading-none">+</span>
-                <span className="text-[12px]">Pedir aprovação ▾</span>
+                <span className="text-[12px]">{t.askApproval}</span>
                 <span className="flex items-center gap-1 text-[12px]">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/brand/apps/gmail.svg" alt="" width={12} height={12} className="h-3 w-3" />
@@ -502,7 +680,7 @@ export default function HeroDemo() {
         {previewOpen && (
           <aside className="hidden border-l border-line bg-paper p-3 sm:block">
             <p className="mb-2 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
-              Preview
+              {t.previewLabel}
             </p>
             {trattoria}
           </aside>

@@ -2,12 +2,14 @@ import Image from "next/image";
 import Link from "next/link";
 import HeroDemo from "@/components/HeroDemo";
 import DelegationInput from "@/components/DelegationInput";
+import { getSiteLocale } from "@/lib/site-locale";
 
 // Work4You landing — new architecture, benchmark-informed:
 // centered display hero with the LIVE product window bleeding into the fold,
 // alternating text-rail × product-frame sections, one dark statement canvas,
 // editorial meta-cards, the 24/7 forest section, final CTA.
 // Narrative order from the site brief: build → talk & execute → run 24/7.
+// All visible copy is bilingual (pt/en) via the site-locale cookie.
 
 // Real brand logos (Simple Icons, /brand/apps). Brazil-first ordering.
 const CHANNELS = [
@@ -17,17 +19,31 @@ const CHANNELS = [
   { name: "Discord", icon: "/brand/apps/discord.svg" },
 ];
 
-const CONNECTORS = [
-  { name: "Gmail", icon: "/brand/apps/gmail.svg" },
-  { name: "Instagram", icon: "/brand/apps/instagram.svg" },
-  { name: "Facebook", icon: "/brand/apps/facebook.svg" },
-  { name: "Google Ads", icon: "/brand/apps/googleads.svg" },
-  { name: "Google Drive", icon: "/brand/apps/googledrive.svg" },
-  { name: "Planilhas", icon: "/brand/apps/googlesheets.svg" },
-  { name: "Agenda", icon: "/brand/apps/googlecalendar.svg" },
-  { name: "Notion", icon: "/brand/apps/notion.svg" },
-  { name: "HubSpot", icon: "/brand/apps/hubspot.svg" },
-];
+// Connector display names differ per locale (Planilhas/Sheets, Agenda/Calendar).
+const CONNECTORS = {
+  pt: [
+    { name: "Gmail", icon: "/brand/apps/gmail.svg" },
+    { name: "Instagram", icon: "/brand/apps/instagram.svg" },
+    { name: "Facebook", icon: "/brand/apps/facebook.svg" },
+    { name: "Google Ads", icon: "/brand/apps/googleads.svg" },
+    { name: "Google Drive", icon: "/brand/apps/googledrive.svg" },
+    { name: "Planilhas", icon: "/brand/apps/googlesheets.svg" },
+    { name: "Agenda", icon: "/brand/apps/googlecalendar.svg" },
+    { name: "Notion", icon: "/brand/apps/notion.svg" },
+    { name: "HubSpot", icon: "/brand/apps/hubspot.svg" },
+  ],
+  en: [
+    { name: "Gmail", icon: "/brand/apps/gmail.svg" },
+    { name: "Instagram", icon: "/brand/apps/instagram.svg" },
+    { name: "Facebook", icon: "/brand/apps/facebook.svg" },
+    { name: "Google Ads", icon: "/brand/apps/googleads.svg" },
+    { name: "Google Drive", icon: "/brand/apps/googledrive.svg" },
+    { name: "Sheets", icon: "/brand/apps/googlesheets.svg" },
+    { name: "Calendar", icon: "/brand/apps/googlecalendar.svg" },
+    { name: "Notion", icon: "/brand/apps/notion.svg" },
+    { name: "HubSpot", icon: "/brand/apps/hubspot.svg" },
+  ],
+} as const;
 
 const DELIVERABLES = [
   { name: "Excel", icon: "/brand/apps/excel.svg" },
@@ -36,18 +52,306 @@ const DELIVERABLES = [
   { name: "PDF", icon: "/brand/apps/pdf.svg" },
 ];
 
-export default function LandingPage() {
+const CONTENT = {
+  pt: {
+    hero: {
+      title: "Construa o seu agente de IA.",
+      sub1: "Coloque ele pra rodar",
+      sub2: " — conversa, executa e continua depois que você sai.",
+      ctaBuild: "Construir meu agente",
+      ctaHow: "Ver como funciona →",
+    },
+    explainer: {
+      heading: "Fala onde você fala. Usa o que você usa. Entrega pronto.",
+      channels: {
+        label: "Canais",
+        title: "Por onde você — e seus clientes — falam com ele",
+        copy: "Peça a tarefa de onde estiver: ele executa na nuvem, em tempo real, 24/7 — e devolve onde você quiser.",
+        email: "E-mail",
+        quote1: "“Peço no WhatsApp — e recebo a entrega pronta.”",
+        quote2: "“Meu cliente chama — e o agente atende.”",
+      },
+      connectors: {
+        label: "Conectores",
+        title: "As contas que ele usa nas tarefas",
+        more: "+ de 1.400 apps",
+        quote: "“Lê o meu Gmail e atualiza o Notion.”",
+      },
+      deliverables: {
+        label: "Entregas",
+        title: "O que ele produz e devolve pronto",
+        quote: "“Gera o fluxo de caixa em Excel e deixa em Entregas.”",
+      },
+    },
+    statement: {
+      t1: "Chat responde.",
+      tu: "O seu agente executa",
+      t2: "— e continua depois que você sai.",
+      p: "Aqui você não usa um “agente pronto” de marketing. Você constrói um de verdade — foco, estilo, ferramentas, modelo — e deixa ele ligado.",
+    },
+    build: {
+      label: "01 · Construa",
+      title: "Do zero ao seu agente",
+      titleFaint: "em minutos, não semanas.",
+      p: "Diga o foco, o estilo, as ferramentas e o modelo. Construa um. Construa vários no Agent Studio — independentes, que se consultam e trabalham juntos quando a tarefa pede.",
+      cta: "Conhecer o Agent Studio →",
+      agents: [
+        { name: "Agente principal", focus: "Coordena, delega e entrega", model: "modelo à sua escolha", on: true },
+        { name: "Vendas", focus: "Leads, propostas e follow-ups", model: "foco próprio", on: true },
+        { name: "Financeiro", focus: "Cobranças e conciliação", model: "rotinas 24/7", on: true },
+        { name: "Atendimento", focus: "Respostas no tom da empresa", model: "em construção", on: false },
+      ],
+      statusOn: "no ar",
+      statusOff: "pausado",
+    },
+    use: {
+      label: "02 · Use",
+      title: "Conversa e executa — de verdade",
+      cards: [
+        {
+          title: "Age nas suas coisas",
+          copy: "Lê pastas, escreve documentos, mexe em planilhas, roda código — e devolve o trabalho pronto.",
+          meta: [["Entrada", "chat, voz, rotina"], ["Saída", "docs, PDFs, ações"]],
+        },
+        {
+          title: "Lembra do contexto",
+          copy: "Memória entre sessões: o agente conhece o seu negócio, o seu tom e o que já foi decidido.",
+          meta: [["Memória", "entre sessões"], ["Histórico", "cada decisão"]],
+        },
+        {
+          title: "Modelo à sua escolha",
+          copy: "Aceita o modelo de IA que você preferir — ou a sua própria API. Sem ficar preso a um fornecedor.",
+          meta: [["Modelos", "os melhores do mercado"], ["API própria", "traga a sua"]],
+        },
+      ],
+    },
+    always: {
+      label: "03 · Ligue o 24/7",
+      title: "Depois de construído, ele não depende do seu notebook.",
+      p: "Agenda, rotinas e trabalhos longos rodam na nuvem. Desktop e web são entradas — a nuvem é onde o seu agente fica ligado.",
+      cta: "Conhecer a plataforma →",
+      routines: [
+        { when: "Toda manhã · 07h00", what: "Resumo dos e-mails e do que vence hoje" },
+        { when: "Toda sexta · 17h00", what: "Cobranças e follow-ups da semana" },
+        { when: "Ao chegar anexo novo", what: "Ler, classificar e arquivar na pasta certa" },
+      ],
+      live: "no ar",
+    },
+    platforms: {
+      title: "Onde quer que você trabalhe",
+      sub: "O mesmo agente, em todas as plataformas.",
+      desktop: {
+        title: "Desktop",
+        copy: "Do dia a dia às pastas e ao código — direto no seu computador.",
+        cta: "Baixar →",
+        prompt: "adiciona o filtro de junho na planilha",
+        reading: "Lendo",
+        file: "vendas.xlsx",
+        edited: "Editado ✓",
+        placeholder: "Descreva o que precisa",
+      },
+      cli: {
+        title: "CLI",
+        copy: "Execute o agente em qualquer terminal, script ou editor.",
+        cta: "Instalar →",
+        dir: "~/loja-web",
+        cmd: "corrige o bug do checkout",
+        status: "● leu checkout.ts · rodou testes — 1 falhou",
+        done: "✓ testes passando · commit enviado",
+      },
+      whatsapp: {
+        title: "Outras plataformas",
+        copy: "Inicie agentes pelo WhatsApp, Telegram, Slack e muito mais.",
+        cta: "Adicionar ao WhatsApp ↗",
+        agentName: "Agente Work4You",
+        online: "online",
+        msg: "Vê no CRM se entrou lead novo",
+        reply: "3 leads novos! O mais quente pediu proposta — já preparei: 📎",
+        file: "proposta-marina.pdf 📄",
+      },
+      web: {
+        title: "Web e celular",
+        copy: "Delegue e acompanhe da nuvem — pelo browser ou pelo celular.",
+        cta: "Abrir no browser ↗",
+        tabAgent: "Agente",
+        tabPanel: "Painel",
+        today: "Hoje",
+        rows: [
+          { dot: false, t: "Post pro Instagram", s: "publicado ✓" },
+          { dot: true, t: "Proposta de junho", s: "gerando PDF" },
+          { dot: true, t: "Cobranças da semana", s: "sexta · 17h" },
+        ],
+      },
+    },
+    trust: [
+      { title: "Aprovação humana", copy: "Ações sensíveis esperam o seu OK." },
+      { title: "Histórico completo", copy: "Cada tarefa e decisão registrada." },
+      { title: "Controle de uso", copy: "Consumo e custo por agente." },
+      { title: "Acesso por equipe", copy: "Cada pessoa vê o que deve ver." },
+    ],
+    final: {
+      title: "Monte. Ligue. Ele continua.",
+      p: "Leva minutos — e o agente que você construiu começa a trabalhar.",
+    },
+  },
+  en: {
+    hero: {
+      title: "Build your AI agent.",
+      sub1: "Put it to work",
+      sub2: " — it talks, executes, and keeps going after you leave.",
+      ctaBuild: "Build my agent",
+      ctaHow: "See how it works →",
+    },
+    explainer: {
+      heading: "Talks where you talk. Uses what you use. Delivers finished work.",
+      channels: {
+        label: "Channels",
+        title: "Where you — and your customers — talk to it",
+        copy: "Ask for the task from anywhere: it runs in the cloud, in real time, 24/7 — and delivers wherever you want.",
+        email: "Email",
+        quote1: "“I ask on WhatsApp — and get the finished work back.”",
+        quote2: "“My customer messages — and the agent answers.”",
+      },
+      connectors: {
+        label: "Connectors",
+        title: "The accounts it uses to get work done",
+        more: "1,400+ apps",
+        quote: "“It reads my Gmail and updates Notion.”",
+      },
+      deliverables: {
+        label: "Deliveries",
+        title: "What it produces and hands back, done",
+        quote: "“It builds the cash flow in Excel and drops it in Deliveries.”",
+      },
+    },
+    statement: {
+      t1: "Chat answers.",
+      tu: "Your agent executes",
+      t2: "— and keeps going after you leave.",
+      p: "This isn't a prepackaged “agent” from a marketing page. You build a real one — focus, style, tools, model — and leave it running.",
+    },
+    build: {
+      label: "01 · Build",
+      title: "From zero to your agent",
+      titleFaint: "in minutes, not weeks.",
+      p: "Set the focus, the style, the tools, and the model. Build one. Build several in Agent Studio — independent agents that consult each other and work together when the task calls for it.",
+      cta: "Meet Agent Studio →",
+      agents: [
+        { name: "Main agent", focus: "Coordinates, delegates, delivers", model: "model of your choice", on: true },
+        { name: "Sales", focus: "Leads, proposals, follow-ups", model: "own focus", on: true },
+        { name: "Finance", focus: "Invoicing and reconciliation", model: "24/7 routines", on: true },
+        { name: "Support", focus: "Replies in your company's tone", model: "in progress", on: false },
+      ],
+      statusOn: "live",
+      statusOff: "paused",
+    },
+    use: {
+      label: "02 · Use",
+      title: "Talks and executes — for real",
+      cards: [
+        {
+          title: "Acts on your stuff",
+          copy: "Reads folders, writes documents, edits spreadsheets, runs code — and hands back finished work.",
+          meta: [["Input", "chat, voice, routines"], ["Output", "docs, PDFs, actions"]],
+        },
+        {
+          title: "Remembers the context",
+          copy: "Memory across sessions: the agent knows your business, your tone, and what's already been decided.",
+          meta: [["Memory", "across sessions"], ["History", "every decision"]],
+        },
+        {
+          title: "The model you choose",
+          copy: "Works with whichever AI model you prefer — or your own API. No vendor lock-in.",
+          meta: [["Models", "the market's best"], ["Your own API", "bring it"]],
+        },
+      ],
+    },
+    always: {
+      label: "03 · Turn on 24/7",
+      title: "Once it's built, it doesn't depend on your laptop.",
+      p: "Agenda, routines, and long-running work run in the cloud. Desktop and web are entry points — the cloud is where your agent stays on.",
+      cta: "Explore the platform →",
+      routines: [
+        { when: "Every morning · 7:00 am", what: "Summary of emails and what's due today" },
+        { when: "Every Friday · 5:00 pm", what: "The week's invoices and follow-ups" },
+        { when: "When a new attachment arrives", what: "Read, classify, and file it in the right folder" },
+      ],
+      live: "live",
+    },
+    platforms: {
+      title: "Wherever you work",
+      sub: "The same agent, on every platform.",
+      desktop: {
+        title: "Desktop",
+        copy: "From everyday tasks to folders and code — right on your computer.",
+        cta: "Download →",
+        prompt: "add the June filter to the spreadsheet",
+        reading: "Reading",
+        file: "sales.xlsx",
+        edited: "Edited ✓",
+        placeholder: "Describe what you need",
+      },
+      cli: {
+        title: "CLI",
+        copy: "Run the agent in any terminal, script, or editor.",
+        cta: "Install →",
+        dir: "~/store-web",
+        cmd: "fix the checkout bug",
+        status: "● read checkout.ts · ran tests — 1 failed",
+        done: "✓ tests passing · commit pushed",
+      },
+      whatsapp: {
+        title: "Other platforms",
+        copy: "Start agents from WhatsApp, Telegram, Slack, and more.",
+        cta: "Add to WhatsApp ↗",
+        agentName: "Work4You Agent",
+        online: "online",
+        msg: "Check the CRM for new leads",
+        reply: "3 new leads! The hottest one asked for a proposal — already done: 📎",
+        file: "marina-proposal.pdf 📄",
+      },
+      web: {
+        title: "Web and mobile",
+        copy: "Delegate and follow along from the cloud — in the browser or on your phone.",
+        cta: "Open in the browser ↗",
+        tabAgent: "Agent",
+        tabPanel: "Dashboard",
+        today: "Today",
+        rows: [
+          { dot: false, t: "Instagram post", s: "published ✓" },
+          { dot: true, t: "June proposal", s: "generating PDF" },
+          { dot: true, t: "Week's invoices", s: "Friday · 5pm" },
+        ],
+      },
+    },
+    trust: [
+      { title: "Human approval", copy: "Sensitive actions wait for your OK." },
+      { title: "Full history", copy: "Every task and decision on record." },
+      { title: "Usage control", copy: "Consumption and cost per agent." },
+      { title: "Team access", copy: "Each person sees only what they should." },
+    ],
+    final: {
+      title: "Build it. Turn it on. It keeps going.",
+      p: "It takes minutes — and the agent you built gets to work.",
+    },
+  },
+} as const;
+
+export default async function LandingPage() {
+  const locale = await getSiteLocale();
+  const t = CONTENT[locale];
+  const connectors = CONNECTORS[locale];
   return (
     <>
       {/* ── S1 · Hero: quiet two-tone statement, product as the star ── */}
       <section className="px-6 pb-20 pt-20 md:pt-28">
         <div className="mx-auto max-w-6xl">
           <h1 className="max-w-3xl text-3xl font-bold leading-[1.18] tracking-[-0.02em] md:text-[2.6rem]">
-            <span className="text-ink">Construa o seu agente de IA.</span>{" "}
+            <span className="text-ink">{t.hero.title}</span>{" "}
             <span className="font-semibold text-ink-faint">
-              Coloque ele pra rodar{" "}
-              <span className="whitespace-nowrap text-mata">24/7</span> —
-              conversa, executa e continua depois que você sai.
+              {t.hero.sub1}{" "}
+              <span className="whitespace-nowrap text-mata">24/7</span>
+              {t.hero.sub2}
             </span>
           </h1>
           <div className="mt-8 flex flex-wrap items-center gap-5">
@@ -55,13 +359,13 @@ export default function LandingPage() {
               href="/login"
               className="rounded-full bg-mata px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-mata-deep"
             >
-              Construir meu agente
+              {t.hero.ctaBuild}
             </Link>
             <Link
               href="/plataforma"
               className="text-[15px] font-semibold text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
             >
-              Ver como funciona →
+              {t.hero.ctaHow}
             </Link>
           </div>
         </div>
@@ -77,7 +381,7 @@ export default function LandingPage() {
             className="object-cover"
           />
           <div className="relative px-4 py-10 sm:px-10 sm:py-16">
-            <HeroDemo />
+            <HeroDemo locale={locale} />
           </div>
         </div>
       </section>
@@ -86,20 +390,19 @@ export default function LandingPage() {
       <section className="border-t border-line px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-center text-3xl font-bold tracking-tight text-ink [text-wrap:balance]">
-            Fala onde você fala. Usa o que você usa. Entrega pronto.
+            {t.explainer.heading}
           </h2>
           <div className="mt-12 grid gap-6 lg:grid-cols-3">
             {/* Channels: where people talk to the agent */}
             <div className="rounded-2xl border border-line bg-white p-7">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-                Canais
+                {t.explainer.channels.label}
               </p>
               <h3 className="mt-2 text-lg font-bold text-ink">
-                Por onde você — e seus clientes — falam com ele
+                {t.explainer.channels.title}
               </h3>
               <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
-                Peça a tarefa de onde estiver: ele executa na nuvem, em tempo
-                real, 24/7 — e devolve onde você quiser.
+                {t.explainer.channels.copy}
               </p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {CHANNELS.map((c) => (
@@ -117,26 +420,26 @@ export default function LandingPage() {
                     <rect x="2" y="4" width="20" height="16" rx="2" />
                     <path d="m2 7 10 6 10-6" />
                   </svg>
-                  E-mail
+                  {t.explainer.channels.email}
                 </span>
               </div>
               <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
-                “Peço no WhatsApp — e recebo a entrega pronta.”
+                {t.explainer.channels.quote1}
                 <br />
-                “Meu cliente chama — e o agente atende.”
+                {t.explainer.channels.quote2}
               </p>
             </div>
 
             {/* Connectors: accounts the agent uses in tasks */}
             <div className="rounded-2xl border border-line bg-white p-7">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-                Conectores
+                {t.explainer.connectors.label}
               </p>
               <h3 className="mt-2 text-lg font-bold text-ink">
-                As contas que ele usa nas tarefas
+                {t.explainer.connectors.title}
               </h3>
               <div className="mt-5 flex flex-wrap gap-2">
-                {CONNECTORS.map((c) => (
+                {connectors.map((c) => (
                   <span
                     key={c.name}
                     className="flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink-soft"
@@ -147,21 +450,21 @@ export default function LandingPage() {
                   </span>
                 ))}
                 <span className="rounded-full border border-dashed border-salvia px-3.5 py-1.5 text-[13px] text-ink-faint">
-                  + de 1.400 apps
+                  {t.explainer.connectors.more}
                 </span>
               </div>
               <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
-                “Lê o meu Gmail e atualiza o Notion.”
+                {t.explainer.connectors.quote}
               </p>
             </div>
 
             {/* Deliverables: what the agent produces */}
             <div className="rounded-2xl border border-line bg-white p-7">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-                Entregas
+                {t.explainer.deliverables.label}
               </p>
               <h3 className="mt-2 text-lg font-bold text-ink">
-                O que ele produz e devolve pronto
+                {t.explainer.deliverables.title}
               </h3>
               <div className="mt-5 flex flex-wrap gap-2">
                 {DELIVERABLES.map((d) => (
@@ -176,7 +479,7 @@ export default function LandingPage() {
                 ))}
               </div>
               <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
-                “Gera o fluxo de caixa em Excel e deixa em Entregas.”
+                {t.explainer.deliverables.quote}
               </p>
             </div>
           </div>
@@ -187,15 +490,14 @@ export default function LandingPage() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-6xl rounded-[2rem] bg-mata-deep px-8 py-20 text-center md:px-16 md:py-28">
           <h2 className="mx-auto max-w-3xl text-3xl font-extrabold leading-[1.15] tracking-[-0.02em] text-paper [text-wrap:balance] md:text-5xl">
-            Chat responde.{" "}
+            {t.statement.t1}{" "}
             <span className="underline decoration-salvia decoration-4 underline-offset-8">
-              O seu agente executa
+              {t.statement.tu}
             </span>{" "}
-            — e continua depois que você sai.
+            {t.statement.t2}
           </h2>
           <p className="mx-auto mt-8 max-w-xl text-lg leading-relaxed text-paper/70">
-            Aqui você não usa um “agente pronto” de marketing. Você constrói um
-            de verdade — foco, estilo, ferramentas, modelo — e deixa ele ligado.
+            {t.statement.p}
           </p>
         </div>
       </section>
@@ -205,22 +507,20 @@ export default function LandingPage() {
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div>
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-              01 · Construa
+              {t.build.label}
             </p>
             <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight text-ink md:text-4xl">
-              Do zero ao seu agente{" "}
-              <span className="text-ink-faint">em minutos, não semanas.</span>
+              {t.build.title}{" "}
+              <span className="text-ink-faint">{t.build.titleFaint}</span>
             </h2>
             <p className="mt-5 max-w-md leading-relaxed text-ink-soft">
-              Diga o foco, o estilo, as ferramentas e o modelo. Construa um.
-              Construa vários no Agent Studio — independentes, que se consultam
-              e trabalham juntos quando a tarefa pede.
+              {t.build.p}
             </p>
             <Link
               href="/plataforma"
               className="mt-7 inline-block text-[15px] font-semibold text-mata underline-offset-4 hover:underline"
             >
-              Conhecer o Agent Studio →
+              {t.build.cta}
             </Link>
           </div>
 
@@ -242,12 +542,7 @@ export default function LandingPage() {
                   Agent Studio
                 </span>
               </div>
-              {[
-                { name: "Agente principal", focus: "Coordena, delega e entrega", model: "modelo à sua escolha", on: true },
-                { name: "Vendas", focus: "Leads, propostas e follow-ups", model: "foco próprio", on: true },
-                { name: "Financeiro", focus: "Cobranças e conciliação", model: "rotinas 24/7", on: true },
-                { name: "Atendimento", focus: "Respostas no tom da empresa", model: "em construção", on: false },
-              ].map((a, i) => (
+              {t.build.agents.map((a, i) => (
                 <div
                   key={a.name}
                   className={`flex items-center gap-4 px-5 py-4 ${i > 0 ? "border-t border-line" : ""}`}
@@ -267,7 +562,7 @@ export default function LandingPage() {
                       a.on ? "bg-salvia-soft text-mata" : "bg-paper text-ink-faint"
                     }`}
                   >
-                    {a.on ? "no ar" : "pausado"}
+                    {a.on ? t.build.statusOn : t.build.statusOff}
                   </span>
                 </div>
               ))}
@@ -280,29 +575,13 @@ export default function LandingPage() {
       <section className="border-t border-line px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-            02 · Use
+            {t.use.label}
           </p>
           <h2 className="mt-4 max-w-2xl text-3xl font-bold tracking-tight text-ink md:text-4xl">
-            Conversa e executa — de verdade
+            {t.use.title}
           </h2>
           <div className="mt-10 grid gap-6 lg:grid-cols-3">
-            {[
-              {
-                title: "Age nas suas coisas",
-                copy: "Lê pastas, escreve documentos, mexe em planilhas, roda código — e devolve o trabalho pronto.",
-                meta: [["Entrada", "chat, voz, rotina"], ["Saída", "docs, PDFs, ações"]],
-              },
-              {
-                title: "Lembra do contexto",
-                copy: "Memória entre sessões: o agente conhece o seu negócio, o seu tom e o que já foi decidido.",
-                meta: [["Memória", "entre sessões"], ["Histórico", "cada decisão"]],
-              },
-              {
-                title: "Modelo à sua escolha",
-                copy: "Aceita o modelo de IA que você preferir — ou a sua própria API. Sem ficar preso a um fornecedor.",
-                meta: [["Modelos", "os melhores do mercado"], ["API própria", "traga a sua"]],
-              },
-            ].map((c) => (
+            {t.use.cards.map((c) => (
               <div key={c.title} className="rounded-2xl bg-cream p-7">
                 <h3 className="text-xl font-bold text-ink">{c.title}</h3>
                 <p className="mt-3 text-sm leading-relaxed text-ink-soft">{c.copy}</p>
@@ -339,28 +618,23 @@ export default function LandingPage() {
           <div className="grid items-center gap-12 lg:grid-cols-2">
             <div>
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-                03 · Ligue o 24/7
+                {t.always.label}
               </p>
               <h2 className="mt-4 text-3xl font-bold leading-tight tracking-tight md:text-4xl">
-                Depois de construído, ele não depende do seu notebook.
+                {t.always.title}
               </h2>
               <p className="mt-5 max-w-md leading-relaxed text-paper/70">
-                Agenda, rotinas e trabalhos longos rodam na nuvem. Desktop e web
-                são entradas — a nuvem é onde o seu agente fica ligado.
+                {t.always.p}
               </p>
               <Link
                 href="/plataforma"
                 className="mt-8 inline-block rounded-full bg-paper px-6 py-2.5 text-sm font-semibold text-mata-deep transition-opacity hover:opacity-90"
               >
-                Conhecer a plataforma →
+                {t.always.cta}
               </Link>
             </div>
             <div className="space-y-3">
-              {[
-                { when: "Toda manhã · 07h00", what: "Resumo dos e-mails e do que vence hoje" },
-                { when: "Toda sexta · 17h00", what: "Cobranças e follow-ups da semana" },
-                { when: "Ao chegar anexo novo", what: "Ler, classificar e arquivar na pasta certa" },
-              ].map((r) => (
+              {t.always.routines.map((r) => (
                 <div
                   key={r.when}
                   className="flex items-center gap-4 rounded-2xl border border-paper/15 bg-paper/5 px-5 py-4"
@@ -373,7 +647,7 @@ export default function LandingPage() {
                     <p className="mt-1 truncate text-sm text-paper/90">{r.what}</p>
                   </div>
                   <span className="ml-auto shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-paper/50">
-                    no ar
+                    {t.always.live}
                   </span>
                 </div>
               ))}
@@ -386,21 +660,21 @@ export default function LandingPage() {
       <section className="px-6 py-20">
         <div className="mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold tracking-tight text-ink">
-            Onde quer que você trabalhe
+            {t.platforms.title}
           </h2>
           <p className="mt-1 text-3xl font-bold tracking-tight text-ink-faint">
-            O mesmo agente, em todas as plataformas.
+            {t.platforms.sub}
           </p>
 
           <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
             {/* Desktop */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
-              <h3 className="text-base font-bold text-ink">Desktop</h3>
+              <h3 className="text-base font-bold text-ink">{t.platforms.desktop.title}</h3>
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
-                Do dia a dia às pastas e ao código — direto no seu computador.
+                {t.platforms.desktop.copy}
               </p>
               <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
-                Baixar →
+                {t.platforms.desktop.cta}
               </Link>
               <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-white">
                 <div className="flex items-center gap-1.5 border-b border-line bg-paper px-3 py-2">
@@ -410,14 +684,15 @@ export default function LandingPage() {
                 </div>
                 <div className="space-y-2 px-3.5 py-3">
                   <div className="rounded-lg border border-line px-3 py-2 text-[11px] text-ink">
-                    adiciona o filtro de junho na planilha
+                    {t.platforms.desktop.prompt}
                   </div>
                   <p className="text-[10.5px] text-ink-faint">
-                    Lendo <span className="font-mono text-[10px]">vendas.xlsx</span>
+                    {t.platforms.desktop.reading}{" "}
+                    <span className="font-mono text-[10px]">{t.platforms.desktop.file}</span>
                   </p>
-                  <p className="text-[10.5px] text-ink-faint">Editado ✓</p>
+                  <p className="text-[10.5px] text-ink-faint">{t.platforms.desktop.edited}</p>
                   <div className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[10.5px] text-ink-faint">
-                    Descreva o que precisa
+                    {t.platforms.desktop.placeholder}
                     <span className="rounded bg-paper px-1.5 py-0.5">Auto ▾</span>
                   </div>
                 </div>
@@ -426,12 +701,12 @@ export default function LandingPage() {
 
             {/* CLI */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
-              <h3 className="text-base font-bold text-ink">CLI</h3>
+              <h3 className="text-base font-bold text-ink">{t.platforms.cli.title}</h3>
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
-                Execute o agente em qualquer terminal, script ou editor.
+                {t.platforms.cli.copy}
               </p>
               <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
-                Instalar →
+                {t.platforms.cli.cta}
               </Link>
               <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-ink/60 bg-[#1b1d19]">
                 <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#242621] px-3 py-2">
@@ -441,11 +716,11 @@ export default function LandingPage() {
                   <span className="ml-2 font-mono text-[9px] text-white/40">terminal</span>
                 </div>
                 <div className="space-y-1 px-3.5 py-3 font-mono text-[10px] leading-relaxed">
-                  <p className="text-white/40">~/loja-web</p>
+                  <p className="text-white/40">{t.platforms.cli.dir}</p>
                   <p className="text-paper">
-                    <span className="text-salvia">$</span> w4y &quot;corrige o bug do checkout&quot;
+                    <span className="text-salvia">$</span> w4y &quot;{t.platforms.cli.cmd}&quot;
                   </p>
-                  <p className="text-white/50">● leu checkout.ts · rodou testes — 1 falhou</p>
+                  <p className="text-white/50">{t.platforms.cli.status}</p>
                   <p className="mt-1 text-white/40">
                     checkout.ts <span className="text-emerald-400">+2</span>{" "}
                     <span className="text-red-400">-1</span>
@@ -459,7 +734,7 @@ export default function LandingPage() {
                   <p className="bg-emerald-950/60 text-emerald-300">
                     <span className="text-emerald-400">+</span>&nbsp;&nbsp;(s, i) =&gt; s + i.price * i.qtd, 0)
                   </p>
-                  <p className="mt-1 text-salvia">✓ testes passando · commit enviado</p>
+                  <p className="mt-1 text-salvia">{t.platforms.cli.done}</p>
                   <p className="text-paper">
                     <span className="text-salvia">$</span>{" "}
                     <span className="inline-block h-[1em] w-[6px] translate-y-[2px] animate-pulse bg-paper/70" />
@@ -468,45 +743,45 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Outras plataformas — WhatsApp */}
+            {/* Other platforms — WhatsApp */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
-              <h3 className="text-base font-bold text-ink">Outras plataformas</h3>
+              <h3 className="text-base font-bold text-ink">{t.platforms.whatsapp.title}</h3>
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
-                Inicie agentes pelo WhatsApp, Telegram, Slack e muito mais.
+                {t.platforms.whatsapp.copy}
               </p>
               <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
-                Adicionar ao WhatsApp ↗
+                {t.platforms.whatsapp.cta}
               </Link>
               <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-[#ece5dd]">
                 <div className="flex items-center gap-2 border-b border-line bg-white px-3 py-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src="/brand/apps/whatsapp.svg" alt="" width={14} height={14} className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-semibold text-ink">Agente Work4You</span>
-                  <span className="text-[10px] text-[#25a05a]">online</span>
+                  <span className="text-[11px] font-semibold text-ink">{t.platforms.whatsapp.agentName}</span>
+                  <span className="text-[10px] text-[#25a05a]">{t.platforms.whatsapp.online}</span>
                 </div>
                 <div className="space-y-2 px-3 py-3">
                   <div className="ml-auto w-fit max-w-[85%] rounded-lg rounded-tr-sm bg-[#d9fdd3] px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
-                    Vê no CRM se entrou lead novo
+                    {t.platforms.whatsapp.msg}
                     <span className="ml-1 text-[9px] text-[#53bdeb]">✓✓</span>
                   </div>
                   <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
-                    3 leads novos! O mais quente pediu proposta — já preparei: 📎
+                    {t.platforms.whatsapp.reply}
                   </div>
                   <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] font-medium text-ink shadow-sm">
-                    proposta-marina.pdf 📄
+                    {t.platforms.whatsapp.file}
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Web e dispositivos móveis */}
+            {/* Web and mobile */}
             <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
-              <h3 className="text-base font-bold text-ink">Web e celular</h3>
+              <h3 className="text-base font-bold text-ink">{t.platforms.web.title}</h3>
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
-                Delegue e acompanhe da nuvem — pelo browser ou pelo celular.
+                {t.platforms.web.copy}
               </p>
               <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
-                Abrir no browser ↗
+                {t.platforms.web.cta}
               </Link>
               <div className="mx-auto mt-5 w-[82%] flex-1 overflow-hidden rounded-t-[1.6rem] border-4 border-b-0 border-ink bg-white">
                 <div className="flex justify-center pt-2">
@@ -515,19 +790,15 @@ export default function LandingPage() {
                 <div className="px-3 py-3">
                   <div className="flex gap-1.5">
                     <span className="rounded-full bg-ink px-2.5 py-1 text-[9.5px] font-semibold text-paper">
-                      Agente
+                      {t.platforms.web.tabAgent}
                     </span>
                     <span className="rounded-full bg-paper px-2.5 py-1 text-[9.5px] text-ink-soft">
-                      Painel
+                      {t.platforms.web.tabPanel}
                     </span>
                   </div>
-                  <p className="mt-3 text-[10px] font-semibold text-ink">Hoje</p>
+                  <p className="mt-3 text-[10px] font-semibold text-ink">{t.platforms.web.today}</p>
                   <div className="mt-2 space-y-2">
-                    {[
-                      { dot: false, t: "Post pro Instagram", s: "publicado ✓" },
-                      { dot: true, t: "Proposta de junho", s: "gerando PDF" },
-                      { dot: true, t: "Cobranças da semana", s: "sexta · 17h" },
-                    ].map((r) => (
+                    {t.platforms.web.rows.map((r) => (
                       <div key={r.t} className="flex items-start gap-2">
                         <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${r.dot ? "w4y-live-dot bg-salvia" : "bg-salvia"}`} />
                         <div className="min-w-0">
@@ -547,12 +818,7 @@ export default function LandingPage() {
       {/* ── S8 · Trust hairlines ────────────────────────────────────── */}
       <section className="px-6 pb-8 pt-4">
         <div className="mx-auto grid max-w-6xl gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            { title: "Aprovação humana", copy: "Ações sensíveis esperam o seu OK." },
-            { title: "Histórico completo", copy: "Cada tarefa e decisão registrada." },
-            { title: "Controle de uso", copy: "Consumo e custo por agente." },
-            { title: "Acesso por equipe", copy: "Cada pessoa vê o que deve ver." },
-          ].map((c) => (
+          {t.trust.map((c) => (
             <div key={c.title} className="border-t-2 border-ink pt-4">
               <h3 className="text-sm font-bold text-ink">{c.title}</h3>
               <p className="mt-1.5 text-[13px] leading-relaxed text-ink-soft">{c.copy}</p>
@@ -565,10 +831,10 @@ export default function LandingPage() {
       <section className="px-6 py-24">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-4xl font-extrabold tracking-[-0.02em] text-ink [text-wrap:balance] md:text-5xl">
-            Monte. Ligue. Ele continua.
+            {t.final.title}
           </h2>
           <p className="mt-5 text-lg text-ink-soft">
-            Leva minutos — e o agente que você construiu começa a trabalhar.
+            {t.final.p}
           </p>
         </div>
         <div className="mt-10">

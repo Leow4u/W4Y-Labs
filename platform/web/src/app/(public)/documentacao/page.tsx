@@ -1,5 +1,7 @@
 import Link from "next/link";
-import { CATEGORIES, DOCS } from "./docs";
+import { CATEGORIES as CATS_PT, DOCS as DOCS_PT } from "./docs";
+import { CATEGORIES as CATS_EN, DOCS as DOCS_EN } from "./docs.en";
+import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = {
   title: "Documentação — Work4You",
@@ -7,20 +9,35 @@ export const metadata = {
     "Tudo pra tirar o máximo do seu agente: primeiros passos, rotinas, canais, conectores e mais.",
 };
 
-// Docs index: intro + pages grouped by category.
-export default function DocsIndexPage() {
+const T = {
+  pt: {
+    eyebrow: "Documentação",
+    h1: "Tire o máximo do seu agente",
+    lead: "Do primeiro acesso às rotinas rodando 24/7 — guias curtos, direto ao ponto, do jeito que o produto funciona de verdade.",
+  },
+  en: {
+    eyebrow: "Documentation",
+    h1: "Get the most out of your agent",
+    lead: "From first sign-in to routines running 24/7 — short guides, straight to the point, the way the product actually works.",
+  },
+} as const;
+
+// Docs index: intro + pages grouped by category (locale-aware registry).
+export default async function DocsIndexPage() {
+  const locale = await getSiteLocale();
+  const DOCS = locale === "en" ? DOCS_EN : DOCS_PT;
+  const CATEGORIES = locale === "en" ? CATS_EN : CATS_PT;
+  const t = T[locale];
+
   return (
     <div>
       <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-        Documentação
+        {t.eyebrow}
       </p>
       <h1 className="mt-3 text-4xl font-extrabold tracking-[-0.02em] text-ink [text-wrap:balance]">
-        Tire o máximo do seu agente
+        {t.h1}
       </h1>
-      <p className="mt-4 max-w-xl leading-relaxed text-ink-soft">
-        Do primeiro acesso às rotinas rodando 24/7 — guias curtos, direto ao
-        ponto, do jeito que o produto funciona de verdade.
-      </p>
+      <p className="mt-4 max-w-xl leading-relaxed text-ink-soft">{t.lead}</p>
 
       <div className="mt-10 space-y-10">
         {CATEGORIES.map((cat) => (

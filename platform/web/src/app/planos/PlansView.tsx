@@ -72,7 +72,7 @@ const CONTACT_MAILTO = "mailto:contato@work4you.ai?subject=Work4You%20Business";
 
 function priceEquivMonth(card: PlanCard): string {
   const perMonth = card.priceYear / 12;
-  return `$${perMonth.toFixed(2).replace(/\.00$/, "")}`;
+  return `US$ ${perMonth.toFixed(2).replace(/\.00$/, "")}`;
 }
 
 export function PlansView({
@@ -151,7 +151,7 @@ export function PlansView({
         <div className="text-center">
           <h1 className="font-brand text-3xl font-semibold sm:text-4xl">Assine o Work4You</h1>
           <p className="mt-2 text-sm text-neutral-500">
-            Experimente <span className="font-semibold text-neutral-800 dark:text-neutral-200">7 dias por $0</span>.
+            Experimente <span className="font-semibold text-neutral-800 dark:text-neutral-200">7 dias por US$ 0</span>.
             Cancele quando quiser
             {loggedIn && (
               <>
@@ -195,7 +195,7 @@ export function PlansView({
                   : loggedIn && !checkoutEnabled
                     ? "Em breve"
                     : card.trialDays
-                      ? `Começar — ${card.trialDays} dias por $0`
+                      ? `Começar — ${card.trialDays} dias por US$ 0`
                       : `Assinar ${card.label}`;
                 return (
                   <div
@@ -213,7 +213,7 @@ export function PlansView({
                     )}
                     <h2 className="font-brand text-lg font-semibold">{card.label}</h2>
                     <div className="mt-1 flex items-baseline gap-1">
-                      <span className="text-3xl font-semibold">${price}</span>
+                      <span className="text-3xl font-semibold">US$ {price}</span>
                       <span className="text-sm text-neutral-500">
                         /{interval === "year" ? "ano" : "mês"}
                       </span>
@@ -285,7 +285,7 @@ export function PlansView({
             <div className="flex flex-col rounded-2xl border border-neutral-200 p-6 dark:border-neutral-800">
               <h2 className="font-brand text-lg font-semibold">Business</h2>
               <div className="mt-1 flex items-baseline gap-1">
-                <span className="text-3xl font-semibold">${teamSeatUsd}</span>
+                <span className="text-3xl font-semibold">US$ {teamSeatUsd}</span>
                 <span className="text-sm text-neutral-500">/assento · mês</span>
               </div>
               <a

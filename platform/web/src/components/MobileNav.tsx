@@ -8,9 +8,13 @@ import Link from "next/link";
 export default function MobileNav({
   items,
   authenticated,
+  ctaOpen = "Abrir o Work4You",
+  ctaSignIn = "Conecte-se",
 }: {
   items: { href: string; label: string }[];
   authenticated: boolean;
+  ctaOpen?: string;
+  ctaSignIn?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -44,7 +48,7 @@ export default function MobileNav({
             onClick={() => setOpen(false)}
             className="mt-5 block rounded-full bg-mata px-5 py-3 text-center text-sm font-semibold text-paper"
           >
-            {authenticated ? "Abrir o Work4You" : "Conecte-se"}
+            {authenticated ? ctaOpen : ctaSignIn}
           </Link>
         </div>
       )}
