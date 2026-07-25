@@ -1,8 +1,10 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 
-// Blog content registry — launch set. Same copy rules as the docs:
-// user-facing pt-BR, no internal names, no promises the product doesn't keep.
+// Blog content registry — ordered newest first (index features POSTS[0]).
+// Timeline runs from Dec/2025 (founding manifesto) to now, marking the
+// product's evolution. Same copy rules as the docs: user-facing pt-BR,
+// no internal names, no promises the product doesn't keep.
 
 function P({ children }: { children: ReactNode }) {
   return <p className="mt-5 leading-relaxed text-ink-soft">{children}</p>;
@@ -43,105 +45,6 @@ export interface BlogPost {
 }
 
 export const POSTS: BlogPost[] = [
-  {
-    slug: "apresentando-a-work4you",
-    category: "Produto",
-    title: "Apresentando a Work4You",
-    description:
-      "Um agente de IA com computador próprio na nuvem, que trabalha por você — e o convite pro nosso acesso antecipado.",
-    date: "25 de julho de 2026",
-    dateISO: "2026-07-25",
-    readingMinutes: 4,
-    body: (
-      <>
-        <P>
-          Toda semana aparece uma IA nova que conversa melhor. Mas conversar nunca
-          foi o gargalo de quem empreende. O gargalo é o trabalho que se acumula
-          enquanto você conversa: a planilha que precisa existir, a proposta que
-          precisa sair, o cliente que precisa de resposta, o post que precisa ser
-          publicado.
-        </P>
-        <P>
-          A Work4You nasceu pra atacar esse gargalo. Não construímos mais um chat —
-          construímos um <B>agente com computador próprio na nuvem</B>. Ele navega,
-          pesquisa, escreve, mexe em planilha, acessa os aplicativos que você
-          autorizar e devolve <B>trabalho pronto</B>: o arquivo, o post publicado, o
-          e-mail enviado.
-        </P>
-        <H2>O que isso muda na prática</H2>
-        <P>
-          Você delega como delegaria pra uma pessoa: “pesquisa os concorrentes e
-          monta um comparativo”, “prepara 3 posts pra semana”, “confere se entrou
-          lead novo e me avisa no WhatsApp”. O agente executa passo a passo, à
-          vista, pedindo aprovação antes de qualquer ação sensível. E quando uma
-          tarefa dá certo, ela vira <B>rotina</B> — o agente passa a fazer sozinho,
-          no horário combinado, com o seu computador desligado.
-        </P>
-        <H2>Sem apostar num só modelo de IA</H2>
-        <P>
-          Dentro da Work4You você usa os principais modelos do mercado — Opus 5,
-          Sonnet 5, GPT-5.6 Sol, Grok 4.5 — e o modo <B>Auto</B> escolhe o mais
-          indicado pra cada tarefa, equilibrando qualidade e custo.{" "}
-          <PostLink href="/blog/por-que-somos-agnosticos-de-modelo">
-            Escrevemos sobre essa escolha aqui.
-          </PostLink>
-        </P>
-        <H2>Estamos em acesso antecipado</H2>
-        <P>
-          A Work4You está aberta em acesso antecipado: um grupo menor de usuários,
-          proximidade real com o time e evolução guiada por quem usa. O plano
-          Grátis não pede cartão — <PostLink href="/login">crie sua conta</PostLink>{" "}
-          e delegue a primeira tarefa hoje. A{" "}
-          <PostLink href="/documentacao">documentação</PostLink> mostra o caminho.
-        </P>
-      </>
-    ),
-  },
-  {
-    slug: "por-que-somos-agnosticos-de-modelo",
-    category: "Visão",
-    title: "Por que não te prendemos a um modelo de IA",
-    description:
-      "A corrida dos modelos muda toda semana. Sua operação não pode depender de apostar no cavalo certo.",
-    date: "25 de julho de 2026",
-    dateISO: "2026-07-25",
-    readingMinutes: 3,
-    body: (
-      <>
-        <P>
-          Em um ano, o “melhor modelo de IA do mundo” trocou de dono várias vezes.
-          Cada lançamento reordena o pódio — em raciocínio, em escrita, em código,
-          em preço. Pra quem acompanha a área, é fascinante. Pra quem tem uma
-          empresa pra tocar, é ruído.
-        </P>
-        <P>
-          Por isso a Work4You nasceu <B>agnóstica de modelo</B>: o seu agente não é
-          refém de um fornecedor. Ele usa os principais modelos do mercado — Opus 5,
-          Sonnet 5, GPT-5.6 Sol, Grok 4.5 — e quando o pódio mudar de novo, você se
-          beneficia sem migrar nada.
-        </P>
-        <H2>Auto: a escolha certa por tarefa</H2>
-        <P>
-          Modelos têm perfis diferentes. Usar o mais caro pra toda tarefa é
-          desperdício; usar o mais barato pra tudo é resultado fraco. O modo{" "}
-          <B>Auto</B> analisa cada tarefa e direciona pro modelo mais indicado,
-          equilibrando qualidade e custo. Pesquisa rápida não paga preço de
-          raciocínio profundo — e problema difícil não fica na mão de modelo
-          fraco.
-        </P>
-        <H2>E o controle continua seu</H2>
-        <P>
-          Prefere um modelo específico? É só escolher — o seletor está a um clique
-          na hora de delegar. Transparência total: você sempre sabe qual modelo
-          trabalhou. Detalhes em{" "}
-          <PostLink href="/documentacao/planos-e-creditos">
-            Planos e créditos
-          </PostLink>
-          .
-        </P>
-      </>
-    ),
-  },
   {
     slug: "da-tarefa-a-rotina",
     category: "Como usar",
@@ -194,6 +97,263 @@ export const POSTS: BlogPost[] = [
             Primeiros passos
           </PostLink>
           .
+        </P>
+      </>
+    ),
+  },
+  {
+    slug: "agent-studio-funcionarios-digitais",
+    category: "Produto",
+    title: "Agent Studio: monte funcionários digitais com papel definido",
+    description:
+      "Chega de “uma IA pra tudo”. Agora você monta agentes sob medida — com conhecimento, limites e até time de apoio.",
+    date: "18 de junho de 2026",
+    dateISO: "2026-06-18",
+    readingMinutes: 4,
+    body: (
+      <>
+        <P>
+          Desde o início, a Work4You é sobre delegar de verdade. Mas delegar bem
+          exige algo que “uma IA genérica” não tem: <B>papel definido</B>. Uma
+          empresa não contrata uma pessoa pra fazer tudo — contrata um vendedor, um
+          atendente, um analista. A partir de agora, seus agentes funcionam assim
+          também.
+        </P>
+        <H2>O Agent Studio</H2>
+        <P>
+          No <B>Agent Studio</B>, você monta agentes sob medida <B>conversando</B>:
+          descreve o papel — “quero um agente que cuida do meu Instagram: responde
+          comentários e prepara 3 posts por semana” — e o Studio transforma isso num
+          rascunho com campos editáveis. Tem pressa? Parta de um template pronto.
+        </P>
+        <H2>Cada agente com o que é seu</H2>
+        <P>
+          <B>Conhecimento próprio:</B> envie documentos — catálogo, política de
+          preços, histórico — e o agente passa a consultar e citar esse material em
+          qualquer tarefa. <B>Teto de créditos:</B> defina quanto cada agente pode
+          gastar por mês; chegou no teto, ele para. <B>Canais e aplicativos
+          próprios:</B> o agente de atendimento no WhatsApp da empresa, o de
+          relatórios com acesso ao Drive — cada um só enxerga o que você deu a ele.
+        </P>
+        <H2>E pra trabalhos grandes, um objetivo</H2>
+        <P>
+          Entregue um objetivo — “lança a campanha do produto X” — e o agente propõe
+          o plano: etapas, ordem, quem faz o quê. Você revisa, aprova, e o
+          trabalho anda com aprovações centralizadas num só lugar. O guia completo
+          está na{" "}
+          <PostLink href="/documentacao/agent-studio">documentação</PostLink>.
+        </P>
+      </>
+    ),
+  },
+  {
+    slug: "agenda-rotinas-24-7",
+    category: "Produto",
+    title: "Agenda: o dia em que o seu agente ganhou compromissos",
+    description:
+      "Rotinas recorrentes que acontecem sozinhas — todo dia, toda semana, no horário que você definir.",
+    date: "14 de maio de 2026",
+    dateISO: "2026-05-14",
+    readingMinutes: 3,
+    body: (
+      <>
+        <P>
+          Delegar uma tarefa é bom. Nunca mais precisar delegar aquela tarefa é
+          melhor. Com a <B>Agenda</B>, o seu agente ganha compromissos: “toda
+          segunda às 8h, resume os e-mails da semana”, “todo dia às 18h, confere se
+          entrou lead novo no CRM e me avisa no WhatsApp”. Você define uma vez; ele
+          cumpre sempre.
+        </P>
+        <H2>Três jeitos de criar uma rotina</H2>
+        <P>
+          <B>Conversando</B> — peça na própria sessão: “faz isso toda sexta às
+          17h”. <B>Pela tela da Agenda</B> — montando frequência, horário e
+          instruções. <B>Pela galeria de templates</B> — rotinas prontas pra
+          adaptar: resumo diário, monitoramento, acompanhamento de clientes.
+        </P>
+        <H2>Na nuvem, não no seu navegador</H2>
+        <P>
+          Rotinas rodam no computador do agente, na nuvem — o seu pode estar
+          desligado. Cada execução fica registrada com o resultado, e a entrega
+          chega onde você pedir: na plataforma, no e-mail, no WhatsApp. O{" "}
+          <B>Calendário</B> mostra tudo que está agendado, inclusive quando você
+          tem mais de um agente.
+        </P>
+        <P>
+          É a peça que faltava pro “funcionário 24 horas” deixar de ser figura de
+          linguagem. Detalhes em{" "}
+          <PostLink href="/documentacao/agenda">Agenda e rotinas</PostLink>.
+        </P>
+      </>
+    ),
+  },
+  {
+    slug: "conectores-mil-aplicativos",
+    category: "Produto",
+    title: "Mais de 1.000 aplicativos, um agente só",
+    description:
+      "Gmail, Drive, CRM, Instagram, Google Ads — o seu agente agora age dentro das ferramentas que você já usa.",
+    date: "2 de abril de 2026",
+    dateISO: "2026-04-02",
+    readingMinutes: 3,
+    body: (
+      <>
+        <P>
+          Um agente que só produz texto ainda deixa o trabalho final com você:
+          copiar, colar, enviar, publicar. Os <B>Conectores</B> fecham esse último
+          quilômetro — com acesso autorizado, o agente <B>age</B> nos seus
+          aplicativos: manda o e-mail, atualiza a planilha, registra no CRM,
+          publica o post.
+        </P>
+        <H2>Mais de 1.000 apps, autorização em um clique</H2>
+        <P>
+          Gmail, Google Drive, Sheets, Calendar, Notion, HubSpot, Instagram,
+          Facebook, Google Ads e mais de mil outros. A autorização é feita direto
+          com o próprio aplicativo (padrão OAuth, o mesmo de “Entrar com Google”) —
+          e se uma tarefa precisar de um app ainda não conectado, o agente mostra o
+          cartão de conexão <B>no meio da conversa</B>.
+        </P>
+        <H2>Controle fino, sempre</H2>
+        <P>
+          Cada agente só enxerga os apps que você deu a ele. Dá pra desligar um
+          aplicativo numa conversa específica — útil quando aquela tarefa não deve
+          tocar no seu e-mail. E desconectou, o acesso morre na hora. O guia está
+          em <PostLink href="/documentacao/conectores">Conectores</PostLink>.
+        </P>
+      </>
+    ),
+  },
+  {
+    slug: "seu-agente-no-whatsapp",
+    category: "Produto",
+    title: "Seu agente agora atende no WhatsApp",
+    description:
+      "Canais chegaram: mande tarefas e receba entregas por onde você já conversa — sem abrir a plataforma.",
+    date: "25 de fevereiro de 2026",
+    dateISO: "2026-02-25",
+    readingMinutes: 3,
+    body: (
+      <>
+        <P>
+          O melhor lugar pro seu agente é onde você já está. Com os <B>Canais</B>,
+          você conecta o WhatsApp — e também Telegram, Slack, Discord, e-mail,
+          Microsoft Teams, SMS e outros — e passa a comandar o agente por ali, sem
+          abrir a plataforma.
+        </P>
+        <H2>Nos dois sentidos</H2>
+        <P>
+          Cada canal funciona de ida e de volta: você manda “vê no CRM se entrou
+          lead novo” do celular, e a resposta chega em segundos — com resumo e
+          arquivos. Pediu uma proposta de dentro do carro, a proposta chega ali
+          mesmo, em PDF.
+        </P>
+        <H2>E os seus clientes também</H2>
+        <P>
+          O uso que mais nos animou nos testes: um agente de <B>atendimento</B> no
+          WhatsApp da empresa, respondendo com o conhecimento que você deu a ele.
+          Canais podem ser da conta toda ou de um agente específico — o atendente
+          tem o número dele, o seu agente pessoal tem o seu.
+        </P>
+        <P>
+          Como conectar, o que funciona em cada plano e as boas práticas:{" "}
+          <PostLink href="/documentacao/canais">Canais, na documentação</PostLink>.
+        </P>
+      </>
+    ),
+  },
+  {
+    slug: "por-que-somos-agnosticos-de-modelo",
+    category: "Visão",
+    title: "Por que não te prendemos a um modelo de IA",
+    description:
+      "A corrida dos modelos muda toda semana. Sua operação não pode depender de apostar no cavalo certo.",
+    date: "20 de janeiro de 2026",
+    dateISO: "2026-01-20",
+    readingMinutes: 3,
+    body: (
+      <>
+        <P>
+          Em um ano, o “melhor modelo de IA do mundo” trocou de dono várias vezes.
+          Cada lançamento reordena o pódio — em raciocínio, em escrita, em código,
+          em preço. Pra quem acompanha a área, é fascinante. Pra quem tem uma
+          empresa pra tocar, é ruído.
+        </P>
+        <P>
+          Por isso a Work4You nasceu <B>agnóstica de modelo</B>: o seu agente não é
+          refém de um fornecedor. Ele usa os principais modelos do mercado, e
+          quando o pódio mudar de novo, você se beneficia sem migrar nada.
+        </P>
+        <H2>Auto: a escolha certa por tarefa</H2>
+        <P>
+          Modelos têm perfis diferentes. Usar o mais caro pra toda tarefa é
+          desperdício; usar o mais barato pra tudo é resultado fraco. O modo{" "}
+          <B>Auto</B> analisa cada tarefa e direciona pro modelo mais indicado,
+          equilibrando qualidade e custo. Pesquisa rápida não paga preço de
+          raciocínio profundo — e problema difícil não fica na mão de modelo
+          fraco.
+        </P>
+        <H2>E o controle continua seu</H2>
+        <P>
+          Prefere um modelo específico? É só escolher — o seletor está a um clique
+          na hora de delegar. Transparência total: você sempre sabe qual modelo
+          trabalhou. Detalhes em{" "}
+          <PostLink href="/documentacao/planos-e-creditos">
+            Planos e créditos
+          </PostLink>
+          .
+        </P>
+      </>
+    ),
+  },
+  {
+    slug: "apresentando-a-work4you",
+    category: "Produto",
+    title: "Apresentando a Work4You",
+    description:
+      "Um agente de IA com computador próprio na nuvem, que trabalha por você — e o convite pro nosso acesso antecipado.",
+    date: "10 de dezembro de 2025",
+    dateISO: "2025-12-10",
+    readingMinutes: 4,
+    body: (
+      <>
+        <P>
+          Toda semana aparece uma IA nova que conversa melhor. Mas conversar nunca
+          foi o gargalo de quem empreende. O gargalo é o trabalho que se acumula
+          enquanto você conversa: a planilha que precisa existir, a proposta que
+          precisa sair, o cliente que precisa de resposta, o post que precisa ser
+          publicado.
+        </P>
+        <P>
+          A Work4You nasceu pra atacar esse gargalo. Não construímos mais um chat —
+          construímos um <B>agente com computador próprio na nuvem</B>. Ele navega,
+          pesquisa, escreve, mexe em planilha, acessa os aplicativos que você
+          autorizar e devolve <B>trabalho pronto</B>: o arquivo, o post publicado, o
+          e-mail enviado.
+        </P>
+        <H2>O que isso muda na prática</H2>
+        <P>
+          Você delega como delegaria pra uma pessoa: “pesquisa os concorrentes e
+          monta um comparativo”, “prepara 3 posts pra semana”, “confere se entrou
+          lead novo e me avisa”. O agente executa passo a passo, à vista, pedindo
+          aprovação antes de qualquer ação sensível. E quando uma tarefa dá certo,
+          ela pode virar recorrente — o agente passa a fazer sozinho, com o seu
+          computador desligado.
+        </P>
+        <H2>Sem apostar num só modelo de IA</H2>
+        <P>
+          Dentro da Work4You você usa os principais modelos do mercado, e o modo{" "}
+          <B>Auto</B> escolhe o mais indicado pra cada tarefa, equilibrando
+          qualidade e custo. Acreditamos que a sua operação não pode depender de
+          apostar no fornecedor certo — sobre isso ainda vamos escrever mais.
+        </P>
+        <H2>Estamos em acesso antecipado</H2>
+        <P>
+          A Work4You está aberta em acesso antecipado: um grupo menor de usuários,
+          proximidade real com o time e evolução guiada por quem usa. O plano
+          Grátis não pede cartão —{" "}
+          <PostLink href="/login">crie sua conta</PostLink> e delegue a primeira
+          tarefa. A <PostLink href="/documentacao">documentação</PostLink> mostra o
+          caminho.
         </P>
       </>
     ),
