@@ -9,7 +9,7 @@ import { getCookieConsent } from "@/lib/consent";
 // ("essentials only" or no choice = zero analytics, zero requests).
 // GA measurement IDs are public by design (visible in any site's source),
 // so a constant here is fine — no secret involved.
-export const GA_MEASUREMENT_ID = ""; // e.g. "G-XXXXXXXXXX" — empty = analytics off
+export const GA_MEASUREMENT_ID = "G-5NY8BM3DNJ"; // empty = analytics off
 
 declare global {
   interface Window {
