@@ -325,27 +325,66 @@ export function PlansView({
           </div>
         )}
 
-        {/* Overlay do checkout embedded */}
+        {/* Overlay do checkout embedded (o formulário interno é um iframe da
+            Stripe — cores/campos vêm do branding da conta, não do nosso CSS) */}
         {checkoutPlan && stripePromise && (
-          <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 sm:p-8">
-            <div className="w-full max-w-xl rounded-2xl bg-white p-4 shadow-2xl dark:bg-neutral-950">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="font-brand text-sm font-semibold">Finalizar assinatura</span>
+          <div
+            className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-ink/60 p-4 backdrop-blur-[2px] sm:p-8"
+            onClick={() => setCheckoutPlan(null)}
+          >
+            <div
+              className="w-full max-w-xl overflow-hidden rounded-3xl border border-line bg-paper shadow-[0_40px_120px_-30px_rgba(26,28,24,0.55)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between border-b border-line px-6 py-4">
+                <div>
+                  <p className="font-mono text-[10px] font-medium uppercase tracking-[0.18em] text-salvia">
+                    Plano {plans.find((p) => p.key === checkoutPlan)?.label ?? checkoutPlan}
+                  </p>
+                  <p className="font-brand text-base font-bold text-ink">
+                    Finalizar assinatura
+                  </p>
+                </div>
                 <button
                   onClick={() => setCheckoutPlan(null)}
-                  className="rounded-full px-2 py-1 text-sm text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                  className="flex h-8 w-8 items-center justify-center rounded-full text-ink-soft transition-colors hover:bg-paper-deep hover:text-ink"
                   aria-label="Fechar"
                 >
-                  ✕
+                  <svg
+                    className="h-4 w-4"
+                    viewBox="0 0 16 16"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                  >
+                    <path d="M4 4l8 8M12 4l-8 8" strokeLinecap="round" />
+                  </svg>
                 </button>
               </div>
-              <EmbeddedCheckoutProvider
-                key={`${checkoutPlan}-${interval}`}
-                stripe={stripePromise}
-                options={{ fetchClientSecret }}
-              >
-                <EmbeddedCheckout />
-              </EmbeddedCheckoutProvider>
+              <div className="min-h-[440px] bg-white px-2 py-3 sm:px-4">
+                <EmbeddedCheckoutProvider
+                  key={`${checkoutPlan}-${interval}`}
+                  stripe={stripePromise}
+                  options={{ fetchClientSecret }}
+                >
+                  <EmbeddedCheckout />
+                </EmbeddedCheckoutProvider>
+              </div>
+              <div className="flex items-center justify-center gap-2 border-t border-line bg-paper-deep px-6 py-3">
+                <svg
+                  className="h-3.5 w-3.5 shrink-0 text-ink-faint"
+                  viewBox="0 0 16 16"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.4"
+                >
+                  <rect x="3" y="7" width="10" height="6.5" rx="1.5" />
+                  <path d="M5 7V5.5a3 3 0 016 0V7" />
+                </svg>
+                <p className="text-xs text-ink-faint">
+                  Pagamento seguro processado pela Stripe · Cancele quando quiser
+                </p>
+              </div>
             </div>
           </div>
         )}
