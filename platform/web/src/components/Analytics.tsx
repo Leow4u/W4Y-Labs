@@ -21,9 +21,13 @@ declare global {
 function loadGa() {
   if (!GA_MEASUREMENT_ID || window.gtag) return;
   window.dataLayer = window.dataLayer || [];
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer!.push(args);
-  };
+  // gtag.js only processes `arguments` objects pushed into dataLayer —
+  // plain arrays are silently ignored, which kills config and every hit.
+  // So this must be a classic function pushing `arguments` itself.
+  window.gtag = function gtag() {
+    // eslint-disable-next-line prefer-rest-params
+    window.dataLayer!.push(arguments);
+  } as unknown as (...args: unknown[]) => void;
   window.gtag("js", new Date());
   window.gtag("config", GA_MEASUREMENT_ID);
   const s = document.createElement("script");
