@@ -1,6 +1,7 @@
 import PublicHeader from "@/components/PublicHeader";
 import PublicFooter from "@/components/PublicFooter";
 import CookieBanner from "@/components/CookieBanner";
+import Analytics from "@/components/Analytics";
 import { getSiteLocale } from "@/lib/site-locale";
 
 // Public pages layout (landing + institutional). Committed to the light
@@ -19,6 +20,7 @@ export default async function PublicLayout({
       <main>{children}</main>
       <PublicFooter locale={locale} />
       <CookieBanner locale={locale} />
+      <Analytics />
     </div>
   );
 }

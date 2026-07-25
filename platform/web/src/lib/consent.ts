@@ -30,4 +30,6 @@ export function setCookieConsent(choice: CookieConsent): void {
   } catch {
     /* storage unavailable (private mode) — banner will just show again */
   }
+  // Lets already-mounted listeners (Analytics) react without a reload.
+  window.dispatchEvent(new CustomEvent("w4y:consent", { detail: choice }));
 }
