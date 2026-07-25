@@ -9,9 +9,31 @@ import DelegationInput from "@/components/DelegationInput";
 // editorial meta-cards, the 24/7 forest section, final CTA.
 // Narrative order from the site brief: build → talk & execute → run 24/7.
 
+// Real brand logos (Simple Icons, /brand/apps). Brazil-first ordering.
+const CHANNELS = [
+  { name: "WhatsApp", icon: "/brand/apps/whatsapp.svg" },
+  { name: "Telegram", icon: "/brand/apps/telegram.svg" },
+  { name: "Slack", icon: "/brand/apps/slack.svg" },
+  { name: "Discord", icon: "/brand/apps/discord.svg" },
+];
+
 const CONNECTORS = [
-  "Gmail", "Google Drive", "Planilhas", "Notion", "Slack",
-  "WhatsApp", "CRM", "Calendário", "E-mail", "Pastas locais",
+  { name: "Gmail", icon: "/brand/apps/gmail.svg" },
+  { name: "Instagram", icon: "/brand/apps/instagram.svg" },
+  { name: "Facebook", icon: "/brand/apps/facebook.svg" },
+  { name: "Google Ads", icon: "/brand/apps/googleads.svg" },
+  { name: "Google Drive", icon: "/brand/apps/googledrive.svg" },
+  { name: "Planilhas", icon: "/brand/apps/googlesheets.svg" },
+  { name: "Agenda", icon: "/brand/apps/googlecalendar.svg" },
+  { name: "Notion", icon: "/brand/apps/notion.svg" },
+  { name: "HubSpot", icon: "/brand/apps/hubspot.svg" },
+];
+
+const DELIVERABLES = [
+  { name: "Excel", icon: "/brand/apps/excel.svg" },
+  { name: "PowerPoint", icon: "/brand/apps/powerpoint.svg" },
+  { name: "Word", icon: "/brand/apps/word.svg" },
+  { name: "PDF", icon: "/brand/apps/pdf.svg" },
 ];
 
 export default function LandingPage() {
@@ -60,25 +82,104 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── S2 · Connector tiles ────────────────────────────────────── */}
-      <section className="border-t border-line px-6 py-14">
+      {/* ── S2 · Channels × Connectors × Deliverables ───────────────── */}
+      <section className="border-t border-line px-6 py-20">
         <div className="mx-auto max-w-6xl">
-          <p className="text-center text-sm text-ink-faint">
-            Fala com as ferramentas que você já usa
-          </p>
-          <div className="mt-6 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-line bg-line sm:grid-cols-5">
-            {CONNECTORS.map((c) => (
-              <div
-                key={c}
-                className="flex h-16 items-center justify-center bg-paper text-[15px] font-semibold text-ink-soft"
-              >
-                {c}
+          <h2 className="text-center text-3xl font-bold tracking-tight text-ink [text-wrap:balance]">
+            Fala onde você fala. Usa o que você usa. Entrega pronto.
+          </h2>
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            {/* Channels: where people talk to the agent */}
+            <div className="rounded-2xl border border-line bg-white p-7">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
+                Canais
+              </p>
+              <h3 className="mt-2 text-lg font-bold text-ink">
+                Por onde você — e seus clientes — falam com ele
+              </h3>
+              <p className="mt-2 text-[13px] leading-relaxed text-ink-soft">
+                Peça a tarefa de onde estiver: ele executa na nuvem, em tempo
+                real, 24/7 — e devolve onde você quiser.
+              </p>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {CHANNELS.map((c) => (
+                  <span
+                    key={c.name}
+                    className="flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink-soft"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.icon} alt="" width={16} height={16} className="h-4 w-4" />
+                    {c.name}
+                  </span>
+                ))}
+                <span className="flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink-soft">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4 text-ink-faint" aria-hidden>
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="m2 7 10 6 10-6" />
+                  </svg>
+                  E-mail
+                </span>
               </div>
-            ))}
+              <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
+                “Peço no WhatsApp — e recebo a entrega pronta.”
+                <br />
+                “Meu cliente chama — e o agente atende.”
+              </p>
+            </div>
+
+            {/* Connectors: accounts the agent uses in tasks */}
+            <div className="rounded-2xl border border-line bg-white p-7">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
+                Conectores
+              </p>
+              <h3 className="mt-2 text-lg font-bold text-ink">
+                As contas que ele usa nas tarefas
+              </h3>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {CONNECTORS.map((c) => (
+                  <span
+                    key={c.name}
+                    className="flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink-soft"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={c.icon} alt="" width={16} height={16} className="h-4 w-4" />
+                    {c.name}
+                  </span>
+                ))}
+                <span className="rounded-full border border-dashed border-salvia px-3.5 py-1.5 text-[13px] text-ink-faint">
+                  + de 1.400 apps
+                </span>
+              </div>
+              <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
+                “Lê o meu Gmail e atualiza o Notion.”
+              </p>
+            </div>
+
+            {/* Deliverables: what the agent produces */}
+            <div className="rounded-2xl border border-line bg-white p-7">
+              <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
+                Entregas
+              </p>
+              <h3 className="mt-2 text-lg font-bold text-ink">
+                O que ele produz e devolve pronto
+              </h3>
+              <div className="mt-5 flex flex-wrap gap-2">
+                {DELIVERABLES.map((d) => (
+                  <span
+                    key={d.name}
+                    className="flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink-soft"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={d.icon} alt="" width={16} height={16} className="h-4 w-4" />
+                    {d.name}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
+                “Gera o fluxo de caixa em Excel e deixa em Entregas.”
+              </p>
+            </div>
           </div>
-          <p className="mt-4 text-center font-mono text-[11px] uppercase tracking-[0.16em] text-ink-faint">
-            + centenas de conectores
-          </p>
         </div>
       </section>
 
@@ -281,38 +382,164 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── S7 · Surfaces ───────────────────────────────────────────── */}
+      {/* ── S7 · Everywhere you work (Cursor-style platform cards) ──── */}
       <section className="px-6 py-20">
         <div className="mx-auto max-w-6xl">
-          <h2 className="text-center text-3xl font-bold tracking-tight text-ink">
-            Um produto. Várias entradas.
+          <h2 className="text-3xl font-bold tracking-tight text-ink">
+            Onde quer que você trabalhe
           </h2>
-          <div className="mt-10 grid gap-px overflow-hidden rounded-2xl border border-line bg-line md:grid-cols-3">
-            {[
-              {
-                title: "Nuvem",
-                copy: "Onde o agente roda 24/7 — rotinas, automações e trabalhos longos.",
-                badge: "sempre ligada",
-              },
-              {
-                title: "Desktop",
-                copy: "Pastas locais, código, execução no seu PC — e ponte direta pra nuvem.",
-                badge: "poder local",
-              },
-              {
-                title: "Web",
-                copy: "A mesma conversa e o mesmo agente, de qualquer navegador.",
-                badge: "sempre à mão",
-              },
-            ].map((s) => (
-              <div key={s.title} className="bg-paper p-8">
-                <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-salvia">
-                  {s.badge}
-                </p>
-                <h3 className="mt-2 text-xl font-bold text-ink">{s.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed text-ink-soft">{s.copy}</p>
+          <p className="mt-1 text-3xl font-bold tracking-tight text-ink-faint">
+            O mesmo agente, em todas as plataformas.
+          </p>
+
+          <div className="mt-10 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {/* Desktop */}
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
+              <h3 className="text-base font-bold text-ink">Desktop</h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
+                Do dia a dia às pastas e ao código — direto no seu computador.
+              </p>
+              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+                Baixar →
+              </Link>
+              <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-white">
+                <div className="flex items-center gap-1.5 border-b border-line bg-paper px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-line" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-line" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-line" />
+                </div>
+                <div className="space-y-2 px-3.5 py-3">
+                  <div className="rounded-lg border border-line px-3 py-2 text-[11px] text-ink">
+                    adiciona o filtro de junho na planilha
+                  </div>
+                  <p className="text-[10.5px] text-ink-faint">
+                    Lendo <span className="font-mono text-[10px]">vendas.xlsx</span>
+                  </p>
+                  <p className="text-[10.5px] text-ink-faint">Editado ✓</p>
+                  <div className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[10.5px] text-ink-faint">
+                    Descreva o que precisa
+                    <span className="rounded bg-paper px-1.5 py-0.5">Auto ▾</span>
+                  </div>
+                </div>
               </div>
-            ))}
+            </div>
+
+            {/* CLI */}
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
+              <h3 className="text-base font-bold text-ink">CLI</h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
+                Execute o agente em qualquer terminal, script ou editor.
+              </p>
+              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+                Instalar →
+              </Link>
+              <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-ink/60 bg-[#1b1d19]">
+                <div className="flex items-center gap-1.5 border-b border-white/10 bg-[#242621] px-3 py-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
+                  <span className="ml-2 font-mono text-[9px] text-white/40">terminal</span>
+                </div>
+                <div className="space-y-1 px-3.5 py-3 font-mono text-[10px] leading-relaxed">
+                  <p className="text-white/40">~/loja-web</p>
+                  <p className="text-paper">
+                    <span className="text-salvia">$</span> w4y &quot;corrige o bug do checkout&quot;
+                  </p>
+                  <p className="text-white/50">● leu checkout.ts · rodou testes — 1 falhou</p>
+                  <p className="mt-1 text-white/40">
+                    checkout.ts <span className="text-emerald-400">+2</span>{" "}
+                    <span className="text-red-400">-1</span>
+                  </p>
+                  <p className="bg-red-950/60 text-red-300">
+                    <span className="text-red-400">-</span> total = item.price * qtd
+                  </p>
+                  <p className="bg-emerald-950/60 text-emerald-300">
+                    <span className="text-emerald-400">+</span> total = itens.reduce(
+                  </p>
+                  <p className="bg-emerald-950/60 text-emerald-300">
+                    <span className="text-emerald-400">+</span>&nbsp;&nbsp;(s, i) =&gt; s + i.price * i.qtd, 0)
+                  </p>
+                  <p className="mt-1 text-salvia">✓ testes passando · commit enviado</p>
+                  <p className="text-paper">
+                    <span className="text-salvia">$</span>{" "}
+                    <span className="inline-block h-[1em] w-[6px] translate-y-[2px] animate-pulse bg-paper/70" />
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Outras plataformas — WhatsApp */}
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
+              <h3 className="text-base font-bold text-ink">Outras plataformas</h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
+                Inicie agentes pelo WhatsApp, Telegram, Slack e muito mais.
+              </p>
+              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+                Adicionar ao WhatsApp ↗
+              </Link>
+              <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-[#ece5dd]">
+                <div className="flex items-center gap-2 border-b border-line bg-white px-3 py-2">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/brand/apps/whatsapp.svg" alt="" width={14} height={14} className="h-3.5 w-3.5" />
+                  <span className="text-[11px] font-semibold text-ink">Agente Work4You</span>
+                  <span className="text-[10px] text-[#25a05a]">online</span>
+                </div>
+                <div className="space-y-2 px-3 py-3">
+                  <div className="ml-auto w-fit max-w-[85%] rounded-lg rounded-tr-sm bg-[#d9fdd3] px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
+                    Vê no CRM se entrou lead novo
+                    <span className="ml-1 text-[9px] text-[#53bdeb]">✓✓</span>
+                  </div>
+                  <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
+                    3 leads novos! O mais quente pediu proposta — já preparei: 📎
+                  </div>
+                  <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] font-medium text-ink shadow-sm">
+                    proposta-marina.pdf 📄
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Web e dispositivos móveis */}
+            <div className="flex flex-col overflow-hidden rounded-2xl border border-line bg-paper-deep p-6 pb-0">
+              <h3 className="text-base font-bold text-ink">Web e celular</h3>
+              <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
+                Delegue e acompanhe da nuvem — pelo browser ou pelo celular.
+              </p>
+              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+                Abrir no browser ↗
+              </Link>
+              <div className="mx-auto mt-5 w-[82%] flex-1 overflow-hidden rounded-t-[1.6rem] border-4 border-b-0 border-ink bg-white">
+                <div className="flex justify-center pt-2">
+                  <span className="h-3.5 w-16 rounded-full bg-ink" />
+                </div>
+                <div className="px-3 py-3">
+                  <div className="flex gap-1.5">
+                    <span className="rounded-full bg-ink px-2.5 py-1 text-[9.5px] font-semibold text-paper">
+                      Agente
+                    </span>
+                    <span className="rounded-full bg-paper px-2.5 py-1 text-[9.5px] text-ink-soft">
+                      Painel
+                    </span>
+                  </div>
+                  <p className="mt-3 text-[10px] font-semibold text-ink">Hoje</p>
+                  <div className="mt-2 space-y-2">
+                    {[
+                      { dot: false, t: "Post pro Instagram", s: "publicado ✓" },
+                      { dot: true, t: "Proposta de junho", s: "gerando PDF" },
+                      { dot: true, t: "Cobranças da semana", s: "sexta · 17h" },
+                    ].map((r) => (
+                      <div key={r.t} className="flex items-start gap-2">
+                        <span className={`mt-1 h-1.5 w-1.5 shrink-0 rounded-full ${r.dot ? "w4y-live-dot bg-salvia" : "bg-salvia"}`} />
+                        <div className="min-w-0">
+                          <p className="truncate text-[10.5px] font-medium text-ink">{r.t}</p>
+                          <p className="text-[9.5px] text-ink-faint">{r.s}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
