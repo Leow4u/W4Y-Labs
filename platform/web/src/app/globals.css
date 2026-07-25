@@ -56,6 +56,21 @@
   .w4y-kenburns { animation: none; }
 }
 
+/* Infinite horizontal marquee (community page) — content is duplicated 2x,
+   so -50% loops seamlessly. Pauses on hover; off under reduced motion. */
+@keyframes w4y-marquee {
+  to { transform: translateX(-50%); }
+}
+.w4y-marquee {
+  animation: w4y-marquee 45s linear infinite;
+}
+.w4y-marquee-wrap:hover .w4y-marquee {
+  animation-play-state: paused;
+}
+@media (prefers-reduced-motion: reduce) {
+  .w4y-marquee { animation: none; }
+}
+
 /* Soft pulse for "no ar" (live) dots. */
 @keyframes w4y-pulse {
   0%, 100% { opacity: 1; }
