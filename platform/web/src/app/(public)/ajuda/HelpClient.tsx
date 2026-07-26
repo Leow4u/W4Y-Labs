@@ -411,7 +411,7 @@ export default function HelpClient({ locale }: { locale: SiteLocale }) {
         <p className="mt-1 text-sm text-ink-soft">{C.contactBody}</p>
         <a
           href="mailto:contato@work4you.ai"
-          className="mt-4 inline-block rounded-full bg-mata px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
+          className="mt-4 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-black"
         >
           contato@work4you.ai
         </a>

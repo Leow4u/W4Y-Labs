@@ -58,7 +58,7 @@ export default function CookieBanner({ locale }: { locale: SiteLocale }) {
         <button
           type="button"
           onClick={() => decide("all")}
-          className="rounded-full bg-mata px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
+          className="rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
         >
           {t.all}
         </button>

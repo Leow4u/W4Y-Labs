@@ -168,7 +168,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   const inputCls =
     "w-full rounded-xl border border-line bg-white px-3.5 py-3 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-salvia";
   const btnPrim =
-    "w-full rounded-xl bg-mata px-4 py-3 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep disabled:opacity-50";
+    "w-full rounded-xl bg-ink px-4 py-3 text-sm font-semibold text-paper transition-colors hover:bg-black disabled:opacity-50";
 
   const Mensagens = () => (
     <>

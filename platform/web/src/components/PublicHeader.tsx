@@ -89,14 +89,14 @@ export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
             {session ? (
               <Link
                 href="/abrir"
-                className="inline-block whitespace-nowrap rounded-full bg-mata px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
+                className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
               >
                 {t.open}
               </Link>
             ) : (
               <Link
                 href="/login"
-                className="inline-block whitespace-nowrap rounded-full bg-mata px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
+                className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
               >
                 {t.signIn}
               </Link>

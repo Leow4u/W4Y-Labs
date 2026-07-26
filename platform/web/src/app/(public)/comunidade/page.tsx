@@ -204,7 +204,7 @@ export default async function ComunidadePage() {
           <div className="mt-7 flex flex-wrap items-center justify-center gap-3">
             <a
               href={JOIN_MAILTO}
-              className="rounded-full bg-mata px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
+              className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-black"
             >
               {c.joinCta}
             </a>
@@ -298,7 +298,7 @@ export default async function ComunidadePage() {
           </div>
           <a
             href={JOIN_MAILTO}
-            className="mt-5 inline-block shrink-0 rounded-full bg-mata px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep sm:mt-0"
+            className="mt-5 inline-block shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-black sm:mt-0"
           >
             {c.eventsCta}
           </a>

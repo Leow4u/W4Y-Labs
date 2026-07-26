@@ -83,7 +83,7 @@ export default async function BlogPostPage({
           <p className="font-semibold text-ink">{t.ctaTitle}</p>
           <Link
             href="/login"
-            className="mt-3 inline-block rounded-full bg-mata px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
+            className="mt-3 inline-block rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-black"
           >
             {t.cta}
           </Link>

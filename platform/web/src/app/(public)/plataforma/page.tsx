@@ -227,7 +227,7 @@ export default async function PlataformaPage() {
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <Link
               href="/login"
-              className="rounded-full bg-mata px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-mata-deep"
+              className="rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
             >
               {t.hero.ctaPrimary}
             </Link>
@@ -481,7 +481,7 @@ export default async function PlataformaPage() {
           <div className="mt-7">
             <Link
               href="/login"
-              className="inline-block rounded-full bg-mata px-7 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-mata-deep"
+              className="inline-block rounded-full bg-ink px-7 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
             >
               {t.cta.button}
             </Link>

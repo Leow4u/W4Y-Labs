@@ -209,7 +209,7 @@ export default async function PrecosPage() {
                   href="/login"
                   className={`mt-6 rounded-full px-5 py-2.5 text-center text-sm font-semibold transition-colors ${
                     p.highlight
-                      ? "bg-mata text-paper hover:bg-mata-deep"
+                      ? "bg-ink text-paper hover:bg-black"
                       : "border border-line bg-paper text-ink hover:border-ink-faint"
                   }`}
                 >

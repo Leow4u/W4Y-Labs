@@ -301,7 +301,7 @@ export default async function WorkshopsPage() {
         </div>
         <a
           href={TEAM_MAILTO}
-          className="mt-5 inline-block shrink-0 rounded-full bg-mata px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep sm:mt-0"
+          className="mt-5 inline-block shrink-0 rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-black sm:mt-0"
         >
           {t.teamCta}
         </a>

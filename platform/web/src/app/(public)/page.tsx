@@ -357,7 +357,7 @@ export default async function LandingPage() {
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <Link
               href="/login"
-              className="rounded-full bg-mata px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-mata-deep"
+              className="rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
             >
               {t.hero.ctaBuild}
             </Link>

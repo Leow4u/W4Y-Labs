@@ -104,7 +104,7 @@ export default function DelegationInput({ compact = false }: { compact?: boolean
           </span>
           <button
             onClick={start}
-            className="rounded-full bg-mata px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-mata-deep"
+            className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-paper transition-colors hover:bg-black"
           >
             {compact ? "Começar agora →" : "Construir meu agente →"}
           </button>
