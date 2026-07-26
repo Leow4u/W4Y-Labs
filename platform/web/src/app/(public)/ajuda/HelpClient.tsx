@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { SiteLocale } from "@/lib/site-locale-shared";
+import Icon, { type SiteIconName } from "@/components/site-icons";
 
 // Help center (Cursor-style): searchable topic grid + FAQ accordion.
 // Topics link into the real docs; FAQs carry inline answers.
@@ -14,6 +15,7 @@ interface TopicLink {
 interface Topic {
   title: string;
   subtitle: string;
+  icon: SiteIconName;
   links: TopicLink[];
 }
 interface Faq {
@@ -24,6 +26,7 @@ interface QuickCard {
   href: string;
   title: string;
   sub: string;
+  icon: SiteIconName;
 }
 interface HelpContent {
   kicker: string;
@@ -50,16 +53,19 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
         href: "/documentacao",
         title: "Documentação",
         sub: "Guias completos do produto",
+        icon: "book",
       },
       {
         href: "/comunidade",
         title: "Comunidade",
         sub: "Troque ideias com quem constrói",
+        icon: "users",
       },
       {
         href: "mailto:contato@work4you.ai",
         title: "Fale com a gente",
         sub: "contato@work4you.ai",
+        icon: "chat",
       },
     ],
     browseLabel: "Navegar por tópicos",
@@ -73,6 +79,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Primeiros passos",
         subtitle: "Crie a conta e delegue a primeira tarefa.",
+        icon: "rocket",
         links: [
           { label: "O que é a Work4You", href: "/documentacao/o-que-e" },
           { label: "Criar conta e começar", href: "/documentacao/primeiros-passos" },
@@ -83,6 +90,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Usando o agente",
         subtitle: "Tarefas, projetos, rotinas e entregas.",
+        icon: "chat",
         links: [
           { label: "Tarefas e sessões", href: "/documentacao/tarefas-e-sessoes" },
           { label: "Projetos", href: "/documentacao/projetos" },
@@ -93,6 +101,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Construindo agentes",
         subtitle: "Agentes sob medida, com conhecimento e limites.",
+        icon: "grid",
         links: [
           { label: "Agent Studio", href: "/documentacao/agent-studio" },
           { label: "Habilidades", href: "/documentacao/habilidades" },
@@ -103,6 +112,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Conexões",
         subtitle: "WhatsApp, e-mail e os apps que você já usa.",
+        icon: "plug",
         links: [
           { label: "Canais — WhatsApp, Telegram e mais", href: "/documentacao/canais" },
           { label: "Conectores — mais de 1.000 apps", href: "/documentacao/conectores" },
@@ -159,16 +169,19 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
         href: "/documentacao",
         title: "Documentation",
         sub: "Complete product guides",
+        icon: "book",
       },
       {
         href: "/comunidade",
         title: "Community",
         sub: "Swap ideas with fellow builders",
+        icon: "users",
       },
       {
         href: "mailto:contato@work4you.ai",
         title: "Talk to us",
         sub: "contato@work4you.ai",
+        icon: "chat",
       },
     ],
     browseLabel: "Browse by topic",
@@ -182,6 +195,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Getting started",
         subtitle: "Create your account and delegate your first task.",
+        icon: "rocket",
         links: [
           { label: "What is Work4You", href: "/documentacao/o-que-e" },
           { label: "Create an account and get started", href: "/documentacao/primeiros-passos" },
@@ -192,6 +206,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Using your agent",
         subtitle: "Tasks, projects, routines, and deliveries.",
+        icon: "chat",
         links: [
           { label: "Tasks and sessions", href: "/documentacao/tarefas-e-sessoes" },
           { label: "Projects", href: "/documentacao/projetos" },
@@ -202,6 +217,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Building agents",
         subtitle: "Custom-built agents, with knowledge and limits.",
+        icon: "grid",
         links: [
           { label: "Agent Studio", href: "/documentacao/agent-studio" },
           { label: "Skills", href: "/documentacao/habilidades" },
@@ -212,6 +228,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       {
         title: "Connections",
         subtitle: "WhatsApp, email, and the apps you already use.",
+        icon: "plug",
         links: [
           { label: "Channels — WhatsApp, Telegram, and more", href: "/documentacao/canais" },
           { label: "Connectors — over 1,000 apps", href: "/documentacao/conectores" },
@@ -328,7 +345,10 @@ export default function HelpClient({ locale }: { locale: SiteLocale }) {
               href={c.href}
               className="group rounded-2xl border border-line bg-paper p-5 transition-colors hover:border-salvia hover:bg-paper-deep"
             >
-              <p className="font-semibold text-ink group-hover:text-mata-deep">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-salvia-soft text-mata">
+                <Icon name={c.icon} className="h-5 w-5" />
+              </span>
+              <p className="mt-4 font-semibold text-ink group-hover:text-mata-deep">
                 {c.title}
               </p>
               <p className="mt-1 text-sm text-ink-soft">{c.sub}</p>
@@ -347,8 +367,13 @@ export default function HelpClient({ locale }: { locale: SiteLocale }) {
         <div className="mt-4 grid gap-x-10 gap-y-8 sm:grid-cols-2">
           {topics.map((t) => (
             <section key={t.title}>
-              <h2 className="font-bold text-ink">{t.title}</h2>
-              <p className="mt-1 text-sm text-ink-soft">{t.subtitle}</p>
+              <div className="flex items-center gap-2.5">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-salvia-soft text-mata">
+                  <Icon name={t.icon} className="h-4 w-4" />
+                </span>
+                <h2 className="font-bold text-ink">{t.title}</h2>
+              </div>
+              <p className="mt-2 text-sm text-ink-soft">{t.subtitle}</p>
               <ul className="mt-3 space-y-1.5">
                 {t.links.map((l) => (
                   <li key={l.label}>

@@ -3,6 +3,22 @@ import { notFound } from "next/navigation";
 import { DOCS as DOCS_PT, docBySlug } from "../docs";
 import { DOCS as DOCS_EN, docBySlug as docBySlugEn } from "../docs.en";
 import { getSiteLocale } from "@/lib/site-locale";
+import Icon, { type SiteIconName } from "@/components/site-icons";
+
+const ICON_BY_SLUG: Record<string, SiteIconName> = {
+  "o-que-e": "sparkle",
+  "primeiros-passos": "rocket",
+  "planos-e-creditos": "coins",
+  "tarefas-e-sessoes": "chat",
+  projetos: "folder",
+  agenda: "calendar",
+  "entregas-e-arquivos": "file",
+  "agent-studio": "grid",
+  habilidades: "compass",
+  canais: "broadcast",
+  conectores: "plug",
+  plataformas: "monitor",
+};
 
 export function generateStaticParams() {
   return DOCS_PT.map((d) => ({ slug: d.slug }));
@@ -43,10 +59,15 @@ export default async function DocArticlePage({
 
   return (
     <article className="max-w-[46rem]">
-      <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-        {doc.category}
-      </p>
-      <h1 className="mt-3 text-[2.1rem] font-extrabold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance]">
+      <div className="flex items-center gap-3">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-salvia-soft text-mata">
+          <Icon name={ICON_BY_SLUG[doc.slug] ?? "book"} className="h-5 w-5" />
+        </span>
+        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
+          {doc.category}
+        </p>
+      </div>
+      <h1 className="mt-4 text-[2.1rem] font-extrabold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance]">
         {doc.title}
       </h1>
       <p className="mt-3 text-lg leading-relaxed text-ink-soft">{doc.description}</p>

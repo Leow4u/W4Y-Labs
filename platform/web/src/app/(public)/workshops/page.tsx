@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import Icon from "@/components/site-icons";
 import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = {
@@ -12,8 +14,14 @@ const RSVP_MAILTO =
 const TEAM_MAILTO =
   "mailto:contato@work4you.ai?subject=Workshop%20para%20o%20meu%20time";
 
-type Track = { level: string; title: string; text: string; length: string };
-type Audience = { title: string; text: string };
+type Track = {
+  level: string;
+  title: string;
+  text: string;
+  length: string;
+  icon: string;
+};
+type Audience = { title: string; text: string; icon: string };
 
 type WorkshopsContent = {
   kicker: string;
@@ -70,18 +78,21 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
         title: "Work4You 101 — o primeiro agente",
         text: "Da conta criada à primeira entrega: como delegar bem, aprovar com segurança e transformar a primeira tarefa numa rotina.",
         length: "1h ao vivo",
+        icon: "rocket",
       },
       {
         level: "Conexões",
         title: "Seu agente nos seus apps",
         text: "WhatsApp, Gmail, planilhas e CRM: conectando os aplicativos do dia a dia e comandando o agente de onde você estiver.",
         length: "1h ao vivo",
+        icon: "plug",
       },
       {
         level: "Avançado",
         title: "Agent Studio — do agente ao time",
         text: "Agentes com papel definido: conhecimento próprio, teto de créditos, canais por agente e delegação de objetivos grandes.",
         length: "1h ao vivo",
+        icon: "grid",
       },
     ],
     audiencesTitle: "Feito pro seu tipo de negócio.",
@@ -91,18 +102,22 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
       {
         title: "Agências e marketing",
         text: "Posts com copy e arte, relatórios de campanha, atendimento a clientes — no ritmo de agência.",
+        icon: "sparkle",
       },
       {
         title: "Comércio e e-commerce",
         text: "Atendimento no WhatsApp, catálogo respondido com fonte, cobranças e pós-venda automáticos.",
+        icon: "coins",
       },
       {
         title: "Serviços e consultórios",
         text: "Agendamento, confirmação, lembretes e follow-up — a recepção que nunca sai do ar.",
+        icon: "calendar",
       },
       {
         title: "Times de vendas",
         text: "Lead novo vira proposta em minutos; o funil inteiro monitorado por rotina.",
+        icon: "chat",
       },
     ],
     teamTitle: "Workshop fechado pro seu time?",
@@ -138,18 +153,21 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
         title: "Work4You 101 — your first agent",
         text: "From account setup to your first delivery: how to delegate well, approve with confidence, and turn that first task into a routine.",
         length: "1h live",
+        icon: "rocket",
       },
       {
         level: "Connections",
         title: "Your agent in your apps",
         text: "WhatsApp, Gmail, spreadsheets, and your CRM: connect the apps you use every day and run your agent from wherever you are.",
         length: "1h live",
+        icon: "plug",
       },
       {
         level: "Advanced",
         title: "Agent Studio — from one agent to a team",
         text: "Agents with defined roles: their own knowledge, credit caps, per-agent channels, and delegation of big goals.",
         length: "1h live",
+        icon: "grid",
       },
     ],
     audiencesTitle: "Built for your kind of business.",
@@ -159,18 +177,22 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
       {
         title: "Agencies and marketing",
         text: "Posts with copy and artwork, campaign reports, client service — at agency pace.",
+        icon: "sparkle",
       },
       {
         title: "Retail and e-commerce",
         text: "WhatsApp customer service, catalog questions answered with sources, automatic billing and post-sale follow-up.",
+        icon: "coins",
       },
       {
         title: "Services and clinics",
         text: "Scheduling, confirmations, reminders, and follow-up — the front desk that never goes offline.",
+        icon: "calendar",
       },
       {
         title: "Sales teams",
         text: "A new lead becomes a proposal in minutes; the whole funnel monitored by a routine.",
+        icon: "chat",
       },
     ],
     teamTitle: "A private workshop for your team?",
@@ -211,12 +233,22 @@ export default async function WorkshopsPage() {
           {t.nextEvent}
         </p>
         <div className="mt-4 overflow-hidden rounded-3xl border border-line bg-mata-deep sm:flex">
-          <div className="flex flex-col items-center justify-center bg-mata px-10 py-8 text-center sm:py-0">
-            <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-paper/70">
-              {t.eventMonth}
-            </p>
-            <p className="font-brand text-5xl font-extrabold text-paper">30</p>
-            <p className="mt-1 font-mono text-[11px] text-paper/70">2026</p>
+          <div className="relative flex flex-col items-center justify-center overflow-hidden bg-mata px-10 py-8 text-center sm:py-0">
+            <Image
+              src="/media/studio-mist.jpg"
+              alt=""
+              fill
+              sizes="(min-width: 640px) 12rem, 100vw"
+              className="object-cover"
+            />
+            <div className="absolute inset-0 bg-mata/70" />
+            <div className="relative z-10">
+              <p className="font-mono text-[11px] uppercase tracking-[0.18em] text-paper/80">
+                {t.eventMonth}
+              </p>
+              <p className="font-brand text-5xl font-extrabold text-paper">30</p>
+              <p className="mt-1 font-mono text-[11px] text-paper/80">2026</p>
+            </div>
           </div>
           <div className="flex-1 px-8 py-8 sm:px-10">
             <div className="flex flex-wrap items-center gap-2 font-mono text-[10px] font-medium uppercase tracking-[0.16em]">
@@ -260,7 +292,10 @@ export default async function WorkshopsPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
           {t.tracks.map((track) => (
             <div key={track.title} className="flex flex-col rounded-2xl border border-line bg-paper p-6">
-              <p className="font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-mata">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-salvia-soft text-mata">
+                <Icon name={track.icon} className="h-5 w-5" />
+              </span>
+              <p className="mt-4 font-mono text-[10px] font-medium uppercase tracking-[0.16em] text-mata">
                 {track.level}
               </p>
               <h3 className="mt-2 font-bold text-ink">{track.title}</h3>
@@ -284,8 +319,13 @@ export default async function WorkshopsPage() {
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {t.audiences.map((a) => (
             <div key={a.title} className="rounded-2xl border border-line bg-paper p-6">
-              <h3 className="font-bold text-ink">{a.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-ink-soft">{a.text}</p>
+              <div className="flex items-center gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-salvia-soft text-mata">
+                  <Icon name={a.icon} className="h-4 w-4" />
+                </span>
+                <h3 className="font-bold text-ink">{a.title}</h3>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed text-ink-soft">{a.text}</p>
             </div>
           ))}
         </div>

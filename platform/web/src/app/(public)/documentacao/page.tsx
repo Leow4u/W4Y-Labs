@@ -2,6 +2,22 @@ import Link from "next/link";
 import { CATEGORIES as CATS_PT, DOCS as DOCS_PT } from "./docs";
 import { CATEGORIES as CATS_EN, DOCS as DOCS_EN } from "./docs.en";
 import { getSiteLocale } from "@/lib/site-locale";
+import Icon, { type SiteIconName } from "@/components/site-icons";
+
+const ICON_BY_SLUG: Record<string, SiteIconName> = {
+  "o-que-e": "sparkle",
+  "primeiros-passos": "rocket",
+  "planos-e-creditos": "coins",
+  "tarefas-e-sessoes": "chat",
+  projetos: "folder",
+  agenda: "calendar",
+  "entregas-e-arquivos": "file",
+  "agent-studio": "grid",
+  habilidades: "compass",
+  canais: "broadcast",
+  conectores: "plug",
+  plataformas: "monitor",
+};
 
 export const metadata = {
   title: "Documentação — Work4You",
@@ -52,7 +68,13 @@ export default async function DocsIndexPage() {
                   href={`/documentacao/${d.slug}`}
                   className="group rounded-2xl border border-line bg-paper p-5 transition-colors hover:border-salvia hover:bg-paper-deep"
                 >
-                  <p className="font-semibold text-ink group-hover:text-mata-deep">
+                  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-salvia-soft text-mata">
+                    <Icon
+                      name={ICON_BY_SLUG[d.slug] ?? "book"}
+                      className="h-5 w-5"
+                    />
+                  </span>
+                  <p className="mt-4 font-semibold text-ink group-hover:text-mata-deep">
                     {d.title}
                   </p>
                   <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">

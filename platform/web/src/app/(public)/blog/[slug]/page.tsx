@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import CoverArt from "@/components/CoverArt";
 import { POSTS as POSTS_PT, postBySlug } from "../posts";
 import { POSTS as POSTS_EN, postBySlug as postBySlugEn } from "../posts.en";
 import { getSiteLocale } from "@/lib/site-locale";
@@ -69,7 +70,10 @@ export default async function BlogPostPage({
           </time>
           <span className="text-ink-faint">· {post.readingMinutes} {t.min}</span>
         </div>
-        <h1 className="mt-4 text-[2.3rem] font-extrabold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance]">
+        <div className="relative mt-6 aspect-[21/9] overflow-hidden rounded-3xl border border-line">
+          <CoverArt seed={post.slug} className="absolute inset-0 h-full w-full" />
+        </div>
+        <h1 className="mt-8 text-[2.3rem] font-extrabold leading-tight tracking-[-0.02em] text-ink [text-wrap:balance]">
           {post.title}
         </h1>
         <p className="mt-4 text-lg leading-relaxed text-ink-soft">
@@ -99,14 +103,22 @@ export default async function BlogPostPage({
                 <Link
                   key={p.slug}
                   href={`/blog/${p.slug}`}
-                  className="rounded-2xl border border-line p-5 transition-colors hover:border-salvia hover:bg-paper-deep"
+                  className="flex items-center gap-4 rounded-2xl border border-line p-4 pr-5 transition-colors hover:border-salvia hover:bg-paper-deep"
                 >
-                  <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mata">
-                    {p.category}
-                  </p>
-                  <p className="mt-1.5 text-sm font-semibold text-ink">
-                    {p.title}
-                  </p>
+                  <div className="relative h-14 w-[4.5rem] shrink-0 overflow-hidden rounded-xl">
+                    <CoverArt
+                      seed={p.slug}
+                      className="absolute inset-0 h-full w-full"
+                    />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-mata">
+                      {p.category}
+                    </p>
+                    <p className="mt-1.5 text-sm font-semibold text-ink">
+                      {p.title}
+                    </p>
+                  </div>
                 </Link>
               ))}
             </div>

@@ -1,4 +1,6 @@
+import Image from "next/image";
 import Link from "next/link";
+import Icon, { type SiteIconName } from "@/components/site-icons";
 import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = {
@@ -11,7 +13,7 @@ export const metadata = {
 // page: spontaneous applications per area, styled like a roles list).
 // Mailto subjects stay pt-encoded in both locales on purpose.
 type Area = { title: string; area: string; subject: string };
-type Value = { title: string; text: string };
+type Value = { title: string; text: string; icon: SiteIconName };
 
 const CONTENT = {
   pt: {
@@ -19,26 +21,29 @@ const CONTENT = {
     heading: "A gente constrói o novo jeito de trabalhar.",
     manifesto: [
       "A Work4You existe pra dar a cada empreendedor o que só as grandes empresas tinham: um time que trabalha por ele. Agentes de IA com computador próprio, entregando trabalho de verdade, 24 horas por dia.",
-      "Somos um time pequeno e denso, em estágio inicial — o que significa que cada pessoa que entra agora molda o produto, a cultura e o rumo da empresa. Não é figura de linguagem: é o tamanho do time.",
+      "Aqui a gente trabalha do jeito que prega: cada pessoa comanda um time de agentes e entrega o que antes exigia um departamento inteiro. Não existe engrenagem na Work4You — existe dono. Quem entra molda o produto, a cultura e o rumo da empresa.",
       "Se isso soa como o lugar onde você faria o melhor trabalho da sua vida, a gente quer te conhecer.",
     ],
     values: [
       {
         title: "Você trabalha com agentes",
         text: "Aqui ninguém trabalha sozinho: cada pessoa do time opera com os próprios agentes que construímos. É o produto rodando a empresa — e você sentindo, todo dia, o que o cliente sente.",
+        icon: "sparkle",
       },
       {
-        title: "Poucos e muito bons",
-        text: "Time pequeno de propósito. Cada pessoa tem dono de verdade sobre a sua área, fala direto com clientes e vê a própria decisão no ar em dias, não em trimestres.",
+        title: "Donos, não engrenagens",
+        text: "Cada pessoa tem dono de verdade sobre a sua área, fala direto com clientes e vê a própria decisão no ar em dias, não em trimestres.",
+        icon: "users",
       },
       {
         title: "Produto acima de tudo",
         text: "A régua é simples: o que a gente entrega deixa o trabalho de alguém melhor hoje? Honestidade no que prometemos, capricho no que lançamos.",
+        icon: "heart",
       },
     ] as Value[],
     rolesTitle: "Vagas abertas.",
     rolesText:
-      "Não temos vagas formais abertas neste momento — mas talento excepcional não espera edital. Se manda uma mensagem contando o que você faria por aqui.",
+      "As vagas formais abrem em ondas, conforme a operação cresce. Mas talento excepcional não espera edital: se apresenta. Manda uma mensagem contando o que você faria por aqui.",
     areas: [
       {
         title: "Candidatura espontânea — Produto & Engenharia",
@@ -68,26 +73,29 @@ const CONTENT = {
     heading: "We're building the new way of working.",
     manifesto: [
       "Work4You exists to give every entrepreneur what only big companies used to have: a team that works for them. AI agents with their own computers, delivering real work, 24 hours a day.",
-      "We're a small, dense team at an early stage — which means everyone who joins now shapes the product, the culture, and the direction of the company. That's not a figure of speech: it's the size of the team.",
+      "We work the way we preach: every person here runs a team of agents and delivers what used to take a whole department. There are no cogs at Work4You — only owners. Everyone who joins shapes the product, the culture, and the direction of the company.",
       "If this sounds like the place where you'd do the best work of your life, we want to meet you.",
     ],
     values: [
       {
         title: "You work with agents",
         text: "Nobody here works alone: everyone on the team runs their own agents — the ones we build. It's the product running the company, and you feeling what customers feel, every single day.",
+        icon: "sparkle",
       },
       {
-        title: "A few great people",
-        text: "Small on purpose. Everyone has real ownership of their area, talks directly with customers, and sees their own decisions live in days, not quarters.",
+        title: "Owners, not cogs",
+        text: "Everyone has real ownership of their area, talks directly with customers, and sees their own decisions live in days, not quarters.",
+        icon: "users",
       },
       {
         title: "Product above all",
         text: "The bar is simple: does what we ship make someone's work better today? Honesty in what we promise, craft in what we launch.",
+        icon: "heart",
       },
     ] as Value[],
     rolesTitle: "Open roles.",
     rolesText:
-      "We don't have formal openings right now — but exceptional talent doesn't wait for a job posting. Send us a message telling us what you'd do here.",
+      "Formal openings come in waves as the operation grows. But exceptional talent doesn't wait for a posting: introduce yourself. Send us a message telling us what you'd do here.",
     areas: [
       {
         title: "Open application — Product & Engineering",
@@ -120,18 +128,29 @@ export default async function CarreirasPage() {
 
   return (
     <div className="px-6">
-      {/* Manifesto */}
-      <div className="mx-auto max-w-2xl pt-16 sm:pt-20">
-        <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-          {c.kicker}
-        </p>
-        <h1 className="mt-3 text-4xl font-extrabold tracking-[-0.02em] text-ink [text-wrap:balance] sm:text-5xl">
-          {c.heading}
-        </h1>
-        <div className="mt-7 space-y-5 text-lg leading-relaxed text-ink-soft">
-          {c.manifesto.map((p) => (
-            <p key={p}>{p}</p>
-          ))}
+      {/* Manifesto — editorial spread: text left, photo right on lg */}
+      <div className="mx-auto max-w-5xl pt-16 sm:pt-20 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center lg:gap-14">
+        <div className="mx-auto max-w-2xl lg:mx-0">
+          <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
+            {c.kicker}
+          </p>
+          <h1 className="mt-3 text-4xl font-extrabold tracking-[-0.02em] text-ink [text-wrap:balance] sm:text-5xl">
+            {c.heading}
+          </h1>
+          <div className="mt-7 space-y-5 text-lg leading-relaxed text-ink-soft">
+            {c.manifesto.map((p) => (
+              <p key={p}>{p}</p>
+            ))}
+          </div>
+        </div>
+        <div className="relative hidden aspect-[4/5] overflow-hidden rounded-3xl lg:block">
+          <Image
+            src="/media/hero-hills.jpg"
+            alt=""
+            fill
+            className="object-cover"
+            sizes="(min-width: 1024px) 360px, 0px"
+          />
         </div>
       </div>
 
@@ -140,7 +159,10 @@ export default async function CarreirasPage() {
         <div className="grid gap-4 sm:grid-cols-3">
           {c.values.map((v) => (
             <div key={v.title} className="rounded-2xl border border-line bg-paper p-6">
-              <h2 className="font-bold text-ink">{v.title}</h2>
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-salvia-soft text-mata">
+                <Icon name={v.icon} className="h-5 w-5" />
+              </span>
+              <h2 className="mt-4 font-bold text-ink">{v.title}</h2>
               <p className="mt-2 text-sm leading-relaxed text-ink-soft">{v.text}</p>
             </div>
           ))}

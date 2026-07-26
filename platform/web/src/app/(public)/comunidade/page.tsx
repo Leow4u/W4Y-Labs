@@ -1,4 +1,6 @@
 import Link from "next/link";
+import Image from "next/image";
+import Icon, { type SiteIconName } from "@/components/site-icons";
 import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = {
@@ -21,7 +23,7 @@ type ComunidadeContent = {
   marquee: { tag: string; text: string }[];
   formatsTitle: string;
   formatsLead: string;
-  formats: { title: string; text: string }[];
+  formats: { icon: SiteIconName; title: string; text: string }[];
   bandTitle: string;
   bandLead: string;
   bandItems: [string, string][];
@@ -58,18 +60,22 @@ const CONTENT: Record<"pt" | "en", ComunidadeContent> = {
       "De um café descontraído a um fim de semana inteiro construindo — os formatos da comunidade Work4You.",
     formats: [
       {
+        icon: "broadcast",
         title: "Encontros online",
         text: "Demos ao vivo, troca de casos e perguntas abertas com o time. O jeito mais rápido de ver o que outros donos de agente estão fazendo.",
       },
       {
+        icon: "monitor",
         title: "Workshops ao vivo",
         text: "Sessões mão na massa: você sai com um agente montado e uma rotina no ar. Do básico ao avançado.",
       },
       {
+        icon: "rocket",
         title: "Desafios de construção",
         text: "Um fim de semana pra montar um agente que trabalha de verdade — com o time por perto e os melhores projetos em destaque.",
       },
       {
+        icon: "heart",
         title: "Cafés Work4You",
         text: "Encontros presenciais, informais, cidade a cidade — construtores na mesma mesa, à medida que a comunidade cresce.",
       },
@@ -131,18 +137,22 @@ const CONTENT: Record<"pt" | "en", ComunidadeContent> = {
       "From a casual coffee to a whole weekend of building — the Work4You community formats.",
     formats: [
       {
+        icon: "broadcast",
         title: "Online meetups",
         text: "Live demos, shared use cases, and open Q&A with the team. The fastest way to see what other agent owners are doing.",
       },
       {
+        icon: "monitor",
         title: "Live workshops",
         text: "Hands-on sessions: you leave with an agent built and a routine running. From basics to advanced.",
       },
       {
+        icon: "rocket",
         title: "Build challenges",
         text: "A weekend to build an agent that actually works — with the team close by and the best projects in the spotlight.",
       },
       {
+        icon: "heart",
         title: "Work4You Coffees",
         text: "Informal, in-person meetups, city by city — builders at the same table as the community grows.",
       },
@@ -252,7 +262,10 @@ export default async function ComunidadePage() {
                 key={f.title}
                 className="rounded-2xl border border-line bg-paper p-6"
               >
-                <h3 className="font-bold text-ink">{f.title}</h3>
+                <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-salvia-soft text-mata">
+                  <Icon name={f.icon} className="h-5 w-5" />
+                </span>
+                <h3 className="mt-4 font-bold text-ink">{f.title}</h3>
                 <p className="mt-2 text-sm leading-relaxed text-ink-soft">
                   {f.text}
                 </p>
@@ -264,20 +277,30 @@ export default async function ComunidadePage() {
 
       {/* Founding-member band */}
       <div className="px-6">
-        <div className="mx-auto mt-16 max-w-4xl rounded-3xl bg-mata-deep px-8 py-12 text-center sm:px-14">
-          <h2 className="text-2xl font-extrabold tracking-[-0.01em] text-paper [text-wrap:balance] sm:text-3xl">
-            {c.bandTitle}
-          </h2>
-          <p className="mx-auto mt-3 max-w-xl leading-relaxed text-paper/80">
-            {c.bandLead}
-          </p>
-          <div className="mx-auto mt-9 grid max-w-2xl gap-6 sm:grid-cols-3">
-            {c.bandItems.map(([t, d]) => (
-              <div key={t}>
-                <p className="font-semibold text-paper">{t}</p>
-                <p className="mt-1.5 text-sm leading-relaxed text-paper/70">{d}</p>
-              </div>
-            ))}
+        <div className="relative mx-auto mt-16 max-w-4xl overflow-hidden rounded-3xl bg-mata-deep px-8 py-12 text-center sm:px-14">
+          <Image
+            src="/media/night-forest.jpg"
+            alt=""
+            fill
+            sizes="(min-width: 896px) 896px, 100vw"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-mata-deep/80" />
+          <div className="relative z-10">
+            <h2 className="text-2xl font-extrabold tracking-[-0.01em] text-paper [text-wrap:balance] sm:text-3xl">
+              {c.bandTitle}
+            </h2>
+            <p className="mx-auto mt-3 max-w-xl leading-relaxed text-paper/80">
+              {c.bandLead}
+            </p>
+            <div className="mx-auto mt-9 grid max-w-2xl gap-6 sm:grid-cols-3">
+              {c.bandItems.map(([t, d]) => (
+                <div key={t}>
+                  <p className="font-semibold text-paper">{t}</p>
+                  <p className="mt-1.5 text-sm leading-relaxed text-paper/70">{d}</p>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>
