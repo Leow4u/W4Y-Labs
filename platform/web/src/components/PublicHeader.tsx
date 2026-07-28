@@ -3,7 +3,6 @@ import Link from "next/link";
 import { getDevSession } from "@/lib/dev-auth";
 import MobileNav from "@/components/MobileNav";
 import ResourcesMenu from "@/components/ResourcesMenu";
-import LocaleChip from "@/components/LocaleChip";
 import type { SiteLocale } from "@/lib/site-locale";
 
 // Public header — light ground, generous spacing. "Recursos" is a real
@@ -84,7 +83,6 @@ export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
         </nav>
 
         <div className="flex items-center gap-3">
-          <LocaleChip locale={locale} />
           <div className="hidden md:block">
             {session ? (
               <Link

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import LocaleChip from "@/components/LocaleChip";
 import type { SiteLocale } from "@/lib/site-locale";
 
 // Public footer — locale-aware columns (labels only; hrefs are shared).
@@ -109,11 +110,16 @@ export default function PublicFooter({ locale }: { locale: SiteLocale }) {
         ))}
       </div>
       <div className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl items-center justify-between py-5">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 py-5">
           <p className="text-xs text-ink-faint">
             © 2026 W4Y-Labs. {t.rights}
           </p>
-          <p className="font-mono text-xs text-ink-faint">work4you.ai</p>
+          <div className="flex items-center gap-4">
+            {/* Language lives here (Cursor-style): the site auto-detects from
+                the browser, this is the escape hatch when it guesses wrong. */}
+            <LocaleChip locale={locale} />
+            <p className="font-mono text-xs text-ink-faint">work4you.ai</p>
+          </div>
         </div>
       </div>
     </footer>
