@@ -32,6 +32,13 @@ if ((-not $env:CLOUDSDK_PYTHON) -and (Test-Path (Join-Path $env:USERPROFILE 'Pyt
     $env:CLOUDSDK_PYTHON = Join-Path $env:USERPROFILE 'Python312\python.exe'
 }
 $env:CLOUDSDK_CORE_DISABLE_PROMPTS = '1'
+# Pin the target project for every script that dot-sources this file. Without
+# it each gcloud call inherits whatever project the machine happens to have
+# selected — and this machine also works on unrelated projects. A deploy that
+# lands in the wrong project either aborts (best case, 26/07) or creates a
+# duplicate service there. Process-scoped: the developer's global gcloud
+# config is left alone.
+$env:CLOUDSDK_CORE_PROJECT = $script:PROJECT_ID
 
 function gcloud { & $script:GcloudExe @args }
 
