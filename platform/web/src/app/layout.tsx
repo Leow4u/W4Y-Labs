@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { getSiteLocale, htmlLang } from "@/lib/site-locale";
 import "./globals.css";
 
 // Brand typography (W4Y): one sans for UI + display, one mono for code.
@@ -21,14 +22,19 @@ export const metadata: Metadata = {
   description: "Work4You — plataforma de agentes de IA autônomos",
 };
 
-export default function RootLayout({
+// `lang` must match the language actually served: Chrome decides whether to
+// offer its translate bar from it, screen readers pick pronunciation from it,
+// and search engines index the page's language by it.
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getSiteLocale();
+
   return (
     <html
-      lang="en"
+      lang={htmlLang(locale)}
       className={`${jakarta.variable} ${jetbrainsMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">{children}</body>
