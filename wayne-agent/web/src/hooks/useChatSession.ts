@@ -1365,7 +1365,7 @@ export function useChatSession(
     }
   }, []);
 
-  // Local engine (desktop-shell): attach mcp_servers.composio + reload.mcp so
+  // Local engine: attach mcp_servers.composio + reload.mcp so
   // mcp_composio_* tools exist before the first Gmail/etc. turn. Without this,
   // the UI shows connectors ACTIVE while the agent falls back to skills/SDK.
   useEffect(() => {

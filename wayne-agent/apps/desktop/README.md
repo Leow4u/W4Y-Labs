@@ -45,9 +45,9 @@ Requisitos do motor: venv Wayne no monorepo (`../../.venv` ou `../../venv`) **ou
 
 IPC: `work4youDesktop.w4y.login()` / `.cloud.wsUrl()`.
 
-## Legado
+## Uma app só
 
-`apps/desktop-shell/` — **congelado**. Não portar updater/ZIP/slots/`web_dist`. Ver [STOP-SHIP.md](../desktop-shell/STOP-SHIP.md).
+Esta é a única app de desktop. A shell legada (`apps/desktop-shell/`, `appId` `com.work4you.desktop`) foi apagada a 29/07 — está no histórico do git se alguma vez for precisa. Publicar uma segunda app Electron para `w4y-engine-dist` volta a partir o feed: as duas partilhariam o mesmo `latest.yml` com `appId` diferentes, e a actualização instalaria uma segunda Work4You ao lado em vez de substituir.
 
 ## Ponte Web (próxima fase)
 

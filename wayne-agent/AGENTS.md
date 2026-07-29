@@ -507,11 +507,20 @@ The dashboard embeds the real `wayne --tui` — **not** a rewrite.  See `wayne_c
 > **Stale docs:** anything under `docs/arquivo/` is a dated record, **not**
 > instruction. Never take a product decision from it.
 >
-> **Legacy:** `apps/desktop-shell/` (motor ZIP + `loadURL` of `web_dist`) is
-> superseded and no longer the shipping app. **Stop-ship** — do not add
-> features there. Do not treat “UMA UI SÓ = web_dist” as the product
-> destination; the sections that said so were archived on 29/07 to
-> `docs/arquivo/BACKEND-MAP-legado-web-shell.md`.
+> **There is exactly one desktop app.** `apps/desktop-shell/` (motor ZIP +
+> `loadURL` of `web_dist`) was deleted on 29/07 — it had been frozen by a
+> STOP-SHIP note but stayed in the tree, and its presence kept producing
+> "which app am I testing?" confusion. Git history keeps it. Do not treat
+> “UMA UI SÓ = web_dist” as the product destination; the sections that said so
+> were archived on 29/07 to `docs/arquivo/BACKEND-MAP-legado-web-shell.md`.
+>
+> **Never publish a second Electron app to the release bucket.** Both trees
+> pointed `build.publish` at `https://storage.googleapis.com/w4y-engine-dist/`
+> with the same `artifactName`, so they shared one `latest.yml` while carrying
+> different `appId`s (`com.work4you.app` vs `com.work4you.desktop`). Whoever
+> published last owned the update feed for both, and an in-place upgrade was
+> impossible across the appId boundary — it would install a second Work4You
+> beside the first. One app, one appId, one feed.
 >
 > **Where to write what you learn** — three live docs, no fourth:
 > `docs/BACKEND-MAP.md` for engine contracts, gotchas and incidents;

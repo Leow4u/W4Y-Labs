@@ -21,7 +21,7 @@
 #       agent/ tools/ wayne_cli/ (incl. web_dist) gateway/ tui_gateway/ ...
 #
 # Excluded from the package:
-#   apps/      -- parked desktop app + shell; the app never installs itself
+#   apps/      -- the desktop app; the app never installs itself
 #   tests/     -- 71MB of test fixtures the runtime never imports
 #   release/   -- build outputs (if present)
 #   .git, node_modules, __pycache__, .venv/venv, caches, *.egg-info (any depth)

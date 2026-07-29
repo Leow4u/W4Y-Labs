@@ -1,6 +1,0 @@
-# Build artifacts — never commit (image-tag/artifact hygiene: see docs/BACKEND-MAP.md)
-node_modules/
-release*/
-dist/
-out/
-*.log

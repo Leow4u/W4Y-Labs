@@ -78,8 +78,10 @@ try {
   autoUpdater.setFeedURL({
     provider: 'generic',
     url: FEED_URL,
-    // Channel tracks the 1.x train for com.work4you.app. The legacy
-    // desktop-shell 0.3.x is on a separate GCS path — never mix.
+    // Channel tracks the 1.x train for com.work4you.app, the only Electron app
+    // publishing here. Never point a second app with a different appId at this
+    // feed: they would share one latest.yml and the "update" would install a
+    // second Work4You beside the first instead of replacing it.
     channel: 'latest'
   })
 

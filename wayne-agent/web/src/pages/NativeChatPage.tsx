@@ -39,7 +39,6 @@ import { usePageHeader } from "@/contexts/usePageHeader";
 import { useChatSession } from "@/hooks/useChatSession";
 import { useI18n } from "@/i18n";
 import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { isBootPreview } from "@/lib/boot-preview";
 import { api } from "@/lib/api";
 import { inventory } from "@/lib/inventoryApi";
 import { applyChatDisplay } from "@/lib/chat-display";
@@ -1375,10 +1374,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
         </div>
       ))}
 
-      {/* Silent during the shell's opening frame: there the engine is still
-          starting BY DESIGN, so a connection banner would report a failure
-          that isn't one. Every other context still surfaces it. */}
-      {(error ?? attachError) && !isBootPreview() && (
+      {(error ?? attachError) && (
         <div className="mb-2 rounded-xl border border-destructive/40 bg-destructive/5 px-3 py-2 text-xs text-destructive">
           {error ?? attachError}
         </div>

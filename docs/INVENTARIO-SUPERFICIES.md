@@ -54,6 +54,52 @@ O comentário no código é honesto — *"Returns [] when the plugin/API is unre
 
 Isto fecha o ciclo da primeira tarefa desta frente de trabalho: os *merges de eventos falsos* foram removidos (correto), mas a fonte real nunca foi construída.
 
+### 1.3 A UI prometia aprovação que o agente não ia pedir — RESOLVIDO 29/07
+
+O caso mais literal de *"o que o motor tem versus o que a UI expõe"*: aqui a UI expunha **errado**, e num controlo de permissão. Três defeitos independentes, todos com o mesmo efeito — o ecrã dizia que ia perguntar enquanto o agente não perguntava.
+
+| # | Era | Motor |
+|---|---|---|
+| a | `readApprovalsMode` (`mode-chip.tsx`) procurava `'smart'` e chamava manual a tudo o resto | `_normalize_approval_mode` (`tools/approval.py`) devolve **três** valores — `manual`, `smart`, `off` — e `off` é bypass equivalente ao YOLO (`approval.py:2376,2770`) |
+| b | Settings escrevia `approvals.mode` e mais nada | `/yolo` e o chip armam um bypass **por sessão** que se sobrepõe ao `config.yaml`. Escolher "perguntar sempre" na página deixava a sessão a correr sem perguntar |
+| c | `if (!current) return` no `persistApprovalsMode` | Falha silenciosa: o menu fechava no modo escolhido e o motor ficava no antigo |
+
+**(a)** O chip passa a representar `off`, incluindo o caso em que o YAML 1.1 lê `mode: off` como o booleano `False` — o motor mapeia isso de volta para `'off'`, e o chip agora também. `off` tem precedência sobre o YOLO na etiqueta, porque é o mais largo dos dois: vale em todas as conversas, na CLI e no cron. É oferecido no menu com o mesmo armar-em-dois-cliques do YOLO — as Settings já o ofereciam num select sem fricção nenhuma (`settings/constants.ts:268`), portanto escondê-lo no chip era incoerente, não era segurança.
+
+**(b)** `savePermission` passa a chamar `disarmSessionYolo()` quando o modo escolhido não é `off`. A função vive em `lib/yolo-session.ts`, junto do `setSessionYolo` que já lá estava, e lê o gateway e a sessão activa dos stores — as Settings não têm nenhum dos dois em mãos. É o caminho único: o chip já fazia isto, faltava à página.
+
+**(c)** Passa a avisar. Falha ao ler config e falha ao gravar dão notificação; a de gravar recua o cache partilhado como antes.
+
+**Etiquetas.** `Off` no select das Settings passou a `Never ask` / `Nunca perguntar` — "Off" num campo chamado "Approval mode" tanto pode ler-se "não pergunta" como "modo por definir".
+
+**Resíduo:** `setGlobalYolo()` em `lib/yolo-session.ts` continua sem chamadores. A documentação da função descreve um relâmpago na barra de estado que se activa com Shift+clique; esse relâmpago não existe no desktop. É precisamente a função que escreveria `approvals.mode: off` — deixada como está por ser código original do Hermes.
+
+### 1.4 O guarda de ficheiros sensíveis só existia no ACP — RESOLVIDO 29/07
+
+O `acp_adapter/edit_approval.py` recusa auto-aprovar edições a `.env`, chaves SSH e ao interior de `.git` — *"sensitive paths still ask even under autonomous policies"*. Essa regra nunca correu fora do ACP: o requester é preso num `ContextVar` durante uma execução ACP e, como o próprio ficheiro documenta na linha 5, *"CLI, gateway, and other sessions leave it unset and therefore bypass this guard"*.
+
+O que isso queria dizer na prática, e é maior do que parecia: **`tools/file_tools.py` não tem portão de aprovação nenhum.** A sua única proteção é uma recusa dura em caminhos de sistema e no `~/.wayne/config.yaml`. Editar o `.env` de um projeto pelo desktop nunca pediu autorização — em modo nenhum, não só em bypass.
+
+A regra foi colhida para `tools/approval.py` como **piso**, não como modo: corre antes da verificação de bypass, porque YOLO e `approvals.mode: off` compram trabalho não vigiado no projeto, não reescritas silenciosas das credenciais lá dentro. Fica acima do piso de ficheiros de política, que recusa em absoluto o `config.yaml`/`.env` do próprio Wayne — um `.env` de projeto é do utilizador, por isso este pergunta em vez de recusar. Ligado em `model_tools.py` ao lado do gancho ACP, e saltado quando o requester ACP está preso, para não perguntar duas vezes no mesmo editor.
+
+O ACP passou a consumir a mesma função em vez da sua cópia. A cópia enumerava três grafias de `.env` (`.env`, `.env.local`, `.env.production`), pelo que um `.env.staging` era auto-aprovado; a regra partilhada cobre qualquer sufixo. Aprovação nunca passa da sessão — uma entrada permanente na allowlist levaria o bypass para lá do reinício, que é o buraco que isto fecha. Contratos fixados em `tests/tools/test_sensitive_edit_approval.py`.
+
+**Alcance assumido:** só `write_file` e `patch`, as duas únicas ferramentas do toolset `file` que escrevem. Apagar um `.env` passa pelo `terminal`, que tem os seus próprios guardas. Em sessão sem superfície de pergunta (headless, sem gateway, fora do cron) aprova e regista aviso — mesma limitação documentada do `execute_code`.
+
+### 1.5 Duas apps Electron a disputar o mesmo feed de atualização — RESOLVIDO 29/07
+
+Havia duas árvores Electron: `apps/desktop` (`com.work4you.app`, 1.0.19) e `apps/desktop-shell` (`com.work4you.desktop`, 0.3.18). As duas apontavam `build.publish` para `https://storage.googleapis.com/w4y-engine-dist/` com o mesmo `artifactName` (`Work4You-${version}-${os}-${arch}.${ext}`). O provider `generic` do electron-updater mantém **um** `latest.yml` na raiz do bucket, portanto as duas partilhavam o mesmo feed.
+
+Duas consequências, e a segunda é a séria. Quem publicasse por último passava a mandar na atualização das duas. E como o `appId` difere, o NSIS não substitui: uma atualização "bem-sucedida" instalava uma **segunda** Work4You ao lado da primeira em vez de atualizar a que estava.
+
+Na prática nunca chegou a colidir, porque a shell nunca foi publicada — o `latest.yml` lido a 29/07 dava `1.0.19` / `Work4You-1.0.19-win-x64.exe` / `2026-07-29T03:22Z`, ou seja `apps/desktop`. A shell já estava congelada pelo seu próprio `STOP-SHIP.md` (*"frozen permanently"*, *"Never publish this shell as Work4You"*), estava fora dos `workspaces` do monorepo e nenhum workflow de CI lhe tocava. O que ela produzia não era risco de build: era a pergunta recorrente *"qual das apps é que eu estou a testar?"* a cada sessão.
+
+Apagada a 29/07; o histórico do git guarda-a. Foram com ela os dez ficheiros vitest em `web/src/lib/` que faziam `require()` de módulos da shell — viviam ali, como um deles explicava, porque *"the shell has no test runner of its own"* — e o `web/src/lib/boot-preview.ts`, cuja flag só era carimbada pela shell: sem ela `isBootPreview()` era permanentemente `false`, pelo que o seu único consumidor em `NativeChatPage.tsx` perdeu a condição sem alteração de comportamento. Os comentários *"ported from desktop-shell"* que restam em `w4y-cloud.cjs`, `w4y-composio.cjs` e `preload.cjs` são proveniência, não dependência. Depois da remoção: `web` com 153 testes em 11 ficheiros a passar, typecheck limpo em `web` e em `apps/desktop`.
+
+**Resto por limpar, sem urgência:** o bucket tem três canais e a app viva só lê dois — `latest.yml` (casca, via electron-updater) e `latest.json` (motor). O terceiro, `ui-latest.json`, era o canal `web_dist` da shell e continua a ser servido por `platform/wayne-fly/publish-ui.ps1`. Do lado da app sobra `w4y-deltas.cjs`, que ainda o declara em `DEFAULT_UI_LATEST` e o devolve pelo IPC `w4y:distribution:get`; o handler está tipado em `global.d.ts` e **nenhum ecrã o chama**. Anuncia um canal que a app nunca vai buscar.
+
+**Risco residual, que apagar a árvore não resolve:** uma instalação antiga de `com.work4you.desktop` que ainda exista numa máquina continua a ler este mesmo `latest.yml`, vê `1.0.19` como mais recente que `0.3.18` e, se atualizar, instala a app nova ao lado em vez de substituir a velha. Não há migração entre `appId` — teria de ser desinstalação manual da antiga. Assumido como aceitável enquanto não houver notícia de instalações legadas em uso.
+
 ---
 
 ## 2. Retrato consolidado por causa
@@ -61,9 +107,11 @@ Isto fecha o ciclo da primeira tarefa desta frente de trabalho: os *merges de ev
 | Causa | Escala | Exemplos confirmados |
 |---|---|---|
 | **Motor tem, UI não expõe** | Grande | `display.tool_progress`, `display.background_process_notifications`, `smart_model_routing`, `display.skin`, maior parte de `curator.*` e `logging.*`; RPC `session.compress`/`undo`/`branch`/`history`; `delegation.pause`, `subagent.interrupt`; billing RPC completo |
-| **Feito duas vezes** | Médio | Git (Electron IPC **e** REST); terminal (PTY Electron **e** `/api/pty`); modelos (3 UIs); subagentes (2 conchas); aprovações (2 caminhos de escrita); "o que mudou" no git (2 sondas) |
+| **Feito duas vezes** | Médio | §1.5 — duas árvores Electron a partilhar um `latest.yml`; Git (Electron IPC **e** REST); terminal (PTY Electron **e** `/api/pty`); modelos (3 UIs); subagentes (2 conchas); aprovações (2 caminhos de escrita); "o que mudou" no git (2 sondas) |
 | **Existe mas escondido** | Médio | Profiles, Starmap, Agent Studio, Command Center e Settings fora da navegação primária; `?tab=providers`, `?tab=keys`, `?tab=gateway`, `?tab=config:advanced` só por deep-link |
-| **Declarado e morto** | Pequeno | §1.1 e §1.2; eventos `skin.changed` e `voice.*` emitidos sem ouvinte; blocos de áudio tipados no ACP sem conversão |
+| **UI expõe errado** | Pequeno mas caro | §1.3 — controlo de permissão a prometer aprovação que o agente não ia pedir |
+| **Uma superfície tem, as outras não** | Pequeno | §1.4 — guarda de ficheiros sensíveis preso ao ACP; `file_tools` sem portão de aprovação nenhum |
+| **Declarado e morto** | Pequeno | §1.1 e §1.2; `setGlobalYolo()` sem chamadores; eventos `skin.changed` e `voice.*` emitidos sem ouvinte; blocos de áudio tipados no ACP sem conversão |
 
 Ordem de grandeza: dos ~120 métodos JSON-RPC do gateway, o desktop chama pouco mais de metade. Boa parte do resto serve CLI e TUI legitimamente — mas explica a sensação recorrente de *"isto já existe e não aparece"*.
 
@@ -188,7 +236,7 @@ Cron/automações/blueprints, kanban, curator, gateway de mensagens e conectores
 
 **O ACP não está no caminho do desktop Work4You.** O `acp_adapter/` só entra quando um editor externo (Zed, VS Code, JetBrains) é o cliente.
 
-- **Aprovações no desktop** vêm do evento `approval.request` do gateway e respondem por `approval.respond` — código distinto de `acp_adapter/permissions.py`. Mesmo conceito, caminhos separados.
+- **Aprovações no desktop** vêm do evento `approval.request` do gateway e respondem por `approval.respond` — código distinto de `acp_adapter/permissions.py`. Mesmo conceito, caminhos separados. Caminhos separados custam: a regra de ficheiros sensíveis existia só do lado ACP e nenhuma outra superfície a tinha — ver **§1.4**.
 - **Git no desktop** é Electron IPC (`hermes:git:*`) em local, ou REST `/api/git/*` em remoto. O ACP não tem superfície git nenhuma.
 
 Ligar o ACP não recupera nada do que está visível no desktop hoje. Dá o Work4You a correr *dentro* do editor de terceiros. É produto novo, não é reparação.
@@ -288,6 +336,8 @@ Coluna **Proveniência** apurada em 29/07 por comparação ficheiro-a-ficheiro c
 **Modelos — resolvido 29/07.** A duplicação não estava nas UIs (todas originais) mas em **quem decide como pedir o catálogo**. Existe um ajudante partilhado original, `lib/model-options.ts` → `requestModelOptions()`, que encapsula "gateway ou REST + `explicit_only`" e tem testes a fixar esse contrato (*"Pickers ask for explicitly configured providers only (#56974)"*). O `app/chat/index.tsx` e o `components/model-visibility-dialog.tsx` reimplementavam esse ramo à mão, cada um com uma regra diferente de quando usar o gateway — a razão pela qual a fuga da Anthropic/Copilot teve de ser tapada duas vezes. Ambos passaram a chamar o ajudante. Delta de comportamento aceite pelo dono: com gateway ligado mas sem sessão, os dois passam a perguntar ao gateway em vez de irem pelo REST. Os chamadores que só pedem o catálogo global (Settings, prefetch) não decidem nada e ficaram como estavam; o onboarding usa `explicitOnly: false` de propósito e não deve ser unificado.
 
 **Aprovações — resolvido 29/07.** O `ModeChip` era nosso e ignorava o cache partilhado de config: lia `approvals.mode` uma vez ao montar para estado local do componente e gravava com `saveHermesConfig()` **sem** `setHermesConfigCache()`. Resultado: mudar pelo chip deixava as Settings a mostrar o valor antigo, e vice-versa. Passou a ler por `useHermesConfigRecord()` e a escrever pelo cache partilhado com recuo em caso de falha — o mesmo padrão que o `mcp-tab.tsx` usa para acções discretas. O ficheiro `app/hooks/use-config-record.ts` diz no cabeçalho que *toda* a superfície de definições lê e escreve por esta chave; o chip era a excepção.
+
+Sincronizar o cache não chegou: as duas superfícies concordavam no valor e continuavam a descrever mal o que o motor ia fazer. O resto — `off` colapsado em `manual`, YOLO de sessão que as Settings não desarmavam, falha silenciosa — está em **§1.3**.
 
 Nota conceptual: "Agents" significa três coisas diferentes no produto — subagentes (delegação), Agent Studio (roster de perfis) e Profiles (CRUD/SOUL).
 

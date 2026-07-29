@@ -10125,10 +10125,10 @@ def _(rid, params: dict) -> dict:
 
 
 # Non-"text/*" mimes the local read channel still serves as text. The executor's
-# only file-read op (apps/desktop-shell/executor.cjs read_file) decodes utf-8
-# TEXT — there is no byte/base64 read in the shell today — so genuinely binary
-# files (png/pdf/zip/office) cannot cross the channel faithfully yet and are
-# refused with a clean error instead of handing the dock corrupted bytes.
+# only file-read op decodes utf-8 TEXT — there is no byte/base64 read on the
+# channel today — so genuinely binary files (png/pdf/zip/office) cannot cross it
+# faithfully yet and are refused with a clean error instead of handing the dock
+# corrupted bytes.
 _LOCAL_READ_TEXT_MIMES = frozenset(
     {
         "application/json",
