@@ -11,11 +11,10 @@ type Updater<T> = T | ((current: T) => T)
 
 const WORKSPACE_CWD_KEY = 'hermes.desktop.workspace-cwd'
 
-// The composer's model/effort/fast is sticky UI state, NOT the profile default
-// (that lives in Settings → Model). Persisting it in localStorage makes a pick
-// follow across Cmd+N and app restarts instead of snapping back to the default.
-// It's deliberately global (not per-profile): a profile switch force-reseeds to
-// that profile's default, while within a profile new chats keep your last pick.
+// The composer's model/effort/fast is sticky UI state. Picks also write through
+// to the profile default (selectModel); localStorage keeps the footer in sync
+// across Cmd+N / restarts without waiting on disk. Deliberately global (not
+// per-profile): a profile switch force-reseeds to that profile's default.
 const COMPOSER_MODEL_KEY = 'hermes.desktop.composer.model'
 const COMPOSER_PROVIDER_KEY = 'hermes.desktop.composer.provider'
 const COMPOSER_EFFORT_KEY = 'hermes.desktop.composer.reasoning-effort'
@@ -214,6 +213,10 @@ export const CRON_SECTION_LIMIT = 50
 // platform that exceeds this cap gets its own per-platform "load more".
 export const $messagingSessions = atom<SessionInfo[]>([])
 export const MESSAGING_SECTION_LIMIT = 100
+// Archived chats — separate from recents (API archived=only). Bounded page for
+// the collapsed sidebar "Archived" section; Settings no longer hosts this list.
+export const $archivedSessions = atom<SessionInfo[]>([])
+export const ARCHIVED_SECTION_LIMIT = 100
 // Exact per-platform conversation totals, keyed by source id. Empty until a
 // per-platform "load more" fetch resolves it (the combined seed fetch only
 // knows the aggregate), so sections fall back to their loaded count.
@@ -293,6 +296,7 @@ export const setSessions = (next: Updater<SessionInfo[]>) => updateAtom($session
 export const setSessionsTotal = (next: Updater<number>) => updateAtom($sessionsTotal, next)
 export const setCronSessions = (next: Updater<SessionInfo[]>) => updateAtom($cronSessions, next)
 export const setMessagingSessions = (next: Updater<SessionInfo[]>) => updateAtom($messagingSessions, next)
+export const setArchivedSessions = (next: Updater<SessionInfo[]>) => updateAtom($archivedSessions, next)
 export const setMessagingPlatformTotals = (next: Updater<Record<string, number>>) =>
   updateAtom($messagingPlatformTotals, next)
 export const setMessagingTruncated = (next: Updater<boolean>) => updateAtom($messagingTruncated, next)

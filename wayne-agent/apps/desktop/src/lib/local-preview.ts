@@ -1,4 +1,5 @@
 import { isDesktopFsRemoteMode, readDesktopFileText } from '@/lib/desktop-fs'
+import { isAbsoluteFsPath } from '@/lib/fs-path'
 import type { PreviewTarget } from '@/store/preview'
 
 const HTML_EXTENSIONS = new Set(['.htm', '.html'])
@@ -55,11 +56,21 @@ function joinPath(base: string, rel: string) {
     return rel
   }
 
-  return `${base.replace(/\/+$/, '')}/${rel.replace(/^\.?\//, '')}`
+  const root = base.replace(/[/\\]+$/, '')
+  const leaf = rel.replace(/^\.?[/\\]/, '')
+
+  return `${root}/${leaf}`.replace(/\\/g, '/')
 }
 
 function pathToFileUrl(path: string) {
-  const encoded = path
+  const normalized = path.replace(/\\/g, '/')
+
+  // Windows drive: C:/foo → file:///C:/foo
+  if (/^[a-zA-Z]:\//.test(normalized)) {
+    return `file:///${encodeURI(normalized)}`
+  }
+
+  const encoded = normalized
     .split('/')
     .map(part => encodeURIComponent(part))
     .join('/')
@@ -83,10 +94,14 @@ export function localPreviewTarget(rawTarget: string, cwd?: string | null): Prev
   if (/^file:\/\//i.test(raw)) {
     try {
       path = decodeURIComponent(new URL(raw).pathname)
+      // file:///C:/… → /C:/… on Windows URL parsers; drop the leading slash.
+      if (/^\/[a-zA-Z]:\//.test(path)) {
+        path = path.slice(1)
+      }
     } catch {
       path = raw.replace(/^file:\/\//i, '')
     }
-  } else if (!raw.startsWith('/') && cwd) {
+  } else if (!isAbsoluteFsPath(raw) && cwd) {
     path = joinPath(cwd, raw)
   }
 

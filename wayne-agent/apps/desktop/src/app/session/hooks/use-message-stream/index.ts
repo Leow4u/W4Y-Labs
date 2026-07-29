@@ -383,12 +383,14 @@ export function useMessageStream({
                 ...message,
                 error: completionError,
                 parts: message.parts.filter(part => part.type !== 'text'),
-                pending: false
+                pending: false,
+                turnModel: message.turnModel ?? state.turnModel
               }
             : {
                 ...message,
                 parts: replaceTextPart(message.parts),
-                pending: false
+                pending: false,
+                turnModel: message.turnModel ?? state.turnModel
               }
 
         const newAssistantFromCompletion = (): ChatMessage => ({
@@ -396,6 +398,7 @@ export function useMessageStream({
           role: 'assistant',
           parts: completionError ? [] : [assistantTextPart(finalText)],
           branchGroupId: state.pendingBranchGroup ?? undefined,
+          turnModel: state.turnModel,
           ...(completionError && { error: completionError })
         })
 

@@ -2084,8 +2084,21 @@ def _composio_request(
             detail="Composio rejected the API key (401) — check COMPOSIO_API_KEY",
         )
     if resp.status_code >= 400:
+        detail_text = (resp.text or "").strip()
+        try:
+            parsed = resp.json()
+            if isinstance(parsed, dict):
+                err = parsed.get("error") or parsed.get("message") or parsed.get("detail")
+                if isinstance(err, dict):
+                    detail_text = str(err.get("message") or err.get("detail") or detail_text)
+                elif err:
+                    detail_text = str(err)
+        except Exception:
+            pass
+        # Cap for IPC/toasts, but keep the useful head of the message.
         raise HTTPException(
-            status_code=502, detail=f"Composio {resp.status_code}: {resp.text[:300]}"
+            status_code=502,
+            detail=f"Composio {resp.status_code}: {detail_text[:500]}",
         )
     try:
         return resp.json()
@@ -2390,7 +2403,24 @@ async def connectors_attach(body: ConnectorAttach):
         wrote = _write_connector_entry(_connector_homes(scope), entry, url)
         return {"ok": True, "scope": scope, "entry": entry, "written": wrote}
 
-    return await asyncio.to_thread(_run)
+    result = await asyncio.to_thread(_run)
+
+    # Same process hosts tui_gateway WS for desktop — refresh the live MCP
+    # registry so mcp_composio_* tools exist without waiting on a racy UI
+    # reload.mcp (which often loses the race to the first prompt).
+    def _rediscover() -> None:
+        try:
+            from wayne_cli.mcp_startup import restart_mcp_discovery
+
+            restart_mcp_discovery(
+                logger=_log,
+                thread_name="composio-mcp-rediscover",
+            )
+        except Exception:
+            _log.warning("connectors/attach: MCP rediscovery failed", exc_info=True)
+
+    threading.Thread(target=_rediscover, name="composio-mcp-rediscover", daemon=True).start()
+    return result
 
 
 @app.get("/api/device/connector-bootstrap")
@@ -2445,6 +2475,50 @@ async def connectors_disconnect(account_id: str):
     def _run():
         _composio_request("DELETE", f"/api/v3/connected_accounts/{account_id}")
         return {"ok": True}
+
+    return await asyncio.to_thread(_run)
+
+
+class ConnectorDisconnectAll(BaseModel):
+    scope: str = "global"
+
+
+@app.post("/api/connectors/disconnect-all")
+async def connectors_disconnect_all(body: ConnectorDisconnectAll):
+    """Revoga todas as contas Composio do escopo (limpa ACTIVE stale).
+
+    Composio can keep toolkit accounts as ACTIVE even when the user believes
+    they are disconnected; the agent then refuses to mint a fresh Connect Link.
+    This clears every connected account for the scope so connect-by-chat works
+    again from a clean slate.
+    """
+    scope = (body.scope or "global").strip() or "global"
+
+    def _run():
+        uid = _connector_user_id(scope)
+        data = _composio_request(
+            "GET",
+            "/api/v3/connected_accounts",
+            params={"user_ids": uid, "limit": 100},
+        ) or {}
+        removed: list[str] = []
+        errors: list[dict[str, str]] = []
+        for it in data.get("items") or []:
+            aid = it.get("id") or it.get("nanoid")
+            if not aid:
+                continue
+            try:
+                _composio_request("DELETE", f"/api/v3/connected_accounts/{aid}")
+                removed.append(str(aid))
+            except Exception as exc:
+                errors.append({"id": str(aid), "error": str(exc)})
+        return {
+            "ok": len(errors) == 0,
+            "scope": scope,
+            "user_id": uid,
+            "removed": removed,
+            "errors": errors,
+        }
 
     return await asyncio.to_thread(_run)
 
@@ -2564,10 +2638,59 @@ def _connectors_public_base(request: Request) -> str:
     return f"https://{host}" if host else ""
 
 
+def _is_public_composio_webhook_base(base: str) -> bool:
+    """Composio rejects localhost / private hosts for webhook_subscriptions."""
+    base = (base or "").strip().rstrip("/")
+    if not base.lower().startswith("https://"):
+        return False
+    host = base.split("://", 1)[1].split("/", 1)[0].split(":", 1)[0].lower()
+    if not host or host in {"localhost", "127.0.0.1", "0.0.0.0", "::1"}:
+        return False
+    if host.endswith(".local") or host.endswith(".internal"):
+        return False
+    if host.startswith("192.168.") or host.startswith("10.") or host.startswith("172."):
+        return False
+    return True
+
+
 class ConnectorTriggerCreate(BaseModel):
     trigger: str            # slug do trigger type, ex. GMAIL_NEW_GMAIL_MESSAGE
     scope: str = "global"
     config: Optional[dict] = None
+    connected_account_id: Optional[str] = None
+    toolkit: Optional[str] = None
+
+
+def _toolkit_slug_from_trigger(slug: str, explicit: Optional[str] = None) -> str:
+    """Infer toolkit slug (e.g. gmail) from a trigger type slug."""
+    if explicit:
+        return str(explicit).strip().lower()
+    head = (slug or "").split("_", 1)[0].strip().lower()
+    return head
+
+
+def _active_connected_account_id(user_id: str, toolkit: str) -> Optional[str]:
+    """First ACTIVE connected account for user+toolkit, if any."""
+    toolkit = (toolkit or "").strip().lower()
+    if not toolkit:
+        return None
+    data = _composio_request(
+        "GET",
+        "/api/v3/connected_accounts",
+        params={"user_ids": user_id, "limit": 100},
+    ) or {}
+    for it in data.get("items") or []:
+        status = str(it.get("status") or "").upper()
+        if status not in {"ACTIVE", "INITIATED"}:
+            continue
+        tk = it.get("toolkit") or {}
+        slug = tk.get("slug") if isinstance(tk, dict) else str(tk or "")
+        if str(slug).strip().lower() != toolkit:
+            continue
+        account_id = it.get("id") or it.get("nanoid")
+        if account_id:
+            return str(account_id)
+    return None
 
 
 @app.get("/api/connectors/triggers/types")
@@ -2669,23 +2792,59 @@ async def connector_trigger_create(body: ConnectorTriggerCreate, request: Reques
     if not re.fullmatch(r"[A-Za-z0-9_]{2,80}", slug):
         raise HTTPException(status_code=400, detail="invalid trigger slug")
     scope = (body.scope or "global").strip() or "global"
+    toolkit = _toolkit_slug_from_trigger(slug, body.toolkit)
 
     def _run():
-        webhook = _ensure_events_webhook(request)
         uid = _connector_user_id(scope)
-        payload: Dict[str, Any] = {"user_id": uid}
-        if body.config:
+        account_id = (body.connected_account_id or "").strip() or None
+        if not account_id:
+            account_id = _active_connected_account_id(uid, toolkit)
+        if not account_id:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"No active {toolkit or 'app'} connection for this scope. "
+                    "Connect the app in Connectors, then try again."
+                ),
+            )
+
+        # Desktop local serve has no public HTTPS host — Composio returns 400 if we
+        # try to register https://127.0.0.1/… as webhook_url. Still upsert the
+        # trigger; warn so the UI can tell the user events need a public URL.
+        webhook = ""
+        warning = None
+        base = _connectors_public_base(request)
+        if _is_public_composio_webhook_base(base):
+            try:
+                webhook = _ensure_events_webhook(request)
+            except HTTPException as exc:
+                warning = str(exc.detail)
+        else:
+            warning = (
+                "Trigger created, but event delivery needs a public HTTPS URL "
+                "(WAYNE_PUBLIC_URL / cloud). Localhost cannot receive Composio webhooks."
+            )
+
+        payload: Dict[str, Any] = {
+            "user_id": uid,
+            "connected_account_id": account_id,
+        }
+        if isinstance(body.config, dict) and body.config:
             payload["trigger_config"] = body.config
         res = _composio_request(
             "POST", f"/api/v3.1/trigger_instances/{slug}/upsert", body=payload
         ) or {}
-        return {
+        out: Dict[str, Any] = {
             "ok": True,
             "scope": scope,
             "trigger": slug,
             "webhook": webhook,
             "id": res.get("triggerId") or res.get("id"),
+            "connected_account_id": account_id,
         }
+        if warning:
+            out["warning"] = warning
+        return out
 
     return await asyncio.to_thread(_run)
 
@@ -2791,6 +2950,53 @@ async def connector_events_receiver(token: str, request: Request):
         if scope is None:
             return {"ok": True, "skipped": "unknown-scope"}
         slug = str(meta.get("trigger_slug") or etype or "event")
+        trigger_id = str(
+            meta.get("trigger_id")
+            or meta.get("triggerId")
+            or meta.get("nano_id")
+            or meta.get("trigger_nano_id")
+            or (data.get("trigger_id") if isinstance(data, dict) else "")
+            or ""
+        )
+        # Prefer bound automations (cron jobs) over a generic kanban task.
+        try:
+            from cron.jobs import (
+                find_jobs_for_composio_trigger,
+                trigger_job,
+                write_pending_event,
+            )
+
+            matched = find_jobs_for_composio_trigger(
+                trigger_id=trigger_id, trigger_slug=slug
+            )
+        except Exception:
+            _log.exception("composio event → automation match failed")
+            matched = []
+
+        if matched:
+            triggered: List[str] = []
+            event_payload = {
+                "source": "composio",
+                "type": etype,
+                "trigger_id": trigger_id,
+                "trigger_slug": slug,
+                "scope": scope,
+                "event_id": event_id,
+                "data": data if isinstance(data, dict) else {},
+            }
+            for job in matched:
+                jid = str(job.get("id") or "")
+                if not jid:
+                    continue
+                try:
+                    write_pending_event(jid, event_payload)
+                    trigger_job(jid)
+                    triggered.append(jid)
+                except Exception:
+                    _log.exception("composio event → trigger_job(%s) failed", jid)
+            if triggered:
+                return {"ok": True, "triggered": triggered, "via": "cron"}
+
         # Resumo curto e legível pro corpo da task (sem despejar o payload cru).
         preview = ""
         for k in ("subject", "title", "message", "text", "summary", "name"):
@@ -4406,6 +4612,9 @@ async def transcribe_audio_upload(payload: AudioTranscriptionRequest):
 
 class TTSSpeakRequest(BaseModel):
     text: str
+    # Optional overrides for Settings “preview this voice” — not persisted.
+    voice: Optional[str] = None
+    provider: Optional[str] = None
 
 
 def _elevenlabs_voice_label(voice: Dict[str, Any]) -> str:
@@ -4513,15 +4722,28 @@ async def speak_text(payload: TTSSpeakRequest):
     responses without exposing the on-disk file path. Reuses the
     existing TTS provider chain (Edge / OpenAI / ElevenLabs / etc.)
     configured in ``~/.wayne/config.yaml`` under ``tts.``.
+
+    Optional ``voice`` / ``provider`` let Settings preview a picker selection
+    without writing config first.
     """
     text = (payload.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="Text is required")
 
+    voice = (payload.voice or "").strip() or None
+    provider = (payload.provider or "").strip() or None
+
     try:
         from tools.tts_tool import text_to_speech_tool
         loop = asyncio.get_running_loop()
-        result_json = await loop.run_in_executor(None, text_to_speech_tool, text)
+        result_json = await loop.run_in_executor(
+            None,
+            lambda: text_to_speech_tool(
+                text,
+                provider_override=provider,
+                voice_override=voice,
+            ),
+        )
     except Exception as exc:
         _log.exception("Desktop voice TTS failed")
         raise HTTPException(status_code=500, detail=f"Speech synthesis failed: {exc}")
@@ -5291,7 +5513,12 @@ _AUX_TASK_SLOTS: Tuple[str, ...] = (
 
 
 @app.get("/api/model/options")
-def get_model_options(profile: Optional[str] = None, refresh: bool = False):
+def get_model_options(
+    profile: Optional[str] = None,
+    refresh: bool = False,
+    explicit_only: bool = False,
+    include_unconfigured: bool = True,
+):
     """Return authenticated providers + their curated model lists.
 
     REST equivalent of the ``model.options`` JSON-RPC on tui_gateway, so the
@@ -5306,22 +5533,26 @@ def get_model_options(profile: Optional[str] = None, refresh: bool = False):
     ``refresh`` busts the per-provider model-id disk cache so every row
     re-fetches its live catalog — used by the picker's explicit "Refresh
     Models" control. Normal opens leave it false to stay on the 1h cache.
+
+    ``explicit_only`` — when True, omits canonical skeleton rows for providers
+    the user hasn't configured. Composer pickers pass this flag so that
+    Anthropic, GitHub Copilot, etc. don't appear when the user only has
+    Work4You / OpenRouter credentials (#model-poll).
+
+    ``include_unconfigured`` — legacy alias (inverted sense of explicit_only).
+    When ``explicit_only=True`` the unconfigured rows are always omitted.
     """
     try:
         from wayne_cli.inventory import build_models_payload, load_picker_context
 
-        # include_unconfigured + picker_hints + canonical_order mirror the
-        # tui_gateway `model.options` JSON-RPC handler exactly, so every GUI
-        # surface fed by this endpoint (Settings → Model, the first-run
-        # onboarding picker) sees the SAME full provider universe `wayne model`
-        # exposes — not just the authenticated subset. Unconfigured providers
-        # come back as skeleton rows carrying `authenticated=False` +
-        # `auth_type`/`key_env`/`warning` so the GUI can render a setup
-        # affordance instead of hiding the provider entirely.
+        # include_unconfigured: Settings → API Keys needs the full provider
+        # universe; composer pickers and catalog surfaces pass explicit_only=1
+        # so only the providers the user actually has credentials for appear.
+        show_unconfigured = include_unconfigured and not explicit_only
         with _profile_scope(profile):
             return build_models_payload(
                 load_picker_context(),
-                include_unconfigured=True,
+                include_unconfigured=show_unconfigured,
                 picker_hints=True,
                 canonical_order=True,
                 pricing=True,
@@ -5997,6 +6228,24 @@ def _catalog_provider_env_metadata() -> dict:
     return meta
 
 
+# Work4You platform-owned credentials. Injected by the cloud provisioner into
+# the device ``.env`` / Fly tenant secrets — never pasted by PME. The Keys page
+# hides these (``platform_managed``) and PUT/DELETE /api/env reject writes.
+W4Y_PLATFORM_MANAGED_ENV: frozenset[str] = frozenset({
+    "OPENROUTER_API_KEY",
+    "COMPOSIO_API_KEY",
+    "FIRECRAWL_API_KEY",
+    "FIRECRAWL_API_URL",
+    "FAL_KEY",
+    "WAYNE_LANGFUSE_PUBLIC_KEY",
+    "WAYNE_LANGFUSE_SECRET_KEY",
+    "WAYNE_LANGFUSE_BASE_URL",
+    "LANGFUSE_PUBLIC_KEY",
+    "LANGFUSE_SECRET_KEY",
+    "LANGFUSE_BASE_URL",
+})
+
+
 @app.get("/api/env")
 async def get_env_vars(profile: Optional[str] = None):
     with _profile_scope(profile):
@@ -6013,6 +6262,9 @@ async def get_env_vars(profile: Optional[str] = None):
             "is_set": bool(value),
             "redacted_value": redact_key(value) if value else None,
             "description": info.get("description") or cat_meta.get("description", ""),
+            # Short human label from OPTIONAL_ENV_VARS (CLI setup prompt). Desktop
+            # Keys uses this instead of SCREAMING_SNAKE pretty-printing.
+            "prompt": info.get("prompt") or cat_meta.get("provider_label") or "",
             "url": info.get("url") if info.get("url") is not None else cat_meta.get("url"),
             "category": info.get("category") or cat_meta.get("category", ""),
             "is_password": info.get("password", cat_meta.get("is_password", False)),
@@ -6022,6 +6274,10 @@ async def get_env_vars(profile: Optional[str] = None):
             # Channels page card. The Keys/Env page uses this to hide it and
             # avoid duplicating the (richer) Channels configuration UI.
             "channel_managed": var_name in channel_keys,
+            # True when Work4You injects this credential from the cloud
+            # (OpenRouter, Composio, Firecrawl, Langfuse, …). Keys UI hides
+            # paste; PUT/DELETE refuse local writes.
+            "platform_managed": var_name in W4Y_PLATFORM_MANAGED_ENV,
             # Provider grouping hints derived from the unified provider catalog
             # so the desktop Keys tab groups by the SAME provider identity the
             # CLI `wayne model` picker uses (not desktop-only prefix guesses).
@@ -6051,7 +6307,11 @@ async def get_env_vars(profile: Optional[str] = None):
     # belong to the Channels page. This makes the "add a custom key" surface
     # round-trip: a key added there reappears here under its own section.
     for var_name in env_on_disk:
-        if var_name in result or var_name in channel_keys:
+        if (
+            var_name in result
+            or var_name in channel_keys
+            or var_name in W4Y_PLATFORM_MANAGED_ENV
+        ):
             continue
         row = _row(var_name, {}, custom=True)
         row["category"] = "custom"
@@ -6062,6 +6322,11 @@ async def get_env_vars(profile: Optional[str] = None):
 
 @app.put("/api/env")
 async def set_env_var(body: EnvVarUpdate, profile: Optional[str] = None):
+    if body.key in W4Y_PLATFORM_MANAGED_ENV:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{body.key} is managed by Work4You and cannot be set locally",
+        )
     try:
         with _profile_scope(body.profile or profile):
             save_env_value(body.key, body.value)
@@ -6181,6 +6446,11 @@ async def validate_provider_credential(body: EnvVarUpdate, request: Request):
 
 @app.delete("/api/env")
 async def remove_env_var(body: EnvVarDelete, profile: Optional[str] = None):
+    if body.key in W4Y_PLATFORM_MANAGED_ENV:
+        raise HTTPException(
+            status_code=400,
+            detail=f"{body.key} is managed by Work4You and cannot be removed locally",
+        )
     try:
         with _profile_scope(body.profile or profile):
             removed = remove_env_value(body.key)
@@ -6477,26 +6747,40 @@ _PLATFORM_ORDER: tuple[str, ...] = (
     "telegram",
     "discord",
     "slack",
-    "mattermost",
-    "matrix",
     "whatsapp",
     "whatsapp_cloud",
-    "signal",
-    "bluebubbles",
+    "mattermost",
     "homeassistant",
     "email",
     "sms",
+    "google_chat",
+    "api_server",
+    "webhook",
+)
+
+# Work4You Channels UI: hide niche / regional / experimental adapters so the
+# page stays focused. Gateway adapters remain installed; they just do not
+# appear in /api/messaging/platforms (and stay off the Keys page via the
+# channel-managed env-key set, which still sees the full catalog).
+_CHANNELS_UI_HIDDEN_PLATFORMS: frozenset[str] = frozenset({
+    "matrix",
+    "signal",
+    "bluebubbles",
     "dingtalk",
     "feishu",
-    "google_chat",
     "wecom",
     "wecom_callback",
     "weixin",
     "qqbot",
     "yuanbao",
-    "api_server",
-    "webhook",
-)
+    "irc",
+    "line",
+    "ntfy",
+    "photon",
+    "raft",
+    "relay",
+    "simplex",
+})
 
 # Display labels for env vars not in OPTIONAL_ENV_VARS (HOME_CHANNEL_*, bridge
 # toggles, Twilio, HASS, Email, etc.). Anything missing from OPTIONAL_ENV_VARS
@@ -6691,15 +6975,13 @@ _MESSAGING_ENV_FALLBACKS: dict[str, dict[str, Any]] = {
 }
 
 
-def _messaging_platform_catalog() -> tuple[dict[str, Any], ...]:
-    """Build the messaging catalog from the gateway's Platform enum + plugin registry.
+def _messaging_platform_catalog_all() -> tuple[dict[str, Any], ...]:
+    """Full messaging catalog (including Channels-UI-hidden platforms).
 
     Built-in platforms come from ``gateway.config.Platform`` (LOCAL is excluded).
     Plugin platforms come from ``gateway.platform_registry.plugin_entries()``,
-    which lets newly installed adapters (e.g. IRC) appear without a code change
-    here. Per-platform UI metadata (description, docs URL, env-var picks) lives
-    in :data:`_PLATFORM_OVERRIDES`; anything not overridden gets reasonable
-    defaults derived from the platform id and required_env.
+    which lets newly installed adapters appear without a code change here.
+    Per-platform UI metadata lives in :data:`_PLATFORM_OVERRIDES`.
     """
     from gateway.config import Platform
 
@@ -6732,6 +7014,15 @@ def _messaging_platform_catalog() -> tuple[dict[str, Any], ...]:
     return tuple(entries)
 
 
+def _messaging_platform_catalog() -> tuple[dict[str, Any], ...]:
+    """Catalog shown on the Channels page / ``GET /api/messaging/platforms``."""
+    return tuple(
+        entry
+        for entry in _messaging_platform_catalog_all()
+        if entry["id"] not in _CHANNELS_UI_HIDDEN_PLATFORMS
+    )
+
+
 def _channel_managed_env_keys() -> frozenset[str]:
     """Env-var keys owned by a Channels page platform card.
 
@@ -6740,10 +7031,13 @@ def _channel_managed_env_keys() -> frozenset[str]:
     gateway restart). The Keys/Env page consults this set to hide those vars
     so the same fields aren't duplicated in a plainer UI. Best-effort: if the
     gateway catalog can't be built, nothing is flagged and Keys shows it all.
+
+    Uses the full catalog (including UI-hidden platforms) so removing a card
+    from Channels does not dump its credentials onto the Keys page.
     """
     try:
         keys: set[str] = set()
-        for entry in _messaging_platform_catalog():
+        for entry in _messaging_platform_catalog_all():
             keys.update(entry.get("env_vars", ()))
         return frozenset(keys)
     except Exception:
@@ -6859,10 +7153,10 @@ def _messaging_env_info(key: str) -> dict[str, Any]:
     }
 
 
-def _gateway_platform_config(platform_id: str):
+def _gateway_platform_config(platform_id: str, gateway_config: Any | None = None):
     from gateway.config import Platform, load_gateway_config
 
-    config = load_gateway_config()
+    config = gateway_config if gateway_config is not None else load_gateway_config()
     platform = Platform(platform_id)
     platform_config = config.platforms.get(platform)
     return config, platform, platform_config
@@ -6873,6 +7167,9 @@ def _messaging_platform_payload(
     env_on_disk: dict[str, str],
     runtime: dict | None,
     scoped: bool = False,
+    *,
+    gateway_config: Any | None = None,
+    gateway_running: bool | None = None,
 ) -> dict[str, Any]:
     platform_id = entry["id"]
     runtime_platforms = runtime.get("platforms") if runtime else {}
@@ -6881,10 +7178,11 @@ def _messaging_platform_payload(
         if isinstance(runtime_platforms, dict)
         else {}
     )
-    gateway_running = (
-        get_running_pid() is not None
-        or get_runtime_status_running_pid(runtime) is not None
-    )
+    if gateway_running is None:
+        gateway_running = (
+            get_running_pid() is not None
+            or get_runtime_status_running_pid(runtime) is not None
+        )
     env_vars = []
 
     for key in entry["env_vars"]:
@@ -6923,13 +7221,13 @@ def _messaging_platform_payload(
         configured = all(env_on_disk.get(key) for key in entry["required_env"])
     else:
         try:
-            gateway_config, platform, platform_config = _gateway_platform_config(
-                platform_id
+            resolved_config, platform, platform_config = _gateway_platform_config(
+                platform_id, gateway_config=gateway_config
             )
             enabled = bool(platform_config and platform_config.enabled)
             configured = bool(
                 platform_config
-                and gateway_config._is_platform_connected(platform, platform_config)
+                and resolved_config._is_platform_connected(platform, platform_config)
             )
             home_channel = (
                 platform_config.home_channel.to_dict()
@@ -7384,8 +7682,7 @@ async def cancel_telegram_onboarding(pairing_id: str):
     return {"ok": True}
 
 
-@app.get("/api/messaging/platforms")
-async def get_messaging_platforms(profile: Optional[str] = None):
+def _get_messaging_platforms_sync(profile: Optional[str] = None) -> dict[str, Any]:
     # Profile-scoped so the dashboard's global profile switcher shows the
     # TARGET profile's channel credentials/state, not the root install's.
     # Inside _profile_scope, load_env()/read_runtime_status()/get_running_pid()
@@ -7393,16 +7690,42 @@ async def get_messaging_platforms(profile: Optional[str] = None):
     with _profile_scope(profile) as scoped_dir:
         env_on_disk = load_env()
         runtime = read_runtime_status()
+        scoped = scoped_dir is not None
+        gateway_running = (
+            get_running_pid() is not None
+            or get_runtime_status_running_pid(runtime) is not None
+        )
+        # One config load for the whole catalog — payload used to call
+        # load_gateway_config() once per platform and stall the event loop
+        # under GIL pressure (desktop Canais timed out at 15s).
+        gateway_config = None
+        if not scoped:
+            try:
+                from gateway.config import load_gateway_config
+
+                gateway_config = load_gateway_config()
+            except Exception:
+                _log.debug("messaging platforms: gateway config unavailable", exc_info=True)
         return {
             "env_path": str(get_env_path()),
             "gateway_start_command": _gateway_display_command(profile, "start"),
             "platforms": [
                 _messaging_platform_payload(
-                    entry, env_on_disk, runtime, scoped=scoped_dir is not None
+                    entry,
+                    env_on_disk,
+                    runtime,
+                    scoped=scoped,
+                    gateway_config=gateway_config,
+                    gateway_running=gateway_running,
                 )
                 for entry in _messaging_platform_catalog()
-            ]
+            ],
         }
+
+
+@app.get("/api/messaging/platforms")
+async def get_messaging_platforms(profile: Optional[str] = None):
+    return await asyncio.to_thread(_get_messaging_platforms_sync, profile)
 
 
 @app.put("/api/messaging/platforms/{platform_id}")
@@ -9631,16 +9954,19 @@ def _call_cron_for_profile(target_profile: Optional[str], func_name: str, *args,
         old_cron_dir = cron_jobs.CRON_DIR
         old_jobs_file = cron_jobs.JOBS_FILE
         old_output_dir = cron_jobs.OUTPUT_DIR
+        old_pending_dir = cron_jobs.PENDING_EVENTS_DIR
         token = set_wayne_home_override(str(home))
         cron_jobs.CRON_DIR = home / "cron"
         cron_jobs.JOBS_FILE = cron_jobs.CRON_DIR / "jobs.json"
         cron_jobs.OUTPUT_DIR = cron_jobs.CRON_DIR / "output"
+        cron_jobs.PENDING_EVENTS_DIR = cron_jobs.CRON_DIR / "pending_events"
         try:
             result = getattr(cron_jobs, func_name)(*args, **kwargs)
         finally:
             cron_jobs.CRON_DIR = old_cron_dir
             cron_jobs.JOBS_FILE = old_jobs_file
             cron_jobs.OUTPUT_DIR = old_output_dir
+            cron_jobs.PENDING_EVENTS_DIR = old_pending_dir
             reset_wayne_home_override(token)
 
     if isinstance(result, list):
@@ -9904,9 +10230,11 @@ def _fire_cron_job_for_profile(profile: str, job_id: str) -> bool:
         old_cron_dir = cron_jobs.CRON_DIR
         old_jobs_file = cron_jobs.JOBS_FILE
         old_output_dir = cron_jobs.OUTPUT_DIR
+        old_pending_dir = cron_jobs.PENDING_EVENTS_DIR
         cron_jobs.CRON_DIR = home / "cron"
         cron_jobs.JOBS_FILE = cron_jobs.CRON_DIR / "jobs.json"
         cron_jobs.OUTPUT_DIR = cron_jobs.CRON_DIR / "output"
+        cron_jobs.PENDING_EVENTS_DIR = cron_jobs.CRON_DIR / "pending_events"
         try:
             provider = resolve_cron_scheduler()
             return bool(provider.fire_due(job_id, adapters=None, loop=None))
@@ -9914,6 +10242,7 @@ def _fire_cron_job_for_profile(profile: str, job_id: str) -> bool:
             cron_jobs.CRON_DIR = old_cron_dir
             cron_jobs.JOBS_FILE = old_jobs_file
             cron_jobs.OUTPUT_DIR = old_output_dir
+            cron_jobs.PENDING_EVENTS_DIR = old_pending_dir
 
 
 @app.post("/api/cron/fire")
@@ -10633,10 +10962,12 @@ class WebhookCreate(BaseModel):
     deliver_chat_id: Optional[str] = None
     # secret: omit to auto-generate
     secret: Optional[str] = None
+    # When set, inbound POSTs trigger this cron job instead of a gateway agent turn.
+    cron_job_id: Optional[str] = None
 
 
 def _webhook_route_summary(name: str, route: Dict[str, Any], base_url: str) -> Dict[str, Any]:
-    return {
+    summary = {
         "name": name,
         "description": route.get("description", ""),
         "events": list(route.get("events") or []),
@@ -10651,6 +10982,10 @@ def _webhook_route_summary(name: str, route: Dict[str, Any], base_url: str) -> D
         # Default-enabled; only an explicit enabled:false turns a route off.
         "enabled": route.get("enabled", True) is not False,
     }
+    cron_job_id = route.get("cron_job_id")
+    if cron_job_id:
+        summary["cron_job_id"] = str(cron_job_id)
+    return summary
 
 
 @app.get("/api/webhooks")
@@ -10717,6 +11052,11 @@ async def create_webhook(body: WebhookCreate):
         )
 
     secret = body.secret or _secrets.token_urlsafe(32)
+    subs = wh._load_subscriptions()
+    # Preserve secret when upserting an existing automation route.
+    if name in subs and not body.secret and (subs[name] or {}).get("secret"):
+        secret = subs[name]["secret"]
+
     route: Dict[str, Any] = {
         "description": body.description or f"Dashboard-created subscription: {name}",
         "events": [e.strip() for e in body.events if e.strip()],
@@ -10730,8 +11070,13 @@ async def create_webhook(body: WebhookCreate):
         route["deliver_only"] = True
     if body.deliver_chat_id:
         route["deliver_extra"] = {"chat_id": body.deliver_chat_id}
+    cron_job_id = (body.cron_job_id or "").strip()
+    if cron_job_id:
+        route["cron_job_id"] = cron_job_id
+    # Keep prior created_at on upsert.
+    if name in subs and (subs[name] or {}).get("created_at"):
+        route["created_at"] = subs[name]["created_at"]
 
-    subs = wh._load_subscriptions()
     subs[name] = route
     wh._save_subscriptions(subs)
 
@@ -13476,6 +13821,227 @@ async def agent_trace(profile: Optional[str] = None):
         }
     finally:
         conn.close()
+
+
+# ── Langfuse observability (Command Center → Observability) ─────────────────
+
+
+def _langfuse_env_creds() -> tuple[str, str, str]:
+    """Return ``(public_key, secret_key, base_url)`` from the active profile .env."""
+    from wayne_cli.config import load_env
+
+    env = load_env() or {}
+    public = str(
+        env.get("WAYNE_LANGFUSE_PUBLIC_KEY") or env.get("LANGFUSE_PUBLIC_KEY") or ""
+    ).strip()
+    secret = str(
+        env.get("WAYNE_LANGFUSE_SECRET_KEY") or env.get("LANGFUSE_SECRET_KEY") or ""
+    ).strip()
+    base = str(
+        env.get("WAYNE_LANGFUSE_BASE_URL")
+        or env.get("LANGFUSE_BASE_URL")
+        or "https://cloud.langfuse.com"
+    ).strip().rstrip("/")
+    return public, secret, base or "https://cloud.langfuse.com"
+
+
+def _langfuse_plugin_enabled() -> bool:
+    try:
+        from wayne_cli.config import load_config
+
+        cfg = load_config()
+        section = cfg.get("plugins") if isinstance(cfg, dict) else None
+        enabled = section.get("enabled") if isinstance(section, dict) else None
+        if not isinstance(enabled, list):
+            return False
+        return "observability/langfuse" in enabled or "langfuse" in enabled
+    except Exception:
+        return False
+
+
+def _enable_langfuse_plugin() -> bool:
+    """Ensure ``observability/langfuse`` is listed in ``plugins.enabled``."""
+    try:
+        from wayne_cli.config import load_config, save_config
+
+        cfg = load_config()
+        if not isinstance(cfg, dict):
+            cfg = {}
+        plugins = cfg.get("plugins")
+        if not isinstance(plugins, dict):
+            plugins = {}
+            cfg["plugins"] = plugins
+        enabled = plugins.get("enabled")
+        if not isinstance(enabled, list):
+            enabled = []
+        if "observability/langfuse" not in enabled and "langfuse" not in enabled:
+            enabled = list(enabled) + ["observability/langfuse"]
+        plugins["enabled"] = enabled
+        save_config(cfg)
+        return True
+    except Exception:
+        _log.exception("Failed to enable observability/langfuse plugin")
+        return False
+
+
+class LangfuseConnectBody(BaseModel):
+    public_key: str = ""
+    secret_key: str = ""
+    base_url: str = ""
+    profile: Optional[str] = None
+
+
+@app.get("/api/langfuse/status")
+async def langfuse_status(profile: Optional[str] = None):
+    """Connection status for Command Center → Observability.
+
+    When platform-injected Langfuse keys are present, auto-enable the
+    ``observability/langfuse`` plugin (no UI paste path).
+    """
+    with _profile_scope(profile):
+        public, secret, base = _langfuse_env_creds()
+        connected = bool(
+            public.startswith("pk-lf-") and secret.startswith("sk-lf-")
+        )
+        plugin_enabled = _langfuse_plugin_enabled()
+        if connected and not plugin_enabled:
+            plugin_enabled = _enable_langfuse_plugin()
+    return {
+        "connected": connected,
+        "plugin_enabled": plugin_enabled,
+        "base_url": base,
+        "public_key_set": bool(public),
+        "secret_key_set": bool(secret),
+        "public_key_valid": public.startswith("pk-lf-") if public else False,
+        "secret_key_valid": secret.startswith("sk-lf-") if secret else False,
+    }
+
+
+@app.post("/api/langfuse/connect")
+async def langfuse_connect(body: LangfuseConnectBody, profile: Optional[str] = None):
+    """Rejected — Langfuse credentials are platform-managed (cloud inject)."""
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "Langfuse keys are managed by Work4You and cannot be pasted locally. "
+            "Sign in again so the desktop can provision tracing credentials."
+        ),
+    )
+
+
+@app.get("/api/langfuse/traces")
+async def langfuse_traces(
+    profile: Optional[str] = None,
+    limit: int = 25,
+    page: int = 1,
+):
+    """Proxy recent Langfuse traces for the Observability panel."""
+    import base64
+    import httpx
+
+    limit = max(1, min(int(limit or 25), 50))
+    page = max(1, int(page or 1))
+
+    with _profile_scope(profile):
+        public, secret, base = _langfuse_env_creds()
+        plugin_enabled = _langfuse_plugin_enabled()
+
+    if not public or not secret:
+        return {
+            "ok": False,
+            "error": "missing_credentials",
+            "connected": False,
+            "plugin_enabled": plugin_enabled,
+            "traces": [],
+            "base_url": base,
+        }
+
+    token = base64.b64encode(f"{public}:{secret}".encode("utf-8")).decode("ascii")
+    url = f"{base}/api/public/traces"
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.get(
+                url,
+                params={"limit": limit, "page": page, "orderBy": "timestamp.desc"},
+                headers={"Authorization": f"Basic {token}"},
+            )
+    except Exception as exc:
+        _log.warning("Langfuse traces fetch failed: %s", exc)
+        return {
+            "ok": False,
+            "error": f"network_error: {exc}",
+            "connected": True,
+            "plugin_enabled": plugin_enabled,
+            "traces": [],
+            "base_url": base,
+        }
+
+    if resp.status_code in (401, 403):
+        return {
+            "ok": False,
+            "error": "auth_failed",
+            "connected": False,
+            "plugin_enabled": plugin_enabled,
+            "traces": [],
+            "base_url": base,
+            "status_code": resp.status_code,
+        }
+    if resp.status_code >= 400:
+        detail = (resp.text or "")[:300]
+        return {
+            "ok": False,
+            "error": f"api_error_{resp.status_code}: {detail}",
+            "connected": True,
+            "plugin_enabled": plugin_enabled,
+            "traces": [],
+            "base_url": base,
+            "status_code": resp.status_code,
+        }
+
+    try:
+        payload = resp.json()
+    except Exception:
+        return {
+            "ok": False,
+            "error": "invalid_json",
+            "connected": True,
+            "plugin_enabled": plugin_enabled,
+            "traces": [],
+            "base_url": base,
+        }
+
+    raw_rows = payload.get("data") if isinstance(payload, dict) else None
+    traces = []
+    if isinstance(raw_rows, list):
+        for row in raw_rows:
+            if not isinstance(row, dict):
+                continue
+            tid = str(row.get("id") or "").strip()
+            if not tid:
+                continue
+            traces.append(
+                {
+                    "id": tid,
+                    "name": row.get("name") or "",
+                    "timestamp": row.get("timestamp") or row.get("createdAt") or "",
+                    "session_id": row.get("sessionId") or "",
+                    "user_id": row.get("userId") or "",
+                    "latency": row.get("latency"),
+                    "total_cost": row.get("totalCost"),
+                    "tags": row.get("tags") if isinstance(row.get("tags"), list) else [],
+                    "url": f"{base}/trace/{tid}",
+                }
+            )
+
+    meta = payload.get("meta") if isinstance(payload, dict) else {}
+    return {
+        "ok": True,
+        "connected": True,
+        "plugin_enabled": plugin_enabled,
+        "base_url": base,
+        "traces": traces,
+        "meta": meta if isinstance(meta, dict) else {},
+    }
 
 
 # ---------------------------------------------------------------------------

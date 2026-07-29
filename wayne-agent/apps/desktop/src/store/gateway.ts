@@ -2,6 +2,7 @@ import { type ConnectionState, type GatewayEvent, resolveGatewayWsUrl } from '@h
 import { atom } from 'nanostores'
 
 import { HermesGateway } from '@/hermes'
+import { mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
 import { setGatewayState } from '@/store/session'
 
 // ── Multi-profile gateway routing ──────────────────────────────────────────
@@ -13,6 +14,13 @@ import { setGatewayState } from '@/store/session'
 // socket per *other* profile that has live work. Every socket feeds the same
 // handleGatewayEvent, so background sessions keep painting. Single-profile users
 // only ever have the primary, so their path is byte-for-byte unchanged.
+//
+// Cloud 24/7: a special secondary keyed by CLOUD_BRAIN_KEY mints WS tickets via
+// work4youDesktop.cloud (not hermesDesktop.getConnection). Local projects.* RPC
+// stays on primaryBrainGateway() so the sidebar never talks to Fly by accident.
+
+/** Synthetic profile key for the Work4You cloud gateway socket. */
+export const CLOUD_BRAIN_KEY = '__w4y_cloud__'
 
 const normKey = (profile: string | null | undefined): string => (profile ?? '').trim() || 'default'
 
@@ -74,6 +82,15 @@ export function activeGateway(): HermesGateway | null {
   return secondaries.get(activeKey)?.gateway ?? primaryGateway
 }
 
+/** Always the local/window backend — used by projects.* and other PC-scoped RPC. */
+export function primaryBrainGateway(): HermesGateway | null {
+  return primaryGateway
+}
+
+export function isCloudBrainActive(): boolean {
+  return activeKey === CLOUD_BRAIN_KEY
+}
+
 // Mirror a backend's connection state into the global composer state, but only
 // when that backend is the one the user is currently looking at. Lets the
 // composer reflect the active profile's socket without a background reconnect
@@ -103,6 +120,13 @@ function clearTimer(entry: Secondary): void {
 }
 
 async function openSecondary(entry: Secondary): Promise<void> {
+  if (entry.profile === CLOUD_BRAIN_KEY) {
+    // Tickets are one-shot (~30s TTL) — mint fresh on every connect/reconnect.
+    const wsUrl = await mintCloudWsUrl()
+    await entry.gateway.connect(wsUrl)
+    return
+  }
+
   const desktop = window.hermesDesktop
 
   if (!desktop) {
@@ -214,6 +238,16 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
   setActive(key)
 }
 
+/** Route chat RPC to the Work4You cloud brain (Fly). */
+export async function ensureCloudBrainActive(): Promise<void> {
+  await ensureGatewayForProfile(CLOUD_BRAIN_KEY)
+}
+
+/** Route chat RPC back to the local/window Hermes backend. */
+export async function ensureLocalBrainActive(): Promise<void> {
+  setActive(primaryProfile)
+}
+
 // Reconnect the active gateway after a transient request failure. Primary
 // reconnects are owned by use-gateway-boot, so we only drive secondaries here.
 export async function ensureActiveGatewayOpen(): Promise<HermesGateway | null> {
@@ -232,6 +266,11 @@ export async function ensureActiveGatewayOpen(): Promise<HermesGateway | null> {
   }
 
   return isOpen(entry.gateway) ? entry.gateway : null
+}
+
+/** Reconnect helper for the local projects.* brain (never the cloud socket). */
+export async function ensurePrimaryBrainOpen(): Promise<HermesGateway | null> {
+  return primaryGateway?.connectionState === 'open' ? primaryGateway : primaryGateway
 }
 
 // Wake signal (sleep/network/visibility): nudge every live secondary back open.
@@ -253,9 +292,11 @@ export function touchSecondaryGateways(): void {
   const desktop = window.hermesDesktop
 
   for (const entry of secondaries.values()) {
-    if (entry.wantOpen) {
-      void desktop?.touchBackend?.(entry.profile).catch(() => undefined)
+    if (!entry.wantOpen || entry.profile === CLOUD_BRAIN_KEY) {
+      continue
     }
+
+    void desktop?.touchBackend?.(entry.profile).catch(() => undefined)
   }
 }
 

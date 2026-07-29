@@ -1,3 +1,5 @@
 export { ThemeProvider, useSyncThemeFromBackend, useTheme } from './context'
+export { FONT_CHOICES, THEME_DEFAULT_FONT_ID, getFontChoice, normalizeFontId } from './fonts'
+export type { FontCategory, FontChoice } from './fonts'
 export { BUILTIN_THEME_LIST, BUILTIN_THEMES, DEFAULT_SKIN_NAME } from './presets'
 export type { DesktopTheme, DesktopThemeColors, DesktopThemeTypography } from './types'

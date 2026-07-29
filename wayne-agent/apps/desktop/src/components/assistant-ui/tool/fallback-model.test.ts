@@ -89,7 +89,7 @@ describe('buildToolView browser_navigate title', () => {
     )
 
     expect(view.status).toBe('error')
-    expect(view.title).toBe('Failed to open hermes-agent.nousresearch.com')
+    expect(view.title).toBe('Failed to open hermes-agent.nousresearch.com/docs')
   })
 
   it('shows opened title on success', () => {
@@ -103,7 +103,7 @@ describe('buildToolView browser_navigate title', () => {
     )
 
     expect(view.status).toBe('success')
-    expect(view.title).toBe('Opened hermes-agent.nousresearch.com')
+    expect(view.title).toBe('Opened hermes-agent.nousresearch.com/docs')
   })
 })
 
@@ -336,7 +336,8 @@ describe('clampForDisplay', () => {
 
     expect(clamped.length).toBeLessThan(oversized.length)
     expect(clamped.startsWith('x'.repeat(MAX_TOOL_RENDER_CHARS))).toBe(true)
-    expect(clamped).toContain('5,000 more characters truncated')
+    // Message uses toLocaleString(); assert the contract, not a US-only comma.
+    expect(clamped).toMatch(/\d[\d.,\s]* more characters truncated/)
     expect(clamped).toContain('Copy')
   })
 })

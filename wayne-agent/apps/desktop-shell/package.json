@@ -1,9 +1,9 @@
 {
-  "name": "work4you-desktop",
-  "productName": "Work4You",
+  "name": "work4you-desktop-shell-legacy",
+  "productName": "Work4You (legacy shell)",
   "private": true,
   "version": "0.3.18",
-  "description": "Work4You desktop — native shell for work4you.ai.",
+  "description": "LEGACY — frozen. Official app is apps/desktop (com.work4you.app).",
   "author": "W4Y Labs",
   "main": "main.cjs",
   "scripts": {

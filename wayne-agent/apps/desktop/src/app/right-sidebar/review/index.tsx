@@ -152,8 +152,8 @@ export function ReviewPane() {
           <PaneEmptyState label={t.rightSidebar.noDiffs} />
         )
       ) : (
-        // No repo at all → same terse empty state, just without the chrome.
-        <PaneEmptyState label={t.rightSidebar.noDiffs} />
+        // No git repo at the session cwd — don't pretend the tree is clean.
+        <PaneEmptyState label={c.notRepo} />
       )}
 
       {/* Selected file's diff — reuses the shiki-highlighted FileDiffPanel. */}

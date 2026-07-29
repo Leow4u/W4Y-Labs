@@ -56,6 +56,9 @@ describe('useModelControls', () => {
     $activeSessionId.set(null)
     setCurrentModel('')
     setCurrentProvider('')
+    setGlobalModel.mockReset()
+    setGlobalModel.mockResolvedValue({ ok: true, provider: 'anthropic', model: 'claude-sonnet-4.6' })
+    notifyError.mockReset()
   })
 
   afterEach(() => {
@@ -109,7 +112,7 @@ describe('useModelControls', () => {
     expect($currentProvider.get()).toBe('deepseek')
   })
 
-  it('routes active-session picker changes through config.set with an explicit provider', async () => {
+  it('routes active-session picker changes through config.set with --global write-through', async () => {
     const requestGateway = vi.fn(async () => ({ key: 'model', value: 'claude-sonnet-4.6' }) as never)
     let controls!: Controls
 
@@ -127,12 +130,13 @@ describe('useModelControls', () => {
     expect(requestGateway).toHaveBeenCalledWith('config.set', {
       session_id: 'session-1',
       key: 'model',
-      value: 'claude-sonnet-4.6 --provider anthropic'
+      value: 'claude-sonnet-4.6 --provider anthropic --global'
     })
     expect(requestGateway).not.toHaveBeenCalledWith('slash.exec', expect.anything())
+    expect(setGlobalModel).not.toHaveBeenCalled()
   })
 
-  it('stores a no-session pick as UI state with no gateway or global write', async () => {
+  it('persists the profile default on a no-session pick (draft write-through)', async () => {
     const requestGateway = vi.fn()
     let controls!: Controls
 
@@ -145,12 +149,55 @@ describe('useModelControls', () => {
       })
     ).resolves.toBe(true)
 
-    // The pick is plain UI state; session.create ships it later. Nothing touches
-    // the gateway or the profile default here.
     expect($currentModel.get()).toBe('claude-sonnet-4.6')
     expect($currentProvider.get()).toBe('anthropic')
     expect(requestGateway).not.toHaveBeenCalled()
-    expect(setGlobalModel).not.toHaveBeenCalled()
+    expect(setGlobalModel).toHaveBeenCalledWith('anthropic', 'claude-sonnet-4.6')
+  })
+
+  it('rolls back UI when draft write-through fails', async () => {
+    setCurrentModel('openai/gpt-5.5')
+    setCurrentProvider('openai-codex')
+    setGlobalModel.mockRejectedValueOnce(new Error('disk locked'))
+    const requestGateway = vi.fn()
+    let controls!: Controls
+
+    render(<Harness activeSessionId={null} onReady={value => (controls = value)} requestGateway={requestGateway} />)
+
+    await expect(
+      controls.selectModel({
+        model: 'claude-sonnet-4.6',
+        provider: 'anthropic'
+      })
+    ).resolves.toBe(false)
+
+    expect($currentModel.get()).toBe('openai/gpt-5.5')
+    expect($currentProvider.get()).toBe('openai-codex')
+    expect(notifyError).toHaveBeenCalled()
+  })
+
+  it('rolls back UI when active-session switch fails', async () => {
+    setCurrentModel('openai/gpt-5.5')
+    setCurrentProvider('openai-codex')
+    const requestGateway = vi.fn(async () => {
+      throw new Error('session busy')
+    })
+    let controls!: Controls
+
+    render(
+      <Harness activeSessionId="session-1" onReady={value => (controls = value)} requestGateway={requestGateway} />
+    )
+
+    await expect(
+      controls.selectModel({
+        model: 'claude-sonnet-4.6',
+        provider: 'anthropic'
+      })
+    ).resolves.toBe(false)
+
+    expect($currentModel.get()).toBe('openai/gpt-5.5')
+    expect($currentProvider.get()).toBe('openai-codex')
+    expect(notifyError).toHaveBeenCalled()
   })
 
   it('seeds an empty composer model from global but never clobbers a pick', async () => {

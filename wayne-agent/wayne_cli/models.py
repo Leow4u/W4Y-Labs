@@ -33,21 +33,43 @@ COPILOT_REASONING_EFFORTS_O_SERIES = ["low", "medium", "high"]
 # Fallback OpenRouter snapshot used when the live catalog is unavailable.
 # (model_id, display description shown in menus)
 OPENROUTER_MODELS: list[tuple[str, str]] = [
-    # Anthropic
+    # Auto routing — always first; picks best model per request
+    ("openrouter/auto",                        "auto-routes to the best available model"),
+    # Anthropic — PME Models roster first
+    ("anthropic/claude-opus-5",                ""),
     ("anthropic/claude-fable-5",               ""),
+    ("anthropic/claude-sonnet-5",              ""),
+    ("anthropic/claude-sonnet-4.6",            ""),
     ("anthropic/claude-opus-4.8",              ""),
     ("anthropic/claude-opus-4.8-fast",         "2x price, higher output speed"),
-    ("anthropic/claude-sonnet-5",              ""),
+    ("anthropic/claude-opus-4.7",              ""),
+    ("anthropic/claude-opus-4.6",              ""),
+    ("anthropic/claude-opus-4.5",              ""),
+    ("anthropic/claude-sonnet-4.5",            ""),
+    ("anthropic/claude-sonnet-4",              ""),
     ("anthropic/claude-haiku-4.5",             ""),
     # OpenAI
+    ("openai/gpt-5.6-sol",                     ""),
+    ("openai/gpt-5.6-terra",                   ""),
+    ("openai/gpt-5.6-luna",                    ""),
     ("openai/gpt-5.5",                         ""),
     ("openai/gpt-5.5-pro",                     ""),
+    ("openai/gpt-5.4",                         ""),
     ("openai/gpt-5.4-mini",                    ""),
+    ("openai/gpt-5.4-nano",                    ""),
+    ("openai/gpt-5.3-codex",                   ""),
+    ("openai/gpt-5.2",                         ""),
+    ("openai/gpt-5.1",                         ""),
+    ("openai/gpt-5-mini",                      ""),
     # Google
-    ("google/gemini-3-pro-preview",            ""),
+    ("google/gemini-3.6-flash",                ""),
     ("google/gemini-3.1-pro-preview",          ""),
+    ("google/gemini-3-flash-preview",          ""),
     ("google/gemini-3.5-flash",                ""),
+    ("google/gemini-3-pro-preview",            ""),
+    ("google/gemini-2.5-flash",                ""),
     # xAI
+    ("x-ai/grok-4.5",                          ""),
     ("x-ai/grok-4.3",                          ""),
     # DeepSeek
     ("deepseek/deepseek-v4-pro",               ""),
@@ -57,8 +79,8 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     ("qwen/qwen3.7-plus",                      ""),
     ("qwen/qwen3.6-35b-a3b",                   ""),
     # MoonshotAI
-    ("moonshotai/kimi-k2.6",                   "recommended"),
     ("moonshotai/kimi-k2.7-code",              ""),
+    ("moonshotai/kimi-k2.6",                   "recommended"),
     # MiniMax
     ("minimax/minimax-m3",                     ""),
     # Z-AI

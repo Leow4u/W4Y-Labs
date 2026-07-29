@@ -41,6 +41,10 @@ describe('model-status-label', () => {
     expect(formatModelStatusLabel('')).toBe('No model')
   })
 
+  it('shows Auto without effort/fast qualifiers for the auto-router', () => {
+    expect(formatModelStatusLabel('openrouter/auto', { fastMode: true, reasoningEffort: 'high' })).toBe('Auto')
+  })
+
   describe('currentPickerSelection', () => {
     const store = { model: 'opus', provider: 'anthropic' }
     const options = { model: 'hermes-4', provider: 'nous' }

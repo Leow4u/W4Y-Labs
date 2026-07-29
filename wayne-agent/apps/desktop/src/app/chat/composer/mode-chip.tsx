@@ -18,7 +18,7 @@ import { $yoloActive, setYoloActive } from '@/store/session'
 export type ApprovalsMode = 'manual' | 'smart'
 
 const CHIP =
-  'flex h-7 max-w-[14rem] items-center gap-1 rounded-lg px-2 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
+  'flex h-6 max-w-[14rem] items-center gap-1 rounded-md px-1.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
 
 function readApprovalsMode(config: Record<string, unknown>): ApprovalsMode {
   const approvals = config.approvals

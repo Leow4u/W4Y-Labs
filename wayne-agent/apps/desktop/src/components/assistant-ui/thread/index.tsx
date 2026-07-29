@@ -88,8 +88,13 @@ export const Thread: FC<{
     [cwd, gateway, onBranchInNewChat, onCancel, onDismissError, onRestoreToMessage, requestRestoreConfirm, sessionId]
   )
 
+  // Empty session: hero stays at 38%; elevated composer sits lower (`--composer-elevated-top`).
+  // Small gap so the rotating subtitle sits close above the context rail.
   const emptyPlaceholder = intro ? (
-    <div className="flex min-h-0 w-full flex-col items-center justify-center pt-[var(--composer-measured-height)]">
+    <div
+      className="pointer-events-none absolute inset-x-0 top-[38%] z-10 flex -translate-y-[calc(100%-6rem)] justify-center px-4"
+      data-slot="aui_intro_wrap"
+    >
       <Intro {...intro} />
     </div>
   ) : undefined

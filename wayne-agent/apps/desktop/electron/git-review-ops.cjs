@@ -245,7 +245,7 @@ async function reviewList(repoPath, scope, baseRef, gitBin) {
   try {
     cwd = resolveRequestedPathForIpc(repoPath, { purpose: 'Review list' })
   } catch {
-    return { files: [], base: null }
+    return { files: [], base: null, isRepo: false }
   }
 
   const git = gitFor(cwd, gitBin)
@@ -255,7 +255,7 @@ async function reviewList(repoPath, scope, baseRef, gitBin) {
       const base = scope === 'branch' ? await branchBase(git) : baseRef
 
       if (!base) {
-        return { files: [], base: null }
+        return { files: [], base: null, isRepo: true }
       }
 
       const range = scope === 'branch' ? `${base}...HEAD` : base
@@ -282,7 +282,7 @@ async function reviewList(repoPath, scope, baseRef, gitBin) {
       files.sort((a, b) => a.path.localeCompare(b.path))
       await fillUntrackedCounts(cwd, files)
 
-      return { files, base }
+      return { files, base, isRepo: true }
     }
 
     // Default: uncommitted (staged + unstaged + untracked), one row per path.
@@ -311,9 +311,11 @@ async function reviewList(repoPath, scope, baseRef, gitBin) {
     files.sort((a, b) => a.path.localeCompare(b.path))
     await fillUntrackedCounts(cwd, files)
 
-    return { files, base: null }
+    return { files, base: null, isRepo: true }
   } catch {
-    return { files: [], base: null }
+    // Not a git repo / git unavailable — distinguish from a clean tree so the
+    // Review pane doesn't claim "NO DIFFS" for a plain project folder.
+    return { files: [], base: null, isRepo: false }
   }
 }
 
@@ -663,24 +665,10 @@ async function repoStatus(repoPath, gitBin) {
     // No commits yet.
   }
 
-  // `git diff HEAD` ignores untracked files, so a turn that only creates new
-  // files (the common case — a fresh module, a demo dir) showed +0 in the rail
-  // while the review pane counted them. Fold untracked insertions into `added`
-  // so the rail matches reality. Bounded (size cap + concurrency) like the
-  // review tree; only the capped file slice is counted so a huge untracked tree
-  // can't stall the probe.
-  try {
-    const untracked = status.not_added.slice(0, 500)
-    for (let i = 0; i < untracked.length; i += UNTRACKED_LINE_COUNT_CONCURRENCY) {
-      const batch = await Promise.all(
-        untracked.slice(i, i + UNTRACKED_LINE_COUNT_CONCURRENCY).map(path => untrackedInsertions(cwd, path))
-      )
-      result.added += batch.reduce((sum, n) => sum + n, 0)
-    }
-  } catch {
-    // Best-effort: a probe failure just leaves untracked lines uncounted.
-  }
-
+  // Composer chips must appear immediately once branch/dirty counts are known.
+  // Counting insertions across hundreds of untracked files blocked `$repoStatus`
+  // for seconds (chips stayed null). The review pane still computes real diffs;
+  // the rail surfaces untracked via `untracked` / "N changed" instead.
   return result
 }
 

@@ -14,7 +14,8 @@ export {
   isSupportedLocaleValue,
   LOCALE_OPTIONS,
   localeConfigValue,
-  normalizeLocale
+  normalizeLocale,
+  pickerLocaleOptions
 } from './languages'
 export { setRuntimeI18nLocale, translateNow } from './runtime'
 export type { Locale, ToolTitleKey, Translations } from './types'

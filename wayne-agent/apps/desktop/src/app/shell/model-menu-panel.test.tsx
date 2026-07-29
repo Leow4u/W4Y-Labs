@@ -1,8 +1,10 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, findByText, fireEvent, render } from '@testing-library/react'
+import { cleanup, findByText, fireEvent, render, screen } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DropdownMenu, DropdownMenuContent } from '@/components/ui/dropdown-menu'
+import { rememberComposerManualModel } from '@/lib/composer-auto-mode'
 import { $activeSessionId, $currentModel, $currentProvider } from '@/store/session'
 
 import { ModelMenuPanel } from './model-menu-panel'
@@ -24,12 +26,18 @@ vi.mock('@/hermes', () => ({
 // payload a remote gateway's model.options returns), not the /api/model/moa
 // REST config.
 const MOA_PROVIDER = { models: ['default', 'BeastMode'], name: 'Mixture of Agents', slug: 'moa' }
+const CATALOG_PROVIDER = {
+  models: ['openrouter/auto', 'x-ai/grok-4.5', 'anthropic/claude-sonnet-5'],
+  name: 'Catalog',
+  slug: 'openrouter'
+}
 
 beforeEach(() => {
   $activeSessionId.set('runtime-1')
   $currentModel.set('')
   $currentProvider.set('')
-  getGlobalModelOptions.mockResolvedValue({ providers: [MOA_PROVIDER] })
+  localStorage.clear()
+  getGlobalModelOptions.mockResolvedValue({ providers: [CATALOG_PROVIDER, MOA_PROVIDER] })
 })
 
 afterEach(() => {
@@ -40,17 +48,97 @@ afterEach(() => {
 function renderPanel(onSelectModel = vi.fn()) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
-    <QueryClientProvider client={client}>
-      <DropdownMenu open>
-        <DropdownMenuContent>
-          <ModelMenuPanel onSelectModel={onSelectModel} requestGateway={vi.fn() as never} />
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </QueryClientProvider>
+    <MemoryRouter>
+      <QueryClientProvider client={client}>
+        <DropdownMenu open>
+          <DropdownMenuContent>
+            <ModelMenuPanel onSelectModel={onSelectModel} requestGateway={vi.fn() as never} />
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </QueryClientProvider>
+    </MemoryRouter>
   )
 
   return onSelectModel
 }
+
+describe('ModelMenuPanel Auto toggle', () => {
+  it('renders Auto as a switch, not a checkmark model row', async () => {
+    renderPanel()
+
+    const autoSwitch = await screen.findByRole('switch', { name: 'Auto' })
+    expect(autoSwitch).toBeTruthy()
+    expect(autoSwitch.getAttribute('data-state')).toBe('unchecked')
+
+    // Hint only appears when Auto is ON — OFF shows label + switch only.
+    expect(document.body.textContent).not.toContain('Balanced quality and speed')
+
+    // Specific-model section — never the old "Switch to specific model" framing
+    // that treated Auto as the selected ✓ row.
+    expect(document.body.textContent).toContain('Specific model')
+    expect(document.body.textContent).not.toContain('Switch to specific model')
+  })
+
+  it('turning Auto on selects openrouter/auto', async () => {
+    const onSelectModel = renderPanel()
+
+    const autoSwitch = await screen.findByRole('switch', { name: 'Auto' })
+    fireEvent.click(autoSwitch)
+
+    expect(onSelectModel).toHaveBeenCalledWith({ model: 'openrouter/auto', provider: 'openrouter' })
+  })
+
+  it('turning Auto off restores the last manual model', async () => {
+    $currentModel.set('openrouter/auto')
+    $currentProvider.set('openrouter')
+    rememberComposerManualModel('x-ai/grok-4.5', 'openrouter')
+
+    const onSelectModel = renderPanel()
+
+    const autoSwitch = await screen.findByRole('switch', { name: 'Auto' })
+    expect(autoSwitch.getAttribute('data-state')).toBe('checked')
+    fireEvent.click(autoSwitch)
+
+    expect(onSelectModel).toHaveBeenCalledWith({ model: 'x-ai/grok-4.5', provider: 'openrouter' })
+  })
+
+  it('never lists openrouter/auto under specific models with a check', async () => {
+    $currentModel.set('openrouter/auto')
+    $currentProvider.set('openrouter')
+    renderPanel()
+
+    await screen.findByRole('switch', { name: 'Auto' })
+    const checks = document.body.querySelectorAll('.codicon-check')
+    for (const check of checks) {
+      const row = check.closest('[role="menuitem"]')
+      expect(row?.textContent ?? '').not.toMatch(/^Auto\b/)
+    }
+  })
+
+  it('when Auto is ON hides specific models, MoA, and the specific-model label', async () => {
+    $currentModel.set('openrouter/auto')
+    $currentProvider.set('openrouter')
+    renderPanel()
+
+    await screen.findByRole('switch', { name: 'Auto' })
+
+    expect(document.body.textContent).toContain('Balanced quality and speed')
+    expect(document.body.textContent).toContain('Add models')
+    expect(document.body.textContent).not.toContain('Specific model')
+    expect(document.body.textContent).not.toContain('MoA presets')
+    expect(document.body.textContent).not.toContain('Grok')
+    expect(document.body.textContent).not.toContain('Claude')
+  })
+
+  it('when Auto is OFF shows specific models and MoA again', async () => {
+    renderPanel()
+
+    await screen.findByRole('switch', { name: 'Auto' })
+    expect(document.body.textContent).toContain('Specific model')
+    expect(document.body.textContent).toContain('MoA presets')
+    expect(await findByText(document.body, 'MoA: BeastMode')).toBeTruthy()
+  })
+})
 
 describe('ModelMenuPanel MoA presets', () => {
   it('selecting a MoA preset switches PERSISTENTLY via onSelectModel (not the one-shot dispatch)', async () => {

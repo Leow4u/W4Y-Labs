@@ -6,14 +6,16 @@ mantêm memória de longo prazo, executam tarefas em múltiplos ambientes e se
 integram a dezenas de ferramentas e modelos — um assistente operacional sempre
 ativo.
 
+> **Desktop oficial:** [`wayne-agent/apps/desktop`](wayne-agent/apps/desktop) (Electron + React).  
+> Dev: `cd wayne-agent/apps/desktop && npm run dev` · Pack: `npm run dist:win:nsis`  
+> `appId`: `com.work4you.app` (nova app — **não** o shell legado).  
+> `apps/desktop-shell` está **congelado** ([STOP-SHIP](wayne-agent/apps/desktop-shell/STOP-SHIP.md)); não é o produto.
+
 > Princípio inegociável: **não construímos infraestrutura própria**. Reusamos e
 > orquestramos o que já existe no mercado. Ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md).
 
 > **Estrela-guia de produto:** [docs/PLATAFORMA.md](docs/PLATAFORMA.md) — um
 > produto (nuvem 24/7 + web + desktop); unificação no runtime, não em espelhar UI.
-
-> O app desktop do Work4You é `wayne-agent/apps/desktop-shell`. O renderer original do Hermes upstream (base do fork) foi removido do tree — continua no histórico git e no upstream público NousResearch/hermes-agent (MIT).
-> O instalador Tauri do Hermes upstream (apps/bootstrap-installer) também foi removido do tree pelo mesmo motivo — continua no histórico git e no upstream público.
 
 ## Estrutura do repositório
 

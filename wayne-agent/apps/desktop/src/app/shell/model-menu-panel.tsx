@@ -1,7 +1,9 @@
 import { useStore } from '@nanostores/react'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { createContext, useContext, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
+import { SETTINGS_ROUTE } from '@/app/routes'
 import { Codicon } from '@/components/ui/codicon'
 import {
   DropdownMenuGroup,
@@ -15,26 +17,32 @@ import {
   DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Switch } from '@/components/ui/switch'
 import type { HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { requestModelOptions } from '@/lib/model-options'
 import {
-  currentPickerSelection,
-  displayModelName,
-  modelDisplayParts,
-  reasoningEffortLabel
-} from '@/lib/model-status-label'
+  isW4yAutoModel,
+  rememberComposerManualModel,
+  resolveComposerManualFallback
+} from '@/lib/composer-auto-mode'
+import { requestModelOptions } from '@/lib/model-options'
+import { currentPickerSelection, displayModelName, reasoningEffortLabel } from '@/lib/model-status-label'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
+import {
+  isW4yPickerProvider,
+  modelLabel,
+  prepareW4yPickerProviders,
+  W4Y_AUTO_MODEL_ID,
+  W4Y_CATALOG_PROVIDER
+} from '@/lib/w4y-featured-models'
 import { $modelPresets, applyModelPreset, modelPresetKey } from '@/store/model-presets'
 import {
   $visibleModels,
   collapseModelFamilies,
-  DEFAULT_VISIBLE_PER_PROVIDER,
   effectiveVisibleKeys,
   type ModelFamily,
-  modelVisibilityKey,
-  setModelVisibilityOpen
+  modelVisibilityKey
 } from '@/store/model-visibility'
 import {
   $activeSessionId,
@@ -67,9 +75,8 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
   const { t } = useI18n()
   const copy = t.shell.modelMenu
   const closeMenu = useContext(ModelMenuCloseContext)
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
-  const [refreshing, setRefreshing] = useState(false)
-  const queryClient = useQueryClient()
   // Reactive session state is read from the stores here (not drilled in), so
   // toggling effort/fast/model re-renders this panel in place without forcing
   // the parent to rebuild the menu content (which would close the dropdown).
@@ -113,49 +120,22 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
     [providers]
   )
 
-  const pickerProviders = useMemo(
-    () => providers?.filter(provider => provider.slug.toLowerCase() !== 'moa') ?? [],
-    [providers]
-  )
+  const pickerProviders = useMemo(() => prepareW4yPickerProviders(providers), [providers])
 
   const effectiveVisibleModels = useMemo(
     () => effectiveVisibleKeys(visibleModels, pickerProviders),
     [visibleModels, pickerProviders]
   )
 
-  // The composer picker never persists the profile default. With a session it
-  // scopes the switch to that session; with none it's UI state shipped on the
-  // next session.create (see selectModel). The default lives in Settings → Model.
+  // Contract B: Composer sticky write-through. selectModel pins the live
+  // session (when any) and persists the active profile's model.default so
+  // Settings / cron / new chats share the same SSOT — without mutating shared
+  // process env (Hermes multi-session isolation).
   const switchTo = (model: string, provider: string) => onSelectModel({ model, provider })
-
-  // Explicit "Refresh Models": re-fetch the catalog with refresh:true so the
-  // backend busts its 1h provider-model disk cache and re-pulls each provider's
-  // live list. Fixes live-only models (e.g. OpenCode Zen free tier) vanishing
-  // when the cache expires and falls back to the curated static list.
-  const refreshModels = async () => {
-    if (refreshing) {
-      return
-    }
-
-    setRefreshing(true)
-
-    try {
-      const queryKey = ['model-options', activeSessionId || 'global']
-
-      const next = await requestModelOptions({ gateway, refresh: true, sessionId: activeSessionId })
-
-      queryClient.setQueryData<ModelOptionsResponse>(queryKey, next)
-    } catch {
-      // Network/backend hiccup — fall back to a plain invalidate so the next
-      // open re-fetches (still cached, but no worse than before).
-      void queryClient.invalidateQueries({ queryKey: ['model-options'] })
-    } finally {
-      setRefreshing(false)
-    }
-  }
 
   // Selecting a model row restores that model's remembered preset onto the
   // session (effort/fast), gated by capability. Unset → Hermes defaults.
+  // Cursor pattern: picking a specific model leaves Auto.
   const selectFamily = async (family: ModelFamily, provider: ModelOptionProvider) => {
     const caps = provider.capabilities?.[family.id]
     const preset = modelPresets[modelPresetKey(provider.slug, family.id)] ?? {}
@@ -165,6 +145,8 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
     // applied via applyModelPreset below instead.
     const variantFast = !(caps?.fast ?? false) && !!family.fastId
     const targetId = variantFast && preset.fast === true ? family.fastId! : family.id
+
+    rememberComposerManualModel(targetId, provider.slug)
 
     if ((await switchTo(targetId, provider.slug)) === false) {
       return
@@ -179,15 +161,13 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
     )
   }
 
-  // Selecting a MoA preset switches the session to it PERSISTENTLY, using the
-  // same path real provider selections use (config.set model="<preset>
-  // --provider moa" via onSelectModel → the gateway's persistent switch_model).
-  // Previously this dispatched the one-shot `/moa` command, which ran a single
-  // turn through MoA and then silently reverted to the prior model (#54670) —
-  // the dropdown presented presets like persistent selections but they weren't.
-  // No session gate: like regular model rows, a pre-session pick is UI state
-  // shipped on the next session.create.
+  // Selecting a MoA preset uses the same write-through path as real providers
+  // (session pin + profile default via selectModel). Previously this dispatched
+  // the one-shot `/moa` command, which ran a single turn through MoA and then
+  // silently reverted (#54670).
   const selectMoaPreset = async (preset: string) => {
+    rememberComposerManualModel(preset, 'moa')
+
     if ((await switchTo(preset, 'moa')) === false) {
       return
     }
@@ -195,11 +175,40 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
     closeMenu()
   }
 
+  // Auto is a toggle (Cursor), not a selectable model row. Active when the
+  // catalog auto-router is the live model — that preference persists via the
+  // sticky composer model key.
+  const isAutoMode = isW4yAutoModel(optionsModel)
+
   const groups = useMemo(
     () =>
-      groupModels(pickerProviders, search, { model: optionsModel, provider: optionsProvider }, effectiveVisibleModels),
-    [pickerProviders, search, optionsModel, optionsProvider, effectiveVisibleModels]
+      groupModels(pickerProviders, search, effectiveVisibleModels, /* excludeAutoRouter */ true),
+    [pickerProviders, search, effectiveVisibleModels]
   )
+
+  const openAddModels = () => {
+    closeMenu()
+    navigate(`${SETTINGS_ROUTE}?tab=config:model`)
+  }
+
+  // Cursor Auto toggle: ON → openrouter/auto; OFF → last manual / featured.
+  // Keep the menu open so the switch feels like a control, not a commit.
+  const setAutoMode = (on: boolean) => {
+    if (on) {
+      if (!isAutoMode) {
+        rememberComposerManualModel(optionsModel, optionsProvider)
+        void switchTo(W4Y_AUTO_MODEL_ID, W4Y_CATALOG_PROVIDER)
+      }
+      return
+    }
+
+    if (!isAutoMode) {
+      return
+    }
+
+    const fallback = resolveComposerManualFallback()
+    void switchTo(fallback.model, fallback.provider)
+  }
 
   return (
     <>
@@ -224,107 +233,153 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
         <DropdownMenuItem className={dropdownMenuRow} disabled>
           {error}
         </DropdownMenuItem>
-      ) : groups.length === 0 && moaPresets.length === 0 ? (
-        <DropdownMenuItem className={dropdownMenuRow} disabled>
-          {copy.noModels}
-        </DropdownMenuItem>
       ) : (
         <div className="max-h-[max(150px,30dvh)] overflow-y-auto py-0.5">
-          {groups.map(group => (
-            <DropdownMenuGroup className="py-0.5" key={group.provider.slug}>
-              <DropdownMenuLabel className={dropdownMenuSectionLabel}>{group.provider.name}</DropdownMenuLabel>
-              {group.families.map(family => {
-                // The active id may be the base or its -fast sibling; either
-                // way this one family row represents both.
-                const activeId =
-                  group.provider.slug === optionsProvider &&
-                  (optionsModel === family.id || optionsModel === family.fastId)
-                    ? optionsModel
-                    : null
+          {/* Cursor-style Auto toggle — pinned under Search, never a ✓ model row.
+              When Auto is ON, hide the specific-model list + MoA (Cursor pattern). */}
+          <DropdownMenuGroup className="py-0.5">
+            <DropdownMenuItem
+              className={cn(
+                dropdownMenuRow,
+                'cursor-default',
+                isAutoMode ? 'h-auto items-start py-1.5' : 'items-center'
+              )}
+              onSelect={event => event.preventDefault()}
+            >
+              <div className="min-w-0 flex-1 pr-2">
+                <div className="truncate font-medium">{copy.autoMode}</div>
+                {isAutoMode ? (
+                  <div className="mt-0.5 text-[11px] leading-snug whitespace-normal text-(--ui-text-tertiary)">
+                    {copy.autoModeHint}
+                  </div>
+                ) : null}
+              </div>
+              <Switch
+                aria-label={copy.autoMode}
+                checked={isAutoMode}
+                className={cn('shrink-0', isAutoMode && 'mt-0.5')}
+                onCheckedChange={checked => setAutoMode(checked)}
+                size="xs"
+              />
+            </DropdownMenuItem>
+            {!isAutoMode ? (
+              <DropdownMenuLabel className={cn(dropdownMenuSectionLabel, 'mt-1')}>
+                {copy.specificModel}
+              </DropdownMenuLabel>
+            ) : null}
+          </DropdownMenuGroup>
+          {!isAutoMode ? (
+            groups.length === 0 ? (
+              <DropdownMenuItem className={dropdownMenuRow} disabled>
+                {copy.noModels}
+              </DropdownMenuItem>
+            ) : (
+              groups.map(group => (
+              <DropdownMenuGroup className="py-0.5" key={group.provider.slug}>
+                {group.provider.slug !== W4Y_CATALOG_PROVIDER ? (
+                  <DropdownMenuLabel className={dropdownMenuSectionLabel}>{group.provider.name}</DropdownMenuLabel>
+                ) : null}
+                {group.families.map(family => {
+                  // The active id may be the base or its -fast sibling; either
+                  // way this one family row represents both.
+                  const activeId =
+                    group.provider.slug === optionsProvider &&
+                    (optionsModel === family.id || optionsModel === family.fastId)
+                      ? optionsModel
+                      : null
 
-                const isCurrent = activeId !== null
-                const name = modelDisplayParts(family.id).name
-                // Capabilities are looked up against the active/base id; the
-                // -fast variant carries the same param support as its base.
-                const caps = group.provider.capabilities?.[family.id]
+                  const isCurrent = activeId !== null
+                  const name = modelLabel(family.id)
+                  // Capabilities are looked up against the active/base id; the
+                  // -fast variant carries the same param support as its base.
+                  const caps = group.provider.capabilities?.[family.id]
 
-                // Effective settings for this row: live session state when it's
-                // the active model, otherwise its remembered preset (Hermes
-                // defaults when unset). Row label AND submenu read from these so
-                // they never disagree.
-                const preset = modelPresets[modelPresetKey(group.provider.slug, family.id)] ?? {}
-                const effEffort = isCurrent ? currentReasoningEffort : (preset.effort ?? '')
-                const effFast = isCurrent ? currentFastMode : (preset.fast ?? false)
+                  // Effective settings for this row: live session state when it's
+                  // the active model, otherwise its remembered preset (Hermes
+                  // defaults when unset). Row label AND submenu read from these so
+                  // they never disagree.
+                  const preset = modelPresets[modelPresetKey(group.provider.slug, family.id)] ?? {}
+                  const effEffort = isCurrent ? currentReasoningEffort : (preset.effort ?? '')
+                  const effFast = isCurrent ? currentFastMode : (preset.fast ?? false)
 
-                const fastControl = resolveFastControl(
-                  activeId ?? family.id,
-                  group.provider.models ?? [],
-                  caps?.fast ?? false,
-                  effFast
-                )
+                  const fastControl = resolveFastControl(
+                    activeId ?? family.id,
+                    group.provider.models ?? [],
+                    caps?.fast ?? false,
+                    effFast
+                  )
 
-                const meta = [
-                  fastControl.kind !== 'none' && fastControl.on ? copy.fast : null,
-                  (caps?.reasoning ?? true) ? reasoningEffortLabel(effEffort) || copy.medium : null
-                ]
-                  .filter(Boolean)
-                  .join(' ')
+                  // Auto-routing model: no effort/fast qualifiers to show.
+                  const isAutoRouter = isW4yAutoModel(family.id)
+                  const meta = isAutoRouter
+                    ? ''
+                    : [
+                        fastControl.kind !== 'none' && fastControl.on ? copy.fast : null,
+                        (caps?.reasoning ?? true) ? reasoningEffortLabel(effEffort) || copy.medium : null
+                      ]
+                        .filter(Boolean)
+                        .join(' ')
 
-                // Every row is a hover-Edit submenu trigger. Activating it
-                // (pointer or keyboard) switches to the family's base model and
-                // restores its preset; the Fast toggle inside swaps to the -fast
-                // sibling (or flips the speed param). The sub-trigger has no
-                // `onSelect`, so wire both click and Enter/Space for keyboard parity.
-                // Clicking the row commits the model and closes the picker; the
-                // edit submenu (reasoning/fast) is reached by HOVER, so you can
-                // still tweak those without the click dismissing everything.
-                const activate = () => {
-                  if (!isCurrent) {
-                    void selectFamily(family, group.provider)
+                  // Every row is a hover-Edit submenu trigger. Activating it
+                  // (pointer or keyboard) switches to the family's base model and
+                  // restores its preset; the Fast toggle inside swaps to the -fast
+                  // sibling (or flips the speed param). The sub-trigger has no
+                  // `onSelect`, so wire both click and Enter/Space for keyboard parity.
+                  // Clicking the row commits the model and closes the picker; the
+                  // edit submenu (reasoning/fast) is reached by HOVER, so you can
+                  // still tweak those without the click dismissing everything.
+                  const activate = () => {
+                    if (!isCurrent) {
+                      void selectFamily(family, group.provider)
+                    }
+
+                    closeMenu()
                   }
 
-                  closeMenu()
-                }
-
-                return (
-                  <DropdownMenuSub key={`${group.provider.slug}:${family.id}`}>
-                    <DropdownMenuSubTrigger
-                      className={dropdownMenuRow}
-                      hideChevron
-                      onClick={activate}
-                      onKeyDown={event => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          activate()
-                        }
-                      }}
-                    >
-                      <span className="min-w-0 flex-1 truncate">
-                        {name}
-                        {meta ? <span className="text-(--ui-text-tertiary)"> {meta}</span> : null}
-                      </span>
-                      {isCurrent ? <Codicon className="ml-auto text-foreground" name="check" size="0.75rem" /> : null}
-                    </DropdownMenuSubTrigger>
-                    <ModelEditSubmenu
-                      effort={effEffort}
-                      fastControl={fastControl}
-                      isActive={isCurrent}
-                      model={family.id}
-                      onSelectModel={nextModel => switchTo(nextModel, group.provider.slug)}
-                      provider={group.provider.slug}
-                      reasoning={caps?.reasoning ?? true}
-                      requestGateway={requestGateway}
-                    />
-                  </DropdownMenuSub>
-                )
-              })}
-            </DropdownMenuGroup>
-          ))}
+                  return (
+                    <DropdownMenuSub key={`${group.provider.slug}:${family.id}`}>
+                      <DropdownMenuSubTrigger
+                        className={dropdownMenuRow}
+                        hideChevron
+                        onClick={activate}
+                        onKeyDown={event => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            activate()
+                          }
+                        }}
+                      >
+                        <span className="min-w-0 flex-1 truncate">
+                          {name}
+                          {meta ? <span className="text-(--ui-text-tertiary)"> {meta}</span> : null}
+                        </span>
+                        {isCurrent ? <Codicon className="ml-auto text-foreground" name="check" size="0.75rem" /> : null}
+                      </DropdownMenuSubTrigger>
+                      {/* Auto-routing models have no per-request effort/fast knobs. */}
+                      {!isAutoRouter && (
+                        <ModelEditSubmenu
+                          effort={effEffort}
+                          fastControl={fastControl}
+                          isActive={isCurrent}
+                          model={family.id}
+                          onSelectModel={nextModel => switchTo(nextModel, group.provider.slug)}
+                          provider={group.provider.slug}
+                          reasoning={caps?.reasoning ?? true}
+                          requestGateway={requestGateway}
+                        />
+                      )}
+                    </DropdownMenuSub>
+                  )
+                })}
+              </DropdownMenuGroup>
+            ))
+            )
+          ) : null}
         </div>
       )}
 
       <DropdownMenuSeparator className="mx-0" />
 
-      {moaPresets.length > 0 ? (
+      {!isAutoMode && moaPresets.length > 0 ? (
         <>
           <DropdownMenuLabel className={dropdownMenuSectionLabel}>MoA presets</DropdownMenuLabel>
           {moaPresets.map(preset => {
@@ -348,45 +403,32 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
         </>
       ) : null}
 
-      <DropdownMenuItem
-        className={cn(dropdownMenuRow, 'text-(--ui-text-tertiary)')}
-        disabled={refreshing}
-        onSelect={event => {
-          event.preventDefault()
-          void refreshModels()
-        }}
-      >
-        <Codicon className={cn(refreshing && 'animate-spin')} name="sync" size="0.75rem" />
-        {copy.refreshModels}
-      </DropdownMenuItem>
-
-      <DropdownMenuItem
-        className={cn(dropdownMenuRow, 'text-(--ui-text-tertiary)')}
-        onSelect={() => setModelVisibilityOpen(true)}
-      >
+      <DropdownMenuItem className={cn(dropdownMenuRow, 'text-(--ui-text-tertiary)')} onSelect={openAddModels}>
         <Codicon name="settings-gear" size="0.75rem" />
-        {copy.editModels}
+        {copy.addModels}
       </DropdownMenuItem>
     </>
   )
 }
 
-// Collapsed we show the user's chosen models (or the curated default); typing
-// spans every available model so anything is reachable past the cut. A search
-// is itself a narrowing action, so we do NOT cap per-provider matches — a
-// provider serving 19 models (e.g. opencode-go) must show all 19 when the user
-// searches for it, not a truncated subset. (#47077 follow-up)
+// Show only Settings → Models toggles (or curated defaults). Search narrows
+// within that active set — never resurfaces hidden catalog rows. Turning a
+// toggle off removes the model from pickers immediately.
 
 function groupModels(
   providers: ModelOptionProvider[],
   search: string,
-  current: { model: string; provider: string },
-  visible: Set<string> | null
+  visible: Set<string>,
+  excludeAutoRouter = false
 ): ProviderGroup[] {
   const q = normalize(search)
   const groups: ProviderGroup[] = []
 
   for (const provider of providers) {
+    if (!isW4yPickerProvider(provider)) {
+      continue
+    }
+
     const allFamilies = collapseModelFamilies(provider.models ?? [])
 
     if (allFamilies.length === 0) {
@@ -394,35 +436,16 @@ function groupModels(
     }
 
     const matches = (family: ModelFamily) =>
-      `${family.id} ${family.fastId ?? ''} ${provider.name} ${provider.slug} ${displayModelName(family.id)}`
-        .toLowerCase()
-        .includes(q)
+      `${family.id} ${family.fastId ?? ''} ${displayModelName(family.id)}`.toLowerCase().includes(q)
 
-    // Which model ids to show (the active one is always added on top of this).
-    let shown: Set<string>
+    const isAutoRouterFamily = (family: ModelFamily) => isW4yAutoModel(family.id)
 
-    if (q) {
-      // Search spans every family, regardless of visibility.
-      shown = new Set(allFamilies.filter(matches).map(family => family.id))
-    } else if (visible) {
-      // User has customized which models show — honor their selection exactly.
-      shown = new Set(
-        allFamilies.filter(family => visible.has(modelVisibilityKey(provider.slug, family.id))).map(family => family.id)
-      )
-    } else {
-      // Default: curated top-N families per provider.
-      shown = new Set(allFamilies.slice(0, DEFAULT_VISIBLE_PER_PROVIDER).map(family => family.id))
-    }
-
-    // Always include the active model — but keep every row in the provider's
-    // stable curated order (filter `allFamilies`, never reorder), so selecting
-    // a model can't shuffle the list.
-    const activeId =
-      provider.slug === current.provider && current.model
-        ? allFamilies.find(family => family.id === current.model || family.fastId === current.model)?.id
-        : undefined
-
-    const families = allFamilies.filter(family => shown.has(family.id) || family.id === activeId)
+    const families = allFamilies.filter(
+      family =>
+        visible.has(modelVisibilityKey(provider.slug, family.id)) &&
+        (!q || matches(family)) &&
+        !(excludeAutoRouter && isAutoRouterFamily(family))
+    )
 
     if (families.length > 0) {
       groups.push({ families, provider })

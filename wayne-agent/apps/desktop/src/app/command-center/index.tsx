@@ -39,7 +39,12 @@ import { MaintenancePanel } from './maintenance'
 
 export type CommandCenterSection = 'maintenance' | 'sessions' | 'system' | 'usage'
 
-const SECTIONS = ['sessions', 'system', 'usage', 'maintenance'] as const satisfies readonly CommandCenterSection[]
+const SECTIONS = [
+  'sessions',
+  'system',
+  'usage',
+  'maintenance'
+] as const satisfies readonly CommandCenterSection[]
 
 const LOG_FILES = ['agent', 'errors', 'gateway', 'desktop'] as const
 const LOG_LEVELS = ['ALL', 'INFO', 'WARNING', 'ERROR'] as const

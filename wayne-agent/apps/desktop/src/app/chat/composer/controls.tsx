@@ -2,12 +2,14 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
+import type { HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, iconSize, Layers3, Loader2, Square, SteeringWheel, Volume2, VolumeX } from '@/lib/icons'
 import { formatCombo } from '@/lib/keybinds/combo'
 import { cn } from '@/lib/utils'
 
+import { ContextUsageRing } from './context-usage-ring'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
 import type { ChatBarState, VoiceStatus } from './types'
@@ -39,7 +41,7 @@ interface ConversationProps {
 }
 
 export function ComposerControls({
-  autoSpeak,
+  autoSpeak: _autoSpeak,
   busy,
   busyAction,
   canSteer,
@@ -47,12 +49,13 @@ export function ComposerControls({
   compactModelPill = false,
   conversation,
   disabled,
+  gateway,
   hasComposerPayload,
   state,
   voiceStatus,
   onDictate,
   onSteer,
-  onToggleAutoSpeak
+  onToggleAutoSpeak: _onToggleAutoSpeak
 }: {
   autoSpeak: boolean
   busy: boolean
@@ -62,6 +65,7 @@ export function ComposerControls({
   compactModelPill?: boolean
   conversation: ConversationProps
   disabled: boolean
+  gateway?: HermesGateway | null
   hasComposerPayload: boolean
   state: ChatBarState
   voiceStatus: VoiceStatus
@@ -90,6 +94,7 @@ export function ComposerControls({
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
       <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
+      <ContextUsageRing gateway={gateway} />
       {/* While the agent runs and the user is typing, steer takes over the mic's
           slot rather than crowding the row with an extra button. */}
       {canSteer ? (
@@ -109,7 +114,7 @@ export function ComposerControls({
       ) : (
         <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
       )}
-      <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
+      {/* Auto-speak ("Read replies aloud") hidden for now — restore via AutoSpeakButton. */}
       {showVoicePrimary ? (
         <Tip label={c.startVoice}>
           <Button

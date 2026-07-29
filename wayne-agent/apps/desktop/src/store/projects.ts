@@ -5,13 +5,19 @@ import type { HermesGitBranch } from '@/global'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd, selectDesktopPaths, writeDesktopFileText } from '@/lib/desktop-fs'
 import { desktopGit } from '@/lib/desktop-git'
+import { pathIsInside } from '@/lib/fs-path'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { persistentAtom } from '@/lib/persisted'
-import { activeGateway, ensureActiveGatewayOpen } from '@/store/gateway'
+import { primaryBrainGateway } from '@/store/gateway'
 import { setSidebarAgentsGrouped } from '@/store/layout'
 import { notify } from '@/store/notifications'
 import { requestFreshSession } from '@/store/profile'
-import { $selectedStoredSessionId, $sessions, workspaceCwdForNewSession } from '@/store/session'
+import {
+  $selectedStoredSessionId,
+  $sessions,
+  setCurrentCwd,
+  workspaceCwdForNewSession
+} from '@/store/session'
 import type { ProjectInfo, ProjectsPayload } from '@/types/hermes'
 
 // First-class, per-profile Projects (named, multi-folder workspaces). State is
@@ -28,6 +34,10 @@ export const $activeProjectId = atom<null | string>(null)
 // source of project membership — the desktop no longer derives it.
 export const $projectTree = atom<SidebarProjectTree[]>([])
 export const $projectTreeLoading = atom(false)
+
+// Session ids the backend placed under any project/auto-repo in `projects.tree`.
+// Everything else is unbound (Sessões / Cursor Home). Refreshed with the tree.
+export const $scopedSessionIds = atom<ReadonlySet<string>>(new Set())
 
 // False when the connected backend predates the projects.* JSON-RPC surface
 // (same semver label, older install). Null until the first probe.
@@ -112,10 +122,24 @@ export const $projectScope = persistentAtom<string>(PROJECT_SCOPE_KEY, ALL_PROJE
   encode: value => value || ALL_PROJECTS
 })
 
+/** Primary folder for a project tree node (repo root), or "". */
+export function projectWorkspacePath(id: string): string {
+  if (!id || id === ALL_PROJECTS) {
+    return ''
+  }
+
+  const project = $projectTree.get().find(node => node.id === id)
+
+  return (project?.path || project?.repos.find(repo => repo.path)?.path || '').trim()
+}
+
 // Enter a project: scope the sidebar to it and make it the active project
 // (best-effort — the durable pointer is nice-to-have, the view scope is the
-// point). Never opens a session.
-export function enterProject(id: string): void {
+// point). Never opens a session. Pass `attachCwd` from UI "pick this project"
+// paths so the composer git chrome can probe the working tree; omit it when
+// following an already-anchored session cwd (e.g. a worktree) so we don't
+// yank the live workspace back to the project root.
+export function enterProject(id: string, options?: { attachCwd?: boolean }): void {
   $projectScope.set(id)
 
   // Only explicit, persisted projects (ids are `p_<hex>`) become active. Auto
@@ -123,6 +147,14 @@ export function enterProject(id: string): void {
   // durable row to pin, so they're view-scope only.
   if (id.startsWith('p_')) {
     void setActiveProject(id).catch(() => undefined)
+  }
+
+  if (options?.attachCwd) {
+    const path = projectWorkspacePath(id)
+
+    if (path) {
+      setCurrentCwd(path)
+    }
   }
 }
 
@@ -140,8 +172,7 @@ export function resolveNewSessionCwd(): string {
   const scope = $projectScope.get()
 
   if (scope !== ALL_PROJECTS) {
-    const project = $projectTree.get().find(node => node.id === scope)
-    const cwd = (project?.path || project?.repos.find(repo => repo.path)?.path || '').trim()
+    const cwd = projectWorkspacePath(scope)
 
     if (cwd) {
       return cwd
@@ -151,8 +182,7 @@ export function resolveNewSessionCwd(): string {
   return workspaceCwdForNewSession()
 }
 
-const underPath = (parent: string, child: string): boolean =>
-  child === parent || child.startsWith(parent.endsWith('/') ? parent : `${parent}/`)
+const underPath = (parent: string, child: string): boolean => pathIsInside(parent, child)
 
 // The project (explicit or auto) that owns `cwd`, by longest path match across
 // the live tree. Null when no project covers it (it'll surface as a fresh
@@ -180,6 +210,18 @@ export function projectIdForCwd(cwd: string): null | string {
   return best
 }
 
+/** True when a session is bound to Projetos (explicit or auto), not Sessões. */
+export function sessionBelongsToProject(session: { id: string; cwd?: null | string }): boolean {
+  if ($scopedSessionIds.get().has(session.id)) {
+    return true
+  }
+
+  // Optimistic: a just-created in-project chat may land before scoped ids refresh.
+  const cwd = (session.cwd || '').trim()
+
+  return Boolean(cwd && projectIdForCwd(cwd))
+}
+
 // The active session's agent relocated itself (created/entered another repo or
 // worktree via the terminal — backend re-anchors its cwd and emits session.info).
 // Re-pull projects + tree so a freshly created/auto project and the relocated
@@ -199,9 +241,8 @@ export async function followActiveSessionCwd(cwd: string): Promise<void> {
   const projectId = projectIdForCwd(target)
 
   if (projectId) {
-    // The Projects tree only renders in grouped mode, so flip the sidebar into
-    // it — otherwise following from the flat Sessions list would change scope
-    // invisibly. Then drill into the thread's project.
+    // Dual sidebar always shows Projetos; still flip the legacy grouped flag so
+    // older shells that key off it stay consistent, then drill into the project.
     setSidebarAgentsGrouped(true)
 
     if (projectId !== $projectScope.get()) {
@@ -210,17 +251,12 @@ export async function followActiveSessionCwd(cwd: string): Promise<void> {
   }
 }
 
-// Issue a request on whichever gateway is currently active, reconnecting once
-// if the socket dropped. Projects are per-profile, so they intentionally follow
-// the active gateway just like the session list does.
+// Issue a request on the LOCAL/window gateway. Projects are PC-scoped and must
+// never follow a cloud 24/7 brain (Fly) that may be active for chat.
 async function gatewayRequest<T>(method: string, params: Record<string, unknown> = {}): Promise<T> {
-  let gateway = activeGateway()
+  const gateway = primaryBrainGateway()
 
   if (!gateway || gateway.connectionState !== 'open') {
-    gateway = await ensureActiveGatewayOpen()
-  }
-
-  if (!gateway) {
     throw new Error('Hermes gateway is not connected')
   }
 
@@ -258,12 +294,13 @@ export async function refreshProjectTree(): Promise<void> {
 
   try {
     const res = await gatewayRequest<ProjectTreePayload>('projects.tree', { preview_limit: 3 })
-    // The flat Sessions list shows everything; scoped ids are only used here to
-    // reconcile the optimistic eviction layer against what the server still lists.
+    // Sessões (unbound) = everything not in this set. Also used to reconcile the
+    // optimistic eviction layer against what the server still lists.
     const scoped = new Set(res.scoped_session_ids ?? [])
 
     $projectTree.set(res.projects ?? [])
     $activeProjectId.set(res.active_id ?? null)
+    $scopedSessionIds.set(scoped)
 
     // Reconcile the optimistic eviction layer against the fresh snapshot: keep
     // evicting ids the server still lists (delete in flight) and drop the rest
@@ -790,12 +827,73 @@ export async function copyPath(path: null | string): Promise<void> {
 // Pick a project folder via the remote-aware picker: a remote gateway browses
 // the backend filesystem (seeded at its default cwd) where sessions run; local
 // mode opens the native dialog. Returns the absolute path, or null if cancelled.
-export async function pickProjectFolder(): Promise<null | string> {
+export async function pickProjectFolder(options?: {
+  createDirectory?: boolean
+  title?: string
+}): Promise<null | string> {
   const [dir] = await selectDesktopPaths({
+    createDirectory: options?.createDirectory,
     defaultPath: (await desktopDefaultCwd())?.cwd,
     directories: true,
-    multiple: false
+    multiple: false,
+    title: options?.title
   })
 
   return dir || null
+}
+
+/** Basename of a path for a default project name (last non-empty segment). */
+export function projectNameFromPath(path: string): string {
+  return path.split(/[/\\]/).filter(Boolean).pop() || path
+}
+
+export interface OpenProjectFolderOptions {
+  /** Show the OS "New Folder" control inside the directory picker. */
+  createDirectory?: boolean
+  title?: string
+}
+
+/**
+ * Cursor-like "Open folder" / "New folder": pick a directory, enter it if it
+ * already maps to a project/auto-repo in the tree, otherwise create an explicit
+ * project and enter. Returns the project id, or null if the user cancelled.
+ * Does not run `git init` — that surface does not exist on the desktop bridge yet.
+ */
+export async function openOrCreateProjectFromFolder(
+  options?: OpenProjectFolderOptions
+): Promise<null | string> {
+  const dir = await pickProjectFolder({
+    createDirectory: options?.createDirectory,
+    title: options?.title
+  })
+
+  if (!dir) {
+    return null
+  }
+
+  const existing = projectIdForCwd(dir)
+
+  if (existing) {
+    enterProject(existing, { attachCwd: true })
+    // Folder picker path wins even when the tree row's primary path differs.
+    setCurrentCwd(dir)
+
+    return existing
+  }
+
+  const created = await createProject({
+    folders: [dir],
+    name: projectNameFromPath(dir),
+    primaryPath: dir,
+    use: true
+  })
+
+  if (!created) {
+    return null
+  }
+
+  enterProject(created.id, { attachCwd: true })
+  setCurrentCwd(dir)
+
+  return created.id
 }

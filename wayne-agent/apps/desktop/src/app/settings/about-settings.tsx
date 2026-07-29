@@ -5,7 +5,7 @@ import { BrandMark } from '@/components/brand-mark'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { type Translations, useI18n } from '@/i18n'
-import { CheckCircle2, ExternalLink, Loader2, RefreshCw } from '@/lib/icons'
+import { CheckCircle2, Loader2, RefreshCw } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import {
   $desktopVersion,
@@ -18,10 +18,14 @@ import {
   startActiveUpdate
 } from '@/store/updates'
 
+import { useEditableHermesConfig } from '../hooks/use-editable-hermes-config'
+
+import { ConfigField } from './config-field'
+import { enumOptionsFor, getNested, setNested } from './helpers'
 import { ListRow, SectionHeading, SettingsContent } from './primitives'
 import { UninstallSection } from './uninstall-section'
 
-const RELEASE_NOTES_URL = 'https://github.com/NousResearch/hermes-agent/releases'
+const UPDATE_LOCAL_CHANGES_KEY = 'updates.non_interactive_local_changes'
 
 function relativeTime(ms: number | undefined, a: Translations['settings']['about']) {
   if (!ms) {
@@ -45,14 +49,24 @@ function relativeTime(ms: number | undefined, a: Translations['settings']['about
   return a.daysAgo(Math.round(diff / 86_400_000))
 }
 
-export function AboutSettings() {
+interface AboutSettingsProps {
+  onConfigSaved?: () => void
+}
+
+export function AboutSettings({ onConfigSaved }: AboutSettingsProps) {
   const { t } = useI18n()
   const a = t.settings.about
+  const c = t.settings.config
   const version = useStore($desktopVersion)
   const status = useStore($updateStatus)
   const apply = useStore($updateApply)
   const checking = useStore($updateChecking)
   const [justChecked, setJustChecked] = useState(false)
+
+  const { config, schema, updateConfig } = useEditableHermesConfig({
+    autosaveFailedMessage: c.autosaveFailed,
+    onConfigSaved
+  })
 
   // The version atom is loaded once at app boot, which makes About show a
   // stale number after a self-update (the running binary is current, the
@@ -65,6 +79,7 @@ export function AboutSettings() {
   const behind = status?.behind ?? 0
   const supported = status?.supported !== false
   const applying = apply.applying || apply.stage === 'restart'
+  const updateField = schema?.[UPDATE_LOCAL_CHANGES_KEY]
 
   const handleCheck = async () => {
     setJustChecked(false)
@@ -152,21 +167,6 @@ export function AboutSettings() {
                 </Button>
               </>
             )}
-
-            <Button asChild className="ml-auto" size="sm" variant="text">
-              <a
-                href={RELEASE_NOTES_URL}
-                onClick={event => {
-                  event.preventDefault()
-                  void window.hermesDesktop?.openExternal?.(RELEASE_NOTES_URL)
-                }}
-                rel="noreferrer"
-                target="_blank"
-              >
-                <ExternalLink className="size-3" />
-                {a.releaseNotes}
-              </a>
-            </Button>
           </div>
         </div>
 
@@ -175,6 +175,22 @@ export function AboutSettings() {
           hint={a.branchCommit(status?.branch ?? 'unknown', status?.currentSha?.slice(0, 7) ?? 'unknown')}
           title={a.automaticUpdates}
         />
+
+        {config && updateField ? (
+          <div className="mt-2 overflow-hidden rounded-xl bg-(--ui-bg-tertiary)/70">
+            <ConfigField
+              descriptionOverride={a.localChangesDesc}
+              enumOptions={enumOptionsFor(UPDATE_LOCAL_CHANGES_KEY, getNested(config, UPDATE_LOCAL_CHANGES_KEY), config)}
+              inset
+              onChange={value => updateConfig(setNested(config, UPDATE_LOCAL_CHANGES_KEY, value))}
+              optionLabels={a.localChangesOptions}
+              schema={updateField}
+              schemaKey={UPDATE_LOCAL_CHANGES_KEY}
+              titleOverride={a.localChanges}
+              value={getNested(config, UPDATE_LOCAL_CHANGES_KEY)}
+            />
+          </div>
+        ) : null}
 
         <UninstallSection />
       </div>

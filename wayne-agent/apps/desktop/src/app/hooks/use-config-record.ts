@@ -12,10 +12,19 @@ import type { HermesConfigRecord } from '@/types/hermes'
 // Distinct from session/hooks/use-hermes-config.ts, which is side-effecting —
 // it pushes personality/cwd/voice/… into the session stores for live chat.
 export const HERMES_CONFIG_KEY = ['hermes-config-record'] as const
+export const HERMES_CONFIG_STALE_MS = 60_000
 
-// staleTime 0 → serve cache instantly, background-revalidate on every mount.
+export function peekHermesConfig(): HermesConfigRecord | null {
+  return queryClient.getQueryData<HermesConfigRecord>(HERMES_CONFIG_KEY) ?? null
+}
+
+// Serve warm cache immediately; background-revalidate after staleTime.
 export const useHermesConfigRecord = () =>
-  useQuery({ queryKey: HERMES_CONFIG_KEY, queryFn: getHermesConfigRecord, staleTime: 0 })
+  useQuery({
+    queryKey: HERMES_CONFIG_KEY,
+    queryFn: getHermesConfigRecord,
+    staleTime: HERMES_CONFIG_STALE_MS
+  })
 
 export const setHermesConfigCache = writeCache<HermesConfigRecord>(HERMES_CONFIG_KEY)
 

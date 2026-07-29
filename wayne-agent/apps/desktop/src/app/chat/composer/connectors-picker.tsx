@@ -1,11 +1,13 @@
 /**
  * Composer Conectores control — logos + per-session on/off for ACTIVE apps.
- * Empty → navigates to Capabilities → Connectors (marketplace). Does not invent
- * backend; OFF is enforced via `config.set` connectors.disabled (session scope).
+ * Empty → suggest connect-by-chat (featured apps) or marketplace. OFF is enforced
+ * via `config.set` connectors.disabled (session scope).
  */
-import { useEffect, useState } from 'react'
+import { useStore } from '@nanostores/react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { requestComposerSubmit } from '@/app/chat/composer/focus'
 import { LogoTile } from '@/components/connectors/logo-tile'
 import {
   DropdownMenu,
@@ -13,17 +15,25 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { resolveFeaturedConnectors } from '@/lib/connector-curation'
 import { getConnectorsCatalog, getConnectorsStatus } from '@/lib/connectors-api'
 import type { ConnectorToolkit } from '@/lib/connectors-types'
-import { ChevronDown, iconSize, Link2 } from '@/lib/icons'
+import { ensureComposioMcpReady } from '@/lib/ensure-composio-mcp'
+import { iconSize, Link2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { $connectorsRevision, $lastConnectedToolkit } from '@/store/connectors'
 
 import { SKILLS_ROUTE } from '../../routes'
 
 const CHIP =
-  'flex h-7 max-w-[14rem] items-center gap-1 rounded-lg px-2 text-[0.75rem] font-medium text-muted-foreground transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
+  'flex h-6 max-w-[14rem] items-center gap-1 rounded-md px-1.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
+
+/** Curated marketplace size for the +N badge (product-selected top connectors). */
+const CURATED_CONNECTOR_COUNT = 15
+
+/** How many featured apps to offer as connect-by-chat prompts in the empty menu. */
+const SUGGEST_CONNECT_COUNT = 6
 
 function fallbackToolkit(slug: string): ConnectorToolkit {
   return {
@@ -49,15 +59,30 @@ export function ConnectorsPicker({
 }) {
   const { t } = useI18n()
   const navigate = useNavigate()
+  const revision = useStore($connectorsRevision)
+  const lastConnected = useStore($lastConnectedToolkit)
   const [open, setOpen] = useState(false)
   const [connected, setConnected] = useState<ConnectorToolkit[] | null>(null)
+  const [featured, setFeatured] = useState<ConnectorToolkit[]>([])
 
   useEffect(() => {
     let alive = true
+    // Mint/refresh tool-router URL + reload MCP so mcp_composio_* tools exist.
+    // Skip ensure on revision bumps — ConnectLinkCard already forced MCP reload.
+    if (revision === 0) {
+      void ensureComposioMcpReady().catch(() => null)
+    }
     void (async () => {
       try {
-        const status = await getConnectorsStatus('global').catch(() => null)
+        const [status, catalog] = await Promise.all([
+          getConnectorsStatus('global').catch(() => null),
+          getConnectorsCatalog().catch(() => null)
+        ])
         if (!alive) return
+
+        const toolkits = catalog?.toolkits ?? []
+        setFeatured(resolveFeaturedConnectors(toolkits).slice(0, SUGGEST_CONNECT_COUNT))
+
         if (!status) {
           setConnected([])
           return
@@ -74,43 +99,102 @@ export function ConnectorsPicker({
           setConnected([])
           return
         }
-        const catalog = await getConnectorsCatalog().catch(() => null)
-        if (!alive) return
-        const bySlug = new Map((catalog?.toolkits ?? []).map(tk => [tk.slug.toLowerCase(), tk]))
-        setConnected(slugs.map(slug => bySlug.get(slug) ?? fallbackToolkit(slug)))
+        const bySlug = new Map(toolkits.map(tk => [tk.slug.toLowerCase(), tk]))
+        const ordered = slugs.map(slug => bySlug.get(slug) ?? fallbackToolkit(slug))
+        // Pin the just-authorized app to the front so the composer chip updates visibly.
+        if (lastConnected) {
+          ordered.sort((a, b) => {
+            const aHit = a.slug.toLowerCase() === lastConnected ? 0 : 1
+            const bHit = b.slug.toLowerCase() === lastConnected ? 0 : 1
+            return aHit - bHit
+          })
+        }
+        setConnected(ordered)
       } catch {
-        if (alive) setConnected([])
+        if (alive) {
+          setConnected([])
+          setFeatured([])
+        }
       }
     })()
     return () => {
       alive = false
     }
-  }, [])
+  }, [revision, lastConnected])
+
+  const suggestConnect = (tk: ConnectorToolkit) => {
+    setOpen(false)
+    requestComposerSubmit(t.connectors.connectAppPrompt.replace('{app}', tk.name), { target: 'main' })
+  }
+
+  const openMarketplace = () => {
+    setOpen(false)
+    navigate(`${SKILLS_ROUTE}?tab=connectors`)
+  }
+
+  const featuredNotConnected = useMemo(() => {
+    if (!connected) return []
+    const on = new Set(connected.map(tk => tk.slug.toLowerCase()))
+    return featured.filter(tk => !on.has(tk.slug.toLowerCase()))
+  }, [connected, featured])
 
   // Still loading — avoid flicker.
   if (connected === null) return null
 
-  // No apps connected yet → chip opens the marketplace (not raw MCP).
+  // No apps connected yet → chip opens connect-by-chat suggestions (+ marketplace).
   if (connected.length === 0) {
     return (
-      <Tip label={t.composer.connectorsHint}>
-        <button
-          aria-label={t.composer.connectorsLabel}
+      <DropdownMenu onOpenChange={setOpen} open={open}>
+        <DropdownMenuTrigger
+          aria-label={t.composer.connectorsAdd}
           className={CHIP}
-          onClick={() => navigate(`${SKILLS_ROUTE}?tab=connectors`)}
-          title={t.composer.connectorsHint}
+          title={t.composer.connectorsAdd}
           type="button"
         >
           <Link2 className={iconSize.sm} />
-          <span className="truncate">{t.composer.connectorsLabel}</span>
-          <ChevronDown className={cn(iconSize.sm, 'opacity-60')} />
-        </button>
-      </Tip>
+          <span className="tabular-nums text-(--ui-text-tertiary)">+{CURATED_CONNECTOR_COUNT}</span>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-72 p-1.5" side="top" sideOffset={8}>
+          <DropdownMenuLabel className="text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">
+            {t.connectors.connectApps}
+          </DropdownMenuLabel>
+          {featured.length === 0 ? (
+            <button
+              className="w-full rounded-lg px-2.5 py-2 text-left text-[0.8rem] text-muted-foreground hover:bg-(--chrome-action-hover) hover:text-foreground"
+              onClick={openMarketplace}
+              type="button"
+            >
+              {t.composer.connectorsAdd}
+            </button>
+          ) : (
+            featured.map(tk => (
+              <button
+                className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left hover:bg-(--chrome-action-hover)"
+                key={tk.slug}
+                onClick={() => suggestConnect(tk)}
+                type="button"
+              >
+                <LogoTile className="h-6 w-6 rounded-md text-xs" toolkit={tk} />
+                <span className="min-w-0 flex-1 truncate text-[0.8rem] font-medium text-foreground">{tk.name}</span>
+              </button>
+            ))
+          )}
+          <button
+            className="mt-1 w-full rounded-lg border-t border-border/70 px-2.5 py-1.5 text-left text-[0.7rem] text-muted-foreground hover:bg-(--chrome-action-hover) hover:text-foreground"
+            onClick={openMarketplace}
+            type="button"
+          >
+            {t.connectors.viewFullCatalog}
+          </button>
+        </DropdownMenuContent>
+      </DropdownMenu>
     )
   }
 
   const off = new Set(disabled.map(s => s.toLowerCase()))
   const enabledToolkits = connected.filter(tk => !off.has(tk.slug.toLowerCase()))
+  const shown = enabledToolkits.slice(0, 3)
+  const plusN = Math.max(0, CURATED_CONNECTOR_COUNT - shown.length)
 
   const toggle = (slug: string) => {
     const key = slug.toLowerCase()
@@ -128,19 +212,20 @@ export function ConnectorsPicker({
         title={t.composer.connectorsSession}
         type="button"
       >
-        {enabledToolkits.length > 0 && (
+        {shown.length > 0 ? (
           <span className="flex items-center -space-x-1">
-            {enabledToolkits.slice(0, 3).map(tk => (
+            {shown.map(tk => (
               <LogoTile
-                className="h-[18px] w-[18px] rounded-full border border-border p-px text-[0.55rem]"
+                className="h-[16px] w-[16px] rounded-full border border-border p-px text-[0.55rem]"
                 key={tk.slug}
                 toolkit={tk}
               />
             ))}
           </span>
+        ) : (
+          <Link2 className={iconSize.sm} />
         )}
-        <span className="truncate">{t.composer.connectorsLabel}</span>
-        <ChevronDown className={cn(iconSize.sm, 'opacity-60')} />
+        {plusN > 0 && <span className="tabular-nums text-(--ui-text-tertiary)">+{plusN}</span>}
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72 p-1.5" side="top" sideOffset={8}>
         <DropdownMenuLabel className="text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">
@@ -180,15 +265,30 @@ export function ConnectorsPicker({
             </div>
           )
         })}
+        {featuredNotConnected.length > 0 && (
+          <>
+            <DropdownMenuLabel className="mt-1 text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">
+              {t.connectors.connectApps}
+            </DropdownMenuLabel>
+            {featuredNotConnected.slice(0, 4).map(tk => (
+              <button
+                className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left hover:bg-(--chrome-action-hover)"
+                key={tk.slug}
+                onClick={() => suggestConnect(tk)}
+                type="button"
+              >
+                <LogoTile className="h-6 w-6 rounded-md text-xs" toolkit={tk} />
+                <span className="min-w-0 flex-1 truncate text-[0.8rem] font-medium text-foreground">{tk.name}</span>
+              </button>
+            ))}
+          </>
+        )}
         <button
           className="mt-1 w-full rounded-lg px-2.5 py-1.5 text-left text-[0.7rem] text-muted-foreground hover:bg-(--chrome-action-hover) hover:text-foreground"
-          onClick={() => {
-            setOpen(false)
-            navigate(`${SKILLS_ROUTE}?tab=connectors`)
-          }}
+          onClick={openMarketplace}
           type="button"
         >
-          {t.composer.connectorsManage}
+          {t.composer.connectorsAdd}
         </button>
       </DropdownMenuContent>
     </DropdownMenu>

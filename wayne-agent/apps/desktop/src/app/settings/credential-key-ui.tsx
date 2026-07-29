@@ -161,6 +161,7 @@ function CredentialDocsLink({ href }: { href: string }) {
 export function CredentialKeyCard({
   expanded,
   info,
+  inset = false,
   label,
   onExpand,
   onToggle,
@@ -175,10 +176,14 @@ export function CredentialKeyCard({
   return (
     <div
       className={cn(
-        '@container group/card rounded-[6px] p-3 transition-colors',
+        '@container group/card transition-colors',
+        inset ? 'px-3.5 py-2.5' : 'rounded-[6px] p-3',
         expandable && 'cursor-pointer',
-        expandable && !expanded && 'row-hover',
-        expanded && 'bg-(--ui-bg-quaternary) ring-1 ring-(--ui-stroke-secondary)'
+        expandable && !expanded && (inset ? 'hover:bg-(--chrome-action-hover)/40' : 'row-hover'),
+        expanded &&
+          (inset
+            ? 'bg-(--ui-bg-quaternary)/60'
+            : 'bg-(--ui-bg-quaternary) ring-1 ring-(--ui-stroke-secondary)')
       )}
       onClick={expandable ? onToggle : undefined}
       onKeyDown={
@@ -201,23 +206,32 @@ export function CredentialKeyCard({
       role={expandable ? 'button' : undefined}
       tabIndex={expandable ? 0 : undefined}
     >
-      {/* One CSS grid: 1 col stacked, 2 cols at @2xl. p-3 card padding = gap-3
-          row/col gaps, everything top-left aligned (items-start), no indents.
-          The label row is h-8 to line up with the input row beside it. */}
+      {/* One CSS grid: 1 col stacked, 2 cols at @2xl. Label row is h-8 to line
+          up with the input row beside it. */}
       <div className="grid grid-cols-1 items-start gap-x-3 gap-y-1.5 @2xl:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] @2xl:gap-y-3">
-        <div className="flex h-8 min-w-0 items-center gap-2">
+        <div className={cn('flex min-w-0 items-center gap-2', inset ? 'min-h-8 items-start pt-1' : 'h-8')}>
           <span
-            className={cn('size-2 shrink-0 rounded-full', info.is_set ? 'bg-primary' : 'bg-(--ui-stroke-secondary)')}
+            className={cn(
+              'size-2 shrink-0 rounded-full',
+              inset && 'mt-1.5',
+              info.is_set ? 'bg-primary' : 'bg-(--ui-stroke-secondary)'
+            )}
           />
 
-          <span className="min-w-0 truncate text-[length:var(--conversation-text-font-size)] font-medium text-foreground">
-            {label}
-          </span>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[length:var(--conversation-text-font-size)] font-medium text-foreground">
+              {label}
+            </div>
+            {inset && (
+              <div className="truncate font-mono text-[0.68rem] leading-tight text-muted-foreground/45">{varKey}</div>
+            )}
+          </div>
 
           {expandable && (
             <ChevronDown
               className={cn(
                 'size-3.5 shrink-0 text-muted-foreground transition',
+                inset && 'mt-1',
                 expanded ? 'rotate-180 opacity-100' : 'opacity-0 group-hover/card:opacity-100'
               )}
             />
@@ -369,7 +383,17 @@ export function ProviderKeyRows({ expanded, group, onExpand, onToggle, rowProps 
   )
 }
 
+/** Prefer backend `prompt`, then a softened env stem — never raw SCREAMING_SNAKE. */
 export function credentialRowLabel(varKey: string, info: EnvVarInfo): string {
+  const fromPrompt = humanizePrompt(info.prompt)
+  if (fromPrompt) {
+    return fromPrompt
+  }
+
+  if (info.provider_label?.trim()) {
+    return info.provider_label.trim()
+  }
+
   if (isKeyVar(varKey, info)) {
     return prettyName(varKey.replace(/(?:_API_KEY|_TOKEN|_KEY)$/i, ''))
   }
@@ -377,9 +401,28 @@ export function credentialRowLabel(varKey: string, info: EnvVarInfo): string {
   return prettyName(varKey)
 }
 
+/** Strip common credential suffixes from OPTIONAL_ENV_VARS prompts for row titles. */
+function humanizePrompt(prompt: string | undefined): string {
+  const raw = prompt?.trim()
+  if (!raw) {
+    return ''
+  }
+
+  const cleaned = raw
+    .replace(/\s+subscription\s+token$/i, '')
+    .replace(/\s+(API\s+)?[Kk]ey$/i, '')
+    .replace(/\s+[Tt]oken$/i, '')
+    .replace(/\s*\([^)]*\)\s*$/, '')
+    .trim()
+
+  return cleaned || raw
+}
+
 interface CredentialKeyCardProps {
   expanded: boolean
   info: EnvVarInfo
+  /** Inside a SettingsGroup card — flush rows, env hint under the label. */
+  inset?: boolean
   label: string
   onExpand: () => void
   onToggle: () => void

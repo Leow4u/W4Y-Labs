@@ -19,6 +19,8 @@ export type ChatMessage = {
   hidden?: boolean
   /** Composer attachment ref strings (`@file:...`, `@image:...`) sent with this user message. */
   attachmentRefs?: string[]
+  /** Model that was active when this assistant turn started (provider/model slug). */
+  turnModel?: string
 }
 
 export type GatewayEventPayload = {

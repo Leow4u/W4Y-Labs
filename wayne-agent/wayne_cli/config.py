@@ -299,7 +299,7 @@ _EXTRA_ENV_KEYS = frozenset({
 import yaml
 
 from wayne_cli.colors import Colors, color
-from wayne_cli.default_soul import DEFAULT_SOUL_MD, is_legacy_template_soul
+from wayne_cli.default_soul import is_legacy_template_soul, is_product_seeded_soul
 
 
 # =============================================================================
@@ -819,24 +819,28 @@ def _secure_file(path):
 
 
 def _ensure_default_soul_md(home: Path) -> None:
-    """Seed a default SOUL.md into WAYNE_HOME, upgrading legacy empty templates.
+    """Clean up product-seeded SOUL.md files; never create or modify user content.
 
-    First run: write DEFAULT_SOUL_MD. Existing installs whose SOUL.md is still
-    the old comment-only scaffold (seeded by older install.sh / install.ps1 /
-    docker images, which shadowed the runtime default) get upgraded in place to
-    DEFAULT_SOUL_MD. A SOUL.md the user actually customized is never touched.
+    Work4You identity is baked into the runtime (like Cursor) — SOUL.md on disk
+    is only an advanced override when the user wrote a real custom persona.
+
+    - Missing SOUL.md           → leave missing (baked-in identity applies).
+    - Product-seeded / legacy   → unlink silently (the runtime baked-in identity
+                                  wins; the stale file would otherwise shadow it).
+    - User-customized SOUL.md   → never touch.
     """
     soul_path = home / "SOUL.md"
-    if soul_path.exists():
+    if not soul_path.exists():
+        return
+    try:
+        existing = soul_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return
+    if is_product_seeded_soul(existing):
         try:
-            existing = soul_path.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError):
-            return
-        if not is_legacy_template_soul(existing):
-            return
-        # Legacy empty template -> upgrade to the real default in place.
-    soul_path.write_text(DEFAULT_SOUL_MD, encoding="utf-8")
-    _secure_file(soul_path)
+            soul_path.unlink()
+        except OSError:
+            pass
 
 
 def ensure_wayne_home():
@@ -844,7 +848,7 @@ def ensure_wayne_home():
 
     In managed mode (NixOS), dirs are created by the activation script with
     setgid + group-writable (2770). We skip mkdir and set umask(0o007) so
-    any files created (e.g. SOUL.md) are group-writable (0660).
+    any files created are group-writable (0660).
     """
     home = get_wayne_home()
     # Named profiles must be created explicitly (e.g. ``wayne profile create``).
@@ -876,7 +880,7 @@ def ensure_wayne_home():
 
 
 def _ensure_wayne_home_managed(home: Path):
-    """Managed-mode variant: verify dirs exist (activation creates them), seed SOUL.md."""
+    """Managed-mode variant: verify dirs exist (activation creates them), clean SOUL.md."""
     if not home.is_dir():
         raise RuntimeError(
             f"WAYNE_HOME {home} does not exist. "
@@ -893,7 +897,6 @@ def _ensure_wayne_home_managed(home: Path):
     # In managed mode the activation script may not know about this subdir,
     # so we mkdir it ourselves (it's inside an already-secured logs/ dir).
     (home / "logs" / "curator").mkdir(parents=True, exist_ok=True)
-    # Inside umask(0o007) scope — SOUL.md will be created as 0660
     _ensure_default_soul_md(home)
 
 
@@ -1688,7 +1691,10 @@ DEFAULT_CONFIG = {
         # dashboard. Set false to suppress the hint.
         "tui_agents_nudge": True,
         "bell_on_complete": False,
-        "show_reasoning": False,
+        # Desktop / TUI product default ON — show model chain-of-thought blocks.
+        # Working status and tool progress are always shown regardless. Messaging
+        # platforms can still override via display.platforms.<platform>.show_reasoning.
+        "show_reasoning": True,
         # When reasoning display is on, the post-response "Reasoning" recap box
         # collapses long thinking to the first 10 lines. Set true to print the
         # complete thinking text uncollapsed (live streaming is always full).
@@ -2127,10 +2133,12 @@ DEFAULT_CONFIG = {
                                      # (floor 30s) to enforce a hard cap.
         "reasoning_effort": "",  # reasoning effort for subagents: "xhigh", "high", "medium",
                                  # "low", "minimal", "none" (empty = inherit parent's level)
-        "max_concurrent_children": 3,  # unified concurrency cap: max parallel children per batch
+        "max_concurrent_children": 4,  # unified concurrency cap: max parallel children per batch
                                        # AND max concurrent background (background=true)
                                        # delegation units. New async dispatches beyond the cap
                                        # fall back to synchronous execution. Floor of 1, no ceiling.
+                                       # Default 4 matches Cursor's typical parallel-subagent slot
+                                       # count (Codex/OpenAI multi-agent docs still cite 3).
                                        # (Replaces the deprecated max_async_children.)
         # Orchestrator role controls (see tools/delegate_tool.py:_get_max_spawn_depth
         # and _get_orchestrator_enabled).  Floored at 1, no upper ceiling —
@@ -5803,7 +5811,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 old_async_i = None
             if old_async_i is not None and old_async_i > 3:
                 try:
-                    cur_children = int(raw_deleg.get("max_concurrent_children", 3))
+                    cur_children = int(raw_deleg.get("max_concurrent_children", 4))
                 except (TypeError, ValueError):
                     cur_children = 3
                 if old_async_i > cur_children:

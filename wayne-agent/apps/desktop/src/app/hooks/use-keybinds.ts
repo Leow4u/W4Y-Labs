@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { $terminalTakeover, setTerminalTakeover } from '@/app/right-sidebar/store'
+import { $terminalTakeover, hideTerminalPanel, openTerminalPanel } from '@/app/right-sidebar/store'
 import { closeActiveTerminal, createTerminal, cycleTerminal } from '@/app/right-sidebar/terminal/terminals'
 import { PANE_TOGGLE_REVEAL_EVENT } from '@/components/pane-shell'
 import { matchesQuery } from '@/hooks/use-media-query'
@@ -47,6 +47,7 @@ import { useTheme } from '@/themes/context'
 import { requestComposerFocus, requestVoiceToggle } from '../chat/composer/focus'
 import { SIDEBAR_COLLAPSE_MEDIA_QUERY } from '../layout-constants'
 import {
+  AGENT_STUDIO_ROUTE,
   AGENTS_ROUTE,
   ARTIFACTS_ROUTE,
   CRON_ROUTE,
@@ -56,6 +57,7 @@ import {
   SETTINGS_ROUTE,
   SKILLS_ROUTE
 } from '../routes'
+import { prefetchSettings } from '../view-prefetch'
 
 export interface KeybindRuntimeDeps {
   /** Open/close the command center overlay (sessions / system / usage). */
@@ -110,7 +112,7 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
 
   const showFiles = () => {
     setFileBrowserOpen(true)
-    setTerminalTakeover(false)
+    hideTerminalPanel()
   }
 
   handlersRef.current = {
@@ -122,7 +124,10 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
 
     'nav.commandPalette': toggleCommandPalette,
     'nav.commandCenter': deps.toggleCommandCenter,
-    'nav.settings': () => navigate(SETTINGS_ROUTE),
+    'nav.settings': () => {
+      prefetchSettings()
+      navigate(SETTINGS_ROUTE)
+    },
     'nav.profiles': () => navigate(PROFILES_ROUTE),
     'nav.skills': () => navigate(SKILLS_ROUTE),
     'nav.messaging': () => navigate(MESSAGING_ROUTE),
@@ -164,12 +169,18 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
     },
     'view.toggleReview': toggleReview,
     'view.showFiles': showFiles,
-    'view.showTerminal': () => setTerminalTakeover(!$terminalTakeover.get()),
+    'view.showTerminal': () => {
+      if ($terminalTakeover.get()) {
+        hideTerminalPanel()
+      } else {
+        openTerminalPanel()
+      }
+    },
     // Create first so the pane's open-effect ensure sees a non-empty set and
     // doesn't also spawn one — net effect is exactly one fresh terminal.
     'view.newTerminal': () => {
       createTerminal()
-      setTerminalTakeover(true)
+      openTerminalPanel()
     },
     // Switch / close only act while the pane is open (no focus-scoping here, so
     // this stands in for "terminal is showing").
@@ -185,7 +196,10 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
     'profile.next': () => cycleProfile(1),
     'profile.prev': () => cycleProfile(-1),
     'profile.toggleAll': toggleShowAllProfiles,
-    'profile.create': requestProfileCreate
+    'profile.create': () => {
+      navigate(AGENT_STUDIO_ROUTE)
+      requestProfileCreate()
+    }
   }
 
   useEffect(() => {

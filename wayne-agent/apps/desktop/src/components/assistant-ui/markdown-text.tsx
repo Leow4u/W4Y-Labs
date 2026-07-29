@@ -23,6 +23,8 @@ import { ExpandableBlock } from '@/components/chat/expandable-block'
 import { PreviewAttachment } from '@/components/chat/preview-attachment'
 import { chunkByLines, SyntaxHighlighter } from '@/components/chat/shiki-highlighter'
 import { ZoomableImage } from '@/components/chat/zoomable-image'
+import { ConnectLinkCard } from '@/components/connectors/connect-link-card'
+import { isConnectLinkUrl } from '@/lib/connect-links'
 import { normalizeExternalUrl, openExternalLink, PrettyLink } from '@/lib/external-link'
 import { createMemoizedMathPlugin } from '@/lib/katex-memo'
 import { preprocessMarkdown } from '@/lib/markdown-preprocess'
@@ -295,6 +297,11 @@ function MarkdownLink({ children, className, href, ...props }: ComponentProps<'a
   }
 
   const target = href ? normalizeExternalUrl(href) : href
+
+  // Composio Connect Link → auth card (not PrettyLink / UrlEmbed).
+  if (target && isConnectLinkUrl(target)) {
+    return <ConnectLinkCard url={target} />
+  }
 
   if (!target || !/^https?:\/\//i.test(target)) {
     return (

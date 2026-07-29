@@ -13,6 +13,7 @@ import {
   setCurrentServiceTier,
   setIntroPersonality
 } from '@/store/session'
+import { applyShowReasoningFromConfig } from '@/store/display-prefs'
 import { applyAutoSpeakFromConfig } from '@/store/voice-prefs'
 
 const DEFAULT_VOICE_SECONDS = 120
@@ -88,6 +89,7 @@ export function useHermesConfig({ activeSessionIdRef, refreshProjectBranch }: He
       setVoiceMaxRecordingSeconds(recordingLimit(config.voice?.max_recording_seconds))
       setSttEnabled(config.stt?.enabled !== false)
       applyAutoSpeakFromConfig(config)
+      applyShowReasoningFromConfig(config)
     } catch {
       // Config is nice-to-have; chat still works without it.
     }

@@ -1,5 +1,6 @@
 import { defineFieldCopy } from '@/app/settings/field-copy'
 
+import { en } from './en'
 import type { Translations } from './types'
 
 export const zh: Translations = {
@@ -62,18 +63,18 @@ export const zh: Translations = {
   },
 
   boot: {
-    ready: 'Hermes 桌面版已就绪',
+    ready: 'Work4You已就绪',
     desktopBootFailedWithMessage: message => `桌面启动失败：${message}`,
     steps: {
       connectingGateway: '正在连接桌面网关',
-      loadingSettings: '正在加载 Hermes 设置',
+      loadingSettings: '正在加载 Work4You 设置',
       loadingSessions: '正在加载最近会话',
       startingDesktopConnection: '正在启动桌面连接',
-      startingHermesDesktop: '正在启动 Hermes 桌面版…'
+      startingHermesDesktop: '正在启动 Work4You…'
     },
     errors: {
-      backgroundExited: 'Hermes 后台进程已退出。',
-      backgroundExitedDuringStartup: 'Hermes 后台进程在启动期间退出。',
+      backgroundExited: 'Work4You 后台进程已退出。',
+      backgroundExitedDuringStartup: 'Work4You 后台进程在启动期间退出。',
       backendStopped: '后端已停止',
       desktopBootFailed: '桌面启动失败',
       gatewayConnectionLost: '与网关的连接已断开',
@@ -81,7 +82,7 @@ export const zh: Translations = {
       ipcBridgeUnavailable: '桌面 IPC 桥不可用。'
     },
     failure: {
-      title: 'Hermes 无法启动',
+      title: 'Work4You 无法启动',
       description: '后台网关没有启动。请尝试下面的恢复步骤；这里不会删除你的对话或设置。',
       remoteTitle: '需要重新登录远程网关',
       remoteDescription: '你的远程网关会话已过期。请重新登录以恢复连接。这些操作不会删除你的对话或设置。',
@@ -115,19 +116,21 @@ export const zh: Translations = {
     copyDetail: '复制详情',
     copyDetailFailed: '无法复制通知详情',
     backendOutOfDateTitle: '后端版本过旧',
-    backendOutOfDateMessage: '你的 Hermes 后端早于当前桌面构建，可能无法正常工作。请更新以保持一致。',
+    backendOutOfDateMessage: '你的 Work4You 后端早于当前桌面构建，可能无法正常工作。请更新以保持一致。',
     installMethodUnsupportedTitle: '不受支持的安装方式',
-    updateHermes: '更新 Hermes',
+    updateHermes: '更新 Work4You',
     updateReadyTitle: '有可用更新',
     updateReadyMessage: count => `有 ${count} 项新更改可用。`,
     seeWhatsNew: '查看更新内容',
     errors: {
       elevenLabsNeedsKey: 'ElevenLabs STT 需要 ELEVENLABS_API_KEY。',
       elevenLabsRejectedKey: 'ElevenLabs 拒绝了该 API key (401)。',
-      methodNotAllowed: '桌面后端拒绝了该请求 (405 Method Not Allowed)。请尝试重启 Hermes Desktop。',
+      methodNotAllowed: '桌面后端拒绝了该请求 (405 Method Not Allowed)。请尝试重启 Work4You。',
       microphonePermission: '麦克风权限已被拒绝。',
       openaiRejectedApiKey: 'OpenAI 拒绝了该 API key。',
       openaiRejectedApiKeyWithStatus: status => `OpenAI 拒绝了该 API key (${status} invalid_api_key)。`,
+      imageGenNeedsSetup: '图像生成需要在设置 → 工具中完成配置。',
+      modelCatalogRejected: '模型请求被拒绝。请检查设置 → 模型或你的套餐。',
       openaiTtsNeedsKey: 'OpenAI TTS 需要 VOICE_TOOLS_OPENAI_KEY 或 OPENAI_API_KEY。'
     },
     voice: {
@@ -154,8 +157,8 @@ export const zh: Translations = {
       approveAction: '批准',
       rejectAction: '拒绝',
       inputTitle: '需要输入',
-      inputBody: 'Hermes 正在等待你的回应。',
-      turnDoneTitle: 'Hermes 已完成',
+      inputBody: 'Work4You 正在等待你的回应。',
+      turnDoneTitle: 'Work4You 已完成',
       turnDoneBody: '回复已就绪。',
       turnErrorTitle: '本轮失败',
       backgroundDoneTitle: '后台任务已完成',
@@ -227,7 +230,7 @@ export const zh: Translations = {
       'session.togglePin': '固定/取消固定当前会话',
       'workspace.newWorktree': '新建工作树',
       'composer.focus': '聚焦输入框',
-      'composer.modelPicker': '打开模型选择器',
+      'composer.modelPicker': '选择模型',
       'composer.voice': '开始 / 停止语音对话',
       'view.toggleSidebar': '切换会话侧边栏',
       'view.toggleRightSidebar': '切换文件浏览器',
@@ -288,13 +291,16 @@ export const zh: Translations = {
     exportConfig: '导出配置',
     importConfig: '导入配置',
     resetToDefaults: '恢复默认',
-    resetConfirm: '将所有设置恢复为 Hermes 默认值？',
+    resetConfirm: '将所有设置恢复为 Work4You 默认值？',
     exportFailed: '导出失败',
     resetFailed: '重置失败',
     nav: {
+      general: '通用',
+      account: '账户',
       providers: '提供方',
       providerAccounts: '账号',
       providerApiKeys: 'API 密钥',
+      modelsApiKeys: '模型 API 密钥',
       gateway: '网关',
       apiKeys: '工具与密钥',
       keysTools: '工具',
@@ -304,12 +310,272 @@ export const zh: Translations = {
       about: '关于',
       notifications: '通知'
     },
+    general: {
+      title: '通用',
+      intro: '日常偏好。视觉主题在“外观”；模型和高级工具仍在各自分区。',
+      preferences: '偏好',
+      workspace: '工作区',
+      personality: '助手说话风格',
+      personalityDesc: '新会话的默认语气。需要时仍可在对话中调整。',
+      personalities: {
+        helpful: '乐于助人',
+        concise: '简洁',
+        technical: '技术',
+        creative: '创意',
+        teacher: '老师',
+        kawaii: 'Kawaii',
+        catgirl: 'Catgirl',
+        pirate: '海盗',
+        shakespeare: '莎士比亚',
+        surfer: '冲浪者',
+        noir: 'Noir',
+        uwu: 'UwU',
+        philosopher: '哲学家',
+        hype: '热血'
+      },
+      permissions: '权限',
+      readAloud: '朗读回复',
+      readAloudDesc: '自动朗读助手回复。语音提供方在“语音”中配置。',
+      showThinking: '显示思考过程',
+      showThinkingDesc: '在模型提供推理步骤时显示出来。不影响工作状态、计时器或工具进度。',
+      alerts: '提醒',
+      manageAlerts: '管理全部提醒',
+      app: '应用',
+      openAbout: '关于 Work4You',
+      shortcuts: '键盘快捷键',
+      shortcutVoice: '开始语音对话',
+      shortcutUnbound: '未设置',
+      viewAllShortcuts: '查看全部快捷键'
+    },
+    voice: {
+      title: '语音',
+      speaking: '朗读',
+      listening: '听写',
+      recording: '录音',
+      previewVoice: '试听',
+      previewing: '播放中…',
+      previewFailed: '无法试听该音色。',
+      shortcut: '语音快捷键',
+      shortcutDesc: '在此应用中开始或停止语音对话的键盘快捷键。',
+      shortcutUnbound: '未设置',
+      manageShortcut: '更改快捷键',
+      fields: {
+        'voice.auto_tts': {
+          label: '朗读回复',
+          description: '在每一轮结束后自动朗读助手回复。'
+        },
+        'tts.provider': {
+          label: '语音引擎',
+          description: '将文本转为语音的服务。'
+        },
+        'tts.edge.voice': {
+          label: '音色',
+          description: '选择朗读回复时使用的音色。'
+        },
+        'tts.openai.voice': { label: '音色' },
+        'tts.openai.model': { label: '模型' },
+        'tts.elevenlabs.voice_id': { label: '音色' },
+        'tts.elevenlabs.model_id': { label: '模型' },
+        'tts.xai.voice_id': { label: '音色' },
+        'tts.xai.language': { label: '语言' },
+        'tts.minimax.voice_id': { label: '音色' },
+        'tts.minimax.model': { label: '模型' },
+        'tts.mistral.voice_id': { label: '音色' },
+        'tts.mistral.model': { label: '模型' },
+        'tts.gemini.voice': { label: '音色' },
+        'tts.gemini.model': { label: '模型' },
+        'tts.neutts.model': { label: '模型' },
+        'tts.neutts.device': { label: '设备' },
+        'tts.kittentts.voice': { label: '音色' },
+        'tts.kittentts.model': { label: '模型' },
+        'tts.piper.voice': { label: '音色' },
+        'stt.enabled': {
+          label: '语音转文字',
+          description: '将麦克风输入转为聊天文本。'
+        },
+        'stt.provider': {
+          label: '转写引擎',
+          description: '语音转文字的处理位置。'
+        },
+        'stt.local.model': {
+          label: '本地模型',
+          description: '更大的模型更准确，也更慢。'
+        },
+        'stt.local.language': {
+          label: '语言',
+          description: '可选语言提示（如 zh、en）。留空则自动检测。'
+        },
+        'stt.openai.model': { label: '模型' },
+        'stt.groq.model': { label: '模型' },
+        'stt.mistral.model': { label: '模型' },
+        'stt.elevenlabs.model_id': { label: '模型' },
+        'stt.elevenlabs.language_code': { label: '语言' },
+        'stt.elevenlabs.tag_audio_events': { label: '标记音频事件' },
+        'stt.elevenlabs.diarize': { label: '说话人分离' },
+        'voice.max_recording_seconds': {
+          label: '最长录音时长',
+          description: '到达该秒数后自动停止录音。'
+        }
+      }
+    },
+    browserNetwork: {
+      title: '浏览器与网络',
+      intro: '控制 Work4You 和浏览器是否可以访问你的本地网络、localhost 和私有地址——许多真实工作流都需要这项能力。',
+      network: '网络访问'
+    },
+    advancedPage: en.settings.advancedPage,
+    memoryPage: {
+      title: '记忆与上下文',
+      memory: '记忆',
+      memoryIntro: 'Work4You 在会话之间保留的内容——有用事实和关于你的简洁档案。',
+      manageRow: '查看并管理记忆',
+      manageRowDesc: '查看你的档案以及本机已存储的内容。',
+      manageTitle: '你的记忆',
+      manageDesc: '编辑 Work4You 关于你的档案。存储位置与长对话摘要在本页。',
+      manageProvider: '存储位置',
+      manageMemorySize: '笔记',
+      manageProfileSize: '档案',
+      manageProfileLabel: '关于你的档案',
+      manageProfilePlaceholder: '希望 Work4You 记住的偏好、事实与背景…',
+      manageLoadFailed: '无法加载记忆',
+      manageSaveFailed: '无法保存档案',
+      manageSaved: '档案已保存',
+      manageSavedDesc: 'Work4You 会在之后的对话中使用这些内容。',
+      builtinProvider: '本机',
+      resetRow: '重置记忆',
+      resetDesc: '删除本机上的笔记与档案。',
+      resetAction: '重置',
+      resetConfirm: '全部重置',
+      resetConfirmDesc: '这将永久删除此配置的 MEMORY.md 和 USER.md，无法撤销。',
+      resetDone: '记忆已重置',
+      resetDoneDesc: '笔记与档案已清除。',
+      importGroup: '来自其他 AI',
+      importRow: '从其他 AI 导入记忆',
+      importRowDesc: '将 ChatGPT、Claude 或其他助手的摘要粘贴到你的档案中。',
+      importAction: '开始导入',
+      importTitle: '导入记忆',
+      importDesc: '把提示词复制到另一款 AI，再把回复粘贴到这里。内容不会离开本机。',
+      importStep1Title: '1. 向其他 AI 提问',
+      importStep1Desc: '打开 ChatGPT、Claude 或其他助手，并发送以下提示词：',
+      importPrompt:
+        '请把你对我的了解整理成一份结构化档案，方便我粘贴到另一个助手。包括偏好、项目、工作方式、常用工具以及稳定事实。用简短清晰的要点。不要包含密码、密钥或秘密。',
+      importCopyFailed: '无法复制提示词',
+      importStep2Title: '2. 粘贴回复',
+      importStep2Desc: '我们会将其追加到你的 Work4You 档案（USER.md）。',
+      importPastePlaceholder: '粘贴另一款 AI 的摘要…',
+      importEnableProfileHint: '保存时会开启你的档案。',
+      importConfirm: '添加到档案',
+      importTooLong: limit => `摘要超过档案上限（${limit} 字符）。请缩短后重试。`,
+      importSaveFailed: '无法导入记忆',
+      importSaved: '记忆已导入',
+      importSavedDesc: '摘要已添加到你的档案。',
+      providers: {
+        builtin: '本机',
+        hindsight: 'Hindsight',
+        honcho: 'Honcho'
+      },
+      fields: {
+        'memory.memory_enabled': {
+          label: '跨对话记住重要内容',
+          description: '保存有用事实，避免你重复说明。'
+        },
+        'memory.user_profile_enabled': {
+          label: '记住关于我的偏好',
+          description: '维护一份关于你工作方式的简洁档案。'
+        },
+        'memory.memory_char_limit': {
+          label: '记忆大小上限',
+          description: '已存笔记的大致字符上限。'
+        },
+        'memory.user_char_limit': {
+          label: '档案大小上限',
+          description: '用户档案的大致字符上限。'
+        },
+        'memory.provider': {
+          label: '记忆存储位置',
+          description: '持久记忆的存储位置。本机可离线使用。'
+        },
+        'context.engine': {
+          label: '长对话策略',
+          description: '接近上下文上限时 Work4You 如何处理对话。'
+        },
+        'compression.enabled': {
+          label: '摘要长对话',
+          description: '对话变大时压缩较早的上下文。'
+        },
+        'compression.threshold': {
+          label: '何时摘要',
+          description: '上下文窗口多满时开始摘要。'
+        },
+        'compression.target_ratio': {
+          label: '释放多少空间',
+          description: '运行摘要时释放多少窗口空间。'
+        },
+        'compression.protect_last_n': {
+          label: '保留最近消息',
+          description: '摘要时保持最近 N 条消息不变。'
+        }
+      }
+    },
+    safety: {
+      title: '安全',
+      approvals: '审批',
+      commands: '命令',
+      privacy: '隐私与网络',
+      recovery: '恢复',
+      approvalModes: {
+        manual: '每次询问',
+        smart: '智能',
+        off: '关闭'
+      },
+      fields: {
+        'approvals.mode': {
+          label: '审批模式',
+          description: 'Work4You 在运行敏感命令前何时需要征求你的同意。'
+        },
+        'approvals.timeout': {
+          label: '审批超时',
+          description: '等待你答复的秒数，超时后提示会失效。'
+        },
+        'approvals.mcp_reload_confirm': {
+          label: '确认重载连接器',
+          description: '在会话中重载 MCP 连接器前先征求确认。'
+        },
+        'command_allowlist': {
+          label: '始终允许的命令',
+          description: '可再次运行而无需询问的模式（高级）。'
+        },
+        'security.redact_secrets': {
+          label: '隐藏密钥',
+          description: '尽可能从模型可见内容中遮盖检测到的密钥和令牌。'
+        },
+        'security.allow_private_urls': {
+          label: '允许私有网络 URL',
+          description: '允许工具访问本地 / 私有网络地址。'
+        },
+        'browser.allow_private_urls': {
+          label: '浏览器：私有网络 URL',
+          description: '允许浏览器工具打开私有网络地址。'
+        },
+        'browser.auto_local_for_private_urls': {
+          label: '私有 URL 使用本地浏览器',
+          description: '用本地浏览器打开私有网络页面，而不是远程浏览器。'
+        },
+        'checkpoints.enabled': {
+          label: '文件检查点',
+          description: '编辑前创建快照，便于回滚更改。'
+        }
+      }
+    },
     notifications: {
       title: '通知',
-      intro: '原生桌面通知，区别于应用内提示。设置按设备保存，每台电脑各自独立。',
+      intro: '系统原生提醒，区别于应用内提示。仅保存在这台电脑上。',
+      alerts: '提醒',
+      sound: '声音',
+      testGroup: '测试',
       enableAll: '启用通知',
-      enableAllDesc: '总开关。关闭后将静音下方所有通知。',
-      focusedHint: '完成提醒仅在 Hermes 处于后台时触发。',
+      enableAllDesc: '总开关。关闭后将静音下方所有提醒。',
+      focusedHint: '“回复就绪”仅在 Work4You 处于后台时触发。',
       kinds: {
         approval: {
           label: '需要批准',
@@ -317,11 +583,11 @@ export const zh: Translations = {
         },
         input: {
           label: '需要输入',
-          description: 'Hermes 提出了问题，或需要密码或密钥。'
+          description: 'Work4You 提出了问题，或需要密码或密钥。'
         },
         turnDone: {
           label: '回复就绪',
-          description: 'Hermes 在后台时完成了一轮对话。'
+          description: 'Work4You 在后台时完成了一轮对话。'
         },
         turnError: {
           label: '本轮失败',
@@ -332,27 +598,47 @@ export const zh: Translations = {
           description: '后台终端命令已完成。'
         }
       },
-      test: '发送测试通知',
-      testTitle: 'Hermes',
+      test: '发送测试',
+      testRow: '测试通知',
+      testDesc: '发送一条示例系统通知，用于检查权限。',
+      testTitle: 'Work4You',
       testBody: '通知工作正常。',
       testSent: '测试已发送。如果没有出现，请检查系统通知权限和专注模式／勿扰模式。',
       testUnsupported: '此系统不支持原生通知。',
       completionSoundTitle: '完成提示音',
-      completionSoundDesc: '智能体回合结束时播放。可在此选择预设并预览。',
-      completionSoundPreview: '预览'
+      completionSoundDesc:
+        '回合在后台结束时的应用内提示音——不是系统通知铃声。可预览，或用“发送测试”试听。',
+      completionSoundPreview: '预览',
+      completionSoundNames: {
+        '1': '双音舒缓',
+        '2': '玻璃轻响',
+        '3': '柔和马林巴',
+        '4': '三音消息',
+        '5': '轻柔呼啸',
+        '6': '探索和弦',
+        '7': '系统上线',
+        '8': 'IBM 终端',
+        '9': '调制解调器啁啾',
+        '10': '风铃',
+        '11': '颂钵',
+        '12': '竖琴上行',
+        '13': '声呐回响',
+        '14': '八音盒'
+      }
     },
     sections: {
       model: '模型',
       chat: '对话',
       appearance: '外观',
       workspace: '工作区',
+      'browser-network': '浏览器与网络',
       safety: '安全',
       memory: '记忆与上下文',
       voice: '语音',
       advanced: '高级'
     },
     searchPlaceholder: {
-      about: '关于 Hermes Desktop',
+      about: '关于 Work4You',
       config: '搜索设置…',
       gateway: '网关连接…',
       keys: '搜索 API 密钥…',
@@ -368,7 +654,7 @@ export const zh: Translations = {
       title: '外观',
       intro: '这些是仅桌面端的显示偏好。模式控制明暗；主题控制强调色与对话界面样式。',
       colorMode: '颜色模式',
-      colorModeDesc: '选择固定模式，或让 Hermes 跟随系统设置。',
+      colorModeDesc: '选择固定模式，或让 Work4You 跟随系统设置。',
       toolViewTitle: '工具调用显示',
       toolViewDesc: '产品模式隐藏原始工具数据；技术模式显示完整输入/输出。',
       uiScaleTitle: '界面缩放',
@@ -388,9 +674,18 @@ export const zh: Translations = {
       technicalDesc: '包含原始工具参数/结果及底层细节。',
       themeTitle: '主题',
       themeDesc: '仅桌面端调色板。所选模式叠加其上。',
-      themeProfileNote: profile => `已为「${profile}」配置文件保存——每个配置文件保留各自的主题。`,
-      installTitle: '从 VS Code 安装',
-      installDesc: '粘贴 Marketplace 扩展 ID（例如 dracula-theme.theme-dracula），将其配色主题转换为桌面调色板。',
+      findMoreThemes: '查找更多主题',
+      findMoreThemesClose: '隐藏主题库',
+      gallerySearchPlaceholder: '搜索主题库…',
+      marketplaceLoading: '正在搜索主题库…',
+      marketplaceError: '无法连接主题库。',
+      marketplaceEmpty: '主题库中没有匹配结果。',
+      fontTitle: '字体',
+      fontDesc: '桌面界面正文字体。主题默认为 Plus Jakarta Sans；代码与终端仍使用 JetBrains Mono。',
+      fontThemeDefault: '主题默认（Plus Jakarta Sans）',
+      displayGroup: '显示',
+      installTitle: '从主题库安装',
+      installDesc: '粘贴主题扩展 ID（例如 dracula-theme.theme-dracula），将其配色转换为桌面调色板。',
       installPlaceholder: 'publisher.extension',
       installButton: '安装',
       installing: '安装中…',
@@ -401,8 +696,8 @@ export const zh: Translations = {
       pet: {
         title: '宠物',
         intro:
-          '领养一只悬浮在应用上的 petdex 动画宠物，它会根据 Hermes 的状态做出反应——工具执行时奔跑、成功时欢呼、出错时沮丧。',
-        restartHint: '宠物功能需要重启——当前运行的应用在此功能加入前启动。请退出并重新打开 Hermes，然后回到此处。',
+          '领养一只悬浮在应用上的 petdex 动画宠物，它会根据 Work4You 的状态做出反应——工具执行时奔跑、成功时欢呼、出错时沮丧。',
+        restartHint: '宠物功能需要重启——当前运行的应用在此功能加入前启动。请退出并重新打开 Work4You，然后回到此处。',
         scaleTitle: '大小',
         scaleDesc: '调整悬浮宠物的大小，所有界面即时生效。',
         roamTitle: '漫游',
@@ -412,7 +707,10 @@ export const zh: Translations = {
         chooseTitle: '选择宠物',
         chooseDesc: '选择后会自动安装（如需）并设为当前宠物。',
         searchPlaceholder: '搜索宠物…',
-        unreachable: '无法连接到 petdex 画廊。请检查网络连接并重新打开此页面。',
+        unreachable: '无法加载宠物画廊。请检查网络连接后重试。',
+        emptyGallery: '尚未安装宠物。请在上方搜索或生成一只开始使用。',
+        loadingGallery: '正在加载宠物…',
+        retryGallery: '重试',
         noMatch: query => `没有匹配「${query}」的宠物。`,
         installedTag: '已安装',
         generatedTag: '生成',
@@ -445,7 +743,7 @@ export const zh: Translations = {
       timezone: '时区',
       display: {
         personality: '人格',
-        showReasoning: '推理过程块'
+        showReasoning: '显示思考过程'
       },
       agent: {
         maxTurns: '最大智能体步数',
@@ -595,12 +893,12 @@ export const zh: Translations = {
       fallbackProviders: '默认模型失败时尝试的备用 provider:model 条目。',
       display: {
         personality: '新会话的默认助手风格。',
-        showReasoning: '当后端提供推理内容时予以显示。'
+        showReasoning: '当模型提供推理步骤时显示出来。'
       },
-      timezone: '当 Hermes 需要本地时间上下文时使用。留空则使用系统时区。',
+      timezone: '当 Work4You 需要本地时间上下文时使用。留空则使用系统时区。',
       agent: {
-        imageInputMode: '控制图片附件如何发送给模型。',
-        maxTurns: 'Hermes 停止一次运行前工具调用轮次的上限。'
+        imageInputMode: '附件图片如何发送给模型。自动会按当前模型选择最佳路径。',
+        maxTurns: 'Work4You 停止一次运行前工具调用轮次的上限。'
       },
       terminal: {
         cwd: '工具与终端操作的默认项目目录。',
@@ -610,9 +908,9 @@ export const zh: Translations = {
       codeExecution: {
         mode: '代码执行被限定到当前项目的严格程度。'
       },
-      fileReadMaxChars: 'Hermes 单次文件读取可读取的最大字符数。',
+      fileReadMaxChars: 'Work4You 单次文件读取可读取的最大字符数。',
       approvals: {
-        mode: 'Hermes 如何处理需要显式审批的命令。',
+        mode: 'Work4You 如何处理需要显式审批的命令。',
         timeout: '审批提示在超时前等待的时长。'
       },
       security: {
@@ -642,11 +940,48 @@ export const zh: Translations = {
       },
       updates: {
         nonInteractiveLocalChanges:
-          'Hermes 从应用内更新时（无终端提示），保留本地源码修改（暂存）或丢弃（放弃）。通过终端更新时始终会询问。'
+          'Work4You 从应用内更新时（无终端提示），保留本地源码修改（暂存）或丢弃（放弃）。通过终端更新时始终会询问。'
       }
     }),
+    account: {
+      title: '账户',
+      profileGroup: '个人资料',
+      displayName: '名称',
+      email: '邮箱',
+      signedOutName: '未登录',
+      signedOutEmail: '登录后即可在各设备间同步 Work4You 账户。',
+      planUsageGroup: '方案与用量',
+      currentPlan: '当前方案',
+      currentPlanDesc: '包含用量按计费周期重置。包含额度用尽后进入按需用量。',
+      planHobby: 'Hobby',
+      planStatusPastDue: '逾期未付',
+      planStatusCanceled: '已取消',
+      upgrade: '升级',
+      includedUsage: '包含用量',
+      includedUsageDesc: '本周期方案包含额度的已用比例。',
+      includedUsagePct: pct => `已用 ${pct}%`,
+      includedUsageUnavailable: '用量暂不可用',
+      includedDepleted: '包含额度已用尽',
+      onDemand: '按需用量',
+      onDemandDesc: '包含额度用尽后可继续使用，直至支出上限。',
+      onDemandNeedsSubscription: '需要有效的付费方案并绑定付款方式。',
+      onDemandInactive: '关闭',
+      onDemandUsage: '本周期按需',
+      onDemandUsageDesc: '本计费周期超出包含用量的支出。',
+      onDemandUsageValue: (used, limit) => `$${used.toFixed(2)} / $${limit.toFixed(2)}`,
+      spendLimit: '支出上限',
+      spendLimitDesc: max => `每周期硬顶（最高 $${max.toFixed(0)}）。会提高用量上限。`,
+      spendLimitSave: '保存',
+      spendLimitSaving: '保存中…',
+      spendLimitSaveFailed: '无法保存支出上限',
+      manageSubscription: '管理订阅',
+      manageSubscriptionDesc: '在 Stripe 中更改方案、付款方式或取消。',
+      manageSubscriptionNoCustomer: '尚无 Stripe 订阅 — 打开方案页以订阅。',
+      planLogicHint:
+        '先使用包含额度，再按需直至支出上限。指挥中心 → 用量是代理遥测，不是账单。'
+    },
     about: {
-      heading: 'Hermes Desktop',
+      heading: 'Work4You',
       version: value => `版本 ${value}`,
       versionUnavailable: '版本不可用',
       updates: '更新',
@@ -654,7 +989,6 @@ export const zh: Translations = {
       checking: '检查中…',
       seeWhatsNew: '查看新增内容',
       updateNow: '立即更新',
-      releaseNotes: '发行说明',
       onLatest: '你已是最新版本。',
       installing: '正在安装更新。',
       cantUpdate: '此版本无法在应用内自我更新。',
@@ -664,26 +998,68 @@ export const zh: Translations = {
       lastChecked: age => `上次检查:${age}`,
       justNowSuffix: ' · 刚刚',
       automaticUpdates: '自动更新',
-      automaticUpdatesDesc: 'Hermes 会在后台自动检查更新，并在有可用更新时通知你。',
-      branchCommit: (branch, commit) => `分支 ${branch} · 提交 ${commit}`,
+      automaticUpdatesDesc: 'Work4You 会在后台自动检查更新，并在有可用更新时通知你。',
+      localChanges: '更新时：本地更改',
+      localChangesDesc:
+        '若应用自行更新（无终端提示），保留本地源码编辑（stash）或丢弃。终端更新始终会询问。',
+      localChangesOptions: {
+        stash: '保留（stash）',
+        discard: '丢弃'
+      },
+      branchCommit: (branch, commit) => `更新通道 ${branch} · 构建 ${commit}`,
       never: '从未',
       justNow: '刚刚',
       minAgo: count => `${count} 分钟前`,
       hoursAgo: count => `${count} 小时前`,
       daysAgo: count => `${count} 天前`
     },
+    uninstall: {
+      dangerZone: '危险区域',
+      checking: '正在检查已安装的内容…',
+      title: '卸载 Work4You',
+      intro: '选择要移除的范围。应用会关闭以完成卸载 —— 你随时可以重新安装。',
+      confirmTitle: '确认卸载',
+      confirmDesc: consequence => `这会移除${consequence}。无法撤销。`,
+      appPath: path => `应用：${path}`,
+      confirmCta: '是，卸载',
+      running: '正在卸载…',
+      cancel: '取消',
+      couldNotStart: '无法开始卸载。',
+      modes: {
+        gui: {
+          title: '仅移除桌面应用',
+          description: '卸载这个应用。Work4You 引擎、你的设置和聊天记录都会留在这台电脑上。',
+          consequence: '桌面应用及其自身数据'
+        },
+        lite: {
+          title: '移除应用和引擎，保留我的数据',
+          description: '卸载应用和 Work4You 引擎，但保留设置、聊天记录和密钥，方便以后重新安装。',
+          consequence: '桌面应用和 Work4You 引擎（设置、聊天记录和密钥会保留）'
+        },
+        full: {
+          title: '全部移除',
+          description: '卸载应用、引擎以及你的所有数据 —— 设置、聊天记录、定时任务、密钥和日志。',
+          consequence: '全部内容 —— 桌面应用、Work4You 引擎，以及你的所有设置、聊天记录、密钥和日志'
+        }
+      }
+    },
     config: {
       none: '无',
       noneParen: '(无)',
       notSet: '未设置',
       commaSeparated: '逗号分隔的值',
-      loading: '正在加载 Hermes 配置...',
+      loading: '正在加载 Work4You 配置...',
       emptyTitle: '无可配置项',
       emptyDesc: '此分区没有可调整的设置。',
       failedLoad: '设置加载失败',
       autosaveFailed: '自动保存失败',
       imported: '配置已导入',
-      invalidJson: '配置 JSON 无效'
+      invalidJson: '配置 JSON 无效',
+      imageModes: {
+        auto: '推荐 — 按此模型决定',
+        native: '以图片发送照片',
+        text: '先把照片描述成文字'
+      }
     },
     credentials: {
       pasteKey: '粘贴密钥',
@@ -712,7 +1088,7 @@ export const zh: Translations = {
       title: '网关连接',
       envOverride: '环境变量覆盖',
       intro:
-        'Hermes Desktop 默认会启动自己的本地网关。当你希望此应用控制另一台机器上或可信代理后的现有 Hermes 后端时，可以使用远程网关。下面可按 profile 指定各自的远程主机。',
+        'Work4You 默认会启动自己的本地网关。当你希望此应用控制另一台机器上或可信代理后的现有 Work4You 后端时，可以使用远程网关。下面可按 profile 指定各自的远程主机。',
       appliesTo: '应用于',
       allProfiles: '所有 profile',
       defaultConnection: '默认连接会用于所有没有自定义覆盖的 profile。',
@@ -720,10 +1096,10 @@ export const zh: Translations = {
       envOverrideTitle: '环境变量正在控制此桌面会话。',
       envOverrideDesc: '取消设置 HERMES_DESKTOP_REMOTE_URL 和 HERMES_DESKTOP_REMOTE_TOKEN 后才会使用下面保存的设置。',
       localTitle: '本地网关',
-      localDesc: '在 localhost 启动私有 Hermes 后端。这是默认方式，并且可离线工作。',
+      localDesc: '在 localhost 启动私有 Work4You 后端。这是默认方式，并且可离线工作。',
       remoteTitle: '远程网关',
       remoteDesc:
-        '将此桌面外壳连接到远程 Hermes 后端。托管网关使用 OAuth 或用户名密码；自托管网关也可能使用会话 token。',
+        '将此桌面外壳连接到远程 Work4You 后端。托管网关使用 OAuth 或用户名密码；自托管网关也可能使用会话 token。',
       remoteUrlTitle: '远程 URL',
       remoteUrlDesc: '远程 dashboard 后端的基础 URL。支持路径前缀，例如 /hermes。',
       probing: '正在检查此网关的认证方式…',
@@ -756,9 +1132,9 @@ export const zh: Translations = {
       enterUrlFirst: '请先输入远程 URL。',
       restartingTitle: '网关连接正在重启',
       savedTitle: '网关设置已保存',
-      restartingMessage: 'Hermes Desktop 将使用已保存设置重新连接。',
+      restartingMessage: 'Work4You 将使用已保存设置重新连接。',
       savedMessage: '已保存，下一次重启生效。',
-      connectedTo: (baseUrl, version) => `已连接到 ${baseUrl}${version ? ` · Hermes ${version}` : ''}`,
+      connectedTo: (baseUrl, version) => `已连接到 ${baseUrl}${version ? ` · Work4You ${version}` : ''}`,
       reachableTitle: '远程网关可访问',
       signedOutTitle: '已退出登录',
       signedOutMessage: '已清除远程网关会话。',
@@ -772,7 +1148,26 @@ export const zh: Translations = {
     keys: {
       loading: '正在加载 API 密钥和凭据...',
       failedLoad: 'API 密钥加载失败',
-      empty: '此类别暂时没有配置项。'
+      empty: '此类别没有匹配项。',
+      search: '搜索密钥…',
+      toolsTitle: '工具',
+      toolsIntro: '用于搜索、浏览器、媒体和记忆工具的 API 密钥。没有这些密钥 Work4You 也能工作 — 仅在需要时添加。',
+      settingsTitle: '设置',
+      settingsIntro:
+        '本地代理、网关中继和频道相关的环境变量。日常偏好在「常规 / 外观」— 这些是高级环境变量。',
+      groups: {
+        search: '网页搜索与提取',
+        browser: '浏览器',
+        media: '图像、视频与语音',
+        memory: '记忆提供商',
+        skills: '技能中心',
+        observability: '可观测性',
+        advanced: '高级',
+        other: '其他工具',
+        gateway: '网关与 API 服务器',
+        agent: '代理运行时',
+        channels: '频道附加项'
+      }
     },
     mcp: {
       loading: '正在加载 MCP 服务器...',
@@ -841,29 +1236,208 @@ export const zh: Translations = {
       noOutput: '暂无输出。'
     },
     model: {
+      title: '模型',
       loading: '正在加载模型配置...',
-      appliesDesc: '应用于新会话。可在输入框的模型选择器中临时切换当前对话。',
+      pageIntro: '在输入框选择对话模型。此页配置执行委员会。',
+      composerIntro: '选择出现在聊天选择器中的模型。打开后即可在新消息中使用。',
+      subagentsGroup: '子代理',
+      subagentsIntro: '委托工人（`delegate_task`）使用的模型与推理强度。继承则沿用父对话模型及其 API。',
+      overridesGroup: '上下文与可靠性',
+      overridesIntro: '对话能记住多少，以及主模型失败时尝试什么。',
+      contextLimitLabel: '对话长度上限',
+      contextLimitDesc: '此对话最多可保留多少 token。自动使用所选模型的官方上限——除非你需要更小，否则保持自动。',
+      contextLimitAuto: '自动（模型官方上限）',
+      contextLimitCustom: '自定义上限',
+      contextLimitTokensPlaceholder: '例如 128000',
+      fallbackLabel: '主模型失败时的备用模型',
+      fallbackDesc: '主模型不可用、限流或报错时按顺序尝试。',
+      fallbackEmpty: '无 — 仅使用主模型',
+      fallbackAdd: '添加备用模型…',
+      fallbackRemove: '移除备用模型',
+      imageModeLabel: '当你附加照片时',
+      imageModeDesc: 'Work4You 如何把图片交给模型。',
+      imageModes: {
+        auto: '推荐 — 按此模型决定',
+        native: '以图片发送照片',
+        text: '先把照片描述成文字'
+      },
+      inheritFromParent: '继承父级',
+      featuredContextWindow: size => `${size} 上下文窗口`,
+      featuredVersionLine: version => `版本：${version}`,
+      featuredVersions: {
+        highEffort: '高推理',
+        fast: '快速'
+      },
+      featuredCards: {
+        'x-ai/grok-4.5': {
+          description: 'SpaceXAI 最强模型，擅长编程、知识工作与 STEM。'
+        },
+        'anthropic/claude-opus-5': {
+          title: 'Claude Opus 5',
+          description: 'Anthropic 大型模型，适合高难度任务。'
+        },
+        'openai/gpt-5.6-sol': {
+          description: 'GPT-5.6 旗舰，适合复杂推理、编程与智能体工作。'
+        },
+        'anthropic/claude-fable-5': {
+          title: 'Claude Fable 5',
+          description: 'Mythos 级模型，适合自主知识工作与长程编程。'
+        },
+        'anthropic/claude-sonnet-5': {
+          title: 'Claude Sonnet 5',
+          description: 'Anthropic 最强 Sonnet，适合编程、智能体与专业工作。'
+        },
+        'openai/gpt-5.6-terra': {
+          description: '介于旗舰 Sol 与高性价比 Luna 之间的 GPT-5.6。'
+        },
+        'anthropic/claude-sonnet-4.6': {
+          title: 'Claude Sonnet 4.6',
+          description: '扎实的 Sonnet，适合编程、智能体与专业工作。'
+        },
+        'anthropic/claude-opus-4.8': {
+          title: 'Claude Opus 4.8',
+          description: 'Anthropic 最强 Opus 系列，适合高要求智能体工作。'
+        },
+        'openai/gpt-5.5': {
+          description: '面向复杂专业负载、推理能力强的前沿模型。'
+        },
+        'openai/gpt-5.3-codex': {
+          title: 'GPT-5.3 Codex',
+          description: 'OpenAI 面向软件工程的高级智能体编程模型。'
+        },
+        'anthropic/claude-opus-4.7': {
+          title: 'Claude Opus 4.7',
+          description: '新一代 Opus，适合长时、异步智能体。'
+        },
+        'openai/gpt-5.4': {
+          description: '统一 Codex 与 GPT 线路，具备超大上下文窗口。'
+        },
+        'anthropic/claude-opus-4.6': {
+          title: 'Claude Opus 4.6',
+          description: '强力 Opus，适合编程与长时专业任务。'
+        },
+        'anthropic/claude-opus-4.5': {
+          title: 'Claude Opus 4.5',
+          description: '面向复杂软件工程的前沿推理模型。'
+        },
+        'openai/gpt-5.2': {
+          description: 'GPT-5 系列前沿模型，智能体与长上下文表现强。'
+        },
+        'openai/gpt-5.6-luna': {
+          description: '快速、高性价比的 GPT-5.6，适合高吞吐与低延迟。'
+        },
+        'google/gemini-3.6-flash': {
+          description: '高效 Google 模型，适合编程、智能体与应用开发。'
+        },
+        'google/gemini-3.1-pro-preview': {
+          title: 'Gemini 3.1 Pro',
+          description: 'Google 前沿推理模型，软件工程能力强。'
+        },
+        'openai/gpt-5.4-mini': {
+          description: '更快、更高效的 GPT-5.4，适合高吞吐负载。'
+        },
+        'openai/gpt-5.4-nano': {
+          description: '最轻的 GPT-5.4 变体，针对速度关键任务优化。'
+        },
+        'anthropic/claude-haiku-4.5': {
+          title: 'Claude Haiku 4.5',
+          description: 'Anthropic 最快的高效模型，接近前沿智能。'
+        },
+        'anthropic/claude-sonnet-4.5': {
+          title: 'Claude Sonnet 4.5',
+          description: '面向真实智能体与编程工作流的高级 Sonnet。'
+        },
+        'openai/gpt-5.1': {
+          description: 'GPT-5 系列前沿模型，通用推理能力强。'
+        },
+        'google/gemini-3-flash-preview': {
+          title: 'Gemini 3 Flash',
+          description: '高速思考模型，适合智能体流程与多轮对话。'
+        },
+        'google/gemini-3.5-flash': {
+          description: 'Google 高效多模态模型，编程与推理接近 Pro。'
+        },
+        'anthropic/claude-sonnet-4': {
+          title: 'Claude Sonnet 4',
+          description: '扎实的 Sonnet，适合编程与推理负载。'
+        },
+        'openai/gpt-5-mini': {
+          description: '精简 GPT-5，适合较轻的推理任务。'
+        },
+        'google/gemini-2.5-flash': {
+          description: 'Google 主力模型，适合高级推理、编程与多模态任务。'
+        },
+        'moonshotai/kimi-k2.7-code': {
+          description: '面向端到端编程任务的 Kimi K2 编程模型。'
+        },
+        'z-ai/glm-5.2': {
+          description: '来自 Z.ai 的大规模推理模型，具备 100 万 token 上下文。'
+        }
+      },
+      pickerGroup: '模型',
+      moreModels: '更多…',
+      showLessModels: '收起',
+      addMoreModels: '+ 添加更多 LLM',
+      addMoreTitle: '添加模型',
+      addMoreIntro: '浏览完整模型目录，选择出现在聊天选择器中的模型。',
+      addMoreSearch: '搜索模型…',
+      backToModels: '返回模型',
+      viewAllModels: '更多…',
+      viewAllTitle: '更多模型',
+      noCatalogModels: '暂无可用目录模型。',
+      apiKeysDisclosure: 'API 密钥',
+      apiKeysIntro: '使用你自己的提供方密钥（BYOK）。用量计入提供方账户 — 而非 Work4You 方案。',
+      apiKeysEmpty: '没有可配置的自带 API 密钥。',
+      moaDisclosure: '执行委员会 · Mixture of Agents',
+      moaUnavailable: '执行委员会暂时不可用。',
+      defaultGroup: '默认模型',
+      appliesDesc: '输入框会保存配置文件默认模型。当前对话可随时切换。',
       provider: '提供方',
       model: '模型',
       applying: '应用中...',
+      activate: '启用',
+      activating: '启用中…',
+      pasteApiKey: env => `粘贴 ${env}`,
+      setupProvider: name => `设置 ${name}`,
+      setupNeedsKey: name => `${name} 需要 API 密钥 — 设置后即可选择模型。`,
+      setupNeedsBrowser: name => `${name} 通过浏览器登录 — Work4You 会在应用中完成流程。`,
       defaultsLabel: '默认值',
       reasoning: '推理',
       reasoningOff: '关闭',
       defaultsFailed: '保存模型默认值失败',
       auxiliaryTitle: '辅助模型',
-      resetAllToMain: '全部重置为主模型',
-      auxiliaryDesc: '辅助任务默认使用主模型。你可以为任意任务指定专用模型。',
-      setToMain: '设为主模型',
+      resetAllToMain: '全部重置为默认',
+      auxiliaryDesc: '后台任务默认使用默认模型，除非你另行指定。',
+      setToMain: '使用默认',
       change: '更改',
-      autoUseMain: '自动 · 使用主模型',
+      autoUseMain: '自动 · 使用默认模型',
       providerDefault: '(提供方默认)',
+      staleAuxWarning: (count, names, provider) =>
+        `${count} 个辅助任务（${names}）仍在 ${provider} 上运行，而不是默认模型。`,
+      otherProviders: '其他提供方',
+      moaTitle: '执行委员会 · Mixture of Agents',
+      moaDesc: '从模型目录中选择。保存以应用于此配置档案。',
+      moaIntro: '多个模型并行提供建议。主席决定并用智能体工具执行。',
+      moaPreset: '预设',
+      moaSetDefault: '设为默认',
+      moaNewPreset: '新预设',
+      moaAddPreset: '添加预设',
+      moaDefault: '默认',
+      moaAdvisorsSection: '顾问',
+      moaChairSection: '主席',
+      moaReference: n => `顾问 ${n}`,
+      moaAdvisorHint: '独立建议 — 不执行操作。',
+      moaAddReference: '添加顾问',
+      moaAggregator: '主席',
+      moaChairHint: '决定并使用智能体工具执行。',
+      moaCatalogProvider: '模型目录',
       tasks: {
         vision: { label: '视觉', hint: '图片分析' },
         web_extract: { label: '网页提取', hint: '页面总结' },
         compression: { label: '压缩', hint: '上下文压缩' },
         skills_hub: { label: '技能中心', hint: '技能搜索' },
         approval: { label: '审批', hint: '智能自动批准' },
-        mcp: { label: 'MCP', hint: 'MCP 工具路由' },
+        mcp: { label: 'MCP', hint: '连接器工具路由' },
         title_generation: { label: '标题生成', hint: '会话标题' },
         curator: { label: '维护器', hint: '技能使用审查' }
       }
@@ -871,7 +1445,7 @@ export const zh: Translations = {
     providers: {
       connectAccount: '连接账号',
       haveApiKey: '改用 API 密钥？',
-      intro: '使用订阅登录，无需复制 API 密钥。Hermes 会在应用中为你完成浏览器登录。',
+      intro: '使用订阅登录，无需复制 API 密钥。Work4You 会在应用中为你完成浏览器登录。',
       connected: '已连接',
       collapse: '收起',
       connectAnother: '连接其他提供方',
@@ -1074,7 +1648,7 @@ export const zh: Translations = {
     loadFailed: '无法加载记忆图谱',
     loading: '加载中…',
     emptyTitle: '尚无学习内容',
-    emptyDesc: '当 Hermes 为你的工作构建技能和记忆时，会显示在这里。',
+    emptyDesc: '当 Work4You 为你的工作构建技能和记忆时，会显示在这里。',
     share: '分享图谱',
     shareHint: '复制代码以分享此图谱，或粘贴代码以载入。仅包含布局，不含你的记忆或技能内容。',
     shareTitle: '导入 / 导出图谱',
@@ -1089,19 +1663,26 @@ export const zh: Translations = {
     resetToMine: '返回我的图谱'
   },
   intro: {
-    emptyTitle: '我们要做什么？'
+    emptyTitle: '我们要做什么？',
+    emptyBodies: [
+      '搜索仓库、编辑文件、跑测试、开 PR。告诉我目标，机械部分交给我。',
+      '发一个 bug、分支、计划或粗略想法。我会先看仓库，再变成下一步。',
+      '带上代码、问题或卡住的地方。我会先理解再动手。',
+      '发任务、失败路径或不完整的计划。我会帮你变成行动。',
+      '带上问题、目标或文件。我先检查，再给出具体下一步。'
+    ]
   },
   agentStudio: {
-    title: 'Agent Studio',
-    subtitle: '你拥有的代理 — 各自独立的主目录、频道与记忆。',
+    title: '代理',
+    subtitle: '独立代理配置档案 — 不是日常 Work 聊天。',
     identityHint:
-      '日常 Work 代理保持独立。Studio 代理不会静默复用你的 Gmail、WhatsApp 或 LinkedIn — 仅在你选择「使用我的」时共享凭据。',
-    newAgent: '新建代理',
+      '日常工作从「新建会话」开始。此列表用于额外代理（各自独立的配置档案）。它们不会静默复用你的 Gmail、WhatsApp 或 LinkedIn — 仅在你选择「使用我的」时共享凭据。',
+    newAgent: '新建配置档案',
     searchPlaceholder: '搜索代理…',
     count: n => `${n} 个代理`,
     loading: '正在加载代理…',
-    emptyTitle: '还没有代理',
-    empty: '为客户、角色或工作流创建一个代理。它会获得独立的配置档案。',
+    emptyTitle: '还没有独立代理',
+    empty: '为客户、角色或工作流创建一个独立配置档案。日常工作请使用「新建会话」。',
     emptySearch: '没有匹配的代理。',
     loadFailed: '无法加载代理',
     colName: '代理',
@@ -1162,7 +1743,7 @@ export const zh: Translations = {
       placeholder: '搜索宠物…',
       loading: '正在加载 petdex 画廊…',
       error: '无法连接到 petdex 画廊。',
-      staleBackend: '请重启 Hermes 以使用宠物功能——当前后端版本过旧。',
+      staleBackend: '请重启 Work4You 以使用宠物功能——当前后端版本过旧。',
       empty: '没有匹配的宠物。',
       turnOff: '关闭',
       turnOn: '开启',
@@ -1189,8 +1770,8 @@ export const zh: Translations = {
       hatchComposing: '正在拼合……',
       hatchSaving: '马上就好……',
       namePlaceholder: '给宠物起个名字',
-      staleBackend: '请更新 Hermes 以生成宠物。',
-      backgroundHint: '你可以关闭此窗口——完成后 Hermes 会通知你。',
+      staleBackend: '请更新 Work4You 以生成宠物。',
+      backgroundHint: '你可以关闭此窗口——完成后 Work4You 会通知你。',
       slowProviderHint: '这可能需要几分钟',
       remix: '混合生成',
       remixConfirmTitle: '以此造型混合生成？',
@@ -1216,7 +1797,12 @@ export const zh: Translations = {
     settingsFields: '设置字段',
     mcpServers: 'MCP 服务器',
     archivedChats: '已归档对话',
-    sections: { maintenance: '维护', sessions: '会话', system: '系统', usage: '用量' },
+    sections: {
+      maintenance: '维护',
+      sessions: '会话',
+      system: '系统',
+      usage: '用量'
+    },
     sectionDescriptions: {
       maintenance: '诊断、备份、维护器与记忆数据',
       sessions: '搜索与管理会话',
@@ -1225,7 +1811,7 @@ export const zh: Translations = {
     },
     nav: {
       newChat: { title: '新建会话', detail: '开始一个新会话' },
-      settings: { title: '设置', detail: '配置 Hermes 桌面端' },
+      settings: { title: '设置', detail: '配置 Work4You' },
       skills: { title: '技能与工具', detail: '启用技能、工具集与提供方' },
       messaging: { title: '消息平台', detail: '配置 Telegram、Slack、Discord 等' },
       artifacts: { title: '产物', detail: '浏览生成的输出' }
@@ -1247,10 +1833,10 @@ export const zh: Translations = {
     noSessions: '暂无会话。',
     gatewayRunning: '消息网关运行中',
     gatewayStopped: '消息网关已停止',
-    hermesActiveSessions: (version, count) => `Hermes ${version} · 活跃会话 ${count}`,
+    hermesActiveSessions: (version, count) => `Work4You ${version} · 活跃会话 ${count}`,
     restartGateway: '重启网关',
     gatewayRestartFailed: '网关重启失败。',
-    updateHermes: '更新 Hermes',
+    updateHermes: '更新 Work4You',
     actionRunning: '运行中',
     actionDone: '完成',
     actionFailed: '失败',
@@ -1436,10 +2022,10 @@ export const zh: Translations = {
       slack: '创建 Slack 应用，启用 Socket Mode，安装到你的工作区，然后复制 bot 令牌和 app 级令牌。',
       mattermost: '在你的 Mattermost 服务器上，创建机器人账户或个人访问令牌，然后在此粘贴服务器 URL 和令牌。',
       matrix: '用机器人账户登录你的 homeserver，然后复制访问令牌、用户 ID 和 homeserver URL。',
-      signal: '在可访问的位置运行 signal-cli REST 桥接，然后把 Hermes 指向该 URL 和已注册的电话号码。',
-      whatsapp: '启动 Hermes 自带的 WhatsApp 桥接，首次运行时扫描二维码，然后启用该平台。',
+      signal: '在可访问的位置运行 signal-cli REST 桥接，然后把 Work4You 指向该 URL 和已注册的电话号码。',
+      whatsapp: '启动 Work4You 自带的 WhatsApp 桥接，首次运行时扫描二维码，然后启用该平台。',
       bluebubbles:
-        '在装有 iMessage 的 Mac 上运行 BlueBubbles Server，暴露其 API，然后用服务器密码把 Hermes 指向该 URL。',
+        '在装有 iMessage 的 Mac 上运行 BlueBubbles Server，暴露其 API，然后用服务器密码把 Work4You 指向该 URL。',
       homeassistant: '在 Home Assistant 中打开你的个人资料并创建长期访问令牌。把它连同你的 HA URL 一起粘贴到这里。',
       email: '使用专用邮箱。对于 Gmail/Workspace,创建应用专用密码并使用 imap.gmail.com / smtp.gmail.com。',
       sms: '从 Twilio 控制台获取你的 Account SID 和 Auth Token，以及一个可发送短信的电话号码。',
@@ -1448,10 +2034,10 @@ export const zh: Translations = {
       wecom: '在企业微信中添加群机器人，复制其 webhook key 作为 WECOM_BOT_ID。仅可发送——双向请用企业微信 (应用) 选项。',
       wecom_callback: '设置一个企业微信自建应用，暴露其回调 URL，并提供 corp ID、secret、agent ID 和 AES key。',
       weixin:
-        '运行 `hermes gateway setup`，选择 Weixin，然后使用个人微信账号扫描并确认二维码。Hermes 会通过腾讯 iLink Bot API 连接并保存凭据。',
+        '运行 `hermes gateway setup`，选择 Weixin，然后使用个人微信账号扫描并确认二维码。Work4You 会通过腾讯 iLink Bot API 连接并保存凭据。',
       qqbot: '在 QQ 开放平台 (q.qq.com) 注册一个应用，复制 App ID 和 Client Secret。',
       api_server:
-        '把 Hermes 暴露为兼容 OpenAI 的 API。设置一个鉴权密钥，然后把 Open WebUI / LobeChat 等指向 host:port。',
+        '把 Work4You 暴露为兼容 OpenAI 的 API。设置一个鉴权密钥，然后把 Open WebUI / LobeChat 等指向 host:port。',
       webhook: '运行一个 HTTP 服务器，供其他工具 (GitHub、GitLab、自定义应用)POST。用 secret 验证签名。'
     }
   },
@@ -1483,34 +2069,36 @@ export const zh: Translations = {
     defaultBadge: '默认',
     rename: '重命名',
     renameMenu: '重命名…',
-    editSoul: '编辑 SOUL.md…',
+    editSoul: '编辑指令…',
     copySetup: '复制安装命令',
     copying: '复制中…',
     modelLabel: '模型',
     skillsLabel: '技能',
     notSet: '未设置',
+    soulLabel: '指令',
     soulDesc: '内置于此配置档案的系统提示词与人格指令。',
     soulOptional: '可选',
     soulPlaceholder: mode => `此配置档案的系统提示词 / 人格说明。\n留空则保留${mode}默认值。`,
     soulPlaceholderCloned: '克隆的',
     soulPlaceholderEmpty: '空的',
     unsavedChanges: '有未保存的更改',
-    loadingSoul: '正在加载 SOUL.md…',
-    emptySoul: '空的 SOUL.md —— 开始撰写人格设定…',
+    loadingSoul: '正在加载指令…',
+    emptySoul: '空白 —— 开始撰写人格指令…',
     saving: '保存中…',
-    saveSoul: '保存 SOUL.md',
+    saveSoul: '保存指令',
     deleteTitle: '删除配置档案？',
     deleteDescPrefix: '这将删除 ',
     deleteDescMid: ' 并移除其 ',
     deleteDescSuffix: ' 目录。此操作无法撤销。',
     deleting: '删除中…',
-    createDesc: '配置档案是相互独立的 Hermes 环境：各自拥有独立的配置、技能和 SOUL.md。',
+    createDesc:
+      '创建独立代理配置档案（各自的配置、技能和指令）— 不是新建 Work 会话。日常工作请使用「新建会话」。',
     nameLabel: '名称',
     cloneFrom: '克隆来源',
     cloneFromNone: '无（空白）',
-    cloneFromDesc: '从选中的来源配置档案复制配置、技能和 SOUL.md。',
+    cloneFromDesc: '从选中的来源配置档案复制配置、技能和指令。',
     cloneFromDefault: '从默认档案克隆',
-    cloneFromDefaultDesc: '从你的默认配置档案复制配置、技能和 SOUL.md。',
+    cloneFromDefaultDesc: '从你的默认配置档案复制配置、技能和指令。',
     invalidName: hint => `名称无效。${hint}`,
     nameRequired: '名称为必填项。',
     creating: '创建中…',
@@ -1524,12 +2112,12 @@ export const zh: Translations = {
     renamed: '配置档案已重命名',
     deleted: '配置档案已删除',
     setupCopied: '安装命令已复制',
-    soulSaved: 'SOUL.md 已保存',
+    soulSaved: '指令已保存',
     failedLoad: '加载配置档案失败',
     failedDelete: '删除配置档案失败',
     failedCopy: '复制安装命令失败',
-    failedLoadSoul: '加载 SOUL.md 失败',
-    failedSaveSoul: '保存 SOUL.md 失败',
+    failedLoadSoul: '加载指令失败',
+    failedSaveSoul: '保存指令失败',
     failedCreate: '创建配置档案失败',
     failedRename: '重命名配置档案失败',
     workLockedTitle: 'Work 代理',
@@ -1538,11 +2126,38 @@ export const zh: Translations = {
   },
 
   cron: {
-    close: '关闭定时任务',
-    title: '定时任务',
-    count: count => `${count} 个任务`,
-    search: '搜索定时任务…',
-    loading: '正在加载定时任务…',
+    close: '关闭自动化',
+    title: '自动化',
+    subtitle: '用始终在线的云端智能体自动处理重复任务，响应环境触发条件。',
+    count: count => `${count} 个自动化`,
+    search: '搜索自动化…',
+    loading: '正在加载自动化…',
+    statTotal: '自动化总数',
+    statSuccessful24h: '成功 · 24 小时',
+    statFailed24h: '失败 · 24 小时',
+    statSuccessful7d: '成功 · 7 天',
+    statFailed7d: '失败 · 7 天',
+    statRunHistory: '运行历史 →',
+    colName: '自动化',
+    colAuthor: '作者',
+    colCreated: '创建时间',
+    colStatus: '状态',
+    colTools: '工具',
+    colAutomation: '自动化',
+    colTriggered: '触发时间',
+    colDuration: '时长',
+    authorYou: '你',
+    statusActive: '活跃',
+    statusInactive: '未启用',
+    backToList: '返回自动化列表',
+    createdUnknown: '—',
+    runsTitle: '运行历史',
+    emptyRunsTitle: '尚无运行',
+    searchRuns: '搜索运行记录…',
+    runStatusSuccess: '成功',
+    runStatusFailed: '失败',
+    runStatusRunning: '运行中',
+    runStatusCompleted: '已完成',
     states: {
       enabled: '已启用',
       scheduled: '已排程',
@@ -1592,12 +2207,16 @@ export const zh: Translations = {
     weekdaysAt: time => `工作日 ${time}`,
     everyDayOfWeekAt: (day, time) => `每${day} ${time}`,
     monthlyOnDayAt: (dayOfMonth, time) => `每月 ${dayOfMonth} 日 ${time}`,
+    everyDayAtPrefix: '每天',
+    weekdaysAtPrefix: '工作日',
+    everyDayOfWeekAtPrefix: day => `每${day}`,
+    monthlyOnDayAtPrefix: dayOfMonth => `每月 ${dayOfMonth} 日`,
     topOfHour: '每个整点',
     everyHourAt: minute => `每小时的 :${minute}`,
-    newCron: '新建定时任务',
-    emptyDescNew: '按 cron 表达式排程一个提示词。Hermes 会运行它，并把结果发送到你选择的目的地。',
+    newCron: '新建自动化',
+    emptyDescNew: '创建带有排程和说明的自动化。Work4You 会运行它，并把结果发送到你选择的目的地。',
     emptyDescSearch: '尝试更宽泛的搜索词。',
-    emptyTitleNew: '暂无排程任务',
+    emptyTitleNew: '暂无自动化',
     emptyTitleSearch: '无匹配项',
     last: '上次：',
     next: '下次：',
@@ -1607,45 +2226,86 @@ export const zh: Translations = {
     hideRuns: '隐藏运行记录',
     runHistory: '运行记录',
     actionsFor: title => `${title} 的操作`,
-    actionsTitle: '定时任务操作',
-    resume: '恢复定时任务',
-    pause: '暂停定时任务',
+    actionsTitle: '自动化操作',
+    resume: '恢复自动化',
+    pause: '暂停自动化',
     resumeTitle: '恢复',
     pauseTitle: '暂停',
-    triggerNow: '立即触发',
-    edit: '编辑定时任务',
-    deleteTitle: '删除定时任务？',
+    triggerNow: '立即运行',
+    edit: '编辑自动化',
+    deleteTitle: '删除自动化？',
     deleteDescPrefix: '这将永久移除 ',
     deleteDescSuffix: '。它会立即停止触发。',
     deleting: '删除中…',
-    resumed: '定时任务已恢复',
-    paused: '定时任务已暂停',
-    triggered: '定时任务已触发',
-    deleted: '定时任务已删除',
-    created: '定时任务已创建',
-    updated: '定时任务已更新',
-    failedLoad: '加载定时任务失败',
-    failedUpdate: '更新定时任务失败',
-    failedTrigger: '触发定时任务失败',
-    failedDelete: '删除定时任务失败',
-    failedSave: '保存定时任务失败',
-    editTitle: '编辑定时任务',
-    createTitle: '新建定时任务',
-    editDesc: '更新排程、提示词或投递目标。更改将在下次运行时生效。',
-    createDesc: '排程一个提示词以自动运行。使用 cron 语法或类似"每 15 分钟"的自然语言。',
+    resumed: '自动化已恢复',
+    paused: '自动化已暂停',
+    triggered: '自动化已触发',
+    deleted: '自动化已删除',
+    created: '自动化已创建',
+    updated: '自动化已更新',
+    failedLoad: '加载自动化失败',
+    failedUpdate: '更新自动化失败',
+    failedTrigger: '触发自动化失败',
+    failedDelete: '删除自动化失败',
+    failedSave: '保存自动化失败',
+    editTitle: '编辑自动化',
+    createTitle: '新建自动化',
+    editDesc: '更新触发器、说明或投递目标。更改将在下次运行时生效。',
+    createDesc: '排程说明以自动运行。使用预设或类似“每 15 分钟”的自然语言。',
     nameLabel: '名称',
     namePlaceholder: '晨间简报',
-    promptLabel: '提示词',
-    promptPlaceholder: '总结我未读的 Slack 话题，并把前 5 条邮件发给我…',
-    frequencyLabel: '频率',
+    promptLabel: '说明',
+    promptPlaceholder: '输入 @ 使用工具…',
+    frequencyLabel: '排程',
     deliverLabel: '投递至',
     customScheduleLabel: '自定义排程',
     customPlaceholder: '0 9 * * * 或 weekdays at 9am',
     customHint: 'Cron 表达式，或类似"每小时""工作日上午 9 点"的短语。',
     optional: '可选',
-    promptScheduleRequired: '提示词和排程为必填项。',
+    promptScheduleRequired: '说明和排程为必填项。',
     saveChanges: '保存更改',
-    createAction: '创建定时任务'
+    createAction: '创建自动化',
+    triggersSection: '触发器',
+    triggersHint: '此自动化何时运行 — 定时、应用事件（Composio）或 webhook。',
+    instructionsSection: '代理说明',
+    instructionsHint: '每次自动化触发时代理应执行的操作。',
+    toolsSection: '工具',
+    toolsHint: '代理会使用你已连接的应用与工具。可在下方管理连接器与频道。',
+    openConnectors: '连接器',
+    openChannels: '频道',
+    tabSettings: '设置',
+    tabHistory: '运行历史',
+    addTrigger: '添加触发器',
+    searchTriggers: '搜索触发器…',
+    scheduledTrigger: '定时',
+    composioTriggers: '应用事件',
+    webhookTrigger: 'Webhook',
+    webhookHint: '启用 webhook 频道以获取 URL，或添加应用事件触发器以注册 Composio webhook。',
+    noScheduleYet: '尚无排程 — 请添加定时触发器。',
+    nextRunAt: when => `下次运行：${when}`,
+    triggerAdded: '已添加触发器',
+    triggerRemoved: '已移除触发器',
+    failedAddTrigger: '无法添加触发器',
+    failedRemoveTrigger: '无法移除触发器',
+    triggerNeedsConnection: '请先在连接器中连接 {app}，然后再添加此触发器。',
+    loadingTriggers: '正在加载应用触发器…',
+    triggerSoonHint: '已排队 — 将在下一个调度周期触发（约 1 分钟）。',
+    modelLabel: '模型',
+    modelDefault: '配置默认',
+    addToolOrMcp: '添加工具或 MCP',
+    memoriesTool: '记忆',
+    memoriesHint: '使用此配置的记忆笔记（USER.md）。',
+    memoriesManageHint: '编辑配置笔记。Cron 运行不会加载会话记忆。',
+    toolAdded: '已添加',
+    deliverHint: '自动化完成后将结果发送到哪里。',
+    sendToChannel: channel => `发送到 ${channel}`,
+    connectChannel: '连接',
+    noFolder: '无文件夹',
+    chooseFolder: '选择文件夹…',
+    failedPickFolder: '无法选择文件夹',
+    historySaveFirst: '先保存自动化以查看其运行历史。',
+    webhookSavedPartial: 'Webhook 未完全注册',
+    webhookNeedsGateway: '请先在“频道”中启用 webhook，以便路由接收 POST。'
   },
 
   connectors: {
@@ -1655,6 +2315,9 @@ export const zh: Translations = {
     connected: '已连接',
     reconnect: '重新连接',
     disconnect: '断开',
+    disconnectAll: '断开全部',
+    disconnectAllConfirm: '撤销此代理的全部 Composio 账号？连接时聊天会再次要求授权。',
+    disconnectAllDone: '已断开 {count} 个账号',
     connectedToast: '{name} 已连接',
     disconnectedToast: '已断开',
     openedToast: '请在打开的窗口中授权',
@@ -1666,7 +2329,14 @@ export const zh: Translations = {
     viewFullCatalog: '查看完整目录 →',
     backToFeatured: '返回精选',
     workScopeHint:
-      '这些连接器属于你的日常 Work 代理。Studio 代理使用各自的账号，除非你明确共享。'
+      '这些连接器属于你的日常 Work 代理。Studio 代理使用各自的账号，除非你明确共享。',
+    authTitle: '应用连接',
+    authorize: '授权',
+    waiting: '等待授权…',
+    authSecure: '安全授权',
+    connectAppPrompt:
+      '请连接我的 {app}。调用 mcp_composio_COMPOSIO_MANAGE_CONNECTIONS，并把 Connect Link（https://connect.composio.dev/link/...）粘贴到回复中，以便我在聊天中授权。',
+    connectApps: '连接应用'
   },
 
   artifacts: {
@@ -1707,10 +2377,25 @@ export const zh: Translations = {
   sidebar: {
     nav: {
       'new-session': '新建会话',
-      'agent-studio': 'Agent Studio',
+      'agent-studio': '代理',
+      cron: '自动化',
       skills: '技能与工具',
       messaging: '消息平台',
       artifacts: '产物'
+    },
+    account: {
+      fallbackName: '账户',
+      settings: '设置',
+      commandCenter: '指挥中心',
+      language: '语言',
+      getHelp: '获取帮助',
+      viewPlans: '查看全部方案',
+      giveFeedback: '提供反馈',
+      helpMenu: '帮助与快捷键',
+      updateAvailable: '有可用更新',
+      updateInstalling: '正在更新…',
+      updateInstallingProgress: percent => `正在更新… ${percent}%`,
+      updateShort: '更新'
     },
     searchAria: '搜索会话',
     searchPlaceholder: '搜索会话…',
@@ -1719,7 +2404,8 @@ export const zh: Translations = {
     results: '结果',
     pinned: '已置顶',
     sessions: '会话',
-    cronJobs: '定时任务',
+    archived: '已归档',
+    cronJobs: '自动化',
     groupAriaGrouped: '以单一列表显示会话',
     groupAriaUngrouped: '按工作区分组会话',
     showProjects: '显示项目',
@@ -1732,8 +2418,10 @@ export const zh: Translations = {
     noProject: '无项目',
     projectEmpty: '暂无会话',
     noSessions: '暂无会话',
+    noSessionsInCheckout: '此检出中暂无会话',
     projects: {
       sectionLabel: '项目',
+      emptyOverview: '暂无项目',
       newButton: '新建项目',
       createTitle: '新建项目',
       createDesc: '为工作区命名并添加一个或多个文件夹。',
@@ -1762,8 +2450,8 @@ export const zh: Translations = {
       copyPath: '复制路径',
       removeFromSidebar: '从侧边栏移除',
       createFailed: '无法创建项目',
-      staleBackend: '请更新 Hermes 后端以创建项目——当前后端比桌面应用旧（设置 → 更新 → 后端）。',
-      deleteConfirm: '这会从 Hermes 中移除已保存的项目。文件、git 仓库和工作树保持不变。',
+      staleBackend: '请更新 Work4You 后端以创建项目——当前后端比桌面应用旧（设置 → 更新 → 后端）。',
+      deleteConfirm: '这会从 Work4You 中移除已保存的项目。文件、git 仓库和工作树保持不变。',
       startWork: '新建工作树',
       newWorktreeTitle: '新建工作树',
       newWorktreeDesc: '为这个工作树命名分支。',
@@ -1788,7 +2476,12 @@ export const zh: Translations = {
       enter: label => `打开 ${label}`,
       reorder: label => `重新排序 ${label}`,
       toggle: label => `展开/收起 ${label} 会话`,
-      back: '全部项目'
+      back: '全部项目',
+      homeCheckout: '主检出',
+      hoverBranch: '分支',
+      hoverRepo: '仓库',
+      hoverPath: '本地路径',
+      sessionsCount: count => (count === 1 ? '1 个会话' : `${count} 个会话`)
     },
     newSessionIn: label => `在 ${label} 中新建会话`,
     showMoreIn: (count, label) => `在 ${label} 中再显示 ${count} 个`,
@@ -1803,6 +2496,7 @@ export const zh: Translations = {
       branchFrom: '分支',
       rename: '重命名',
       archive: '归档',
+      unarchive: '取消归档',
       newWindow: '新窗口',
       copyIdFailed: '无法复制会话 ID',
       actionsFor: title => `${title} 的操作`,
@@ -1826,12 +2520,12 @@ export const zh: Translations = {
   composer: {
     message: '消息',
     wakingProfile: profile => `正在唤醒 ${profile}…`,
-    placeholderStarting: '正在启动 Hermes…',
-    placeholderReconnecting: '正在重新连接 Hermes…',
+    placeholderStarting: '正在启动 Work4You…',
+    placeholderReconnecting: '正在重新连接 Work4You…',
     placeholderFollowUp: '发送后续消息',
     newSessionPlaceholders: [
       '我们要构建什么？',
-      '给 Hermes 一个任务',
+      '给 Work4You 一个任务',
       '你在想什么？',
       '描述你需要什么',
       '我们该处理什么？',
@@ -1856,12 +2550,50 @@ export const zh: Translations = {
     modeYoloHint: '本会话不限制文件与网络访问',
     modeYoloConfirm: '再次点击以确认',
     projectNone: '无项目',
-    projectChipAria: '选择项目',
+    projectChoose: '选择文件夹',
+    projectChipAria: '选择文件夹',
+    projectClearTooltip: '不使用项目工作',
+    projectRecents: '最近',
+    projectUseExisting: '使用已有…',
+    projectOpenFolder: '打开文件夹…',
+    projectOpenFolderTitle: '打开文件夹',
+    projectNewFolder: '新建文件夹…',
+    projectNewFolderTitle: '新建文件夹',
+    projectOpenFolderFailed: '无法打开文件夹',
     projectNew: '新建项目',
+    projectCloudSection: '云端',
+    projectCloudBadge: '云端',
+    cloneRepo: '克隆仓库…',
+    cloudLoading: '正在加载云端项目…',
+    cloudEmpty: '暂无云端项目',
+    cloudListFailed: '无法获取云端项目',
+    cloudCloneFailed: '无法准备云端克隆',
+    runWhereTooltip: '此对话运行位置',
+    runLocalOption: '本地',
+    runLocalHint: '文件和终端在本机。退出应用即停止。',
+    runCloudOption: '云端 · 24/7',
+    runCloudHint: '电脑关机后仍可在云端继续运行。',
+    runCloudSignIn: '登录账户以使用云端',
+    runCloudUnavailable: '云端暂时不可用',
+    runLockedHint: '此对话已在此处开始',
+    repoModalTitle: '连接仓库',
+    repoConnected: '已连接 GitHub CLI',
+    repoUrlPlaceholder: 'https://github.com/org/repo.git',
+    repoAnyProvider: 'GitHub、GitLab、Bitbucket 或任意 git URL。',
+    repoOrUrl: '或粘贴 URL',
+    repoConfirm: '克隆',
+    repoBusy: '处理中…',
+    repoClonePrompt: '将仓库 {url} 克隆到此文件夹（会话当前 cwd），完成后列出文件。',
+    ghConnectCta: '连接 GitHub 账户',
+    ghConnectDesc: '授权一次即可在此克隆私有仓库并打开 Pull Request。',
+    ghConnectPrompt:
+      '运行 `gh auth login --hostname github.com --git-protocol https --web`，并把验证码和链接给我，以便我在浏览器中授权。',
     connectorsLabel: '连接器',
     connectorsHint: '打开集成',
     connectorsSession: '此对话中的连接器',
     connectorsManage: '管理连接器…',
+    connectorsAdd: '添加连接器',
+    continueOn: '继续在',
     startVoice: '开始语音对话',
     queueMessage: '排队消息',
     steer: '引导当前运行',
@@ -1909,7 +2641,7 @@ export const zh: Translations = {
       'composer.history': '循环弹窗 / 历史'
     },
     attachUrlTitle: '附加 URL',
-    attachUrlDesc: 'Hermes 将抓取该页面并作为本回合的上下文。',
+    attachUrlDesc: 'Work4You 将抓取该页面并作为本回合的上下文。',
     urlPlaceholder: 'https://example.com/post',
     urlHintPre: '请包含完整 URL，例如 ',
     attach: '附加',
@@ -2014,13 +2746,17 @@ export const zh: Translations = {
       createPr: '创建 PR',
       openPr: '打开 PR',
       ghMissing: '安装 GitHub CLI (gh) 并登录后可打开 PR',
-      agentShip: '让 Hermes 提交并开 PR',
+      agentShip: '让 Work4You 提交并开 PR',
       agentShipPrompt: '检查当前更改，使用清晰的约定式提交信息提交，推送分支，并开启一个拉取请求。',
       newBranch: '新建分支',
       branchOffFrom: base => `从 ${base} 新建分支`,
       switchTo: branch => `切换到 ${branch}`,
       switchFailed: branch => `无法切换到 ${branch}`,
-      worktrees: '工作树'
+      worktrees: '工作树',
+      branchCopied: branch => `已复制“${branch}”`,
+      copyBranch: '复制分支名',
+      changes: '更改',
+      commitAndPr: '提交并开 PR'
     }
   },
 
@@ -2031,9 +2767,9 @@ export const zh: Translations = {
       fetch: '下载中…',
       pull: '马上完成…',
       pydeps: '收尾中…',
-      update: '正在更新 Hermes…',
+      update: '正在更新 Work4You…',
       rebuild: '正在重新构建桌面应用…',
-      restart: '正在重启 Hermes…',
+      restart: '正在重启 Work4You…',
       done: '更新完成',
       manual: '从终端更新',
       guiSkew: '请更新桌面应用',
@@ -2043,32 +2779,32 @@ export const zh: Translations = {
     checkFailedTitle: '无法检查更新',
     tryAgain: '重试',
     notAvailableTitle: '更新不可用',
-    unsupportedMessage: '此版本的 Hermes 无法在应用内自行更新。',
+    unsupportedMessage: '此版本的 Work4You 无法在应用内自行更新。',
     connectionRetry: '请检查网络连接后重试。',
     latestBody: '你正在运行最新版本。',
     latestBodyBackend: '后端正在运行最新版本。',
     allSetTitle: '已是最新',
     availableTitle: '有可用更新',
-    availableBody: '新版 Hermes 已可安装。',
+    availableBody: '新版 Work4You 已可安装。',
     availableTitleBackend: '后端有可用更新',
-    availableBodyBackend: '已连接的 Hermes 后端有新版本可安装。',
+    availableBodyBackend: '已连接的 Work4You 后端有新版本可安装。',
     availableBodyNoChangelog: '已有新版本可用。此安装方式无法显示更新日志。',
     updateNow: '立即更新',
     maybeLater: '稍后再说',
     moreChanges: count => `另有 ${count} 项更改。`,
     manualTitle: '从终端更新',
-    manualBody: '你是从命令行安装的 Hermes，因此更新也需要在那里运行。请将此命令粘贴到终端：',
-    manualPickedUp: '下次启动 Hermes 时会使用新版本。',
+    manualBody: '你是从命令行安装的 Work4You，因此更新也需要在那里运行。请将此命令粘贴到终端：',
+    manualPickedUp: '下次启动 Work4You 时会使用新版本。',
     guiSkewTitle: '请更新桌面应用',
     guiSkewBody:
-      '后端已更新，但此桌面应用包未更改。请更新或重新安装 Hermes 桌面应用（你的 AppImage / .deb / .rpm）以保持一致。',
+      '后端已更新，但此桌面应用包未更改。请更新或重新安装 Work4You（你的 AppImage / .deb / .rpm）以保持一致。',
     copy: '复制',
     copied: '已复制',
     done: '完成',
     applyingBody:
-      'Hermes 更新器会在自己的窗口中接管，并在完成后自动重新打开 Hermes。更新期间请不要自行重新打开 Hermes。',
-    applyingBodyBackend: '远程后端正在应用更新并将重启。恢复后 Hermes 会自动重新连接。',
-    applyingClose: '此窗口会在更新期间关闭，随后 Hermes 会自动重新打开。',
+      'Work4You会在自己的窗口中接管，并在完成后自动重新打开 Work4You。更新期间请不要自行重新打开 Work4You。',
+    applyingBodyBackend: '远程后端正在应用更新并将重启。恢复后 Work4You 会自动重新连接。',
+    applyingClose: '此窗口会在更新期间关闭，随后 Work4You 会自动重新打开。',
     errorTitle: '更新未完成',
     errorBody: '没有数据丢失。你可以现在重试。',
     notNow: '暂不',
@@ -2090,7 +2826,7 @@ export const zh: Translations = {
       skipped: '已跳过',
       failed: '失败'
     },
-    oneTimeTitle: 'Hermes 需要一次性安装',
+    oneTimeTitle: 'Work4You 需要一次性安装',
     unsupportedDesc: platform =>
       `${platform} 暂不支持自动首次启动安装。请打开终端并运行下面的命令，然后重新启动此应用。之后启动会跳过此步骤。`,
     installCommand: '安装命令',
@@ -2099,11 +2835,11 @@ export const zh: Translations = {
     installTo: '将安装到',
     retryAfterRun: '我已运行 -- 重试',
     failedTitle: '安装失败',
-    settingUpTitle: '正在设置 Hermes Agent',
+    settingUpTitle: '正在设置 Work4You',
     finishingTitle: '正在收尾',
     failedDesc:
-      '某个安装步骤失败。在 Windows 上，如果另一个 Hermes CLI 或桌面实例正在运行，可能会出现这种情况。请停止正在运行的 Hermes 实例后重试。可查看下面的详情或 desktop 日志中的完整记录。',
-    activeDesc: '这是一次性设置。Hermes 安装器正在下载依赖并配置你的机器。之后启动会跳过此步骤。',
+      '某个安装步骤失败。在 Windows 上，如果另一个 Work4You CLI 或桌面实例正在运行，可能会出现这种情况。请停止正在运行的 Work4You 实例后重试。可查看下面的详情或 desktop 日志中的完整记录。',
+    activeDesc: '这是一次性设置。Work4You正在下载依赖并配置你的机器。之后启动会跳过此步骤。',
     progress: (completed, total) => `${completed}/${total} 个步骤已完成`,
     currentStage: stage => ` -- 当前：${stage}`,
     fetchingManifest: '正在获取安装器 manifest...',
@@ -2121,10 +2857,10 @@ export const zh: Translations = {
   },
 
   onboarding: {
-    headerTitle: '开始设置 Hermes Agent',
+    headerTitle: '开始设置 Work4You',
     headerDesc: '连接模型提供方即可开始对话。大多数选项只需一次点击。',
-    preparingInstall: 'Hermes 正在完成安装。首次运行通常不到一分钟。',
-    starting: '正在启动 Hermes…',
+    preparingInstall: 'Work4You 正在完成安装。首次运行通常不到一分钟。',
+    starting: '正在启动 Work4You…',
     lookingUpProviders: '正在查找提供方...',
     collapse: '收起',
     otherProviders: '其他提供方',
@@ -2132,7 +2868,7 @@ export const zh: Translations = {
     chooseLater: '稍后再选择提供方',
     recommended: '推荐',
     connected: '已连接',
-    featuredPitch: '一个订阅，300+ 前沿模型 — 运行 Hermes 的推荐方式',
+    featuredPitch: '一个订阅，300+ 前沿模型 — 运行 Work4You 的推荐方式',
     openRouterPitch: '一个密钥，数百个模型 — 稳妥的默认选择',
     apiKeyOptions: {
       openrouter: { short: '一个密钥，多个模型', description: '用一个密钥访问数百个模型。适合新安装的默认选择。' },
@@ -2141,7 +2877,7 @@ export const zh: Translations = {
       xai: { short: 'Grok 模型', description: '直接访问 xAI Grok 模型。' },
       local: {
         short: '自托管',
-        description: '将 Hermes 指向本地或自托管的 OpenAI 兼容端点 (vLLM、llama.cpp、Ollama 等)。'
+        description: '将 Work4You 指向本地或自托管的 OpenAI 兼容端点 (vLLM、llama.cpp、Ollama 等)。'
       }
     },
     backToSignIn: '返回登录',
@@ -2154,7 +2890,7 @@ export const zh: Translations = {
     update: '更新',
     flowSubtitles: {
       pkce: '打开浏览器登录，然后回到这里继续',
-      device_code: '在浏览器中打开验证页面 — Hermes 会自动连接',
+      device_code: '在浏览器中打开验证页面 — Work4You 会自动连接',
       external: '先在终端登录一次，然后回来继续对话'
     },
     startingSignIn: provider => `正在为 ${provider} 启动登录...`,
@@ -2165,11 +2901,11 @@ export const zh: Translations = {
     pickDifferentProvider: '选择其他提供方',
     signInWith: provider => `使用 ${provider} 登录`,
     openedBrowser: provider => `已在浏览器中打开 ${provider}。`,
-    authorizeThere: '请在那里授权 Hermes。',
+    authorizeThere: '请在那里授权 Work4You。',
     copyAuthCode: '复制授权码并粘贴到下面。',
     pasteAuthCode: '粘贴授权码',
     reopenAuthPage: '重新打开授权页面',
-    autoBrowser: provider => `已在浏览器中打开 ${provider}。请在那里授权 Hermes，连接会自动完成，无需复制或粘贴。`,
+    autoBrowser: provider => `已在浏览器中打开 ${provider}。请在那里授权 Work4You，连接会自动完成，无需复制或粘贴。`,
     reopenSignInPage: '重新打开登录页面',
     waitingAuthorize: '等待你授权...',
     externalPending: provider => `${provider} 通过自己的 CLI 登录。请在终端运行此命令，然后回来选择“我已登录”：`,
@@ -2217,10 +2953,13 @@ export const zh: Translations = {
     modelMenu: {
       search: '搜索模型',
       noModels: '未找到模型',
-      editModels: '编辑模型…',
-      refreshModels: '刷新模型',
+      addModels: '添加模型',
       fast: '快速',
-      medium: '中'
+      medium: '中',
+      autoMode: 'Auto',
+      autoModeHint: '平衡质量与速度，推荐用于大多数任务',
+      switchToSpecific: '切换到指定模型',
+      specificModel: '指定模型'
     },
     modelOptions: {
       noOptions: '此模型没有可用选项',
@@ -2257,7 +2996,7 @@ export const zh: Translations = {
       update: '更新',
       updateInProgress: '正在更新',
       commitsBehind: (count, branch) => `落后 ${branch} ${count} 个提交`,
-      desktopVersion: version => `Hermes Desktop v${version}`,
+      desktopVersion: version => `Work4You v${version}`,
       backendVersion: version => `后端 v${version}`,
       clientLabel: version => `客户端 v${version}`,
       backendLabel: version => `后端 v${version}`,
@@ -2274,15 +3013,15 @@ export const zh: Translations = {
       gatewayConnecting: '连接中',
       gatewayOffline: '离线',
       gatewayRestarting: '重启中…',
-      gatewayTitle: 'Hermes 推理网关状态',
+      gatewayTitle: 'Work4You 推理网关状态',
       agents: '代理',
       closeAgents: '关闭代理',
       openAgents: '打开代理',
       subagents: count => `${count} 个子代理`,
       failed: count => `${count} 个失败`,
       running: count => `${count} 个运行中`,
-      cron: '排程',
-      openCron: '打开排程任务',
+      cron: '自动化',
+      openCron: '打开自动化',
       starmap: '记忆图谱',
       openStarmap: '打开记忆图谱',
       turnRunning: '运行中',
@@ -2312,10 +3051,11 @@ export const zh: Translations = {
       yoloOff: 'YOLO 已关闭 - 点击自动批准危险命令。Shift+点击可全局切换。',
       modelNone: '无',
       noModel: '无模型',
-      switchModel: '切换模型',
-      openModelPicker: '打开模型选择器',
-      modelTitle: (provider, model) => `模型 · ${provider}: ${model}`,
-      providerModelTitle: (provider, model) => `${provider} · ${model}`
+      selectModel: '选择模型',
+      switchModel: '选择模型',
+      openModelPicker: '选择模型',
+      modelTitle: (_provider, model) => model,
+      providerModelTitle: (_provider, model) => model
     }
   },
 
@@ -2323,7 +3063,21 @@ export const zh: Translations = {
     aria: '右侧边栏',
     panelsAria: '右侧边栏面板',
     files: '文件系统',
+    agents: '代理',
     terminal: '终端',
+    browser: {
+      tab: '浏览器',
+      idleTitle: '没有活动页面',
+      emptyTitle: '浏览器空闲',
+      emptyBody: '当代理打开或检查页面时，URL 和最新截图会显示在这里。',
+      screenshotAlt: '最新浏览器截图',
+      waitingShot: '浏览中…代理截图后会显示在这里。',
+      noShot: '此页面尚无截图。',
+      statusIdle: '空闲',
+      statusRunning: '浏览中',
+      statusComplete: '就绪',
+      statusError: '错误'
+    },
     noFolderSelected: '未选择文件夹',
     changeCwdTitle: '更改工作目录',
     remotePickerTitle: '选择远程文件夹',
@@ -2378,7 +3132,7 @@ export const zh: Translations = {
     binaryTitle: '这看起来像二进制文件',
     binaryBody: label => `预览 ${label} 可能会显示不可读文本。`,
     largeTitle: '此文件较大',
-    largeBody: (label, size) => `${label} 大小为 ${size}。Hermes 只会显示前 512 KB。`,
+    largeBody: (label, size) => `${label} 大小为 ${size}。Work4You 只会显示前 512 KB。`,
     previewAnyway: '仍然预览',
     truncated: '显示前 512 KB。',
     noInlineTitle: '没有内联预览',
@@ -2416,25 +3170,25 @@ export const zh: Translations = {
       serverNotFound: '未找到服务器',
       failedToLoad: '预览加载失败',
       tryAgain: '重试',
-      restarting: 'Hermes 正在重启...',
-      askRestart: '让 Hermes 重启服务器',
-      lookingRestart: taskId => `Hermes 正在查找要重启的预览服务器 (${taskId})`,
+      restarting: 'Work4You 正在重启...',
+      askRestart: '让 Work4You 重启服务器',
+      lookingRestart: taskId => `Work4You 正在查找要重启的预览服务器 (${taskId})`,
       restartingTitle: '正在重启预览服务器',
-      restartingMessage: 'Hermes 正在后台工作。可在预览控制台查看进度。',
+      restartingMessage: 'Work4You 正在后台工作。可在预览控制台查看进度。',
       startRestartFailed: message => `无法启动服务器重启：${message}`,
       restartFailed: '服务器重启失败',
       hideConsole: '隐藏预览控制台',
       showConsole: '显示预览控制台',
       hideDevTools: '隐藏预览 DevTools',
       openDevTools: '打开预览 DevTools',
-      finishedRestarting: message => `Hermes 已完成预览服务器重启${message ? `: ${message}` : ''}`,
+      finishedRestarting: message => `Work4You 已完成预览服务器重启${message ? `: ${message}` : ''}`,
       failedRestarting: message => `服务器重启失败：${message}`,
       unknownError: '未知错误',
       restartedTitle: '预览服务器已重启',
       reloadingNow: '正在重新加载预览。',
       restartFailedTitle: '预览重启失败',
-      restartFailedMessage: 'Hermes 无法重启服务器。',
-      stillWorking: 'Hermes 仍在工作，但还没有收到重启结果。服务器命令可能正在前台运行。',
+      restartFailedMessage: 'Work4You 无法重启服务器。',
+      stillWorking: 'Work4You 仍在工作，但还没有收到重启结果。服务器命令可能正在前台运行。',
       workspaceReloading: '工作区已变更，正在重新加载预览',
       fileChanged: url => `文件已变更，正在重新加载预览：${url}`,
       filesChanged: (count, url) => `${count} 个文件变更，正在重新加载预览：${url}`,
@@ -2452,7 +3206,7 @@ export const zh: Translations = {
     thread: {
       loadingSession: '正在加载会话',
       showEarlier: '显示更早的消息',
-      loadingResponse: 'Hermes 正在加载回复',
+      loadingResponse: 'Work4You 正在加载回复',
       resumeWhenBackgroundDone: count =>
         count === 1 ? '后台任务完成后将自动继续' : `${count} 个后台任务完成后将自动继续`,
       thinking: '思考中',
@@ -2480,10 +3234,11 @@ export const zh: Translations = {
       restoreNext: '恢复下一个检查点',
       goForward: '前进',
       sendEdited: '发送编辑后的消息',
-      attachingFile: '正在附加…'
+      attachingFile: '正在附加…',
+      turnModel: (model: string) => `via ${model}`
     },
     approval: {
-      gatewayDisconnected: 'Hermes 网关未连接',
+      gatewayDisconnected: 'Work4You 网关未连接',
       sendFailed: '无法发送审批响应',
       run: '运行',
       command: '命令',
@@ -2494,12 +3249,12 @@ export const zh: Translations = {
       reject: '拒绝',
       alwaysTitle: '始终允许此命令？',
       alwaysDescription: pattern =>
-        `这会将“${pattern}”模式加入永久允许列表 (~/.hermes/config.yaml)。Hermes 对类似命令将不再询问，包括当前会话和未来会话。`,
+        `这会将“${pattern}”模式加入永久允许列表 (~/.hermes/config.yaml)。Work4You 对类似命令将不再询问，包括当前会话和未来会话。`,
       alwaysAllow: '始终允许'
     },
     clarify: {
       notReady: '澄清请求尚未就绪',
-      gatewayDisconnected: 'Hermes 网关未连接',
+      gatewayDisconnected: 'Work4You 网关未连接',
       sendFailed: '无法发送澄清响应',
       loadingQuestion: '正在加载问题…',
       other: '其他 (输入你的答案)',
@@ -2583,14 +3338,14 @@ export const zh: Translations = {
   },
 
   prompts: {
-    gatewayDisconnected: 'Hermes 网关未连接',
+    gatewayDisconnected: 'Work4You 网关未连接',
     sudoSendFailed: '无法发送 sudo 密码',
     secretSendFailed: '无法发送密钥',
     sudoTitle: '管理员密码',
-    sudoDesc: 'Hermes 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地 agent。',
+    sudoDesc: 'Work4You 需要你的 sudo 密码来运行特权命令。它只会发送给你的本地 agent。',
     sudoPlaceholder: 'sudo 密码',
     secretTitle: '需要密钥',
-    secretDesc: 'Hermes 需要一个凭据才能继续。',
+    secretDesc: 'Work4You 需要一个凭据才能继续。',
     secretPlaceholder: '密钥值'
   },
 
@@ -2632,6 +3387,8 @@ export const zh: Translations = {
     deleteFailed: '删除失败',
     archived: '已归档',
     archiveFailed: '归档失败',
+    restored: '已恢复',
+    unarchiveFailed: '取消归档失败',
     cwdChangeFailed: '工作目录更改失败',
     cwdStagedTitle: '工作目录已暂存',
     cwdStagedMessage: '重启桌面后端后，工作目录更改才会应用到当前活跃会话。',
@@ -2640,8 +3397,8 @@ export const zh: Translations = {
     sessionExportFailed: '无法导出会话',
     imageSaved: '图片已保存',
     downloadStarted: '下载已开始',
-    restartToUseSaveImage: '重启 Hermes 桌面版后可使用保存图片。',
-    restartToSaveImages: '重启 Hermes 桌面版以保存图片',
+    restartToUseSaveImage: '重启 Work4You后可使用保存图片。',
+    restartToSaveImages: '重启 Work4You以保存图片',
     imageDownloadFailed: '图片下载失败',
     openImage: '打开图片',
     downloadImage: '下载图片',

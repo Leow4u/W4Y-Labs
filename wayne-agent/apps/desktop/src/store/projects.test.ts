@@ -6,15 +6,20 @@ import {
   $activeProjectId,
   $projectScope,
   $projectsRpcAvailable,
+  $projectTree,
+  $scopedSessionIds,
   $worktreeRefreshToken,
   ALL_PROJECTS,
   createProject,
   enterProject,
   exitProjectScope,
+  openOrCreateProjectFromFolder,
   openProjectCreate,
   pickProjectFolder,
+  projectNameFromPath,
   refreshProjects,
-  refreshWorktrees
+  refreshWorktrees,
+  sessionBelongsToProject
 } from './projects'
 
 vi.mock('@/i18n', () => ({
@@ -33,7 +38,7 @@ vi.mock('@/lib/desktop-fs', () => ({
 }))
 
 vi.mock('@/store/gateway', () => ({
-  activeGateway: vi.fn(),
+  primaryBrainGateway: vi.fn(),
   ensureActiveGatewayOpen: vi.fn()
 }))
 
@@ -43,7 +48,7 @@ const isDesktopFsRemoteMode = vi.mocked(fs.isDesktopFsRemoteMode)
 const selectDesktopPaths = vi.mocked(fs.selectDesktopPaths)
 
 const gw = await import('@/store/gateway')
-const activeGateway = vi.mocked(gw.activeGateway)
+const primaryBrainGateway = vi.mocked(gw.primaryBrainGateway)
 const notifications = await import('@/store/notifications')
 const notify = vi.mocked(notifications.notify)
 
@@ -99,7 +104,13 @@ describe('pickProjectFolder', () => {
     selectDesktopPaths.mockResolvedValue(['/local/repo'])
 
     await expect(pickProjectFolder()).resolves.toBe('/local/repo')
-    expect(selectDesktopPaths).toHaveBeenCalledWith({ defaultPath: undefined, directories: true, multiple: false })
+    expect(selectDesktopPaths).toHaveBeenCalledWith({
+      createDirectory: undefined,
+      defaultPath: undefined,
+      directories: true,
+      multiple: false,
+      title: undefined
+    })
   })
 
   it('seeds the picker with the backend cwd on a remote gateway', async () => {
@@ -109,9 +120,11 @@ describe('pickProjectFolder', () => {
 
     await expect(pickProjectFolder()).resolves.toBe('/backend/work/repo')
     expect(selectDesktopPaths).toHaveBeenCalledWith({
+      createDirectory: undefined,
       defaultPath: '/backend/work',
       directories: true,
-      multiple: false
+      multiple: false,
+      title: undefined
     })
   })
 
@@ -120,6 +133,80 @@ describe('pickProjectFolder', () => {
     selectDesktopPaths.mockResolvedValue([])
 
     await expect(pickProjectFolder()).resolves.toBeNull()
+  })
+})
+
+describe('projectNameFromPath', () => {
+  it('uses the last path segment on Windows and POSIX paths', () => {
+    expect(projectNameFromPath('C:\\DEV\\W4Y Labs')).toBe('W4Y Labs')
+    expect(projectNameFromPath('/www/app')).toBe('app')
+  })
+})
+
+describe('openOrCreateProjectFromFolder', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    $projectScope.set(ALL_PROJECTS)
+    $projectTree.set([])
+    $projectsRpcAvailable.set(true)
+  })
+
+  it('enters an existing tree project when the folder already matches', async () => {
+    isDesktopFsRemoteMode.mockReturnValue(false)
+    selectDesktopPaths.mockResolvedValue(['/www/app'])
+    $projectTree.set([
+      {
+        id: 'p_app',
+        label: 'App',
+        path: '/www/app',
+        color: null,
+        icon: null,
+        isAuto: false,
+        sessionCount: 0,
+        lastActive: 0,
+        previewSessions: [],
+        repos: [{ id: '/www/app', path: '/www/app', label: 'app', sessionCount: 0, groups: [] }]
+      }
+    ])
+
+    await expect(openOrCreateProjectFromFolder()).resolves.toBe('p_app')
+    expect($projectScope.get()).toBe('p_app')
+  })
+
+  it('creates and enters a project when the folder is new', async () => {
+    isDesktopFsRemoteMode.mockReturnValue(false)
+    selectDesktopPaths.mockResolvedValue(['/srv/fresh'])
+
+    const created = { folders: [], id: 'p_fresh', name: 'fresh', primary_path: '/srv/fresh' }
+    const request = vi.fn(async (method: string) => {
+      if (method === 'projects.create') {
+        return { project: created }
+      }
+
+      return { active_id: 'p_fresh', projects: [created], scoped_session_ids: [] }
+    })
+
+    primaryBrainGateway.mockReturnValue({ connectionState: 'open', request } as never)
+
+    await expect(openOrCreateProjectFromFolder()).resolves.toBe('p_fresh')
+    expect(request).toHaveBeenCalledWith(
+      'projects.create',
+      expect.objectContaining({ folders: ['/srv/fresh'], name: 'fresh', use: true })
+    )
+    expect($projectScope.get()).toBe('p_fresh')
+  })
+
+  it('returns null when the picker is cancelled', async () => {
+    selectDesktopPaths.mockResolvedValue([])
+    await expect(openOrCreateProjectFromFolder()).resolves.toBeNull()
+  })
+
+  it('forwards createDirectory into the native picker for New folder', async () => {
+    selectDesktopPaths.mockResolvedValue([])
+    await openOrCreateProjectFromFolder({ createDirectory: true, title: 'New folder' })
+    expect(selectDesktopPaths).toHaveBeenCalledWith(
+      expect.objectContaining({ createDirectory: true, title: 'New folder' })
+    )
   })
 })
 
@@ -144,7 +231,7 @@ describe('createProject', () => {
       return { active_id: 'p_new', projects: [created], scoped_session_ids: [] }
     })
 
-    activeGateway.mockReturnValue({ connectionState: 'open', request } as never)
+    primaryBrainGateway.mockReturnValue({ connectionState: 'open', request } as never)
 
     const result = await createProject({ folders: ['/srv/demo'], name: 'Demo', use: true })
 
@@ -155,7 +242,7 @@ describe('createProject', () => {
   })
 
   it('marks the backend stale and surfaces a friendly error when projects.create is missing', async () => {
-    activeGateway.mockReturnValue({
+    primaryBrainGateway.mockReturnValue({
       connectionState: 'open',
       request: vi.fn().mockRejectedValue(new Error('unknown method: projects.create'))
     } as never)
@@ -174,7 +261,7 @@ describe('projects RPC capability', () => {
   })
 
   it('marks the backend stale when projects.list is missing', async () => {
-    activeGateway.mockReturnValue({
+    primaryBrainGateway.mockReturnValue({
       connectionState: 'open',
       request: vi.fn().mockRejectedValue(new Error('unknown method: projects.list'))
     } as never)
@@ -192,5 +279,43 @@ describe('projects RPC capability', () => {
     expect(notify).toHaveBeenCalledWith(
       expect.objectContaining({ kind: 'warning', message: 'sidebar.projects.staleBackend' })
     )
+  })
+})
+
+describe('sessionBelongsToProject', () => {
+  beforeEach(() => {
+    $scopedSessionIds.set(new Set())
+    $projectTree.set([])
+  })
+
+  it('treats scoped ids as project-bound', () => {
+    $scopedSessionIds.set(new Set(['s1']))
+    expect(sessionBelongsToProject({ id: 's1', cwd: null })).toBe(true)
+    expect(sessionBelongsToProject({ id: 's2', cwd: null })).toBe(false)
+  })
+
+  it('treats detached sessions as unbound', () => {
+    expect(sessionBelongsToProject({ id: 'loose', cwd: null })).toBe(false)
+    expect(sessionBelongsToProject({ id: 'loose', cwd: '' })).toBe(false)
+  })
+
+  it('optimistically binds a cwd that matches the live tree', () => {
+    $projectTree.set([
+      {
+        id: 'p_app',
+        label: 'App',
+        path: '/www/app',
+        color: null,
+        icon: null,
+        isAuto: false,
+        sessionCount: 0,
+        lastActive: 0,
+        previewSessions: [],
+        repos: [{ id: '/www/app', path: '/www/app', label: 'app', sessionCount: 0, groups: [] }]
+      }
+    ])
+
+    expect(sessionBelongsToProject({ id: 'fresh', cwd: '/www/app' })).toBe(true)
+    expect(sessionBelongsToProject({ id: 'other', cwd: '/tmp/scratch' })).toBe(false)
   })
 })

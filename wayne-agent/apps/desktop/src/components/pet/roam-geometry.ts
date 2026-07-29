@@ -22,7 +22,7 @@ export interface Ledge {
 // Elements the pet can perch on top of, measured fresh each beat. The bottom
 // floor is always a ledge; these add app furniture the pet can climb onto (the
 // composer, the profile rail). Add a `data-slot` here to grow the playground.
-const PERCH_SELECTORS = ['[data-slot="composer-surface"]', '[data-slot="profile-rail"]']
+const PERCH_SELECTORS = ['[data-slot="composer-surface"]']
 
 // A full-width bar pinned to the window bottom (the status bar). When present,
 // the pet walks along its TOP edge instead of the window edge, so it stands on

@@ -7,6 +7,7 @@ import { type ChatMessage, type ChatMessagePart, chatMessageText, textPart } fro
 import { normalize } from '@/lib/text'
 import type { ComposerAttachment } from '@/store/composer'
 import type { ModelOptionsResponse, SessionInfo } from '@/types/hermes'
+import { prepareW4yPickerProviders } from '@/lib/w4y-featured-models'
 
 export const SLASH_COMMAND_RE = /^\/[^\s/]*(?:\s|$)/
 export const BUILTIN_PERSONALITIES = [
@@ -273,7 +274,7 @@ export function quickModelOptions(
   const seen = new Set<string>()
   const options: QuickModelOption[] = []
 
-  const providers = [...(data?.providers ?? [])].sort((a, b) => {
+  const providers = [...prepareW4yPickerProviders(data?.providers)].sort((a, b) => {
     if (a.slug === currentProvider) {
       return -1
     }
@@ -379,7 +380,7 @@ export function toRuntimeMessage(message: ChatMessage): ThreadMessage {
       unstable_annotations: [],
       unstable_data: [],
       steps: [],
-      custom: {}
+      custom: { turnModel: message.turnModel ?? '' }
     }
   } as ThreadMessage
 }

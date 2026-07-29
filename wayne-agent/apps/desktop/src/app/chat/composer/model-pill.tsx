@@ -5,15 +5,19 @@ import { ModelMenuCloseContext } from '@/app/shell/model-menu-panel'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
+import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { ChevronDown } from '@/lib/icons'
+import { isW4yAutoModel } from '@/lib/composer-auto-mode'
+import { formatCombo } from '@/lib/keybinds/combo'
 import { formatModelStatusLabel } from '@/lib/model-status-label'
 import { cn } from '@/lib/utils'
+import { modelLabel } from '@/lib/w4y-featured-models'
+import { $bindings } from '@/store/keybinds'
 import {
   $currentFastMode,
   $currentModel,
-  $currentProvider,
   $currentReasoningEffort,
   setModelPickerOpen
 } from '@/store/session'
@@ -29,6 +33,9 @@ const PILL = cn(
  * Composer model selector — the relocated status-bar pill. Reuses the live
  * `model.options` dropdown (`modelMenuContent`) verbatim; falls back to the
  * full picker when the gateway is closed and no live menu exists.
+ *
+ * Tooltip matches Cursor: action label + shortcut — never provider slugs
+ * (e.g. openrouter) or raw catalog ids.
  */
 export function ModelPill({
   compact = false,
@@ -41,9 +48,9 @@ export function ModelPill({
 }) {
   const copy = useI18n().t.shell.statusbar
   const currentModel = useStore($currentModel)
-  const currentProvider = useStore($currentProvider)
   const fastMode = useStore($currentFastMode)
   const reasoningEffort = useStore($currentReasoningEffort)
+  const bindings = useStore($bindings)
   const [open, setOpen] = useState(false)
 
   // The model resolves a beat after the gateway/session comes up. Rather than
@@ -54,7 +61,11 @@ export function ModelPill({
   ) : (
     <>
       {currentModel.trim() ? (
-        <span className="truncate">{formatModelStatusLabel(currentModel, { fastMode, reasoningEffort })}</span>
+        <span className="truncate">
+          {isW4yAutoModel(currentModel)
+            ? modelLabel(currentModel)
+            : formatModelStatusLabel(currentModel, { fastMode, reasoningEffort })}
+        </span>
       ) : (
         <GlyphSpinner className="opacity-50" spinner="braille" />
       )}
@@ -71,13 +82,23 @@ export function ModelPill({
       )
     : PILL
 
-  const title = currentProvider ? copy.modelTitle(currentProvider, currentModel || copy.modelNone) : copy.switchModel
+  const selectLabel = copy.selectModel
+  const modelCombo = bindings['composer.modelPicker']?.[0]
+  const tipLabel = modelCombo ? (
+    <span className="inline-flex items-center gap-1.5">
+      {selectLabel}
+      <KbdCombo combo={modelCombo} size="sm" variant="inverted" />
+    </span>
+  ) : (
+    selectLabel
+  )
+  const ariaLabel = modelCombo ? `${selectLabel} (${formatCombo(modelCombo)})` : selectLabel
 
   if (!model.modelMenuContent) {
     return (
-      <Tip label={copy.openModelPicker} side="top">
+      <Tip label={tipLabel} side="top">
         <Button
-          aria-label={copy.openModelPicker}
+          aria-label={ariaLabel}
           className={pillClass}
           disabled={disabled}
           onClick={() => setModelPickerOpen(true)}
@@ -92,9 +113,9 @@ export function ModelPill({
 
   return (
     <DropdownMenu onOpenChange={setOpen} open={open}>
-      <Tip label={title} side="top">
+      <Tip label={tipLabel} side="top">
         <DropdownMenuTrigger asChild>
-          <Button aria-label={title} className={pillClass} disabled={disabled} type="button" variant="ghost">
+          <Button aria-label={ariaLabel} className={pillClass} disabled={disabled} type="button" variant="ghost">
             {label}
           </Button>
         </DropdownMenuTrigger>

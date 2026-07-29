@@ -1,19 +1,29 @@
+import { useStore } from '@nanostores/react'
 import type * as React from 'react'
 import { useState } from 'react'
 
 import { Codicon } from '@/components/ui/codicon'
 import type { SessionInfo } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { $repoStatus } from '@/store/coding-status'
 import { notifyError } from '@/store/notifications'
 import { newSessionInProfile } from '@/store/profile'
 import { switchBranchInRepo } from '@/store/projects'
+import { $currentCwd } from '@/store/session'
 
 import { countLabel, SidebarRowStack } from '../chrome'
 import { SidebarLoadMoreRow } from '../load-more-row'
 
 import { SIDEBAR_GROUP_PAGE, useWorkspaceNodeOpen } from './model'
-import type { SidebarSessionGroup } from './workspace-groups'
+import { baseName, type SidebarSessionGroup } from './workspace-groups'
 import { WorkspaceAddButton, WorkspaceHeader, WorkspaceMenu, WorkspaceShowMoreButton } from './workspace-header'
+
+function samePath(a: null | string | undefined, b: null | string | undefined): boolean {
+  const left = (a ?? '').replace(/[/\\]+$/, '').toLowerCase()
+  const right = (b ?? '').replace(/[/\\]+$/, '').toLowerCase()
+
+  return Boolean(left && right && left === right)
+}
 
 interface SidebarWorkspaceGroupProps {
   group: SidebarSessionGroup
@@ -22,20 +32,49 @@ interface SidebarWorkspaceGroupProps {
   // When set (linked worktree rows), shows a remove affordance that runs a real
   // `git worktree remove`.
   onRemove?: () => void
+  // True when other lanes in the same repo already have sessions. Softens the
+  // empty-lane copy so a quiet home checkout doesn't scream "no sessions yet"
+  // while worktrees elsewhere are busy.
+  hasSiblingSessions?: boolean
 }
 
-export function SidebarWorkspaceGroup({ group, renderRows, onNewSession, onRemove }: SidebarWorkspaceGroupProps) {
+export function SidebarWorkspaceGroup({
+  group,
+  renderRows,
+  onNewSession,
+  onRemove,
+  hasSiblingSessions = false
+}: SidebarWorkspaceGroupProps) {
   const { t } = useI18n()
   const s = t.sidebar
+  const p = s.projects
   const isProfileGroup = group.mode === 'profile'
-  // Empty worktree/branch lanes start collapsed — they only show a "No sessions
-  // yet" placeholder, so defaulting them open just adds noise. Profile lanes and
-  // lanes that already hold sessions default open.
+  const repoStatus = useStore($repoStatus)
+  const currentCwd = useStore($currentCwd)
+  // Empty worktree/branch lanes start collapsed — especially the home lane when
+  // the project has sessions elsewhere. Profile lanes and lanes that already
+  // hold sessions default open.
   const defaultOpen = isProfileGroup || group.sessions.length > 0
   const [open, toggleOpen] = useWorkspaceNodeOpen(group.id, defaultOpen)
   const [visibleCount, setVisibleCount] = useState(SIDEBAR_GROUP_PAGE)
 
   const loadedCount = group.sessions.length
+  const folderLabel = group.path ? baseName(group.path) : undefined
+  const activeLaneDiff =
+    !isProfileGroup && samePath(group.path, currentCwd) && repoStatus
+      ? { added: repoStatus.added, removed: repoStatus.removed }
+      : null
+  const hoverCard =
+    !isProfileGroup && (group.path || group.label)
+      ? {
+          title: group.label,
+          note: group.isHome ? p.homeCheckout : undefined,
+          branch: group.label,
+          repo: folderLabel,
+          path: group.path ?? undefined,
+          sessionsLabel: p.sessionsCount(loadedCount)
+        }
+      : null
   // Profile groups know their on-disk total (children excluded); workspace
   // groups only ever page within what's already loaded.
   const totalCount = isProfileGroup ? Math.max(group.totalCount ?? loadedCount, loadedCount) : loadedCount
@@ -114,8 +153,11 @@ export function SidebarWorkspaceGroup({ group, renderRows, onNewSession, onRemov
           )
         }
         count={isProfileGroup ? countLabel(visibleSessions.length, totalCount) : group.sessions.length}
+        diff={activeLaneDiff}
+        hover={hoverCard}
         icon={leadingIcon}
         label={group.label}
+        meta={!isProfileGroup && folderLabel && folderLabel !== group.label ? folderLabel : undefined}
         onToggle={toggleOpen}
         open={open}
         title={group.path ?? undefined}
@@ -123,7 +165,12 @@ export function SidebarWorkspaceGroup({ group, renderRows, onNewSession, onRemov
       {open && (
         <>
           {visibleSessions.length === 0 ? (
-            <div className="min-h-7 pl-2 text-[0.75rem] leading-7 text-(--ui-text-quaternary)">{s.noSessions}</div>
+            // Soft copy for empty checkout/worktree lanes (home included) when the
+            // repo still has work elsewhere — avoid the Dutelog "no sessions yet"
+            // scream. Truly empty profile groups keep the stronger blank copy.
+            <div className="min-h-7 pl-2 text-[0.75rem] leading-7 text-(--ui-text-quaternary)">
+              {isProfileGroup && !hasSiblingSessions ? s.noSessions : s.noSessionsInCheckout}
+            </div>
           ) : (
             renderRows(visibleSessions)
           )}

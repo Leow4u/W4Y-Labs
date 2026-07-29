@@ -11,7 +11,6 @@ import { Suspense, useCallback, useMemo, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 
 import { Thread } from '@/components/assistant-ui/thread'
-import { Backdrop } from '@/components/Backdrop'
 import { PromptOverlays } from '@/components/prompt-overlays'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
@@ -219,10 +218,22 @@ function ChatRuntimeBoundary({
         parentId = branchParentByGroup.get(message.branchGroupId) ?? null
       }
 
+      // Recompute when pending/error flips. A stale WeakMap entry with
+      // status:running after the turn completed leaves StreamStallIndicator
+      // ("Thinking") shimmering under an already-finished ConnectLinkCard.
       const cachedMessage = runtimeMessageCacheRef.current.get(message)
-      const runtimeMessage = cachedMessage ?? toRuntimeMessage(message)
+      const cachedStatus = cachedMessage?.role === 'assistant' ? cachedMessage.status?.type : undefined
+      const expectRunning = Boolean(message.pending)
+      const expectIncomplete = Boolean(message.error)
+      const cacheStale =
+        !cachedMessage ||
+        (expectRunning && cachedStatus !== 'running') ||
+        (expectIncomplete && cachedStatus !== 'incomplete') ||
+        (!expectRunning && !expectIncomplete && cachedStatus === 'running')
 
-      if (!cachedMessage) {
+      const runtimeMessage = cacheStale ? toRuntimeMessage(message) : cachedMessage
+
+      if (cacheStale) {
         runtimeMessageCacheRef.current.set(message, runtimeMessage)
       }
 
@@ -431,7 +442,6 @@ export function ChatView({
         className
       )}
     >
-      <Backdrop />
       <ChatHeader
         activeSessionId={activeSessionId}
         isRoutedSessionView={isRoutedSessionView}
@@ -450,79 +460,82 @@ export function ChatView({
         onThreadMessagesChange={onThreadMessagesChange}
         suppressMessages={routeSessionMismatch}
       >
+        {/* Shared positioning context for thread + docked/elevated composer so the
+            empty-state hero and composer share the same % anchor (Codex cluster). */}
         <div
-          className="relative min-h-0 max-w-full flex-1 overflow-hidden bg-(--ui-chat-surface-background) contain-[layout_paint]"
-          data-slot="composer-bounds"
-          {...dropHandlers}
+          className="relative min-h-0 w-full max-w-full flex-1"
+          data-empty-session={showIntro ? '' : undefined}
+          data-slot="chat-main"
         >
-          <Thread
-            clampToComposer={showChatBar}
-            cwd={currentCwd}
-            gateway={gateway}
-            intro={showIntro ? { personality: introPersonality, seed: introSeed } : undefined}
-            loading={threadLoading}
-            onBranchInNewChat={onBranchInNewChat}
-            onCancel={onCancel}
-            onDismissError={onDismissError}
-            onRestoreToMessage={onRestoreToMessage}
-            sessionId={activeSessionId}
-            sessionKey={threadKey}
-          />
-          {resumeExhausted && routedSessionId && (
-            <div className="absolute inset-0 z-10 grid place-items-center bg-(--ui-chat-surface-background) px-8 py-10">
-              <ErrorState
-                className="max-w-sm"
-                description={t.desktop.resumeStrandedBody}
-                title={t.desktop.resumeStrandedTitle}
-              >
-                <div className="grid justify-items-center">
-                  <Button onClick={() => onRetryResume(routedSessionId)} size="sm" variant="outline">
-                    {t.desktop.resumeRetry}
-                  </Button>
-                </div>
-              </ErrorState>
-            </div>
-          )}
-          {showChatBar && <ScrollToBottomButton />}
-          <ChatDropOverlay kind={dragKind} />
-          <ChatSwapOverlay profile={gatewaySwapTarget} />
-        </div>
-        {/* Composer renders OUTSIDE the contain:[layout paint] wrapper above:
-            that wrapper is a containing block for — and clips — position:fixed
-            descendants, so the popped-out (fixed) composer would anchor to the
-            chat column (which shifts/resizes with the sidebars) and get clipped
-            off-screen instead of floating against the viewport. As a sibling it
-            anchors to the outer relative container instead: docked is absolute
-            (identical placement), floating resolves against the viewport. Both
-            states stay mounted here, so dock⇄float never remounts the editor. */}
-        {showChatBar && (
-          <Suspense fallback={<ChatBarFallback />}>
-            <ChatBar
-              busy={busy}
+          <div
+            className="absolute inset-0 overflow-hidden bg-(--ui-chat-surface-background) contain-[layout_paint]"
+            data-slot="composer-bounds"
+            {...dropHandlers}
+          >
+            <Thread
+              clampToComposer={showChatBar && !showIntro}
               cwd={currentCwd}
-              disabled={!gatewayOpen}
-              focusKey={activeSessionId}
               gateway={gateway}
-              maxRecordingSeconds={maxVoiceRecordingSeconds}
-              onAddContextRef={onAddContextRef}
-              onAddUrl={onAddUrl}
-              onAttachDroppedItems={onAttachDroppedItems}
-              onAttachImageBlob={onAttachImageBlob}
+              intro={showIntro ? { personality: introPersonality, seed: introSeed } : undefined}
+              loading={threadLoading}
+              onBranchInNewChat={onBranchInNewChat}
               onCancel={onCancel}
-              onPasteClipboardImage={onPasteClipboardImage}
-              onPickFiles={onPickFiles}
-              onPickFolders={onPickFolders}
-              onPickImages={onPickImages}
-              onRemoveAttachment={onRemoveAttachment}
-              onSteer={onSteer}
-              onSubmit={onSubmit}
-              onTranscribeAudio={onTranscribeAudio}
-              queueSessionKey={selectedSessionId}
+              onDismissError={onDismissError}
+              onRestoreToMessage={onRestoreToMessage}
               sessionId={activeSessionId}
-              state={chatBarState}
+              sessionKey={threadKey}
             />
-          </Suspense>
-        )}
+            {resumeExhausted && routedSessionId && (
+              <div className="absolute inset-0 z-10 grid place-items-center bg-(--ui-chat-surface-background) px-8 py-10">
+                <ErrorState
+                  className="max-w-sm"
+                  description={t.desktop.resumeStrandedBody}
+                  title={t.desktop.resumeStrandedTitle}
+                >
+                  <div className="grid justify-items-center">
+                    <Button onClick={() => onRetryResume(routedSessionId)} size="sm" variant="outline">
+                      {t.desktop.resumeRetry}
+                    </Button>
+                  </div>
+                </ErrorState>
+              </div>
+            )}
+            {showChatBar && <ScrollToBottomButton />}
+            <ChatDropOverlay kind={dragKind} />
+            <ChatSwapOverlay profile={gatewaySwapTarget} />
+          </div>
+          {/* Composer stays outside contain:[layout_paint] so pop-out `fixed`
+              still anchors to the viewport, not the clipped thread box. */}
+          {showChatBar && (
+            <Suspense fallback={<ChatBarFallback />}>
+              <ChatBar
+                busy={busy}
+                cwd={currentCwd}
+                disabled={!gatewayOpen}
+                elevateComposer={showIntro}
+                focusKey={activeSessionId}
+                gateway={gateway}
+                maxRecordingSeconds={maxVoiceRecordingSeconds}
+                onAddContextRef={onAddContextRef}
+                onAddUrl={onAddUrl}
+                onAttachDroppedItems={onAttachDroppedItems}
+                onAttachImageBlob={onAttachImageBlob}
+                onCancel={onCancel}
+                onPasteClipboardImage={onPasteClipboardImage}
+                onPickFiles={onPickFiles}
+                onPickFolders={onPickFolders}
+                onPickImages={onPickImages}
+                onRemoveAttachment={onRemoveAttachment}
+                onSteer={onSteer}
+                onSubmit={onSubmit}
+                onTranscribeAudio={onTranscribeAudio}
+                queueSessionKey={selectedSessionId}
+                sessionId={activeSessionId}
+                state={chatBarState}
+              />
+            </Suspense>
+          )}
+        </div>
       </ChatRuntimeBoundary>
     </div>
   )

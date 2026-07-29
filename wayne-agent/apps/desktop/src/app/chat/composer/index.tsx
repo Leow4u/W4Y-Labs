@@ -18,6 +18,7 @@ import {
   setSessionConnectorsDisabled,
   writeConnectorsOff
 } from '@/lib/connectors-session'
+import { ensureComposioMcpReady } from '@/lib/ensure-composio-mcp'
 import { DATA_IMAGE_URL_RE } from '@/lib/embedded-images'
 import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
@@ -26,8 +27,9 @@ import { browseBackward, browseForward, deriveUserHistory, isBrowsingHistory } f
 import { POPOUT_WIDTH_REM } from '@/store/composer-popout'
 import { removeQueuedPrompt } from '@/store/composer-queue'
 import { $activeSessionAwaitingInput } from '@/store/prompts'
-import { toggleReview } from '@/store/review'
+import { openReview } from '@/store/review'
 import { $gatewayState, $messages } from '@/store/session'
+import { $pendingCloudAgentPrompt, consumeCloudAgentPrompt } from '@/store/run-target'
 import { $threadScrolledUp } from '@/store/thread-scroll'
 import { $autoSpeakReplies } from '@/store/voice-prefs'
 import { useTheme } from '@/themes'
@@ -55,8 +57,8 @@ import { useComposerVoice } from './hooks/use-composer-voice'
 import { useSlashCompletions } from './hooks/use-slash-completions'
 import { useSessionStatusPresence } from './hooks/use-status-presence'
 import { ConnectorsPicker } from './connectors-picker'
+import { ComposerContextHeader } from './composer-context-header'
 import { ModeChip } from './mode-chip'
-import { ProjectChip } from './project-chip'
 import { QueuePanel } from './queue-panel'
 import {
   composerPlainText,
@@ -67,7 +69,6 @@ import {
   RICH_INPUT_SLOT
 } from './rich-editor'
 import { ComposerStatusStack } from './status-stack'
-import { CodingStatusRow } from './status-stack/coding-row'
 import { extractClipboardImageBlobs } from './text-utils'
 import { ComposerTriggerPopover } from './trigger-popover'
 import type { ChatBarProps } from './types'
@@ -78,6 +79,7 @@ export function ChatBar({
   busy,
   cwd,
   disabled,
+  elevateComposer = false,
   focusKey,
   gateway,
   maxRecordingSeconds = 120,
@@ -129,6 +131,24 @@ export function ChatBar({
       connectorsOff
     ).catch(() => undefined)
   }, [sessionId, gateway, connectorsOff])
+
+  // Local brain: attach Composio + reload.mcp so Gmail/etc. tools exist before the
+  // first prompt (UI "connected" alone does not load mcp_composio_* into the agent).
+  // Re-run when sessionId appears — a reload without session_id does not refresh
+  // the agent tool snapshot for the live conversation.
+  useEffect(() => {
+    if (!gateway) return
+    void ensureComposioMcpReady({ sessionId, gateway, force: Boolean(sessionId) }).catch(() => null)
+  }, [gateway, sessionId])
+
+  // Cloud clone / gh-auth: one-shot agent prompt after mkdir+project (web ?clone=).
+  const pendingCloudPrompt = useStore($pendingCloudAgentPrompt)
+  useEffect(() => {
+    if (!pendingCloudPrompt || busy || disabled) return
+    const text = consumeCloudAgentPrompt()
+    if (!text) return
+    void Promise.resolve(onSubmit(text)).catch(() => undefined)
+  }, [pendingCloudPrompt, busy, disabled, onSubmit])
 
   // Coarse edge: re-renders ChatBar only when the stack shows/hides, NOT on
   // every per-item status mutation or other sessions' churn (see the hook).
@@ -221,7 +241,9 @@ export function ChatBar({
 
   const statusStackVisible = queuedPrompts.length > 0 || statusPresent
 
-  const { stacked } = useComposerMetrics({ composerRef, composerSurfaceRef, editorRef, poppedOut })
+  // Metrics still drive --composer-measured-height clearance for the thread;
+  // the Codex interior is always toolbar-below-input (no side-by-side row).
+  useComposerMetrics({ composerRef, composerSurfaceRef, editorRef, poppedOut })
   const hasComposerPayload = hasText || attachments.length > 0
   const canSubmit = busy || hasComposerPayload
   const busyAction = busy && hasComposerPayload ? 'queue' : 'stop'
@@ -730,6 +752,7 @@ export function ChatBar({
         status: conversation.status
       }}
       disabled={disabled}
+      gateway={gateway}
       hasComposerPayload={hasComposerPayload}
       onDictate={dictate}
       onSteer={steerDraft}
@@ -740,18 +763,16 @@ export function ChatBar({
   )
 
   const input = (
-    <div className={cn('relative', stacked ? 'w-full' : 'min-w-(--composer-input-inline-min-width) flex-1')}>
+    <div className="relative w-full">
       <div
         aria-disabled={inputDisabled ? true : undefined}
         aria-label={t.composer.message}
         autoCapitalize="off"
         autoCorrect="off"
         className={cn(
-          'min-h-(--composer-input-min-height) max-h-(--composer-input-max-height) cursor-text overflow-y-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-transparent pb-1 pr-1 pt-1 leading-normal text-foreground outline-none disabled:cursor-not-allowed',
+          'min-h-(--composer-input-min-height) max-h-(--composer-input-max-height) w-full cursor-text overflow-y-auto whitespace-pre-wrap break-words [overflow-wrap:anywhere] bg-transparent px-1 pb-1 pt-1 leading-normal text-foreground outline-none disabled:cursor-not-allowed',
           'empty:before:content-[attr(data-placeholder)] empty:before:text-muted-foreground/60',
-          '**:data-ref-text:cursor-default',
-          stacked && 'pl-3',
-          stacked ? 'w-full' : 'min-w-(--composer-input-inline-min-width) flex-1'
+          '**:data-ref-text:cursor-default'
         )}
         contentEditable={!inputDisabled}
         data-placeholder={placeholder}
@@ -839,12 +860,15 @@ export function ChatBar({
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
         <ComposerPrimitive.Root
           className={cn(
-            'group/composer z-30 overflow-visible rounded-2xl',
+            'group/composer z-30 overflow-visible rounded-2xl transition-[top,bottom,transform] duration-300 ease-out',
             poppedOut
               ? // Floating: the composer (with its own border) floats with an even
                 // 5px transparent grab margin around it — drag that to move it.
                 'fixed w-[var(--composer-popout-width)] max-w-[calc(100vw-1.5rem)] bg-transparent p-[5px]'
-              : 'absolute bottom-0 left-1/2 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 pt-2 pb-[var(--composer-shell-pad-block-end)]',
+              : elevateComposer
+                ? // Empty session: composer only — hero stays at 38%.
+                  'absolute left-1/2 top-[var(--composer-elevated-top)] w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2'
+                : 'absolute bottom-0 left-1/2 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 pt-2 pb-[var(--composer-shell-pad-block-end)]',
             dragging && 'cursor-grabbing select-none touch-none'
           )}
           data-drag-active={dragActive ? '' : undefined}
@@ -915,6 +939,7 @@ export function ChatBar({
           />
           {!poppedOut && (
             <div
+              aria-hidden
               className="pointer-events-none absolute inset-0 rounded-[inherit]"
               style={{ background: COMPOSER_FADE_BACKGROUND }}
             />
@@ -936,35 +961,60 @@ export function ChatBar({
           <div className="relative w-full rounded-[inherit]">
             <div
               className={cn(
-                'group/composer-surface relative z-4 isolate grid grid-rows-[auto_1fr] overflow-hidden rounded-[inherit] border border-[color-mix(in_srgb,var(--dt-composer-ring)_calc(18%*var(--composer-ring-strength)),var(--dt-input))]',
+                'group/composer-surface relative z-4 isolate overflow-hidden rounded-[inherit] border border-[color-mix(in_srgb,var(--dt-composer-ring)_calc(18%*var(--composer-ring-strength)),var(--dt-input))]',
+                'bg-[color-mix(in_srgb,var(--dt-card)_100%,var(--dt-background))]',
                 COMPOSER_DROP_FADE_CLASS,
                 dragActive && COMPOSER_DROP_ACTIVE_CLASS
               )}
               data-slot="composer-surface"
               ref={composerSurfaceRef}
             >
+              {/* Codex sleeve: darker rail wash on the card; white body below uses
+                  rounded-t so the gray wraps into the corners (not a flat rule). */}
+              {!poppedOut && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 -z-10 rounded-[inherit]"
+                  style={{
+                    background:
+                      // Keep the darker rail through the header + the body's
+                      // rounded-t pocket (~3.25rem) so gray wraps into the card.
+                      'linear-gradient(180deg, color-mix(in srgb, var(--foreground) 18%, var(--muted)) 0%, color-mix(in srgb, var(--foreground) 11%, var(--muted)) 1.5rem, color-mix(in srgb, var(--foreground) 6%, var(--muted)) 2.75rem, color-mix(in srgb, var(--muted) 70%, var(--background)) 3.25rem, color-mix(in srgb, var(--dt-card) 99%, var(--dt-background)) 3.4rem)'
+                  }}
+                />
+              )}
+              {poppedOut && (
+                <div
+                  aria-hidden
+                  className={cn(
+                    'pointer-events-none absolute inset-0 -z-10 rounded-[inherit]',
+                    composerFill,
+                    composerSurfaceGlass
+                  )}
+                />
+              )}
+              {!poppedOut && (
+                <ComposerContextHeader
+                  branch={{
+                    onBranchOff: handleBranchOff,
+                    onConvertBranch: handleConvertBranch,
+                    onListBranches: handleListBranches,
+                    onOpen: openReview,
+                    onOpenWorktree: openInWorktree,
+                    onSwitchBranch: handleSwitchBranch
+                  }}
+                  sessionId={sessionId}
+                />
+              )}
               <div
-                aria-hidden
                 className={cn(
-                  'pointer-events-none absolute inset-0 -z-10 rounded-[inherit]',
-                  composerFill,
-                  composerSurfaceGlass
-                )}
-              />
-              <CodingStatusRow
-                onBranchOff={handleBranchOff}
-                onConvertBranch={handleConvertBranch}
-                onListBranches={handleListBranches}
-                onOpen={toggleReview}
-                onOpenWorktree={openInWorktree}
-                onSwitchBranch={handleSwitchBranch}
-              />
-              <div
-                className={cn(
-                  'relative z-1 flex min-h-0 w-full flex-col gap-(--composer-row-gap) overflow-hidden rounded-[inherit] px-(--composer-surface-pad-x) py-(--composer-surface-pad-y) transition-opacity duration-200 ease-out',
-                  scrolledUp
-                    ? 'opacity-30 group-hover/composer:opacity-100 group-focus-within/composer-surface:opacity-100'
-                    : 'opacity-100'
+                  // Fully opaque chrome — never ghost the surface (scrolled transcript
+                  // must not show through the input). Clearance spacer on the thread
+                  // keeps last messages above this overlay.
+                  'relative z-1 flex min-h-0 w-full flex-col gap-(--composer-row-gap) overflow-hidden bg-[color-mix(in_srgb,var(--dt-card)_100%,var(--dt-background))] px-(--composer-surface-pad-x) py-(--composer-surface-pad-y)',
+                  // Rounded top = gray rail tucks around the white card (Codex).
+                  !poppedOut &&
+                    'rounded-t-[1.125rem] ring-1 ring-[color-mix(in_srgb,var(--foreground)_5%,transparent)] ring-inset'
                 )}
                 data-slot="composer-fade"
               >
@@ -995,28 +1045,22 @@ export function ChatBar({
                   </div>
                 )}
                 {attachments.length > 0 && <AttachmentList attachments={attachments} onRemove={onRemoveAttachment} />}
-                <div
-                  className={cn(
-                    'grid w-full',
-                    stacked
-                      ? 'grid-cols-[auto_1fr] gap-(--composer-row-gap) [grid-template-areas:"input_input"_"menu_controls"]'
-                      : 'grid-cols-[auto_1fr_auto] items-center gap-(--composer-control-gap) [grid-template-areas:"menu_input_controls"]'
-                  )}
-                >
-                  <div className="flex translate-y-[3px] items-start self-start [grid-area:menu]">{contextMenu}</div>
+                {/* Codex interior: input on top; toolbar row below (+ · perms | connectors/ring/model/mic/send).
+                    Always stacked — a side-by-side row with a tall input leaves +/perms/send
+                    stranded on the bottom edge and reads as "broken" once a session docks. */}
+                <div className="grid w-full grid-cols-[auto_1fr] gap-(--composer-row-gap) [grid-template-areas:'input_input'_'menu_controls']">
                   <div className="min-w-0 [grid-area:input]">{input}</div>
-                  <div className="flex items-center justify-end [grid-area:controls]">{controls}</div>
+                  <div className="flex items-center gap-0.5 self-center [grid-area:menu]">
+                    {contextMenu}
+                    <ModeChip gateway={gateway} sessionId={sessionId} />
+                  </div>
+                  <div className="flex items-center justify-end gap-0.5 [grid-area:controls]">
+                    <ConnectorsPicker disabled={connectorsOff} onChange={setConnectorsOff} />
+                    {controls}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div
-            className="relative z-4 mt-1.5 flex flex-wrap items-center gap-1.5 px-1"
-            data-slot="composer-journey-chips"
-          >
-            <ModeChip gateway={gateway} sessionId={sessionId} />
-            <ProjectChip />
-            <ConnectorsPicker disabled={connectorsOff} onChange={setConnectorsOff} />
           </div>
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -1038,7 +1082,7 @@ export function ChatBarFallback() {
     <div
       className={cn(
         'group/composer absolute bottom-0 left-1/2 z-30 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 rounded-2xl pt-2 pb-[var(--composer-shell-pad-block-end)]',
-        'bg-linear-to-b from-transparent to-background/55'
+        'bg-linear-to-b from-transparent to-background'
       )}
       data-slot="composer-root"
     >

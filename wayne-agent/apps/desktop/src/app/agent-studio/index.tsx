@@ -1,7 +1,6 @@
 /**
- * Agent Studio — Copilot-style agent list over Hermes profiles.
- * In-shell page (same pattern as Skills / Messaging / Artifacts), not an overlay.
- * Editor / canvas / connected-agents come later; this is the owner roster.
+ * Agents roster — lean list of isolated Hermes profiles (PRODUTO.md Agent Studio).
+ * Secondary to Work chat / Nova sessão. No editor/canvas here.
  */
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -128,9 +127,10 @@ export function AgentStudioView({
     <PageSearchShell
       {...props}
       filters={
-        <p className="w-full rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
-          {s.identityHint}
-        </p>
+        <div className="w-full space-y-1.5 rounded-lg border border-border/70 bg-muted/40 px-3 py-2">
+          <p className="text-[0.8125rem] font-medium text-foreground">{s.title}</p>
+          <p className="text-[0.75rem] leading-relaxed text-muted-foreground">{s.identityHint}</p>
+        </div>
       }
       onSearchChange={setSearch}
       searchHidden={loading && profiles.length === 0}

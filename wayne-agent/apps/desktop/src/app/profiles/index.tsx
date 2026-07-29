@@ -462,7 +462,7 @@ function SoulEditor({ profileName }: { profileName: string }) {
     <section className="space-y-2">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
-          <PanelSectionLabel className="text-[0.7rem] tracking-[0.14em]">SOUL.md</PanelSectionLabel>
+          <PanelSectionLabel className="text-[0.7rem] tracking-[0.14em]">{p.soulLabel}</PanelSectionLabel>
           <p className="text-xs text-muted-foreground">{p.soulDesc}</p>
         </div>
         {dirty && <span className="text-[0.65rem] text-muted-foreground">{p.unsavedChanges}</span>}

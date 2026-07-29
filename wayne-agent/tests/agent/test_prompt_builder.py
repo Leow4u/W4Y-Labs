@@ -692,15 +692,13 @@ class TestBuildNousSubscriptionPrompt:
 
 
 class TestBuildContextFilesPrompt:
-    def test_empty_dir_loads_seeded_global_soul(self, tmp_path):
-        from unittest.mock import patch
-
-        fake_home = tmp_path / "fake_home"
-        fake_home.mkdir()
-        with patch("pathlib.Path.home", return_value=fake_home):
-            result = build_context_files_prompt(cwd=str(tmp_path))
-        assert "Project Context" in result
-        assert "Wayne Agent" in result
+    def test_empty_dir_with_no_soul_md_returns_empty(self, tmp_path, monkeypatch):
+        # Work4You identity is baked in — no SOUL.md seeding on first run.
+        # An empty project dir with no SOUL.md on disk returns empty context.
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path / "wayne_home"))
+        (tmp_path / "wayne_home").mkdir()
+        result = build_context_files_prompt(cwd=str(tmp_path))
+        assert result == ""
 
     def test_loads_agents_md(self, tmp_path):
         (tmp_path / "AGENTS.md").write_text("Use Ruff for linting.")
@@ -740,6 +738,30 @@ class TestBuildContextFilesPrompt:
         (wayne_home / "SOUL.md").write_text("\n\n", encoding="utf-8")
         result = build_context_files_prompt(cwd=str(tmp_path))
         assert result == ""
+
+    def test_product_seeded_soul_md_ignored(self, tmp_path, monkeypatch):
+        # Work4You identity is baked into the runtime. A file containing the
+        # old Wayne/Nous product text must not override the baked-in identity.
+        from wayne_cli.default_soul import DEFAULT_SOUL_MD
+        from agent.prompt_builder import load_soul_md
+
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path / "wayne_home"))
+        wayne_home = tmp_path / "wayne_home"
+        wayne_home.mkdir()
+        (wayne_home / "SOUL.md").write_text(DEFAULT_SOUL_MD, encoding="utf-8")
+        result = load_soul_md()
+        assert result is None
+
+    def test_custom_soul_md_is_loaded(self, tmp_path, monkeypatch):
+        from agent.prompt_builder import load_soul_md
+
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path / "wayne_home"))
+        wayne_home = tmp_path / "wayne_home"
+        wayne_home.mkdir()
+        (wayne_home / "SOUL.md").write_text("You are a helpful pirate.", encoding="utf-8")
+        result = load_soul_md()
+        assert result is not None
+        assert "helpful pirate" in result
 
     def test_blocks_injection_in_agents_md(self, tmp_path):
         (tmp_path / "AGENTS.md").write_text(

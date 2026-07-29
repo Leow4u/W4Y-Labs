@@ -17,6 +17,13 @@ import { persistString, persistStringRecord, storedString, storedStringRecord } 
 import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
 
 import { hexToRgb, mix, readableOn } from './color'
+import {
+  FONT_CHOICES,
+  type FontChoice,
+  getFontChoice,
+  normalizeFontId,
+  THEME_DEFAULT_FONT_ID
+} from './fonts'
 import { BUILTIN_THEME_LIST, BUILTIN_THEMES, DEFAULT_SKIN_NAME, DEFAULT_TYPOGRAPHY, work4youTheme } from './presets'
 import type { DesktopTheme, DesktopThemeColors } from './types'
 import { $userThemes, resolveTheme } from './user-themes'
@@ -26,6 +33,7 @@ import { $userThemes, resolveTheme } from './user-themes'
 // installs are unaffected.
 const SKIN_KEY = 'hermes-desktop-theme-v2'
 const MODE_KEY = 'hermes-desktop-mode-v1'
+const FONT_KEY = 'hermes-desktop-font-v1'
 // Per-profile skin + light/dark mode assignments: { [profileKey]: value }. A
 // profile inherits the global default until it's given its own appearance.
 const PROFILE_SKINS_KEY = 'hermes-desktop-profile-themes-v1'
@@ -33,14 +41,38 @@ const PROFILE_MODES_KEY = 'hermes-desktop-profile-modes-v1'
 // Last active profile, recorded so the boot-time paint can pick that profile's
 // theme before the gateway reports which profile actually launched.
 const LAST_PROFILE_KEY = 'hermes-desktop-active-profile-v1'
-const RETIRED_SKINS = new Set(['nous-light', 'default', 'gold'])
+const RETIRED_SKINS = new Set(['nous', 'nous-light', 'default', 'gold'])
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
 const INJECTED_FONT_URLS = new Set<string>()
 
+/** Active font-override id — reapplied after every theme paint so theme
+ *  typography does not clobber a user body-font choice. */
+let _ACTIVE_FONT_OVERRIDE: string = THEME_DEFAULT_FONT_ID
+
 const resolveMode = (mode: ThemeMode, systemDark = matchesQuery('(prefers-color-scheme: dark)')): 'light' | 'dark' =>
   mode === 'system' ? (systemDark ? 'dark' : 'light') : mode
+
+function injectFontStylesheet(url: string | undefined) {
+  if (!url || typeof document === 'undefined' || INJECTED_FONT_URLS.has(url)) return
+  const link = document.createElement('link')
+  link.rel = 'stylesheet'
+  link.href = url
+  link.dataset.hermesThemeFont = 'true'
+  document.head.appendChild(link)
+  INJECTED_FONT_URLS.add(url)
+}
+
+/** Override `--dt-font-sans` only. Theme keeps `--dt-font-mono` for code/terminal. */
+function applyFontOverride(fontId: string | undefined) {
+  if (typeof document === 'undefined') return
+  const root = document.documentElement
+  const choice = getFontChoice(fontId)
+  if (!choice) return
+  injectFontStylesheet(choice.fontUrl)
+  root.style.setProperty('--dt-font-sans', choice.stack)
+}
 
 const normalizeSkin = (name: string | null): string =>
   name && resolveTheme(name) && !RETIRED_SKINS.has(name) ? name : DEFAULT_SKIN_NAME
@@ -220,8 +252,7 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
     '--dt-sidebar-border': c.sidebarBorder ?? c.border,
     '--dt-user-bubble-border': c.userBubbleBorder ?? c.border,
     '--dt-font-sans': typo.fontSans,
-    '--dt-font-mono': typo.fontMono,
-    '--noise-opacity-mul': isDark ? 'calc(0.04 / 0.21)' : 'calc(0.34 / 0.21)'
+    '--dt-font-mono': typo.fontMono
   }
 
   for (const [k, v] of Object.entries({ ...seeds, ...mixesFor(isDark), ...palette })) {
@@ -246,14 +277,9 @@ function applyTheme(theme: DesktopTheme, mode: 'light' | 'dark') {
     // falls back to prefers-color-scheme.
   }
 
-  if (typo.fontUrl && !INJECTED_FONT_URLS.has(typo.fontUrl)) {
-    const link = document.createElement('link')
-    link.rel = 'stylesheet'
-    link.href = typo.fontUrl
-    link.dataset.hermesThemeFont = 'true'
-    document.head.appendChild(link)
-    INJECTED_FONT_URLS.add(typo.fontUrl)
-  }
+  injectFontStylesheet(typo.fontUrl)
+  // Theme write above resets --dt-font-sans; reassert any user override.
+  applyFontOverride(_ACTIVE_FONT_OVERRIDE)
 }
 
 // Pin Electron's nativeTheme to the app's mode so the NATIVE window chrome
@@ -267,6 +293,7 @@ const syncNativeTheme = (pref: ThemeMode, rendered: 'light' | 'dark') =>
 // active profile's appearance so a non-default profile relaunch paints its own
 // skin + light/dark mode.
 if (typeof window !== 'undefined') {
+  _ACTIVE_FONT_OVERRIDE = normalizeFontId(storedString(FONT_KEY))
   const profile = readBootProfileKey()
   const pref = modePref.resolve(profile)
   const resolved = resolveMode(pref)
@@ -293,6 +320,10 @@ interface ThemeContextValue {
   availableThemes: Array<{ name: string; label: string; description: string }>
   setTheme: (name: string) => void
   setMode: (mode: ThemeMode) => void
+  /** Active body-font override id (`theme` = use skin typography). */
+  fontId: string
+  fontChoices: readonly FontChoice[]
+  setFont: (id: string) => void
 }
 
 const SKIN_LIST = BUILTIN_THEME_LIST.map(({ name, label, description }) => ({ name, label, description }))
@@ -305,7 +336,10 @@ const ThemeContext = createContext<ThemeContextValue>({
   renderedMode: 'light',
   availableThemes: SKIN_LIST,
   setTheme: () => {},
-  setMode: () => {}
+  setMode: () => {},
+  fontId: THEME_DEFAULT_FONT_ID,
+  fontChoices: FONT_CHOICES,
+  setFont: () => {}
 })
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -336,6 +370,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     typeof window === 'undefined' ? 'light' : modePref.resolve(readBootProfileKey())
   )
 
+  const [fontId, setFontIdState] = useState(() =>
+    typeof window === 'undefined' ? THEME_DEFAULT_FONT_ID : normalizeFontId(storedString(FONT_KEY))
+  )
+
   // Follow profile switches: paint the profile's assigned skin + mode and
   // remember it for the next boot's first paint.
   useEffect(() => {
@@ -351,7 +389,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   // What actually gets painted (matches the `.dark` class applyTheme toggles).
   const renderedMode = useMemo(() => renderedModeFor(activeTheme.colors, resolvedMode), [activeTheme, resolvedMode])
 
-  useEffect(() => applyTheme(activeTheme, resolvedMode), [activeTheme, resolvedMode])
+  useEffect(() => {
+    _ACTIVE_FONT_OVERRIDE = fontId
+    applyTheme(activeTheme, resolvedMode)
+  }, [activeTheme, resolvedMode, fontId])
 
   // Keep the native window appearance pinned to the app theme (vibrancy
   // material, titlebar, new-window pre-paint background).
@@ -372,12 +413,30 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     modePref.assign(liveProfile(), next)
   }, [])
 
+  const setFont = useCallback((id: string) => {
+    const next = normalizeFontId(id)
+    setFontIdState(next)
+    persistString(FONT_KEY, next)
+  }, [])
+
   // The light/dark toggle (Shift+X by default) is owned by the keybind runtime
   // (`appearance.toggleMode`) so it shows up in the hotkey map and is rebindable.
 
   const value = useMemo<ThemeContextValue>(
-    () => ({ theme: activeTheme, themeName, mode, resolvedMode, renderedMode, availableThemes, setTheme, setMode }),
-    [activeTheme, themeName, mode, resolvedMode, renderedMode, availableThemes, setTheme, setMode]
+    () => ({
+      theme: activeTheme,
+      themeName,
+      mode,
+      resolvedMode,
+      renderedMode,
+      availableThemes,
+      setTheme,
+      setMode,
+      fontId,
+      fontChoices: FONT_CHOICES,
+      setFont
+    }),
+    [activeTheme, themeName, mode, resolvedMode, renderedMode, availableThemes, setTheme, setMode, fontId, setFont]
   )
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>

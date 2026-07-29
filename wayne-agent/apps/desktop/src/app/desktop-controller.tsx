@@ -11,18 +11,15 @@ import { Pane, PaneMain } from '@/components/pane-shell'
 import { RemoteDisplayBanner } from '@/components/remote-display-banner'
 import { useMediaQuery } from '@/hooks/use-media-query'
 import { isFocusWithin } from '@/lib/keybinds/combo'
-import { cn } from '@/lib/utils'
 import { useSkinCommand } from '@/themes/use-skin-command'
 
 import { formatRefValue } from '../components/assistant-ui/directive-text'
-import { getSessionMessages, type SessionMessage, triggerCronJob } from '../hermes'
+import { getSessionMessages, type SessionMessage } from '../hermes'
 import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '../lib/chat-messages'
 import { storedSessionIdForNotification } from '../lib/session-ids'
 import { isMessagingSource } from '../lib/session-source'
 import { latestSessionTodos } from '../lib/todos'
-import { setCronFocusJobId } from '../store/cron'
 import {
-  $fileBrowserOpen,
   $panesFlipped,
   $pinnedSessionIds,
   FILE_BROWSER_DEFAULT_WIDTH,
@@ -99,11 +96,9 @@ import { RightSidebarPane } from './right-sidebar'
 import { FileActionDialogs } from './right-sidebar/file-actions'
 import { RemoteFolderPicker } from './right-sidebar/files/remote-picker'
 import { ReviewPane } from './right-sidebar/review'
-import { $terminalTakeover } from './right-sidebar/store'
-import { TerminalPaneChrome } from './right-sidebar/terminal/chrome'
 import { PersistentTerminal } from './right-sidebar/terminal/persistent'
 import { closeActiveTerminal } from './right-sidebar/terminal/terminals'
-import { CRON_ROUTE, NEW_CHAT_ROUTE, routeSessionId, sessionRoute, SETTINGS_ROUTE } from './routes'
+import { NEW_CHAT_ROUTE, routeSessionId, sessionRoute, SETTINGS_ROUTE } from './routes'
 import { SessionPickerOverlay } from './session-picker-overlay'
 import { SessionSwitcher } from './session-switcher'
 import { useContextSuggestions } from './session/hooks/use-context-suggestions'
@@ -125,6 +120,7 @@ import { ModelMenuPanel } from './shell/model-menu-panel'
 import type { StatusbarItem } from './shell/statusbar-controls'
 import type { TitlebarTool } from './shell/titlebar-controls'
 import { useGroupRegistry } from './shell/use-group-registry'
+import { OverlayFallback, ViewFallback } from './shell/view-fallback'
 import { UpdatesOverlay } from './updates-overlay'
 
 const AgentStudioView = lazy(async () => ({
@@ -199,9 +195,7 @@ export function DesktopController() {
   const previewTarget = useStore($previewTarget)
   const selectedStoredSessionId = useStore($selectedStoredSessionId)
   const messagingSessions = useStore($messagingSessions)
-  const terminalTakeover = useStore($terminalTakeover)
   const reviewOpen = useStore($reviewOpen)
-  const fileBrowserOpen = useStore($fileBrowserOpen)
   const previewPaneOpen = useStore($paneOpen(PREVIEW_PANE_ID))
   const panesFlipped = useStore($panesFlipped)
   const profileScope = useStore($profileScope)
@@ -222,7 +216,6 @@ export function DesktopController() {
     closeOverlayToPreviousRoute,
     commandCenterInitialSection,
     commandCenterOpen,
-    cronOpen,
     currentView,
     openAgents,
     openCommandCenterSection,
@@ -232,8 +225,6 @@ export function DesktopController() {
     starmapOpen,
     toggleCommandCenter
   } = useOverlayRouting()
-
-  const terminalSidebarOpen = chatOpen && terminalTakeover
 
   const titlebarToolGroups = useGroupRegistry<TitlebarTool>()
   const statusbarItemGroups = useGroupRegistry<StatusbarItem>()
@@ -470,7 +461,7 @@ export function DesktopController() {
   })
 
   const openProviderSettings = useCallback(() => {
-    navigate(`${SETTINGS_ROUTE}?tab=providers`)
+    navigate(`${SETTINGS_ROUTE}?tab=config:model&msection=keys`)
   }, [navigate])
 
   const modelMenuContent = useMemo(
@@ -613,7 +604,8 @@ export function DesktopController() {
     removeSession,
     resumeSession,
     selectSidebarItem,
-    startFreshSessionDraft
+    startFreshSessionDraft,
+    unarchiveSession
   } = useSessionActions({
     activeSessionId,
     activeSessionIdRef,
@@ -1024,18 +1016,12 @@ export function DesktopController() {
       onLoadMoreMessaging={loadMoreMessagingForPlatform}
       onLoadMoreProfileSessions={loadMoreSessionsForProfile}
       onLoadMoreSessions={loadMoreSessions}
-      onManageCronJob={jobId => {
-        setCronFocusJobId(jobId)
-        navigate(CRON_ROUTE)
-      }}
       onNavigate={selectSidebarItem}
       onNewSessionInWorkspace={startSessionInWorkspace}
+      onOpenCommandCenter={toggleCommandCenter}
+      onOpenSettings={openSettings}
       onResumeSession={sessionId => navigate(sessionRoute(sessionId))}
-      onTriggerCronJob={jobId => {
-        void triggerCronJob(jobId)
-          .then(() => refreshCronJobs())
-          .catch(() => undefined)
-      }}
+      onUnarchiveSession={sessionId => void unarchiveSession(sessionId)}
     />
   )
 
@@ -1074,7 +1060,7 @@ export function DesktopController() {
       <RemoteFolderPicker />
 
       {settingsOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <SettingsView
             gateway={gatewayRef.current}
             onClose={closeOverlayToPreviousRoute}
@@ -1095,7 +1081,7 @@ export function DesktopController() {
       )}
 
       {commandCenterOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <CommandCenterView
             initialSection={commandCenterInitialSection}
             onClose={closeOverlayToPreviousRoute}
@@ -1107,28 +1093,19 @@ export function DesktopController() {
       )}
 
       {agentsOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <AgentsView onClose={closeOverlayToPreviousRoute} />
         </Suspense>
       )}
 
-      {cronOpen && (
-        <Suspense fallback={null}>
-          <CronView
-            onClose={closeOverlayToPreviousRoute}
-            onOpenSession={sessionId => navigate(sessionRoute(sessionId))}
-          />
-        </Suspense>
-      )}
-
       {profilesOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <ProfilesView onClose={closeOverlayToPreviousRoute} />
         </Suspense>
       )}
 
       {starmapOpen && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<OverlayFallback />}>
           <StarmapView onClose={closeOverlayToPreviousRoute} />
         </Suspense>
       )}
@@ -1174,17 +1151,6 @@ export function DesktopController() {
   const sidebarSide = panesFlipped ? 'right' : 'left'
   const railSide = panesFlipped ? 'left' : 'right'
 
-  // Other sidebars docked as real columns on the terminal's rail. Force-collapsed
-  // hover-reveal overlays (narrow window) don't take a column, so they don't count.
-  const railColumnOpen =
-    (chatOpen && Boolean(previewTarget || filePreviewTarget) && previewPaneOpen) ||
-    (chatOpen && !narrowViewport && fileBrowserOpen) ||
-    (chatOpen && Boolean(currentCwd.trim()) && !narrowViewport && reviewOpen)
-
-  // Once the terminal would share its rail with another sidebar, drop it to a
-  // full-width row beneath them rather than cramming in one more skinny column.
-  const terminalAsRow = terminalSidebarOpen && railColumnOpen
-
   const previewPane = (
     <Pane
       disabled={!chatOpen || (!previewTarget && !filePreviewTarget)}
@@ -1205,6 +1171,8 @@ export function DesktopController() {
   const fileBrowserPane = (
     <Pane
       defaultOpen={false}
+      // Ambiente hosts Files / Agents / Terminal — available whenever chat is
+      // open. Files tab still shows its empty hint when the session has no cwd.
       disabled={!chatOpen}
       forceCollapsed={narrowViewport}
       hoverReveal
@@ -1253,48 +1221,14 @@ export function DesktopController() {
     </Pane>
   )
 
-  const terminalPane = (
-    <Pane
-      bottomRow={terminalAsRow}
-      defaultOpen
-      disabled={!terminalSidebarOpen}
-      divider
-      height="38vh"
-      id="terminal-sidebar"
-      key="terminal-sidebar"
-      maxHeight="80vh"
-      maxWidth="80vw"
-      minHeight="8rem"
-      minWidth="22vw"
-      resizable
-      side={railSide}
-      width="42vw"
-    >
-      {/* As a column the terminal clears the titlebar; as a bottom row it sits
-          below the rail's panes (so it fills its row edge-to-edge) and gets a
-          left border separating it from the chat — the column-mode separator
-          lives on the resize sash, which moves to the top edge as a row. */}
-      <div
-        className={cn(
-          'relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-(--ui-editor-surface-background)',
-          terminalAsRow ? 'border-l border-(--ui-stroke-secondary) pt-0' : 'pt-(--titlebar-height)'
-        )}
-      >
-        <TerminalPaneChrome />
-      </div>
-    </Pane>
-  )
-
   return (
     <AppShell
       leftStatusbarItems={leftStatusbarItems}
       leftTitlebarTools={titlebarToolGroups.flat.left}
       mainOverlays={mainOverlays}
-      onOpenSettings={openSettings}
       overlays={overlays}
       previewPaneOpen={chatOpen && Boolean(previewTarget || filePreviewTarget)}
       statusbarItems={statusbarItems}
-      terminalPaneOpen={terminalSidebarOpen}
       titlebarTools={titlebarToolGroups.flat.right}
     >
       {!isSecondaryWindow() && (
@@ -1318,7 +1252,7 @@ export function DesktopController() {
           <Route element={chatView} path=":sessionId" />
           <Route
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<ViewFallback />}>
                 <SkillsView setStatusbarItemGroup={setStatusbarItemGroup} />
               </Suspense>
             }
@@ -1326,7 +1260,7 @@ export function DesktopController() {
           />
           <Route
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<ViewFallback />}>
                 <MessagingView setStatusbarItemGroup={setStatusbarItemGroup} />
               </Suspense>
             }
@@ -1334,7 +1268,7 @@ export function DesktopController() {
           />
           <Route
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<ViewFallback />}>
                 <ArtifactsView setStatusbarItemGroup={setStatusbarItemGroup} />
               </Suspense>
             }
@@ -1342,13 +1276,23 @@ export function DesktopController() {
           />
           <Route
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<ViewFallback />}>
+                <CronView
+                  onOpenSession={sessionId => navigate(sessionRoute(sessionId))}
+                  setStatusbarItemGroup={setStatusbarItemGroup}
+                />
+              </Suspense>
+            }
+            path="cron"
+          />
+          <Route
+            element={
+              <Suspense fallback={<ViewFallback />}>
                 <AgentStudioView setStatusbarItemGroup={setStatusbarItemGroup} />
               </Suspense>
             }
             path="agent-studio"
           />
-          <Route element={null} path="cron" />
           <Route element={null} path="profiles" />
           <Route element={null} path="settings" />
           <Route element={null} path="command-center" />
@@ -1360,14 +1304,13 @@ export function DesktopController() {
       </PaneMain>
       {/*
         Order within a side maps to column order. Default (rail on the right):
-        main | terminal | preview | file-browser. Flipped (rail on the left):
-        mirror to file-browser | preview | terminal | main so terminal stays
-        adjacent to the chat.
+        main | preview | file-browser. Flipped (rail on the left):
+        mirror to file-browser | preview | main. Terminal lives inside Ambiente.
       */}
-      {panesFlipped ? fileBrowserPane : terminalPane}
+      {panesFlipped ? fileBrowserPane : null}
       {previewPane}
       {reviewPane}
-      {panesFlipped ? terminalPane : fileBrowserPane}
+      {panesFlipped ? null : fileBrowserPane}
     </AppShell>
   )
 }

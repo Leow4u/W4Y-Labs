@@ -1,8 +1,9 @@
 import { type QueryClient } from '@tanstack/react-query'
 import { useCallback } from 'react'
 
-import { getGlobalModelInfo } from '@/hermes'
+import { getGlobalModelInfo, setGlobalModel } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { rememberComposerManualModel } from '@/lib/composer-auto-mode'
 import { notifyError } from '@/store/notifications'
 import { $activeSessionId, $currentModel, $currentProvider, setCurrentModel, setCurrentProvider } from '@/store/session'
 import type { ModelOptionsResponse } from '@/types/hermes'
@@ -69,11 +70,12 @@ export function useModelControls({ activeSessionId, queryClient, requestGateway 
   }, [])
 
   // Returns whether the switch succeeded so callers can await it before applying
-  // follow-up changes. The composer model is plain UI state: with no live
-  // session it's just stored (and shipped on the next session.create); with one
-  // it's scoped to that session via config.set. It NEVER writes the profile
-  // default — that lives in Settings → Model — so picking a model here can't
-  // silently mutate global config.
+  // follow-up changes. Contract B (Composer sticky write-through):
+  //   • with a live session → pin this session's override AND persist the
+  //     profile default via explicit `--global` (never mutate shared env);
+  //   • with no session → UI sticky + write the same profile default so cron /
+  //     channels / the next session.create share one SSOT.
+  // Other sessions keep their own overrides; isolation is unchanged.
   const selectModel = useCallback(
     async (selection: ModelSelection): Promise<boolean> => {
       // Snapshot for rollback: the switch is applied optimistically, so a
@@ -84,28 +86,47 @@ export function useModelControls({ activeSessionId, queryClient, requestGateway 
 
       setCurrentModel(selection.model)
       setCurrentProvider(selection.provider)
-      updateModelOptionsCache(selection.provider, selection.model, !activeSessionId)
+      // Sticky last-manual for Cursor Auto toggle-off restore (no-op for Auto).
+      rememberComposerManualModel(selection.model, selection.provider)
+      // Write-through always updates the profile default, so keep the global
+      // model-options cache aligned even when a session is active.
+      updateModelOptionsCache(selection.provider, selection.model, true)
 
-      // No live session yet: the pick is pure UI state. session.create reads
-      // $currentModel/$currentProvider and applies it as that session's override.
+      // No live session yet: persist the profile default now, then keep the
+      // pick as UI sticky for the next session.create seed.
       if (!activeSessionId) {
-        return true
+        try {
+          await setGlobalModel(selection.provider, selection.model)
+          void queryClient.invalidateQueries({ queryKey: ['model-options', 'global'] })
+
+          return true
+        } catch (err) {
+          setCurrentModel(prevModel)
+          setCurrentProvider(prevProvider)
+          updateModelOptionsCache(prevProvider, prevModel, true)
+          notifyError(err, copy.modelSwitchFailed)
+
+          return false
+        }
       }
 
       try {
         await requestGateway('config.set', {
           session_id: activeSessionId,
           key: 'model',
-          value: `${selection.model} --provider ${selection.provider}`
+          // Explicit `--global`: pin this session AND write model.default on
+          // the active profile. Do not rely on persist_switch_by_default.
+          value: `${selection.model} --provider ${selection.provider} --global`
         })
 
         void queryClient.invalidateQueries({ queryKey: ['model-options', activeSessionId] })
+        void queryClient.invalidateQueries({ queryKey: ['model-options', 'global'] })
 
         return true
       } catch (err) {
         setCurrentModel(prevModel)
         setCurrentProvider(prevProvider)
-        updateModelOptionsCache(prevProvider, prevModel, !activeSessionId)
+        updateModelOptionsCache(prevProvider, prevModel, true)
         notifyError(err, copy.modelSwitchFailed)
 
         return false

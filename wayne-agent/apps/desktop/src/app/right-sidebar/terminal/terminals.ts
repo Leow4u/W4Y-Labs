@@ -3,7 +3,7 @@ import { atom, computed } from 'nanostores'
 import { readKey, writeKey } from '@/lib/storage'
 import { $currentCwd } from '@/store/session'
 
-import { setTerminalTakeover } from '../store'
+import { hideTerminalPanel, openTerminalPanel } from '../store'
 
 import { seedAgentTerminalCommand } from './agent-terminal-stream'
 
@@ -197,7 +197,7 @@ export function openAgentTerminal(procId: string, title: string): void {
   }
 
   $activeTerminalId.set(id)
-  setTerminalTakeover(true)
+  openTerminalPanel()
 }
 
 /** Guarantee at least one tab exists when the pane opens.
@@ -249,7 +249,7 @@ export function closeTerminal(id: string): void {
   }
 
   if (!next.length) {
-    setTerminalTakeover(false)
+    hideTerminalPanel()
   }
 }
 
@@ -285,7 +285,7 @@ export function closeAllTerminals(): void {
 
   $terminals.set([])
   $activeTerminalId.set(null)
-  setTerminalTakeover(false)
+  hideTerminalPanel()
 }
 
 export function closeOtherTerminals(id: string): void {

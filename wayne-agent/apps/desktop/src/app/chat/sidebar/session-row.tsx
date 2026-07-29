@@ -26,10 +26,11 @@ interface SidebarSessionRowProps extends React.ComponentProps<'div'> {
   isPinned: boolean
   isSelected: boolean
   isWorking: boolean
-  onArchive: () => void
+  onArchive?: () => void
+  onUnarchive?: () => void
   onBranch?: () => void
   onDelete: () => void
-  onPin: () => void
+  onPin?: () => void
   onResume: () => void
   reorderable?: boolean
   dragging?: boolean
@@ -52,6 +53,7 @@ export function SidebarSessionRow({
   isSelected,
   isWorking,
   onArchive,
+  onUnarchive,
   onBranch,
   onDelete,
   onPin,
@@ -85,6 +87,7 @@ export function SidebarSessionRow({
       onBranch={onBranch}
       onDelete={onDelete}
       onPin={onPin}
+      onUnarchive={onUnarchive}
       pinned={isPinned}
       profile={session.profile}
       sessionId={session.id}
@@ -103,6 +106,7 @@ export function SidebarSessionRow({
               onBranch={onBranch}
               onDelete={onDelete}
               onPin={onPin}
+              onUnarchive={onUnarchive}
               pinned={isPinned}
               profile={session.profile}
               sessionId={session.id}
@@ -157,8 +161,10 @@ export function SidebarSessionRow({
             if (event.shiftKey) {
               event.preventDefault()
               event.stopPropagation()
-              triggerHaptic('selection')
-              onPin()
+              if (onPin) {
+                triggerHaptic('selection')
+                onPin()
+              }
 
               return
             }

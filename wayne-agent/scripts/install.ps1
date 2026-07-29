@@ -2271,28 +2271,6 @@ function Copy-ConfigTemplates {
         Write-Info "$configPath already exists, keeping it"
     }
     
-    # Create SOUL.md if it doesn't exist (global persona file).
-    # IMPORTANT: write without a BOM.  Windows PowerShell 5.1's
-    # ``Set-Content -Encoding UTF8`` writes UTF-8 WITH a byte-order-mark
-    # (the default PS5 behaviour), and Wayne's prompt-injection scanner
-    # flags the BOM as an invisible unicode character and refuses to
-    # load the file.  PS7's ``-Encoding utf8NoBOM`` fixes that but we
-    # don't control which PowerShell version the user has.  Go direct
-    # to .NET with an explicit UTF8Encoding($false) -- BOM-free on every
-    # PowerShell version.
-    $soulPath = "$WayneHome\SOUL.md"
-    if (-not (Test-Path $soulPath)) {
-        # MUST match DEFAULT_SOUL_MD in wayne_cli/default_soul.py. The runtime
-        # upgrades the old comment-only scaffold to this text on next run, so
-        # drift is self-healing, but keep them in sync to avoid first-run churn.
-        $soulContent = @"
-You are Wayne Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
-"@
-        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
-        [System.IO.File]::WriteAllText($soulPath, $soulContent, $utf8NoBom)
-        Write-Success "Created $soulPath (edit to customize personality)"
-    }
-    
     Write-Success "Configuration directory ready: $WayneHome"
     
     # Seed bundled skills into $WayneHome\skills (manifest-based, one-time per skill)

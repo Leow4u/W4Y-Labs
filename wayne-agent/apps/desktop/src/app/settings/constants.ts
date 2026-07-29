@@ -1,9 +1,8 @@
 import {
   Box,
   Brain,
+  Globe,
   type IconComponent,
-  Lock,
-  MessageCircle,
   Mic,
   Monitor,
   Moon,
@@ -230,6 +229,38 @@ export const BUILTIN_PERSONALITIES = [
   'hype'
 ]
 
+/**
+ * Popular Edge TTS Neural voices for the desktop picker. edge-tts exposes
+ * ~300+ voices; Settings surfaces a curated set with human labels. Any value
+ * already in config still appears via `enumOptionsFor`.
+ */
+export const EDGE_TTS_VOICES: ReadonlyArray<{ id: string; label: string }> = [
+  { id: 'pt-BR-FranciscaNeural', label: 'Francisca — Português (Brasil)' },
+  { id: 'pt-BR-AntonioNeural', label: 'Antônio — Português (Brasil)' },
+  { id: 'pt-BR-ThalitaMultilingualNeural', label: 'Thalita — Português (Brasil, multilíngue)' },
+  { id: 'pt-PT-RaquelNeural', label: 'Raquel — Português (Portugal)' },
+  { id: 'pt-PT-DuarteNeural', label: 'Duarte — Português (Portugal)' },
+  { id: 'en-US-AriaNeural', label: 'Aria — English (US)' },
+  { id: 'en-US-JennyNeural', label: 'Jenny — English (US)' },
+  { id: 'en-US-AvaNeural', label: 'Ava — English (US)' },
+  { id: 'en-US-AndrewNeural', label: 'Andrew — English (US)' },
+  { id: 'en-US-BrianNeural', label: 'Brian — English (US)' },
+  { id: 'en-US-EmmaNeural', label: 'Emma — English (US)' },
+  { id: 'en-US-GuyNeural', label: 'Guy — English (US)' },
+  { id: 'en-GB-SoniaNeural', label: 'Sonia — English (UK)' },
+  { id: 'en-GB-RyanNeural', label: 'Ryan — English (UK)' },
+  { id: 'es-ES-ElviraNeural', label: 'Elvira — Español (España)' },
+  { id: 'es-ES-AlvaroNeural', label: 'Álvaro — Español (España)' },
+  { id: 'es-MX-DaliaNeural', label: 'Dalia — Español (México)' },
+  { id: 'es-MX-JorgeNeural', label: 'Jorge — Español (México)' }
+]
+
+export const EDGE_TTS_VOICE_IDS = EDGE_TTS_VOICES.map(voice => voice.id)
+
+export const EDGE_TTS_VOICE_LABELS: Record<string, string> = Object.fromEntries(
+  EDGE_TTS_VOICES.map(voice => [voice.id, voice.label])
+)
+
 // Schema-side select overrides for desktop-relevant enum fields whose
 // backend schema only declares a string type.
 export const ENUM_OPTIONS: Record<string, string[]> = {
@@ -249,6 +280,9 @@ export const ENUM_OPTIONS: Record<string, string[]> = {
   // hermes_cli/config.py (local/groq/openai/mistral/elevenlabs).
   'stt.provider': ['local', 'groq', 'openai', 'mistral', 'xai', 'elevenlabs'],
   'tts.openai.voice': ['alloy', 'echo', 'fable', 'onyx', 'nova', 'shimmer'],
+  // Curated Edge Neural voices (edge-tts has ~300+; full catalog is overkill in
+  // Settings). Current custom values still appear via enumOptionsFor merge.
+  'tts.edge.voice': EDGE_TTS_VOICE_IDS,
   // Text-to-speech backends — kept in sync with the built-in source of truth
   // (agent/tts_registry.py::_BUILTIN_NAMES / tools/tts_tool.py::
   // BUILTIN_TTS_PROVIDERS). 'xai' is Grok TTS.
@@ -281,7 +315,7 @@ export const FIELD_LABELS: Record<string, string> = defineFieldCopy({
   timezone: 'Timezone',
   display: {
     personality: 'Personality',
-    showReasoning: 'Reasoning Blocks'
+    showReasoning: 'Show Thinking'
   },
   agent: {
     maxTurns: 'Max Agent Steps',
@@ -429,19 +463,28 @@ export const FIELD_LABELS: Record<string, string> = defineFieldCopy({
 
 export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   model: 'Used for new chats unless you pick a different model in the composer.',
-  modelContextLength: "Leave at 0 to use the selected model's detected context window.",
-  fallbackProviders: 'Backup provider:model entries to try if the default model fails.',
+  modelContextLength:
+    'Maximum tokens this chat can keep in mind. 0 = use the official limit for the selected model.',
+  fallbackProviders: 'Models to try next when the main model is down or errors out.',
+  toolsets: 'Which built-in tool bundles the agent may use (CLI / messaging presets).',
+  commandAllowlist: 'Patterns that can run without asking again (advanced).',
   display: {
     personality: 'Default assistant style for new sessions.',
-    showReasoning: 'Show reasoning sections when the backend provides them.'
+    showReasoning:
+      "Show the model's chain-of-thought when it shares it. Does not affect working status, timers, or tool progress."
   },
   timezone: 'Used when Hermes needs local time context. Blank uses the system timezone.',
   agent: {
-    imageInputMode: 'Controls how image attachments are sent to the model.',
-    maxTurns: 'Upper bound for tool-calling turns before Hermes stops a run.'
+    imageInputMode: 'How attached images are sent to the model.',
+    maxTurns: 'Upper bound for tool-calling turns before Hermes stops a run.',
+    apiMaxRetries: 'How many times to retry a failed model API call.',
+    serviceTier: 'Optional provider service tier (OpenAI / Anthropic). Leave none for default.',
+    toolUseEnforcement: 'How strictly the model must use tools when a turn expects them (auto / force / off).'
   },
   terminal: {
     cwd: 'Default project folder for tool and terminal work.',
+    backend: 'Where shell commands run (local machine, Docker, cloud backends, …).',
+    timeout: 'Seconds before a single terminal command is killed.',
     persistentShell: 'Keep shell state between commands when the backend supports it.',
     envPassthrough: 'Environment variables to pass into tool execution.',
     dockerImage: 'Container image used when the execution backend is Docker.',
@@ -453,25 +496,46 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
     mode: 'How strictly code execution is scoped to the current project.'
   },
   fileReadMaxChars: 'Maximum characters Hermes can read from one file request.',
+  toolOutput: {
+    maxBytes: 'Max bytes of a single tool/terminal result kept in context.',
+    maxLines: 'Max lines kept from a long tool result.',
+    maxLineLength: 'Max characters per line before truncation.'
+  },
   approvals: {
     mode: 'How Hermes handles commands that need explicit approval.',
-    timeout: 'How long approval prompts wait before timing out.'
+    timeout: 'Seconds to wait for your reply before an approval prompt expires.',
+    mcpReloadConfirm: 'Ask for confirmation before reloading MCP connectors mid-session.'
   },
   security: {
     redactSecrets: 'Hide detected secrets from model-visible content when possible.'
   },
   checkpoints: {
-    enabled: 'Create rollback snapshots before file edits.'
+    enabled: 'Create rollback snapshots before file edits.',
+    maxSnapshots: 'How many file checkpoints to keep before older ones are dropped.'
   },
   memory: {
     memoryEnabled: 'Save durable memories that can help future sessions.',
-    userProfileEnabled: 'Maintain a compact profile of user preferences.'
+    userProfileEnabled: 'Maintain a compact profile of user preferences.',
+    memoryCharLimit: 'Approximate character budget for stored memory notes.',
+    userCharLimit: 'Approximate character budget for the user profile.',
+    provider: 'Where durable memory is stored. On this computer works offline.'
   },
   context: {
     engine: 'Strategy for managing long conversations near the context limit.'
   },
   compression: {
-    enabled: 'Summarize older context when conversations get large.'
+    enabled: 'Summarize older context when conversations get large.',
+    threshold: 'How full the context window must be before compression runs (0–1).',
+    targetRatio: 'How much of the window to free when compression runs (0–1).',
+    protectLastN: 'Keep the last N messages intact when summarizing.'
+  },
+  delegation: {
+    model: 'Which active model delegated subagents use. Empty inherits the parent chat model.',
+    provider: 'API/credentials path for subagents. Set automatically when you pick a subagent model.',
+    maxIterations: 'Max tool-calling turns for each subagent.',
+    maxConcurrentChildren: 'How many subagents may run in parallel.',
+    childTimeoutSeconds: 'Kill a subagent after this many seconds (0 = no limit).',
+    reasoningEffort: 'Reasoning effort for delegated subagents.'
   },
   voice: {
     autoTts: 'Automatically speak assistant responses.'
@@ -494,7 +558,7 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   },
   updates: {
     nonInteractiveLocalChanges:
-      'When Hermes updates itself from the app (no terminal prompt), keep local source edits (stash) or throw them away (discard). Terminal updates always ask.'
+      'When Work4You updates itself from the app (no terminal prompt), keep local source edits (stash) or throw them away (discard). Terminal updates always ask.'
   }
 })
 
@@ -502,15 +566,13 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
 export const SECTIONS: DesktopConfigSection[] = [
   {
     id: 'model',
-    label: 'Model',
+    label: 'Models',
     icon: Box,
-    keys: ['model_context_length', 'fallback_providers']
-  },
-  {
-    id: 'chat',
-    label: 'Chat',
-    icon: MessageCircle,
-    keys: ['display.personality', 'timezone', 'display.show_reasoning', 'agent.image_input_mode']
+    // PME Models page is dedicated (ModelsSettings → MoA + runtime). Default
+    // model is Composer write-through; subagent/context/fallback/images live
+    // on ModelsRuntimeSettings (not listed here — that page reads schema keys
+    // directly).
+    keys: []
   },
   {
     id: 'appearance',
@@ -519,48 +581,26 @@ export const SECTIONS: DesktopConfigSection[] = [
     keys: []
   },
   {
-    id: 'workspace',
-    label: 'Workspace',
-    icon: Monitor,
+    // Cursor-style Browser & Network — product differentiator, not Advanced.
+    id: 'browser-network',
+    label: 'Browser & Network',
+    icon: Globe,
     keys: [
-      'terminal.cwd',
-      'code_execution.mode',
-      'terminal.persistent_shell',
-      'terminal.env_passthrough',
-      'file_read_max_chars'
-    ]
-  },
-  {
-    id: 'safety',
-    label: 'Safety',
-    icon: Lock,
-    keys: [
-      'approvals.mode',
-      'approvals.timeout',
-      'approvals.mcp_reload_confirm',
-      'command_allowlist',
-      'security.redact_secrets',
       'security.allow_private_urls',
       'browser.allow_private_urls',
-      'browser.auto_local_for_private_urls',
-      'checkpoints.enabled'
+      'browser.auto_local_for_private_urls'
     ]
   },
   {
     id: 'memory',
     label: 'Memory & Context',
     icon: Brain,
+    // PME surface — toggles + provider + summarize. Fine budgets/ratios stay in Advanced.
     keys: [
       'memory.memory_enabled',
       'memory.user_profile_enabled',
-      'memory.memory_char_limit',
-      'memory.user_char_limit',
       'memory.provider',
-      'context.engine',
-      'compression.enabled',
-      'compression.threshold',
-      'compression.target_ratio',
-      'compression.protect_last_n'
+      'compression.enabled'
     ]
   },
   {
@@ -570,7 +610,6 @@ export const SECTIONS: DesktopConfigSection[] = [
     keys: [
       'tts.provider',
       'stt.enabled',
-      'stt.echo_transcripts',
       'stt.provider',
       'voice.auto_tts',
       'tts.edge.voice',
@@ -592,24 +631,44 @@ export const SECTIONS: DesktopConfigSection[] = [
       'tts.kittentts.voice',
       'tts.piper.voice',
       'stt.local.model',
-      'stt.local.language',
+      // stt.local.language stays off the desktop Voice UI — empty = Whisper
+      // auto-detect, which is the right default for PME; power users can still
+      // set it in config.yaml.
       'stt.openai.model',
       'stt.groq.model',
       'stt.mistral.model',
       'stt.elevenlabs.model_id',
-      'stt.elevenlabs.language_code',
+      // language_code: same as stt.local.language — auto-detect by default.
       'stt.elevenlabs.tag_audio_events',
       'stt.elevenlabs.diarize',
-      'voice.record_key',
+      // voice.record_key is CLI/TUI-only — desktop uses composer.voice keybinds.
+      // stt.echo_transcripts is not in the config schema (messaging always echoes).
       'voice.max_recording_seconds'
     ]
   },
   {
+    // Off PME nav (see settings/index.tsx). Reachable via `?tab=config:advanced`.
     id: 'advanced',
     label: 'Advanced',
     icon: Wrench,
     keys: [
-      'toolsets',
+      // Security power knobs — PME essentials live in General / Browser & Network.
+      'approvals.timeout',
+      'approvals.mcp_reload_confirm',
+      'command_allowlist',
+      // Memory budgets / fine compression — provider + summarize toggle live on Memory.
+      'memory.memory_char_limit',
+      'memory.user_char_limit',
+      'context.engine',
+      'compression.threshold',
+      'compression.target_ratio',
+      'compression.protect_last_n',
+      // Workspace / terminal runtime knobs (project pick is composer/sidebar).
+      'terminal.cwd',
+      'code_execution.mode',
+      'terminal.persistent_shell',
+      'terminal.env_passthrough',
+      'file_read_max_chars',
       'terminal.backend',
       'terminal.timeout',
       'terminal.docker_image',
@@ -619,21 +678,34 @@ export const SECTIONS: DesktopConfigSection[] = [
       'tool_output.max_bytes',
       'tool_output.max_lines',
       'tool_output.max_line_length',
+      // Agent limits — subagent model/provider/effort + images live on Models;
+      // in-app update local-changes preference lives on About.
       'checkpoints.max_snapshots',
       'agent.max_turns',
+      'agent.image_input_mode',
       'agent.api_max_retries',
       'agent.service_tier',
       'agent.tool_use_enforcement',
-      'delegation.model',
-      'delegation.provider',
       'delegation.max_iterations',
       'delegation.max_concurrent_children',
-      'delegation.child_timeout_seconds',
-      'delegation.reasoning_effort',
-      'updates.non_interactive_local_changes'
+      'delegation.child_timeout_seconds'
     ]
   }
 ]
+
+/** Permission essentials shown under Settings → General (not a Safety nav item). */
+export const GENERAL_PERMISSION_KEYS = [
+  'approvals.mode',
+  'security.redact_secrets',
+  'checkpoints.enabled'
+] as const
+
+/** Option labels for agent.image_input_mode (fallback if i18n missing). */
+export const IMAGE_INPUT_MODE_LABELS: Record<string, string> = {
+  auto: 'Recommended — decide for this model',
+  native: 'Send the photo as an image',
+  text: 'Describe the photo as text first'
+}
 
 export interface ModeOption {
   id: ThemeMode

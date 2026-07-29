@@ -118,6 +118,9 @@ const STREAM_STALL_S = 2
 // so that per-token updates re-render only this leaf, not the whole
 // AssistantMessage subtree.
 export const StreamStallIndicator: FC = () => {
+  // Gate on the live thread too — a stale assistant status:running after the
+  // turn settled must not keep a shimmering "Thinking" under the message.
+  const threadRunning = useAuiState(s => s.thread.isRunning)
   const activity = useAuiState(s => {
     let textLength = 0
 
@@ -141,12 +144,13 @@ export const StreamStallIndicator: FC = () => {
 
   useEffect(() => {
     setStalled(false)
+    if (!threadRunning) return
     const id = window.setTimeout(() => setStalled(true), STREAM_STALL_S * 1000)
 
     return () => window.clearTimeout(id)
-  }, [activity])
+  }, [activity, threadRunning])
 
-  const active = (stalled || compacting) && !awaitingInput
+  const active = threadRunning && (stalled || compacting) && !awaitingInput
   const elapsed = useElapsedSeconds(active)
 
   if (!active) {

@@ -1,6 +1,7 @@
 import { atom } from 'nanostores'
 
 import { persistString, storedString } from '@/lib/storage'
+import { featuredDefaultOnIds, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
 import type { ModelOptionProvider } from '@/types/hermes'
 
 const STORAGE_KEY = 'hermes.desktop.visible-models'
@@ -113,9 +114,24 @@ export function defaultVisibleKeys(providers: readonly ModelOptionProvider[]): S
 
 /** Add a provider's curated default model keys (top-N collapsed families) to
  *  `target`. Shared by `defaultVisibleKeys` and `resolveVisibleKeys` so the
- *  expansion rule lives in exactly one place. */
+ *  expansion rule lives in exactly one place.
+ *
+ *  Platform catalog (`openrouter`) uses the PME Models roster `defaultOn`
+ *  set so Conta/Models toggles match the Cursor-style first-run list. */
 function expandProviderDefaults(provider: ModelOptionProvider, target: Set<string>): void {
-  const families = collapseModelFamilies(provider.models ?? [])
+  const models = provider.models ?? []
+  if (provider.slug === W4Y_CATALOG_PROVIDER) {
+    const present = new Set(models)
+    const curated = featuredDefaultOnIds().filter(id => present.has(id))
+    if (curated.length > 0) {
+      for (const id of curated) {
+        target.add(modelVisibilityKey(provider.slug, id))
+      }
+      return
+    }
+  }
+
+  const families = collapseModelFamilies(models)
 
   for (const family of families.slice(0, DEFAULT_VISIBLE_PER_PROVIDER)) {
     target.add(modelVisibilityKey(provider.slug, family.id))
@@ -171,6 +187,23 @@ export function effectiveVisibleKeys(
   }
 
   return next
+}
+
+/**
+ * Filter a provider's model ids to those with the Settings → Models toggle on.
+ * Hidden models leave pickers immediately — no “keep current” exception.
+ */
+export function filterActiveModels(
+  models: readonly string[],
+  providerSlug: string,
+  visible: Set<string>
+): string[] {
+  return models.filter(model => visible.has(modelVisibilityKey(providerSlug, model)))
+}
+
+/** True when this provider::model is in the active Models roster. */
+export function isModelActive(visible: Set<string>, providerSlug: string, model: string): boolean {
+  return visible.has(modelVisibilityKey(providerSlug, model))
 }
 
 /** Compute the next persisted visibility set when one model row is toggled.

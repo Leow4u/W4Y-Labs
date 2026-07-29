@@ -99,6 +99,14 @@ const ERROR_SUMMARIES: { test: (msg: string) => boolean; summarize: (msg: string
   {
     test: msg => /microphone permission/i.test(msg),
     summarize: () => translateNow('notifications.errors.microphonePermission')
+  },
+  {
+    test: msg => /fal\.ai|FAL_KEY|fal dashboard/i.test(msg),
+    summarize: () => translateNow('notifications.errors.imageGenNeedsSetup')
+  },
+  {
+    test: msg => /openrouter/i.test(msg),
+    summarize: () => translateNow('notifications.errors.modelCatalogRejected')
   }
 ]
 

@@ -106,12 +106,15 @@ export async function refreshReview(): Promise<void> {
   const ctx = reviewCtx()
   const seq = (reviewRefreshSeq += 1)
 
-  if (!$reviewOpen.get() || !ctx) {
+  // Keep the changed-file list warm even when the pane is closed so the
+  // Changes chip (+/−) and a later openReview never flash a false "NO DIFFS"
+  // after the agent already wrote files.
+  if (!ctx) {
     $reviewFiles.set([])
-    $reviewIsRepo.set(Boolean(ctx))
+    $reviewIsRepo.set(false)
 
-    // Critical: clear loading on the no-cwd / not-a-repo path too. It's set
-    // true (optimistically) before a refresh is scheduled, so skipping it here
+    // Critical: clear loading on the no-cwd path too. It's set true
+    // (optimistically) before a refresh is scheduled, so skipping it here
     // strands the pane on a forever-skeleton for a fresh, detached chat.
     if (seq === reviewRefreshSeq) {
       $reviewLoading.set(false)
@@ -122,7 +125,6 @@ export async function refreshReview(): Promise<void> {
 
   const { cwd, review } = ctx
 
-  $reviewIsRepo.set(true)
   $reviewLoading.set(true)
 
   try {
@@ -132,6 +134,10 @@ export async function refreshReview(): Promise<void> {
     if (seq !== reviewRefreshSeq || repoCwd() !== cwd) {
       return
     }
+
+    // IPC returns isRepo:false off a non-git folder; older bridges omit it and
+    // we treat a successful list as in-repo (empty files = clean tree).
+    $reviewIsRepo.set(result.isRepo !== false)
 
     // Hide dep/build/cache dirs and OS noise even when the repo tracks them —
     // .gitignored paths are already dropped upstream by `git status`.
@@ -147,12 +153,13 @@ export async function refreshReview(): Promise<void> {
 
     if (selected && !selectedFile) {
       clearReviewSelection()
-    } else if (selectedFile && $reviewDiff.get() === null) {
+    } else if (selectedFile && $reviewDiff.get() === null && $reviewOpen.get()) {
       void selectReviewFile(selectedFile)
     }
   } catch {
     if (seq === reviewRefreshSeq) {
       $reviewFiles.set([])
+      $reviewIsRepo.set(false)
     }
   } finally {
     if (seq === reviewRefreshSeq) {
@@ -162,10 +169,6 @@ export async function refreshReview(): Promise<void> {
 }
 
 function scheduleReviewRefresh(): void {
-  if (!$reviewOpen.get()) {
-    return
-  }
-
   if (reviewRefreshTimer) {
     clearTimeout(reviewRefreshTimer)
   }
@@ -454,22 +457,23 @@ export async function createOrOpenPr(): Promise<void> {
 
 // ── Triggers (module-scope, mirror coding-status.ts) ─────────────────────────
 
-// A file-mutating tool finished (event-driven, not polled) → refresh the open
-// pane's changed-file list. gh/PR re-check is NOT here (gh is slow); it runs on
-// the settle edge below.
+// A file-mutating tool finished (event-driven, not polled) → refresh the
+// changed-file list (pane open or not — Changes chip + next open need it).
+// gh/PR re-check is NOT here (gh is slow); it runs on the settle edge below.
 $workspaceChangeTick.subscribe(() => {
-  if ($reviewOpen.get()) {
-    scheduleReviewRefresh()
-  }
+  scheduleReviewRefresh()
 })
 
-// Turn settled: final list refresh + the slower gh/PR re-check.
+// Turn settled: final list refresh + the slower gh/PR re-check when open.
 let prevBusy = $busy.get()
 
 $busy.subscribe(busy => {
-  if (prevBusy && !busy && $reviewOpen.get()) {
+  if (prevBusy && !busy) {
     scheduleReviewRefresh()
-    refreshShipInfoIfStale()
+
+    if ($reviewOpen.get()) {
+      refreshShipInfoIfStale()
+    }
   }
 
   prevBusy = busy
@@ -479,11 +483,12 @@ $busy.subscribe(busy => {
 // stale file list + selection up front so the pane drops straight to its loading
 // skeleton instead of blipping the previous repo's diff into the new one.
 $currentCwd.subscribe(() => {
+  clearReviewSelection()
+  $reviewFiles.set([])
+  $reviewLoading.set(Boolean(repoCwd()))
+  scheduleReviewRefresh()
+
   if ($reviewOpen.get()) {
-    clearReviewSelection()
-    $reviewFiles.set([])
-    $reviewLoading.set(true)
-    scheduleReviewRefresh()
     void refreshShipInfo()
   }
 })
@@ -491,8 +496,9 @@ $currentCwd.subscribe(() => {
 // An outside terminal may have changed the tree while we were away.
 if (typeof window !== 'undefined') {
   window.addEventListener('focus', () => {
+    scheduleReviewRefresh()
+
     if ($reviewOpen.get()) {
-      scheduleReviewRefresh()
       refreshShipInfoIfStale()
     }
   })

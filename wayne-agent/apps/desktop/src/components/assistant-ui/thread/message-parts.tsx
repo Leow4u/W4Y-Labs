@@ -1,4 +1,5 @@
 import { type ToolCallMessagePartProps, useAuiState } from '@assistant-ui/react'
+import { useStore } from '@nanostores/react'
 import { type ComponentProps, type FC, type ReactNode, useEffect, useRef, useState } from 'react'
 
 import { ClarifyTool } from '@/components/assistant-ui/clarify-tool'
@@ -11,6 +12,7 @@ import { GeneratedImage } from '@/components/chat/generated-image-result'
 import { useI18n } from '@/i18n'
 import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
+import { $showReasoning } from '@/store/display-prefs'
 
 const ImageGenerateTool: FC<ToolCallMessagePartProps> = ({ args, result }) => {
   const aspectRatio = typeof args?.aspect_ratio === 'string' ? args.aspect_ratio : undefined
@@ -139,17 +141,21 @@ const ReasoningAccordionGroup: FC<{ children?: ReactNode; endIndex: number; star
   endIndex,
   startIndex
 }) => {
+  const showReasoning = useStore($showReasoning)
   const messageId = useAuiState(s => s.message.id)
   const messageRunning = useAuiState(s => s.message.status?.type === 'running')
 
-  const pending = useAuiState(
-    s =>
-      s.thread.isRunning &&
-      s.message.status?.type === 'running' &&
-      s.message.parts
-        .slice(Math.max(0, startIndex), endIndex + 1)
-        .some(p => p?.type === 'reasoning' && p.status?.type !== 'complete')
-  )
+  const pending = useAuiState(s => {
+    if (!s.thread.isRunning || s.message.status?.type !== 'running') return false
+    return s.message.parts
+      .slice(Math.max(0, startIndex), endIndex + 1)
+      .some(p => {
+        if (p?.type !== 'reasoning') return false
+        // Missing status on a live reasoning part = still streaming; once the
+        // message itself completes, the guards above already returned false.
+        return p.status?.type !== 'complete'
+      })
+  })
 
   // A reasoning group with no actual text is pure noise — drop the whole
   // "Thinking" disclosure rather than leave an empty header eating a row. This
@@ -163,7 +169,9 @@ const ReasoningAccordionGroup: FC<{ children?: ReactNode; endIndex: number; star
       .some(p => p?.type === 'reasoning' && typeof p.text === 'string' && p.text.trim().length > 0)
   )
 
-  if (!hasContent) {
+  // Settings → Geral "Show thinking" — hide CoT blocks only; tool progress and
+  // the thread loading row stay visible either way.
+  if (!showReasoning || !hasContent) {
     return null
   }
 

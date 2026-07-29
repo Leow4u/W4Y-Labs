@@ -51,12 +51,12 @@ class TestEnsureWayneHome:
             assert (tmp_path / "logs").is_dir()
             assert (tmp_path / "memories").is_dir()
 
-    def test_creates_default_soul_md_if_missing(self, tmp_path):
+    def test_does_not_create_soul_md_if_missing(self, tmp_path):
+        # Work4You identity is baked into the runtime (Cursor-style).
+        # ensure_wayne_home must NOT seed SOUL.md when it is absent.
         with patch.dict(os.environ, {"WAYNE_HOME": str(tmp_path)}):
             ensure_wayne_home()
-            soul_path = tmp_path / "SOUL.md"
-            assert soul_path.exists()
-            assert soul_path.read_text(encoding="utf-8").strip() != ""
+            assert not (tmp_path / "SOUL.md").exists()
 
     def test_does_not_overwrite_existing_soul_md(self, tmp_path):
         with patch.dict(os.environ, {"WAYNE_HOME": str(tmp_path)}):
@@ -65,17 +65,28 @@ class TestEnsureWayneHome:
             ensure_wayne_home()
             assert soul_path.read_text(encoding="utf-8") == "custom soul"
 
-    def test_upgrades_legacy_template_soul_md(self, tmp_path):
-        # Older installers seeded a comment-only scaffold that shadowed the
-        # runtime default. A SOUL.md still matching that scaffold carries no
-        # user persona and should be upgraded in place to DEFAULT_SOUL_MD.
-        from wayne_cli.default_soul import DEFAULT_SOUL_MD, _LEGACY_TEMPLATE_SOULS
+    def test_removes_product_seeded_soul_md(self, tmp_path):
+        # The old Wayne/Nous identity text that installers seeded is a
+        # product persona, not a user persona. It should be removed so the
+        # baked-in Work4You identity wins (Cursor-style).
+        from wayne_cli.default_soul import DEFAULT_SOUL_MD
+
+        with patch.dict(os.environ, {"WAYNE_HOME": str(tmp_path)}):
+            soul_path = tmp_path / "SOUL.md"
+            soul_path.write_text(DEFAULT_SOUL_MD, encoding="utf-8")
+            ensure_wayne_home()
+            assert not soul_path.exists()
+
+    def test_removes_legacy_template_soul_md(self, tmp_path):
+        # Older installers seeded a comment-only scaffold that carried no
+        # user persona — remove it so the baked-in identity wins.
+        from wayne_cli.default_soul import _LEGACY_TEMPLATE_SOULS
 
         with patch.dict(os.environ, {"WAYNE_HOME": str(tmp_path)}):
             soul_path = tmp_path / "SOUL.md"
             soul_path.write_text(_LEGACY_TEMPLATE_SOULS[0] + "\n", encoding="utf-8")
             ensure_wayne_home()
-            assert soul_path.read_text(encoding="utf-8") == DEFAULT_SOUL_MD
+            assert not soul_path.exists()
 
     def test_preserves_legacy_template_with_user_persona(self, tmp_path):
         # If the user typed a persona alongside the scaffold, the content no

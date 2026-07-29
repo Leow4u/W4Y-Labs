@@ -106,9 +106,15 @@ export interface EnvVarInfo {
   // the dedicated Messaging page. The Keys page hides these to avoid
   // duplicating the richer channel-configuration UI.
   channel_managed?: boolean
+  // True when Work4You injects this credential from the cloud (OpenRouter,
+  // Composio, Firecrawl, Langfuse, …). Keys UI hides paste; API rejects writes.
+  platform_managed?: boolean
   description: string
   is_password: boolean
   is_set: boolean
+  // Short human label from OPTIONAL_ENV_VARS `prompt` (or provider_label for
+  // catalog-synthesized rows). Prefer over SCREAMING_SNAKE pretty-names.
+  prompt?: string
   // Backend-derived provider grouping hints (from the unified provider catalog
   // in hermes_cli/provider_catalog.py). When present, the Keys tab groups by
   // this provider identity — the SAME one `hermes model` uses — instead of
@@ -209,6 +215,7 @@ export interface HermesConfig {
   display?: {
     personality?: string
     skin?: string
+    show_reasoning?: boolean
   }
   terminal?: {
     cwd?: string
@@ -548,26 +555,55 @@ export interface AnalyticsTotals {
   total_sessions: number
 }
 
+export interface CronComposioTrigger {
+  id: string
+  slug: string
+  toolkit?: null | string
+}
+
+export interface CronWebhookRoute {
+  name: string
+  url: string
+}
+
 export interface CronJob {
+  /** ISO timestamp from cron/jobs.py — may be absent on legacy rows. */
+  created_at?: null | number | string
+  /** Composio triggers bound to this automation (id + slug). */
+  composio_triggers?: CronComposioTrigger[] | null
   deliver?: null | string
   enabled: boolean
   id: string
   last_error?: null | string
   last_run_at?: null | string
+  /** `"ok"` | `"error"` after a run; null until first completion. */
+  last_status?: null | string
+  /** Per-job model override (provider/model or bare model id). */
+  model?: null | string
   name?: null | string
   next_run_at?: null | string
   prompt?: null | string
+  provider?: null | string
   schedule?: CronJobSchedule
   schedule_display?: null | string
   script?: null | string
   state?: null | string
+  /** Gateway webhook route bound to this automation. */
+  webhook_route?: CronWebhookRoute | null
+  /** Absolute working directory for the job run. */
+  workdir?: null | string
 }
 
 export interface CronJobCreatePayload {
+  composio_triggers?: CronComposioTrigger[]
   deliver?: string
+  model?: string
   name?: string
   prompt: string
+  provider?: string
   schedule: string
+  webhook_route?: CronWebhookRoute | null
+  workdir?: null | string
 }
 
 export interface CronJobSchedule {
@@ -577,11 +613,16 @@ export interface CronJobSchedule {
 }
 
 export interface CronJobUpdates {
+  composio_triggers?: CronComposioTrigger[] | null
   deliver?: string
   enabled?: boolean
+  model?: null | string
   name?: string
   prompt?: string
+  provider?: null | string
   schedule?: string
+  webhook_route?: CronWebhookRoute | null
+  workdir?: null | string
 }
 
 export interface ProfileCreatePayload {
@@ -1029,6 +1070,12 @@ export interface MemoryStatusResponse {
   active: string
   providers: { name: string; description: string; configured: boolean }[]
   builtin_files: { memory: number; user: number }
+}
+
+/** `GET|PUT /api/memory/user-profile` — USER.md content. */
+export interface UserProfileResponse {
+  content: string
+  char_limit: number
 }
 
 /** `GET /api/curator` — background skill-curator status. */

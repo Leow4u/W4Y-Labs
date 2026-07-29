@@ -139,6 +139,8 @@ describe('usePreviewRouting', () => {
     act(() => handleEvent({ payload: { path: './dist/index.html' }, session_id: 'session-1', type: 'tool.complete' }))
 
     expect($previewTarget.get()).toBeNull()
-    expect(window.localStorage.getItem('hermes.desktop.sessionPreviews.v1')).toBeNull()
+    // Empty registry is persisted as `{}` (subscribe writes on clear); the
+    // contract is "no session previews", not "key absent".
+    expect(JSON.parse(window.localStorage.getItem('hermes.desktop.sessionPreviews.v1') ?? '{}')).toEqual({})
   })
 })

@@ -13,6 +13,8 @@ import type {
   CronJob,
   CronJobCreatePayload,
   CronJobUpdates,
+  CronComposioTrigger,
+  CronWebhookRoute,
   CuratorStatusResponse,
   DebugShareResponse,
   ElevenLabsVoicesResponse,
@@ -26,6 +28,7 @@ import type {
   MemoryProviderOAuthStatus,
   MemoryStatusResponse,
   MessagingPlatformsResponse,
+  UserProfileResponse,
   MessagingPlatformTestResponse,
   MessagingPlatformUpdate,
   MoaConfigResponse,
@@ -103,6 +106,8 @@ export type {
   CronJobCreatePayload,
   CronJobSchedule,
   CronJobUpdates,
+  CronComposioTrigger,
+  CronWebhookRoute,
   CuratorStatusResponse,
   DebugShareResponse,
   ElevenLabsVoice,
@@ -119,6 +124,7 @@ export type {
   MemoryProviderConfig,
   MemoryProviderOAuthStatus,
   MemoryStatusResponse,
+  UserProfileResponse,
   MessagingEnvVarInfo,
   MessagingHomeChannel,
   MessagingPlatformInfo,
@@ -443,6 +449,53 @@ export function setEnvVar(key: string, value: string): Promise<{ ok: boolean }> 
   })
 }
 
+export interface LangfuseStatusResponse {
+  connected: boolean
+  plugin_enabled: boolean
+  base_url: string
+  public_key_set: boolean
+  secret_key_set: boolean
+  public_key_valid: boolean
+  secret_key_valid: boolean
+}
+
+export interface LangfuseTraceRow {
+  id: string
+  name: string
+  timestamp: string
+  session_id: string
+  user_id: string
+  latency: number | null
+  total_cost: number | null
+  tags: string[]
+  url: string
+}
+
+export interface LangfuseTracesResponse {
+  ok: boolean
+  connected: boolean
+  plugin_enabled: boolean
+  base_url: string
+  traces: LangfuseTraceRow[]
+  error?: string
+  meta?: Record<string, unknown>
+  status_code?: number
+}
+
+export function getLangfuseStatus(): Promise<LangfuseStatusResponse> {
+  return window.hermesDesktop.api<LangfuseStatusResponse>({
+    ...profileScoped(),
+    path: '/api/langfuse/status'
+  })
+}
+
+export function getLangfuseTraces(limit = 25): Promise<LangfuseTracesResponse> {
+  return window.hermesDesktop.api<LangfuseTracesResponse>({
+    ...profileScoped(),
+    path: `/api/langfuse/traces?limit=${encodeURIComponent(String(limit))}`
+  })
+}
+
 export function validateProviderCredential(
   key: string,
   value: string,
@@ -728,8 +781,13 @@ export function getMessagingPlatforms(profile?: string | null): Promise<Messagin
     profile && profile.trim() && profile !== 'default'
       ? `?profile=${encodeURIComponent(profile.trim())}`
       : ''
+  // Catalog build + per-platform config reads can stall the backend event loop
+  // under GIL pressure; the 15s default then surfaces as a false "Timed out
+  // connecting to Hermes backend" and leaves Canais blank. Match other heavy
+  // boot reads (see STARTUP_REQUEST_TIMEOUT_MS / #48504).
   return window.hermesDesktop.api<MessagingPlatformsResponse>({
-    path: `/api/messaging/platforms${q}`
+    path: `/api/messaging/platforms${q}`,
+    timeoutMs: STARTUP_REQUEST_TIMEOUT_MS
   })
 }
 
@@ -753,10 +811,15 @@ export function getProfilesPulse(): Promise<{ profiles: ProfilePulseRow[]; now?:
 
 export function updateMessagingPlatform(
   platformId: string,
-  body: MessagingPlatformUpdate
+  body: MessagingPlatformUpdate,
+  profile?: string | null
 ): Promise<{ ok: boolean; platform: string }> {
+  const q =
+    profile && profile.trim() && profile !== 'default'
+      ? `?profile=${encodeURIComponent(profile.trim())}`
+      : ''
   return window.hermesDesktop.api<{ ok: boolean; platform: string }>({
-    path: `/api/messaging/platforms/${encodeURIComponent(platformId)}`,
+    path: `/api/messaging/platforms/${encodeURIComponent(platformId)}${q}`,
     method: 'PUT',
     body
   })
@@ -834,6 +897,54 @@ export function deleteCronJob(jobId: string): Promise<{ ok: boolean }> {
   })
 }
 
+export interface WebhookRouteSummary {
+  cron_job_id?: string
+  enabled?: boolean
+  name: string
+  secret?: string
+  secret_set?: boolean
+  url: string
+}
+
+export function listWebhooks(): Promise<{
+  base_url?: string
+  enabled: boolean
+  subscriptions: WebhookRouteSummary[]
+}> {
+  return window.hermesDesktop.api({
+    path: '/api/webhooks'
+  })
+}
+
+export function enableWebhooks(): Promise<{ ok: boolean }> {
+  return window.hermesDesktop.api({
+    path: '/api/webhooks/enable',
+    method: 'POST'
+  })
+}
+
+export function createWebhook(body: {
+  cron_job_id?: string
+  deliver?: string
+  description?: string
+  events?: string[]
+  name: string
+  prompt?: string
+}): Promise<WebhookRouteSummary> {
+  return window.hermesDesktop.api({
+    path: '/api/webhooks',
+    method: 'POST',
+    body
+  })
+}
+
+export function deleteWebhook(name: string): Promise<{ ok: boolean }> {
+  return window.hermesDesktop.api({
+    path: `/api/webhooks/${encodeURIComponent(name)}`,
+    method: 'DELETE'
+  })
+}
+
 export function getProfiles(): Promise<ProfilesResponse> {
   return window.hermesDesktop.api<ProfilesResponse>({
     path: '/api/profiles',
@@ -891,6 +1002,36 @@ export function updateProfileSoul(name: string, content: string): Promise<{ ok: 
 export function getProfileSetupCommand(name: string): Promise<ProfileSetupCommand> {
   return window.hermesDesktop.api<ProfileSetupCommand>({
     path: `/api/profiles/${encodeURIComponent(name)}/setup-command`
+  })
+}
+
+/** team.json sidecar — named subagent roles / Studio connected-agent refs. */
+export interface ProfileTeamSubagent {
+  name: string
+  role?: string
+  icon?: string
+}
+
+export interface ProfileTeamInfo {
+  area: string
+  subagents: ProfileTeamSubagent[]
+  exists?: boolean
+}
+
+export function getProfileTeam(name: string): Promise<ProfileTeamInfo> {
+  return window.hermesDesktop.api<ProfileTeamInfo>({
+    path: `/api/profiles/${encodeURIComponent(name)}/team`
+  })
+}
+
+export function updateProfileTeam(
+  name: string,
+  body: { area?: string; subagents?: ProfileTeamSubagent[] }
+): Promise<{ ok: boolean; area: string; subagents: ProfileTeamSubagent[] }> {
+  return window.hermesDesktop.api<{ ok: boolean; area: string; subagents: ProfileTeamSubagent[] }>({
+    path: `/api/profiles/${encodeURIComponent(name)}/team`,
+    method: 'PUT',
+    body
   })
 }
 
@@ -1036,11 +1177,18 @@ export function transcribeAudio(dataUrl: string, mimeType?: string): Promise<Aud
   })
 }
 
-export function speakText(text: string): Promise<AudioSpeakResponse> {
+export function speakText(
+  text: string,
+  options?: { voice?: string; provider?: string }
+): Promise<AudioSpeakResponse> {
   return window.hermesDesktop.api<AudioSpeakResponse>({
     path: '/api/audio/speak',
     method: 'POST',
-    body: { text }
+    body: {
+      text,
+      ...(options?.voice ? { voice: options.voice } : {}),
+      ...(options?.provider ? { provider: options.provider } : {})
+    }
   })
 }
 
@@ -1178,6 +1326,22 @@ export function resetMemory(target: 'all' | 'memory' | 'user'): Promise<{ ok: bo
     path: '/api/memory/reset',
     method: 'POST',
     body: { target }
+  })
+}
+
+export function getUserProfile(): Promise<UserProfileResponse> {
+  return window.hermesDesktop.api<UserProfileResponse>({
+    ...profileScoped(),
+    path: '/api/memory/user-profile'
+  })
+}
+
+export function setUserProfile(content: string): Promise<{ ok: boolean; content: string }> {
+  return window.hermesDesktop.api<{ ok: boolean; content: string }>({
+    ...profileScoped(),
+    path: '/api/memory/user-profile',
+    method: 'PUT',
+    body: { content }
   })
 }
 

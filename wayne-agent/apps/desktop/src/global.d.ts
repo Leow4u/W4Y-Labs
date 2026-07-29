@@ -663,6 +663,8 @@ export interface HermesReviewList {
   // The resolved base ref the scope diffed against (branch merge-base / turn
   // baseline), or null for the uncommitted scope.
   base: null | string
+  /** False when `repoPath` is not a git working tree. Omitted by older bridges. */
+  isRepo?: boolean
 }
 
 // The branch's PR (if any) as reported by `gh pr view`.
@@ -700,6 +702,8 @@ export interface HermesSelectPathsOptions {
   title?: string
   defaultPath?: string
   directories?: boolean
+  /** Electron openDirectory: show the OS "New Folder" control (same as default-project-dir picker). */
+  createDirectory?: boolean
   multiple?: boolean
   filters?: Array<{ name: string; extensions: string[] }>
 }

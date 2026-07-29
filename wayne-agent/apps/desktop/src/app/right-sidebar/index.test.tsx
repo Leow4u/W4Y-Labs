@@ -54,4 +54,15 @@ describe('RightSidebarPane', () => {
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Refresh tree' })).toBeNull())
     expect(readDir).not.toHaveBeenCalled()
   })
+
+  it('exposes Files, Agents, Browser, and Terminal tabs', () => {
+    setCurrentCwd('/repo')
+
+    render(<RightSidebarPane onActivateFile={vi.fn()} onActivateFolder={vi.fn()} />)
+
+    expect(screen.getByRole('tab', { name: 'File system' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Agents' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Browser' })).toBeTruthy()
+    expect(screen.getByRole('tab', { name: 'Terminal' })).toBeTruthy()
+  })
 })

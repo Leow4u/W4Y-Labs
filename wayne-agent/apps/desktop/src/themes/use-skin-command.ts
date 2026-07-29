@@ -8,6 +8,7 @@ const ALIASES: Record<string, string> = {
   default: 'work4you',
   gold: 'work4you',
   hermes: 'work4you',
+  nous: 'work4you',
   'nous-light': 'work4you'
 }
 

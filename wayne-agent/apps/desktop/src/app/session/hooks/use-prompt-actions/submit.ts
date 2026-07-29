@@ -4,6 +4,7 @@ import { PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/hermes'
 import type { Translations } from '@/i18n'
 import { type ChatMessage, textPart } from '@/lib/chat-messages'
 import { optimisticAttachmentRef } from '@/lib/chat-runtime'
+import { ensureComposioMcpReady } from '@/lib/ensure-composio-mcp'
 import { setMutableRef } from '@/lib/mutable-ref'
 import {
   $composerAttachments,
@@ -246,6 +247,11 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
         attachmentRefs = syncedAttachments.map(optimisticAttachmentRef).filter((r): r is string => Boolean(r))
         rewriteOptimistic(sessionId)
         const text = buildContextText(syncedAttachments)
+
+        // Local brain: attach Composio + reload.mcp before the first real turn
+        // so the agent snapshot includes mcp_composio_* (UI "connected" alone
+        // does not). Best-effort — never block send on attach failure.
+        await ensureComposioMcpReady({ sessionId, force: true }).catch(() => null)
 
         // On sleep/wake the gateway's in-memory session may have been cleared
         // while the desktop app still holds the old session ID. Detect this,

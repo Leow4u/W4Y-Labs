@@ -11,6 +11,7 @@ import { getGlobalModelOptions } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { displayModelName, modelDisplayParts } from '@/lib/model-status-label'
 import { normalize } from '@/lib/text'
+import { prepareW4yPickerProviders, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
 import {
   $visibleModels,
   collapseModelFamilies,
@@ -57,7 +58,7 @@ export function ModelVisibilityDialog({
   })
 
   const providers = useMemo(
-    () => (modelOptions.data?.providers ?? []).filter(provider => (provider.models ?? []).length > 0),
+    () => prepareW4yPickerProviders(modelOptions.data?.providers).filter(provider => (provider.models ?? []).length > 0),
     [modelOptions.data]
   )
 
@@ -103,11 +104,15 @@ export function ModelVisibilityDialog({
                 return null
               }
 
+              const showHeading = provider.slug !== W4Y_CATALOG_PROVIDER
+
               return (
                 <div className="py-0.5" key={provider.slug}>
-                  <div className="px-3 pb-0.5 pt-1 text-[0.625rem] font-medium uppercase tracking-wide text-(--ui-text-tertiary)">
-                    {provider.name}
-                  </div>
+                  {showHeading ? (
+                    <div className="px-3 pb-0.5 pt-1 text-[0.625rem] font-medium uppercase tracking-wide text-(--ui-text-tertiary)">
+                      {provider.name}
+                    </div>
+                  ) : null}
                   {models.map(family => {
                     const { name, tag } = modelDisplayParts(family.id)
                     const key = modelVisibilityKey(provider.slug, family.id)

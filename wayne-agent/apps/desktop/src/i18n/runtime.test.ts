@@ -47,10 +47,15 @@ describe('desktop i18n runtime translator', () => {
   })
 
   it('keeps translated settings field copy addressable from schema keys', () => {
+    // A snake_case schema key must reach the camelCase copy entry. Assert that
+    // relationship, not the wording — translated copy is expected to change.
     const field = ['display', 'show_reasoning'].join('.')
+    const copyKey = 'display.showReasoning'
 
-    expect(fieldCopyForSchemaKey(zh.settings.fieldLabels, field)).toBe('推理过程块')
-    expect(fieldCopyForSchemaKey(zh.settings.fieldDescriptions, field)).toBe('当后端提供推理内容时予以显示。')
+    expect(zh.settings.fieldLabels[copyKey]).toBeTruthy()
+    expect(zh.settings.fieldDescriptions[copyKey]).toBeTruthy()
+    expect(fieldCopyForSchemaKey(zh.settings.fieldLabels, field)).toBe(zh.settings.fieldLabels[copyKey])
+    expect(fieldCopyForSchemaKey(zh.settings.fieldDescriptions, field)).toBe(zh.settings.fieldDescriptions[copyKey])
   })
 
   it('falls back to English when the active locale cannot resolve a key', () => {
@@ -61,7 +66,7 @@ describe('desktop i18n runtime translator', () => {
       boot.ready = undefined
       setRuntimeI18nLocale('ja')
 
-      expect(translateNow('boot.ready')).toBe('Hermes Desktop is ready')
+      expect(translateNow('boot.ready')).toBe(TRANSLATIONS.en.boot.ready)
     } finally {
       boot.ready = originalReady
     }

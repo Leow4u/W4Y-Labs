@@ -9,7 +9,8 @@
  * (fail-open: qualquer erro segue com o motor atual).
  *
  * 0.3.3 (S0 conectores): o /device/engine-key pode trazer também a chave
- * Composio do projeto DEDICADO do tenant (composioKey); quando vem, o mesmo
+ * Composio do projeto DEDICADO do tenant (composioKey) e toolEnv da plataforma
+ * (Firecrawl / Langfuse); quando vêm, o mesmo
  * fluxo grava COMPOSIO_API_KEY no <WAYNE_HOME>\.env — o motor local ganha os
  * conectores do dono (mesmos user_ids, contas já autorizadas na nuvem).
  *
@@ -1308,6 +1309,25 @@ async function runLoginFlow(opts) {
         const composioKey =
           res.json && typeof res.json.composioKey === "string" ? res.json.composioKey : "";
         if (composioKey) upsertEngineEnvKey("COMPOSIO_API_KEY", composioKey);
+        // Platform-managed tool secrets (Firecrawl / Langfuse) — shared org
+        // keys from the provisioner. Never log values. Best-effort: missing
+        // bag leaves browser/observability off until ops sets provisioner env.
+        const toolEnv =
+          res.json && res.json.toolEnv && typeof res.json.toolEnv === "object"
+            ? res.json.toolEnv
+            : null;
+        if (toolEnv) {
+          for (const [name, value] of Object.entries(toolEnv)) {
+            if (
+              typeof name === "string" &&
+              /^[A-Z][A-Z0-9_]*$/.test(name) &&
+              typeof value === "string" &&
+              value.trim()
+            ) {
+              upsertEngineEnvKey(name, value.trim());
+            }
+          }
+        }
         // 0.3.4 broker: the definitive connector delivery — Composio key +
         // fresh tool-router session, written to .env/config.yaml BEFORE the
         // gate releases (the engine spawns right after and reads both).

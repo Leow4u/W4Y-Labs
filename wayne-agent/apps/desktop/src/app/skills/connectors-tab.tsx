@@ -2,6 +2,7 @@
  * Capabilities → Connectors tab — Composio marketplace (featured + connect).
  * Full catalog behind ?catalog=1. Raw MCP editor stays on the MCP tab.
  */
+import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
@@ -13,10 +14,12 @@ import { useI18n } from '@/i18n'
 import {
   attachConnectors,
   connectConnector,
+  disconnectAllConnectors,
   disconnectConnectorAccount,
   getConnectorsCatalog,
   getConnectorsStatus
 } from '@/lib/connectors-api'
+import { $connectorsRevision, notifyConnectorsChanged } from '@/store/connectors'
 import {
   filterConnectors,
   pickConnectedExtra,
@@ -97,6 +100,7 @@ function ConnectorCard({
 export function ConnectorsTab() {
   const { t } = useI18n()
   const tc = t.connectors
+  const connectorsRevision = useStore($connectorsRevision)
   const [params, setParams] = useSearchParams()
   const catalog = params.get('catalog') === '1'
 
@@ -107,6 +111,7 @@ export function ConnectorsTab() {
   const [search, setSearch] = useState('')
   const [connecting, setConnecting] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
+  const [disconnectingAll, setDisconnectingAll] = useState(false)
   const aliveRef = useRef(true)
   const pollRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -149,7 +154,7 @@ export function ConnectorsTab() {
 
   useEffect(() => {
     void load()
-  }, [load])
+  }, [load, connectorsRevision])
 
   const byToolkit = useMemo(() => {
     const m = new Map<string, ConnectorAccount[]>()
@@ -187,6 +192,7 @@ export function ConnectorsTab() {
             title: tc.connectedToast.replace('{name}', slug),
             message: tc.connected
           })
+          notifyConnectorsChanged(slug)
           return
         }
         if (tries < 34) pollUntilActive(slug, tries + 1)
@@ -209,6 +215,7 @@ export function ConnectorsTab() {
             message: tc.connected
           })
           void refreshStatus()
+          notifyConnectorsChanged(tk.slug)
           return
         }
         if (res.redirect_url) {
@@ -238,6 +245,7 @@ export function ConnectorsTab() {
         }
         notify({ kind: 'success', title: tc.disconnectedToast, message: tc.disconnectedToast })
         await refreshStatus()
+        notifyConnectorsChanged()
       } catch (err) {
         notifyError(err, tc.disconnect)
       } finally {
@@ -246,6 +254,27 @@ export function ConnectorsTab() {
     },
     [byToolkit, refreshStatus, tc]
   )
+
+  const onDisconnectAll = useCallback(async () => {
+    if (!accounts.length) return
+    if (!window.confirm(tc.disconnectAllConfirm)) return
+    setDisconnectingAll(true)
+    try {
+      const res = await disconnectAllConnectors('global')
+      const count = res.removed?.length ?? 0
+      notify({
+        kind: 'success',
+        title: tc.disconnectAllDone.replace('{count}', String(count)),
+        message: tc.disconnectedToast
+      })
+      await refreshStatus()
+      notifyConnectorsChanged()
+    } catch (err) {
+      notifyError(err, tc.disconnectAll)
+    } finally {
+      setDisconnectingAll(false)
+    }
+  }, [accounts.length, refreshStatus, tc])
 
   const setCatalog = (open: boolean) => {
     const next = new URLSearchParams(params)
@@ -298,6 +327,16 @@ export function ConnectorsTab() {
         <Button onClick={() => setCatalog(!catalog)} size="sm" variant="ghost">
           {catalog ? tc.backToFeatured : tc.viewFullCatalog}
         </Button>
+        {accounts.length > 0 ? (
+          <Button
+            disabled={disconnectingAll || Boolean(disconnecting)}
+            onClick={() => void onDisconnectAll()}
+            size="sm"
+            variant="ghost"
+          >
+            {disconnectingAll ? tc.connecting : tc.disconnectAll}
+          </Button>
+        ) : null}
       </div>
 
       {catalog ? (

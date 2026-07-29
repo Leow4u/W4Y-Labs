@@ -30,6 +30,12 @@ vi.mock('@/hermes', async importOriginal => ({
   setSessionArchived: vi.fn()
 }))
 
+vi.mock('@/store/gateway', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  ensureCloudBrainActive: vi.fn(async () => undefined),
+  ensureLocalBrainActive: vi.fn(async () => undefined)
+}))
+
 const RUNTIME_SESSION_ID = 'rt-new-001'
 
 function storedSession(overrides: Partial<SessionInfo> = {}): SessionInfo {
@@ -109,11 +115,15 @@ async function createWith(profileSetup: () => void): Promise<Record<string, unkn
 }
 
 describe('createBackendSessionForSend profile routing', () => {
-  afterEach(() => {
+  afterEach(async () => {
     cleanup()
     $newChatProfile.set(null)
     $activeGatewayProfile.set('default')
     $currentCwd.set('')
+    const { $runTarget, clearCloudProjectSlug, setSessionRunTarget } = await import('@/store/run-target')
+    $runTarget.set('local')
+    setSessionRunTarget('local')
+    clearCloudProjectSlug()
     vi.restoreAllMocks()
   })
 
@@ -160,6 +170,28 @@ describe('createBackendSessionForSend profile routing', () => {
     })
 
     expect(params).toMatchObject({ cwd: '/remote/worktree' })
+  })
+
+  it('omits Windows paths from session.create when the run target is cloud', async () => {
+    const { $runTarget, setCloudProjectSlug } = await import('@/store/run-target')
+    const params = await createWith(() => {
+      $runTarget.set('cloud')
+      setCloudProjectSlug('')
+      $currentCwd.set('C:\\Users\\demo\\repo')
+    })
+
+    expect(params?.cwd).toBeUndefined()
+  })
+
+  it('ships cloud project cwd (not a PC path) when cloud + slug are set', async () => {
+    const { $runTarget, setCloudProjectSlug } = await import('@/store/run-target')
+    const params = await createWith(() => {
+      $runTarget.set('cloud')
+      setCloudProjectSlug('acme-api')
+      $currentCwd.set('C:\\Users\\demo\\repo')
+    })
+
+    expect(params).toMatchObject({ cwd: '/opt/data/projects/acme-api' })
   })
 })
 

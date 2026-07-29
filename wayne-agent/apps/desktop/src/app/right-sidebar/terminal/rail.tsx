@@ -14,7 +14,7 @@ import { formatCombo } from '@/lib/keybinds/combo'
 import { cn } from '@/lib/utils'
 import { $bindings } from '@/store/keybinds'
 
-import { setTerminalTakeover } from '../store'
+import { hideTerminalPanel } from '../store'
 
 import {
   $activeTerminalId,
@@ -96,7 +96,7 @@ export function TerminalRail() {
           <button
             aria-label={t.rightSidebar.terminalHide}
             className={cn(RAIL_ACTION, 'opacity-0 transition-opacity group-hover/rail:opacity-100')}
-            onClick={() => setTerminalTakeover(false)}
+            onClick={() => hideTerminalPanel()}
             type="button"
           >
             <Codicon name="chevron-down" size="0.8125rem" />
@@ -170,7 +170,7 @@ function TerminalRailItem({ active, canCloseOthers, index, term, toggleHint }: T
         </ContextMenuItem>
         <ContextMenuItem onSelect={closeAllTerminals}>{t.rightSidebar.terminalCloseAll}</ContextMenuItem>
         <ContextMenuSeparator />
-        <ContextMenuItem onSelect={() => setTerminalTakeover(false)}>{t.rightSidebar.terminalHide}</ContextMenuItem>
+        <ContextMenuItem onSelect={() => hideTerminalPanel()}>{t.rightSidebar.terminalHide}</ContextMenuItem>
       </ContextMenuContent>
     </ContextMenu>
   )

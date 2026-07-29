@@ -5,7 +5,7 @@
 // partial locales should use `defineLocale()` so missing desktop-only strings
 // fall back to English while new keys remain type-checked.
 
-export type Locale = 'en' | 'zh' | 'zh-hant' | 'ja' | 'pt'
+export type Locale = 'en' | 'pt' | 'es' | 'fr' | 'de' | 'zh' | 'zh-hant' | 'ja'
 
 export type ToolTitleKey =
   | 'browser_click'
@@ -174,6 +174,8 @@ export interface Translations {
       openaiRejectedApiKey: string
       openaiRejectedApiKeyWithStatus: (status: string) => string
       openaiTtsNeedsKey: string
+      imageGenNeedsSetup: string
+      modelCatalogRejected: string
     }
     voice: {
       configureSpeechToText: string
@@ -262,9 +264,12 @@ export interface Translations {
     exportFailed: string
     resetFailed: string
     nav: {
+      general: string
+      account: string
       providers: string
       providerAccounts: string
       providerApiKeys: string
+      modelsApiKeys: string
       gateway: string
       apiKeys: string
       keysTools: string
@@ -274,9 +279,150 @@ export interface Translations {
       about: string
       notifications: string
     }
+    general: {
+      title: string
+      intro: string
+      preferences: string
+      workspace: string
+      personality: string
+      personalityDesc: string
+      /** Display labels for `display.personality` ids; unknown ids fall back to prettyName. */
+      personalities: Partial<Record<string, string>>
+      permissions: string
+      readAloud: string
+      readAloudDesc: string
+      showThinking: string
+      showThinkingDesc: string
+      alerts: string
+      manageAlerts: string
+      app: string
+      openAbout: string
+      shortcuts: string
+      shortcutVoice: string
+      shortcutUnbound: string
+      viewAllShortcuts: string
+    }
+    browserNetwork: {
+      title: string
+      intro: string
+      network: string
+    }
+    advancedPage: {
+      title: string
+      intro: string
+      groups: {
+        tools: string
+        memory: string
+        workspace: string
+        agent: string
+      }
+      fields: Record<string, { label: string; description: string }>
+    }
+    memoryPage: {
+      title: string
+      memory: string
+      memoryIntro: string
+      manageRow: string
+      manageRowDesc: string
+      manageTitle: string
+      manageDesc: string
+      manageProvider: string
+      manageMemorySize: string
+      manageProfileSize: string
+      manageProfileLabel: string
+      manageProfilePlaceholder: string
+      manageLoadFailed: string
+      manageSaveFailed: string
+      manageSaved: string
+      manageSavedDesc: string
+      builtinProvider: string
+      resetRow: string
+      resetDesc: string
+      resetAction: string
+      resetConfirm: string
+      resetConfirmDesc: string
+      resetDone: string
+      resetDoneDesc: string
+      importGroup: string
+      importRow: string
+      importRowDesc: string
+      importAction: string
+      importTitle: string
+      importDesc: string
+      importStep1Title: string
+      importStep1Desc: string
+      importPrompt: string
+      importCopyFailed: string
+      importStep2Title: string
+      importStep2Desc: string
+      importPastePlaceholder: string
+      importEnableProfileHint: string
+      importConfirm: string
+      importTooLong: (limit: number) => string
+      importSaveFailed: string
+      importSaved: string
+      importSavedDesc: string
+      /** Labels for Advanced (budgets / provider / compression). */
+      providers: Partial<Record<string, string>>
+      fields: Partial<
+        Record<
+          string,
+          {
+            label: string
+            description?: string
+          }
+        >
+      >
+    }
+    voice: {
+      title: string
+      speaking: string
+      listening: string
+      recording: string
+      previewVoice: string
+      previewing: string
+      previewFailed: string
+      shortcut: string
+      shortcutDesc: string
+      shortcutUnbound: string
+      manageShortcut: string
+      fields: Partial<
+        Record<
+          string,
+          {
+            label: string
+            description?: string
+          }
+        >
+      >
+    }
+    safety: {
+      title: string
+      approvals: string
+      commands: string
+      privacy: string
+      recovery: string
+      approvalModes: {
+        manual: string
+        smart: string
+        off: string
+      }
+      fields: Partial<
+        Record<
+          string,
+          {
+            label: string
+            description?: string
+          }
+        >
+      >
+    }
     notifications: {
       title: string
       intro: string
+      alerts: string
+      sound: string
+      testGroup: string
       enableAll: string
       enableAllDesc: string
       focusedHint: string
@@ -285,6 +431,8 @@ export interface Translations {
         { label: string; description: string }
       >
       test: string
+      testRow: string
+      testDesc: string
       testTitle: string
       testBody: string
       testSent: string
@@ -292,6 +440,8 @@ export interface Translations {
       completionSoundTitle: string
       completionSoundDesc: string
       completionSoundPreview: string
+      /** Display labels keyed by completion-sound variant id (stringified). */
+      completionSoundNames: Partial<Record<string, string>>
     }
     sections: Record<string, string>
     searchPlaceholder: Record<'about' | 'config' | 'gateway' | 'keys' | 'mcp' | 'sessions', string>
@@ -319,7 +469,16 @@ export interface Translations {
       technicalDesc: string
       themeTitle: string
       themeDesc: string
-      themeProfileNote: (profile: string) => string
+      findMoreThemes: string
+      findMoreThemesClose: string
+      gallerySearchPlaceholder: string
+      marketplaceLoading: string
+      marketplaceError: string
+      marketplaceEmpty: string
+      fontTitle: string
+      fontDesc: string
+      fontThemeDefault: string
+      displayGroup: string
       installTitle: string
       installDesc: string
       installPlaceholder: string
@@ -343,6 +502,9 @@ export interface Translations {
         chooseDesc: string
         searchPlaceholder: string
         unreachable: string
+        emptyGallery: string
+        loadingGallery: string
+        retryGallery: string
         noMatch: (query: string) => string
         installedTag: string
         generatedTag: string
@@ -378,7 +540,6 @@ export interface Translations {
       checking: string
       seeWhatsNew: string
       updateNow: string
-      releaseNotes: string
       onLatest: string
       installing: string
       cantUpdate: string
@@ -389,12 +550,36 @@ export interface Translations {
       justNowSuffix: string
       automaticUpdates: string
       automaticUpdatesDesc: string
+      localChanges: string
+      localChangesDesc: string
+      localChangesOptions: Record<string, string>
       branchCommit: (branch: string, commit: string) => string
       never: string
       justNow: string
       minAgo: (count: number) => string
       hoursAgo: (count: number) => string
       daysAgo: (count: number) => string
+    }
+    uninstall: {
+      dangerZone: string
+      checking: string
+      title: string
+      intro: string
+      confirmTitle: string
+      confirmDesc: (consequence: string) => string
+      appPath: (path: string) => string
+      confirmCta: string
+      running: string
+      cancel: string
+      couldNotStart: string
+      modes: Record<
+        'gui' | 'lite' | 'full',
+        {
+          title: string
+          description: string
+          consequence: string
+        }
+      >
     }
     config: {
       none: string
@@ -408,6 +593,11 @@ export interface Translations {
       autosaveFailed: string
       imported: string
       invalidJson: string
+      imageModes: {
+        auto: string
+        native: string
+        text: string
+      }
     }
     credentials: {
       pasteKey: string
@@ -495,6 +685,24 @@ export interface Translations {
       loading: string
       failedLoad: string
       empty: string
+      search: string
+      toolsTitle: string
+      toolsIntro: string
+      settingsTitle: string
+      settingsIntro: string
+      groups: {
+        search: string
+        browser: string
+        media: string
+        memory: string
+        skills: string
+        observability: string
+        advanced: string
+        other: string
+        gateway: string
+        agent: string
+        channels: string
+      }
     }
     mcp: {
       loading: string
@@ -562,11 +770,75 @@ export interface Translations {
       noOutput: string
     }
     model: {
+      title: string
       loading: string
+      /** PME intro when default/aux are Composer-owned and this page shows MoA. */
+      pageIntro: string
+      /** Cursor-style Models page intro (composer visibility toggles). */
+      composerIntro: string
+      /** Subagent model/provider/effort (moved from Advanced). */
+      subagentsGroup: string
+      subagentsIntro: string
+      /** Context length, fallback models, image attachments. */
+      overridesGroup: string
+      overridesIntro: string
+      contextLimitLabel: string
+      contextLimitDesc: string
+      contextLimitAuto: string
+      contextLimitCustom: string
+      contextLimitTokensPlaceholder: string
+      fallbackLabel: string
+      fallbackDesc: string
+      fallbackEmpty: string
+      fallbackAdd: string
+      fallbackRemove: string
+      imageModeLabel: string
+      imageModeDesc: string
+      imageModes: {
+        auto: string
+        native: string
+        text: string
+      }
+      inheritFromParent: string
+      /** Hover-card chrome for curated Models list. */
+      featuredContextWindow: (size: string) => string
+      featuredVersionLine: (version: string) => string
+      featuredVersions: {
+        highEffort: string
+        fast: string
+      }
+      /** Per-model hover copy keyed by catalog id. Missing → English roster fallback. */
+      featuredCards: Partial<Record<string, { title?: string; description: string }>>
+      pickerGroup: string
+      /** Expand extra curated models on the same Models screen. */
+      moreModels: string
+      showLessModels: string
+      /** Opens the full catalog page (never say OpenRouter). */
+      addMoreModels: string
+      addMoreTitle: string
+      addMoreIntro: string
+      addMoreSearch: string
+      backToModels: string
+      /** @deprecated Prefer moreModels / addMoreModels — kept for older strings. */
+      viewAllModels: string
+      viewAllTitle: string
+      noCatalogModels: string
+      apiKeysDisclosure: string
+      apiKeysIntro: string
+      apiKeysEmpty: string
+      moaDisclosure: string
+      moaUnavailable: string
+      defaultGroup: string
       appliesDesc: string
       provider: string
       model: string
       applying: string
+      activate: string
+      activating: string
+      pasteApiKey: (env: string) => string
+      setupProvider: (name: string) => string
+      setupNeedsKey: (name: string) => string
+      setupNeedsBrowser: (name: string) => string
       defaultsLabel: string
       reasoning: string
       reasoningOff: string
@@ -578,7 +850,62 @@ export interface Translations {
       change: string
       autoUseMain: string
       providerDefault: string
+      staleAuxWarning: (count: number, names: string, provider: string) => string
+      otherProviders: string
+      moaTitle: string
+      moaDesc: string
+      moaIntro: string
+      moaPreset: string
+      moaSetDefault: string
+      moaNewPreset: string
+      moaAddPreset: string
+      moaDefault: string
+      moaAdvisorsSection: string
+      moaChairSection: string
+      moaReference: (n: number) => string
+      moaAdvisorHint: string
+      moaAddReference: string
+      moaAggregator: string
+      moaChairHint: string
+      /** Neutral face for aggregator catalogs (never show "OpenRouter"). */
+      moaCatalogProvider: string
       tasks: Record<string, AuxTaskCopy>
+    }
+    account: {
+      title: string
+      profileGroup: string
+      displayName: string
+      email: string
+      signedOutName: string
+      signedOutEmail: string
+      planUsageGroup: string
+      currentPlan: string
+      currentPlanDesc: string
+      planHobby: string
+      planStatusPastDue: string
+      planStatusCanceled: string
+      upgrade: string
+      includedUsage: string
+      includedUsageDesc: string
+      includedUsagePct: (pct: number) => string
+      includedUsageUnavailable: string
+      includedDepleted: string
+      onDemand: string
+      onDemandDesc: string
+      onDemandNeedsSubscription: string
+      onDemandInactive: string
+      onDemandUsage: string
+      onDemandUsageDesc: string
+      onDemandUsageValue: (used: number, limit: number) => string
+      spendLimit: string
+      spendLimitDesc: (max: number) => string
+      spendLimitSave: string
+      spendLimitSaving: string
+      spendLimitSaveFailed: string
+      manageSubscription: string
+      manageSubscriptionDesc: string
+      manageSubscriptionNoCustomer: string
+      planLogicHint: string
     }
     providers: {
       connectAccount: string
@@ -795,6 +1122,8 @@ export interface Translations {
 
   intro: {
     emptyTitle: string
+    /** Rotating subtitle bodies for the empty-session hero (locale-aware). */
+    emptyBodies: readonly string[]
   }
 
   agentStudio: {
@@ -1091,6 +1420,7 @@ export interface Translations {
     modelLabel: string
     skillsLabel: string
     notSet: string
+    soulLabel: string
     soulDesc: string
     soulOptional: string
     soulPlaceholder: (mode: string) => string
@@ -1142,9 +1472,36 @@ export interface Translations {
   cron: {
     close: string
     title: string
+    subtitle: string
     count: (count: number) => string
     search: string
     loading: string
+    statTotal: string
+    statSuccessful24h: string
+    statFailed24h: string
+    statSuccessful7d: string
+    statFailed7d: string
+    statRunHistory: string
+    colName: string
+    colAuthor: string
+    colCreated: string
+    colStatus: string
+    colTools: string
+    colAutomation: string
+    colTriggered: string
+    colDuration: string
+    authorYou: string
+    statusActive: string
+    statusInactive: string
+    backToList: string
+    createdUnknown: string
+    runsTitle: string
+    emptyRunsTitle: string
+    searchRuns: string
+    runStatusSuccess: string
+    runStatusFailed: string
+    runStatusRunning: string
+    runStatusCompleted: string
     states: Record<string, string>
     deliveryLabels: Record<string, string>
     scheduleLabels: Record<string, string>
@@ -1155,6 +1512,11 @@ export interface Translations {
     weekdaysAt: (time: string) => string
     everyDayOfWeekAt: (day: string, time: string) => string
     monthlyOnDayAt: (dayOfMonth: string, time: string) => string
+    /** Prefix before an inline time control (Cursor-style scheduled row). */
+    everyDayAtPrefix: string
+    weekdaysAtPrefix: string
+    everyDayOfWeekAtPrefix: (day: string) => string
+    monthlyOnDayAtPrefix: (dayOfMonth: string) => string
     topOfHour: string
     everyHourAt: (minute: string) => string
     newCron: string
@@ -1209,6 +1571,50 @@ export interface Translations {
     promptScheduleRequired: string
     saveChanges: string
     createAction: string
+    triggersSection: string
+    triggersHint: string
+    instructionsSection: string
+    instructionsHint: string
+    toolsSection: string
+    toolsHint: string
+    openConnectors: string
+    openChannels: string
+    tabSettings: string
+    tabHistory: string
+    addTrigger: string
+    searchTriggers: string
+    scheduledTrigger: string
+    composioTriggers: string
+    webhookTrigger: string
+    webhookHint: string
+    noScheduleYet: string
+    nextRunAt: (when: string) => string
+    triggerAdded: string
+    triggerRemoved: string
+    failedAddTrigger: string
+    failedRemoveTrigger: string
+    /** `{app}` = toolkit slug, e.g. gmail */
+    triggerNeedsConnection: string
+    loadingTriggers: string
+    triggerSoonHint: string
+    modelLabel: string
+    modelDefault: string
+    addToolOrMcp: string
+    memoriesTool: string
+    memoriesHint: string
+    /** Profile memory notes are editable; cron runs always skip session memory. */
+    memoriesManageHint: string
+    toolAdded: string
+    deliverHint: string
+    /** Tool-row label: "Send to Slack" / "Enviar para Slack". */
+    sendToChannel: (channel: string) => string
+    connectChannel: string
+    noFolder: string
+    chooseFolder: string
+    failedPickFolder: string
+    historySaveFirst: string
+    webhookSavedPartial: string
+    webhookNeedsGateway: string
   }
 
   connectors: {
@@ -1218,6 +1624,9 @@ export interface Translations {
     connected: string
     reconnect: string
     disconnect: string
+    disconnectAll: string
+    disconnectAllConfirm: string
+    disconnectAllDone: string
     connectedToast: string
     disconnectedToast: string
     openedToast: string
@@ -1230,6 +1639,13 @@ export interface Translations {
     backToFeatured: string
     /** Work (day-to-day) vs Studio agents identity plane. */
     workScopeHint: string
+    /** Chat ConnectLinkCard + connect-by-chat prompts. */
+    authTitle: string
+    authorize: string
+    waiting: string
+    authSecure: string
+    connectAppPrompt: string
+    connectApps: string
   }
 
   artifacts: {
@@ -1269,6 +1685,21 @@ export interface Translations {
 
   sidebar: {
     nav: Record<string, string>
+    account: {
+      fallbackName: string
+      settings: string
+      commandCenter: string
+      language: string
+      getHelp: string
+      viewPlans: string
+      giveFeedback: string
+      helpMenu: string
+      updateAvailable: string
+      updateInstalling: string
+      /** In-chip progress while applying (e.g. "Updating… 41%"). */
+      updateInstallingProgress: (percent: number) => string
+      updateShort: string
+    }
     searchAria: string
     searchPlaceholder: string
     clearSearch: string
@@ -1276,6 +1707,7 @@ export interface Translations {
     results: string
     pinned: string
     sessions: string
+    archived: string
     cronJobs: string
     groupAriaGrouped: string
     groupAriaUngrouped: string
@@ -1289,8 +1721,11 @@ export interface Translations {
     noProject: string
     projectEmpty: string
     noSessions: string
+    /** Empty branch/checkout lane when the project/repo still has sessions elsewhere. */
+    noSessionsInCheckout: string
     projects: {
       sectionLabel: string
+      emptyOverview: string
       newButton: string
       createTitle: string
       createDesc: string
@@ -1345,6 +1780,11 @@ export interface Translations {
       reorder: (label: string) => string
       toggle: (label: string) => string
       back: string
+      homeCheckout: string
+      hoverBranch: string
+      hoverRepo: string
+      hoverPath: string
+      sessionsCount: (count: number) => string
     }
     newSessionIn: (label: string) => string
     showMoreIn: (count: number, label: string) => string
@@ -1359,6 +1799,7 @@ export interface Translations {
       branchFrom: string
       rename: string
       archive: string
+      unarchive: string
       newWindow: string
       copyIdFailed: string
       actionsFor: (title: string) => string
@@ -1396,8 +1837,47 @@ export interface Translations {
     modeYoloHint: string
     modeYoloConfirm: string
     projectNone: string
+    /** Chip label when no project is selected (Codex-style). */
+    projectChoose: string
     projectChipAria: string
+    /** Hover-clear control on an active project chip. */
+    projectClearTooltip: string
+    connectorsAdd: string
+    continueOn: string
+    projectRecents: string
+    projectUseExisting: string
+    projectOpenFolder: string
+    projectOpenFolderTitle: string
+    projectNewFolder: string
+    projectNewFolderTitle: string
+    projectOpenFolderFailed: string
     projectNew: string
+    projectCloudSection: string
+    projectCloudBadge: string
+    cloneRepo: string
+    cloudLoading: string
+    cloudEmpty: string
+    cloudListFailed: string
+    cloudCloneFailed: string
+    runWhereTooltip: string
+    runLocalOption: string
+    runLocalHint: string
+    runCloudOption: string
+    runCloudHint: string
+    runCloudSignIn: string
+    runCloudUnavailable: string
+    runLockedHint: string
+    repoModalTitle: string
+    repoConnected: string
+    repoUrlPlaceholder: string
+    repoAnyProvider: string
+    repoOrUrl: string
+    repoConfirm: string
+    repoBusy: string
+    repoClonePrompt: string
+    ghConnectCta: string
+    ghConnectDesc: string
+    ghConnectPrompt: string
     connectorsLabel: string
     connectorsHint: string
     connectorsSession: string
@@ -1529,6 +2009,14 @@ export interface Translations {
       switchTo: (branch: string) => string
       switchFailed: (branch: string) => string
       worktrees: string
+      /** Toast after copying the branch name from the composer chip. */
+      branchCopied: (branch: string) => string
+      /** Aria / tooltip for the branch chip (copy on click). */
+      copyBranch: string
+      /** Separate Changes chip that opens the review pane. */
+      changes: string
+      /** Composer-adjacent Commit & PR control. */
+      commitAndPr: string
     }
   }
 
@@ -1691,10 +2179,13 @@ export interface Translations {
     modelMenu: {
       search: string
       noModels: string
-      editModels: string
-      refreshModels: string
+      addModels: string
       fast: string
       medium: string
+      autoMode: string
+      autoModeHint: string
+      switchToSpecific: string
+      specificModel: string
     }
     modelOptions: {
       noOptions: string
@@ -1786,6 +2277,8 @@ export interface Translations {
       yoloOff: string
       modelNone: string
       noModel: string
+      /** Cursor-style model chip tooltip title (no provider slug). */
+      selectModel: string
       switchModel: string
       openModelPicker: string
       modelTitle: (provider: string, model: string) => string
@@ -1797,7 +2290,21 @@ export interface Translations {
     aria: string
     panelsAria: string
     files: string
+    agents: string
     terminal: string
+    browser: {
+      tab: string
+      idleTitle: string
+      emptyTitle: string
+      emptyBody: string
+      screenshotAlt: string
+      waitingShot: string
+      noShot: string
+      statusIdle: string
+      statusRunning: string
+      statusComplete: string
+      statusError: string
+    }
     noFolderSelected: string
     changeCwdTitle: string
     remotePickerTitle: string
@@ -1953,6 +2460,7 @@ export interface Translations {
       goForward: string
       sendEdited: string
       attachingFile: string
+      turnModel: (model: string) => string
     }
     approval: {
       gatewayDisconnected: string
@@ -2080,6 +2588,8 @@ export interface Translations {
     deleteFailed: string
     archived: string
     archiveFailed: string
+    restored: string
+    unarchiveFailed: string
     cwdChangeFailed: string
     cwdStagedTitle: string
     cwdStagedMessage: string

@@ -22,6 +22,7 @@ const SIDEBAR_AGENTS_GROUPED_STORAGE_KEY = 'hermes.desktop.agentsGroupedByWorksp
 // Flips users stuck on flat Sessões after ProjectChip landed; later toggles persist.
 const SIDEBAR_PROJECTS_DEFAULTED_KEY = 'hermes.desktop.sidebarProjectsDefaulted'
 const SIDEBAR_CRON_OPEN_STORAGE_KEY = 'hermes.desktop.sidebarCronOpen'
+const SIDEBAR_ARCHIVED_OPEN_STORAGE_KEY = 'hermes.desktop.sidebarArchivedOpen'
 const SIDEBAR_MESSAGING_OPEN_STORAGE_KEY = 'hermes.desktop.sidebarMessagingOpen'
 const SIDEBAR_SESSION_ORDER_STORAGE_KEY = 'hermes.desktop.sessionOrder'
 const SIDEBAR_SESSION_ORDER_MANUAL_STORAGE_KEY = 'hermes.desktop.sessionOrder.manual'
@@ -127,10 +128,14 @@ export const $sidebarPinsOpen = atom(true)
 // rows on `sidebarOpen || this`.
 export const $sidebarOverlayMounted = atom(false)
 export const $sidebarRecentsOpen = atom(true)
+// Projetos section collapse (dual with Sessões). Default open like Recents.
+export const $sidebarProjectsOpen = atom(true)
 // Cron-job sessions live in their own section below recents, collapsed by
 // default (it only renders at all when cron sessions exist) so the
 // scheduler's `[IMPORTANT: …]` first-message previews don't spam recents.
 export const $sidebarCronOpen = persistentAtom(SIDEBAR_CRON_OPEN_STORAGE_KEY, false, Codecs.bool)
+// Archived chats — collapsed by default (only renders when rows exist).
+export const $sidebarArchivedOpen = persistentAtom(SIDEBAR_ARCHIVED_OPEN_STORAGE_KEY, false, Codecs.bool)
 // Messaging platform sections collapse by default (they can be numerous and
 // tall). We persist the ids the user has *explicitly expanded*, so the default
 // stays collapsed unless they've opened a platform before.
@@ -256,8 +261,16 @@ export function setSidebarRecentsOpen(open: boolean) {
   $sidebarRecentsOpen.set(open)
 }
 
+export function setSidebarProjectsOpen(open: boolean) {
+  $sidebarProjectsOpen.set(open)
+}
+
 export function setSidebarCronOpen(open: boolean) {
   $sidebarCronOpen.set(open)
+}
+
+export function setSidebarArchivedOpen(open: boolean) {
+  $sidebarArchivedOpen.set(open)
 }
 
 export function toggleSidebarMessagingOpen(sourceId: string) {

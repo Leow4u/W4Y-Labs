@@ -132,7 +132,9 @@ export const en: Translations = {
       microphonePermission: 'Microphone permission was denied.',
       openaiRejectedApiKey: 'OpenAI rejected the API key.',
       openaiRejectedApiKeyWithStatus: status => `OpenAI rejected the API key (${status} invalid_api_key).`,
-      openaiTtsNeedsKey: 'OpenAI TTS needs VOICE_TOOLS_OPENAI_KEY or OPENAI_API_KEY.'
+      openaiTtsNeedsKey: 'OpenAI TTS needs VOICE_TOOLS_OPENAI_KEY or OPENAI_API_KEY.',
+      imageGenNeedsSetup: 'Image generation needs setup in Settings → Tools.',
+      modelCatalogRejected: 'The model request was rejected. Check Settings → Models or your plan.'
     },
     voice: {
       configureSpeechToText: 'Configure speech-to-text to use voice mode.',
@@ -232,7 +234,7 @@ export const en: Translations = {
       'session.togglePin': 'Pin / unpin current session',
       'workspace.newWorktree': 'New worktree',
       'composer.focus': 'Focus composer',
-      'composer.modelPicker': 'Open model picker',
+      'composer.modelPicker': 'Select model',
       'composer.voice': 'Start / stop voice conversation',
       'view.toggleSidebar': 'Toggle sessions sidebar',
       'view.toggleRightSidebar': 'Toggle file browser',
@@ -301,9 +303,12 @@ export const en: Translations = {
     exportFailed: 'Export failed',
     resetFailed: 'Reset failed',
     nav: {
+      general: 'General',
+      account: 'Account',
       providers: 'Providers',
       providerAccounts: 'Accounts',
       providerApiKeys: 'API keys',
+      modelsApiKeys: 'Model API keys',
       gateway: 'Gateway',
       apiKeys: 'Tools & Keys',
       keysTools: 'Tools',
@@ -313,13 +318,275 @@ export const en: Translations = {
       about: 'About',
       notifications: 'Notifications'
     },
+    general: {
+      title: 'General',
+      intro: 'Everyday preferences. Visual theme lives under Appearance; models stay in their own section.',
+      preferences: 'Preferences',
+      workspace: 'Workspace',
+      personality: 'How the assistant talks',
+      personalityDesc: 'Default tone for new sessions. You can still change style in chat when needed.',
+      personalities: {
+        helpful: 'Helpful',
+        concise: 'Concise',
+        technical: 'Technical',
+        creative: 'Creative',
+        teacher: 'Teacher',
+        kawaii: 'Kawaii',
+        catgirl: 'Catgirl',
+        pirate: 'Pirate',
+        shakespeare: 'Shakespeare',
+        surfer: 'Surfer',
+        noir: 'Noir',
+        uwu: 'UwU',
+        philosopher: 'Philosopher',
+        hype: 'Hype'
+      },
+      permissions: 'Permissions',
+      readAloud: 'Read responses aloud',
+      readAloudDesc: 'Speak assistant replies automatically. Voice providers are configured under Voice.',
+      showThinking: 'Show thinking',
+      showThinkingDesc:
+        "Show the model's chain-of-thought when it shares it. Does not affect the working status, timers, or tool progress.",
+      alerts: 'Alerts',
+      manageAlerts: 'Manage all alerts',
+      app: 'App',
+      openAbout: 'About Work4You',
+      shortcuts: 'Keyboard shortcuts',
+      shortcutVoice: 'Start voice conversation',
+      shortcutUnbound: 'Not set',
+      viewAllShortcuts: 'View all shortcuts'
+    },
+    voice: {
+      title: 'Voice',
+      speaking: 'Speaking',
+      listening: 'Listening',
+      recording: 'Recording',
+      previewVoice: 'Preview',
+      previewing: 'Playing…',
+      previewFailed: 'Could not preview that voice.',
+      shortcut: 'Voice shortcut',
+      shortcutDesc: 'Keyboard shortcut to start or stop a voice conversation in this app.',
+      shortcutUnbound: 'Not set',
+      manageShortcut: 'Change shortcut',
+      fields: {
+        'voice.auto_tts': {
+          label: 'Read responses aloud',
+          description: 'Speak assistant replies automatically after each turn.'
+        },
+        'tts.provider': {
+          label: 'Voice engine',
+          description: 'Service that turns text into speech.'
+        },
+        'tts.edge.voice': {
+          label: 'Voice',
+          description: 'Choose the voice used when reading responses aloud.'
+        },
+        'tts.openai.voice': { label: 'Voice' },
+        'tts.openai.model': { label: 'Model' },
+        'tts.elevenlabs.voice_id': { label: 'Voice' },
+        'tts.elevenlabs.model_id': { label: 'Model' },
+        'tts.xai.voice_id': { label: 'Voice' },
+        'tts.xai.language': { label: 'Language' },
+        'tts.minimax.voice_id': { label: 'Voice' },
+        'tts.minimax.model': { label: 'Model' },
+        'tts.mistral.voice_id': { label: 'Voice' },
+        'tts.mistral.model': { label: 'Model' },
+        'tts.gemini.voice': { label: 'Voice' },
+        'tts.gemini.model': { label: 'Model' },
+        'tts.neutts.model': { label: 'Model' },
+        'tts.neutts.device': { label: 'Device' },
+        'tts.kittentts.voice': { label: 'Voice' },
+        'tts.kittentts.model': { label: 'Model' },
+        'tts.piper.voice': { label: 'Voice' },
+        'stt.enabled': {
+          label: 'Speech to text',
+          description: 'Turn microphone input into text in the chat.'
+        },
+        'stt.provider': {
+          label: 'Transcription engine',
+          description: 'Where speech is converted to text.'
+        },
+        'stt.local.model': {
+          label: 'Local model',
+          description: 'Larger models are more accurate and slower.'
+        },
+        'stt.local.language': {
+          label: 'Language',
+          description: 'Optional language hint (e.g. pt, en). Leave blank to auto-detect.'
+        },
+        'stt.openai.model': { label: 'Model' },
+        'stt.groq.model': { label: 'Model' },
+        'stt.mistral.model': { label: 'Model' },
+        'stt.elevenlabs.model_id': { label: 'Model' },
+        'stt.elevenlabs.language_code': { label: 'Language' },
+        'stt.elevenlabs.tag_audio_events': { label: 'Tag audio events' },
+        'stt.elevenlabs.diarize': { label: 'Speaker separation' },
+        'voice.max_recording_seconds': {
+          label: 'Max recording length',
+          description: 'Stop recording automatically after this many seconds.'
+        }
+      }
+    },
+    browserNetwork: {
+      title: 'Browser & Network',
+      intro:
+        'Control whether Work4You and the browser can reach your local network, localhost, and private addresses — needed for many real workflows.',
+      network: 'Network access'
+    },
+    memoryPage: {
+      title: 'Memory & Context',
+      memory: 'Memory',
+      memoryIntro: 'What Work4You keeps across sessions — useful facts and a compact profile about you.',
+      manageRow: 'View and manage memory',
+      manageRowDesc: 'Review your profile and see how much memory is stored on this computer.',
+      manageTitle: 'Your memory',
+      manageDesc: 'Edit the profile Work4You uses about you. Storage provider and summarize live on this page.',
+      manageProvider: 'Storage',
+      manageMemorySize: 'Notes',
+      manageProfileSize: 'Profile',
+      manageProfileLabel: 'Profile about you',
+      manageProfilePlaceholder: 'Preferences, facts, and context you want Work4You to remember…',
+      manageLoadFailed: 'Could not load memory',
+      manageSaveFailed: 'Could not save profile',
+      manageSaved: 'Profile saved',
+      manageSavedDesc: 'Work4You will use this in future chats.',
+      builtinProvider: 'On this computer',
+      resetRow: 'Reset memories',
+      resetDesc: 'Delete stored notes and your profile from this computer.',
+      resetAction: 'Reset',
+      resetConfirm: 'Reset all',
+      resetConfirmDesc:
+        'This permanently deletes MEMORY.md and USER.md for this profile. You cannot undo this.',
+      resetDone: 'Memories reset',
+      resetDoneDesc: 'Stored notes and profile were cleared.',
+      importGroup: 'From other AI',
+      importRow: 'Bring memory from another AI',
+      importRowDesc: 'Paste a summary from ChatGPT, Claude, or another assistant into your profile.',
+      importAction: 'Start import',
+      importTitle: 'Import memory',
+      importDesc: 'Copy a prompt into another AI, then paste its reply here. Nothing leaves this computer.',
+      importStep1Title: '1. Ask the other AI',
+      importStep1Desc: 'Open ChatGPT, Claude, or another assistant and send this prompt:',
+      importPrompt:
+        'Please summarize what you know about me as a structured profile I can paste into another assistant. Include preferences, projects, working style, tools I use, and standing facts. Use clear short bullet points. Omit secrets, passwords, and API keys.',
+      importCopyFailed: 'Could not copy prompt',
+      importStep2Title: '2. Paste the reply',
+      importStep2Desc: 'We append it to your Work4You profile (USER.md).',
+      importPastePlaceholder: 'Paste the summary from the other AI…',
+      importEnableProfileHint: 'Your profile will be turned on when you save.',
+      importConfirm: 'Add to profile',
+      importTooLong: limit => `That summary is too long for your profile limit (${limit} characters). Shorten it and try again.`,
+      importSaveFailed: 'Could not import memory',
+      importSaved: 'Memory imported',
+      importSavedDesc: 'The summary was added to your profile.',
+      providers: {
+        builtin: 'On this computer',
+        hindsight: 'Hindsight',
+        honcho: 'Honcho'
+      },
+      fields: {
+        'memory.memory_enabled': {
+          label: 'Remember what matters across chats',
+          description: 'Save useful facts so you do not have to repeat yourself.'
+        },
+        'memory.user_profile_enabled': {
+          label: 'Remember preferences about me',
+          description: 'Keep a compact profile of how you like to work.'
+        },
+        'memory.memory_char_limit': {
+          label: 'Memory size limit',
+          description: 'Approximate character limit for stored notes.'
+        },
+        'memory.user_char_limit': {
+          label: 'Profile size limit',
+          description: 'Approximate character limit for your profile.'
+        },
+        'memory.provider': {
+          label: 'Memory storage',
+          description: 'Where durable memory is stored. On this computer works offline.'
+        },
+        'context.engine': {
+          label: 'Long-chat strategy',
+          description: 'How Work4You handles conversations near the context limit.'
+        },
+        'compression.enabled': {
+          label: 'Summarize long chats',
+          description: 'Compress older context when conversations get large.'
+        },
+        'compression.threshold': {
+          label: 'When to summarize',
+          description: 'How full the context window should be before summarizing.'
+        },
+        'compression.target_ratio': {
+          label: 'How much to free',
+          description: 'How much of the window to free when summarizing runs.'
+        },
+        'compression.protect_last_n': {
+          label: 'Keep recent messages',
+          description: 'Leave the last N messages untouched when summarizing.'
+        }
+      }
+    },
+    safety: {
+      title: 'Security',
+      approvals: 'Approvals',
+      commands: 'Commands',
+      privacy: 'Privacy & network',
+      recovery: 'Recovery',
+      approvalModes: {
+        manual: 'Ask every time',
+        smart: 'Smart',
+        off: 'Off'
+      },
+      fields: {
+        'approvals.mode': {
+          label: 'Approval mode',
+          description: 'When Work4You must ask before running sensitive commands.'
+        },
+        'approvals.timeout': {
+          label: 'Approval timeout',
+          description: 'Seconds to wait for your answer before the prompt times out.'
+        },
+        'approvals.mcp_reload_confirm': {
+          label: 'Confirm connector reloads',
+          description: 'Ask before reloading MCP connectors mid-session.'
+        },
+        'command_allowlist': {
+          label: 'Always-allowed commands',
+          description: 'Patterns that can run without asking again (advanced).'
+        },
+        'security.redact_secrets': {
+          label: 'Hide secrets',
+          description: 'Redact detected keys and tokens from model-visible content when possible.'
+        },
+        'security.allow_private_urls': {
+          label: 'Allow private network URLs',
+          description: 'Let tools call addresses on your local / private network.'
+        },
+        'browser.allow_private_urls': {
+          label: 'Browser: private network URLs',
+          description: 'Allow the browser tool to open private-network addresses.'
+        },
+        'browser.auto_local_for_private_urls': {
+          label: 'Use local browser for private URLs',
+          description: 'Open private-network pages in a local browser instead of a remote one.'
+        },
+        'checkpoints.enabled': {
+          label: 'File checkpoints',
+          description: 'Snapshot files before edits so you can roll changes back.'
+        }
+      }
+    },
     notifications: {
       title: 'Notifications',
       intro:
-        'Native desktop notifications, separate from in-app toasts. These are device-local — each computer keeps its own settings.',
+        'Native system alerts, separate from in-app toasts. Saved on this computer only.',
+      alerts: 'Alerts',
+      sound: 'Sound',
+      testGroup: 'Test',
       enableAll: 'Enable notifications',
-      enableAllDesc: 'Master switch. Turn this off to silence every notification below.',
-      focusedHint: 'Completion alerts only fire while Work4You is in the background.',
+      enableAllDesc: 'Master switch. Turn this off to silence every alert below.',
+      focusedHint: '“Response ready” only fires while Work4You is in the background.',
       kinds: {
         approval: {
           label: 'Approval needed',
@@ -342,24 +609,219 @@ export const en: Translations = {
           description: 'A backgrounded terminal command completed.'
         }
       },
-      test: 'Send test notification',
+      test: 'Send test',
+      testRow: 'Test notification',
+      testDesc: 'Sends a sample system notification so you can check permissions.',
       testTitle: 'Work4You',
       testBody: 'Notifications are working.',
-      testSent: 'Test sent. If nothing appears, check your OS notification permissions and Focus/Do Not Disturb.',
+      testSent: 'Test sent. If nothing appears, check OS notification permissions and Focus / Do Not Disturb.',
       testUnsupported: 'This system does not support native notifications.',
-      completionSoundTitle: 'Completion Sound',
-      completionSoundDesc: 'Plays when an agent turn finishes. Pick a preset and preview it here.',
-      completionSoundPreview: 'Preview'
+      completionSoundTitle: 'Completion sound',
+      completionSoundDesc:
+        'In-app cue when a turn finishes in the background — not the Windows/macOS notification ding. Preview or use Send test to hear it.',
+      completionSoundPreview: 'Preview',
+      completionSoundNames: {
+        '1': 'Two-note comfort',
+        '2': 'Glass ping',
+        '3': 'Soft marimba',
+        '4': 'Tri-tone message',
+        '5': 'Airy whoosh',
+        '6': 'Discovery cluster',
+        '7': 'Systems online',
+        '8': 'IBM terminal',
+        '9': 'Modem chirp',
+        '10': 'Wind chimes',
+        '11': 'Singing bowl',
+        '12': 'Harp lift',
+        '13': 'Sonar ping',
+        '14': 'Music box'
+      }
     },
     sections: {
       model: 'Model',
       chat: 'Chat',
       appearance: 'Appearance',
       workspace: 'Workspace',
-      safety: 'Safety',
+      'browser-network': 'Browser & Network',
+      safety: 'Security',
       memory: 'Memory & Context',
       voice: 'Voice',
       advanced: 'Advanced'
+    },
+    advancedPage: {
+      title: 'Advanced',
+      intro:
+        'Power settings for approvals, memory budgets, terminal backends, and agent limits. Everyday prefs live under General, Memory, Models, About, and Browser & Network.',
+      groups: {
+        tools: 'Tools & approvals',
+        memory: 'Memory budgets',
+        workspace: 'Workspace & terminal',
+        agent: 'Agent limits'
+      },
+      fields: {
+        'approvals.timeout': {
+          label: 'Approval timeout',
+          description: 'Seconds to wait for your reply before an approval prompt expires.'
+        },
+        'approvals.mcp_reload_confirm': {
+          label: 'Confirm connector reload',
+          description: 'Ask for confirmation before reloading MCP connectors mid-session.'
+        },
+        command_allowlist: {
+          label: 'Always-allowed commands',
+          description: 'Patterns that can run without asking again (advanced).'
+        },
+        'memory.memory_char_limit': {
+          label: 'Memory size limit',
+          description: 'Approximate character budget for stored memory notes.'
+        },
+        'memory.user_char_limit': {
+          label: 'Profile size limit',
+          description: 'Approximate character budget for the user profile.'
+        },
+        'memory.provider': {
+          label: 'Where to store memory',
+          description: 'Where durable memory is stored. On this computer works offline.'
+        },
+        'context.engine': {
+          label: 'Strategy for long chats',
+          description: 'How Work4You treats conversations near the context limit.'
+        },
+        'compression.enabled': {
+          label: 'Summarize long chats',
+          description: 'Compress older context when conversations get large.'
+        },
+        'compression.threshold': {
+          label: 'When to summarize',
+          description: 'How full the context window must be before summarization (0–1).'
+        },
+        'compression.target_ratio': {
+          label: 'How much to free',
+          description: 'Share of the window to free when summarization runs (0–1).'
+        },
+        'compression.protect_last_n': {
+          label: 'Keep recent messages',
+          description: 'Leave the last N messages intact when summarizing.'
+        },
+        model_context_length: {
+          label: 'Conversation size limit',
+          description:
+            'Maximum tokens the chat can keep in mind. 0 = use the official limit for the selected model.'
+        },
+        fallback_providers: {
+          label: 'Backup models if the main one fails',
+          description: 'Models to try next when the main model is down or errors out.'
+        },
+        'terminal.cwd': {
+          label: 'Working directory',
+          description: 'Default project folder for tool and terminal work.'
+        },
+        'code_execution.mode': {
+          label: 'Code execution mode',
+          description: 'How strictly code execution is scoped to the current project.'
+        },
+        'terminal.persistent_shell': {
+          label: 'Persistent shell',
+          description: 'Keep shell state between commands when the backend supports it.'
+        },
+        'terminal.env_passthrough': {
+          label: 'Environment passthrough',
+          description: 'Environment variables to pass into tool execution.'
+        },
+        file_read_max_chars: {
+          label: 'File read limit',
+          description: 'Maximum characters the agent can read from one file request.'
+        },
+        'terminal.backend': {
+          label: 'Execution backend',
+          description: 'Where shell commands run (this PC, Docker, cloud, …).'
+        },
+        'terminal.timeout': {
+          label: 'Command timeout',
+          description: 'Seconds before a single terminal command is killed.'
+        },
+        'terminal.docker_image': {
+          label: 'Docker image',
+          description: 'Container image when the execution backend is Docker.'
+        },
+        'terminal.singularity_image': {
+          label: 'Singularity image',
+          description: 'Image when the execution backend is Singularity.'
+        },
+        'terminal.modal_image': {
+          label: 'Modal image',
+          description: 'Image when the execution backend is Modal.'
+        },
+        'terminal.daytona_image': {
+          label: 'Daytona image',
+          description: 'Image when the execution backend is Daytona.'
+        },
+        'tool_output.max_bytes': {
+          label: 'Tool output size limit',
+          description: 'Max bytes of a single tool/terminal result kept in context.'
+        },
+        'tool_output.max_lines': {
+          label: 'Tool output line limit',
+          description: 'Max lines kept from a long tool result.'
+        },
+        'tool_output.max_line_length': {
+          label: 'Line length limit',
+          description: 'Max characters per line before truncation.'
+        },
+        'checkpoints.max_snapshots': {
+          label: 'Checkpoint limit',
+          description: 'How many file checkpoints to keep before older ones are dropped.'
+        },
+        'agent.max_turns': {
+          label: 'Max agent steps',
+          description: 'Upper bound for tool-calling turns before the run stops.'
+        },
+        'agent.image_input_mode': {
+          label: 'When you attach a photo',
+          description: 'How attached images are sent to the model. Recommended is the right default for almost everyone.'
+        },
+        'agent.api_max_retries': {
+          label: 'API retries',
+          description: 'How many times to retry a failed model API call.'
+        },
+        'agent.service_tier': {
+          label: 'Service tier',
+          description: 'Optional API service tier (OpenAI / Anthropic). Leave none for default.'
+        },
+        'agent.tool_use_enforcement': {
+          label: 'Tool-use enforcement',
+          description: 'How strictly the model must use tools when a turn expects them.'
+        },
+        'delegation.model': {
+          label: 'Subagent model',
+          description: 'Which active model delegated workers use. Inherit uses the parent chat model.'
+        },
+        'delegation.provider': {
+          label: 'Subagent provider',
+          description: 'API/credentials path for subagents. Set automatically when you pick a subagent model.'
+        },
+        'delegation.max_iterations': {
+          label: 'Subagent turn limit',
+          description: 'Max tool-calling turns for each subagent.'
+        },
+        'delegation.max_concurrent_children': {
+          label: 'Parallel subagents',
+          description: 'How many subagents may run at the same time.'
+        },
+        'delegation.child_timeout_seconds': {
+          label: 'Subagent timeout',
+          description: 'Kill a subagent after this many seconds (0 = no limit).'
+        },
+        'delegation.reasoning_effort': {
+          label: 'Subagent reasoning effort',
+          description: 'Reasoning effort for delegated subagents.'
+        },
+        'updates.non_interactive_local_changes': {
+          label: 'In-app update: local changes',
+          description:
+            'When the app updates itself (no terminal prompt), keep local edits (stash) or discard them. Terminal updates always ask.'
+        }
+      }
     },
     searchPlaceholder: {
       about: 'About Work4You',
@@ -400,10 +862,20 @@ export const en: Translations = {
       technicalDesc: 'Include raw tool args/results and low-level details.',
       themeTitle: 'Theme',
       themeDesc: 'Desktop palettes only. The selected mode is applied on top.',
-      themeProfileNote: profile => `Saved for the ${profile} profile — each profile keeps its own theme.`,
-      installTitle: 'Install from VS Code',
+      findMoreThemes: 'Find more themes',
+      findMoreThemesClose: 'Hide theme gallery',
+      gallerySearchPlaceholder: 'Search the theme gallery…',
+      marketplaceLoading: 'Searching the theme gallery…',
+      marketplaceError: 'Could not reach the theme gallery.',
+      marketplaceEmpty: 'No gallery themes match that search.',
+      fontTitle: 'Font',
+      fontDesc:
+        'Body text across the desktop. Theme default is Plus Jakarta Sans; code and the terminal keep JetBrains Mono.',
+      fontThemeDefault: 'Theme default (Plus Jakarta Sans)',
+      displayGroup: 'Display',
+      installTitle: 'Install from gallery',
       installDesc:
-        'Paste a Marketplace extension id (e.g. dracula-theme.theme-dracula) to convert its color theme into a desktop palette.',
+        'Paste a theme extension id (e.g. dracula-theme.theme-dracula) to convert its palette for the desktop.',
       installPlaceholder: 'publisher.extension',
       installButton: 'Install',
       installing: 'Installing…',
@@ -426,7 +898,10 @@ export const en: Translations = {
         chooseTitle: 'Choose a pet',
         chooseDesc: 'Picking one installs it (if needed) and makes it active.',
         searchPlaceholder: 'Search pets…',
-        unreachable: "Couldn't reach the petdex gallery. Check your connection and reopen this page.",
+        unreachable: "Couldn't load the pet gallery. Check your connection and try again.",
+        emptyGallery: 'No pets installed yet. Search above or generate one to get started.',
+        loadingGallery: 'Loading pets…',
+        retryGallery: 'Try again',
         noMatch: query => `No pets match "${query}".`,
         installedTag: 'installed',
         generatedTag: 'Generated',
@@ -462,7 +937,6 @@ export const en: Translations = {
       checking: 'Checking…',
       seeWhatsNew: "See what's new",
       updateNow: 'Update now',
-      releaseNotes: 'Release notes',
       onLatest: "You're on the latest version.",
       installing: 'An update is currently installing.',
       cantUpdate: "This build can't update itself from inside the app.",
@@ -474,12 +948,52 @@ export const en: Translations = {
       automaticUpdates: 'Automatic updates',
       automaticUpdatesDesc:
         'Work4You checks for updates automatically in the background and lets you know when one is ready.',
-      branchCommit: (branch, commit) => `Branch ${branch} · Commit ${commit}`,
+      localChanges: 'When updating: local changes',
+      localChangesDesc:
+        'If the app updates itself (no terminal prompt), keep local source edits (stash) or discard them. Terminal updates always ask.',
+      localChangesOptions: {
+        stash: 'Keep (stash)',
+        discard: 'Discard'
+      },
+      branchCommit: (branch, commit) => `Update channel ${branch} · build ${commit}`,
       never: 'never',
       justNow: 'just now',
       minAgo: count => `${count} min ago`,
       hoursAgo: count => `${count} hours ago`,
       daysAgo: count => `${count} days ago`
+    },
+    uninstall: {
+      dangerZone: 'Danger zone',
+      checking: "Checking what's installed…",
+      title: 'Uninstall Work4You',
+      intro: 'Choose how much to remove. The app closes to finish the job — you can reinstall any time.',
+      confirmTitle: 'Confirm uninstall',
+      confirmDesc: consequence => `This removes ${consequence}. It can't be undone.`,
+      appPath: path => `App: ${path}`,
+      confirmCta: 'Yes, uninstall',
+      running: 'Uninstalling…',
+      cancel: 'Cancel',
+      couldNotStart: 'Uninstall could not start.',
+      modes: {
+        gui: {
+          title: 'Remove the desktop app only',
+          description: 'Uninstall this app. The Work4You engine, your settings, and your chats stay on this computer.',
+          consequence: 'the desktop app and its own data'
+        },
+        lite: {
+          title: 'Remove the app and the engine, keep my data',
+          description:
+            'Uninstall the app and the Work4You engine, but keep settings, chats, and keys for a future reinstall.',
+          consequence: 'the desktop app and the Work4You engine (settings, chats, and keys are kept)'
+        },
+        full: {
+          title: 'Remove everything',
+          description:
+            'Uninstall the app, the engine, and all of your data — settings, chats, scheduled tasks, keys, and logs.',
+          consequence:
+            'EVERYTHING — the desktop app, the Work4You engine, and all of your settings, chats, keys, and logs'
+        }
+      }
     },
     config: {
       none: 'None',
@@ -492,7 +1006,12 @@ export const en: Translations = {
       failedLoad: 'Settings failed to load',
       autosaveFailed: 'Autosave failed',
       imported: 'Config imported',
-      invalidJson: 'Invalid config JSON'
+      invalidJson: 'Invalid config JSON',
+      imageModes: {
+        auto: 'Recommended — decide for this model',
+        native: 'Send the photo as an image',
+        text: 'Describe the photo as text first'
+      }
     },
     credentials: {
       pasteKey: 'Paste key',
@@ -584,7 +1103,27 @@ export const en: Translations = {
     keys: {
       loading: 'Loading API keys and credentials...',
       failedLoad: 'API keys failed to load',
-      empty: 'Nothing configured in this category yet.'
+      empty: 'Nothing matches in this category.',
+      search: 'Search keys…',
+      toolsTitle: 'Tools',
+      toolsIntro:
+        'API keys for search, browser, media, and memory tools. Work4You works without these — add a key only when you need that capability.',
+      settingsTitle: 'Settings',
+      settingsIntro:
+        'Environment knobs for the local agent, gateway relay, and leftover channel options. Most day-to-day prefs live in Geral / Aparência — these are power-user env vars.',
+      groups: {
+        search: 'Web search & extract',
+        browser: 'Browser',
+        media: 'Image, video & voice',
+        memory: 'Memory providers',
+        skills: 'Skills Hub',
+        observability: 'Observability',
+        advanced: 'Advanced',
+        other: 'Other tools',
+        gateway: 'Gateway & API server',
+        agent: 'Agent runtime',
+        channels: 'Channel extras'
+      }
     },
     mcp: {
       loading: 'Loading MCP servers...',
@@ -653,32 +1192,252 @@ export const en: Translations = {
       noOutput: 'No output yet.'
     },
     model: {
+      title: 'Models',
       loading: 'Loading model configuration...',
-      appliesDesc: 'Applies to new sessions. Use the model picker in the composer to hot-swap the active chat.',
+      pageIntro: 'Pick the chat model in the composer. This page configures the executive council.',
+      composerIntro: 'Choose which models appear in the chat picker. Turn a model on to use it in new messages.',
+      subagentsGroup: 'Subagents',
+      subagentsIntro:
+        'Model and reasoning for delegated workers (`delegate_task`). Inherit keeps the parent chat model and its API.',
+      overridesGroup: 'Context & reliability',
+      overridesIntro: 'How much conversation the model can hold, and what to try if it fails.',
+      contextLimitLabel: 'Conversation size limit',
+      contextLimitDesc:
+        'Maximum tokens this chat can keep in mind. Automatic uses the official limit for the selected model — leave that unless you know you need less.',
+      contextLimitAuto: 'Automatic (model official limit)',
+      contextLimitCustom: 'Custom limit',
+      contextLimitTokensPlaceholder: 'e.g. 128000',
+      fallbackLabel: 'Backup models if the main one fails',
+      fallbackDesc: 'Tried in order when the chat model is down, rate-limited, or errors out.',
+      fallbackEmpty: 'None — stay on the main model only',
+      fallbackAdd: 'Add backup model…',
+      fallbackRemove: 'Remove backup model',
+      imageModeLabel: 'When you attach a photo',
+      imageModeDesc: 'How Work4You hands images to the model.',
+      imageModes: {
+        auto: 'Recommended — decide for this model',
+        native: 'Send the photo as an image',
+        text: 'Describe the photo as text first'
+      },
+      inheritFromParent: 'Inherit from parent',
+      featuredContextWindow: size => `${size} context window`,
+      featuredVersionLine: version => `Version: ${version}`,
+      featuredVersions: {
+        highEffort: 'high effort',
+        fast: 'fast'
+      },
+      featuredCards: {
+        'x-ai/grok-4.5': {
+          description: "SpaceXAI's smartest model with frontier performance on coding, knowledge work, and STEM."
+        },
+        'anthropic/claude-opus-5': {
+          title: 'Claude Opus 5',
+          description: "Anthropic's large model class, great for difficult tasks."
+        },
+        'openai/gpt-5.6-sol': {
+          description: 'Flagship GPT-5.6 for complex reasoning, coding, and agentic work.'
+        },
+        'anthropic/claude-fable-5': {
+          title: 'Claude Fable 5',
+          description: 'Mythos-class model for autonomous knowledge work and long-running coding.'
+        },
+        'anthropic/claude-sonnet-5': {
+          title: 'Claude Sonnet 5',
+          description: "Anthropic's most capable Sonnet-class model for coding, agents, and professional work."
+        },
+        'openai/gpt-5.6-terra': {
+          description: 'Balanced GPT-5.6 between flagship Sol and cost-efficient Luna.'
+        },
+        'anthropic/claude-sonnet-4.6': {
+          title: 'Claude Sonnet 4.6',
+          description: 'Capable Sonnet-class model for coding, agents, and professional work.'
+        },
+        'anthropic/claude-opus-4.8': {
+          title: 'Claude Opus 4.8',
+          description: "Anthropic's most capable Opus-family model for demanding agentic work."
+        },
+        'openai/gpt-5.5': {
+          description: 'Frontier model for complex professional workloads with strong reasoning.'
+        },
+        'openai/gpt-5.3-codex': {
+          title: 'GPT-5.3 Codex',
+          description: "OpenAI's advanced agentic coding model for software engineering."
+        },
+        'anthropic/claude-opus-4.7': {
+          title: 'Claude Opus 4.7',
+          description: 'Next-generation Opus for long-running, asynchronous agents.'
+        },
+        'openai/gpt-5.4': {
+          description: 'Frontier model unifying Codex and GPT lines with a large context window.'
+        },
+        'anthropic/claude-opus-4.6': {
+          title: 'Claude Opus 4.6',
+          description: 'Strong Opus for coding and long-running professional tasks.'
+        },
+        'anthropic/claude-opus-4.5': {
+          title: 'Claude Opus 4.5',
+          description: 'Frontier reasoning model optimized for complex software engineering.'
+        },
+        'openai/gpt-5.2': {
+          description: 'Frontier-grade GPT-5 series model with strong agentic and long-context performance.'
+        },
+        'openai/gpt-5.6-luna': {
+          description: 'Fast, cost-efficient GPT-5.6 for high-volume, latency-sensitive work.'
+        },
+        'google/gemini-3.6-flash': {
+          description: 'High-efficiency Google model for coding, agents, and app development.'
+        },
+        'google/gemini-3.1-pro-preview': {
+          title: 'Gemini 3.1 Pro',
+          description: "Google's frontier reasoning model with strong software engineering performance."
+        },
+        'openai/gpt-5.4-mini': {
+          description: 'Faster, efficient GPT-5.4 for high-throughput workloads.'
+        },
+        'openai/gpt-5.4-nano': {
+          description: 'Lightest GPT-5.4 variant, optimized for speed-critical tasks.'
+        },
+        'anthropic/claude-haiku-4.5': {
+          title: 'Claude Haiku 4.5',
+          description: "Anthropic's fastest efficient model with near-frontier intelligence."
+        },
+        'anthropic/claude-sonnet-4.5': {
+          title: 'Claude Sonnet 4.5',
+          description: 'Advanced Sonnet optimized for real-world agents and coding workflows.'
+        },
+        'openai/gpt-5.1': {
+          description: 'Frontier-grade GPT-5 series model with strong general-purpose reasoning.'
+        },
+        'google/gemini-3-flash-preview': {
+          title: 'Gemini 3 Flash',
+          description: 'High-speed thinking model for agentic workflows and multi-turn chat.'
+        },
+        'google/gemini-3.5-flash': {
+          description: "Google's high-efficiency multimodal model with near-Pro coding and reasoning."
+        },
+        'anthropic/claude-sonnet-4': {
+          title: 'Claude Sonnet 4',
+          description: 'Strong Sonnet for coding and reasoning workloads.'
+        },
+        'openai/gpt-5-mini': {
+          description: 'Compact GPT-5 for lighter-weight reasoning tasks.'
+        },
+        'google/gemini-2.5-flash': {
+          description: "Google's workhorse model for advanced reasoning, coding, and multimodal tasks."
+        },
+        'moonshotai/kimi-k2.7-code': {
+          description: 'Coding-focused Kimi K2 model for end-to-end programming tasks.'
+        },
+        'z-ai/glm-5.2': {
+          description: 'Large-scale reasoning model from Z.ai with a 1M-token context window.'
+        }
+      },
+      pickerGroup: 'Models',
+      moreModels: 'More…',
+      showLessModels: 'Show less',
+      addMoreModels: '+ Add more LLM',
+      addMoreTitle: 'Add models',
+      addMoreIntro: 'Browse the full model catalog and choose which ones appear in the chat picker.',
+      addMoreSearch: 'Search models…',
+      backToModels: 'Back to Models',
+      viewAllModels: 'More…',
+      viewAllTitle: 'More models',
+      noCatalogModels: 'No catalog models are available yet.',
+      apiKeysDisclosure: 'API Keys',
+      apiKeysIntro: 'Use your own provider keys (BYOK). Usage bills to your provider account — not your Work4You plan.',
+      apiKeysEmpty: 'No bring-your-own API keys to configure.',
+      moaDisclosure: 'Executive council · Mixture of Agents',
+      moaUnavailable: 'The executive council is not available right now.',
+      defaultGroup: 'Default model',
+      appliesDesc:
+        'The composer saves the profile default. You can switch models anytime in the current chat.',
       provider: 'Provider',
       model: 'Model',
       applying: 'Applying...',
+      activate: 'Activate',
+      activating: 'Activating…',
+      pasteApiKey: env => `Paste ${env}`,
+      setupProvider: name => `Set up ${name}`,
+      setupNeedsKey: name => `${name} needs an API key — set it up to choose a model.`,
+      setupNeedsBrowser: name => `${name} signs in through your browser — Work4You runs the flow for you.`,
       defaultsLabel: 'Defaults',
       reasoning: 'Reasoning',
       reasoningOff: 'Off',
       defaultsFailed: 'Failed to save model defaults',
-      auxiliaryTitle: 'Auxiliary models',
+      auxiliaryTitle: 'Helper models',
       resetAllToMain: 'Reset all to main',
-      auxiliaryDesc: 'Helper tasks run on the main model by default. Assign a dedicated model to any task to override.',
-      setToMain: 'Set to main',
+      auxiliaryDesc: 'Background tasks use the default model unless you assign another.',
+      setToMain: 'Use default',
       change: 'Change',
-      autoUseMain: 'auto · use main model',
+      autoUseMain: 'auto · use default model',
       providerDefault: '(provider default)',
+      staleAuxWarning: (count, names, provider) =>
+        `${count} helper task${count === 1 ? '' : 's'} (${names}) still run on ${provider}, not your default model.`,
+      otherProviders: 'other providers',
+      moaTitle: 'Executive council · Mixture of Agents',
+      moaDesc: 'Pick models from the catalog. Save to apply on this profile.',
+      moaIntro:
+        'Several models advise in parallel. The chair decides and acts with the agent’s tools.',
+      moaPreset: 'Preset',
+      moaSetDefault: 'Set default',
+      moaNewPreset: 'new preset',
+      moaAddPreset: 'Add preset',
+      moaDefault: 'Default',
+      moaAdvisorsSection: 'Advisors',
+      moaChairSection: 'Chair',
+      moaReference: n => `Advisor ${n}`,
+      moaAdvisorHint: 'Independent advice — does not execute.',
+      moaAddReference: 'Add advisor',
+      moaAggregator: 'Chair',
+      moaChairHint: 'Decides and acts with the agent’s tools.',
+      moaCatalogProvider: 'Catalog',
       tasks: {
         vision: { label: 'Vision', hint: 'Image analysis' },
         web_extract: { label: 'Web extract', hint: 'Page summarization' },
         compression: { label: 'Compression', hint: 'Context compaction' },
         skills_hub: { label: 'Skills hub', hint: 'Skill search' },
         approval: { label: 'Approval', hint: 'Smart auto-approve' },
-        mcp: { label: 'MCP', hint: 'MCP tool routing' },
+        mcp: { label: 'MCP', hint: 'Connector tool routing' },
         title_generation: { label: 'Title gen', hint: 'Session titles' },
         curator: { label: 'Curator', hint: 'Skill-usage review' }
       }
+    },
+    account: {
+      title: 'Account',
+      profileGroup: 'Profile',
+      displayName: 'Name',
+      email: 'Email',
+      signedOutName: 'Not signed in',
+      signedOutEmail: 'Sign in to sync your Work4You account across devices.',
+      planUsageGroup: 'Plan & Usage',
+      currentPlan: 'Current plan',
+      currentPlanDesc: 'Included usage resets each billing cycle. On-demand starts after the included pool is used.',
+      planHobby: 'Hobby',
+      planStatusPastDue: 'Past due',
+      planStatusCanceled: 'Canceled',
+      upgrade: 'Upgrade',
+      includedUsage: 'Included usage',
+      includedUsageDesc: 'Share of your plan’s included pool used this cycle.',
+      includedUsagePct: pct => `${pct}% used`,
+      includedUsageUnavailable: 'Meter unavailable',
+      includedDepleted: 'Included pool exhausted',
+      onDemand: 'On-Demand Usage',
+      onDemandDesc: 'Keep working after the included pool runs out, up to your spend limit. Overage is reported at cycle end and billed on your next invoice.',
+      onDemandNeedsSubscription: 'Requires an active paid plan with a card on file.',
+      onDemandInactive: 'Off',
+      onDemandUsage: 'On-demand this cycle',
+      onDemandUsageDesc: 'Estimated spend beyond included usage. Not charged live — billed with the next Stripe invoice.',
+      onDemandUsageValue: (used, limit) => `$${used.toFixed(2)} / $${limit.toFixed(2)}`,
+      spendLimit: 'Spend limit',
+      spendLimitDesc: max => `Hard cap per cycle (max $${max.toFixed(0)}). Raises your usage ceiling; does not change the plan fee.`,
+      spendLimitSave: 'Save',
+      spendLimitSaving: 'Saving…',
+      spendLimitSaveFailed: 'Could not save spend limit',
+      manageSubscription: 'Manage subscription',
+      manageSubscriptionDesc: 'Change plan, payment method, or cancel in Stripe.',
+      manageSubscriptionNoCustomer: 'No Stripe subscription yet — open Plans to subscribe.',
+      planLogicHint:
+        'Included pool first, then on-demand up to your spend limit. Overage is billed on the next invoice. Command Center → Usage is agent telemetry, not billing.'
     },
     providers: {
       connectAccount: 'Connect an account',
@@ -908,19 +1667,27 @@ export const en: Translations = {
     resetToMine: 'Back to my map'
   },
   intro: {
-    emptyTitle: 'What are we working on?'
+    emptyTitle: 'What are we working on?',
+    emptyBodies: [
+      'Search the repo, edit files, run tests, open PRs. Tell me the goal and I’ll handle the mechanical parts.',
+      'Send a bug, branch, plan, or rough idea. I’ll inspect the repo and turn it into the next concrete step.',
+      'Bring the code, question, or stuck part. I’ll read the room before making changes.',
+      'Send the task, failing path, or half-formed plan. I’ll help turn it into action.',
+      'Bring the problem, goal, or file. I’ll inspect first and keep the next step concrete.'
+    ]
   },
   agentStudio: {
-    title: 'Agent Studio',
-    subtitle: 'Agents you own — each with its own home, channels, and memory.',
+    title: 'Agents',
+    subtitle: 'Isolated agent profiles — not your daily Work chat.',
     identityHint:
-      'Your day-to-day Work agent stays separate. Studio agents do not silently reuse your Gmail, WhatsApp, or LinkedIn — share credentials only when you choose “Use mine”.',
-    newAgent: 'New agent',
+      'Daily work starts with New session. This list is for extra agents (each its own profile island). They do not silently reuse your Gmail, WhatsApp, or LinkedIn — share credentials only when you choose “Use mine”.',
+    newAgent: 'New profile',
     searchPlaceholder: 'Search agents…',
     count: n => `${n} ${n === 1 ? 'agent' : 'agents'}`,
     loading: 'Loading agents…',
-    emptyTitle: 'No agents yet',
-    empty: 'Create an agent for a client, role, or workflow. It gets its own profile island.',
+    emptyTitle: 'No isolated agents yet',
+    empty:
+      'Create a profile island for a client, role, or workflow. For day-to-day work, use New session instead.',
     emptySearch: 'No agents match that search.',
     loadFailed: 'Could not load agents',
     colName: 'Agent',
@@ -1024,9 +1791,9 @@ export const en: Translations = {
     installTheme: {
       title: 'Install theme…',
       pageTitle: 'Install theme',
-      placeholder: 'Search the VS Code Marketplace...',
-      loading: 'Searching the Marketplace...',
-      error: 'Could not reach the Marketplace.',
+      placeholder: 'Search the theme gallery…',
+      loading: 'Searching the theme gallery…',
+      error: 'Could not reach the theme gallery.',
       empty: 'No matching themes.',
       install: 'Install',
       installing: 'Installing...',
@@ -1036,7 +1803,12 @@ export const en: Translations = {
     settingsFields: 'Settings fields',
     mcpServers: 'MCP servers',
     archivedChats: 'Archived chats',
-    sections: { maintenance: 'Maintenance', sessions: 'Sessions', system: 'System', usage: 'Usage' },
+    sections: {
+      maintenance: 'Maintenance',
+      sessions: 'Sessions',
+      system: 'System',
+      usage: 'Usage'
+    },
     sectionDescriptions: {
       maintenance: 'Diagnostics, backups, curator, and memory data',
       sessions: 'Search and manage sessions',
@@ -1305,34 +2077,36 @@ export const en: Translations = {
     defaultBadge: 'Default',
     rename: 'Rename',
     renameMenu: 'Rename…',
-    editSoul: 'Edit SOUL.md…',
+    editSoul: 'Edit Instructions…',
     copySetup: 'Copy setup',
     copying: 'Copying...',
     modelLabel: 'Model',
     skillsLabel: 'Skills',
     notSet: 'Not set',
+    soulLabel: 'Instructions',
     soulDesc: 'The system prompt and persona instructions baked into this profile.',
     soulOptional: 'optional',
     soulPlaceholder: mode => `The system prompt / persona for this profile.\nLeave blank to keep the ${mode} default.`,
     soulPlaceholderCloned: 'cloned',
     soulPlaceholderEmpty: 'empty',
     unsavedChanges: 'Unsaved changes',
-    loadingSoul: 'Loading SOUL.md...',
-    emptySoul: 'Empty SOUL.md — start writing the persona...',
+    loadingSoul: 'Loading instructions...',
+    emptySoul: 'Empty — start writing your persona instructions...',
     saving: 'Saving...',
-    saveSoul: 'Save SOUL.md',
+    saveSoul: 'Save Instructions',
     deleteTitle: 'Delete profile?',
     deleteDescPrefix: 'This will delete ',
     deleteDescMid: ' and remove its ',
     deleteDescSuffix: ' directory. This cannot be undone.',
     deleting: 'Deleting...',
-    createDesc: 'Profiles are independent Work4You environments: separate config, skills, and SOUL.md.',
+    createDesc:
+      'Creates an isolated agent profile (own config, skills, and instructions) — not a new Work chat. For day-to-day work, use New session.',
     nameLabel: 'Name',
     cloneFrom: 'Clone from',
     cloneFromNone: 'None (blank)',
-    cloneFromDesc: 'Copies config, skills, and SOUL.md from the selected source profile.',
+    cloneFromDesc: 'Copies config, skills, and instructions from the selected source profile.',
     cloneFromDefault: 'Clone from default',
-    cloneFromDefaultDesc: 'Copy config, skills, and SOUL.md from your default profile.',
+    cloneFromDefaultDesc: 'Copy config, skills, and instructions from your default profile.',
     invalidName: hint => `Invalid name. ${hint}`,
     nameRequired: 'Name is required.',
     creating: 'Creating...',
@@ -1346,12 +2120,12 @@ export const en: Translations = {
     renamed: 'Profile renamed',
     deleted: 'Profile deleted',
     setupCopied: 'Setup command copied',
-    soulSaved: 'SOUL.md saved',
+    soulSaved: 'Instructions saved',
     failedLoad: 'Failed to load profiles',
     failedDelete: 'Failed to delete profile',
     failedCopy: 'Failed to copy setup command',
-    failedLoadSoul: 'Failed to load SOUL.md',
-    failedSaveSoul: 'Failed to save SOUL.md',
+    failedLoadSoul: 'Failed to load instructions',
+    failedSaveSoul: 'Failed to save instructions',
     failedCreate: 'Failed to create profile',
     failedRename: 'Failed to rename profile',
     workLockedTitle: 'Work agent',
@@ -1360,11 +2134,39 @@ export const en: Translations = {
   },
 
   cron: {
-    close: 'Close schedule',
-    title: 'Schedule',
-    count: count => `${count} ${count === 1 ? 'job' : 'jobs'}`,
-    search: 'Search scheduled jobs...',
-    loading: 'Loading scheduled jobs...',
+    close: 'Close automations',
+    title: 'Automations',
+    subtitle:
+      'Automate repetitive tasks with always-on cloud agents that respond to environment triggers.',
+    count: count => `${count} ${count === 1 ? 'automation' : 'automations'}`,
+    search: 'Search automations...',
+    loading: 'Loading automations...',
+    statTotal: 'Total Automations',
+    statSuccessful24h: 'Successful · 24h',
+    statFailed24h: 'Failed · 24h',
+    statSuccessful7d: 'Successful · 7d',
+    statFailed7d: 'Failed · 7d',
+    statRunHistory: 'Run History →',
+    colName: 'Automations',
+    colAuthor: 'Author',
+    colCreated: 'Created',
+    colStatus: 'Status',
+    colTools: 'Tools',
+    colAutomation: 'Automation',
+    colTriggered: 'Triggered',
+    colDuration: 'Duration',
+    authorYou: 'You',
+    statusActive: 'Active',
+    statusInactive: 'Inactive',
+    backToList: 'Back to automations',
+    createdUnknown: '—',
+    runsTitle: 'Runs',
+    emptyRunsTitle: 'No Runs Yet',
+    searchRuns: 'Search runs...',
+    runStatusSuccess: 'Successful',
+    runStatusFailed: 'Failed',
+    runStatusRunning: 'Running',
+    runStatusCompleted: 'Completed',
     states: {
       enabled: 'enabled',
       scheduled: 'scheduled',
@@ -1414,13 +2216,17 @@ export const en: Translations = {
     weekdaysAt: time => `Weekdays at ${time}`,
     everyDayOfWeekAt: (day, time) => `Every ${day} at ${time}`,
     monthlyOnDayAt: (dayOfMonth, time) => `Monthly on day ${dayOfMonth} at ${time}`,
+    everyDayAtPrefix: 'Every day at',
+    weekdaysAtPrefix: 'Weekdays at',
+    everyDayOfWeekAtPrefix: day => `Every ${day} at`,
+    monthlyOnDayAtPrefix: dayOfMonth => `Monthly on day ${dayOfMonth} at`,
     topOfHour: 'At the top of every hour',
     everyHourAt: minute => `Every hour at :${minute}`,
-    newCron: 'New cron',
+    newCron: 'New automation',
     emptyDescNew:
-      'Schedule a prompt to run on a cron expression. Work4You will run it and deliver results to the destination you pick.',
+      'Create an automation with a schedule and instructions. Work4You runs it and delivers results to the destination you pick.',
     emptyDescSearch: 'Try a broader search query.',
-    emptyTitleNew: 'No scheduled jobs yet',
+    emptyTitleNew: 'No automations yet',
     emptyTitleSearch: 'No matches',
     last: 'Last:',
     next: 'Next:',
@@ -1430,45 +2236,87 @@ export const en: Translations = {
     hideRuns: 'Hide runs',
     runHistory: 'Run history',
     actionsFor: title => `Actions for ${title}`,
-    actionsTitle: 'Cron job actions',
-    resume: 'Resume cron',
-    pause: 'Pause cron',
+    actionsTitle: 'Automation actions',
+    resume: 'Resume automation',
+    pause: 'Pause automation',
     resumeTitle: 'Resume',
     pauseTitle: 'Pause',
-    triggerNow: 'Trigger now',
-    edit: 'Edit cron',
-    deleteTitle: 'Delete cron job?',
+    triggerNow: 'Run now',
+    edit: 'Edit automation',
+    deleteTitle: 'Delete automation?',
     deleteDescPrefix: 'This will remove ',
     deleteDescSuffix: ' permanently. It will stop firing immediately.',
     deleting: 'Deleting...',
-    resumed: 'Cron resumed',
-    paused: 'Cron paused',
-    triggered: 'Cron triggered',
-    deleted: 'Cron deleted',
-    created: 'Cron created',
-    updated: 'Cron updated',
-    failedLoad: 'Failed to load cron jobs',
-    failedUpdate: 'Failed to update cron job',
-    failedTrigger: 'Failed to trigger cron job',
-    failedDelete: 'Failed to delete cron job',
-    failedSave: 'Failed to save cron job',
-    editTitle: 'Edit cron job',
-    createTitle: 'New cron job',
-    editDesc: 'Update the schedule, prompt, or delivery target. Changes apply on next run.',
-    createDesc: 'Schedule a prompt to run automatically. Use cron syntax or a natural phrase like "every 15 minutes".',
+    resumed: 'Automation resumed',
+    paused: 'Automation paused',
+    triggered: 'Automation triggered',
+    deleted: 'Automation deleted',
+    created: 'Automation created',
+    updated: 'Automation updated',
+    failedLoad: 'Failed to load automations',
+    failedUpdate: 'Failed to update automation',
+    failedTrigger: 'Failed to trigger automation',
+    failedDelete: 'Failed to delete automation',
+    failedSave: 'Failed to save automation',
+    editTitle: 'Edit automation',
+    createTitle: 'New automation',
+    editDesc: 'Update the trigger, instructions, or delivery. Changes apply on the next run.',
+    createDesc: 'Schedule instructions to run automatically. Use a preset or a phrase like "every 15 minutes".',
     nameLabel: 'Name',
     namePlaceholder: 'Morning briefing',
-    promptLabel: 'Prompt',
-    promptPlaceholder: 'Summarize my unread Slack threads and email me the top 5...',
-    frequencyLabel: 'Frequency',
+    promptLabel: 'Instructions',
+    promptPlaceholder: 'Write @ for tools…',
+    frequencyLabel: 'Schedule',
     deliverLabel: 'Deliver to',
     customScheduleLabel: 'Custom schedule',
     customPlaceholder: '0 9 * * * or weekdays at 9am',
     customHint: 'Cron expression, or phrases like "every hour" or "weekdays at 9am".',
     optional: 'Optional',
-    promptScheduleRequired: 'Prompt and schedule are required.',
+    promptScheduleRequired: 'Instructions and schedule are required.',
     saveChanges: 'Save changes',
-    createAction: 'Create schedule'
+    createAction: 'Create automation',
+    triggersSection: 'Triggers',
+    triggersHint: 'When this automation should run — schedule, app events (Composio), or webhook.',
+    instructionsSection: 'Agent instructions',
+    instructionsHint: 'What the agent should do each time this automation fires.',
+    toolsSection: 'Tools',
+    toolsHint: 'The agent uses your connected apps and tools. Manage connectors and channels below.',
+    openConnectors: 'Connectors',
+    openChannels: 'Channels',
+    tabSettings: 'Settings',
+    tabHistory: 'Run History',
+    addTrigger: 'Add trigger',
+    searchTriggers: 'Search triggers…',
+    scheduledTrigger: 'Scheduled',
+    composioTriggers: 'App events',
+    webhookTrigger: 'Webhook',
+    webhookHint:
+      'Enable the webhook channel to get a URL, or add an app-event trigger to register the Composio webhook.',
+    noScheduleYet: 'No schedule yet — add a Scheduled trigger.',
+    nextRunAt: when => `Next run: ${when}`,
+    triggerAdded: 'Trigger added',
+    triggerRemoved: 'Trigger removed',
+    failedAddTrigger: 'Could not add trigger',
+    failedRemoveTrigger: 'Could not remove trigger',
+    triggerNeedsConnection: 'Connect {app} in Connectors first, then add this trigger again.',
+    loadingTriggers: 'Loading app triggers…',
+    triggerSoonHint: 'Queued — it should fire on the next scheduler tick (~1 min).',
+    modelLabel: 'Model',
+    modelDefault: 'Profile default',
+    addToolOrMcp: 'Add tool or MCP',
+    memoriesTool: 'Memories',
+    memoriesHint: "Uses this profile's memory notes (USER.md).",
+    memoriesManageHint: 'Edit profile notes. Cron runs do not load session memory.',
+    toolAdded: 'Added',
+    deliverHint: 'Where to send the result when the automation finishes.',
+    sendToChannel: channel => `Send to ${channel}`,
+    connectChannel: 'Connect',
+    noFolder: 'No folder',
+    chooseFolder: 'Choose folder…',
+    failedPickFolder: 'Could not choose folder',
+    historySaveFirst: 'Save the automation to see its run history.',
+    webhookSavedPartial: 'Webhook not fully registered',
+    webhookNeedsGateway: 'Enable the webhook channel (Channels) so the route can receive POSTs.'
   },
 
   connectors: {
@@ -1478,6 +2326,10 @@ export const en: Translations = {
     connected: 'Connected',
     reconnect: 'Reconnect',
     disconnect: 'Disconnect',
+    disconnectAll: 'Disconnect all',
+    disconnectAllConfirm:
+      'Revoke every Composio account for this agent? Chat will ask you to authorize again when connecting.',
+    disconnectAllDone: 'Disconnected {count} account(s)',
     connectedToast: '{name} connected',
     disconnectedToast: 'Disconnected',
     openedToast: 'Authorize in the window that opened',
@@ -1489,7 +2341,14 @@ export const en: Translations = {
     viewFullCatalog: 'View full catalog →',
     backToFeatured: 'Back to featured',
     workScopeHint:
-      'These connectors belong to your Work agent (day-to-day). Studio agents keep their own accounts unless you explicitly share.'
+      'These connectors belong to your Work agent (day-to-day). Studio agents keep their own accounts unless you explicitly share.',
+    authTitle: 'App connection',
+    authorize: 'Authorize',
+    waiting: 'Waiting for authorization…',
+    authSecure: 'Secure authorization',
+    connectAppPrompt:
+      'Connect my {app}. Call mcp_composio_COMPOSIO_MANAGE_CONNECTIONS immediately (do not use SEARCH_TOOLS first) and paste the Connect Link (https://connect.composio.dev/link/...) in your reply so I can authorize in chat.',
+    connectApps: 'Connect apps'
   },
 
   artifacts: {
@@ -1530,10 +2389,25 @@ export const en: Translations = {
   sidebar: {
     nav: {
       'new-session': 'New session',
-      'agent-studio': 'Agent Studio',
+      'agent-studio': 'Agents',
+      cron: 'Automations',
       skills: 'Capabilities',
       messaging: 'Channels',
       artifacts: 'Deliverables'
+    },
+    account: {
+      fallbackName: 'Account',
+      settings: 'Settings',
+      commandCenter: 'Command Center',
+      language: 'Language',
+      getHelp: 'Get help',
+      viewPlans: 'View all plans',
+      giveFeedback: 'Give feedback',
+      helpMenu: 'Help and shortcuts',
+      updateAvailable: 'Update available',
+      updateInstalling: 'Updating…',
+      updateInstallingProgress: percent => `Updating… ${percent}%`,
+      updateShort: 'Update'
     },
     searchAria: 'Search sessions',
     searchPlaceholder: 'Search sessions…',
@@ -1542,7 +2416,8 @@ export const en: Translations = {
     results: 'Results',
     pinned: 'Pinned',
     sessions: 'Sessions',
-    cronJobs: 'Schedule',
+    archived: 'Archived',
+    cronJobs: 'Automations',
     groupAriaGrouped: 'Show sessions as a single list',
     groupAriaUngrouped: 'Group sessions by workspace',
     showProjects: 'Show projects',
@@ -1555,8 +2430,10 @@ export const en: Translations = {
     noProject: 'No project',
     projectEmpty: 'No sessions yet',
     noSessions: 'No sessions yet',
+    noSessionsInCheckout: 'No sessions in this checkout',
     projects: {
       sectionLabel: 'Projects',
+      emptyOverview: 'No projects yet',
       newButton: 'New project',
       createTitle: 'New project',
       createDesc: 'Name a workspace and add one or more folders.',
@@ -1613,7 +2490,12 @@ export const en: Translations = {
       enter: label => `Open ${label}`,
       reorder: label => `Reorder ${label}`,
       toggle: label => `Toggle ${label} sessions`,
-      back: 'All projects'
+      back: 'All projects',
+      homeCheckout: 'Home checkout',
+      hoverBranch: 'Branch',
+      hoverRepo: 'Repository',
+      hoverPath: 'Local path',
+      sessionsCount: count => (count === 1 ? '1 session' : `${count} sessions`)
     },
     newSessionIn: label => `New session in ${label}`,
     showMoreIn: (count, label) => `Show ${count} more in ${label}`,
@@ -1628,6 +2510,7 @@ export const en: Translations = {
       branchFrom: 'Branch',
       rename: 'Rename',
       archive: 'Archive',
+      unarchive: 'Unarchive',
       newWindow: 'New window',
       copyIdFailed: 'Could not copy session ID',
       actionsFor: title => `Actions for ${title}`,
@@ -1682,12 +2565,51 @@ export const en: Translations = {
     modeYoloHint: 'Unrestricted file and network access for this session',
     modeYoloConfirm: 'Click again to confirm',
     projectNone: 'No project',
-    projectChipAria: 'Choose project',
+    projectChoose: 'Choose a folder',
+    projectChipAria: 'Choose a folder',
+    projectClearTooltip: 'Work without a project',
+    projectRecents: 'Recents',
+    projectUseExisting: 'Use existing…',
+    projectOpenFolder: 'Open folder…',
+    projectOpenFolderTitle: 'Open folder',
+    projectNewFolder: 'New folder…',
+    projectNewFolderTitle: 'New folder',
+    projectOpenFolderFailed: 'Could not open folder',
     projectNew: 'New project',
+    projectCloudSection: 'Cloud',
+    projectCloudBadge: 'Cloud',
+    cloneRepo: 'Clone repository…',
+    cloudLoading: 'Loading cloud projects…',
+    cloudEmpty: 'No cloud projects yet',
+    cloudListFailed: 'Could not reach cloud projects',
+    cloudCloneFailed: 'Could not prepare the cloud clone',
+    runWhereTooltip: 'Where this chat runs',
+    runLocalOption: 'Local',
+    runLocalHint: 'Files and terminal on this PC. Stops if you quit the app.',
+    runCloudOption: 'In the cloud · 24/7',
+    runCloudHint: 'Keeps running in the cloud with your PC off.',
+    runCloudSignIn: 'Sign in with your account to use the cloud',
+    runCloudUnavailable: 'Cloud is unavailable right now',
+    runLockedHint: 'This chat already started here',
+    repoModalTitle: 'Connect a repository',
+    repoConnected: 'GitHub CLI connected',
+    repoUrlPlaceholder: 'https://github.com/org/repo.git',
+    repoAnyProvider: 'GitHub, GitLab, Bitbucket, or any git URL.',
+    repoOrUrl: 'or paste a URL',
+    repoConfirm: 'Clone',
+    repoBusy: 'Working…',
+    repoClonePrompt:
+      "Clone the repository {url} into this folder (the session's current cwd) and list the files when done.",
+    ghConnectCta: 'Connect GitHub account',
+    ghConnectDesc: 'Authorize once — clone private repos and open Pull Requests right here.',
+    ghConnectPrompt:
+      'Run `gh auth login --hostname github.com --git-protocol https --web` and show me the verification code and the link so I can authorize in the browser.',
     connectorsLabel: 'Connectors',
     connectorsHint: 'Open integrations',
     connectorsSession: 'Work connectors in this chat',
     connectorsManage: 'Manage connectors…',
+    connectorsAdd: 'Add connectors',
+    continueOn: 'Continue on',
     startVoice: 'Start voice conversation',
     queueMessage: 'Queue message',
     steer: 'Steer the current run',
@@ -1722,7 +2644,7 @@ export const en: Translations = {
       '/resume': 'resume a prior session',
       '/details': 'control transcript detail level',
       '/copy': 'copy selection or last assistant message',
-      '/quit': 'exit hermes'
+      '/quit': 'exit Work4You'
     },
     hotkeyDescs: {
       'composer.mention': 'reference files, folders, urls, git',
@@ -1847,7 +2769,11 @@ export const en: Translations = {
       branchOffFrom: base => `New branch from ${base}`,
       switchTo: branch => `Switch to ${branch}`,
       switchFailed: branch => `Could not switch to ${branch}`,
-      worktrees: 'Worktrees'
+      worktrees: 'Worktrees',
+      branchCopied: branch => `Copied “${branch}”`,
+      copyBranch: 'Copy branch name',
+      changes: 'Changes',
+      commitAndPr: 'Commit & PR'
     }
   },
 
@@ -1893,10 +2819,10 @@ export const en: Translations = {
     copied: 'Copied',
     done: 'Done',
     applyingBody:
-      'The Work4You updater takes over in its own window and reopens Work4You automatically when it’s done. Please don’t reopen Work4You yourself while it’s updating.',
+      'Work4You is downloading and installing the update, then restarts automatically. Please don’t close the app while it’s updating.',
     applyingBodyBackend:
       'The remote backend is applying the update and will restart. Work4You reconnects automatically when it’s back.',
-    applyingClose: 'This window will close while the update runs, then Work4You reopens on its own.',
+    applyingClose: 'Work4You will restart automatically when the update is complete.',
     errorTitle: 'Update didn’t finish',
     errorBody: 'No worries — nothing was lost. You can try again now.',
     notNow: 'Not now',
@@ -2051,10 +2977,13 @@ export const en: Translations = {
     modelMenu: {
       search: 'Search models',
       noModels: 'No models found',
-      editModels: 'Edit Models…',
-      refreshModels: 'Refresh Models',
+      addModels: 'Add models',
       fast: 'Fast',
-      medium: 'Med'
+      medium: 'Med',
+      autoMode: 'Auto',
+      autoModeHint: 'Balanced quality and speed, recommended for most tasks',
+      switchToSpecific: 'Switch to specific model',
+      specificModel: 'Specific model'
     },
     modelOptions: {
       noOptions: 'No options for this model',
@@ -2115,8 +3044,8 @@ export const en: Translations = {
       subagents: count => `${count} subagent${count === 1 ? '' : 's'}`,
       failed: count => `${count} failed`,
       running: count => `${count} running`,
-      cron: 'Schedule',
-      openCron: 'Open schedule',
+      cron: 'Automations',
+      openCron: 'Open automations',
       starmap: 'What I learned',
       openStarmap: 'Open learning map',
       turnRunning: 'Running',
@@ -2148,10 +3077,12 @@ export const en: Translations = {
         'Approvals on — click to approve freely for this chat. Shift+click toggles it globally.',
       modelNone: 'none',
       noModel: 'no model',
-      switchModel: 'Switch model',
-      openModelPicker: 'Open model picker',
-      modelTitle: (provider, model) => `Model · ${provider}: ${model}`,
-      providerModelTitle: (provider, model) => `${provider} · ${model}`
+      selectModel: 'Select Model',
+      switchModel: 'Select Model',
+      openModelPicker: 'Select Model',
+      // Never include provider slugs (openrouter, etc.) — product chrome only.
+      modelTitle: (_provider, model) => model,
+      providerModelTitle: (_provider, model) => model
     }
   },
 
@@ -2159,7 +3090,22 @@ export const en: Translations = {
     aria: 'Right sidebar',
     panelsAria: 'Right sidebar panels',
     files: 'File system',
+    agents: 'Agents',
     terminal: 'Terminal',
+    browser: {
+      tab: 'Browser',
+      idleTitle: 'No active page',
+      emptyTitle: 'Browser is idle',
+      emptyBody:
+        'When the agent opens or inspects a page, the URL and latest screenshot appear here.',
+      screenshotAlt: 'Latest browser screenshot',
+      waitingShot: 'Browsing… screenshot will appear when the agent captures one.',
+      noShot: 'No screenshot yet for this page.',
+      statusIdle: 'Idle',
+      statusRunning: 'Browsing',
+      statusComplete: 'Ready',
+      statusError: 'Error'
+    },
     noFolderSelected: 'No folder selected',
     changeCwdTitle: 'Change working directory',
     remotePickerTitle: 'Choose remote folder',
@@ -2205,7 +3151,7 @@ export const en: Translations = {
     hide: 'Hide',
     openPreview: 'Open preview',
     openInBrowser: 'Open in browser',
-    linkHint: '⌘/Ctrl-click for preview pane',
+    linkHint: 'Click to open in Work4You · ⌘/Ctrl-click for system browser',
     sourceLineTitle: 'Click to select · shift-click to extend · drag to composer',
     source: 'SOURCE',
     renderedPreview: 'PREVIEW',
@@ -2321,7 +3267,8 @@ export const en: Translations = {
       restoreNext: 'Restore next checkpoint',
       goForward: 'Go forward',
       sendEdited: 'Send edited message',
-      attachingFile: 'Attaching…'
+      attachingFile: 'Attaching…',
+      turnModel: (model: string) => `via ${model}`
     },
     approval: {
       gatewayDisconnected: 'Work4You gateway is not connected',
@@ -2488,6 +3435,8 @@ export const en: Translations = {
     deleteFailed: 'Delete failed',
     archived: 'Archived',
     archiveFailed: 'Archive failed',
+    restored: 'Restored',
+    unarchiveFailed: 'Unarchive failed',
     cwdChangeFailed: 'Working directory change failed',
     cwdStagedTitle: 'Working directory staged',
     cwdStagedMessage: 'Restart the desktop backend to apply cwd changes to this active session.',
@@ -2516,7 +3465,7 @@ export const en: Translations = {
       success: platform => `Handed off to ${platform}. Resume here anytime.`,
       systemNote: platform => `↻ Handed off to ${platform} — resume here anytime.`,
       failed: error => `Handoff failed: ${error}`,
-      timedOut: 'Timed out waiting for the gateway. Is `hermes gateway` running?'
+      timedOut: 'Timed out waiting for the gateway. Is `wayne gateway` running?'
     }
   },
 

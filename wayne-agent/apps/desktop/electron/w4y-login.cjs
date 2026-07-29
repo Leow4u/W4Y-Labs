@@ -211,8 +211,28 @@ async function runLoginFlow({ parentWindow } = {}) {
           "";
         if (key) upsertEnvKey("OPENROUTER_API_KEY", String(key));
         const composio =
-          res.json.composioApiKey || res.json.composio_api_key || "";
+          res.json.composioApiKey ||
+          res.json.composio_api_key ||
+          res.json.composioKey ||
+          "";
         if (composio) upsertEnvKey("COMPOSIO_API_KEY", String(composio));
+        // Platform-managed tool secrets (Firecrawl / Langfuse) from engine-key.
+        const toolEnv =
+          res.json.toolEnv && typeof res.json.toolEnv === "object"
+            ? res.json.toolEnv
+            : null;
+        if (toolEnv) {
+          for (const [name, value] of Object.entries(toolEnv)) {
+            if (
+              typeof name === "string" &&
+              /^[A-Z][A-Z0-9_]*$/.test(name) &&
+              typeof value === "string" &&
+              value.trim()
+            ) {
+              upsertEnvKey(name, value.trim());
+            }
+          }
+        }
         // Best-effort: mint a device tool-router URL into mcp_servers.composio.
         // Failures must not block login — marketplace attach can recover later.
         try {

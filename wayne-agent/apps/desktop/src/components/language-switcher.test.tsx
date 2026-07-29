@@ -45,9 +45,11 @@ describe('LanguageSwitcher', () => {
     })
 
     fireEvent.click(screen.getByRole('button', { name: 'Switch language' }))
-    fireEvent.click(screen.getByRole('option', { name: /日本語/i }))
+    // Pick a locale that stays in the product picker (East-Asian locales are
+    // still supported when active, but hidden from the default list).
+    fireEvent.click(await screen.findByRole('option', { name: /Español/i }))
 
     await waitFor(() => expect(saveConfig).toHaveBeenCalledTimes(1))
-    expect(saveConfig).toHaveBeenCalledWith({ display: { language: 'ja', skin: 'slate' } })
+    expect(saveConfig).toHaveBeenCalledWith({ display: { language: 'es', skin: 'slate' } })
   })
 })

@@ -10,8 +10,8 @@ import { PAGE_INSET_X } from '../layout-constants'
 
 export function SettingsContent({ children }: { children: ReactNode }) {
   return (
-    <section className="min-h-0 overflow-hidden">
-      <div className={cn('h-full min-h-0 overflow-y-auto pb-20', PAGE_INSET_X)}>{children}</div>
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <div className={cn('min-h-0 flex-1 overflow-y-auto pb-20', PAGE_INSET_X)}>{children}</div>
     </section>
   )
 }
@@ -28,6 +28,44 @@ export function SectionHeading({ icon: Icon, title, meta }: { icon: IconComponen
       {meta && <Pill>{meta}</Pill>}
     </div>
   )
+}
+
+/** Cursor-style page title for settings entry screens. */
+export function SettingsPageTitle({ title }: { title: string }) {
+  return <h1 className="mb-5 text-xl font-semibold tracking-tight text-foreground">{title}</h1>
+}
+
+/**
+ * Cursor-style settings group: muted label above a rounded card of stacked rows.
+ * Put `ListRow` children with `inset` inside.
+ */
+export function SettingsGroup({
+  title,
+  children,
+  footer,
+  className
+}: {
+  title: string
+  children: ReactNode
+  footer?: ReactNode
+  className?: string
+}) {
+  return (
+    <section className={cn('mb-5', className)}>
+      <h2 className="mb-1.5 px-0.5 text-[0.75rem] font-medium text-(--ui-text-tertiary)">{title}</h2>
+      <div className="overflow-hidden rounded-xl bg-(--ui-bg-tertiary)/70">
+        <div className="divide-y divide-(--ui-stroke-tertiary)/80">{children}</div>
+        {footer ? (
+          <div className="border-t border-(--ui-stroke-tertiary)/80 px-3.5 py-2.5">{footer}</div>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+/** Padded block inside a `SettingsGroup` card (search, grids, notes). */
+export function SettingsGroupBody({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn('px-3.5 py-3', className)}>{children}</div>
 }
 
 export function NavLink({
@@ -66,7 +104,8 @@ export function ListRow({
   hint,
   action,
   below,
-  wide = false
+  wide = false,
+  inset = false
 }: {
   title: ReactNode
   description?: ReactNode
@@ -74,6 +113,8 @@ export function ListRow({
   action?: ReactNode
   below?: ReactNode
   wide?: boolean
+  /** Tighter padding for rows inside `SettingsGroup` cards. */
+  inset?: boolean
 }) {
   return (
     // Container-queried, not viewport-queried: the label/control split keys on
@@ -82,21 +123,32 @@ export function ListRow({
     <div className="@container">
       <div
         className={cn(
-          'grid gap-3 py-3',
-          !wide && '@2xl:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] @2xl:items-center'
+          'grid gap-3',
+          inset ? 'items-center px-3.5 py-2.5' : 'py-3',
+          !wide &&
+            (inset
+              ? '@2xl:grid-cols-[minmax(0,1fr)_auto] @2xl:gap-6'
+              : '@2xl:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] @2xl:items-center')
         )}
       >
         <div className="min-w-0">
           <div className="text-[length:var(--conversation-text-font-size)] font-medium text-foreground">{title}</div>
           {description && (
-            <div className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+            <div
+              className={cn(
+                'text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)',
+                inset ? 'mt-0.5' : 'mt-1'
+              )}
+            >
               {description}
             </div>
           )}
           {hint && <div className="mt-1 block font-mono text-[0.68rem] text-muted-foreground/45">{hint}</div>}
           {below}
         </div>
-        {action && <div className={cn('min-w-0', !wide && '@2xl:justify-self-end')}>{action}</div>}
+        {action && (
+          <div className={cn('min-w-0', inset && 'shrink-0', !wide && '@2xl:justify-self-end')}>{action}</div>
+        )}
       </div>
     </div>
   )

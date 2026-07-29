@@ -6795,7 +6795,35 @@ def _(rid, params: dict) -> dict:
         )
     except Exception as exc:  # noqa: BLE001
         logger.debug("pet.gallery failed: %s", exc)
-        return _ok(rid, {"enabled": False, "active": "", "pets": []})
+        # Fail-open: never wipe the picker's local pets/config on a transient
+        # error — an empty payload makes the desktop think nothing is installed.
+        try:
+            from agent.pet import store
+            from wayne_cli.config import load_config
+
+            cfg = load_config()
+            display = cfg.get("display", {}) if isinstance(cfg.get("display"), dict) else {}
+            pet_cfg = display.get("pet", {}) if isinstance(display.get("pet"), dict) else {}
+            local_pets = [
+                {
+                    "slug": pet.slug,
+                    "displayName": pet.display_name,
+                    "installed": True,
+                    "spritesheetUrl": "",
+                    "generated": pet.generated,
+                }
+                for pet in store.installed_pets()
+            ]
+            return _ok(
+                rid,
+                {
+                    "enabled": bool(pet_cfg.get("enabled")),
+                    "active": str(pet_cfg.get("slug", "") or ""),
+                    "pets": local_pets,
+                },
+            )
+        except Exception:  # noqa: BLE001
+            return _ok(rid, {"enabled": False, "active": "", "pets": []})
 
 
 @method("pet.select")
@@ -12806,15 +12834,15 @@ def _(rid, params: dict) -> dict:
         )
         # picker_hints + canonical_order produce the TUI's required shape:
         # `authenticated`/`auth_type`/`key_env`/`warning` per row, in
-        # CANONICAL_PROVIDERS declaration order. include_unconfigured=True
-        # so the picker can show the full provider universe (with the
-        # setup-hint warning attached) instead of only authed rows.
-        # Curated model lists are preserved — list_authenticated_providers
-        # populates `models` from the curated catalog, not provider_model_ids
-        # (which would pull non-agentic models like TTS/embeddings/etc.).
+        # CANONICAL_PROVIDERS declaration order.
+        # explicit_only=True (sent by composer pickers) → only show providers
+        # that actually have credentials; omit canonical skeleton rows so
+        # unconfigured providers (Anthropic, Copilot, …) never appear in the
+        # chat composer when the user hasn't connected those APIs (#model-poll).
+        explicit_only = bool(params.get("explicit_only"))
         payload = build_models_payload(
             ctx,
-            include_unconfigured=True,
+            include_unconfigured=not explicit_only,
             picker_hints=True,
             canonical_order=True,
             pricing=True,

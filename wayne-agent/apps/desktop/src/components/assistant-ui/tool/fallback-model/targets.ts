@@ -1,3 +1,5 @@
+import { isAbsoluteFsPath } from '@/lib/fs-path'
+
 import type { ToolPart } from './types'
 
 export function looksLikeUrl(value: string): boolean {
@@ -5,16 +7,42 @@ export function looksLikeUrl(value: string): boolean {
 }
 
 export function looksLikePath(value: string): boolean {
-  return /^file:\/\//i.test(value) || /^(?:\/|\.{1,2}\/|~\/).+/.test(value)
+  const raw = value.trim()
+
+  if (!raw) {
+    return false
+  }
+
+  if (/^file:\/\//i.test(raw) || isAbsoluteFsPath(raw)) {
+    return true
+  }
+
+  // Relative / bare project paths the agent commonly returns (landing.html,
+  // ./dist/index.html, src\page.htm). POSIX-only `./` checks miss Windows.
+  return /^(?:\.{1,2}[\\/]|~[\\/]).+/.test(raw) || /^[^\\/:*?"<>|\r\n]+(?:[\\/][^\\/:*?"<>|\r\n]+)+$/.test(raw)
 }
 
 export function isPreviewableTarget(target: string): boolean {
-  return Boolean(
-    target &&
-    (/^file:\/\//i.test(target) ||
-      /^(?:\/|\.{1,2}\/|~\/).+\.html?$/i.test(target) ||
-      /^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])/i.test(target))
-  )
+  const raw = target?.trim()
+
+  if (!raw) {
+    return false
+  }
+
+  if (/^file:\/\//i.test(raw)) {
+    return true
+  }
+
+  if (/^https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])/i.test(raw)) {
+    return true
+  }
+
+  // Any .html / .htm path — absolute (POSIX/Windows), relative, or bare name.
+  // Without this, Windows `C:\…\landing.html` and `landing.html` never reach
+  // the preview stack (agent edits show in chat but Preview/Browser stay empty).
+  const pathOnly = raw.split(/[?#]/, 1)[0] || raw
+
+  return /\.html?$/i.test(pathOnly)
 }
 
 export function stableHash(value: string): string {

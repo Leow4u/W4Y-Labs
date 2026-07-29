@@ -49,11 +49,9 @@ function resetStores() {
 beforeEach(resetStores)
 afterEach(cleanup)
 
-// The connecting overlay renders "CONN" + a scrambled tail inside one
-// uppercase span; match that node specifically so the recovery overlay's
-// "Lost connection…" copy doesn't read as a false positive.
-const isConnectingShown = () =>
-  screen.queryAllByText((_, el) => /^CONN[/\\|\-_=+<>~:*A-Z]*$/.test(el?.textContent?.trim() ?? '')).length > 0
+// The connecting overlay renders an icon + status label; query by the
+// data-testid on the label so the recovery overlay's copy isn't a false positive.
+const isConnectingShown = () => Boolean(screen.queryByTestId('connecting-label'))
 
 const isRecoveryShown = () =>
   Boolean(screen.queryByText(/use local gateway/i) || screen.queryByText(/retry/i) || screen.queryByText(/sign in/i))

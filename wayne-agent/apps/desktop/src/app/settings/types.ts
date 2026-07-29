@@ -6,11 +6,12 @@ import type { EnvVarInfo } from '@/types/hermes'
 
 export type SettingsView =
   | 'about'
+  | 'account'
   | 'gateway'
+  | 'general'
   | 'keys'
   | 'notifications'
   | 'providers'
-  | 'sessions'
   | `config:${string}`
 export type EnvPatch = Partial<Pick<EnvVarInfo, 'is_set' | 'redacted_value'>>
 

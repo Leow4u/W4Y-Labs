@@ -7,6 +7,7 @@ import {
   defaultVisibleKeys,
   effectiveVisibleKeys,
   emptyProviderSentinelKey,
+  filterActiveModels,
   isProviderSentinel,
   modelVisibilityKey,
   resolveVisibleKeys,
@@ -222,5 +223,53 @@ describe('resolveVisibleKeys', () => {
 
   it('returns an empty set for an empty (non-null) stored set', () => {
     expect([...resolveVisibleKeys(new Set(), providers)]).toEqual([])
+  })
+
+  it('uses PME curated defaultOn models for the platform catalog', () => {
+    const visible = defaultVisibleKeys([
+      provider('openrouter', [
+        'x-ai/grok-4.5',
+        'anthropic/claude-opus-5',
+        'openai/gpt-5.6-sol',
+        'anthropic/claude-fable-5',
+        'anthropic/claude-sonnet-5',
+        'openai/gpt-5.6-terra',
+        'anthropic/claude-sonnet-4.6',
+        'anthropic/claude-opus-4.8',
+        'openai/gpt-5.5',
+        'openai/gpt-5.3-codex'
+      ])
+    ])
+
+    expect(visible.has(modelVisibilityKey('openrouter', 'anthropic/claude-opus-5'))).toBe(true)
+    expect(visible.has(modelVisibilityKey('openrouter', 'x-ai/grok-4.5'))).toBe(true)
+    expect(visible.has(modelVisibilityKey('openrouter', 'anthropic/claude-opus-4.8'))).toBe(false)
+    expect(visible.has(modelVisibilityKey('openrouter', 'openai/gpt-5.5'))).toBe(false)
+  })
+})
+
+describe('filterActiveModels', () => {
+  it('keeps only models present in the visible set', () => {
+    const visible = new Set([modelVisibilityKey('openrouter', 'anthropic/claude-fable-5')])
+
+    expect(
+      filterActiveModels(
+        ['anthropic/claude-fable-5', 'anthropic/claude-opus-4.8'],
+        'openrouter',
+        visible
+      )
+    ).toEqual(['anthropic/claude-fable-5'])
+  })
+
+  it('does not keep a hidden model just because it was previously selected', () => {
+    const visible = new Set([modelVisibilityKey('openrouter', 'anthropic/claude-fable-5')])
+
+    expect(
+      filterActiveModels(
+        ['anthropic/claude-fable-5', 'openai/gpt-5.6-sol'],
+        'openrouter',
+        visible
+      )
+    ).toEqual(['anthropic/claude-fable-5'])
   })
 })

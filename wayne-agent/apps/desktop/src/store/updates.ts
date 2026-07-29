@@ -238,17 +238,42 @@ export function openUpdatesWindow(): void {
 }
 
 /**
- * Start applying the available update for the active target right away. Opens
- * the updates overlay first so the user sees apply progress (the overlay
- * renders ApplyingView once `applying` flips true), then kicks off the install.
- * Used by the "Update now" affordance on the About panel, which would otherwise
- * only be able to open the changelog overlay.
+ * Start applying the available update for the active target right away.
+ *
+ * Primary UX (account chip): silent — progress lives on the chip itself; no
+ * idle/changelog or "Downloading…" modal. Overlay opens only for terminal
+ * recovery states (error / manual / guiSkew). Pass `{ openOverlay: true }` when
+ * a surface still wants the legacy progress dialog (About / Settings).
  */
-export function startActiveUpdate(): void {
+export function startActiveUpdate(opts: { openOverlay?: boolean } = {}): void {
   const target: UpdateTarget = isRemoteMode() ? 'backend' : 'client'
   $updateOverlayTarget.set(target)
+
+  if (opts.openOverlay) {
+    $updateOverlayOpen.set(true)
+  }
+
+  void (target === 'backend' ? applyBackendUpdate() : applyUpdates()).then(result => {
+    revealApplyTerminalOverlay(target, result)
+  })
+}
+
+/** Open the overlay only when apply landed on a closeable recovery state. */
+function revealApplyTerminalOverlay(target: UpdateTarget, result?: DesktopUpdateApplyResult | void): void {
+  const apply = target === 'backend' ? $backendUpdateApply.get() : $updateApply.get()
+  const stage = apply.stage
+  const needsOverlay =
+    stage === 'error' ||
+    stage === 'manual' ||
+    stage === 'guiSkew' ||
+    Boolean(result && (result.manual || result.guiSkew || (!result.ok && !result.handedOff)))
+
+  if (!needsOverlay) {
+    return
+  }
+
+  $updateOverlayTarget.set(target)
   $updateOverlayOpen.set(true)
-  void (target === 'backend' ? applyBackendUpdate() : applyUpdates())
 }
 
 /** Re-read the running app's version from the Electron main process and
@@ -634,6 +659,12 @@ function ingestProgress(payload: DesktopUpdateProgress): void {
     command: payload.stage === 'manual' ? payload.message : current.command,
     log
   })
+
+  // Silent chip apply: surface recovery states if the overlay was never opened.
+  if (payload.stage === 'error' || payload.stage === 'manual' || payload.stage === 'guiSkew') {
+    $updateOverlayTarget.set('client')
+    $updateOverlayOpen.set(true)
+  }
 }
 
 let pollerStarted = false
@@ -676,6 +707,11 @@ export function startUpdatePoller(): void {
   })
 
   window.addEventListener('focus', onFocus)
+  // Also recheck when the window becomes visible again (Electron often keeps
+  // focus without firing `focus` after the user alt-tabs back).
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', onVisibility)
+  }
   backgroundTimer = setInterval(
     () => {
       void checkUpdates()
@@ -695,13 +731,26 @@ export function stopUpdatePoller(): void {
   connectionUnsub = null
   lastConnectionMode = undefined
   window.removeEventListener('focus', onFocus)
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', onVisibility)
+  }
   pollerStarted = false
+}
+
+function onVisibility() {
+  if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+    return
+  }
+
+  onFocus()
 }
 
 function onFocus() {
   const now = Date.now()
 
-  if (now - lastFocusAt < 5 * 60 * 1000) {
+  // 60s debounce — short enough that a just-published release surfaces after
+  // the user returns to the app, without hammering the feed on every focus.
+  if (now - lastFocusAt < 60 * 1000) {
     return
   }
 

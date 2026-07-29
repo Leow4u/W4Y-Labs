@@ -36,7 +36,6 @@ interface AppShellProps {
   // hoisting it to the root `overlays` layer (sibling of <main>, z above z-3)
   // would cover every pane's drag handle.
   mainOverlays?: ReactNode
-  onOpenSettings: () => void
   overlays?: ReactNode
   // Rails that sit at the window's left edge in the flipped layout but never
   // force-collapse to hover-reveal overlays — so they cover the top-left traffic
@@ -67,7 +66,6 @@ export function AppShell({
   leftStatusbarItems,
   leftTitlebarTools,
   mainOverlays,
-  onOpenSettings,
   overlays,
   previewPaneOpen = false,
   statusbarItems,
@@ -158,6 +156,10 @@ export function AppShell({
       ? `calc(${previewToolbarGap} + ${paneToolCount} * (var(--titlebar-control-size) + 0.25rem))`
       : systemToolsWidth
 
+  const hasStatusbarItems =
+    (leftStatusbarItems?.some(item => !item.hidden) ?? false) ||
+    (statusbarItems?.some(item => !item.hidden) ?? false)
+
   return (
     <SidebarProvider
       className="h-screen min-h-0 flex-col bg-background"
@@ -185,9 +187,7 @@ export function AppShell({
         } as CSSProperties
       }
     >
-      {!hideTitlebarControls && (
-        <TitlebarControls leftTools={leftTitlebarTools} onOpenSettings={onOpenSettings} tools={titlebarTools} />
-      )}
+      {!hideTitlebarControls && <TitlebarControls leftTools={leftTitlebarTools} tools={titlebarTools} />}
 
       {nativeOverlayWidth > 0 && (
         <div
@@ -216,8 +216,13 @@ export function AppShell({
         {mainOverlays}
 
         {/* The compact pop-out drops the statusbar — it's a scratch window, not
-            the full shell. */}
-        {!isSecondaryWindow() && <StatusbarControls items={statusbarItems} leftItems={leftStatusbarItems} />}
+            the full shell. It's also skipped entirely when there's nothing to
+            show (the core items moved to the account menu / composer / Ambiente),
+            so the sidebar's account footer sits flush against the window bottom.
+            Route-scoped items (skills, messaging, …) bring it back on demand. */}
+        {!isSecondaryWindow() && hasStatusbarItems && (
+          <StatusbarControls items={statusbarItems} leftItems={leftStatusbarItems} />
+        )}
       </main>
 
       {overlays}

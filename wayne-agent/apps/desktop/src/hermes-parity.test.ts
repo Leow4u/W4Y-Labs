@@ -6,6 +6,7 @@ import {
   getMemoryStatus,
   getSkillHubSources,
   getToolsetModels,
+  getUserProfile,
   installSkillFromHub,
   resetMemory,
   runDebugShare,
@@ -13,6 +14,7 @@ import {
   selectToolsetModel,
   setCuratorPaused,
   setMcpServerEnabled,
+  setUserProfile,
   testMcpServer
 } from './hermes'
 
@@ -96,6 +98,21 @@ describe('Hermes REST parity helpers (hub / mcp / maintenance)', () => {
     expect(api).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({ path: '/api/memory/reset', method: 'POST', body: { target: 'user' } })
+    )
+  })
+
+  it('reads and writes the user profile', async () => {
+    await getUserProfile()
+    await setUserProfile('likes short answers')
+
+    expect(api).toHaveBeenNthCalledWith(1, expect.objectContaining({ path: '/api/memory/user-profile' }))
+    expect(api).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        path: '/api/memory/user-profile',
+        method: 'PUT',
+        body: { content: 'likes short answers' }
+      })
     )
   })
 

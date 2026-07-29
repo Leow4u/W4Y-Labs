@@ -126,6 +126,7 @@ export type SidebarNavId =
   | 'agent-studio'
   | 'artifacts'
   | 'command-center'
+  | 'cron'
   | 'messaging'
   | 'new-session'
   | 'settings'
@@ -165,4 +166,8 @@ export interface ClientSessionState {
    *  focused, and switching sessions doesn't zero a still-running turn's clock.
    *  The global $turnStartedAt mirrors whichever session is currently viewed. */
   turnStartedAt: number | null
+  /** Model snapshot captured at message.start for the in-flight turn. Stamped
+   *  onto the assistant message at completion so the turn label survives model
+   *  switches that happen while the session is running. */
+  turnModel?: string
 }

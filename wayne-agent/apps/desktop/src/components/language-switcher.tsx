@@ -5,7 +5,7 @@ import { Command, CommandInput, CommandItem, CommandList } from '@/components/ui
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { type Locale, LOCALE_META, useI18n } from '@/i18n'
+import { type Locale, LOCALE_META, pickerLocaleOptions, useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { Check, ChevronDown, Globe } from '@/lib/icons'
 import { normalize } from '@/lib/text'
@@ -34,7 +34,11 @@ export function LanguageSwitcher({ className, collapsed = false, dropUp = false 
   const isMobile = useIsMobile()
   const useMobileSheet = Boolean(dropUp && isMobile)
   const current = LOCALE_META[locale]
-  const allLocales = Object.entries(LOCALE_META) as Array<[Locale, typeof current]>
+  // Curated product order (pt→en→es→fr→de). Hidden locales still appear if
+  // they are the active choice so the user can switch away.
+  const allLocales = pickerLocaleOptions(locale).map(
+    option => [option.id, LOCALE_META[option.id]] as [Locale, (typeof LOCALE_META)[Locale]]
+  )
   const title = t.language.switchTo
 
   const selectLocale = async (code: Locale) => {
@@ -131,10 +135,10 @@ function LanguageCommand({
 
   // Own the search term and filter manually. cmdk's built-in shouldFilter
   // reorders items by its fuzzy-match score (≈alphabetical with an empty
-  // query), which destroys the curated en→zh→zh-hant→ja order. We disable it
-  // and do a plain substring filter that preserves array order — matching
+  // query), which destroys the curated picker order. We disable it and do a
+  // plain substring filter that preserves array order — matching
   // model-picker.tsx. Match against the endonym, the (hidden) English name,
-  // and the locale code so "日本"/"japanese"/"ja" all find Japanese.
+  // and the locale code so "español"/"spanish"/"es" all find Spanish.
   const q = normalize(search)
 
   const filtered = allLocales.filter(

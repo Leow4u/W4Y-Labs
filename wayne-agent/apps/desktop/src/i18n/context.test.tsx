@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import type { HermesConfigRecord } from '@/hermes'
 
+import { TRANSLATIONS } from './catalog'
 import { type I18nConfigClient, I18nProvider, useI18n } from './context'
 import type { Locale } from './types'
 
@@ -134,8 +135,13 @@ describe('I18nProvider', () => {
   })
 
   it('does not overwrite unsupported configured languages', async () => {
+    // Not a real language tag, so it can never become supported. The earlier
+    // fixture used 'de', which broke this test the day German shipped.
+    const unsupported = 'xx-XX'
+    expect(Object.keys(TRANSLATIONS)).not.toContain(unsupported)
+
     const configClient: I18nConfigClient = {
-      getConfig: vi.fn().mockResolvedValue({ display: { language: 'de' } }),
+      getConfig: vi.fn().mockResolvedValue({ display: { language: unsupported } }),
       saveConfig: vi.fn()
     }
 

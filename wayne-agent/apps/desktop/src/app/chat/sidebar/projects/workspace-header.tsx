@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { DiffCount } from '@/components/ui/diff-count'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { SanitizedInput } from '@/components/ui/sanitized-input'
+import { Tip } from '@/components/ui/tooltip'
 import type { HermesGitBranch } from '@/global'
 import { useI18n } from '@/i18n'
 import { gitRef } from '@/lib/sanitize'
@@ -335,28 +337,81 @@ export function StartWorkButton({ repoPath, onStarted }: { repoPath: string; onS
   )
 }
 
+export interface WorkspaceHoverCard {
+  /** Primary title (branch / lane name). */
+  title: string
+  /** Optional note under the title (e.g. "Home checkout"). */
+  note?: string
+  branch?: string
+  repo?: string
+  path?: string
+  sessionsLabel?: string
+}
+
 // Collapsible header shared by the repo (emphasis) and worktree levels: a toggle
 // button with a leading glyph, plus an optional trailing action (the +).
+// Cursor-like: optional meta line (folder · branch) and a rich hover card.
 export function WorkspaceHeader({
   action,
   count,
+  diff,
   emphasis = false,
+  hover,
   icon,
   label,
+  meta,
   onToggle,
   open,
   title
 }: {
   action?: React.ReactNode
   count: React.ReactNode
+  /** Compact +/- for the active lane when live repo status matches this path. */
+  diff?: { added: number; removed: number } | null
   emphasis?: boolean
+  hover?: WorkspaceHoverCard | null
   icon: React.ReactNode
   label: string
+  /** Secondary line under the label (short folder / path segment). */
+  meta?: string
   onToggle: () => void
   open: boolean
-  /** Hover tooltip — the lane's full on-disk path (worktree / repo root). */
+  /** Fallback native title when no hover card is provided. */
   title?: string
 }) {
+  const toggle = (
+    <button
+      className={cn(
+        'flex min-w-0 flex-1 items-center gap-1.5 bg-transparent text-left',
+        emphasis ? 'hover:text-foreground' : 'hover:text-(--ui-text-secondary)'
+      )}
+      onClick={onToggle}
+      type="button"
+    >
+      <SidebarRowLead>{icon}</SidebarRowLead>
+      <span className="flex min-w-0 flex-1 flex-col gap-0">
+        <span className="flex min-w-0 items-center gap-1.5">
+          <LaneLabel label={label} title={hover ? undefined : title ? `${label}\n${title}` : label} />
+          {diff && (diff.added > 0 || diff.removed > 0) ? (
+            <DiffCount added={diff.added} className="shrink-0 text-[0.625rem] leading-3" removed={diff.removed} />
+          ) : null}
+          <span className="shrink-0">
+            <SidebarCount>{count}</SidebarCount>
+          </span>
+        </span>
+        {meta ? (
+          <span className="truncate pl-0 text-[0.625rem] font-normal leading-4 text-(--ui-text-quaternary)">
+            {meta}
+          </span>
+        ) : null}
+      </span>
+      <DisclosureCaret
+        className="shrink-0 text-(--ui-text-tertiary) opacity-0 transition group-hover/workspace:opacity-100"
+        open={open}
+      />
+    </button>
+  )
+
   return (
     <div
       className={cn(
@@ -364,25 +419,62 @@ export function WorkspaceHeader({
         emphasis ? 'font-semibold text-(--ui-text-secondary)' : 'font-medium text-(--ui-text-tertiary)'
       )}
     >
-      <button
-        className={cn(
-          'flex min-w-0 flex-1 items-center gap-1.5 bg-transparent text-left',
-          emphasis ? 'hover:text-foreground' : 'hover:text-(--ui-text-secondary)'
-        )}
-        onClick={onToggle}
-        type="button"
-      >
-        <SidebarRowLead>{icon}</SidebarRowLead>
-        <LaneLabel label={label} title={title ? `${label}\n${title}` : label} />
-        <span className="shrink-0">
-          <SidebarCount>{count}</SidebarCount>
-        </span>
-        <DisclosureCaret
-          className="shrink-0 text-(--ui-text-tertiary) opacity-0 transition group-hover/workspace:opacity-100"
-          open={open}
-        />
-      </button>
+      {hover ? (
+        <div className="min-w-0 flex-1">
+          <Tip
+            className="max-w-72 whitespace-normal bg-(--ui-popover-background) px-2.5 py-2 text-left font-normal text-foreground shadow-md [font-family:inherit]"
+            delayDuration={350}
+            label={<LaneHoverCard card={hover} />}
+            side="right"
+            sideOffset={8}
+          >
+            {toggle}
+          </Tip>
+        </div>
+      ) : (
+        toggle
+      )}
       {action}
+    </div>
+  )
+}
+
+function LaneHoverCard({ card }: { card: WorkspaceHoverCard }) {
+  const { t } = useI18n()
+  const p = t.sidebar.projects
+
+  return (
+    <div className="grid min-w-44 gap-1.5 text-[0.6875rem] leading-4">
+      <div className="min-w-0">
+        <div className="truncate text-[0.75rem] font-semibold text-foreground">{card.title}</div>
+        {card.note ? <div className="truncate text-(--ui-text-tertiary)">{card.note}</div> : null}
+      </div>
+      {card.branch ? (
+        <div className="flex min-w-0 items-center gap-1.5 text-(--ui-text-secondary)">
+          <Codicon className="shrink-0 text-(--ui-green)" name="git-branch" size="0.7rem" />
+          <span className="shrink-0 text-(--ui-text-quaternary)">{p.hoverBranch}</span>
+          <span className="min-w-0 truncate font-medium">{card.branch}</span>
+        </div>
+      ) : null}
+      {card.repo ? (
+        <div className="flex min-w-0 items-center gap-1.5 text-(--ui-text-secondary)">
+          <Codicon className="shrink-0" name="repo" size="0.7rem" />
+          <span className="shrink-0 text-(--ui-text-quaternary)">{p.hoverRepo}</span>
+          <span className="min-w-0 truncate">{card.repo}</span>
+        </div>
+      ) : null}
+      {card.path ? (
+        <div className="flex min-w-0 items-start gap-1.5 text-(--ui-text-secondary)">
+          <Codicon className="mt-0.5 shrink-0" name="folder" size="0.7rem" />
+          <div className="min-w-0">
+            <div className="text-(--ui-text-quaternary)">{p.hoverPath}</div>
+            <div className="break-all font-mono text-[0.625rem] leading-4 text-foreground/90">{card.path}</div>
+          </div>
+        </div>
+      ) : null}
+      {card.sessionsLabel ? (
+        <div className="text-(--ui-text-tertiary)">{card.sessionsLabel}</div>
+      ) : null}
     </div>
   )
 }

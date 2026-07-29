@@ -125,13 +125,21 @@ function RepoFlatSection({
     [discoveredWorktrees]
   )
 
-  // Main lanes are always visible; linked worktrees can be user-dismissed.
-  // A live `git worktree list` hit wins over an old dismissal: if git says the
-  // worktree exists again (or still exists after "hide from sidebar"), surface it.
-  const ordered = overlaidGroups.filter(
-    group =>
-      group.isMain || !dismissedWorktrees.includes(group.id) || (group.path && discoveredWorktreePaths.has(group.path))
-  )
+  // Hide an empty home checkout entirely (no "master 0 / no sessions" scream).
+  // Linked worktrees still list when empty so users can discover them; home only
+  // reappears once it has at least one session. Dismissed linked worktrees stay
+  // hidden unless git still reports the path.
+  const ordered = overlaidGroups.filter(group => {
+    if (group.isHome && group.sessions.length === 0) {
+      return false
+    }
+
+    return (
+      group.isMain ||
+      !dismissedWorktrees.includes(group.id) ||
+      (group.path && discoveredWorktreePaths.has(group.path))
+    )
+  })
 
   const repoCount = ordered.reduce((sum, group) => sum + group.sessions.length, 0)
 
@@ -165,6 +173,9 @@ function RepoFlatSection({
       {ordered.map(group => (
         <SidebarWorkspaceGroup
           group={group}
+          // Soften empty-lane copy when the repo still has sessions in other lanes
+          // (home quiet while a worktree is busy — don't scream "no sessions yet").
+          hasSiblingSessions={repoCount > group.sessions.length}
           key={group.id}
           // The kanban bucket is read-only: it aggregates many task worktrees, so
           // "new session here" and "remove worktree" have no single target.

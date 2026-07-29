@@ -108,6 +108,11 @@ export function formatModelStatusLabel(
     return name
   }
 
+  // Auto-routing model: no effort/fast qualifiers — the router picks what's best.
+  if (modelBaseId(model).toLowerCase() === 'auto') {
+    return name
+  }
+
   const parts: string[] = []
 
   // Fast is shown when the speed=fast param is on (options.fastMode) OR the

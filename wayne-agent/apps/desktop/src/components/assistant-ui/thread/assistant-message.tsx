@@ -7,7 +7,7 @@ import {
   useMessageRuntime
 } from '@assistant-ui/react'
 import { useStore } from '@nanostores/react'
-import { type FC, useCallback, useMemo, useState } from 'react'
+import { type FC, type ReactNode, useCallback, useMemo, useState } from 'react'
 
 import {
   contentHasVisibleText,
@@ -19,6 +19,7 @@ import { StreamStallIndicator } from '@/components/assistant-ui/thread/status'
 import { formatMessageTimestamp } from '@/components/assistant-ui/thread/timestamp'
 import { TooltipIconButton } from '@/components/assistant-ui/tooltip-icon-button'
 import { PreviewAttachment } from '@/components/chat/preview-attachment'
+import { ConnectLinkContext } from '@/components/connectors/connect-link-card'
 import { Codicon } from '@/components/ui/codicon'
 import { CopyButton } from '@/components/ui/copy-button'
 import {
@@ -31,6 +32,7 @@ import {
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { GitBranchIcon, Loader2Icon, Volume2Icon, VolumeXIcon, XIcon } from '@/lib/icons'
+import { modelLabel } from '@/lib/w4y-featured-models'
 import { extractPreviewTargets } from '@/lib/preview-targets'
 import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
@@ -46,6 +48,14 @@ interface MessageActionProps {
    *  was a large slice of per-token script time on long transcripts. */
   getMessageText: () => string
   onBranchInNewChat?: (messageId: string) => void
+  /** Model that was active when this turn started. Empty string = unknown. */
+  turnModel?: string
+}
+
+/** Isolates text subscription so AssistantMessage stays cheap while streaming. */
+const ConnectLinkContextFromMessage: FC<{ children: ReactNode }> = ({ children }) => {
+  const text = useAuiState(s => messageContentText(s.message.content))
+  return <ConnectLinkContext.Provider value={text}>{children}</ConnectLinkContext.Provider>
 }
 
 export const AssistantMessage: FC<{
@@ -83,6 +93,23 @@ export const AssistantMessage: FC<{
 
   const getMessageText = useCallback(() => messageContentText(messageRuntime.getState().content), [messageRuntime])
 
+  // Per-turn model label: read from message metadata stamped at completion.
+  // For auto-routed turns this shows "via Auto"; for explicit models the
+  // curated label (e.g. "via Sonnet 5"). Empty during streaming and for
+  // older messages that predate this field.
+  const turnModel = useAuiState(s => {
+    const raw = (s.message as { metadata?: { custom?: { turnModel?: string } } }).metadata?.custom?.turnModel ?? ''
+    if (!raw) {
+      return ''
+    }
+
+    // raw is `provider/modelId` (e.g. "openrouter/openrouter/auto"). Parse
+    // the model id part (after last provider/ prefix) for display.
+    const parts = raw.split('/')
+    const modelId = parts.slice(1).join('/')
+    return modelId ? modelLabel(modelId) : modelLabel(raw)
+  })
+
   const enterRef = useEnterAnimation(isRunning, `assistant-message:${messageId}`)
 
   if (isPlaceholder) {
@@ -101,43 +128,47 @@ export const AssistantMessage: FC<{
         className="wrap-anywhere min-w-0 max-w-full overflow-hidden text-pretty text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground"
         data-slot="aui_assistant-message-content"
       >
-        {/* Todos render in the composer status stack now, not inline. */}
-        <MessagePrimitive.Parts components={MESSAGE_PARTS_COMPONENTS} />
-        {isRunning && <StreamStallIndicator />}
-        {previewTargets.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-2">
-            {previewTargets.map(target => (
-              <PreviewAttachment key={target} source="explicit-link" target={target} />
-            ))}
-          </div>
-        )}
-        <MessagePrimitive.Error>
-          <ErrorPrimitive.Root
-            className="mt-1.5 flex items-start gap-1.5 text-[0.78rem] leading-5 text-[color-mix(in_srgb,var(--dt-destructive)_78%,var(--ui-text-secondary))]"
-            role="alert"
-          >
-            <ErrorPrimitive.Message className="min-w-0 flex-1" />
-            {onDismissError && (
-              <TooltipIconButton
-                className="-my-0.5 shrink-0 text-current opacity-70 hover:opacity-100"
-                onClick={() => onDismissError(messageId)}
-                side="top"
-                tooltip={t.assistant.thread.dismissError}
-              >
-                <XIcon className="size-3.5" />
-              </TooltipIconButton>
-            )}
-          </ErrorPrimitive.Root>
-        </MessagePrimitive.Error>
+        {/* Leaf provider so ConnectLinkCard can read live text without this
+            component re-rendering on every streamed token. */}
+        <ConnectLinkContextFromMessage>
+          {/* Todos render in the composer status stack now, not inline. */}
+          <MessagePrimitive.Parts components={MESSAGE_PARTS_COMPONENTS} />
+          {isRunning && <StreamStallIndicator />}
+          {previewTargets.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {previewTargets.map(target => (
+                <PreviewAttachment key={target} source="explicit-link" target={target} />
+              ))}
+            </div>
+          )}
+          <MessagePrimitive.Error>
+            <ErrorPrimitive.Root
+              className="mt-1.5 flex items-start gap-1.5 text-[0.78rem] leading-5 text-[color-mix(in_srgb,var(--dt-destructive)_78%,var(--ui-text-secondary))]"
+              role="alert"
+            >
+              <ErrorPrimitive.Message className="min-w-0 flex-1" />
+              {onDismissError && (
+                <TooltipIconButton
+                  className="-my-0.5 shrink-0 text-current opacity-70 hover:opacity-100"
+                  onClick={() => onDismissError(messageId)}
+                  side="top"
+                  tooltip={t.assistant.thread.dismissError}
+                >
+                  <XIcon className="size-3.5" />
+                </TooltipIconButton>
+              )}
+            </ErrorPrimitive.Root>
+          </MessagePrimitive.Error>
+        </ConnectLinkContextFromMessage>
       </div>
       {hasVisibleText && (
-        <AssistantFooter getMessageText={getMessageText} messageId={messageId} onBranchInNewChat={onBranchInNewChat} />
+        <AssistantFooter getMessageText={getMessageText} messageId={messageId} onBranchInNewChat={onBranchInNewChat} turnModel={turnModel} />
       )}
     </MessagePrimitive.Root>
   )
 }
 
-const AssistantActionBar: FC<MessageActionProps> = ({ messageId, getMessageText, onBranchInNewChat }) => {
+const AssistantActionBar: FC<MessageActionProps> = ({ messageId, getMessageText, onBranchInNewChat, turnModel }) => {
   const { t } = useI18n()
   const copy = t.assistant.thread
   const [menuOpen, setMenuOpen] = useState(false)
@@ -158,6 +189,11 @@ const AssistantActionBar: FC<MessageActionProps> = ({ messageId, getMessageText,
         )}
         data-slot="aui_msg-actions"
       >
+        {turnModel ? (
+          <span className="mr-auto text-[0.68rem] text-(--ui-text-tertiary) truncate max-w-[8rem]">
+            {copy.turnModel(turnModel)}
+          </span>
+        ) : null}
         <CopyButton appearance="icon" buttonSize="icon" label={copy.copy} text={getMessageText} />
         <ActionBarPrimitive.Reload asChild>
           <TooltipIconButton onClick={() => triggerHaptic('submit')} tooltip={copy.refresh}>

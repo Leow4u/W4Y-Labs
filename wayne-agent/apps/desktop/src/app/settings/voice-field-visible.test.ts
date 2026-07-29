@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import type { HermesConfigRecord } from '@/types/hermes'
 
-import { voiceFieldVisible } from './config-settings'
+import { voiceFieldVisible } from './voice-field-visible'
 
 const cfg = (over: Record<string, unknown> = {}): HermesConfigRecord =>
   ({
@@ -15,7 +15,7 @@ describe('voiceFieldVisible', () => {
   it('always shows top-level + non-provider keys', () => {
     const config = cfg()
 
-    for (const key of ['tts.provider', 'stt.enabled', 'stt.provider', 'voice.auto_tts', 'voice.record_key']) {
+    for (const key of ['tts.provider', 'stt.enabled', 'stt.provider', 'voice.auto_tts', 'voice.max_recording_seconds']) {
       expect(voiceFieldVisible(key, config)).toBe(true)
     }
   })
@@ -44,5 +44,11 @@ describe('voiceFieldVisible', () => {
   it('tracks a provider switch', () => {
     expect(voiceFieldVisible('tts.openai.voice', cfg({ tts: { provider: 'openai', openai: {} } }))).toBe(true)
     expect(voiceFieldVisible('tts.edge.voice', cfg({ tts: { provider: 'openai', openai: {} } }))).toBe(false)
+  })
+
+  it('hides STT language force fields (auto-detect is the product default)', () => {
+    const config = cfg()
+    expect(voiceFieldVisible('stt.local.language', config)).toBe(false)
+    expect(voiceFieldVisible('stt.elevenlabs.language_code', config)).toBe(false)
   })
 })

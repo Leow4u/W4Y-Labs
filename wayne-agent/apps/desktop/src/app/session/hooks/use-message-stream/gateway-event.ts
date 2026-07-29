@@ -4,6 +4,10 @@ import { type MutableRefObject, useCallback } from 'react'
 import { writeAgentTerminalChunk } from '@/app/right-sidebar/terminal/agent-terminal-stream'
 import { readActiveTerminal } from '@/app/right-sidebar/terminal/buffer'
 import { closeAgentTerminalByProc } from '@/app/right-sidebar/terminal/terminals'
+import {
+  noteBrowserToolComplete,
+  noteBrowserToolStart
+} from '@/app/right-sidebar/browser/session'
 import { translateNow } from '@/i18n'
 import { type GatewayEventPayload, textPart } from '@/lib/chat-messages'
 import { coerceGatewayText, coerceThinkingText, normalizePersonalityValue } from '@/lib/chat-runtime'
@@ -12,6 +16,7 @@ import { gatewayEventRequiresSessionId } from '@/lib/gateway-events'
 import { triggerHaptic } from '@/lib/haptics'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { clearClarifyRequest, setClarifyRequest } from '@/store/clarify'
+import { $showReasoning } from '@/store/display-prefs'
 import { setSessionCompacting } from '@/store/compaction'
 import { refreshBackgroundProcesses } from '@/store/composer-status'
 import { $gateway } from '@/store/gateway'
@@ -34,7 +39,9 @@ import {
   setCurrentUsage,
   setSessions,
   setTurnStartedAt,
-  setYoloActive
+  setYoloActive,
+  $currentModel,
+  $currentProvider
 } from '@/store/session'
 import { clearSessionSubagents, pruneDelegateFallbackSubagents, upsertSubagent } from '@/store/subagents'
 import { clearActiveSessionTodos } from '@/store/todos'
@@ -243,13 +250,21 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
           triggerHaptic('streamStart')
         }
 
+        // Snapshot the active model at turn start so the completed message
+        // can be stamped with the model that was actually used, independent of
+        // any model switch that may happen later in the same session.
+        const snapModel = $currentModel.get()
+        const snapProvider = $currentProvider.get()
+        const turnModelSnapshot = snapProvider ? `${snapProvider}/${snapModel}` : snapModel
+
         updateSessionState(sessionId, state => ({
           ...state,
           busy: true,
           awaitingResponse: true,
           sawAssistantPayload: false,
           interrupted: false,
-          turnStartedAt: Date.now()
+          turnStartedAt: Date.now(),
+          turnModel: turnModelSnapshot
         }))
 
         if (isActiveEvent) {
@@ -265,7 +280,9 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         // indicator already covers that UX, so we ignore these events to
         // avoid a duplicative "Thinking" disclosure showing spinner text.
       } else if (event.type === 'reasoning.delta') {
-        if (sessionId) {
+        // Gated by Settings → Geral "Show thinking". Working status / tools are
+        // unaffected. MoA references below stay visible (process, not CoT).
+        if ($showReasoning.get() && sessionId) {
           appendReasoningDelta(sessionId, coerceThinkingText(payload?.text))
         }
 
@@ -273,7 +290,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
           setPetActivity({ reasoning: true })
         }
       } else if (event.type === 'reasoning.available') {
-        if (sessionId) {
+        if ($showReasoning.get() && sessionId) {
           appendReasoningDelta(sessionId, coerceThinkingText(payload?.text), true)
         }
 
@@ -284,7 +301,8 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         // MoA reference-model output — surface as a labelled thinking chunk
         // (tagged with the source model) before the aggregator's response, so
         // the mixture-of-agents process is visible. Reuses the reasoning
-        // disclosure rather than introducing a parallel surface.
+        // disclosure rather than introducing a parallel surface. Always shown
+        // (parity with TUI — this is the MoA process, not gated CoT).
         if (sessionId) {
           const label = coerceGatewayText(payload?.label) || 'reference'
           const idx = typeof payload?.index === 'number' ? payload.index : undefined
@@ -366,6 +384,10 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         flushQueuedDeltas(sessionId)
         upsertToolCall(sessionId, toTodoPayload(payload) ?? payload, 'running', event.type)
 
+        if (event.type === 'tool.start' && payload) {
+          noteBrowserToolStart(sessionId, payload as Record<string, unknown>)
+        }
+
         if (isActiveEvent) {
           setPetActivity({ reasoning: false, toolRunning: true })
         }
@@ -373,6 +395,10 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         if (sessionId) {
           flushQueuedDeltas(sessionId)
           upsertToolCall(sessionId, toTodoPayload(payload) ?? payload, 'complete', event.type)
+
+          if (payload) {
+            noteBrowserToolComplete(sessionId, payload as Record<string, unknown>)
+          }
 
           if (isActiveEvent) {
             setPetActivity({ toolRunning: false })

@@ -89,6 +89,7 @@ interface SidebarSessionsSectionProps {
   onResumeSession: (sessionId: string) => void
   onDeleteSession: (sessionId: string) => void
   onArchiveSession: (sessionId: string) => void
+  onUnarchiveSession?: (sessionId: string) => void
   onBranchSession?: (sessionId: string, profile?: string) => void
   onTogglePin: (sessionId: string) => void
   onNewSessionInWorkspace?: (path: null | string) => void
@@ -147,6 +148,7 @@ export function SidebarSessionsSection({
   onResumeSession,
   onDeleteSession,
   onArchiveSession,
+  onUnarchiveSession,
   onBranchSession,
   onTogglePin,
   onNewSessionInWorkspace,
@@ -197,10 +199,15 @@ export function SidebarSessionsSection({
       isPinned: pinned,
       isSelected: session.id === activeSessionId,
       isWorking: workingSessionIdSet.has(session.id),
-      onArchive: () => onArchiveSession(session.id),
-      onBranch: onBranchSession ? () => onBranchSession(session.id, session.profile) : undefined,
+      onArchive: onUnarchiveSession ? undefined : () => onArchiveSession(session.id),
+      onUnarchive: onUnarchiveSession ? () => onUnarchiveSession(session.id) : undefined,
+      onBranch: onUnarchiveSession
+        ? undefined
+        : onBranchSession
+          ? () => onBranchSession(session.id, session.profile)
+          : undefined,
       onDelete: () => onDeleteSession(session.id),
-      onPin: () => onTogglePin(sessionPinId(session)),
+      onPin: onUnarchiveSession ? undefined : () => onTogglePin(sessionPinId(session)),
       onResume: () => onResumeSession(session.id),
       reorderable: draggable && !branchStem,
       session
@@ -364,10 +371,13 @@ interface SortableSessionRowProps {
   isPinned: boolean
   isSelected: boolean
   isWorking: boolean
-  onArchive: () => void
+  onArchive?: () => void
+  onUnarchive?: () => void
+  onBranch?: () => void
   onDelete: () => void
-  onPin: () => void
+  onPin?: () => void
   onResume: () => void
+  reorderable?: boolean
 }
 
 function SortableSidebarSessionRow(props: SortableSessionRowProps) {

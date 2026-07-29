@@ -1,4 +1,4 @@
-const {
+﻿const {
   app,
   BrowserWindow,
   Menu,
@@ -30,6 +30,8 @@ const w4yDeltas = require('./w4y-deltas.cjs')
 const w4yCloud = require('./w4y-cloud.cjs')
 const w4yLogin = require('./w4y-login.cjs')
 const w4yWayne = require('./w4y-wayne-resolve.cjs')
+// Casca (shell) auto-updater — wraps electron-updater for packaged builds.
+const w4yAppUpdater = require('./w4y-app-updater.cjs')
 const { installEmbedReferer } = require('./embed-referer.cjs')
 const { detectRemoteDisplay, isWindowsBinaryPathInWsl, isWslEnvironment } = require('./bootstrap-platform.cjs')
 const { runBootstrap } = require('./bootstrap-runner.cjs')
@@ -430,6 +432,8 @@ const WINDOW_BUTTON_POSITION = {
 // It's only the pre-layout fallback — the renderer measures the exact overlay
 // width live via the Window Controls Overlay API.
 const APP_ICON_PATHS = [
+  path.join(APP_ROOT, 'assets', 'icon.ico'),
+  path.join(APP_ROOT, 'assets', 'icon.png'),
   path.join(APP_ROOT, 'public', 'apple-touch-icon.png'),
   path.join(APP_ROOT, 'dist', 'apple-touch-icon.png'),
   path.join(unpackedPathFor(APP_ROOT), 'dist', 'apple-touch-icon.png')
@@ -697,14 +701,13 @@ function previewFileMetadata(filePath, mimeType) {
 
 app.setName(APP_NAME)
 // Windows toast notifications silently no-op unless an AppUserModelID is set:
-// `new Notification().show()` returns without error and nothing appears. The
-// AUMID must match the installed Start Menu shortcut's AUMID, which
-// electron-builder derives from the build `appId` (com.nousresearch.hermes) —
-// keep this string in sync with package.json `build.appId`. macOS/Linux don't
-// need this, so gate it on Windows. (Fixes: desktop approval/turn notifications
-// never firing on Windows.)
+// `new Notification().show()` returns without error and nothing appears.
+// Packaged builds: AUMID must match electron-builder `build.appId` /
+// Start Menu shortcut (`com.work4you.app`) so the toast shows Work4You.
+// Dev (`electron.exe`): use the product display name so attribution isn't
+// "Electron". macOS/Linux don't need this.
 if (IS_WINDOWS) {
-  app.setAppUserModelId('com.nousresearch.hermes')
+  app.setAppUserModelId(app.isPackaged ? 'com.work4you.app' : APP_NAME)
 }
 // Seed the native About panel with the live Hermes version. This is refreshed
 // on every open via the explicit "About" menu handler (refreshAboutPanel), so
@@ -2280,7 +2283,7 @@ async function applyUpdates(opts = {}) {
     emitUpdateProgress({
       stage: 'restart',
       message:
-        'Updating Hermes — this window will close and the updater will open. Don’t reopen Hermes yourself; it restarts automatically when the update finishes.',
+        'Updating Work4You — this window will close and the updater will open. Don’t reopen Work4You yourself; it restarts automatically when the update finishes.',
       percent: 100
     })
     repairMacUpdaterHelper(updater)
@@ -2307,8 +2310,8 @@ async function applyUpdates(opts = {}) {
       // user close the holder and retry. Restart our own backend so the app
       // keeps working after the failed attempt.
       const message =
-        'Update aborted: another process is holding the Hermes install open ' +
-        '(a second Hermes window or a terminal running hermes?). Close it and retry.'
+        'Update aborted: another process is holding the Work4You install open ' +
+        '(a second Work4You window or a terminal running hermes?). Close it and retry.'
       emitUpdateProgress({ stage: 'error', message, percent: null })
       startHermes().catch(() => {})
       return { ok: false, error: message }
@@ -2527,7 +2530,7 @@ async function applyUpdatesPosixInApp() {
     // best effort
   }
 
-  emitUpdateProgress({ stage: 'update', message: 'Updating Hermes (git + dependencies)…', percent: 10 })
+  emitUpdateProgress({ stage: 'update', message: 'Updating Work4You (git + dependencies)…', percent: 10 })
   const updated = await runStreamedUpdate(hermes, ['update', '--yes', ...branchArgs], {
     cwd: updateRoot,
     env,
@@ -2551,7 +2554,7 @@ async function applyUpdatesPosixInApp() {
   if (rebuilt.code !== 0) {
     emitUpdateProgress({
       stage: 'error',
-      message: 'Backend updated, but the desktop rebuild failed. Restart Hermes to retry.',
+      message: 'Backend updated, but the desktop rebuild failed. Restart Work4You to retry.',
       error: rebuilt.error || 'rebuild-failed'
     })
     return { ok: false, backendUpdated: true, error: 'desktop rebuild failed' }
@@ -2595,7 +2598,7 @@ async function applyUpdatesPosixInApp() {
     const outcome = decideRelaunchOutcome({ underUnpacked, sandboxOk })
 
     if (outcome === 'relaunch') {
-      emitUpdateProgress({ stage: 'restart', message: 'Restarting Hermes…', percent: 100 })
+      emitUpdateProgress({ stage: 'restart', message: 'Restarting Work4You…', percent: 100 })
       // Preserve launch context across the re-exec: replay the original args
       // (filtered of Electron internals) and the env/cwd that define which
       // backend/profile/root this instance talks to. Without this the
@@ -2628,7 +2631,7 @@ async function applyUpdatesPosixInApp() {
           backendUpdated: true,
           guiUpdated: false,
           manualRestart: true,
-          message: 'Backend updated. Quit and reopen Hermes to load the new version.'
+          message: 'Backend updated. Quit and reopen Work4You to load the new version.'
         }
       }
     }
@@ -2677,7 +2680,7 @@ async function applyUpdatesPosixInApp() {
   if (!rebuiltApp || !targetApp) {
     emitUpdateProgress({
       stage: 'done',
-      message: 'Backend updated. Restart Hermes to load the new version.',
+      message: 'Backend updated. Restart Work4You to load the new version.',
       percent: 100
     })
     return { ok: true, backendUpdated: true, rebuiltApp: rebuiltApp || null }
@@ -2713,7 +2716,7 @@ fi
   } catch (err) {
     emitUpdateProgress({
       stage: 'done',
-      message: 'Backend + app updated. Restart Hermes to load the new version.',
+      message: 'Backend + app updated. Restart Work4You to load the new version.',
       percent: 100
     })
     rememberLog(`[updates] could not write swap script: ${err.message}; rebuilt app at ${rebuiltApp}`)
@@ -3021,6 +3024,31 @@ function resolveHermesBackend(backendArgs) {
     rememberLog(`Wayne backend resolve skipped: ${err && err.message}`)
   }
 
+  // Official Work4You packaged app: do NOT fall through to Hermes git /
+  // %LOCALAPPDATA%\hermes bootstrap (that was the old shell lineage). Require
+  // a Wayne tree (monorepo, WAYNE_DESKTOP_ROOT, or %LOCALAPPDATA%\wayne\wayne-agent).
+  if (IS_PACKAGED && process.env.W4Y_ALLOW_HERMES_FALLBACK !== '1') {
+    const wayneHome = w4yLogin.resolveWayneHome()
+    const expectedRoot = path.join(wayneHome, 'wayne-agent')
+    rememberLog(
+      `[w4y] Wayne motor not found. Expected source at monorepo checkout or ${expectedRoot}`
+    )
+    return {
+      kind: 'bootstrap-needed',
+      label: `Work4You motor (Wayne) not found. Install or clone wayne-agent under ${expectedRoot}, or set WAYNE_DESKTOP_ROOT.`,
+      command: null,
+      args: backendArgs,
+      bootstrap: true,
+      env: { WAYNE_HOME: wayneHome, WAYNE_DESKTOP: '1' },
+      shell: false,
+      w4yWayneRequired: true,
+      activeRoot: expectedRoot,
+      installStamp: INSTALL_STAMP,
+      isPackaged: IS_PACKAGED,
+      platform: process.platform
+    }
+  }
+
   // 1. Explicit override -- HERMES_DESKTOP_HERMES_ROOT points at a developer
   //    checkout. Honour it as-is (no bootstrap; the user is driving).
   const overrideRoot = process.env.HERMES_DESKTOP_HERMES_ROOT && path.resolve(process.env.HERMES_DESKTOP_HERMES_ROOT)
@@ -3179,11 +3207,68 @@ async function ensureRuntime(backend) {
   // will rewire startup to spawn the window first and route bootstrap events
   // to a renderer-side install overlay.
   if (backend.kind === 'bootstrap-needed') {
+    if (backend.w4yWayneRequired) {
+      // Phase B (first-run): packaged app, no Wayne engine on disk yet.
+      // Attempt to download + extract the engine ZIP before falling back to a hard error.
+      rememberLog('[w4y] Wayne motor não encontrado; iniciando download do engine ZIP (first-run).')
+
+      try {
+        broadcastBootstrapEvent({
+          type: 'manifest',
+          stages: [
+            {
+              name: 'engine-download',
+              title: 'Baixando motor Work4You…',
+              category: 'engine',
+              needs_user_input: false
+            }
+          ],
+          protocolVersion: null
+        })
+      } catch {
+        void 0
+      }
+
+      const wayneHome = w4yLogin.resolveWayneHome()
+      const engineDest = path.join(wayneHome, 'wayne-agent')
+
+      try {
+        await w4yWayne.ensureWayneEngineForPackaged(engineDest, {
+          onProgress: (msg, pct) => {
+            rememberLog(`[w4y-engine] ${msg}`)
+            try {
+              broadcastBootstrapEvent({
+                type: 'log',
+                stage: 'engine-download',
+                line: msg,
+                stream: 'stdout'
+              })
+            } catch {
+              void 0
+            }
+          }
+        })
+        rememberLog('[w4y] Motor Work4You instalado. Re-resolvendo backend.')
+        // Re-resolve: tryResolveWayneBackend will now find the new engine.
+        return ensureRuntime(resolveHermesBackend(backend.args))
+      } catch (engineErr) {
+        rememberLog(`[w4y] Download do motor falhou: ${engineErr && engineErr.message}`)
+        // Fall through to hard error below.
+      }
+
+      rememberLog(`[w4y] recusando bootstrap Hermes; motor Wayne obrigatório: ${backend.label}`)
+      const err = new Error(backend.label)
+      err.isBootstrapFailure = true
+      err.w4yWayneRequired = true
+      bootstrapFailure = err
+      throw err
+    }
+
     rememberLog('[bootstrap] no Hermes install found; starting first-launch bootstrap')
 
     if (await handOffWindowsBootstrapRecovery('bootstrap-needed')) {
       const handoffError = new Error(
-        'Hermes recovery was handed off to Hermes Setup. The desktop will restart when recovery completes.'
+        'Work4You recovery was handed off to the updater. The desktop will restart when recovery completes.'
       )
       handoffError.isBootstrapFailure = true
       handoffError.bootstrapHandedOff = true
@@ -5399,7 +5484,12 @@ async function spawnPoolBackend(profile, entry) {
   // step 3 in hermes_cli/main.py), so the child re-homes to this profile.
   // --port 0: the OS assigns an ephemeral port; the child announces it on stdout.
   const backendArgs = ['--profile', profile, 'serve', '--host', '127.0.0.1', '--port', '0']
-  const backend = await ensureRuntime(resolveHermesBackend(backendArgs))
+  let backend = await ensureRuntime(resolveHermesBackend(backendArgs))
+  // Dev/monorepo `.venv` may omit optional `[mcp]`; install before spawn so
+  // Composio connectors register (silent empty toolset otherwise).
+  if (backend.w4yWayne) {
+    backend = w4yWayne.ensureWayneMcpSdk(backend, rememberLog) || backend
+  }
   // Route old runtimes (no `serve`) through the legacy `dashboard --no-open`.
   backend.args = getBackendArgsForRuntime(backend)
   const hermesCwd = resolveHermesCwd()
@@ -5621,7 +5711,10 @@ async function startHermes() {
       backendArgs.unshift('--profile', activeProfile)
     }
     await advanceBootProgress('backend.runtime', 'Resolving Hermes runtime', 28)
-    const backend = await ensureRuntime(resolveHermesBackend(backendArgs))
+    let backend = await ensureRuntime(resolveHermesBackend(backendArgs))
+    if (backend.w4yWayne) {
+      backend = w4yWayne.ensureWayneMcpSdk(backend, rememberLog) || backend
+    }
     // Route old runtimes (no `serve`) through the legacy `dashboard --no-open`.
     backend.args = getBackendArgsForRuntime(backend)
     const hermesCwd = resolveHermesCwd()
@@ -6650,7 +6743,7 @@ ipcMain.handle('hermes:notify', (_event, payload) => {
   // and the body click still works.
   const actions = Array.isArray(payload?.actions) ? payload.actions : []
   const notification = new Notification({
-    title: payload?.title || 'Hermes',
+    title: payload?.title || APP_NAME,
     body: payload?.body || '',
     silent: Boolean(payload?.silent),
     actions: actions.map(action => ({ type: 'button', text: String(action?.text || '') }))
@@ -6712,6 +6805,9 @@ ipcMain.handle('hermes:readFileText', async (_event, filePath) => {
 ipcMain.handle('hermes:selectPaths', async (_event, options = {}) => {
   const properties = options?.directories ? ['openDirectory'] : ['openFile']
   if (options?.multiple !== false) properties.push('multiSelections')
+  // Same affordance as hermes:setting:defaultProjectDir:pick — lets the OS dialog
+  // create a folder in-place (macOS/Windows "New Folder" control).
+  if (options?.directories && options?.createDirectory) properties.push('createDirectory')
 
   let resolvedDefaultPath
   if (options?.defaultPath) {
@@ -7296,23 +7392,77 @@ ipcMain.handle('hermes:terminal:resize', (_event, id, size = {}) => {
 })
 ipcMain.handle('hermes:terminal:dispose', (_event, id) => disposeTerminalSession(String(id || '')))
 
-ipcMain.handle('hermes:updates:check', async () =>
-  checkUpdates().catch(error => ({
-    supported: true,
-    branch: readDesktopUpdateConfig().branch,
-    error: 'check-failed',
-    message: error?.message || String(error),
+ipcMain.handle('hermes:updates:check', async () => {
+  // Packaged builds: unified casca (electron-updater) + motor (latest.json) check.
+  if (IS_PACKAGED && w4yAppUpdater.isAvailable()) {
+    return w4yAppUpdater.check()
+  }
+  // Unpackaged (npm run dev / monorepo checkout): updates are packaged-only.
+  // Return a dev marker so the update chip never appears for engineers.
+  // To update your dev checkout use git pull as usual.
+  if (!IS_PACKAGED) {
+    return {
+      supported: false,
+      reason: 'dev',
+      message: 'Atualizações disponíveis apenas na versão instalada. Use git pull para atualizar o checkout de desenvolvimento.',
+      fetchedAt: Date.now()
+    }
+  }
+  // Packaged build but electron-updater failed to load (asar packaging issue).
+  // Do NOT fall through to the git-based updater — that path would launch the
+  // old hermes-setup.exe Tauri wizard, which shows "Updating Hermes / 0 of 2
+  // steps" and hangs on a ZIP-installed Work4You engine (not a git checkout).
+  // Surface a manual-download prompt instead so the user can grab the NSIS
+  // installer from the download page.
+  return {
+    supported: false,
+    reason: 'updater-unavailable',
+    message: 'Baixe a versão mais recente em work4you.ai/baixar.',
     fetchedAt: Date.now()
-  }))
-)
+  }
+})
 
-ipcMain.handle('hermes:updates:apply', async (_event, payload) =>
-  applyUpdates(payload || {}).catch(error => ({
+ipcMain.handle('hermes:updates:apply', async (_event, payload) => {
+  // Packaged builds: unified apply — motor (in-place) then casca (quitAndInstall).
+  if (IS_PACKAGED && w4yAppUpdater.isAvailable()) {
+    const wayneHome = w4yLogin.resolveWayneHome()
+    const engineRoot = path.join(wayneHome, 'wayne-agent')
+    return w4yAppUpdater.apply(emitUpdateProgress, {
+      // Stop the Python backend before overwriting engine files so Windows
+      // file locks on .pyd / python.exe are released before extraction.
+      stopBackend: async () => {
+        // Capture the reference before resetHermesConnection() nulls hermesProcess,
+        // then wait for the process to fully exit instead of a fixed sleep.
+        // waitForBackendExit will SIGKILL after 5s if needed on Windows.
+        const dying = hermesProcess && !hermesProcess.killed ? hermesProcess : null
+        resetHermesConnection()
+        await waitForBackendExit(dying)
+      },
+      engineRoot,
+      wayneHome
+    })
+  }
+  // Unpackaged: git-based apply (engineering only).
+  if (!IS_PACKAGED) {
+    return applyUpdates(payload || {}).catch(error => ({
+      ok: false,
+      error: 'apply-failed',
+      message: error?.message || String(error)
+    }))
+  }
+  // Packaged build but electron-updater failed to load (asar packaging issue).
+  // Do NOT fall through to git applyUpdates() — that would launch the old
+  // hermes-setup.exe Tauri wizard ("Updating Hermes / 0 of 2 steps"), which
+  // hangs on a ZIP-installed Work4You engine because it expects a git checkout.
+  // Direct the user to the NSIS installer download page instead.
+  return {
     ok: false,
-    error: 'apply-failed',
-    message: error?.message || String(error)
-  }))
-)
+    error: 'updater-unavailable',
+    manual: true,
+    command: null,
+    message: 'Baixe o instalador mais recente em work4you.ai/baixar e execute-o para atualizar o Work4You.'
+  }
+})
 
 ipcMain.handle('hermes:updates:branch:get', async () => readDesktopUpdateConfig())
 

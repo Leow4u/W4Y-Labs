@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
-import type { ComponentProps } from 'react'
+import { type ComponentProps, useEffect, useRef } from 'react'
 
+import { AgentsPanelBody } from '@/app/agents'
 import { TreeSkeleton } from '@/components/chat/skeletons'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { Button } from '@/components/ui/button'
@@ -9,15 +10,25 @@ import { useDelayedTrue } from '@/hooks/use-delayed-true'
 import { useI18n } from '@/i18n'
 import { normalizeOrLocalPreviewTarget } from '@/lib/local-preview'
 import { cn } from '@/lib/utils'
-import { $panesFlipped } from '@/store/layout'
+import { $fileBrowserOpen, $panesFlipped, setFileBrowserOpen } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import { setCurrentSessionPreviewTarget } from '@/store/preview'
 import { $currentCwd } from '@/store/session'
+import { $subagentsBySession, activeSubagentCount, allSubagents } from '@/store/subagents'
 
 import { SidebarPanelLabel } from '../shell/sidebar-label'
 
+import { BrowserPanelBody } from './browser/panel'
+import { $browserSession, openHtmlInBrowserPanel } from './browser/session'
 import { ProjectTree } from './files/tree'
 import { useProjectTree } from './files/use-project-tree'
+import {
+  $rightSidebarTab,
+  $terminalTakeover,
+  type RightSidebarTab,
+  setTerminalTakeover
+} from './store'
+import { TerminalPaneChrome } from './terminal/chrome'
 
 interface RightSidebarPaneProps {
   onActivateFile: (path: string) => void
@@ -29,6 +40,50 @@ export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSide
   const r = t.rightSidebar
   const panesFlipped = useStore($panesFlipped)
   const currentCwd = useStore($currentCwd).trim()
+  const fileBrowserOpen = useStore($fileBrowserOpen)
+  const terminalTakeover = useStore($terminalTakeover)
+  const tab = useStore($rightSidebarTab)
+  const browserSession = useStore($browserSession)
+  const subagentsBySession = useStore($subagentsBySession)
+  const runningAgents = activeSubagentCount(allSubagents(subagentsBySession))
+  const prevRunningRef = useRef(0)
+  const browserBusy = browserSession.status === 'running'
+
+  const selectTab = (next: RightSidebarTab) => {
+    $rightSidebarTab.set(next)
+    if (next === 'terminal') {
+      setTerminalTakeover(true)
+    } else if ($terminalTakeover.get()) {
+      setTerminalTakeover(false)
+    }
+  }
+
+  // When subagents start, open Ambiente and switch to the Agents tab.
+  useEffect(() => {
+    const prev = prevRunningRef.current
+    prevRunningRef.current = runningAgents
+    if (runningAgents > 0 && prev === 0) {
+      selectTab('agents')
+      if (!fileBrowserOpen) {
+        setFileBrowserOpen(true)
+      }
+    }
+  }, [fileBrowserOpen, runningAgents])
+
+  // External openers (keybinds, agent tabs, runInTerminal) flip takeover —
+  // mirror that onto the Ambiente Terminal tab and ensure the pane is open.
+  useEffect(() => {
+    if (terminalTakeover) {
+      if ($rightSidebarTab.get() !== 'terminal') {
+        $rightSidebarTab.set('terminal')
+      }
+      if (!$fileBrowserOpen.get()) {
+        setFileBrowserOpen(true)
+      }
+    } else if ($rightSidebarTab.get() === 'terminal') {
+      $rightSidebarTab.set('files')
+    }
+  }, [terminalTakeover])
 
   // The file tree is simply "browse the session's working directory". If the
   // session has a cwd — a repo, a sibling worktree, or any folder — show it. A
@@ -66,6 +121,12 @@ export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSide
       }
 
       setCurrentSessionPreviewTarget(preview, 'file-browser', path)
+
+      // HTML / localhost → also land in Ambiente Browser (webview), not only the
+      // separate Preview rail — matches “open landing.html in the Browser tab”.
+      if (preview.previewKind === 'html' || preview.kind === 'url') {
+        openHtmlInBrowserPanel(preview.url)
+      }
     } catch (error) {
       notifyError(error, r.previewUnavailable)
     }
@@ -81,25 +142,90 @@ export function RightSidebarPane({ onActivateFile, onActivateFolder }: RightSide
           : 'border-l shadow-[inset_0.0625rem_0_0_color-mix(in_srgb,white_18%,transparent)]'
       )}
     >
-      <FilesystemTab
-        canCollapse={canCollapse}
-        collapseNonce={collapseNonce}
-        cwd={effectiveCwd}
-        cwdName={cwdName}
-        data={data}
-        error={rootError}
-        hasWorkspace={hasWorkspace}
-        loading={rootLoading}
-        onActivateFile={onActivateFile}
-        onActivateFolder={onActivateFolder}
-        onCollapseAll={collapseAll}
-        onLoadChildren={loadChildren}
-        onNodeOpenChange={setNodeOpen}
-        onPreviewFile={previewFile}
-        onRefresh={() => void refreshRoot()}
-        openState={openState}
-      />
+      <div
+        aria-label={r.panelsAria}
+        className="flex h-7 shrink-0 items-center gap-0.5 border-b border-(--ui-stroke-tertiary) px-2"
+        role="tablist"
+      >
+        <TabButton active={tab === 'files'} label={r.files} onSelect={() => selectTab('files')} />
+        <TabButton
+          active={tab === 'agents'}
+          badge={runningAgents > 0 ? String(runningAgents) : undefined}
+          label={r.agents}
+          onSelect={() => selectTab('agents')}
+        />
+        <TabButton
+          active={tab === 'browser'}
+          badge={browserBusy ? '…' : undefined}
+          label={r.browser.tab}
+          onSelect={() => selectTab('browser')}
+        />
+        <TabButton active={tab === 'terminal'} label={r.terminal} onSelect={() => selectTab('terminal')} />
+      </div>
+
+      {tab === 'agents' ? (
+        <AgentsPanelBody />
+      ) : tab === 'browser' ? (
+        <BrowserPanelBody />
+      ) : tab === 'terminal' ? (
+        <div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-(--ui-editor-surface-background)">
+          <TerminalPaneChrome />
+        </div>
+      ) : (
+        <FilesystemTab
+          canCollapse={canCollapse}
+          collapseNonce={collapseNonce}
+          cwd={effectiveCwd}
+          cwdName={cwdName}
+          data={data}
+          error={rootError}
+          hasWorkspace={hasWorkspace}
+          loading={rootLoading}
+          onActivateFile={onActivateFile}
+          onActivateFolder={onActivateFolder}
+          onCollapseAll={collapseAll}
+          onLoadChildren={loadChildren}
+          onNodeOpenChange={setNodeOpen}
+          onPreviewFile={previewFile}
+          onRefresh={() => void refreshRoot()}
+          openState={openState}
+        />
+      )}
     </aside>
+  )
+}
+
+function TabButton({
+  active,
+  badge,
+  label,
+  onSelect
+}: {
+  active: boolean
+  badge?: string
+  label: string
+  onSelect: () => void
+}) {
+  return (
+    <button
+      aria-selected={active}
+      className={cn(
+        'inline-flex h-6 items-center gap-1 rounded-md px-2 text-[0.7rem] font-medium transition-colors',
+        active
+          ? 'bg-(--ui-control-active-background) text-foreground'
+          : 'text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) hover:text-foreground'
+      )}
+      onClick={onSelect}
+      role="tab"
+      type="button"
+    >
+      <span className="truncate">{label}</span>
+      {badge ? (
+        <span className="rounded bg-foreground/10 px-1 text-[0.62rem] tabular-nums text-foreground/80">
+          {badge}
+        </span>
+      ) : null}
+    </button>
   )
 }
 

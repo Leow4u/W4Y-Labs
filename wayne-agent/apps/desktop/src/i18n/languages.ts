@@ -4,43 +4,80 @@ import type { Locale } from './types'
 
 export const DEFAULT_LOCALE: Locale = 'en'
 
+/**
+ * Product language list. Primary picker order targets Américas + Europa.
+ * East-Asian locales stay resolvable for existing installs (`inPicker: false`)
+ * but are hidden from the Settings language menu.
+ */
 export const LOCALE_OPTIONS = [
+  {
+    id: 'pt',
+    name: 'Português',
+    englishName: 'Portuguese',
+    configValue: 'pt',
+    inPicker: true
+  },
   {
     id: 'en',
     name: 'English',
     englishName: 'English',
-    configValue: 'en'
+    configValue: 'en',
+    inPicker: true
+  },
+  {
+    id: 'es',
+    name: 'Español',
+    englishName: 'Spanish',
+    configValue: 'es',
+    inPicker: true
+  },
+  {
+    id: 'fr',
+    name: 'Français',
+    englishName: 'French',
+    configValue: 'fr',
+    inPicker: true
+  },
+  {
+    id: 'de',
+    name: 'Deutsch',
+    englishName: 'German',
+    configValue: 'de',
+    inPicker: true
   },
   {
     id: 'zh',
     name: '简体中文',
     englishName: 'Simplified Chinese',
-    configValue: 'zh'
+    configValue: 'zh',
+    inPicker: false
   },
   {
     id: 'zh-hant',
     name: '繁體中文',
     englishName: 'Traditional Chinese',
-    configValue: 'zh-hant'
-  },
-  {
-    id: 'pt',
-    name: 'Português',
-    englishName: 'Portuguese',
-    configValue: 'pt'
+    configValue: 'zh-hant',
+    inPicker: false
   },
   {
     id: 'ja',
     name: '日本語',
     englishName: 'Japanese',
-    configValue: 'ja'
+    configValue: 'ja',
+    inPicker: false
   }
-] as const satisfies readonly { configValue: string; englishName: string; id: Locale; name: string }[]
+] as const satisfies readonly {
+  configValue: string
+  englishName: string
+  id: Locale
+  inPicker: boolean
+  name: string
+}[]
 
 // `name` is the endonym (native name) shown in the picker so users recognize
 // their language regardless of the current UI language. No country flags:
 // languages are not countries. `englishName` is search-only (not shown) so an
-// English speaker can type "japanese"/"traditional" to filter the list.
+// English speaker can type "spanish"/"portuguese" to filter the list.
 export const LOCALE_META: Record<Locale, { name: string; englishName: string }> = Object.fromEntries(
   LOCALE_OPTIONS.map(locale => [locale.id, { name: locale.name, englishName: locale.englishName }])
 ) as Record<Locale, { name: string; englishName: string }>
@@ -49,6 +86,33 @@ const LOCALE_ALIASES: Record<string, Locale> = {
   en: 'en',
   'en-us': 'en',
   en_us: 'en',
+  'en-gb': 'en',
+  en_gb: 'en',
+  pt: 'pt',
+  'pt-br': 'pt',
+  pt_br: 'pt',
+  'pt-pt': 'pt',
+  pt_pt: 'pt',
+  es: 'es',
+  'es-es': 'es',
+  es_es: 'es',
+  'es-mx': 'es',
+  es_mx: 'es',
+  'es-ar': 'es',
+  es_ar: 'es',
+  'es-419': 'es',
+  fr: 'fr',
+  'fr-fr': 'fr',
+  fr_fr: 'fr',
+  'fr-ca': 'fr',
+  fr_ca: 'fr',
+  de: 'de',
+  'de-de': 'de',
+  de_de: 'de',
+  'de-at': 'de',
+  de_at: 'de',
+  'de-ch': 'de',
+  de_ch: 'de',
   zh: 'zh',
   'zh-cn': 'zh',
   zh_cn: 'zh',
@@ -70,12 +134,7 @@ const LOCALE_ALIASES: Record<string, Locale> = {
   zh_hant_hk: 'zh-hant',
   ja: 'ja',
   'ja-jp': 'ja',
-  ja_jp: 'ja',
-  pt: 'pt',
-  'pt-br': 'pt',
-  pt_br: 'pt',
-  'pt-pt': 'pt',
-  pt_pt: 'pt'
+  ja_jp: 'ja'
 }
 
 export function isLocale(value: unknown): value is Locale {
@@ -96,4 +155,9 @@ export function isSupportedLocaleValue(value: unknown): boolean {
 
 export function localeConfigValue(locale: Locale): string {
   return LOCALE_OPTIONS.find(item => item.id === locale)?.configValue ?? DEFAULT_LOCALE
+}
+
+/** Locales shown in the Settings language picker (product focus markets). */
+export function pickerLocaleOptions(current?: Locale) {
+  return LOCALE_OPTIONS.filter(locale => locale.inPicker || locale.id === current)
 }

@@ -5,7 +5,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { HUD_HEADING, HUD_ITEM, HUD_POSITION, HUD_SURFACE, HUD_TEXT } from '@/app/floating-hud'
-import { setTerminalTakeover } from '@/app/right-sidebar/store'
+import { openTerminalPanel } from '@/app/right-sidebar/store'
 import { Command, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { KbdCombo } from '@/components/ui/kbd'
 import { getHermesConfigRecord, listAllProfileSessions } from '@/hermes'
@@ -22,7 +22,6 @@ import {
   Download,
   Egg,
   GitBranch,
-  Globe,
   type IconComponent,
   Info,
   KeyRound,
@@ -43,8 +42,7 @@ import {
   Sun,
   Terminal,
   Users,
-  Wrench,
-  Zap
+  Wrench
 } from '@/lib/icons'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
@@ -81,6 +79,7 @@ import {
 import { FIELD_LABELS, SECTIONS } from '../settings/constants'
 import { fieldCopyForSchemaKey } from '../settings/field-copy'
 import { prettyName } from '../settings/helpers'
+import { prefetchSettings } from '../view-prefetch'
 
 import { MarketplaceThemePage } from './marketplace-theme-page'
 import { PetInlineToggle, PetPalettePage } from './pet-palette-page'
@@ -220,13 +219,11 @@ const toSessionEntry = (session: SessionRow): SessionEntry => ({
 
 type NonConfigSettingsLabel =
   | 'about'
-  | 'archivedChats'
-  | 'gateway'
+  | 'account'
   | 'keysSettings'
   | 'keysTools'
   | 'mcp'
-  | 'providerAccounts'
-  | 'providerApiKeys'
+  | 'modelsApiKeys'
 
 const NON_CONFIG_SETTINGS: ReadonlyArray<{
   icon: IconComponent
@@ -235,18 +232,17 @@ const NON_CONFIG_SETTINGS: ReadonlyArray<{
   tab: string
 }> = [
   {
-    icon: Zap,
-    keywords: ['accounts', 'sign in', 'oauth', 'login', 'subscription', 'models', 'anthropic', 'openai'],
-    labelKey: 'providerAccounts',
-    tab: 'providers&pview=accounts'
+    icon: Settings2,
+    keywords: ['account', 'profile', 'plan', 'usage', 'billing', 'subscription'],
+    labelKey: 'account',
+    tab: 'account'
   },
   {
     icon: KeyRound,
-    keywords: ['providers', 'api key', 'keys', 'secrets', 'tokens'],
-    labelKey: 'providerApiKeys',
-    tab: 'providers&pview=keys'
+    keywords: ['providers', 'api key', 'keys', 'secrets', 'tokens', 'byok', 'anthropic', 'openai'],
+    labelKey: 'modelsApiKeys',
+    tab: 'config:model&msection=keys'
   },
-  { icon: Globe, keywords: ['connection', 'messaging'], labelKey: 'gateway', tab: 'gateway' },
   {
     icon: KeyRound,
     keywords: ['api', 'secrets', 'tokens', 'credentials', 'browser', 'search'],
@@ -259,7 +255,6 @@ const NON_CONFIG_SETTINGS: ReadonlyArray<{
     labelKey: 'keysSettings',
     tab: 'keys&kview=settings'
   },
-  { icon: Archive, keywords: ['history', 'archived'], labelKey: 'archivedChats', tab: 'sessions' },
   { icon: Info, keywords: ['version', 'about'], labelKey: 'about', tab: 'about' }
 ]
 
@@ -348,7 +343,15 @@ export function CommandPalette() {
     }
   }, [open, pendingPage])
 
-  const go = useCallback((path: string) => () => navigate(path), [navigate])
+  const go = useCallback(
+    (path: string) => () => {
+      if (path === SETTINGS_ROUTE || path.startsWith(`${SETTINGS_ROUTE}?`)) {
+        prefetchSettings()
+      }
+      navigate(path)
+    },
+    [navigate]
+  )
 
   // Step up one nested page (or back to the root list), clearing the filter so
   // the parent page doesn't reopen mid-search.
@@ -416,7 +419,7 @@ export function CommandPalette() {
             id: 'nav-terminal',
             keywords: ['terminal', 'shell', 'console'],
             label: t.keybinds.actions['view.showTerminal'],
-            run: () => setTerminalTakeover(true)
+            run: () => openTerminalPanel()
           },
           {
             action: 'nav.settings',
@@ -451,7 +454,7 @@ export function CommandPalette() {
             action: 'nav.cron',
             icon: Clock,
             id: 'nav-cron',
-            keywords: ['schedule', 'jobs'],
+            keywords: ['schedule', 'jobs', 'automations', 'automation', 'cron', 'agenda', 'automações'],
             label: t.shell.statusbar.cron,
             run: go(CRON_ROUTE)
           },
@@ -460,7 +463,16 @@ export function CommandPalette() {
           {
             icon: Layers3,
             id: 'nav-agent-studio',
-            keywords: ['agent studio', 'create agent', 'template', 'workflow', 'work4you', 'equipe'],
+            keywords: [
+              'agent studio',
+              'agents',
+              'agentes',
+              'profiles',
+              'perfis',
+              'isolated',
+              'roster',
+              'work4you'
+            ],
             label: t.agentStudio.title,
             run: go(AGENT_STUDIO_ROUTE)
           },
@@ -553,7 +565,8 @@ export function CommandPalette() {
       {
         heading: cc.settings,
         items: [
-          ...SECTIONS.map(section => ({
+          // Advanced is off PME nav; keep deep link / field search for power users.
+          ...SECTIONS.filter(section => section.id !== 'advanced').map(section => ({
             icon: section.icon,
             id: `set-config-${section.id}`,
             keywords: ['settings', section.label, settingsSectionLabel(section)],
@@ -720,7 +733,7 @@ export function CommandPalette() {
           id: `archived-${session.id}`,
           keywords: ['archived', 'chat', 'session', ...(session.preview ? [session.preview] : [])],
           label: session.title,
-          run: go(`${SETTINGS_ROUTE}?tab=sessions&session=${encodeURIComponent(session.id)}`)
+          run: go(sessionRoute(session.id))
         }))
       })
     }

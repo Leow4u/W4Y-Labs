@@ -7,11 +7,19 @@ import { useI18n } from '@/i18n'
 import { preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { clearQueuedPrompts } from '@/store/composer-queue'
+import { ensureCloudBrainActive, ensureLocalBrainActive } from '@/store/gateway'
 import { $pinnedSessionIds } from '@/store/layout'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile, normalizeProfileKey } from '@/store/profile'
-import { resolveNewSessionCwd, tombstoneSessions, untombstoneSessions } from '@/store/projects'
+import { tombstoneSessions, untombstoneSessions } from '@/store/projects'
 import {
+  $runTarget,
+  resolveCwdForPreferredTarget,
+  resolveSessionCreateCwd,
+  setSessionRunTarget
+} from '@/store/run-target'
+import {
+  $archivedSessions,
   $currentCwd,
   $currentFastMode,
   $currentModel,
@@ -22,6 +30,7 @@ import {
   $yoloActive,
   sessionPinId,
   setActiveSessionId,
+  setArchivedSessions,
   setAwaitingResponse,
   setBusy,
   setCurrentBranch,
@@ -125,21 +134,26 @@ export function useSessionActions({
       })
       setSessionStartedAt(null)
       setTurnStartedAt(null)
-      // The composer's model/effort/fast is sticky UI state (persisted in
-      // localStorage) — a new chat FOLLOWS your last pick instead of snapping
-      // back to the profile default, so we deliberately don't reset it here. The
-      // profile default still owns first-run seeding and profile switches (see
-      // refreshCurrentModel). Only $currentServiceTier (a live-session mirror)
-      // is cleared.
+      // Composer model/effort/fast is sticky (localStorage) and write-through
+      // to the profile default — a new chat keeps the last pick. Don't reset
+      // it here. Profile swaps reseed via refreshCurrentModel. Only
+      // $currentServiceTier (a live-session mirror) is cleared.
       setCurrentServiceTier('')
       setYoloActive(false)
       // In a project → the repo's default-branch (main worktree) checkout; not in
       // a project → detached. So cmd-n "knows" the project instead of inheriting
       // whatever linked worktree the last session drifted into.
-      setCurrentCwd(resolveNewSessionCwd())
+      // Cloud 24/7: follow preferred run target; never seed a PC path for cloud.
+      setSessionRunTarget($runTarget.get())
+      setCurrentCwd(resolveCwdForPreferredTarget())
       setCurrentBranch('')
       // Never clear the composer here — ChatBar's per-thread draft swap owns it.
       setFreshDraftReady(true)
+      if ($runTarget.get() === 'cloud') {
+        void ensureCloudBrainActive().catch(() => undefined)
+      } else {
+        void ensureLocalBrainActive()
+      }
     },
     [activeSessionIdRef, busyRef, navigate, selectedStoredSessionIdRef]
   )
@@ -162,13 +176,28 @@ export function useSessionActions({
         // default" bug. This is a no-op for single-profile/local-pooled users:
         // a backend resolves its own launch profile to None (_profile_home).
         const newChatProfile = $newChatProfile.get() ?? normalizeProfileKey($activeGatewayProfile.get())
-        await ensureGatewayProfile(newChatProfile)
-        const cwd = $currentCwd.get().trim() || workspaceCwdForNewSession()
+        const preferred = $runTarget.get()
+        setSessionRunTarget(preferred)
+
+        if (preferred === 'cloud') {
+          await ensureCloudBrainActive()
+        } else {
+          await ensureLocalBrainActive()
+          await ensureGatewayProfile(newChatProfile)
+        }
+
+        const localCwd = $currentCwd.get().trim() || workspaceCwdForNewSession()
+        const cwd = resolveSessionCreateCwd(localCwd)
+        // Keep the composer cwd in sync with what we ship (cloud strips PC paths).
+        if (cwd !== $currentCwd.get()) {
+          setCurrentCwd(cwd)
+        }
         // The composer's model/effort/fast is sticky UI state ($currentModel,
         // $currentProvider, $currentReasoningEffort, $currentFastMode). Ship it
         // with every session.create so the new chat opens on whatever the picker
-        // shows — applied as per-session overrides, never written to the profile
-        // default (that lives in Settings → Model).
+        // shows — applied as per-session overrides. The profile default is
+        // already write-through from the Composer picker (selectModel); this
+        // seed only pins the new session so it does not wait on disk sync.
         const uiModel = $currentModel.get().trim()
         const uiProvider = $currentProvider.get().trim()
         const uiEffort = $currentReasoningEffort.get().trim()
@@ -178,7 +207,7 @@ export function useSessionActions({
           cols: 96,
           source: 'desktop',
           ...(cwd && { cwd }),
-          ...(newChatProfile ? { profile: newChatProfile } : {}),
+          ...(preferred === 'local' && newChatProfile ? { profile: newChatProfile } : {}),
           ...(uiModel ? { model: uiModel, ...(uiProvider ? { provider: uiProvider } : {}) } : {}),
           ...(uiEffort ? { reasoning_effort: uiEffort } : {}),
           ...(uiFast ? { fast: true } : {})
@@ -791,7 +820,12 @@ export function useSessionActions({
     async (storedSessionId: string) => {
       clearNotifications()
 
-      const removed = $sessions.get().find(session => sessionMatchesStoredId(session, storedSessionId))
+      const removed =
+        $sessions.get().find(session => sessionMatchesStoredId(session, storedSessionId)) ??
+        $archivedSessions.get().find(session => sessionMatchesStoredId(session, storedSessionId))
+      const wasArchived = Boolean(
+        removed && $archivedSessions.get().some(session => sessionMatchesStoredId(session, storedSessionId))
+      )
       const wasSelected = selectedStoredSessionId === storedSessionId
       const closingRuntimeId = wasSelected ? activeSessionId : null
       const previousMessages = $messages.get()
@@ -801,13 +835,16 @@ export function useSessionActions({
       const removedPinId = removed ? sessionPinId(removed) : storedSessionId
 
       setSessions(prev => prev.filter(session => !sessionMatchesStoredId(session, storedSessionId)))
+      setArchivedSessions(prev => prev.filter(session => !sessionMatchesStoredId(session, storedSessionId)))
       // Evict from the project tree's optimistic layer too (the backend snapshot
       // still lists it until its next refresh), so grouped + flat views drop the
       // row in lockstep.
       tombstoneSessions([storedSessionId, removed?.id, removed?._lineage_root_id])
       // Keep $sessionsTotal in sync so the sidebar's "Load N more" footer
       // doesn't keep claiming the removed row is still on the server.
-      setSessionsTotal(prev => Math.max(0, prev - 1))
+      if (!wasArchived) {
+        setSessionsTotal(prev => Math.max(0, prev - 1))
+      }
       $pinnedSessionIds.set(previousPinned.filter(id => id !== storedSessionId && id !== removedPinId))
 
       // Tear down before awaiting so the route effect can't resume the
@@ -829,8 +866,12 @@ export function useSessionActions({
         }
       } catch (err) {
         if (removed) {
-          setSessions(prev => [removed, ...prev])
-          setSessionsTotal(prev => prev + 1)
+          if (wasArchived) {
+            setArchivedSessions(prev => [removed, ...prev.filter(session => !sessionMatchesStoredId(session, storedSessionId))])
+          } else {
+            setSessions(prev => [removed, ...prev])
+            setSessionsTotal(prev => prev + 1)
+          }
         }
 
         untombstoneSessions([storedSessionId, removed?.id, removed?._lineage_root_id])
@@ -888,6 +929,12 @@ export function useSessionActions({
 
       // Soft-hide: drop from the sidebar immediately, keep the data.
       setSessions(prev => prev.filter(session => !sessionMatchesStoredId(session, storedSessionId)))
+      if (archived) {
+        setArchivedSessions(prev => [
+          { ...archived, archived: true },
+          ...prev.filter(session => !sessionMatchesStoredId(session, storedSessionId))
+        ])
+      }
       tombstoneSessions([storedSessionId, archived?.id, archived?._lineage_root_id])
       // Archived sessions are hidden by the listSessions(min_messages=1) query
       // on the next refresh, so they count as "removed" for the load-more
@@ -912,6 +959,7 @@ export function useSessionActions({
         if (archived) {
           setSessions(prev => [archived, ...prev.filter(session => !sessionMatchesStoredId(session, storedSessionId))])
           setSessionsTotal(prev => prev + 1)
+          setArchivedSessions(prev => prev.filter(session => !sessionMatchesStoredId(session, storedSessionId)))
         }
 
         untombstoneSessions([storedSessionId, archived?.id, archived?._lineage_root_id])
@@ -922,6 +970,42 @@ export function useSessionActions({
     [copy, selectedStoredSessionId, startFreshSessionDraft]
   )
 
+  const unarchiveSession = useCallback(
+    async (storedSessionId: string) => {
+      clearNotifications()
+
+      const archived = $archivedSessions.get().find(session => sessionMatchesStoredId(session, storedSessionId))
+
+      setArchivedSessions(prev => prev.filter(session => !sessionMatchesStoredId(session, storedSessionId)))
+      if (archived) {
+        setSessions(prev => [
+          { ...archived, archived: false },
+          ...prev.filter(session => !sessionMatchesStoredId(session, storedSessionId))
+        ])
+        setSessionsTotal(prev => prev + 1)
+      }
+      untombstoneSessions([storedSessionId, archived?.id, archived?._lineage_root_id])
+
+      try {
+        await setSessionArchived(storedSessionId, false, archived?.profile)
+        notify({ durationMs: 2_000, kind: 'success', message: copy.restored })
+      } catch (err) {
+        if (archived) {
+          setArchivedSessions(prev => [
+            archived,
+            ...prev.filter(session => !sessionMatchesStoredId(session, storedSessionId))
+          ])
+          setSessions(prev => prev.filter(session => !sessionMatchesStoredId(session, storedSessionId)))
+          setSessionsTotal(prev => Math.max(0, prev - 1))
+          tombstoneSessions([storedSessionId, archived.id, archived._lineage_root_id])
+        }
+
+        notifyError(err, copy.unarchiveFailed)
+      }
+    },
+    [copy]
+  )
+
   return {
     archiveSession,
     branchCurrentSession,
@@ -930,6 +1014,7 @@ export function useSessionActions({
     createBackendSessionForSend,
     openSettings,
     removeSession,
+    unarchiveSession,
     resumeSession,
     selectSidebarItem,
     startFreshSessionDraft

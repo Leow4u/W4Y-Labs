@@ -43,10 +43,9 @@ export type SetTitlebarToolGroup = (id: string, tools: readonly TitlebarTool[], 
 interface TitlebarControlsProps extends ComponentProps<'div'> {
   leftTools?: readonly TitlebarTool[]
   tools?: readonly TitlebarTool[]
-  onOpenSettings: () => void
 }
 
-export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }: TitlebarControlsProps) {
+export function TitlebarControls({ leftTools = [], tools = [] }: TitlebarControlsProps) {
   const { t } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
@@ -110,6 +109,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   }
 
   // Static system tools — always pinned to the screen's right edge.
+  // Settings lives in the account menu (sidebar foot), not here.
   const systemTools: TitlebarTool[] = [
     {
       active: hapticsMuted,
@@ -126,15 +126,6 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
         triggerHaptic('open')
         toggleKeybindPanel()
       }
-    },
-    {
-      icon: <Codicon name="settings-gear" />,
-      id: 'settings',
-      label: t.titlebar.openSettings,
-      onSelect: () => {
-        triggerHaptic('open')
-        onOpenSettings()
-      }
     }
   ]
 
@@ -147,8 +138,6 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   }
 
   const visibleSystemTools = systemTools.filter(tool => !tool.hidden)
-  const settingsTool = visibleSystemTools.find(tool => tool.id === 'settings')
-  const visibleSystemToolsBeforeSettings = visibleSystemTools.filter(tool => tool.id !== 'settings')
   const visiblePaneTools = tools.filter(tool => !tool.hidden)
 
   return (
@@ -187,10 +176,9 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
         aria-label={t.shell.appControls}
         className="fixed right-(--titlebar-tools-right) top-(--titlebar-controls-top) z-70 flex flex-row items-center justify-end gap-x-1 pointer-events-auto select-none [-webkit-app-region:no-drag]"
       >
-        {visibleSystemToolsBeforeSettings.map(tool => (
+        {visibleSystemTools.map(tool => (
           <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
         ))}
-        {settingsTool && <TitlebarToolButton navigate={navigate} tool={settingsTool} />}
         <TitlebarToolButton navigate={navigate} tool={rightSidebarTool} />
       </div>
     </>

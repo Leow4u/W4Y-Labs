@@ -1,6 +1,6 @@
 /**
- * Built-in desktop themes. Names match the CLI skins / dashboard presets.
- * Add new themes here — no code changes needed elsewhere.
+ * Built-in desktop themes. Internal `name` keys stay stable for persistence
+ * and CLI skin aliases; `label` / `description` are the product-facing names.
  */
 
 import type { DesktopTheme, DesktopThemeTypography } from './types'
@@ -16,16 +16,12 @@ const SYSTEM_SANS =
   EMOJI_FALLBACK
 
 const SYSTEM_MONO =
-  '"Cascadia Code", "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace, ' + EMOJI_FALLBACK
+  '"JetBrains Mono", "Cascadia Code", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace, ' + EMOJI_FALLBACK
 
-export const DEFAULT_TYPOGRAPHY: DesktopThemeTypography = { fontSans: SYSTEM_SANS, fontMono: SYSTEM_MONO }
+/** Work4You product default — UI + display share one sans; code stays mono. */
+const W4Y_SANS = `"Plus Jakarta Sans", ${SYSTEM_SANS}`
 
-const NOUS_BLUE = '#0053FD'
-const PSYCHE_BLUE = '#1540B1'
-const PSYCHE_WARM = '#FFE6CB'
-
-const nousTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFFFFF)`
-const nousTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
+export const DEFAULT_TYPOGRAPHY: DesktopThemeTypography = { fontSans: W4Y_SANS, fontMono: SYSTEM_MONO }
 
 const W4Y_OLIVE = '#5C6B3A'
 const W4Y_CHARCOAL = '#1A1A1A'
@@ -97,85 +93,16 @@ export const work4youTheme: DesktopTheme = {
     userBubbleBorder: '#3A4228'
   },
   typography: {
-    fontSans: SYSTEM_SANS,
+    fontSans: W4Y_SANS,
     fontMono: SYSTEM_MONO
   }
 }
 
-/**
- * Nous — legacy Hermes desktop identity (kept as an optional skin).
- * Glass neutrals with Nous blue / psyche cream accents.
- */
-export const nousTheme: DesktopTheme = {
-  name: 'nous',
-  label: 'Nous',
-  description: 'Glass neutrals with Nous blue accents',
-  colors: {
-    background: '#F8FAFF',
-    foreground: '#17171A',
-    card: '#FFFFFF',
-    cardForeground: '#17171A',
-    muted: nousTint(5),
-    mutedForeground: '#666678',
-    popover: '#FFFFFF',
-    popoverForeground: '#17171A',
-    primary: NOUS_BLUE,
-    primaryForeground: '#FCFCFC',
-    secondary: nousTint(7),
-    secondaryForeground: '#242432',
-    accent: nousTint(10),
-    accentForeground: '#202030',
-    border: nousTintTransparent(22),
-    input: nousTintTransparent(30),
-    ring: NOUS_BLUE,
-    midground: NOUS_BLUE,
-    composerRing: NOUS_BLUE,
-    destructive: '#C72E4D',
-    destructiveForeground: '#FFFFFF',
-    sidebarBackground: '#F3F7FF',
-    sidebarBorder: nousTintTransparent(18),
-    userBubble: nousTint(6),
-    userBubbleBorder: nousTintTransparent(24)
-  },
-  darkColors: {
-    background: '#0D2F86',
-    foreground: PSYCHE_WARM,
-    card: '#12378F',
-    cardForeground: PSYCHE_WARM,
-    muted: '#183F9A',
-    mutedForeground: '#B5C7F3',
-    popover: '#123A96',
-    popoverForeground: PSYCHE_WARM,
-    primary: PSYCHE_WARM,
-    primaryForeground: '#0D2F86',
-    secondary: '#1B45A4',
-    secondaryForeground: '#E0E8FF',
-    accent: PSYCHE_BLUE,
-    accentForeground: '#F0F4FF',
-    border: '#3158AD',
-    input: '#0B2566',
-    ring: PSYCHE_WARM,
-    midground: NOUS_BLUE,
-    composerRing: PSYCHE_WARM,
-    destructive: '#C0473A',
-    destructiveForeground: '#FEF2F2',
-    sidebarBackground: '#09286F',
-    sidebarBorder: '#234A9C',
-    userBubble: '#143B91',
-    userBubbleBorder: '#3A63BD'
-  },
-  typography: {
-    fontSans: SYSTEM_SANS,
-    fontMono: `"Courier Prime", ${SYSTEM_MONO}`,
-    fontUrl: 'https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap'
-  }
-}
-
-/** Deep blue-violet with cool accents. Matches the dashboard midnight theme. */
+/** Deep blue-violet with cool accents. */
 export const midnightTheme: DesktopTheme = {
   name: 'midnight',
-  label: 'Midnight',
-  description: 'Deep blue-violet with cool accents',
+  label: 'Nocturne',
+  description: 'Deep indigo night with cool accents',
   colors: {
     background: '#08081c',
     foreground: '#ddd6ff',
@@ -208,11 +135,11 @@ export const midnightTheme: DesktopTheme = {
   }
 }
 
-/** Warm crimson and bronze — forge vibes. Matches the CLI ares skin. */
+/** Warm crimson and bronze. */
 export const emberTheme: DesktopTheme = {
   name: 'ember',
-  label: 'Ember',
-  description: 'Warm crimson and bronze — forge vibes',
+  label: 'Cinder',
+  description: 'Warm bronze and ember glow',
   colors: {
     background: '#160800',
     foreground: '#ffd8b0',
@@ -245,11 +172,11 @@ export const emberTheme: DesktopTheme = {
   }
 }
 
-/** Clean grayscale. Matches the CLI mono skin and dashboard mono theme. */
+/** Clean grayscale. */
 export const monoTheme: DesktopTheme = {
   name: 'mono',
-  label: 'Mono',
-  description: 'Clean grayscale — minimal and focused',
+  label: 'Graphite',
+  description: 'Clean grayscale for quiet focus',
   colors: {
     background: '#0e0e0e',
     foreground: '#eaeaea',
@@ -278,11 +205,11 @@ export const monoTheme: DesktopTheme = {
   }
 }
 
-/** Neon green on black. Matches the CLI cyberpunk skin and dashboard theme. */
+/** Neon green on black. */
 export const cyberpunkTheme: DesktopTheme = {
   name: 'cyberpunk',
-  label: 'Cyberpunk',
-  description: 'Neon green on black — matrix terminal',
+  label: 'Signal',
+  description: 'Neon green on black — terminal energy',
   colors: {
     background: '#000a00',
     foreground: '#00ff41',
@@ -315,11 +242,11 @@ export const cyberpunkTheme: DesktopTheme = {
   }
 }
 
-/** Cool slate blue for developers. Matches the CLI slate skin. */
+/** Cool blue-gray workspace. */
 export const slateTheme: DesktopTheme = {
   name: 'slate',
-  label: 'Slate',
-  description: 'Cool slate blue — focused developer theme',
+  label: 'Harbor',
+  description: 'Cool blue-gray workspace for deep work',
   colors: {
     background: '#0d1117',
     foreground: '#c9d1d9',
@@ -353,7 +280,6 @@ export const slateTheme: DesktopTheme = {
 
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
   work4you: work4youTheme,
-  nous: nousTheme,
   midnight: midnightTheme,
   ember: emberTheme,
   mono: monoTheme,

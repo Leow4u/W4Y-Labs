@@ -12,6 +12,7 @@ import {
   failDesktopBoot,
   setDesktopBootStep
 } from '@/store/boot'
+import { $updateApply } from '@/store/updates'
 import {
   $gateway,
   closeSecondaryGateways,
@@ -319,6 +320,12 @@ export function useGatewayBoot({
     })
 
     const offExit = desktop.onBackendExit(() => {
+      // Intentional stop during an in-app engine update — suppress the scary
+      // "Backend stopped" toast. The update overlay already shows progress.
+      if ($updateApply.get().applying) {
+        return
+      }
+
       if ($desktopBoot.get().running || $desktopBoot.get().visible) {
         failDesktopBoot(translateNow('boot.errors.backgroundExitedDuringStartup'))
       }

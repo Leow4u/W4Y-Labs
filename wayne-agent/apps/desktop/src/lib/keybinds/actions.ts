@@ -51,12 +51,12 @@ const SESSION_SLOT_ACTIONS: KeybindActionMeta[] = Array.from({ length: SESSION_S
 export const KEYBIND_ACTIONS: readonly KeybindActionMeta[] = [
   // ── Composer ─────────────────────────────────────────────────────────────
   { id: 'composer.focus', category: 'composer', defaults: [] },
-  { id: 'composer.modelPicker', category: 'composer', defaults: [] },
-  // Voice conversation toggle. Matches the documented `voice.record_key`
-  // (Ctrl+B). On macOS that's literally ⌃B — distinct from the ⌘B sidebar
-  // toggle. Off macOS `ctrl` folds to `mod`, which IS the ⌘B/Ctrl+B sidebar
-  // chord, so ship it unbound there (rebindable in the panel) rather than
-  // stealing the long-standing sidebar binding.
+  // Cursor parity: Ctrl+; (⌘; on macOS) opens the model picker.
+  { id: 'composer.modelPicker', category: 'composer', defaults: ['mod+;'] },
+  // Voice conversation toggle for the Electron desktop. CLI/TUI still use
+  // config.yaml `voice.record_key`; Settings → Voice links here instead.
+  // On macOS default is ⌃B (distinct from ⌘B sidebar). Off macOS `ctrl`
+  // folds to `mod` (= sidebar chord), so ship unbound and rebindable.
   { id: 'composer.voice', category: 'composer', defaults: IS_MAC ? ['ctrl+b'] : [] },
 
   // ── Profiles ─────────────────────────────────────────────────────────────

@@ -1792,18 +1792,6 @@ copy_config_templates() {
         log_info "~/.wayne/config.yaml already exists, keeping it"
     fi
 
-    # Create SOUL.md if it doesn't exist (global persona file).
-    # This MUST match DEFAULT_SOUL_MD in wayne_cli/default_soul.py — the
-    # runtime (_ensure_default_soul_md) treats the old comment-only scaffold as
-    # "never customized" and upgrades it to this text on next run, so any drift
-    # here is self-healing, but keep them in sync to avoid a churn on first run.
-    if [ ! -f "$WAYNE_HOME/SOUL.md" ]; then
-        cat > "$WAYNE_HOME/SOUL.md" << 'SOUL_EOF'
-You are Wayne Agent, an intelligent AI assistant created by Nous Research. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
-SOUL_EOF
-        log_success "Created ~/.wayne/SOUL.md (edit to customize personality)"
-    fi
-
     log_success "Configuration directory ready: ~/.wayne/"
 
     # Seed bundled skills into ~/.wayne/skills/ (manifest-based, one-time per skill)

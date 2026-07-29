@@ -52,8 +52,12 @@ export type GatewayRequest = <T>(
 /** Profile-scoped pet RPC. Pets are per-profile, so every call carries the active
  *  profile (the gateway no-ops it for the launch profile). One chokepoint so no
  *  call site can forget it. */
-const petRpc = <T>(request: GatewayRequest, method: string, params: Record<string, unknown> = {}): Promise<T> =>
-  request<T>(method, { ...params, profile: petProfile() })
+const petRpc = <T>(
+  request: GatewayRequest,
+  method: string,
+  params: Record<string, unknown> = {},
+  timeoutMs?: number
+): Promise<T> => request<T>(method, { ...params, profile: petProfile() }, timeoutMs)
 
 /** A JSON-RPC "method not found" — the backend predates the pet RPCs. */
 function isMissingMethod(error: unknown): boolean {
@@ -127,11 +131,9 @@ export function loadPetGallery(request: GatewayRequest, options: { force?: boole
 
     try {
       // Phase 1: local pets only — instant, never blocks on the remote petdex
-      // manifest. The user's own/generated pets render right away.
-      const [local, info] = await Promise.all([
-        petRpc<PetGallery>(request, 'pet.gallery', { localOnly: true }),
-        petRpc<PetInfo>(request, 'pet.info')
-      ])
+      // manifest. Keep pet.info separate so a sprite-payload blip can't blank
+      // the picker (Promise.all used to fail the whole load when info threw).
+      const local = await petRpc<PetGallery>(request, 'pet.gallery', { localOnly: true })
 
       if (local) {
         $petGallery.set(local)
@@ -140,8 +142,14 @@ export function loadPetGallery(request: GatewayRequest, options: { force?: boole
         localOk = true
       }
 
-      if (info) {
-        setPetInfo(info)
+      try {
+        const info = await petRpc<PetInfo>(request, 'pet.info')
+
+        if (info) {
+          setPetInfo(info)
+        }
+      } catch {
+        // Cosmetic — gallery already painted.
       }
     } catch (e) {
       if (isMissingMethod(e)) {
@@ -150,7 +158,7 @@ export function loadPetGallery(request: GatewayRequest, options: { force?: boole
         // Only surface a hard error when we have nothing to show; a transient
         // hiccup mid-session leaves the cached gallery intact.
         $petGalleryStatus.set('error')
-        $petGalleryError.set(e instanceof Error ? e.message : 'Could not reach the petdex gallery.')
+        $petGalleryError.set(e instanceof Error ? e.message : 'Could not reach the pet gallery.')
       }
     } finally {
       galleryLoad = null
@@ -160,9 +168,10 @@ export function loadPetGallery(request: GatewayRequest, options: { force?: boole
     // manifest fetch never hides the local pets shown in phase 1.
     if (localOk) {
       try {
-        const full = await petRpc<PetGallery>(request, 'pet.gallery')
+        // Full catalog is ~1MB JSON — give the socket more than the default.
+        const full = await petRpc<PetGallery>(request, 'pet.gallery', {}, 180_000)
 
-        if (full) {
+        if (full?.pets?.length) {
           $petGallery.set(full)
           $petGalleryStatus.set('ready')
         }
@@ -293,15 +302,15 @@ export function adoptPet(request: GatewayRequest, slug: string, fallback: string
  * Turn the floating mascot on/off. On enable, activates the current pet (or the
  * first installed one). Returns false without firing if there's nothing to show.
  */
-export function setPetEnabled(
+export async function setPetEnabled(
   request: GatewayRequest,
   on: boolean,
   copy: { noneAvailable: string; fallback: string }
 ): Promise<boolean> {
-  const gallery = $petGallery.get()
+  let gallery = $petGallery.get()
 
   if (!on && !(gallery?.enabled ?? false)) {
-    return Promise.resolve(true)
+    return true
   }
 
   let slug = gallery?.active || ''
@@ -309,10 +318,18 @@ export function setPetEnabled(
   if (on) {
     slug = slug || gallery?.pets.find(p => p.installed)?.slug || ''
 
+    // Gallery load can fail (or be wiped on profile switch) while the pet is
+    // still on disk — refresh local pets before giving up.
+    if (!slug) {
+      await loadPetGallery(request, { force: true })
+      gallery = $petGallery.get()
+      slug = gallery?.active || gallery?.pets.find(p => p.installed)?.slug || ''
+    }
+
     if (!slug) {
       $petGalleryError.set(copy.noneAvailable)
 
-      return Promise.resolve(false)
+      return false
     }
   }
 
@@ -323,7 +340,20 @@ export function setPetEnabled(
       await petRpc(request, 'pet.disable')
     }
 
-    patchGallery(g => ({ ...g, enabled: on, active: on ? slug : g.active }))
+    const current = $petGallery.get()
+
+    if (current) {
+      patchGallery(g => ({ ...g, enabled: on, active: on ? slug : g.active }))
+    } else {
+      // Toggle succeeded but the picker cache is empty — seed a minimal row so
+      // Ligado/Desligado and the active card stay in sync.
+      $petGallery.set({
+        enabled: on,
+        active: slug,
+        pets: slug ? [{ slug, displayName: slug, installed: true }] : []
+      })
+      $petGalleryStatus.set('ready')
+    }
   })
 }
 

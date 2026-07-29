@@ -77,6 +77,29 @@ interface AgentsViewProps {
   onClose: () => void
 }
 
+/** Body used by the right-sidebar Ambiente tab (no overlay chrome). */
+export function AgentsPanelBody({ className }: { className?: string }) {
+  const { t } = useI18n()
+  const subagentsBySession = useStore($subagentsBySession)
+  const tree = useMemo(() => buildSubagentTree(allSubagents(subagentsBySession)), [subagentsBySession])
+
+  if (tree.length === 0) {
+    return (
+      <div className={cn('grid min-h-0 flex-1 place-items-center gap-3 px-4 py-10 text-center', className)}>
+        <Codicon className="text-muted-foreground/60" name="hubot" size="1.5rem" />
+        <p className="text-sm font-medium text-foreground/90">{t.agents.emptyTitle}</p>
+        <p className="max-w-md text-xs leading-relaxed text-muted-foreground/75">{t.agents.emptyDesc}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className={cn('min-h-0 flex-1 overflow-y-auto px-2.5 pb-3', className)}>
+      <SubagentTree tree={tree} />
+    </div>
+  )
+}
+
 export function AgentsView({ onClose }: AgentsViewProps) {
   const { t } = useI18n()
   const subagentsBySession = useStore($subagentsBySession)

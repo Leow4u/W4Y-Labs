@@ -79,6 +79,7 @@ interface SessionActions {
   onPin?: () => void
   onBranch?: () => void
   onArchive?: () => void
+  onUnarchive?: () => void
   onDelete?: () => void
 }
 
@@ -101,6 +102,7 @@ function useSessionActions({
   onPin,
   onBranch,
   onArchive,
+  onUnarchive,
   onDelete
 }: SessionActions) {
   const { t } = useI18n()
@@ -158,15 +160,25 @@ function useSessionActions({
         setRenameOpen(true)
       }
     },
-    {
-      disabled: !onArchive,
-      icon: 'archive',
-      label: r.archive,
-      onSelect: () => {
-        triggerHaptic('selection')
-        onArchive?.()
-      }
-    },
+    onUnarchive
+      ? {
+          disabled: false,
+          icon: 'inbox',
+          label: r.unarchive,
+          onSelect: () => {
+            triggerHaptic('selection')
+            onUnarchive()
+          }
+        }
+      : {
+          disabled: !onArchive,
+          icon: 'archive',
+          label: r.archive,
+          onSelect: () => {
+            triggerHaptic('selection')
+            onArchive?.()
+          }
+        },
     {
       className: 'text-destructive focus:text-destructive',
       disabled: !onDelete,

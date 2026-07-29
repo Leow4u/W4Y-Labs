@@ -40,6 +40,21 @@ interface ToolsetConfigPanelProps {
  *  backend's _MODEL_CATALOG_TOOLSETS map). */
 const MODEL_CATALOG_TOOLSETS = new Set(['image_gen', 'video_gen'])
 
+/** Soften vendor credit / signup surfaces in PME settings (catalog is Work4You). */
+function humanizeProviderLabel(name: string): string {
+  const raw = name.trim()
+
+  if (/^fal(\.ai)?$/i.test(raw) || /^fal\.ai$/i.test(raw)) {
+    return 'Image generation'
+  }
+
+  if (/^openrouter$/i.test(raw)) {
+    return 'Model catalog'
+  }
+
+  return raw
+}
+
 function providerConfigured(provider: ToolProvider, envState: Record<string, boolean>): boolean {
   if (provider.env_vars.length === 0) {
     return true
@@ -552,7 +567,7 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange }: ToolsetConfi
               type="button"
             >
               <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate text-sm font-medium">{provider.name}</span>
+                <span className="truncate text-sm font-medium">{humanizeProviderLabel(provider.name)}</span>
                 {provider.badge && <Pill>{provider.badge}</Pill>}
                 {configured && (
                   <Pill tone="primary">

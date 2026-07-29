@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import { memo, useState } from 'react'
 
+import { openHtmlInBrowserPanel } from '@/app/right-sidebar/browser/session'
 import { StatusRow } from '@/components/chat/status-row'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
@@ -37,7 +38,8 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
     return target
   }
 
-  const togglePreview = async () => {
+  /** In-app: Preview rail + Ambiente Browser tab (webview), never only OS browser. */
+  const openInApp = async () => {
     if (opening) {
       return
     }
@@ -51,7 +53,9 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
     setOpening(true)
 
     try {
-      setCurrentSessionPreviewTarget(await resolveTarget(), 'tool-result', item.target)
+      const target = await resolveTarget()
+      setCurrentSessionPreviewTarget(target, 'tool-result', item.target)
+      openHtmlInBrowserPanel(target.url)
     } catch (error) {
       notifyError(error, t.preview.unavailable)
     } finally {
@@ -59,7 +63,7 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
     }
   }
 
-  const openInBrowser = async () => {
+  const openExternal = async () => {
     try {
       const bridge = window.hermesDesktop?.openPreviewInBrowser
 
@@ -83,13 +87,12 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
           size="0.8rem"
         />
       }
-      // Plain click opens the link in the browser; ⌘/Ctrl-click opens it in the
-      // in-app preview pane instead. (isOpen still toggles the pane closed.)
+      // Plain click → in-app Preview + Browser tab. ⌘/Ctrl-click → system browser.
       onActivate={event => {
         if (event.metaKey || event.ctrlKey) {
-          void togglePreview()
+          void openExternal()
         } else {
-          void openInBrowser()
+          void openInApp()
         }
       }}
       trailing={

@@ -14,7 +14,7 @@ import {
   prettyJson,
   unwrapToolPayload
 } from './format'
-import { findFirstUrl, hostnameOf, looksLikePath, looksLikeUrl } from './targets'
+import { findFirstUrl, hostnameOf, isPreviewableTarget, looksLikePath, looksLikeUrl } from './targets'
 import type {
   CountMetric,
   MessageRunningStateSlice,
@@ -702,7 +702,7 @@ function toolPreviewTarget(toolName: string, args: Record<string, unknown>, resu
     firstStringField(args, ['preview', 'url', 'target', 'path', 'file', 'filepath']) ||
     firstStringField(result, ['path', 'file', 'filepath'])
 
-  if (direct && (looksLikeUrl(direct) || looksLikePath(direct))) {
+  if (direct && (looksLikeUrl(direct) || looksLikePath(direct) || isPreviewableTarget(direct))) {
     return direct
   }
 

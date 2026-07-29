@@ -9,7 +9,7 @@ export const CRON_ROUTE = '/cron'
 export const PROFILES_ROUTE = '/profiles'
 export const AGENTS_ROUTE = '/agents'
 export const STARMAP_ROUTE = '/starmap'
-/** Work4You product surface — see docs/AGENT-STUDIO.md */
+/** Isolated-agent roster (PRODUTO.md Agent Studio) — secondary to Work chat. */
 export const AGENT_STUDIO_ROUTE = '/agent-studio'
 
 export type AppView =
@@ -67,7 +67,6 @@ const RESERVED_PATHS: ReadonlySet<string> = new Set(APP_ROUTES.map(route => rout
 export const OVERLAY_VIEWS: ReadonlySet<AppView> = new Set([
   'agents',
   'command-center',
-  'cron',
   'profiles',
   'settings',
   'starmap'

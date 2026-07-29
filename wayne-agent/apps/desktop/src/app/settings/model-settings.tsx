@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useStore } from '@nanostores/react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,8 +25,10 @@ import type {
   StaleAuxAssignment
 } from '@/hermes'
 import { useI18n } from '@/i18n'
-import { AlertTriangle, Cpu, Loader2 } from '@/lib/icons'
+import { AlertTriangle, Loader2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { modelLabel, prepareW4yPickerProviders } from '@/lib/w4y-featured-models'
+import { $visibleModels, effectiveVisibleKeys, filterActiveModels } from '@/store/model-visibility'
 import { notifyError } from '@/store/notifications'
 import { startManualLocalEndpoint, startManualProviderOAuth } from '@/store/onboarding'
 
@@ -34,44 +37,68 @@ import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 
 import { CONTROL_TEXT } from './constants'
 import { getNested, setNested } from './helpers'
-import { ListRow, Pill, SectionHeading } from './primitives'
+import { ListRow, Pill, SettingsGroup } from './primitives'
 
-// Skeleton mirror of the Model settings DOM so the page keeps its shape while
-// the provider/model catalog loads, instead of collapsing to a centered
-// spinner. Same containers/rhythm as the real render below.
+/**
+ * PME face: Composer owns the profile default (contract B); helper/aux slots
+ * stay on auto unless Advanced resurfaces them. The APIs + handlers below stay
+ * wired so we can flip this without rebuilding the system — only the Settings
+ * chrome is hidden.
+ */
+const SHOW_DEFAULT_AND_AUX_SURFACE = false
+
+// Skeleton mirror of the Model settings cards while the catalog loads.
 export function ModelSettingsSkeleton() {
+  if (!SHOW_DEFAULT_AND_AUX_SURFACE) {
+    return (
+      <div className="grid gap-5" data-slot="model-settings-skeleton">
+        <Skeleton className="h-3 w-80 max-w-full" />
+        <section>
+          <Skeleton className="mb-1.5 h-3 w-40" />
+          <div className="overflow-hidden rounded-xl bg-(--ui-bg-tertiary)/70 px-3.5 py-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-8 w-40" />
+              <Skeleton className="h-8 w-24" />
+              <Skeleton className="h-8 w-28" />
+            </div>
+            <div className="mt-3 space-y-2">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          </div>
+        </section>
+      </div>
+    )
+  }
+
   return (
-    <div className="grid gap-6" data-slot="model-settings-skeleton">
+    <div className="grid gap-5" data-slot="model-settings-skeleton">
       <section>
-        <Skeleton className="mb-3 h-3 w-72 max-w-full" />
-        <div className="flex flex-wrap items-center gap-2">
-          <Skeleton className="h-8 w-40" />
-          <Skeleton className="h-8 w-60 max-w-full" />
-          <Skeleton className="h-8 w-16" />
-        </div>
-        <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-8 w-28" />
-          <Skeleton className="h-6 w-20" />
+        <Skeleton className="mb-1.5 h-3 w-24" />
+        <div className="overflow-hidden rounded-xl bg-(--ui-bg-tertiary)/70 px-3.5 py-3">
+          <Skeleton className="mb-3 h-3 w-72 max-w-full" />
+          <div className="flex flex-wrap items-center gap-2">
+            <Skeleton className="h-8 w-40" />
+            <Skeleton className="h-8 w-60 max-w-full" />
+            <Skeleton className="h-8 w-16" />
+          </div>
+          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+            <Skeleton className="h-3 w-16" />
+            <Skeleton className="h-8 w-28" />
+            <Skeleton className="h-6 w-20" />
+          </div>
         </div>
       </section>
-
       <section>
-        <div className="mb-2.5 flex items-center gap-2 pt-2">
-          <Skeleton className="size-4" />
-          <Skeleton className="h-4 w-36" />
-        </div>
-        <div className="grid gap-1">
+        <Skeleton className="mb-1.5 h-3 w-32" />
+        <div className="overflow-hidden rounded-xl bg-(--ui-bg-tertiary)/70">
           {[0, 1, 2, 3].map(row => (
-            <div
-              className="grid gap-3 py-3 @2xl:grid-cols-[minmax(0,1fr)_minmax(15rem,22rem)] @2xl:items-center"
-              key={row}
-            >
+            <div className="flex items-center justify-between gap-3 border-b border-(--ui-stroke-tertiary)/80 px-3.5 py-3 last:border-b-0" key={row}>
               <div className="min-w-0 space-y-1.5">
                 <Skeleton className="h-3.5 w-32" />
                 <Skeleton className="h-3 w-52 max-w-full" />
               </div>
-              <Skeleton className="h-8 w-full @2xl:justify-self-end @2xl:w-56" />
+              <Skeleton className="h-8 w-28" />
             </div>
           ))}
         </div>
@@ -124,6 +151,9 @@ const AUX_TASKS: readonly AuxTaskMeta[] = [
 
 const NO_PROVIDERS: readonly ModelOptionProvider[] = [{ name: '—', slug: '', models: [] }]
 
+/** PME council slots always bind to the unified catalog (OpenRouter under the hood). */
+const MOA_CATALOG_PROVIDER = 'openrouter'
+
 // Radix <Select> renders a blank trigger when `value` matches no <SelectItem>.
 // A custom model (e.g. one added via config that isn't in the provider's
 // curated list) would vanish — surface the active value so it stays selectable.
@@ -150,26 +180,30 @@ function StaleAuxWarning({ applying, onReset, slots, taskLabel }: StaleAuxWarnin
   const allSameProvider = slots.every(slot => slot.provider === provider)
   const names = slots.map(slot => taskLabel(slot.task)).join(', ')
 
+  const { t } = useI18n()
+  const m = t.settings.model
+
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+    <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-950 dark:text-amber-200">
       <AlertTriangle className="size-3.5 shrink-0" />
       <span className="grow">
-        {slots.length} auxiliary task{slots.length === 1 ? '' : 's'} ({names}) still run on{' '}
-        <span className="font-mono">{allSameProvider ? provider : 'other providers'}</span>, not your main model.
+        {m.staleAuxWarning(slots.length, names, allSameProvider ? provider : m.otherProviders)}
       </span>
       <Button disabled={applying} onClick={onReset} size="sm" variant="textStrong">
-        Reset all to main
+        {m.resetAllToMain}
       </Button>
     </div>
   )
 }
 
 interface ModelSettingsProps {
+  /** When true, skip the page intro (Models page owns the chrome). */
+  embed?: boolean
   /** Notified after the main model is applied, so live UI stores can sync. */
   onMainModelChanged?: (provider: string, model: string) => void
 }
 
-export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
+export function ModelSettings({ embed = false, onMainModelChanged }: ModelSettingsProps) {
   const { t } = useI18n()
   const m = t.settings.model
   const [loading, setLoading] = useState(true)
@@ -180,12 +214,11 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
   const [selectedModel, setSelectedModel] = useState('')
   const [auxiliary, setAuxiliary] = useState<AuxiliaryModelsResponse | null>(null)
   const [moa, setMoa] = useState<MoaConfigResponse | null>(null)
-  const [selectedMoaPreset, setSelectedMoaPreset] = useState('')
-  const [newMoaPresetName, setNewMoaPresetName] = useState('')
   // agent.* defaults round-trip through the shared config cache (read → write
   // back the whole record), so a save here shows in the MCP/config surfaces.
   const { data: config } = useHermesConfigRecord()
   const setConfig = setHermesConfigCache
+  const storedVisible = useStore($visibleModels)
   const [applying, setApplying] = useState(false)
   const [editingAuxTask, setEditingAuxTask] = useState<null | string>(null)
   const [auxDraft, setAuxDraft] = useState<{ model: string; provider: string }>({ model: '', provider: '' })
@@ -202,43 +235,59 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
   // A's models/providers into profile B (or fire onMainModelChanged for A).
   const profileEpoch = useRef(0)
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (opts?: { fullCatalog?: boolean }) => {
     const epoch = profileEpoch.current
     setLoading(true)
     setError('')
 
     try {
-      const [modelInfo, modelOptions, auxiliaryModels, moaModels] = await Promise.all([
-        getGlobalModelInfo(),
-        getGlobalModelOptions(),
-        getAuxiliaryModels(),
-        getMoaModels().catch(() => null)
-      ])
+      if (SHOW_DEFAULT_AND_AUX_SURFACE) {
+        // Critical path: paint primary + aux without waiting for MoA.
+        const [modelInfo, modelOptions, auxiliaryModels] = await Promise.all([
+          getGlobalModelInfo(),
+          getGlobalModelOptions(),
+          getAuxiliaryModels()
+        ])
 
-      if (profileEpoch.current !== epoch) {
-        return
+        if (profileEpoch.current !== epoch) {
+          return
+        }
+
+        setMainModel({ model: modelInfo.model, provider: modelInfo.provider })
+        setProviders(modelOptions.providers || [])
+        setSelectedProvider(prev => prev || modelInfo.provider)
+        setSelectedModel(prev => prev || modelInfo.model)
+        setAuxiliary(auxiliaryModels)
+        setLoading(false)
+
+        // MoA is power-user surface — load after first paint.
+        void getMoaModels()
+          .then(moaModels => {
+            if (profileEpoch.current !== epoch) return
+          setMoa(moaModels)
+        })
+        .catch(() => {
+          if (profileEpoch.current === epoch) setMoa(null)
+        })
+      } else {
+        // PME page is MoA-only: catalog for slot pickers + MoA config together.
+        const [modelOptions, moaModels] = await Promise.all([getGlobalModelOptions(), getMoaModels()])
+
+        if (profileEpoch.current !== epoch) {
+          return
+        }
+
+        setProviders(modelOptions.providers || [])
+        setMoa(moaModels)
+        setLoading(false)
       }
 
-      setMainModel({ model: modelInfo.model, provider: modelInfo.provider })
-      setProviders(modelOptions.providers || [])
-      setSelectedProvider(prev => prev || modelInfo.provider)
-      setSelectedModel(prev => prev || modelInfo.model)
-      setAuxiliary(auxiliaryModels)
-      setMoa(moaModels)
-
-      if (moaModels) {
-        setSelectedMoaPreset(prev => (prev && moaModels.presets[prev] ? prev : moaModels.default_preset))
+      if (opts?.fullCatalog) {
+        void invalidateHermesConfig()
       }
-
-      // The config record loads via its own shared query; a model switch can
-      // change it server-side (aux slots), so nudge that cache to refetch.
-      void invalidateHermesConfig()
     } catch (err) {
       if (profileEpoch.current === epoch) {
         setError(err instanceof Error ? err.message : String(err))
-      }
-    } finally {
-      if (profileEpoch.current === epoch) {
         setLoading(false)
       }
     }
@@ -255,19 +304,37 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
     void refresh()
   })
 
-  const providerOptions = providers.length ? providers : NO_PROVIDERS
+  const providerOptions = useMemo(() => {
+    const filtered = prepareW4yPickerProviders(providers)
+    return filtered.length ? filtered : NO_PROVIDERS
+  }, [providers])
+
+  const visibilityProviders = useMemo(
+    () => prepareW4yPickerProviders(providers).filter(provider => (provider.models ?? []).length > 0),
+    [providers]
+  )
+  const visibleKeys = useMemo(
+    () => effectiveVisibleKeys(storedVisible, visibilityProviders),
+    [storedVisible, visibilityProviders]
+  )
 
   // MoA reference/aggregator slots must never be the moa virtual provider —
   // that would create a recursive MoA tree (the backend rejects it on save).
-  // Hide it from the slot selectors so it isn't offered as a dead choice.
-  const moaSlotProviderOptions = providerOptions.filter(provider => (provider.slug || '').toLowerCase() !== 'moa')
+  // PME council: unified catalog filtered to Settings → Models toggles.
+  const moaCatalogModels = useMemo(() => {
+    const row = providers.find(provider => (provider.slug || '').toLowerCase() === MOA_CATALOG_PROVIDER)
+    return filterActiveModels(row?.models ?? [], MOA_CATALOG_PROVIDER, visibleKeys)
+  }, [providers, visibleKeys])
 
   const selectedProviderRow = useMemo(
     () => providers.find(provider => provider.slug === selectedProvider),
     [providers, selectedProvider]
   )
 
-  const selectedProviderModels = selectedProviderRow?.models ?? []
+  const selectedProviderModels = useMemo(
+    () => filterActiveModels(selectedProviderRow?.models ?? [], selectedProvider, visibleKeys),
+    [selectedProvider, selectedProviderRow, visibleKeys]
+  )
 
   // An unconfigured provider was picked: no credentials yet, so there are no
   // models to choose. `api_key` providers can be activated inline (paste key);
@@ -281,27 +348,39 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
   }, [selectedProvider])
 
   const auxDraftProviderModels = useMemo(
-    () => providers.find(provider => provider.slug === auxDraft.provider)?.models ?? [],
-    [auxDraft.provider, providers]
+    () =>
+      filterActiveModels(
+        providers.find(provider => provider.slug === auxDraft.provider)?.models ?? [],
+        auxDraft.provider,
+        visibleKeys
+      ),
+    [auxDraft.provider, providers, visibleKeys]
   )
 
-  const modelsForProvider = useCallback(
-    (provider: string) => providers.find(row => row.slug === provider)?.models ?? [],
-    [providers]
-  )
+  const currentMoaPresetName = useMemo(() => {
+    if (!moa) {
+      return ''
+    }
+
+    if (moa.default_preset && moa.presets[moa.default_preset]) {
+      return moa.default_preset
+    }
+
+    return Object.keys(moa.presets)[0] || ''
+  }, [moa])
 
   const currentMoaPreset = useMemo(() => {
-    if (!moa) {
+    if (!moa || !currentMoaPresetName) {
       return null
     }
 
-    return moa.presets[selectedMoaPreset] || moa.presets[moa.default_preset] || Object.values(moa.presets)[0] || null
-  }, [moa, selectedMoaPreset])
+    return moa.presets[currentMoaPresetName] || null
+  }, [moa, currentMoaPresetName])
 
   const updateMoaPreset = useCallback(
     (updater: (preset: NonNullable<typeof currentMoaPreset>) => NonNullable<typeof currentMoaPreset>) => {
       setMoa(prev => {
-        if (!prev || !selectedMoaPreset || !prev.presets[selectedMoaPreset]) {
+        if (!prev || !currentMoaPresetName || !prev.presets[currentMoaPresetName]) {
           return prev
         }
 
@@ -309,31 +388,67 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
           ...prev,
           presets: {
             ...prev.presets,
-            [selectedMoaPreset]: updater(prev.presets[selectedMoaPreset])
+            [currentMoaPresetName]: updater(prev.presets[currentMoaPresetName])
           }
         }
       })
     },
-    [selectedMoaPreset]
+    [currentMoaPresetName]
   )
 
   const updateMoaSlot = useCallback((slot: MoaModelSlot, patch: Partial<MoaModelSlot>): MoaModelSlot => {
     const next = { ...slot, ...patch }
 
-    if (patch.provider) {
+    if (patch.provider && patch.model === undefined) {
       next.model = ''
     }
 
     return next
   }, [])
 
+  const setCouncilModel = useCallback(
+    (kind: 'aggregator' | 'reference', model: string, index = 0) => {
+      updateMoaPreset(prev => {
+        if (kind === 'aggregator') {
+          return {
+            ...prev,
+            aggregator: updateMoaSlot(prev.aggregator, { provider: MOA_CATALOG_PROVIDER, model })
+          }
+        }
+
+        return {
+          ...prev,
+          reference_models: prev.reference_models.map((slot, i) =>
+            i === index ? updateMoaSlot(slot, { provider: MOA_CATALOG_PROVIDER, model }) : slot
+          )
+        }
+      })
+    },
+    [updateMoaPreset, updateMoaSlot]
+  )
+
   const saveMoa = useCallback(async (next: MoaConfigResponse) => {
     const epoch = profileEpoch.current
     setApplying(true)
     setError('')
 
+    // PME face locks every seat to the catalog provider before persist.
+    const presets = Object.fromEntries(
+      Object.entries(next.presets).map(([name, preset]) => [
+        name,
+        {
+          ...preset,
+          aggregator: { ...preset.aggregator, provider: MOA_CATALOG_PROVIDER },
+          reference_models: preset.reference_models.map(slot => ({
+            ...slot,
+            provider: MOA_CATALOG_PROVIDER
+          }))
+        }
+      ])
+    )
+
     try {
-      const saved = await saveMoaModels(next)
+      const saved = await saveMoaModels({ ...next, presets })
 
       if (profileEpoch.current !== epoch) {
         return
@@ -502,13 +617,18 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
       setMainModel({ provider, model })
       setSwitchStaleAux(result.stale_aux ?? [])
       onMainModelChanged?.(provider, model)
-      await refresh()
+      // Aux slots may have changed server-side; skip full MoA/catalog wait.
+      const auxiliaryModels = await getAuxiliaryModels()
+      if (profileEpoch.current === epoch) {
+        setAuxiliary(auxiliaryModels)
+      }
+      void invalidateHermesConfig()
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setApplying(false)
     }
-  }, [onMainModelChanged, refresh, selectedModel, selectedProvider])
+  }, [onMainModelChanged, selectedModel, selectedProvider])
 
   const setAuxiliaryToMain = useCallback(
     async (task: string) => {
@@ -591,152 +711,175 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
     }
   }, [mainModel, refresh])
 
-  if (loading && !mainModel) {
+  if (loading) {
     return <ModelSettingsSkeleton />
   }
 
   return (
-    <div className="grid gap-6">
-      <section>
-        <p className="mb-3 text-xs text-muted-foreground">{m.appliesDesc}</p>
-        <div className="flex flex-wrap items-center gap-2">
-          <Select onValueChange={setSelectedProvider} value={selectedProvider}>
-            <SelectTrigger className={cn('min-w-40', CONTROL_TEXT)}>
-              <SelectValue placeholder={m.provider} />
-            </SelectTrigger>
-            <SelectContent>
-              {providerOptions.map(provider => (
-                <SelectItem key={provider.slug || 'none'} value={provider.slug || 'none'}>
-                  {provider.name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {needsSetup ? (
-            setupIsApiKey ? (
-              <>
-                <Input
-                  autoComplete="off"
-                  className={cn('min-w-60 flex-1', CONTROL_TEXT)}
-                  onChange={event => setApiKeyDraft(event.target.value)}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter') {
-                      void activateApiKeyProvider()
-                    }
-                  }}
-                  placeholder={`Paste ${selectedProviderRow?.key_env ?? 'API key'}`}
-                  type="password"
-                  value={apiKeyDraft}
-                />
-                <Button
-                  disabled={!apiKeyDraft.trim() || activating}
-                  onClick={() => void activateApiKeyProvider()}
-                  size="sm"
-                >
-                  {activating && <Loader2 className="size-3.5 animate-spin" />}
-                  {activating ? 'Activating...' : 'Activate'}
-                </Button>
-              </>
-            ) : (
-              <Button onClick={startProviderSetup} size="sm" variant="textStrong">
-                Set up {selectedProviderRow?.name ?? 'provider'}
-              </Button>
-            )
-          ) : (
-            <>
-              <Select onValueChange={setSelectedModel} value={selectedModel}>
-                <SelectTrigger className={cn('min-w-60', CONTROL_TEXT)}>
-                  <SelectValue placeholder={m.model} />
-                </SelectTrigger>
-                <SelectContent>
-                  {withActive(selectedProviderModels, selectedModel).map(model => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button
-                disabled={!selectedProvider || !selectedModel || applying}
-                onClick={() => void applyMainModel()}
-                size="sm"
-              >
-                {applying && <Loader2 className="size-3.5 animate-spin" />}
-                {applying ? m.applying : t.common.apply}
-              </Button>
-            </>
-          )}
-        </div>
-        {needsSetup && !setupIsApiKey && (
-          <p className="mt-2 text-xs text-muted-foreground">
-            {selectedProviderRow?.auth_type === 'api_key'
-              ? `${selectedProviderRow?.name} needs an API key — set it up to choose a model.`
-              : `${selectedProviderRow?.name} signs in through your browser — Hermes runs the flow for you.`}
+    <div className="grid gap-0">
+      {!SHOW_DEFAULT_AND_AUX_SURFACE && !embed && (
+        <p className="mb-4 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+          {m.pageIntro}
+        </p>
+      )}
+
+      {SHOW_DEFAULT_AND_AUX_SURFACE && (
+      <>
+      <SettingsGroup
+        footer={
+          <p className="text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+            {m.appliesDesc}
           </p>
-        )}
-        {config && mainModel && (reasoningSupported || fastSupported) && (
-          <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
-            <span className="text-xs text-muted-foreground">{m.defaultsLabel}</span>
-            {reasoningSupported && (
-              <div className="flex items-center gap-2 text-xs">
-                {m.reasoning}
-                <Select
-                  onValueChange={value => void writeAgentDefault('agent.reasoning_effort', value)}
-                  value={effortValue}
-                >
-                  <SelectTrigger className={cn('min-w-28', CONTROL_TEXT)}>
-                    <SelectValue />
+        }
+        title={m.defaultGroup}
+      >
+        <div className="px-3.5 py-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select onValueChange={setSelectedProvider} value={selectedProvider}>
+              <SelectTrigger className={cn('min-w-40', CONTROL_TEXT)}>
+                <SelectValue placeholder={m.provider} />
+              </SelectTrigger>
+              <SelectContent>
+                {providerOptions.map(provider => (
+                  <SelectItem key={provider.slug || 'none'} value={provider.slug || 'none'}>
+                    {provider.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {needsSetup ? (
+              setupIsApiKey ? (
+                <>
+                  <Input
+                    autoComplete="off"
+                    className={cn('min-w-60 flex-1', CONTROL_TEXT)}
+                    onChange={event => setApiKeyDraft(event.target.value)}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        void activateApiKeyProvider()
+                      }
+                    }}
+                    placeholder={m.pasteApiKey(selectedProviderRow?.key_env ?? 'API key')}
+                    type="password"
+                    value={apiKeyDraft}
+                  />
+                  <Button
+                    disabled={!apiKeyDraft.trim() || activating}
+                    onClick={() => void activateApiKeyProvider()}
+                    size="sm"
+                  >
+                    {activating && <Loader2 className="size-3.5 animate-spin" />}
+                    {activating ? m.activating : m.activate}
+                  </Button>
+                </>
+              ) : (
+                <Button onClick={startProviderSetup} size="sm" variant="textStrong">
+                  {m.setupProvider(selectedProviderRow?.name ?? m.provider)}
+                </Button>
+              )
+            ) : (
+              <>
+                <Select onValueChange={setSelectedModel} value={selectedModel}>
+                  <SelectTrigger className={cn('min-w-60', CONTROL_TEXT)}>
+                    <SelectValue placeholder={m.model} />
                   </SelectTrigger>
                   <SelectContent>
-                    {EFFORT_VALUES.map(value => (
-                      <SelectItem key={value} value={value}>
-                        {value === 'none' ? m.reasoningOff : t.shell.modelOptions[effortLabelKey(value)]}
+                    {selectedProviderModels.map(model => (
+                      <SelectItem key={model} value={model}>
+                        {modelLabel(model)}
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-            )}
-            {fastSupported && (
-              <label className="flex items-center gap-2 text-xs">
-                {t.shell.modelOptions.fast}
-                <Switch
-                  checked={fastOn}
-                  onCheckedChange={checked => void writeAgentDefault('agent.service_tier', checked ? 'fast' : 'normal')}
-                  size="xs"
-                />
-              </label>
+                <Button
+                  disabled={!selectedProvider || !selectedModel || applying}
+                  onClick={() => void applyMainModel()}
+                  size="sm"
+                >
+                  {applying && <Loader2 className="size-3.5 animate-spin" />}
+                  {applying ? m.applying : t.common.apply}
+                </Button>
+              </>
             )}
           </div>
-        )}
-        {error && <div className="mt-2 text-xs text-destructive">{error}</div>}
-        {switchStaleAux.length > 0 && (
-          <div className="mt-2">
-            <StaleAuxWarning
-              applying={applying}
-              onReset={() => void resetAuxiliaryModels()}
-              slots={switchStaleAux}
-              taskLabel={auxiliaryTaskLabel}
-            />
-          </div>
-        )}
-      </section>
-
-      <section>
-        <div className="mb-2.5 flex items-center justify-between">
-          <SectionHeading icon={Cpu} title={m.auxiliaryTitle} />
-          <Button
-            disabled={!mainModel || applying}
-            onClick={() => void resetAuxiliaryModels()}
-            size="sm"
-            variant="textStrong"
-          >
-            {m.resetAllToMain}
-          </Button>
+          {needsSetup && !setupIsApiKey && (
+            <p className="mt-2 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+              {selectedProviderRow?.auth_type === 'api_key'
+                ? m.setupNeedsKey(selectedProviderRow?.name ?? m.provider)
+                : m.setupNeedsBrowser(selectedProviderRow?.name ?? m.provider)}
+            </p>
+          )}
+          {config && mainModel && (reasoningSupported || fastSupported) && (
+            <div className="mt-3 flex flex-wrap items-center gap-x-6 gap-y-3">
+              <span className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+                {m.defaultsLabel}
+              </span>
+              {reasoningSupported && (
+                <div className="flex items-center gap-2 text-[length:var(--conversation-caption-font-size)]">
+                  {m.reasoning}
+                  <Select
+                    onValueChange={value => void writeAgentDefault('agent.reasoning_effort', value)}
+                    value={effortValue}
+                  >
+                    <SelectTrigger className={cn('min-w-28', CONTROL_TEXT)}>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {EFFORT_VALUES.map(value => (
+                        <SelectItem key={value} value={value}>
+                          {value === 'none' ? m.reasoningOff : t.shell.modelOptions[effortLabelKey(value)]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              {fastSupported && (
+                <label className="flex items-center gap-2 text-[length:var(--conversation-caption-font-size)]">
+                  {t.shell.modelOptions.fast}
+                  <Switch
+                    checked={fastOn}
+                    onCheckedChange={checked => void writeAgentDefault('agent.service_tier', checked ? 'fast' : 'normal')}
+                    size="xs"
+                  />
+                </label>
+              )}
+            </div>
+          )}
+          {error && <div className="mt-2 text-xs text-destructive">{error}</div>}
+          {switchStaleAux.length > 0 && (
+            <div className="mt-2">
+              <StaleAuxWarning
+                applying={applying}
+                onReset={() => void resetAuxiliaryModels()}
+                slots={switchStaleAux}
+                taskLabel={auxiliaryTaskLabel}
+              />
+            </div>
+          )}
         </div>
-        <p className="mb-2 text-xs text-muted-foreground">{m.auxiliaryDesc}</p>
+      </SettingsGroup>
+
+      <SettingsGroup
+        footer={
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+              {m.auxiliaryDesc}
+            </p>
+            <Button
+              disabled={!mainModel || applying}
+              onClick={() => void resetAuxiliaryModels()}
+              size="sm"
+              variant="textStrong"
+            >
+              {m.resetAllToMain}
+            </Button>
+          </div>
+        }
+        title={m.auxiliaryTitle}
+      >
         {switchStaleAux.length === 0 && persistentStaleAux.length > 0 && (
-          <div className="mb-2.5">
+          <div className="border-b border-(--ui-stroke-tertiary)/80 px-3.5 py-2.5">
             <StaleAuxWarning
               applying={applying}
               onReset={() => void resetAuxiliaryModels()}
@@ -745,219 +888,48 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
             />
           </div>
         )}
-        <div className="grid gap-1">
-          {AUX_TASKS.map(meta => {
-            const copy = m.tasks[meta.key] ?? { label: meta.key, hint: meta.key }
-            const current = auxiliary?.tasks.find(entry => entry.task === meta.key)
-            const isAuto = !current || !current.provider || current.provider === 'auto'
-            const isEditing = editingAuxTask === meta.key
+        {AUX_TASKS.map(meta => {
+          const copy = m.tasks[meta.key] ?? { label: meta.key, hint: meta.key }
+          const current = auxiliary?.tasks.find(entry => entry.task === meta.key)
+          const isAuto = !current || !current.provider || current.provider === 'auto'
+          const isEditing = editingAuxTask === meta.key
 
-            return (
-              <ListRow
-                action={
-                  !isEditing && (
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <Button
-                        disabled={!mainModel || applying}
-                        onClick={() => void setAuxiliaryToMain(meta.key)}
-                        size="sm"
-                        variant="text"
-                      >
-                        {m.setToMain}
-                      </Button>
-                      <Button
-                        disabled={!providers.length || applying}
-                        onClick={() => beginAuxiliaryEdit(meta.key)}
-                        size="sm"
-                        variant="textStrong"
-                      >
-                        {m.change}
-                      </Button>
-                    </div>
-                  )
-                }
-                below={
-                  isEditing && (
-                    <div className="mt-2 flex flex-wrap items-center gap-2 pt-1">
-                      <Select
-                        onValueChange={value => setAuxDraft(prev => ({ ...prev, provider: value, model: '' }))}
-                        value={auxDraft.provider}
-                      >
-                        <SelectTrigger className={cn('min-w-32', CONTROL_TEXT)}>
-                          <SelectValue placeholder={m.provider} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {providerOptions.map(provider => (
-                            <SelectItem key={provider.slug || 'none'} value={provider.slug || 'none'}>
-                              {provider.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select
-                        onValueChange={value => setAuxDraft(prev => ({ ...prev, model: value }))}
-                        value={auxDraft.model}
-                      >
-                        <SelectTrigger className={cn('min-w-48', CONTROL_TEXT)}>
-                          <SelectValue placeholder={m.model} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {withActive(auxDraftProviderModels, auxDraft.model).map(model => (
-                            <SelectItem key={model} value={model}>
-                              {model}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        disabled={!auxDraft.provider || !auxDraft.model || applying}
-                        onClick={() => void applyAuxiliaryDraft(meta.key)}
-                        size="sm"
-                      >
-                        {applying ? m.applying : t.common.apply}
-                      </Button>
-                      <Button onClick={() => setEditingAuxTask(null)} size="sm" variant="ghost">
-                        {t.common.cancel}
-                      </Button>
-                    </div>
-                  )
-                }
-                description={
-                  <span className="font-mono text-[0.68rem]">
-                    {isAuto ? m.autoUseMain : `${current.provider} · ${current.model || m.providerDefault}`}
-                  </span>
-                }
-                key={meta.key}
-                title={
-                  <span className="flex items-baseline gap-2">
-                    {copy.label}
-                    <Pill>{copy.hint}</Pill>
-                  </span>
-                }
-              />
-            )
-          })}
-        </div>
-      </section>
-      {moa && currentMoaPreset && (
-        <section>
-          <div className="mb-2.5 flex items-center justify-between">
-            <SectionHeading icon={Cpu} title="Mixture of Agents" />
-            <Button disabled={applying} onClick={() => void saveMoa(moa)} size="sm" variant="textStrong">
-              {applying ? m.applying : t.common.save}
-            </Button>
-          </div>
-          <p className="mb-2 text-xs text-muted-foreground">
-            Configure named presets that appear as models under the Mixture of Agents provider. The aggregator is the
-            acting model.
-          </p>
-          <div className="mb-2 flex flex-wrap items-center gap-2">
-            <Select onValueChange={setSelectedMoaPreset} value={selectedMoaPreset || moa.default_preset}>
-              <SelectTrigger className={cn('min-w-40', CONTROL_TEXT)}>
-                <SelectValue placeholder="Preset" />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.keys(moa.presets).map(name => (
-                  <SelectItem key={name} value={name}>
-                    {name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              disabled={applying}
-              onClick={() => {
-                const next: MoaConfigResponse = {
-                  ...moa,
-                  default_preset: selectedMoaPreset || moa.default_preset
-                }
-
-                void saveMoa(next)
-              }}
-              size="sm"
-              variant="text"
-            >
-              Set default
-            </Button>
-            <Button
-              disabled={Object.keys(moa.presets).length <= 1 || applying}
-              onClick={() => {
-                if (Object.keys(moa.presets).length <= 1) {
-                  return
-                }
-
-                const presets = { ...moa.presets }
-                delete presets[selectedMoaPreset]
-                const fallback = Object.keys(presets)[0]
-
-                const next: MoaConfigResponse = {
-                  ...moa,
-                  presets,
-                  default_preset: moa.default_preset === selectedMoaPreset ? fallback : moa.default_preset,
-                  active_preset: moa.active_preset === selectedMoaPreset ? '' : moa.active_preset
-                }
-
-                setSelectedMoaPreset(Object.keys(moa.presets).find(name => name !== selectedMoaPreset) || '')
-                void saveMoa(next)
-              }}
-              size="sm"
-              variant="ghost"
-            >
-              Delete
-            </Button>
-            <Input
-              className={cn('w-40', CONTROL_TEXT)}
-              onChange={event => setNewMoaPresetName(event.target.value)}
-              placeholder="new preset"
-              value={newMoaPresetName}
-            />
-            <Button
-              disabled={!newMoaPresetName.trim() || !!moa.presets[newMoaPresetName.trim()] || applying}
-              onClick={() => {
-                const name = newMoaPresetName.trim()
-
-                const next: MoaConfigResponse = {
-                  ...moa,
-                  presets: {
-                    ...moa.presets,
-                    [name]: { ...currentMoaPreset, reference_models: [...currentMoaPreset.reference_models] }
-                  }
-                }
-
-                setSelectedMoaPreset(name)
-                setNewMoaPresetName('')
-                void saveMoa(next)
-              }}
-              size="sm"
-              variant="textStrong"
-            >
-              Add preset
-            </Button>
-          </div>
-          <div className="mb-2 text-xs text-muted-foreground">
-            Default: <span className="font-mono">{moa.default_preset}</span>
-          </div>
-          <div className="grid gap-1">
-            {currentMoaPreset.reference_models.map((slot, index) => (
-              <ListRow
-                below={
+          return (
+            <ListRow
+              action={
+                !isEditing && (
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    <Button
+                      disabled={!mainModel || applying}
+                      onClick={() => void setAuxiliaryToMain(meta.key)}
+                      size="sm"
+                      variant="text"
+                    >
+                      {m.setToMain}
+                    </Button>
+                    <Button
+                      disabled={!providers.length || applying}
+                      onClick={() => beginAuxiliaryEdit(meta.key)}
+                      size="sm"
+                      variant="textStrong"
+                    >
+                      {m.change}
+                    </Button>
+                  </div>
+                )
+              }
+              below={
+                isEditing && (
                   <div className="mt-2 flex flex-wrap items-center gap-2 pt-1">
                     <Select
-                      onValueChange={value =>
-                        updateMoaPreset(prev => ({
-                          ...prev,
-                          reference_models: prev.reference_models.map((s, i) =>
-                            i === index ? updateMoaSlot(s, { provider: value }) : s
-                          )
-                        }))
-                      }
-                      value={slot.provider}
+                      onValueChange={value => setAuxDraft(prev => ({ ...prev, provider: value, model: '' }))}
+                      value={auxDraft.provider}
                     >
                       <SelectTrigger className={cn('min-w-32', CONTROL_TEXT)}>
                         <SelectValue placeholder={m.provider} />
                       </SelectTrigger>
                       <SelectContent>
-                        {moaSlotProviderOptions.map(provider => (
+                        {providerOptions.map(provider => (
                           <SelectItem key={provider.slug || 'none'} value={provider.slug || 'none'}>
                             {provider.name}
                           </SelectItem>
@@ -965,118 +937,173 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
                       </SelectContent>
                     </Select>
                     <Select
-                      onValueChange={value =>
-                        updateMoaPreset(prev => ({
-                          ...prev,
-                          reference_models: prev.reference_models.map((s, i) =>
-                            i === index ? updateMoaSlot(s, { model: value }) : s
-                          )
-                        }))
-                      }
-                      value={slot.model}
+                      onValueChange={value => setAuxDraft(prev => ({ ...prev, model: value }))}
+                      value={auxDraft.model}
                     >
                       <SelectTrigger className={cn('min-w-48', CONTROL_TEXT)}>
                         <SelectValue placeholder={m.model} />
                       </SelectTrigger>
                       <SelectContent>
-                        {withActive(modelsForProvider(slot.provider), slot.model).map(model => (
+                        {auxDraftProviderModels.map(model => (
                           <SelectItem key={model} value={model}>
-                            {model}
+                            {modelLabel(model)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <Button
-                      disabled={currentMoaPreset.reference_models.length <= 1 || applying}
-                      onClick={() =>
-                        updateMoaPreset(prev => ({
-                          ...prev,
-                          reference_models: prev.reference_models.filter((_, i) => i !== index)
-                        }))
-                      }
+                      disabled={!auxDraft.provider || !auxDraft.model || applying}
+                      onClick={() => void applyAuxiliaryDraft(meta.key)}
                       size="sm"
-                      variant="ghost"
                     >
-                      Remove
+                      {applying ? m.applying : t.common.apply}
+                    </Button>
+                    <Button onClick={() => setEditingAuxTask(null)} size="sm" variant="ghost">
+                      {t.common.cancel}
                     </Button>
                   </div>
+                )
+              }
+              description={
+                <span className="font-mono text-[0.68rem]">
+                  {isAuto ? m.autoUseMain : `${current.provider} · ${current.model || m.providerDefault}`}
+                </span>
+              }
+              inset
+              key={meta.key}
+              title={
+                <span className="flex items-baseline gap-2">
+                  {copy.label}
+                  <Pill>{copy.hint}</Pill>
+                </span>
+              }
+            />
+          )
+        })}
+      </SettingsGroup>
+      </>
+      )}
+
+      {moa && currentMoaPreset ? (
+        <>
+          <SettingsGroup
+            footer={
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+                  {m.moaDesc}
+                </p>
+                <Button disabled={applying} onClick={() => void saveMoa(moa)} size="sm" variant="textStrong">
+                  {applying ? m.applying : t.common.save}
+                </Button>
+              </div>
+            }
+            title={m.moaTitle}
+          >
+            <div className="px-3.5 py-3">
+              <p className="text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+                {m.moaIntro}
+              </p>
+            </div>
+          </SettingsGroup>
+
+          <SettingsGroup
+            footer={
+              <Button
+                disabled={applying}
+                onClick={() =>
+                  updateMoaPreset(prev => ({
+                    ...prev,
+                    reference_models: [
+                      ...prev.reference_models,
+                      { provider: MOA_CATALOG_PROVIDER, model: prev.aggregator.model || '' }
+                    ]
+                  }))
                 }
-                description={
-                  <span className="font-mono text-[0.68rem]">
-                    {slot.provider} · {slot.model}
-                  </span>
+                size="sm"
+                variant="textStrong"
+              >
+                {m.moaAddReference}
+              </Button>
+            }
+            title={m.moaAdvisorsSection}
+          >
+            {currentMoaPreset.reference_models.map((slot, index) => (
+              <ListRow
+                action={
+                  <Button
+                    disabled={currentMoaPreset.reference_models.length <= 1 || applying}
+                    onClick={() =>
+                      updateMoaPreset(prev => ({
+                        ...prev,
+                        reference_models: prev.reference_models.filter((_, i) => i !== index)
+                      }))
+                    }
+                    size="sm"
+                    variant="ghost"
+                  >
+                    {t.common.remove}
+                  </Button>
                 }
-                key={`${selectedMoaPreset}-${slot.provider}-${slot.model}-${index}`}
-                title={`Reference ${index + 1}`}
+                below={
+                  <div className="mt-2 pt-1">
+                    <Select onValueChange={value => setCouncilModel('reference', value, index)} value={slot.model}>
+                      <SelectTrigger className={cn('w-full min-w-48', CONTROL_TEXT)}>
+                        <SelectValue placeholder={m.model} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {moaCatalogModels.map(model => (
+                          <SelectItem key={model} value={model}>
+                            {modelLabel(model)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                }
+                description={m.moaAdvisorHint}
+                inset
+                key={`advisor-${index}-${slot.model}`}
+                title={m.moaReference(index + 1)}
               />
             ))}
-            <Button
-              disabled={applying}
-              onClick={() =>
-                updateMoaPreset(prev => ({ ...prev, reference_models: [...prev.reference_models, prev.aggregator] }))
-              }
-              size="sm"
-              variant="textStrong"
-            >
-              Add reference model
-            </Button>
+          </SettingsGroup>
+
+          <SettingsGroup title={m.moaChairSection}>
             <ListRow
               below={
-                <div className="mt-2 flex flex-wrap items-center gap-2 pt-1">
+                <div className="mt-2 pt-1">
                   <Select
-                    onValueChange={value =>
-                      updateMoaPreset(prev => ({
-                        ...prev,
-                        aggregator: updateMoaSlot(prev.aggregator, { provider: value })
-                      }))
-                    }
-                    value={currentMoaPreset.aggregator.provider}
-                  >
-                    <SelectTrigger className={cn('min-w-32', CONTROL_TEXT)}>
-                      <SelectValue placeholder={m.provider} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {moaSlotProviderOptions.map(provider => (
-                        <SelectItem key={provider.slug || 'none'} value={provider.slug || 'none'}>
-                          {provider.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Select
-                    onValueChange={value =>
-                      updateMoaPreset(prev => ({
-                        ...prev,
-                        aggregator: updateMoaSlot(prev.aggregator, { model: value })
-                      }))
-                    }
+                    onValueChange={value => setCouncilModel('aggregator', value)}
                     value={currentMoaPreset.aggregator.model}
                   >
-                    <SelectTrigger className={cn('min-w-48', CONTROL_TEXT)}>
+                    <SelectTrigger className={cn('w-full min-w-48', CONTROL_TEXT)}>
                       <SelectValue placeholder={m.model} />
                     </SelectTrigger>
                     <SelectContent>
-                      {withActive(
-                        modelsForProvider(currentMoaPreset.aggregator.provider),
-                        currentMoaPreset.aggregator.model
-                      ).map(model => (
+                      {moaCatalogModels.map(model => (
                         <SelectItem key={model} value={model}>
-                          {model}
+                          {modelLabel(model)}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
               }
-              description={
-                <span className="font-mono text-[0.68rem]">
-                  {currentMoaPreset.aggregator.provider} · {currentMoaPreset.aggregator.model}
-                </span>
-              }
-              title="Aggregator"
+              description={m.moaChairHint}
+              inset
+              title={m.moaAggregator}
             />
-          </div>
-        </section>
+          </SettingsGroup>
+        </>
+      ) : !loading ? (
+        <SettingsGroup title={m.moaTitle}>
+          <p className="px-3.5 py-3 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+            {m.moaUnavailable}
+          </p>
+        </SettingsGroup>
+      ) : null}
+      {error && !SHOW_DEFAULT_AND_AUX_SURFACE && (
+        <div className="mt-2 text-xs text-destructive">{error}</div>
       )}
     </div>
   )

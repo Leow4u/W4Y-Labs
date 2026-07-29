@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { Download, Loader2, PawPrint, Pencil, Trash2 } from '@/lib/icons'
+import { Download, Loader2, Pencil, Trash2 } from '@/lib/icons'
 import { selectableCardClass } from '@/lib/selectable-card'
 import { cn } from '@/lib/utils'
 import { $petInfo, $petRoam, setPetRoam } from '@/store/pet'
@@ -35,7 +35,7 @@ import {
 } from '@/store/pet-gallery'
 import { $gatewayState } from '@/store/session'
 
-import { ListRow, SectionHeading } from './primitives'
+import { ListRow, SettingsGroup, SettingsGroupBody } from './primitives'
 
 /**
  * Appearance opt-in for the floating petdex mascot. A thin view over the shared
@@ -66,13 +66,21 @@ export function PetSettings() {
       return
     }
 
+    // Idle covers first open and FloatingPet's profile-switch cache reset
+    // (status → idle) while this panel stays mounted. Errors stay put until Retry.
+    if (status !== 'idle') {
+      return
+    }
+
     void loadPetGallery(requestGateway)
-  }, [gatewayState, requestGateway])
+  }, [gatewayState, requestGateway, status])
 
   const enabled = gallery?.enabled ?? false
   const active = gallery?.active ?? ''
   const pets = gallery?.pets ?? []
   const staleBackend = status === 'stale'
+  const loading = status === 'loading' || (status === 'idle' && gatewayState === 'open' && !gallery)
+  const loadFailed = status === 'error' && pets.length === 0
 
   const selectPet = (slug: string) => {
     void adoptPet(requestGateway, slug, copy.adoptFailed(slug)).then(ok => ok && triggerHaptic('crisp'))
@@ -112,154 +120,162 @@ export function PetSettings() {
   const shown = sorted.slice(0, RENDER_CAP)
 
   return (
-    <div>
-      <SectionHeading icon={PawPrint} title={copy.title} />
-      <p className="max-w-2xl text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-        {copy.intro}
-      </p>
-
-      {staleBackend && (
-        <p className="mt-2 rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) px-3 py-2 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-          {copy.restartHint}
-        </p>
-      )}
-
-      <div className="mt-2">
+    <>
+      <SettingsGroup title={copy.title}>
+        {staleBackend ? (
+          <SettingsGroupBody>
+            <p className="text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
+              {copy.restartHint}
+            </p>
+          </SettingsGroupBody>
+        ) : null}
         <ListRow
-          below={
-            <>
-              <input
-                className="mt-3 w-full rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) px-3 py-1.5 text-[length:var(--conversation-caption-font-size)] outline-none placeholder:text-(--ui-text-tertiary) focus:border-(--ui-stroke-secondary)"
-                onChange={event => setQuery(event.target.value)}
-                placeholder={copy.searchPlaceholder}
-                spellCheck={false}
-                value={query}
-              />
-              {/* Fixed-height scroll area so filtering never grows/shrinks the
-                  page (no layout thrash); the grid scrolls inside it. */}
-              <div className="mt-3 h-72 overflow-y-auto pr-1">
-                {pets.length === 0 ? (
-                  <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-                    {copy.unreachable}
-                  </p>
-                ) : shown.length === 0 ? (
-                  <p className="wrap-anywhere text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-                    {copy.noMatch(query)}
-                  </p>
-                ) : (
-                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    {shown.map(pet => {
-                      const isActive = enabled && active === pet.slug
-                      const isBusy = busySlug === pet.slug
-
-                      return (
-                        <div className="group relative" key={pet.slug}>
-                          <button
-                            className={cn(
-                              'flex w-full items-center gap-2.5 px-2.5 py-2 text-left disabled:opacity-50',
-                              selectableCardClass({ active: isActive, prominent: pet.installed })
-                            )}
-                            disabled={isBusy}
-                            onClick={() => void selectPet(pet.slug)}
-                            type="button"
-                          >
-                            <PetThumb
-                              alt={pet.displayName}
-                              load={(slug, url) => loadPetThumb(requestGateway, slug, url)}
-                              slug={pet.slug}
-                              url={pet.spritesheetUrl}
-                            />
-                            <span className="min-w-0 flex-1">
-                              <span className="flex items-center gap-1.5">
-                                <span className="truncate text-[length:var(--conversation-text-font-size)] font-medium">
-                                  {pet.displayName}
-                                </span>
-                                {pet.generated && (
-                                  <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-px text-[0.625rem] font-medium text-primary">
-                                    {copy.generatedTag}
-                                  </span>
-                                )}
-                              </span>
-                              <span className="block truncate text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-                                {pet.slug}
-                                {pet.installed ? ` · ${copy.installedTag}` : ''}
-                              </span>
-                            </span>
-                            {isBusy && <Loader2 className="size-4 shrink-0 animate-spin text-(--ui-text-tertiary)" />}
-                          </button>
-                          {!isBusy && (pet.installed || pet.generated) && (
-                            <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
-                              {pet.generated && (
-                                <PetAction
-                                  icon={<Pencil className="size-3.5" />}
-                                  label={copy.rename(pet.displayName)}
-                                  onClick={() => {
-                                    setRenameValue(pet.displayName)
-                                    setRenameTarget(pet)
-                                  }}
-                                />
-                              )}
-                              {pet.generated && (
-                                <PetAction
-                                  icon={<Download className="size-3.5" />}
-                                  label={copy.exportPet(pet.displayName)}
-                                  onClick={() => exportPet(pet.slug)}
-                                />
-                              )}
-                              {pet.installed && (
-                                // Generated pets have no remote source — deletion is
-                                // permanent, so confirm; petdex pets just uninstall.
-                                <PetAction
-                                  danger
-                                  icon={<Trash2 className="size-3.5" />}
-                                  label={pet.generated ? copy.delete(pet.displayName) : copy.uninstall(pet.displayName)}
-                                  onClick={() => (pet.generated ? setConfirmDelete(pet) : removePet(pet.slug))}
-                                />
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-              </div>
-              {/* Always-present status line so its appearance never shifts layout. */}
-              <p className="mt-2 min-h-4 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-                {error ? (
-                  <span className="text-(--ui-red)">{error}</span>
-                ) : sorted.length > RENDER_CAP ? (
-                  copy.countCapped(RENDER_CAP, sorted.length)
-                ) : (
-                  copy.count(sorted.length)
-                )}
-              </p>
-            </>
+          action={
+            <SegmentedControl
+              onChange={id => void toggle(id === 'on')}
+              options={[
+                { id: 'off', label: copy.off },
+                { id: 'on', label: copy.on }
+              ]}
+              value={enabled ? 'on' : 'off'}
+            />
           }
           description={copy.chooseDesc}
-          title={
-            <div className="flex items-center justify-between gap-3">
-              <span>{copy.chooseTitle}</span>
-              <SegmentedControl
-                onChange={id => void toggle(id === 'on')}
-                options={[
-                  { id: 'off', label: copy.off },
-                  { id: 'on', label: copy.on }
-                ]}
-                value={enabled ? 'on' : 'off'}
-              />
-            </div>
-          }
-          wide
+          inset
+          title={copy.chooseTitle}
         />
+        <SettingsGroupBody>
+          <input
+            className="w-full rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) px-3 py-1.5 text-[length:var(--conversation-caption-font-size)] outline-none placeholder:text-(--ui-text-tertiary) focus:border-(--ui-stroke-secondary)"
+            onChange={event => setQuery(event.target.value)}
+            placeholder={copy.searchPlaceholder}
+            spellCheck={false}
+            value={query}
+          />
+          <div className="mt-3 h-64 overflow-y-auto pr-1">
+            {loading ? (
+              <p className="flex items-center gap-2 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+                <Loader2 className="size-3.5 animate-spin" />
+                {copy.loadingGallery}
+              </p>
+            ) : loadFailed ? (
+              <div className="space-y-2">
+                <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+                  {copy.unreachable}
+                </p>
+                <Button
+                  onClick={() => {
+                    triggerHaptic('crisp')
+                    void loadPetGallery(requestGateway, { force: true })
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="textStrong"
+                >
+                  {copy.retryGallery}
+                </Button>
+              </div>
+            ) : pets.length === 0 ? (
+              <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+                {copy.emptyGallery}
+              </p>
+            ) : shown.length === 0 ? (
+              <p className="wrap-anywhere text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+                {copy.noMatch(query)}
+              </p>
+            ) : (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {shown.map(pet => {
+                  const isActive = enabled && active === pet.slug
+                  const isBusy = busySlug === pet.slug
 
-        {enabled && (
+                  return (
+                    <div className="group relative" key={pet.slug}>
+                      <button
+                        className={cn(
+                          'flex w-full items-center gap-2.5 px-2.5 py-2 text-left disabled:opacity-50',
+                          selectableCardClass({ active: isActive, prominent: pet.installed })
+                        )}
+                        disabled={isBusy}
+                        onClick={() => void selectPet(pet.slug)}
+                        type="button"
+                      >
+                        <PetThumb
+                          alt={pet.displayName}
+                          load={(slug, url) => loadPetThumb(requestGateway, slug, url)}
+                          slug={pet.slug}
+                          url={pet.spritesheetUrl}
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-center gap-1.5">
+                            <span className="truncate text-[length:var(--conversation-text-font-size)] font-medium">
+                              {pet.displayName}
+                            </span>
+                            {pet.generated && (
+                              <span className="shrink-0 rounded-full bg-primary/15 px-1.5 py-px text-[0.625rem] font-medium text-primary">
+                                {copy.generatedTag}
+                              </span>
+                            )}
+                          </span>
+                          <span className="block truncate text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+                            {pet.slug}
+                            {pet.installed ? ` · ${copy.installedTag}` : ''}
+                          </span>
+                        </span>
+                        {isBusy && <Loader2 className="size-4 shrink-0 animate-spin text-(--ui-text-tertiary)" />}
+                      </button>
+                      {!isBusy && (pet.installed || pet.generated) && (
+                        <div className="absolute right-1.5 top-1.5 flex gap-1 opacity-0 transition focus-within:opacity-100 group-hover:opacity-100">
+                          {pet.generated && (
+                            <PetAction
+                              icon={<Pencil className="size-3.5" />}
+                              label={copy.rename(pet.displayName)}
+                              onClick={() => {
+                                setRenameValue(pet.displayName)
+                                setRenameTarget(pet)
+                              }}
+                            />
+                          )}
+                          {pet.generated && (
+                            <PetAction
+                              icon={<Download className="size-3.5" />}
+                              label={copy.exportPet(pet.displayName)}
+                              onClick={() => exportPet(pet.slug)}
+                            />
+                          )}
+                          {pet.installed && (
+                            <PetAction
+                              danger
+                              icon={<Trash2 className="size-3.5" />}
+                              label={pet.generated ? copy.delete(pet.displayName) : copy.uninstall(pet.displayName)}
+                              onClick={() => (pet.generated ? setConfirmDelete(pet) : removePet(pet.slug))}
+                            />
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+          <p className="mt-2 min-h-4 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+            {error ? (
+              <span className="text-(--ui-red)">{error}</span>
+            ) : sorted.length > RENDER_CAP ? (
+              copy.countCapped(RENDER_CAP, sorted.length)
+            ) : (
+              copy.count(sorted.length)
+            )}
+          </p>
+        </SettingsGroupBody>
+        {enabled ? (
           <ListRow
             action={
               <div className="flex items-center gap-3">
                 <input
                   aria-label={copy.scaleTitle}
-                  className="h-1 w-40 cursor-pointer appearance-none rounded-full bg-(--ui-stroke-tertiary)"
+                  className="h-1 w-36 cursor-pointer appearance-none rounded-full bg-(--ui-stroke-tertiary)"
                   max={PET_SCALE_MAX}
                   min={PET_SCALE_MIN}
                   onChange={event => {
@@ -277,11 +293,11 @@ export function PetSettings() {
               </div>
             }
             description={copy.scaleDesc}
+            inset
             title={copy.scaleTitle}
           />
-        )}
-
-        {enabled && (
+        ) : null}
+        {enabled ? (
           <ListRow
             action={
               <SegmentedControl
@@ -297,10 +313,11 @@ export function PetSettings() {
               />
             }
             description={copy.roamDesc}
+            inset
             title={copy.roamTitle}
           />
-        )}
-      </div>
+        ) : null}
+      </SettingsGroup>
 
       <ConfirmDialog
         confirmLabel={copy.deleteConfirm}
@@ -353,7 +370,7 @@ export function PetSettings() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   )
 }
 

@@ -15,10 +15,12 @@ import {
   $selectedStoredSessionId,
   $sessions,
   $workingSessionIds,
+  ARCHIVED_SECTION_LIMIT,
   CRON_SECTION_LIMIT,
   getRecentlySettledSessionIds,
   mergeSessionPage,
   MESSAGING_SECTION_LIMIT,
+  setArchivedSessions,
   setCronSessions,
   setMessagingPlatformTotals,
   setMessagingSessions,
@@ -116,6 +118,15 @@ export function useSessionListActions({ profileScope }: UseSessionListActionsArg
     }
   }, [])
 
+  const refreshArchivedSessions = useCallback(async () => {
+    try {
+      const { sessions } = await listAllProfileSessions(ARCHIVED_SECTION_LIMIT, 0, 'only')
+      setArchivedSessions(prev => (sameCronSignature(prev, sessions) ? prev : sessions))
+    } catch {
+      // Non-fatal: the archived section just stays empty/stale.
+    }
+  }, [])
+
   // Page a single platform's section independently (mirrors the per-profile
   // pager): fetch that source's next window and merge it back in place, leaving
   // every other platform's rows untouched. Resolves the platform's exact total.
@@ -191,7 +202,8 @@ export function useSessionListActions({ profileScope }: UseSessionListActionsArg
     void refreshCronSessions()
     void refreshCronJobs()
     void refreshMessagingSessions()
-  }, [profileScope, refreshCronSessions, refreshCronJobs, refreshMessagingSessions])
+    void refreshArchivedSessions()
+  }, [profileScope, refreshCronSessions, refreshCronJobs, refreshMessagingSessions, refreshArchivedSessions])
 
   const loadMoreSessions = useCallback(async () => {
     bumpSessionsLimit()
@@ -224,6 +236,7 @@ export function useSessionListActions({ profileScope }: UseSessionListActionsArg
     loadMoreMessagingForPlatform,
     loadMoreSessions,
     loadMoreSessionsForProfile,
+    refreshArchivedSessions,
     refreshCronJobs,
     refreshMessagingSessions,
     refreshSessions

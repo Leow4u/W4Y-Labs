@@ -1,6 +1,16 @@
-"""Default SOUL.md template seeded into WAYNE_HOME on first run."""
+"""SOUL.md product policy for Work4You.
 
-DEFAULT_SOUL_MD = (
+Product identity is baked into the runtime (DEFAULT_AGENT_IDENTITY), like Cursor —
+not a public SOUL.md the user is meant to treat as the product persona.
+
+SOUL.md on disk is only an advanced override when the user wrote a real custom
+persona. Product-seeded / legacy Wayne templates are ignored (and cleaned up).
+"""
+
+from __future__ import annotations
+
+# Historical product default (Wayne / Nous) — treated as non-user content.
+_WAYNE_NOUS_DEFAULT_SOUL = (
     "You are Wayne Agent, an intelligent AI assistant created by Nous Research. "
     "You are helpful, knowledgeable, and direct. You assist users with a wide "
     "range of tasks including answering questions, writing and editing code, "
@@ -10,16 +20,12 @@ DEFAULT_SOUL_MD = (
     "Be targeted and efficient in your exploration and investigations."
 )
 
-# Legacy SOUL.md boilerplate that older installers (install.sh / install.ps1 /
-# docker/SOUL.md) seeded before they were switched to write DEFAULT_SOUL_MD.
-# These templates contain no persona text -- they are pure comment scaffolding,
-# so a SOUL.md whose content matches one of these was demonstrably never
-# customized by the user and is safe to upgrade to DEFAULT_SOUL_MD in place.
-#
-# Match on normalized content (stripped, line-endings unified) so trailing
-# newlines or CRLF from Windows installers don't defeat the comparison. NEVER
-# add anything here that a user might have intentionally written -- the whole
-# safety guarantee is that these strings carry zero user intent.
+# Kept as an alias for callers/tests that still import DEFAULT_SOUL_MD.
+# Work4You no longer seeds this file as product identity.
+DEFAULT_SOUL_MD = _WAYNE_NOUS_DEFAULT_SOUL
+
+# Legacy SOUL.md boilerplate that older installers seeded (comment-only scaffolds).
+# Safe to ignore/remove — zero user intent.
 _LEGACY_TEMPLATE_SOULS = (
     (
         "# Wayne Agent Persona\n"
@@ -38,9 +44,6 @@ _LEGACY_TEMPLATE_SOULS = (
         "Delete the contents (or this file) to use the default personality.\n"
         "-->"
     ),
-    # docker/SOUL.md and the install.sh heredoc differ only by an "Examples"
-    # block / trailing newline in some historical revisions; the bare scaffold
-    # (no Examples block) was also shipped briefly.
     (
         "# Wayne Agent Persona\n"
         "\n"
@@ -57,20 +60,24 @@ _LEGACY_TEMPLATE_SOULS = (
 
 
 def _normalize_soul(text: str) -> str:
-    """Normalize SOUL.md content for legacy-template comparison."""
-    # Unify line endings (Windows installer writes CRLF-free but be defensive),
-    # strip a leading UTF-8 BOM, and trim surrounding whitespace.
+    """Normalize SOUL.md content for template comparison."""
     return text.replace("\r\n", "\n").replace("\r", "\n").lstrip("\ufeff").strip()
 
 
 def is_legacy_template_soul(text: str) -> bool:
-    """True if ``text`` is an old empty-template SOUL.md (no user persona).
-
-    Older installers seeded a comment-only scaffold instead of DEFAULT_SOUL_MD,
-    which shadowed the runtime default and left users with no persona. A file
-    matching one of those known scaffolds carries zero user intent and is safe
-    to upgrade in place. Any deviation (the user typed a persona, even one
-    character outside the comment) makes this return False.
-    """
+    """True if ``text`` is an old comment-only scaffold (no user persona)."""
     normalized = _normalize_soul(text)
     return any(normalized == _normalize_soul(t) for t in _LEGACY_TEMPLATE_SOULS)
+
+
+def is_product_seeded_soul(text: str) -> bool:
+    """True if ``text`` is a product/installer seed — not a user-authored persona.
+
+    These must not override the baked-in Work4You identity (Cursor-style).
+    """
+    if not text or not str(text).strip():
+        return True
+    normalized = _normalize_soul(text)
+    if normalized == _normalize_soul(_WAYNE_NOUS_DEFAULT_SOUL):
+        return True
+    return is_legacy_template_soul(text)

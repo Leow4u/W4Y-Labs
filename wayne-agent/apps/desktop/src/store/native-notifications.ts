@@ -202,6 +202,8 @@ export async function respondToApprovalAction(sessionId: null | string, actionId
 
 // Settings "send test" — bypasses gating. Returns whether the OS accepted it so
 // the panel can flag a silent permission failure instead of looking dead.
+// `silent: true` suppresses the OS ding; Settings plays our completion-sound
+// preset separately so the preview matches the selected cue.
 export async function sendTestNativeNotification(title: string, body: string): Promise<boolean> {
   const bridge = window.hermesDesktop
 
@@ -210,7 +212,7 @@ export async function sendTestNativeNotification(title: string, body: string): P
   }
 
   try {
-    return await bridge.notify({ body, kind: 'turnDone', title })
+    return await bridge.notify({ body, kind: 'turnDone', silent: true, title })
   } catch {
     return false
   }

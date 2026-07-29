@@ -1,10 +1,18 @@
+import { useStore } from '@nanostores/react'
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 
 import { useI18n } from '@/i18n'
 import { requestModelOptions } from '@/lib/model-options'
 import { currentPickerSelection } from '@/lib/model-status-label'
 import { normalize } from '@/lib/text'
+import {
+  featuredModelLabel,
+  modelLabel,
+  prepareW4yPickerProviders,
+  W4Y_CATALOG_PROVIDER
+} from '@/lib/w4y-featured-models'
+import { $visibleModels, effectiveVisibleKeys, filterActiveModels } from '@/store/model-visibility'
 import type { ModelOptionProvider, ModelPricing } from '@/types/hermes'
 
 import type { HermesGateway } from '../hermes'
@@ -52,6 +60,7 @@ export function ModelPickerDialog({
   // it and do a plain substring filter that preserves array order — matching
   // the `hermes model` CLI picker, which shows the curated list verbatim.
   const [search, setSearch] = useState('')
+  const storedVisible = useStore($visibleModels)
 
   const modelOptions = useQuery({
     queryKey: ['model-options', sessionId || 'global'],
@@ -59,7 +68,14 @@ export function ModelPickerDialog({
     enabled: open
   })
 
-  const providers = modelOptions.data?.providers ?? []
+  const pickerProviders = useMemo(
+    () => prepareW4yPickerProviders(modelOptions.data?.providers).filter(p => (p.models ?? []).length > 0),
+    [modelOptions.data]
+  )
+  const visible = useMemo(
+    () => effectiveVisibleKeys(storedVisible, pickerProviders),
+    [pickerProviders, storedVisible]
+  )
 
   const { model: optionsModel, provider: optionsProvider } = currentPickerSelection(
     !!sessionId,
@@ -89,14 +105,16 @@ export function ModelPickerDialog({
     onOpenChange(false)
   }
 
+  const rawCurrent = optionsModel || currentModel
+  const displayCurrent = (featuredModelLabel(rawCurrent) ?? rawCurrent) || copy.unknown
+
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
       <DialogContent className={cn('max-h-[85vh] max-w-2xl gap-0 overflow-hidden p-0', contentClassName)}>
         <DialogHeader className="border-b border-border px-4 py-3">
           <DialogTitle>{copy.title}</DialogTitle>
           <DialogDescription className="font-mono text-xs leading-relaxed">
-            {copy.current} {optionsModel || currentModel || copy.unknown}
-            {optionsProvider || currentProvider ? ` · ${optionsProvider || currentProvider}` : ''}
+            {copy.current} {displayCurrent}
           </DialogDescription>
         </DialogHeader>
 
@@ -110,8 +128,9 @@ export function ModelPickerDialog({
               error={error}
               loading={loading}
               onSelectModel={selectModel}
-              providers={providers}
+              providers={pickerProviders}
               search={search}
+              visible={visible}
             />
           </CommandList>
         </Command>
@@ -136,7 +155,8 @@ function ModelResults({
   currentModel,
   currentProvider,
   onSelectModel,
-  search
+  search,
+  visible
 }: {
   loading: boolean
   error: string | null
@@ -145,6 +165,7 @@ function ModelResults({
   currentProvider: string
   onSelectModel: (provider: ModelOptionProvider, model: string) => void
   search: string
+  visible: Set<string>
 }) {
   const { t } = useI18n()
   const copy = t.modelPicker
@@ -169,31 +190,31 @@ function ModelResults({
 
   const q = normalize(search)
 
-  const matches = (provider: ModelOptionProvider, model: string) =>
-    !q ||
-    model.toLowerCase().includes(q) ||
-    provider.name.toLowerCase().includes(q) ||
-    provider.slug.toLowerCase().includes(q)
-
-  // Only configured providers (those with curated models) are selectable
-  // here. Switching to a NOT-yet-configured provider goes through the
-  // "Add provider" footer button, which opens the full onboarding selector.
-  const configured = providers.filter(p => (p.models ?? []).length > 0)
+  const matches = (provider: ModelOptionProvider, model: string) => {
+    const label = modelLabel(model)
+    return !q || model.toLowerCase().includes(q) || label.toLowerCase().includes(q) || provider.name.toLowerCase().includes(q)
+  }
 
   return (
     <>
-      {configured.map(provider => {
-        // Preserve the backend's curated order — filter in place, no re-sort.
-        const models = (provider.models ?? []).filter(m => matches(provider, m))
+      {providers.map(provider => {
+        // Settings → Models toggles only — off = gone from the list immediately.
+        const models = filterActiveModels(provider.models ?? [], provider.slug, visible).filter(m =>
+          matches(provider, m)
+        )
 
         if (models.length === 0) {
           return null
         }
 
         const unavailable = new Set(provider.unavailable_models ?? [])
+        const showHeading = provider.slug !== W4Y_CATALOG_PROVIDER
 
         return (
-          <CommandGroup heading={<ProviderHeading provider={provider} />} key={provider.slug}>
+          <CommandGroup
+            heading={showHeading ? <ProviderHeading provider={provider} /> : undefined}
+            key={provider.slug}
+          >
             {provider.warning && (
               <div className="px-2 pb-2">
                 <InlineNotice className="px-2.5 py-1.5 text-xs" kind="warning">
@@ -205,11 +226,12 @@ function ModelResults({
               const isCurrent = model === currentModel && provider.slug === currentProvider
               const price = provider.pricing?.[model]
               const locked = unavailable.has(model)
+              const label = modelLabel(model)
 
               return (
                 <CommandItem
                   className={cn(
-                    'flex items-center gap-2 pl-6 font-mono',
+                    'flex items-center gap-2 pl-6',
                     isCurrent &&
                       'bg-primary text-primary-foreground data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground',
                     locked && 'cursor-not-allowed opacity-45'
@@ -223,7 +245,7 @@ function ModelResults({
                   }}
                   value={`${provider.slug}:${model}`}
                 >
-                  <span className="min-w-0 flex-1 truncate">{model}</span>
+                  <span className="min-w-0 flex-1 truncate">{label}</span>
                   {locked && (
                     <span className="shrink-0 text-[0.62rem] uppercase tracking-wide opacity-80">{copy.pro}</span>
                   )}
@@ -310,9 +332,6 @@ function ProviderHeading({ provider }: { provider: ModelOptionProvider }) {
   return (
     <span className="flex min-w-0 items-center gap-2">
       <span className="truncate">{provider.name}</span>
-      <span className="font-mono text-xs font-normal normal-case tracking-normal text-muted-foreground">
-        {provider.slug} · {provider.total_models ?? provider.models?.length ?? 0}
-      </span>
       {tierBadge}
     </span>
   )
