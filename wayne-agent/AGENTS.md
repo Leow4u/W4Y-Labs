@@ -522,6 +522,12 @@ The dashboard embeds the real `wayne --tui` — **not** a rewrite.  See `wayne_c
 > impossible across the appId boundary — it would install a second Work4You
 > beside the first. One app, one appId, one feed.
 >
+> **Validate only on the installed app.** After desktop or engine changes,
+> publish to GCS and have the user apply the in-app update chip. Never tell
+> them to validate product behavior with `npm run dev`. Long publishes belong
+> in a background agent/shell so the chat can keep moving. See
+> `.cursor/rules/desktop-publish-via-app.mdc`.
+>
 > **Where to write what you learn** — three live docs, no fourth:
 > `docs/BACKEND-MAP.md` for engine contracts, gotchas and incidents;
 > `docs/INVENTARIO-SUPERFICIES.md` for what the engine has versus what the UI

@@ -7,9 +7,8 @@ integram a dezenas de ferramentas e modelos — um assistente operacional sempre
 ativo.
 
 > **Desktop oficial:** [`wayne-agent/apps/desktop`](wayne-agent/apps/desktop) (Electron + React).  
-> Dev: `cd wayne-agent/apps/desktop && npm run dev` · Pack: `npm run dist:win:nsis`  
-> `appId`: `com.work4you.app` (nova app — **não** o shell legado).  
-> `apps/desktop-shell` está **congelado** ([STOP-SHIP](wayne-agent/apps/desktop-shell/STOP-SHIP.md)); não é o produto.
+> Validar: publicar GCS → chip de atualização na **app instalada** (`npm run dist:win:nsis`).  
+> `appId`: `com.work4you.app`. Uma app só — `apps/desktop-shell` foi apagada.
 
 > Princípio inegociável: **não construímos infraestrutura própria**. Reusamos e
 > orquestramos o que já existe no mercado. Ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md).

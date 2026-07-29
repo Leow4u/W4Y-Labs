@@ -82,7 +82,7 @@ Só manter a luz acesa. Sem feature nova na casca.
 5. ✅ Stop-ship `desktop-shell`
 6. ✅ Banho de UI marca — wordmark Work4You, tema `work4you`, copy EN/títulos (favicon depois)
 
-**Como abrir:** `cd wayne-agent && npm install && cd apps/desktop && npm run dev`  
+**Validar:** publicar casca/motor no GCS e aplicar o chip na app instalada — **não** `npm run dev`.  
 **Push** por fatia.
 
 ---
