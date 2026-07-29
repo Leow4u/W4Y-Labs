@@ -57,19 +57,14 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
   const navigate = useNavigate()
   const { search } = useLocation()
 
-  // MCP moved out of Settings into Capabilities (/skills?tab=mcp). Keep old
-  // `/settings?tab=mcp` deep links working — `useRouteEnumParam` would silently
-  // coerce the unknown tab to the default view otherwise. Preserve `server=` so
-  // an old bookmark still lands on (and highlights) the selected server.
+  // Legacy `/settings?tab=mcp` → Conectores (MCP is no longer a product tab).
   // Archived chats moved to the sidebar — old `?tab=sessions` opens that section.
   useEffect(() => {
     const params = new URLSearchParams(search)
     const tab = params.get('tab')
 
     if (tab === 'mcp') {
-      const server = params.get('server')
-      const suffix = server ? `&server=${encodeURIComponent(server)}` : ''
-      navigate(`${SKILLS_ROUTE}?tab=mcp${suffix}`, { replace: true })
+      navigate(`${SKILLS_ROUTE}?tab=connectors`, { replace: true })
       return
     }
 

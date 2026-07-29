@@ -214,7 +214,11 @@ export const pt = defineLocale({
   },
 
   skills: {
-    tabConnectors: 'Conectores'
+    tabConnectors: 'Conectores',
+    emptyProductSkillsTitle: 'Ainda sem skills do projeto',
+    emptyProductSkillsDesc:
+      'Skills que o agente aprende aqui, e as que instalares no Browse Hub, aparecem nesta lista. As capacidades nativas já fazem parte da Work4You — basta pedir no chat.',
+    hubSkillManageHint: 'Instalada pelo Hub — desinstala ou actualiza em Browse Hub.'
   },
 
   connectors: {

@@ -37,7 +37,6 @@ import {
   RefreshCw,
   Settings,
   Settings2,
-  SlidersHorizontal,
   Starmap,
   Sun,
   Terminal,
@@ -607,9 +606,7 @@ export function CommandPalette() {
       })
     }
 
-    // Deep-link straight to a Capabilities sub-tab. The root "Go to" entry only
-    // lands on the top-level Skills view; typing "mcp"/"tools"/"skills" should
-    // jump to the exact tab (matches the "not just the top lvl" ask).
+    // Deep-link straight to a Capabilities sub-tab (Skills · Conectores · Hub).
     const capLabel = t.commandCenter.nav.skills.title
 
     result.push({
@@ -618,30 +615,23 @@ export function CommandPalette() {
         {
           icon: Wrench,
           id: 'cap-skills',
-          keywords: ['skills', 'capabilities'],
+          keywords: ['skills', 'capabilities', 'learned'],
           label: `${capLabel}: ${t.skills.tabSkills}`,
           run: go(`${SKILLS_ROUTE}?tab=skills`)
         },
         {
-          icon: SlidersHorizontal,
-          id: 'cap-toolsets',
-          keywords: ['tools', 'toolsets', 'capabilities'],
-          label: `${capLabel}: ${t.skills.tabToolsets}`,
-          run: go(`${SKILLS_ROUTE}?tab=toolsets`)
-        },
-        {
           icon: Link2,
           id: 'cap-connectors',
-          keywords: ['connectors', 'composio', 'integrations', 'gmail', 'slack'],
+          keywords: ['connectors', 'composio', 'integrations', 'gmail', 'slack', 'mcp'],
           label: `${capLabel}: ${t.skills.tabConnectors}`,
           run: go(`${SKILLS_ROUTE}?tab=connectors`)
         },
         {
           icon: Layers3,
-          id: 'cap-mcp',
-          keywords: ['mcp', 'servers', 'tools', 'capabilities', 'model context protocol'],
-          label: `${capLabel}: ${t.skills.tabMcp}`,
-          run: go(`${SKILLS_ROUTE}?tab=mcp`)
+          id: 'cap-hub',
+          keywords: ['hub', 'browse', 'install', 'skills', 'marketplace'],
+          label: `${capLabel}: ${t.skills.tabHub}`,
+          run: go(`${SKILLS_ROUTE}?tab=hub`)
         }
       ]
     })
@@ -706,15 +696,16 @@ export function CommandPalette() {
 
     result.push({ heading: t.commandCenter.settingsFields, items: fieldItems })
 
+    // MCP plumbing is no longer a product tab — accounts live under Conectores.
     if (mcpServers.length > 0) {
       result.push({
         heading: t.commandCenter.mcpServers,
         items: mcpServers.map(name => ({
           icon: Wrench,
           id: `mcp-${name}`,
-          keywords: ['mcp', 'server', 'tool'],
+          keywords: ['mcp', 'server', 'tool', 'connectors'],
           label: name,
-          run: go(`${SKILLS_ROUTE}?tab=mcp&server=${encodeURIComponent(name)}`)
+          run: go(`${SKILLS_ROUTE}?tab=connectors`)
         }))
       })
     }

@@ -1043,6 +1043,9 @@ export interface Translations {
     emptyNoneFound: (noun: string) => string
     emptyNothingMatches: (query: string) => string
     emptyNoneAvailable: (noun: string) => string
+    emptyProductSkillsTitle: string
+    emptyProductSkillsDesc: string
+    hubSkillManageHint: string
     changesApplyNewSessions: string
     skillUpdated: string
     edit: string

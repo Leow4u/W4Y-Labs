@@ -1,59 +1,42 @@
 // @vitest-environment jsdom
 import { QueryClientProvider } from '@tanstack/react-query'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { cleanup, render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type * as HermesApi from '@/hermes'
 import { queryClient } from '@/lib/query-client'
 
-const getSkills = vi.fn()
-const getToolsets = vi.fn()
-const toggleSkill = vi.fn()
-const toggleToolset = vi.fn()
-const getToolsetConfig = vi.fn()
-const selectToolsetProvider = vi.fn()
-const getUsageAnalytics = vi.fn()
+import { isProductSkill } from './index'
 
-// Partial mock: keep the real module (SkillsView pulls in @/store/profile,
-// whose import-time subscription calls setApiRequestProfile) and stub only the
-// calls we assert on.
+const getSkills = vi.fn()
+
 vi.mock('@/hermes', async importOriginal => ({
   ...(await importOriginal<typeof HermesApi>()),
-  getSkills: () => getSkills(),
-  getToolsets: () => getToolsets(),
-  toggleSkill: (name: string, enabled: boolean) => toggleSkill(name, enabled),
-  toggleToolset: (name: string, enabled: boolean) => toggleToolset(name, enabled),
-  getToolsetConfig: (name: string) => getToolsetConfig(name),
-  selectToolsetProvider: (toolset: string, provider: string) => selectToolsetProvider(toolset, provider),
-  getUsageAnalytics: (days: number) => getUsageAnalytics(days)
+  getSkills: () => getSkills()
 }))
 
-// Notifications hit nanostores/timers we don't care about here.
 vi.mock('@/store/notifications', () => ({
   notify: vi.fn(),
   notifyError: vi.fn()
 }))
 
-function toolset(overrides: Record<string, unknown> = {}) {
+function skill(overrides: Record<string, unknown> = {}) {
   return {
-    name: 'web',
-    label: 'Web Search',
-    description: 'web_search, web_extract',
+    name: 'demo',
+    description: 'A skill',
+    category: 'general',
     enabled: true,
-    available: true,
-    configured: true,
-    tools: ['web_search', 'web_extract'],
+    usage: 0,
     ...overrides
   }
 }
 
-function renderSkills() {
+function renderSkills(entry = '/skills') {
   return import('./index').then(({ SkillsView }) =>
     render(
-      // SkillsView reads skills/toolsets via useQuery, so it needs a provider.
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/skills?tab=toolsets']}>
+        <MemoryRouter initialEntries={[entry]}>
           <SkillsView />
         </MemoryRouter>
       </QueryClientProvider>
@@ -63,50 +46,70 @@ function renderSkills() {
 
 beforeEach(() => {
   getSkills.mockResolvedValue([])
-  getToolsets.mockResolvedValue([toolset()])
-  toggleToolset.mockResolvedValue({ ok: true, name: 'web', enabled: false })
-  getToolsetConfig.mockResolvedValue({ has_category: true, active_provider: null, providers: [] })
-  getUsageAnalytics.mockResolvedValue({ tools: [] })
 })
 
 afterEach(() => {
   cleanup()
   vi.clearAllMocks()
-  // Shared singleton client — drop cached skills/toolsets so each test refetches.
   queryClient.clear()
 })
 
-describe('SkillsView toolset management', () => {
-  it('renders a switch for each toolset and toggles it off', async () => {
+describe('isProductSkill', () => {
+  it('keeps learned and hub skills, drops bundled kit', () => {
+    expect(isProductSkill(skill({ provenance: 'agent' }))).toBe(true)
+    expect(isProductSkill(skill({ provenance: 'hub' }))).toBe(true)
+    expect(isProductSkill(skill({ provenance: 'bundled' }))).toBe(false)
+    expect(isProductSkill(skill({}))).toBe(false)
+  })
+})
+
+describe('SkillsView product face', () => {
+  it('lists only learned and hub skills, without enable toggles', async () => {
+    getSkills.mockResolvedValue([
+      skill({ name: 'gmail-composio', provenance: 'agent', category: 'productivity' }),
+      skill({ name: 'agentmail', provenance: 'hub', category: 'general' }),
+      skill({ name: 'arxiv', provenance: 'bundled', category: 'research' })
+    ])
+
     await renderSkills()
 
-    const sw = await screen.findByRole('switch', { name: 'Toggle Web Search toolset' })
-    expect(sw.getAttribute('aria-checked')).toBe('true')
-
-    fireEvent.click(sw)
-
-    await waitFor(() => expect(toggleToolset).toHaveBeenCalledWith('web', false))
+    await screen.findByText('gmail-composio')
+    expect(screen.getAllByText('agentmail').length).toBeGreaterThan(0)
+    expect(screen.queryByText('arxiv')).toBeNull()
+    expect(screen.queryByRole('switch')).toBeNull()
   })
 
-  it('renders toolset titles without leading emoji', async () => {
-    getToolsets.mockResolvedValue([toolset({ name: 'cronjob', label: '⏰ Cron Jobs', description: 'cron tools' })])
-
+  it('exposes Skills, Connectors, and Browse Hub — not Tools or MCP', async () => {
     await renderSkills()
 
-    // The label renders in both the row and the auto-selected detail header, so
-    // assert via the switch's (emoji-stripped) accessible name and the absence
-    // of the emoji rather than a single-match text lookup.
-    await screen.findByRole('switch', { name: 'Toggle Cron Jobs toolset' })
-    expect(screen.queryByText(/⏰/)).toBeNull()
+    await waitFor(() => expect(screen.getAllByText('Skills').length).toBeGreaterThan(0))
+    expect(screen.getAllByText('Connectors').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Browse Hub').length).toBeGreaterThan(0)
+    expect(screen.queryByText('Tools')).toBeNull()
+    expect(screen.queryByText('MCP')).toBeNull()
   })
 
-  it('renders the provider config panel inline for the selected toolset', async () => {
-    // The master-detail UI dropped the resting "Configured" pill and the
-    // "Configure" expander: the detail column auto-selects the first toolset
-    // and renders its config panel directly, which fetches on mount.
+  it('coerces legacy ?tab=toolsets and ?tab=mcp to the Skills tab', async () => {
+    getSkills.mockResolvedValue([skill({ name: 'learned-one', provenance: 'agent' })])
+
+    await renderSkills('/skills?tab=toolsets')
+    await screen.findAllByText('learned-one')
+    expect(screen.queryByRole('switch')).toBeNull()
+
+    cleanup()
+    queryClient.clear()
+
+    await renderSkills('/skills?tab=mcp')
+    await screen.findAllByText('learned-one')
+  })
+
+  it('shows empty state pointing at Browse Hub when there are no product skills', async () => {
+    getSkills.mockResolvedValue([skill({ name: 'arxiv', provenance: 'bundled' })])
+
     await renderSkills()
 
-    await screen.findByRole('switch', { name: 'Toggle Web Search toolset' })
-    await waitFor(() => expect(getToolsetConfig).toHaveBeenCalledWith('web'))
+    await screen.findByText('No project skills yet')
+    // Tab label + empty-state CTA both say Browse Hub.
+    expect(screen.getAllByRole('button', { name: 'Browse Hub' }).length).toBeGreaterThan(0)
   })
 })

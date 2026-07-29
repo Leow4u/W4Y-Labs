@@ -1583,6 +1583,10 @@ export const en: Translations = {
     emptyNoneFound: noun => `No ${noun} found`,
     emptyNothingMatches: query => `Nothing matches “${query}”.`,
     emptyNoneAvailable: noun => `No ${noun} available yet.`,
+    emptyProductSkillsTitle: 'No project skills yet',
+    emptyProductSkillsDesc:
+      'Skills the agent learns here, and ones you install from Browse Hub, show up in this list. Built-in capabilities are already part of Work4You — just ask in chat.',
+    hubSkillManageHint: 'Installed from the Hub — uninstall or update under Browse Hub.',
     changesApplyNewSessions: 'Changes apply to new sessions.',
     skillUpdated: 'Skill updated',
     edit: 'Edit',

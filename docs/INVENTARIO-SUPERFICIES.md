@@ -12,9 +12,17 @@ Levantamento só-leitura de **o que existe** e **o que está ligado**, superfíc
 |---|---|
 | Contratos do motor, gotchas, incidentes (validade longa) | [`BACKEND-MAP.md`](BACKEND-MAP.md) |
 | O que o produto é e para quem | [`PRODUTO.md`](PRODUTO.md) |
+| Fórmula vs Conectores (destino UI Habilidades) | [`PRODUTO.md` — Fórmula vs Conectores](PRODUTO.md#fórmula-vs-conectores) |
 | Nativo × construído, desperdício em dias (22/07) | [`arquivo/NATIVO-VS-CONSTRUIDO.md`](arquivo/NATIVO-VS-CONSTRUIDO.md) |
 
 Se descobrires um **contrato** do motor em vez de um buraco na UI, escreve-o no `BACKEND-MAP.md`, não aqui.
+
+**Nota de produto (29/07):** a página Habilidades no desktop ainda expõe abas
+**Tools** (toolsets + pickers de provider) e **MCP** (`mcp.json`). Isso é
+**fotografia Hermes / estado actual**, não o destino Work4You. Destino =
+fórmula nativa no motor + Conectores como única porta para contas/BYO + Skills
+= learned/Hub — ver `PRODUTO.md`. Não tratar essas abas como spec ao planear
+UI.
 
 **Método:** três varreduras paralelas sobre `tools/`, `toolsets.py`, `wayne_cli/`, `acp_adapter/`, `tui_gateway/`, `wayne_cli/web_server.py`, `apps/desktop/{src,electron}`. "CHAMADO" = referência literal encontrada no cliente. Métodos montados dinamicamente escapariam à deteção.
 
@@ -352,6 +360,18 @@ Escrevem `config.yaml`: General (personality, `approvals.mode`, `security.redact
 Só no dispositivo: tema, modo, zoom, translucidez, modo de visualização de ferramentas, consentimento de embed, notificações nativas, som de conclusão, lista de visibilidade de modelos.
 
 Chaves do motor sem UI nenhuma: `display.tool_progress`, `display.tool_progress_command`, `display.skin`, `display.background_process_notifications`, `smart_model_routing`, maior parte de `curator.*` e `logging.*`, `stt.local.language`, `stt.elevenlabs.language_code`, `voice.record_key`, boa parte de `delegation.*` e dos knobs de plataforma do gateway.
+
+### 6.5 Habilidades — estado vs destino
+
+| Aba (`app/skills/`) | Estado após UI 29/07 | Destino produto ([PRODUTO.md](PRODUTO.md#fórmula-vs-conectores)) |
+|---|---|---|
+| Skills | Só `provenance` agent/hub; sem toggles; empty → Hub | Learned + Hub; kit bundled = fórmula |
+| Tools / toolsets | **Removida da face** (código de painel toolset deixa de montar) | Fora da face — decisão de plataforma no motor |
+| Conectores | Mantém | Única porta contas/BYO |
+| MCP | **Removida da face** (`mcp-tab.tsx` órfão; deep-links → Conectores) | Tubagem sob Conectores / motor |
+| Browse Hub | Mantém | Só métodos, não APIs |
+
+**Resíduo motor (não é UI):** providers Nous/BYO e toolsets activos no `config.yaml` / runtime — a fórmula ainda não força defaults de plataforma no backend; só a face deixou de expô-los.
 
 ---
 

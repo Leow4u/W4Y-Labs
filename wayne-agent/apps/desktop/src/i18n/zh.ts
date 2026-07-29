@@ -1581,6 +1581,10 @@ export const zh: Translations = {
     emptyNoneFound: noun => `未找到${noun}`,
     emptyNothingMatches: query => `没有匹配“${query}”的内容。`,
     emptyNoneAvailable: noun => `暂无可用的${noun}。`,
+    emptyProductSkillsTitle: '尚无项目技能',
+    emptyProductSkillsDesc:
+      '代理在此学到的技能，以及你从 Browse Hub 安装的技能，会出现在此列表。内置能力已是 Work4You 的一部分——直接在对话中提出即可。',
+    hubSkillManageHint: '从 Hub 安装 — 请在 Browse Hub 中卸载或更新。',
     changesApplyNewSessions: '更改将应用于新会话。',
     skillUpdated: '技能已更新',
     edit: '编辑',

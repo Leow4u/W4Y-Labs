@@ -25,9 +25,11 @@ O que decorre disto, e vale para todas as decisões de UI e de copy:
 
 - **Não se explica o básico.** Nada de texto a ensinar o que é um commit ou
   para que serve uma branch.
-- **Não se esconde capacidade para simplificar um ecrã.** MCP, YOLO, gateway,
-  profiles, toolsets, config avançada — tudo continua alcançável. Jargão pode
-  ser suavizado ou reagrupado sob *Avançado*; poder nunca é removido.
+- **Não se edita a fórmula do produto.** Capacidades nativas (image gen, web
+  research, video, vision, ficheiros, terminal…) são a receita Work4You — o
+  utilizador usa-as no chat; não escolhe providers nem desliga toolsets. Contas
+  e potenciais *dele* entram só por **Conectores**. Ver secção
+  [Fórmula vs Conectores](#fórmula-vs-conectores).
 - **Humanizar ≠ infantilizar.** Copy clara e directa, sim. Copy condescendente,
   não.
 - **A referência de UX é o Cursor**, não uma ferramenta para quem tem medo de
@@ -138,6 +140,72 @@ Utilizador
 
 ---
 
+## Fórmula vs Conectores
+
+> Alinhamento 29/07/2026. Aplica-se ao **Work**; o Studio herda a mesma
+> separação (fórmula do produto vs contas do agente). Não existe “modo
+> avançado” da receita — a Coca-Cola não deixa o cliente editar a fórmula.
+
+### Quatro camadas
+
+| Camada | O que é | O utilizador faz |
+|--------|---------|------------------|
+| **Fórmula Work4You** | Capacidades nativas do produto (image gen, web research, video gen, vision, ficheiros, terminal, browser, memória, delegação…) | Usa — pede no chat. Zero toggles, zero lista de APIs, zero escolha de provider. |
+| **Conectores** | Contas e potenciais *do utilizador* (Gmail, Notion, Slack… e BYO como Firecrawl se quiser potenciar research) | Uma rota: **Conectar**. |
+| **Skills (métodos)** | Playbooks: learned do projeto + o que instalar do Hub | Criar / editar / arquivar learned; instalar extras no Hub. Kit bundled operacional = parte da fórmula (já on, sem toggle). |
+| **Canais** | Onde pessoas falam *com* o agente (WhatsApp, Telegram…) | Superfície própria — mensageria inbound, não “API de research”. |
+
+MCP como ecrã de `mcp.json` / catálogo de servers **não é produto**. É
+tubagem: Composio e similares alimentam **Conectores**; um servidor custom,
+se existir no futuro, entra como “adicionar conector”, não como editor da
+fórmula.
+
+```
+Utilizador pede no chat
+        │
+        ├── Fórmula Work4You  →  image / video / research / vision / files / terminal
+        ├── Conectores        →  OAuth (Composio) + BYO (ex. Firecrawl)
+        └── Skills            →  método / playbook (learned ou Hub)
+```
+
+### Regras de classificação
+
+1. **Já existe nativo no fork e a plataforma pode pagar/gerir** (Nous / W4Y
+   managed) → **fórmula**. Some da UI de Tools/providers. O default activo
+   fica no motor; o utilizador não “liga Image Generation”.
+2. **Exige conta ou chave do utilizador para potenciar** (Firecrawl próprio,
+   Gmail, Notion…) → **só Conectores**. Não aparece como painel de provider
+   dentro de Tools.
+3. **É um jeito de trabalhar** (procedimento, learned, Hub) → **Skills**.
+   Bundled operacionais = fórmula (sempre disponíveis). Learned = superfície
+   principal da aba.
+4. **É mensageria inbound** → **Canais**, não Conectores.
+5. **Proibido:** segundo caminho (toggle de toolset, picker de N APIs, aba
+   “avançado” da mesma capacidade) para o que já é fórmula.
+
+Exemplo: research web nativo = fórmula. Se quiser Firecrawl → Conectores →
+conectar Firecrawl. Uma porta.
+
+### Alvo da UI “Habilidades” (sidebar)
+
+Hoje (espelho Hermes admin): Skills | Tools | Conectores | MCP | Browse Hub.
+
+| Entrada | Destino |
+|---------|---------|
+| **Skills** | Learned + criar/editar/arquivar. Kit bundled não listado com toggle (está na fórmula). |
+| **Conectores** | Única porta para contas e BYO (incl. potenciais de research/imagem se forem conta do user). Featured + catálogo. |
+| **Browse Hub** | Instalar métodos novos (skills). Não instalar “APIs”. |
+| **Tools** | Remover da face do produto. Toolsets = decisão de plataforma no motor. |
+| **MCP** | Remover como aba. Plumbing sob Conectores / motor. |
+
+A fotografia actual da app (abas Tools/MCP ainda visíveis) está em
+`docs/INVENTARIO-SUPERFICIES.md` — estado, não destino. Destino = esta secção.
+
+Billing do que a fórmula inclui por plano: `docs/BILLING-ARQUITETURA.md`
+(passo separado).
+
+---
+
 ## Onde está o resto da verdade
 
 Este ficheiro define **o que vendemos e para quem**. Os documentos abaixo são
@@ -173,6 +241,9 @@ Uma proposta está alinhada se:
 - [ ] Não trata Wayne/Hermes como marca de produto
 - [ ] Não edita o Default como agente Studio
 - [ ] Prefere reuso Hermes a motor novo
-- [ ] Trata o utilizador como técnico competente — sem explicar o básico, sem esconder poder
+- [ ] Trata o utilizador como técnico competente — sem explicar o básico
+- [ ] Não põe a fórmula (providers, toolsets nativos) na cara do utilizador
+- [ ] Contas / BYO do utilizador entram só por Conectores (uma porta)
+- [ ] Skills na face = learned + Hub; kit bundled não é grelha de toggles
 
 Se falhar algum ponto → fora de escopo até nova decisão registada **neste** ficheiro.

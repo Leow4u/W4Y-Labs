@@ -22,11 +22,15 @@ de API. Renomear um rótulo obscuro é bom; explicar o óbvio é condescendênci
 | Artifacts | Entregas / Deliverables |
 | Command Center | Painel de controlo / Control panel |
 | Messaging | Canais |
-| Skills / Capabilities | Habilidades |
+| Skills / Capabilities (métodos, learned, Hub) | Habilidades |
+| Toolsets / Tools (mãos nativas do motor) | **Fórmula** — não é linguagem de produto na face; o utilizador pede no chat |
+| Connectors / Composio / BYO (contas do user) | Conectores — única porta para ligar contas e potenciais |
+| MCP (`mcp.json`, catálogo de servers) | Tubagem sob Conectores — **não** aba nem jargão de produto |
 | Memory Graph / Starmap | O que aprendi / Learning map |
 | YOLO | Aprovar sozinho (copy amigável, não o acrônimo) |
-| MCP | Integrações avançadas (`?full=1` / power user) |
 | Profiles | Equipe / Agentes (quando for lista de pessoas-agente) |
+
+Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmula-vs-conectores).
 
 ## Já aplicado
 
@@ -37,7 +41,7 @@ de API. Renomear um rótulo obscuro é bom; explicar o óbvio é condescendênci
 ## Próximos
 
 1. Locale `pt-BR` via `defineLocale()` (parcial → EN fallback).  
-2. Esconder jargão (MCP, YOLO, tool schemas) atrás de `?full=1` ou Settings avançado.  
+2. Alinhar copy da página Habilidades ao destino produto (Skills + Conectores + Hub; Tools/MCP fora da face) — ver PRODUTO.md.  
 3. Empty states em PT na jornada principal (chat, agenda, entregas).  
 4. Revisar tool titles em `ToolTitleKey` para verbs de negócio.
 5. Favicon / `assets/icon.*` quando a arte final chegar.

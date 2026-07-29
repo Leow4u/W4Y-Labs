@@ -330,24 +330,24 @@ export function ListStripButton({
 interface CapRowProps {
   active: boolean
   busy?: boolean
-  enabled: boolean
+  /** When omitted with no onToggle, the row is always “on” (no switch). */
+  enabled?: boolean
   meta?: ReactNode
   onSelect: () => void
-  onToggle: (checked: boolean) => void
+  onToggle?: (checked: boolean) => void
   rowId?: string
   /** Second line under the name (category, description, status). Rows grow to h-11. */
   subtitle?: ReactNode
   title: string
-  toggleLabel: string
+  toggleLabel?: string
 }
 
-// The one row used by all three lists. Fixed height, always-visible switch —
-// state reads from the switch + dimmed title, toggling never requires
-// selecting first. Off rows dim; the switch itself dims when off.
+// List row for Capabilities. Optional switch — product Skills list has no
+// enable/disable (formula / Hub install owns that); Hermes admin lists still pass onToggle.
 export function CapRow({
   active,
   busy,
-  enabled,
+  enabled = true,
   meta,
   onSelect,
   onToggle,
@@ -356,6 +356,8 @@ export function CapRow({
   title,
   toggleLabel
 }: CapRowProps) {
+  const showToggle = typeof onToggle === 'function'
+
   return (
     <div
       className={cn(
@@ -373,7 +375,7 @@ export function CapRow({
           <span
             className={cn(
               'block truncate text-[0.78rem]',
-              enabled ? 'font-medium text-foreground/85' : 'font-normal text-muted-foreground/60'
+              !showToggle || enabled ? 'font-medium text-foreground/85' : 'font-normal text-muted-foreground/60'
             )}
           >
             {title}
@@ -390,15 +392,17 @@ export function CapRow({
           </span>
         )}
       </RowButton>
-      <Switch
-        aria-label={toggleLabel}
-        checked={enabled}
-        className={cn('mr-1.5 shrink-0 cursor-pointer', !enabled && 'opacity-60')}
-        disabled={busy}
-        onCheckedChange={onToggle}
-        size="xs"
-        title={toggleLabel}
-      />
+      {showToggle && (
+        <Switch
+          aria-label={toggleLabel}
+          checked={enabled}
+          className={cn('mr-1.5 shrink-0 cursor-pointer', !enabled && 'opacity-60')}
+          disabled={busy}
+          onCheckedChange={onToggle}
+          size="xs"
+          title={toggleLabel}
+        />
+      )}
     </div>
   )
 }
