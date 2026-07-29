@@ -225,7 +225,7 @@ describe('resolveVisibleKeys', () => {
     expect([...resolveVisibleKeys(new Set(), providers)]).toEqual([])
   })
 
-  it('uses PME curated defaultOn models for the platform catalog', () => {
+  it('uses the curated defaultOn models for the platform catalog', () => {
     const visible = defaultVisibleKeys([
       provider('openrouter', [
         'x-ai/grok-4.5',

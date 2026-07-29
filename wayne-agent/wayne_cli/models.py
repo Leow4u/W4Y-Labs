@@ -35,7 +35,7 @@ COPILOT_REASONING_EFFORTS_O_SERIES = ["low", "medium", "high"]
 OPENROUTER_MODELS: list[tuple[str, str]] = [
     # Auto routing — always first; picks best model per request
     ("openrouter/auto",                        "auto-routes to the best available model"),
-    # Anthropic — PME Models roster first
+    # Anthropic — curated Models roster first
     ("anthropic/claude-opus-5",                ""),
     ("anthropic/claude-fable-5",               ""),
     ("anthropic/claude-sonnet-5",              ""),

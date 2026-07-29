@@ -6229,7 +6229,7 @@ def _catalog_provider_env_metadata() -> dict:
 
 
 # Work4You platform-owned credentials. Injected by the cloud provisioner into
-# the device ``.env`` / Fly tenant secrets — never pasted by PME. The Keys page
+# the device ``.env`` / Fly tenant secrets — never pasted by the user. The Keys page
 # hides these (``platform_managed``) and PUT/DELETE /api/env reject writes.
 W4Y_PLATFORM_MANAGED_ENV: frozenset[str] = frozenset({
     "OPENROUTER_API_KEY",

@@ -87,7 +87,7 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
   }, [])
 
   const [activeView, setActiveView] = useRouteEnumParam('tab', SETTINGS_VIEWS, 'general' as SettingsViewId)
-  // Providers / Tools & Keys / Gateway kept for deep links — not in PME nav.
+  // Providers / Tools & Keys / Gateway kept for deep links — not in the primary nav.
   const [providerView, setProviderView] = useRouteEnumParam<ProviderView>('pview', PROVIDER_VIEWS, 'accounts')
   const [keysView] = useRouteEnumParam<KeysView>('kview', KEYS_VIEWS, 'tools')
 
@@ -162,11 +162,11 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
     }
   }
 
-  // PME-first order with light gaps (Cursor-style) — no group headers.
+  // Primary-nav order with light gaps (Cursor-style) — no group headers.
   // Conta = Work4You profile + Plan & Usage. Providers OAuth face and Gateway
   // Connection are off-nav (deep links `?tab=providers` / `?tab=gateway` still
-  // work for power users — Local gateway is the PME default and needs no UI).
-  // Tools & Keys / Advanced / Archived chats stay off PME nav.
+  // work for power users — Local gateway is the default and needs no UI).
+  // Tools & Keys / Advanced / Archived chats stay off the primary nav.
   const navGroups: OverlayNavGroup[] = [
     {
       active: activeView === 'general',

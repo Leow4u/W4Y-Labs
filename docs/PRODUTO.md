@@ -1,10 +1,47 @@
 # Work4You — Definição de produto (canónico)
 
-> **Status:** fonte única de verdade de produto (CEO, 23/07/2026).  
-> **Qualquer alinhamento de produto anterior a este doc é LIXO** — não consultar
-> para decisões de direção. Em tensão com roadmaps, auditorias, AGENT-STUDIO antigo,
-> PLATAFORMA (secções de produto), PLANO-REPARO (fases de Studio/canvas), etc.,
-> **este arquivo manda**.
+> **Status:** fonte única de verdade de produto. Actualizado 29/07/2026.
+>
+> **Se outro documento contradiz este, o outro está caduco.** Sem excepção.
+>
+> **Regra de manutenção:** um novo alinhamento **actualiza este ficheiro**. Não
+> se cria um documento novo ao lado. Se um alinhamento substituir outro
+> documento por inteiro, esse documento vai para `docs/arquivo/` no mesmo
+> momento — não fica em `docs/` com um aviso no cabeçalho. Já provámos que
+> avisos no topo não impedem ninguém de ler e absorver.
+
+---
+
+## Público
+
+**Programadores e utilizadores técnicos — o mesmo público do Claude Code e do
+Cursor.**
+
+Escrevem código. Vivem no terminal. Sabem o que é um branch, um diff, um
+merge, uma chave de API. Escolheram esta ferramenta por competência, não por
+falta de alternativa.
+
+O que decorre disto, e vale para todas as decisões de UI e de copy:
+
+- **Não se explica o básico.** Nada de texto a ensinar o que é um commit ou
+  para que serve uma branch.
+- **Não se esconde capacidade para simplificar um ecrã.** MCP, YOLO, gateway,
+  profiles, toolsets, config avançada — tudo continua alcançável. Jargão pode
+  ser suavizado ou reagrupado sob *Avançado*; poder nunca é removido.
+- **Humanizar ≠ infantilizar.** Copy clara e directa, sim. Copy condescendente,
+  não.
+- **A referência de UX é o Cursor**, não uma ferramenta para quem tem medo de
+  computadores.
+
+**Depois:** Enterprise (conta de organização com vários utilizadores), sem
+redefinir Work + Studio.
+
+### O que não somos
+
+Não servimos PME nem "empreendedores não-técnicos". Esta premissa esteve
+escrita em vários documentos, foi revertida, e continuou a ressuscitar porque
+ficou escrita em sítios que os agentes liam como verdade. Está morta. Os
+documentos que a continham estão em `docs/arquivo/`.
 
 ---
 
@@ -24,11 +61,11 @@ Uma plataforma com **dois produtos iniciais** (mesma app, mesma base técnica):
 
 | Produto | O que é para o utilizador | Analogia de mercado |
 |--------|---------------------------|---------------------|
-| **Work** | Agente do dia a dia — chat, canais, ficheiros, rotina | Claude Cowork / ChatGPT “work” |
+| **Work** | Agente do dia a dia — chat, canais, ficheiros, rotina | Claude Cowork / ChatGPT "work" |
 | **Agent Studio** | Criar e gerir outros agentes na mesma base | Copilot Agent Studio (lista + connected) |
 
-**Enterprise** (organização → vários utilizadores) fica para **depois**. PME primeiro.
-Não baratear o produto; também não meter complexidade multi-tenant org no v1.
+**Enterprise** (organização → vários utilizadores) fica para **depois**. Não
+baratear o produto; também não meter complexidade multi-tenant org no v1.
 
 ---
 
@@ -53,8 +90,8 @@ Já queimámos tempo a empilhar camadas em cima de um upstream que funciona. Nã
 ## Produto 1 — Work
 
 - É o agente **Default** de todos os utilizadores.
-- Comportamento = Hermes (sem mais nem menos), com **UI** ajustada (benchmark / PME).
-- **Utilizadores não modificam** o Default como se fosse um agente Studio (sem “editar o Work” no Studio).
+- Comportamento = Hermes (sem mais nem menos), com **UI** ajustada ao benchmark (Cursor).
+- **Utilizadores não modificam** o Default como se fosse um agente Studio (sem "editar o Work" no Studio).
 - **Invariante de UI/API:** o Default **nunca** aparece como agente editável no Agent Studio nem em Profiles (lista, SOUL.md, rename, delete). Pode aparecer como **Work** no dia a dia (sessões, switcher home) e como **fonte de clone** ao criar um agente Studio. Lapidação do Default = passo futuro interno — não self-service.
 - Participa da orquestração: no chat ou num canal ligado ao Work, o utilizador pode pedir para consultar / delegar a um agente do Studio; o Work chama esse agente e devolve o resultado.
 - Handoffs orquestrados pelo Default quando houver capacidade; **logs visíveis**.
@@ -66,19 +103,19 @@ Já queimámos tempo a empilhar camadas em cima de um upstream que funciona. Nã
 
 - Superfície para criar agentes **Hermes-class** (memória, skills, canais, etc.).
 - Base técnica = mesma do Hermes (ex.: profiles como ilhas).
-- UX de destino imediato: **lista** (roster) + indicação de **agentes connected** — não canvas, não workflow visual, não “times” nomeados no v1.
+- UX de destino imediato: **lista** (roster) + indicação de **agentes connected** — não canvas, não workflow visual, não "times" nomeados no v1.
 - Connected primeiro; times / canvas / workflows = **muito mais tarde**.
 - Cada agente pode ter (ao longo do tempo) base de conhecimento, guardrails, fluxos próprios — sempre em cima da base Hermes, sem reinventar o core.
-- Credenciais: Work e Studio são planos de identidade distintos; partilha (“Usar as minhas”) só **explícita**, nunca silenciosa.
+- Credenciais: Work e Studio são planos de identidade distintos; partilha ("Usar as minhas") só **explícita**, nunca silenciosa.
 - Studio **não** se constrói em cima de um único agente-exemplo (LinkedIn, stock, etc.). Exemplos só ilustram o **nível de simplicidade** do v1 (um agente útil que faz o seu trabalho), não o roadmap do produto.
 
 ### Fora do Studio no v1
 
-- Canvas / ReactFlow  
-- Compilador de workflow  
-- Times nomeados como entidade  
-- Marketplace / A-B de agentes  
-- Enterprise org  
+- Canvas / ReactFlow
+- Compilador de workflow
+- Times nomeados como entidade
+- Marketplace / A-B de agentes
+- Enterprise org
 
 ---
 
@@ -96,27 +133,34 @@ Utilizador
     └── UI Work4You  ·  motor Hermes (invisível)
 ```
 
-- Lista no Studio = **quem existe** (+ quem está connected).  
+- Lista no Studio = **quem existe** (+ quem está connected).
 - Colaboração = Work (e depois connected) — **não** um diagrama obrigatório.
 
 ---
 
-## Público
+## Onde está o resto da verdade
 
-- **Foco v1:** PME / empreendedor — IA no dia a dia, fácil e segura.
-- **Depois:** Enterprise (conta organização + utilizadores) sem redefinir Work + Studio.
+Este ficheiro define **o que vendemos e para quem**. Os documentos abaixo são
+vivos e mandam cada um na sua área técnica:
 
----
+| Área | Documento |
+|---|---|
+| Superfícies (cloud, web, desktop) | `docs/PLATAFORMA.md` |
+| Infra e stack | `docs/ARQUITETURA.md` |
+| Contratos de backend verificados | `docs/BACKEND-MAP.md` |
+| O que existe vs o que está ligado | `docs/INVENTARIO-SUPERFICIES.md` |
+| Plano de reparação do desktop | `docs/PLANO-REPARO.md` |
+| Planos, preços, faturação | `docs/BILLING-ARQUITETURA.md` |
+| Copy do site público | `docs/BRIEF-SITE-WORK4YOU.md` |
+| Linguagem e glossário da app | `docs/LINGUAGEM.md` |
+| Curadoria do ecrã de configuração | `docs/CONFIG-CURADORIA.md` |
+| Skills operacionais no contentor | `docs/SKILLS-AUDITORIA.md` |
 
-## Docs anteriores (LIXO para direção de produto)
+**`docs/arquivo/`** é registo histórico. Nunca é instrução. Não se tira uma
+decisão de produto de lá.
 
-Tratar como histórico / infra / notas — **não** como norte de produto:
-
-- `docs/AGENT-STUDIO.md` (F1 NL→config, F2 canvas, F3 marketplace) — **obsoleto**
-- Secções de produto em `docs/PLATAFORMA.md`, `docs/PLANO-REPARO.md` Fase Studio/canvas, `docs/ROADMAP.md` Agent Studio antigo, `docs/AUDITORIA-PRODUTO-WORK4YOU.md` — **não mandam** sobre Work vs Studio
-- Experimentos `w4y-studio/`, `model-experience-poc/`, `PLANO-MESTRE-*` — **não** caminho oficial
-
-Infra (cloud/web/desktop Hermes `apps/desktop`) pode continuar a ser referida noutros docs **só** como superfície técnica; a definição de **o que vendemos** é este ficheiro.
+Experimentos como `w4y-studio/` e `model-experience-poc/` não são caminho
+oficial.
 
 ---
 
@@ -124,11 +168,11 @@ Infra (cloud/web/desktop Hermes `apps/desktop`) pode continuar a ser referida no
 
 Uma proposta está alinhada se:
 
-- [ ] Serve Work e/ou Agent Studio (lista + connected)  
-- [ ] Não introduz canvas/workflow/org no v1  
-- [ ] Não trata Wayne/Hermes como marca de produto  
-- [ ] Não edita o Default como agente Studio  
-- [ ] Prefere reuso Hermes a motor novo  
-- [ ] PME-first sem infantilizar  
+- [ ] Serve Work e/ou Agent Studio (lista + connected)
+- [ ] Não introduz canvas/workflow/org no v1
+- [ ] Não trata Wayne/Hermes como marca de produto
+- [ ] Não edita o Default como agente Studio
+- [ ] Prefere reuso Hermes a motor novo
+- [ ] Trata o utilizador como técnico competente — sem explicar o básico, sem esconder poder
 
-Se falhar algum ponto → fora de escopo até nova decisão CEO neste doc.
+Se falhar algum ponto → fora de escopo até nova decisão registada **neste** ficheiro.

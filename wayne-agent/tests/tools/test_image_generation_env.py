@@ -54,7 +54,7 @@ def test_no_backend_message_points_to_work4you_settings(monkeypatch):
 
     msg = image_generation_tool._build_no_backend_setup_message()
 
-    # Work4You PME path: no vendor credit signup URLs in the agent error surface.
+    # Work4You curated path: no vendor credit signup URLs in the agent error surface.
     assert "fal.ai" not in msg.lower()
     assert "FAL_KEY" not in msg
     assert "Settings" in msg or "Image generation" in msg

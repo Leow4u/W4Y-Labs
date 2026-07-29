@@ -3,7 +3,7 @@
  * (Onda E · PR-10 E1 · GAP-INT-05).
  *
  * The marketplace shows the catalog's ORIGINAL (English, technical) names, which
- * confuse PME users. Rather than translate all ~100 skills, we curate a friendly
+ * confuse most users. Rather than translate all ~100 skills, we curate a friendly
  * pt-BR title for the ~16 featured ones (the same set surfaced in SkillsPage),
  * keeping the technical `identifier` visible as a subtitle so power users and
  * install commands still line up. Non-pt locales keep the original name.

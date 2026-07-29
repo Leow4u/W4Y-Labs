@@ -8,3 +8,13 @@ node_modules/
 
 # O wayne-agent/ tem o próprio .gitignore (herdado do upstream)
 graphify-out/
+
+# Experimentos — não são caminho oficial do produto (ver docs/PRODUTO.md).
+# Ficam em disco para consulta, fora do git para não poluir `git status`.
+model-experience-poc/
+w4y-studio/
+
+# Saída de build
+dist/
+.next/
+out/

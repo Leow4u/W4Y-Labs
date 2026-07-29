@@ -1,5 +1,5 @@
 /**
- * Settings → Advanced — power knobs kept off the PME faces (General, Memory,
+ * Settings → Advanced — power knobs kept off the curated faces (General, Memory,
  * Models, Browser). Same Cursor-style groups as Browser & Network / Memory.
  */
 import { useEffect, useMemo, type ReactNode } from 'react'

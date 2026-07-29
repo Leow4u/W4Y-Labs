@@ -1,5 +1,5 @@
 /**
- * Settings → General — PME-facing entry point. Composes everyday prefs plus
+ * Settings → General — the default face's entry point. Composes everyday prefs plus
  * Permissions (approval mode, hide secrets, checkpoints). Visual theme lives
  * under Appearance; Browser & Network is its own nav item.
  */

@@ -14,10 +14,10 @@ export interface ProviderKeyGroup {
 }
 
 /**
- * Platform-routed catalog keys stay invisible on the PME Models → API Keys
+ * Platform-routed catalog keys stay invisible on the curated Models → API Keys
  * face (Work4You already provisions OpenRouter). BYOK = customer keys only.
  */
-const HIDDEN_PME_KEY_GROUPS = new Set(['OpenRouter', 'Nous Portal'])
+const HIDDEN_CATALOG_KEY_GROUPS = new Set(['OpenRouter', 'Nous Portal'])
 
 export function buildProviderKeyGroups(vars: Record<string, EnvVarInfo>): ProviderKeyGroup[] {
   const buckets = new Map<string, [string, EnvVarInfo][]>()
@@ -65,5 +65,5 @@ export function buildProviderKeyGroups(vars: Record<string, EnvVarInfo>): Provid
 
 /** BYOK surface for Models settings — hides platform catalog keys. */
 export function buildByokProviderKeyGroups(vars: Record<string, EnvVarInfo>): ProviderKeyGroup[] {
-  return buildProviderKeyGroups(vars).filter(group => !HIDDEN_PME_KEY_GROUPS.has(group.name))
+  return buildProviderKeyGroups(vars).filter(group => !HIDDEN_CATALOG_KEY_GROUPS.has(group.name))
 }

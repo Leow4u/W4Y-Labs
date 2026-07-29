@@ -204,9 +204,9 @@ export default function AgentWorkflowPage() {
   const [drawerTab, setDrawerTab] = useState<AgentDrawerTab | null>(null);
   const [activating, setActivating] = useState(false);
   // GAP-AG-02 / GAP-AG-WF-01 (E3 + E4): the node canvas is the ADMIN X-ray. For
-  // the PME journey it is skipped entirely — this route opens the AgentDrawer
+  // the primary journey it is skipped entirely — this route opens the AgentDrawer
   // directly ("Configurar"), so there is a single config surface. The canvas
-  // returns only behind ?full=1. Closing the drawer in PME mode goes back to
+  // returns only behind ?full=1. Closing the drawer on the primary surface goes back to
   // the team (Ver time), never leaving the user on an empty canvas.
   const internal = isInternalView();
   const autoOpened = useRef(false);
@@ -475,7 +475,7 @@ export default function AgentWorkflowPage() {
         )}
       </div>
 
-      {/* The workflow (React Flow LR) — ADMIN only (?full=1). PME gets the
+      {/* The workflow (React Flow LR) — ADMIN only (?full=1). The primary surface gets the
           drawer directly (auto-opened above). */}
       {internal && (
       <div className="w4y-flow relative min-h-0 flex-1 overflow-hidden rounded-xl border border-border bg-background/60">
@@ -552,7 +552,7 @@ export default function AgentWorkflowPage() {
           initialTab={drawerTab}
           onClose={() => {
             setDrawerTab(null);
-            // PME: this route IS the drawer — closing returns to Ver time
+            // Primary surface: this route IS the drawer — closing returns to Ver time
             // rather than exposing the bare canvas behind it.
             if (!internal) navigate(`/profiles/team?name=${encodeURIComponent(name)}`);
           }}

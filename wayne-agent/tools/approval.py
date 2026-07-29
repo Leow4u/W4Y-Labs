@@ -421,7 +421,7 @@ HARDLINE_PATTERNS_COMPILED = [
 # Terminal coverage alone used to sit in DANGEROUS_PATTERNS, which YOLO /
 # approvals.mode=off bypass — so an agent could rewrite approvals.mode,
 # allowlists, or max_concurrent_children mid-session and immediately escape
-# the gate. Work4You PME surfaces hide many of those knobs from Settings;
+# the gate. Work4You's curated surfaces hide many of those knobs from Settings;
 # hiding without a YOLO-immune floor is unpaired theater.
 #
 # Scope is deliberately narrow: only Wayne-managed security/credential files

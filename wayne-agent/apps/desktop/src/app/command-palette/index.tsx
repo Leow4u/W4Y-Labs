@@ -565,7 +565,7 @@ export function CommandPalette() {
       {
         heading: cc.settings,
         items: [
-          // Advanced is off PME nav; keep deep link / field search for power users.
+          // Advanced is off the primary nav; keep deep link / field search for power users.
           ...SECTIONS.filter(section => section.id !== 'advanced').map(section => ({
             icon: section.icon,
             id: `set-config-${section.id}`,

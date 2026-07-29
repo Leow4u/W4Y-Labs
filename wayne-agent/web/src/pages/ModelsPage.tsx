@@ -1065,7 +1065,7 @@ function ModelSettingsPanel({
 /* ──────────────────────────────────────────────────────────────────── */
 
 export default function ModelsPage() {
-  // E10 (GAP-CFG-15): analytics stay on /models behind ?full=1 — PME Modelos live in Config.
+  // E10 (GAP-CFG-15): analytics stay on /models behind ?full=1 — the curated Modelos live in Config.
   // Gate after hooks would still mount analytics fetches; wrap so the lean redirect
   // never runs the admin page body.
   if (!isInternalView()) {

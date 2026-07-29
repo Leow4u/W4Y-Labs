@@ -1,5 +1,5 @@
 /**
- * Settings → Notifications — PME card layout (same pattern as Geral / Voz).
+ * Settings → Notifications — curated card layout (same pattern as Geral / Voz).
  * Native OS alerts + completion sound; prefs stay device-local.
  */
 import { useStore } from '@nanostores/react'

@@ -21,7 +21,7 @@
 |------------|--------|
 | **Nuvem** | O coração **24/7**. Agentes/subagentes rodam lá, independente do PC do usuário estar ligado (igual Cloud Agents do Cursor: VM na nuvem — “feche o notebook e veja depois”). Vale para **todo** usuário. |
 | **Web** | **Janela** para essa nuvem. Sem execução local. Superfície secundária — não é o app principal do produto no PC. |
-| **Desktop** | **App principal no PC.** Linhagem Hermes `apps/desktop` (Electron + React nativo): poder local (arquivos, terminal, offline) + ponte para a nuvem 24/7. Base a melhorar (linguagem acessível PME), depois **Agent Studio**. |
+| **Desktop** | **App principal no PC.** Linhagem Hermes `apps/desktop` (Electron + React nativo): poder local (arquivos, terminal, offline) + ponte para a nuvem 24/7. Base a melhorar (linguagem — ver [`LINGUAGEM.md`](./LINGUAGEM.md)), depois **Agent Studio**. |
 
 Superfícies do **mesmo produto**, **não** espelhos pixel a pixel.  
 A unificação é no **runtime** (backend de agentes na nuvem compartilhado), **não** em forçar o desktop a ser um `loadURL` do `web_dist`.
@@ -82,7 +82,7 @@ O runtime **24/7 na nuvem** alcançável de todas as superfícies — não a igu
 
 Ver [PLANO-REPARO.md](./PLANO-REPARO.md): PR1 árvore → login/ZIP/bridge/update GCS → deprecar `desktop-shell`.
 
-### Trilha 2 — Linguagem acessível PME (**produto**)
+### Trilha 2 — Linguagem (**produto**)
 
 Passada de copy/nav/fluxo no renderer Hermes — não reinventar telas do zero.
 

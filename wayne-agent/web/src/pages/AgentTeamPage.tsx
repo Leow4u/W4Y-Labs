@@ -486,7 +486,7 @@ export default function AgentTeamPage() {
           )}
         </div>
         <div className="flex-1" />
-        {/* E3/E4: single config entry. PME → AgentDrawer ("Configurar"); admin
+        {/* E3/E4: single config entry. Primary surface → AgentDrawer ("Configurar"); admin
             (?full=1) → the node canvas ("Studio"). Same route, drawer-first. */}
         <Button
           size="sm"

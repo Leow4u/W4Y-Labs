@@ -99,7 +99,7 @@ export function prepareW4yPickerProviders(
 }
 
 /**
- * PME Models roster. Order = display order.
+ * Curated Models roster. Order = display order.
  * Pinned = main list; More = inline expand; + Add more LLM = full catalog page.
  */
 export const W4Y_FEATURED_MODELS: readonly FeaturedModel[] = [
@@ -440,7 +440,7 @@ export function featuredDefaultOnIds(): string[] {
   return W4Y_FEATURED_MODELS.filter(m => m.defaultOn).map(m => m.id)
 }
 
-/** Short PME label for a catalog model id (never the provider name). */
+/** Short curated label for a catalog model id (never the provider name). */
 export function featuredModelLabel(modelId: string): string | undefined {
   return W4Y_FEATURED_MODELS.find(entry => entry.id === modelId)?.label
 }

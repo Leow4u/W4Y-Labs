@@ -40,7 +40,7 @@ interface ToolsetConfigPanelProps {
  *  backend's _MODEL_CATALOG_TOOLSETS map). */
 const MODEL_CATALOG_TOOLSETS = new Set(['image_gen', 'video_gen'])
 
-/** Soften vendor credit / signup surfaces in PME settings (catalog is Work4You). */
+/** Soften vendor credit / signup surfaces in the curated settings (catalog is Work4You). */
 function humanizeProviderLabel(name: string): string {
   const raw = name.trim()
 

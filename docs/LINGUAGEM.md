@@ -1,6 +1,6 @@
-# Linguagem acessível — desktop Work4You
+# Linguagem — desktop Work4You
 
-> Passada contínua sobre `wayne-agent/apps/desktop` (opção A).  
+> Passada contínua sobre `wayne-agent/apps/desktop`.
 > Não reinventar telas — **renomear, esconder, reordenar**.
 
 ## Princípio
@@ -8,6 +8,11 @@
 **Humanizar ≠ infantilizar.** Tom claro e profissional; capacidades intactas.
 Jargão só some onde atrapalha a jornada — não “simplificar” o produto nem
 esconder poder atrás de copy condescendente.
+
+**Para quem escrevemos:** programadores e utilizadores técnicos (ver
+[`PRODUTO.md`](./PRODUTO.md)). "Acessível" aqui significa *sem ruído*, nunca
+*para principiantes*. Não explicamos o que é um commit, um branch ou uma chave
+de API. Renomear um rótulo obscuro é bom; explicar o óbvio é condescendência.
 
 ## Glossário (técnico → linguagem humana)
 

@@ -20,7 +20,7 @@ function keyVar(patch: Partial<EnvVarInfo> = {}): EnvVarInfo {
 }
 
 describe('buildByokProviderKeyGroups', () => {
-  it('hides platform catalog keys from the PME BYOK face', () => {
+  it('hides platform catalog keys from the curated BYOK face', () => {
     const vars = {
       OPENROUTER_API_KEY: keyVar({ provider_label: 'OpenRouter' }),
       ANTHROPIC_API_KEY: keyVar({ provider_label: 'Anthropic' }),

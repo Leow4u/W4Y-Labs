@@ -15,7 +15,7 @@ Referências de produto: [`PRODUTO.md`](./PRODUTO.md) · (histórico) [`AGENT-ST
 
 | | |
 |---|---|
-| **O quê** | Restaurar `apps/desktop` do upstream; encaixar deltas W4Y (login, ZIP/slots, ponte nuvem, update GCS); humanizar UI (PME); depois Agent Studio |
+| **O quê** | Restaurar `apps/desktop` do upstream; encaixar deltas W4Y (login, ZIP/slots, ponte nuvem, update GCS); passada de linguagem; depois Agent Studio |
 | **Por quê** | O fork excluiu o desktop nativo e reconstruiu `desktop-shell` (**B**). O atalho “UMA UI SÓ = web_dist” desviou do modelo de negócio |
 | **UI primária no PC** | Renderer Hermes (`apps/desktop/src`) — botões e funções nativas **voltam** e são a base |
 | **Web** | Janela da nuvem (secundária), não o app desktop |
@@ -113,7 +113,7 @@ Stripe/plan, provisioner/engine-key, bridge account, publish UI no-store.
 Sangria (shell)     → luz acesa
 PR1 apps/desktop    → árvore de volta
 Deltas W4Y          → login/ZIP/bridge/update
-Linguagem PME       → acessível
+Linguagem           → sem ruído
 Agent Studio        → construção nova
 ```
 

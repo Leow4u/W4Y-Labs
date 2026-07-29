@@ -212,7 +212,7 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
   const availableIds = useMemo(() => new Set(catalogProvider?.models ?? []), [catalogProvider])
 
   // Prefer live catalog intersection; if the curated roster isn't online yet,
-  // still show the full PME list so Settings isn't empty on a stale cache.
+  // still show the full curated list so Settings isn't empty on a stale cache.
   const pinnedModels = useMemo(() => {
     const pinned = featuredBySection('pinned')
     const live = pinned.filter(e => availableIds.has(e.id))

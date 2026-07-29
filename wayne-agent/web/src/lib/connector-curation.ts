@@ -1,7 +1,7 @@
 /**
  * connector-curation — featured BR marketplace layer for Conectores (PR-7 C4).
  *
- * The Composio catalog exposes ~1,047 toolkits; PME users get a curated
+ * The Composio catalog exposes ~1,047 toolkits; users get a curated
  * default (~24) with slug/name resolution + optional dev subsection. Full
  * catalog stays behind ?catalog=1 on ConnectorsPage.
  */

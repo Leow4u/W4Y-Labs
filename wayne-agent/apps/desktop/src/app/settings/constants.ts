@@ -568,7 +568,7 @@ export const SECTIONS: DesktopConfigSection[] = [
     id: 'model',
     label: 'Models',
     icon: Box,
-    // PME Models page is dedicated (ModelsSettings → MoA + runtime). Default
+    // The curated Models page is dedicated (ModelsSettings → MoA + runtime). Default
     // model is Composer write-through; subagent/context/fallback/images live
     // on ModelsRuntimeSettings (not listed here — that page reads schema keys
     // directly).
@@ -595,7 +595,7 @@ export const SECTIONS: DesktopConfigSection[] = [
     id: 'memory',
     label: 'Memory & Context',
     icon: Brain,
-    // PME surface — toggles + provider + summarize. Fine budgets/ratios stay in Advanced.
+    // Curated surface — toggles + provider + summarize. Fine budgets/ratios stay in Advanced.
     keys: [
       'memory.memory_enabled',
       'memory.user_profile_enabled',
@@ -632,7 +632,7 @@ export const SECTIONS: DesktopConfigSection[] = [
       'tts.piper.voice',
       'stt.local.model',
       // stt.local.language stays off the desktop Voice UI — empty = Whisper
-      // auto-detect, which is the right default for PME; power users can still
+      // auto-detect, which is the right default for most users; power users can still
       // set it in config.yaml.
       'stt.openai.model',
       'stt.groq.model',
@@ -647,12 +647,12 @@ export const SECTIONS: DesktopConfigSection[] = [
     ]
   },
   {
-    // Off PME nav (see settings/index.tsx). Reachable via `?tab=config:advanced`.
+    // Off the primary nav (see settings/index.tsx). Reachable via `?tab=config:advanced`.
     id: 'advanced',
     label: 'Advanced',
     icon: Wrench,
     keys: [
-      // Security power knobs — PME essentials live in General / Browser & Network.
+      // Security power knobs — the essentials live in General / Browser & Network.
       'approvals.timeout',
       'approvals.mcp_reload_confirm',
       'command_allowlist',

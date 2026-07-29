@@ -1,7 +1,7 @@
 /**
  * blueprint-i18n — pt-BR overlay for native automation blueprints (PR-8 C6).
  * Backend catalog stays EN; the dashboard localizes titles, descriptions,
- * and field labels for PME copy without a server change.
+ * and field labels for the curated copy without a server change.
  */
 import type { AutomationBlueprint, AutomationBlueprintField } from "@/lib/api";
 

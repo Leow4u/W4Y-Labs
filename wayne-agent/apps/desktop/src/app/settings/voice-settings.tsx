@@ -1,5 +1,5 @@
 /**
- * Settings → Voice — PME card layout (same pattern as Geral / Aparência).
+ * Settings → Voice — curated card layout (same pattern as Geral / Aparência).
  * Keeps the full STT/TTS surface; only regroups + humanizes labels.
  * Desktop voice shortcut uses the keybind store (`composer.voice`), not
  * config.yaml `voice.record_key` (CLI/TUI).

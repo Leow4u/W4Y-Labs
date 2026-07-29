@@ -1,5 +1,5 @@
 /**
- * Settings → Memory & Context — Codex-style PME surface: intent toggles,
+ * Settings → Memory & Context — Codex-style curated surface: intent toggles,
  * storage provider, summarize long chats, manage / reset, import.
  * Fine budgets / compression ratios stay under Advanced.
  */

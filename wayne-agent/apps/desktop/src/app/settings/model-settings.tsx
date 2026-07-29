@@ -40,7 +40,7 @@ import { getNested, setNested } from './helpers'
 import { ListRow, Pill, SettingsGroup } from './primitives'
 
 /**
- * PME face: Composer owns the profile default (contract B); helper/aux slots
+ * Curated face: Composer owns the profile default (contract B); helper/aux slots
  * stay on auto unless Advanced resurfaces them. The APIs + handlers below stay
  * wired so we can flip this without rebuilding the system — only the Settings
  * chrome is hidden.
@@ -151,7 +151,7 @@ const AUX_TASKS: readonly AuxTaskMeta[] = [
 
 const NO_PROVIDERS: readonly ModelOptionProvider[] = [{ name: '—', slug: '', models: [] }]
 
-/** PME council slots always bind to the unified catalog (OpenRouter under the hood). */
+/** Curated council slots always bind to the unified catalog (OpenRouter under the hood). */
 const MOA_CATALOG_PROVIDER = 'openrouter'
 
 // Radix <Select> renders a blank trigger when `value` matches no <SelectItem>.
@@ -270,7 +270,7 @@ export function ModelSettings({ embed = false, onMainModelChanged }: ModelSettin
           if (profileEpoch.current === epoch) setMoa(null)
         })
       } else {
-        // PME page is MoA-only: catalog for slot pickers + MoA config together.
+        // Curated page is MoA-only: catalog for slot pickers + MoA config together.
         const [modelOptions, moaModels] = await Promise.all([getGlobalModelOptions(), getMoaModels()])
 
         if (profileEpoch.current !== epoch) {
@@ -320,7 +320,7 @@ export function ModelSettings({ embed = false, onMainModelChanged }: ModelSettin
 
   // MoA reference/aggregator slots must never be the moa virtual provider —
   // that would create a recursive MoA tree (the backend rejects it on save).
-  // PME council: unified catalog filtered to Settings → Models toggles.
+  // Curated council: unified catalog filtered to Settings → Models toggles.
   const moaCatalogModels = useMemo(() => {
     const row = providers.find(provider => (provider.slug || '').toLowerCase() === MOA_CATALOG_PROVIDER)
     return filterActiveModels(row?.models ?? [], MOA_CATALOG_PROVIDER, visibleKeys)
@@ -432,7 +432,7 @@ export function ModelSettings({ embed = false, onMainModelChanged }: ModelSettin
     setApplying(true)
     setError('')
 
-    // PME face locks every seat to the catalog provider before persist.
+    // Curated face locks every seat to the catalog provider before persist.
     const presets = Object.fromEntries(
       Object.entries(next.presets).map(([name, preset]) => [
         name,

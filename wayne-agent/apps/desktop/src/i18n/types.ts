@@ -772,7 +772,7 @@ export interface Translations {
     model: {
       title: string
       loading: string
-      /** PME intro when default/aux are Composer-owned and this page shows MoA. */
+      /** Curated intro when default/aux are Composer-owned and this page shows MoA. */
       pageIntro: string
       /** Cursor-style Models page intro (composer visibility toggles). */
       composerIntro: string

@@ -161,9 +161,9 @@ Mesma profundidade de execução na sessão. Nosso eixo extra: **você constrói
 
 ## 9. Público
 
-**Marca / site:** qualquer pessoa que queira **construir** um agente de verdade — quem programa, quem opera, quem cria.
+**Programadores e usuários técnicos** — mesmo público do Claude Code e do Cursor. Quem programa, quem opera, quem constrói. Definição canônica em [`PRODUTO.md`](./PRODUTO.md).
 
-**GTM interno:** dá pra priorizar Brasil e negócios sem escrever “para PME” no hero.
+**GTM interno:** dá pra priorizar Brasil sem estreitar a mensagem por porte de empresa.
 
 Tom: confiante, limpo, de ferramenta — não de “agência de agentes”.
 
@@ -176,7 +176,7 @@ Tom: confiante, limpo, de ferramenta — não de “agência de agentes”.
 | “O seu agente de IA rodando 24/7” como headline único | **Construa** o seu agente… **coloque pra rodar** 24/7 |
 | ficheiros | **pastas** / arquivos / entregas |
 | utilizador | **usuário** |
-| PME no headline | (omitir) |
+| segmentar por porte de empresa (“para PME”, “pequenos negócios”) | (omitir — o eixo é técnico, não porte) |
 | “produto work” | seu agente / Work4You |
 | nomes internos / concorrentes no público | Work4You |
 | cron | agenda / automações / rotinas |

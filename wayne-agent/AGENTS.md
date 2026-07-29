@@ -489,20 +489,28 @@ The dashboard embeds the real `wayne --tui` — **not** a rewrite.  See `wayne_c
 
 **Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
 
-### Electron Desktop — Work4You (estrela-guia opção A)
+### Electron Desktop — Work4You
 
-> **Product definition:** repo-root [`docs/PLATAFORMA.md`](../docs/PLATAFORMA.md).
-> **Repair plan:** [`docs/PLANO-REPARO.md`](../docs/PLANO-REPARO.md).
+> **Product definition:** repo-root [`docs/PRODUTO.md`](../docs/PRODUTO.md) — the
+> single source of truth. If another doc contradicts it, that doc is stale.
 >
-> **Destination:** `apps/desktop/` — Hermes Electron + **native React renderer**
-> (chat, tools, panes). Improve language for PME; then Agent Studio
-> ([`docs/AGENT-STUDIO.md`](../docs/AGENT-STUDIO.md)). W4Y deltas (login,
-> ZIP/slots, cloud bridge, GCS update) plug into this tree.
+> **Who this is for:** developers and technical users — the same audience as
+> Claude Code or Cursor. They write code, live in a terminal, and know git,
+> branches and diffs. **Never** write copy that explains those basics, and
+> never hide a capability to make a screen look simpler. Jargon may be
+> softened or regrouped under Advanced; power is never removed.
 >
-> **Transition only:** `apps/desktop-shell/` still ships today (motor ZIP +
-> `loadURL` of `web_dist`). **Stop-ship** new features there — sangria fixes
-> only until the Hermes desktop port ships. Do not treat “UMA UI SÓ =
-> web_dist” as the product destination (that note in BACKEND-MAP is legado).
+> **Ships today:** `apps/desktop/` — Electron + **native React renderer**
+> (chat, tools, panes). W4Y deltas (login, ZIP/slots, cloud bridge, GCS
+> update) live in this tree.
+>
+> **Stale docs:** anything under `docs/arquivo/` is a dated record, **not**
+> instruction. Never take a product decision from it.
+>
+> **Legacy:** `apps/desktop-shell/` (motor ZIP + `loadURL` of `web_dist`) is
+> superseded and no longer the shipping app. **Stop-ship** — do not add
+> features there. Do not treat “UMA UI SÓ = web_dist” as the product
+> destination (that note in BACKEND-MAP is legado).
 
 **What unifies the product:** the **cloud runtime** (24/7 agents), reachable
 from web (window) and from desktop (Hermes app + bridge) — not forcing the

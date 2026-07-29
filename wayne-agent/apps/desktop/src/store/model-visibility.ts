@@ -116,7 +116,7 @@ export function defaultVisibleKeys(providers: readonly ModelOptionProvider[]): S
  *  `target`. Shared by `defaultVisibleKeys` and `resolveVisibleKeys` so the
  *  expansion rule lives in exactly one place.
  *
- *  Platform catalog (`openrouter`) uses the PME Models roster `defaultOn`
+ *  Platform catalog (`openrouter`) uses the curated Models roster `defaultOn`
  *  set so Conta/Models toggles match the Cursor-style first-run list. */
 function expandProviderDefaults(provider: ModelOptionProvider, target: Set<string>): void {
   const models = provider.models ?? []

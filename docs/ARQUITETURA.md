@@ -42,7 +42,7 @@
 > | **Dashboard / produto** — `work4you.ai/chat` | **Fly.io**: app `wayne-w4y` (GRU), 1 Machine, **volume persistente `/opt/data`**, `autostop=suspend` + wake por HTTP. A imagem Fly é um overlay sobre a base "Cloud Run" do Wayne — **Cloud Run está só na linhagem de build, não no runtime**. |
 > | **Landing / login / planos / billing** — `platform/web` | **Cloud Run**: serviço `w4y-web` (us-east1), Next.js. Stripe + provisionamento OpenRouter vivem aqui. |
 > | **Registry** | **Cloud SQL** `w4y-registry` (southamerica-east1), consumido pela casca. |
-> | **Desktop** (app instalável) | Casca **Electron** (`wayne-agent/apps/desktop-shell`) em **modo motor local** (spawna `wayne serve`, carrega `127.0.0.1`); UI distribuída por **engine ZIP** em `gs://w4y-engine-dist`; auto-atualização via electron-updater. |
+> | **Desktop** (app instalável) | Casca **Electron** (`wayne-agent/apps/desktop`, renderer React nativo) em **modo motor local** (spawna `wayne serve`, carrega `127.0.0.1`); motor distribuído por **engine ZIP** em `gs://w4y-engine-dist`; auto-atualização via electron-updater. **Nota (29/07):** esta linha dizia `apps/desktop-shell` — corrigida após o porte. O `desktop-shell` é legado e não é o app distribuído. |
 > | **Estado do runtime** | **Volume Fly `/opt/data`** (persistente). A externalização pra Cloud SQL/GCS do plano v3 foi **dispensada no MVP** (v4). |
 >
 > **Válidos e mantidos:** OpenRouter (modelos) · Composio (conectores/MCP) · ReactFlow

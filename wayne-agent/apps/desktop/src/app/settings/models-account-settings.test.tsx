@@ -109,7 +109,7 @@ describe('resolveFeaturedModels', () => {
     expect(W4Y_FEATURED_MODELS.length).toBeGreaterThan(primary.length)
   })
 
-  it('defaultOn set matches the PME first-run picker', () => {
+  it('defaultOn set matches the curated first-run picker', () => {
     expect(featuredDefaultOnIds()).toEqual([
       'x-ai/grok-4.5',
       'anthropic/claude-opus-5',
