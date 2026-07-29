@@ -14,6 +14,9 @@ import { Check, ChevronDown, iconSize, ShieldCheck, Zap } from '@/lib/icons'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { cn } from '@/lib/utils'
 import { $yoloActive, setYoloActive } from '@/store/session'
+import type { HermesConfigRecord } from '@/types/hermes'
+
+import { peekHermesConfig, setHermesConfigCache, useHermesConfigRecord } from '../../hooks/use-config-record'
 
 export type ApprovalsMode = 'manual' | 'smart'
 
@@ -38,21 +41,14 @@ export function ModeChip({
 }) {
   const { t } = useI18n()
   const yoloLive = useStore($yoloActive)
-  const [approvalsMode, setApprovalsMode] = useState<ApprovalsMode>('manual')
   const [armedYolo, setArmedYolo] = useState(false)
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
-    void getHermesConfigRecord()
-      .then(cfg => {
-        if (!cancelled) setApprovalsMode(readApprovalsMode(cfg))
-      })
-      .catch(() => undefined)
-    return () => {
-      cancelled = true
-    }
-  }, [])
+  // Same shared config cache the settings surfaces use, so changing the mode
+  // here shows in Settings → General and vice versa. Reading it into local
+  // component state instead left the two switches disagreeing.
+  const { data: config } = useHermesConfigRecord()
+  const approvalsMode = readApprovalsMode(config ?? {})
 
   useEffect(() => {
     if (!armedYolo) return
@@ -61,16 +57,28 @@ export function ModeChip({
   }, [armedYolo])
 
   const persistApprovalsMode = useCallback(async (mode: ApprovalsMode) => {
-    setApprovalsMode(mode)
+    let current: HermesConfigRecord | null = peekHermesConfig()
+
+    if (!current) {
+      current = await getHermesConfigRecord().catch(() => null)
+    }
+
+    if (!current) return
+
+    const prev =
+      current.approvals && typeof current.approvals === 'object' && !Array.isArray(current.approvals)
+        ? (current.approvals as Record<string, unknown>)
+        : {}
+    const updated = { ...current, approvals: { ...prev, mode } }
+
+    // Optimistic on the shared cache so both surfaces move together; roll the
+    // cache back rather than leaving them out of step when the save fails.
+    setHermesConfigCache(updated)
+
     try {
-      const cfg = await getHermesConfigRecord()
-      const prev =
-        cfg.approvals && typeof cfg.approvals === 'object' && !Array.isArray(cfg.approvals)
-          ? (cfg.approvals as Record<string, unknown>)
-          : {}
-      await saveHermesConfig({ ...cfg, approvals: { ...prev, mode } })
+      await saveHermesConfig(updated)
     } catch {
-      /* best-effort — picker stays usable */
+      setHermesConfigCache(current)
     }
   }, [])
 

@@ -57,7 +57,6 @@ import { $bindings } from '@/store/keybinds'
 import { openPetGenerate } from '@/store/pet-generate'
 import { requestStartWorkSession } from '@/store/projects'
 import { runGatewayRestart } from '@/store/system-actions'
-import { applyBackendUpdate } from '@/store/updates'
 import { luminance } from '@/themes/color'
 import { type ThemeMode, useTheme } from '@/themes/context'
 import { isUserTheme, resolveTheme } from '@/themes/user-themes'
@@ -516,14 +515,9 @@ export function CommandPalette() {
             keywords: ['gateway', 'restart', 'messaging', 'reconnect', 'system'],
             label: cc.restartGateway,
             run: () => void runGatewayRestart()
-          },
-          {
-            icon: Download,
-            id: 'cc-update-hermes',
-            keywords: ['update', 'upgrade', 'hermes', 'version', 'system', 'restart'],
-            label: cc.updateHermes,
-            run: () => void applyBackendUpdate()
           }
+          // No update entry: the account chip owns updating, so the palette
+          // cannot force the backend target regardless of the running mode.
         ]
       },
       {

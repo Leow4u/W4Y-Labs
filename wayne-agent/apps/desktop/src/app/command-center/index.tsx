@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { SearchField } from '@/components/ui/search-field'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ResponsiveTabs } from '@/components/ui/tab-dropdown'
-import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway, updateHermes } from '@/hermes'
+import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway } from '@/hermes'
 import type { ActionStatusResponse, AnalyticsResponse, StatusResponse } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { sessionTitle } from '@/lib/chat-runtime'
@@ -256,12 +256,14 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
     return logs.filter(line => line.toLowerCase().includes(needle))
   }, [logQuery, logs])
 
-  const runSystemAction = useCallback(
-    async (kind: 'restart' | 'update') => {
+  // Updates are not offered here on purpose: the account chip is the single
+  // entry point, so progress and recovery live in one place (`store/updates`).
+  const runGatewayRestart = useCallback(
+    async () => {
       setSystemError('')
 
       try {
-        const started = kind === 'restart' ? await restartGateway() : await updateHermes()
+        const started = await restartGateway()
         let nextStatus: ActionStatusResponse | null = null
 
         for (let attempt = 0; attempt < 18; attempt += 1) {
@@ -431,11 +433,8 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 whitespace-nowrap max-[47.5rem]:whitespace-normal">
-                        <Button onClick={() => void runSystemAction('restart')} size="xs" variant="text">
+                        <Button onClick={() => void runGatewayRestart()} size="xs" variant="text">
                           {cc.restartGateway}
-                        </Button>
-                        <Button onClick={() => void runSystemAction('update')} size="xs" variant="textStrong">
-                          {cc.updateHermes}
                         </Button>
                       </div>
                     </div>

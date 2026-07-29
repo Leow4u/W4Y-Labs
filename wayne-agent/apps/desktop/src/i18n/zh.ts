@@ -1836,7 +1836,6 @@ export const zh: Translations = {
     hermesActiveSessions: (version, count) => `Work4You ${version} · 活跃会话 ${count}`,
     restartGateway: '重启网关',
     gatewayRestartFailed: '网关重启失败。',
-    updateHermes: '更新 Work4You',
     actionRunning: '运行中',
     actionDone: '完成',
     actionFailed: '失败',

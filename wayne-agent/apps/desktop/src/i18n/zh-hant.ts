@@ -1081,7 +1081,6 @@ export const zhHant = defineLocale({
     hermesActiveSessions: (version, count) => `Work4You ${version} · 活躍工作階段 ${count}`,
     restartGateway: '重新啟動閘道',
     gatewayRestartFailed: '閘道重新啟動失敗。',
-    updateHermes: '更新 Work4You',
     actionRunning: '執行中',
     actionDone: '完成',
     actionFailed: '失敗',

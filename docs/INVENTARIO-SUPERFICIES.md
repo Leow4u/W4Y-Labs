@@ -24,21 +24,22 @@ Se descobrires um **contrato** do motor em vez de um buraco na UI, escreve-o no 
 
 Verificados diretamente, não herdados de relatório.
 
-### 1.1 Botão "Update Work4You" do Command Center está partido
+### 1.1 Botão "Update Work4You" do Command Center — RESOLVIDO 29/07
 
-| | |
+**Era:** o botão chamava `updateHermes()` directamente, saltando o store de updates, contra `POST /api/hermes/update` — rota que não existe. Fallout de rename: o upstream Hermes servia `/api/hermes/update`; o fork renomeou para `/api/wayne/update` e o cliente desktop ficou para trás. Sem gating: sempre visível, sempre clicável, sempre a falhar.
+
+**Decisão do dono (29/07): caminho único de update = o chip ao lado do nome da conta.** Removidas as duas portas divergentes:
+
+| Removido | Porquê |
 |---|---|
-| **Sintoma** | Clicar em Command Center → Sistema → "Update Work4You" falha sempre |
-| **Chamada** | `apps/desktop/src/app/command-center/index.tsx:264` → `updateHermes()` |
-| **Cliente** | `apps/desktop/src/hermes.ts:1147` → `POST /api/hermes/update` |
-| **Servidor** | Define `POST /api/wayne/update` (`wayne_cli/web_server.py:4357`). `/api/hermes/*` não existe |
-| **Gating** | Nenhum. Botão sempre visível e sempre clicável (`index.tsx:437-439`) |
+| Botão em Command Center → Sistema | Chamava a REST directamente, sem estado de progresso nem recuperação |
+| Entrada `cc-update-hermes` na paleta de comandos | Forçava o alvo `backend` independentemente do modo em execução |
 
-**Causa:** fallout de rename. O upstream Hermes servia exatamente `POST /api/hermes/update` (registado em `NATIVO-VS-CONSTRUIDO.md` linha 35, `web_server.py:3306` no upstream). O fork renomeou a rota do servidor para `wayne`; o cliente desktop ficou para trás.
+About e Settings → General **ficaram**: chamam `startActiveUpdate()`, a mesma função do chip, portanto são atalhos para o caminho único, não rivais dele.
 
-**Nota importante:** renomear a rota do cliente **não** conserta. Neste fork o `wayne update` está desativado de propósito (`wayne_cli/subcommands/update.py`) para não puxar o Nous. O self-update do motor por REST está morto por decisão. O caminho vivo é o updater Electron (`w4y-app-updater.cjs` + `w4y-wayne-resolve.cjs`).
+**Endereços corrigidos** em `hermes.ts` (`/api/hermes/update*` → `/api/wayne/update*`). Isto importa no modo remoto: o alvo realista é o nosso tenant na Fly, que corre em contentor, onde `_dashboard_local_update_managed_externally()` devolve `can_apply: false` e o `mapBackendCheck` traduz isso em "não suportado". Antes o mesmo cenário dava `check-failed` por 404.
 
-O mesmo par de funções é usado por `store/updates.ts:333` (`checkBackendUpdates`) e `:562` (`applyBackendUpdate`). Essas só correm em **modo remoto** (`isRemoteMode()` guard em `:326`), portanto não afetam o utilizador local — mas em remoto o check falha sempre para `check-failed`.
+**Resíduo conhecido:** um desktop em modo remoto apontado a uma instalação git fora de contentor chega a executar `wayne update`, que neste fork imprime um aviso de desativado e sai com código 0 — o store leria isso como sucesso. Cenário de programador, não de utilizador. A cura definitiva é apagar o conceito de "update do backend" do desktop, que pertence à unificação mais ampla.
 
 ### 1.2 Histórico de conectores nunca foi ligado
 
@@ -268,15 +269,25 @@ Tudo o que foi acrescentado ao composer está de facto ligado: `ProjectChip`, `R
 
 ### 6.3 Duplicações de UI
 
-| Conceito | A | B |
-|---|---|---|
-| Escolher modelo | `ModelMenuPanel` (composer) | `ModelPickerDialog` (overlay) + Settings → Models |
-| Visibilidade de modelos | `ModelVisibilityDialog` | Toggles em Settings → Models |
-| Modo de aprovação | Settings General (`approvals.mode`) | `ModeChip` no composer (+ YOLO por sessão) |
-| Ver subagentes | Aba Agents do Ambiente | Overlay `/agents` |
-| Terminal | Linhas de ferramenta no chat | PTY embutido no Ambiente |
-| Browser / preview HTML | Preview rail | Aba Browser do Ambiente |
-| Diffs | `inline_diff` → `$toolDiffs` (payload da ferramenta) | Review (árvore de trabalho) |
+Coluna **Proveniência** apurada em 29/07 por comparação ficheiro-a-ficheiro com o checkout upstream em `C:/DEV/hermes-upstream`: o que existe lá é original do Hermes, o que só existe cá construímos nós. Isto importa porque a instrução do dono é *unificar na estrutura original* — e a maior parte destas duplicações **veio de fábrica**, não fomos nós que as criámos.
+
+| Conceito | A | B | Proveniência |
+|---|---|---|---|
+| Escolher modelo | `ModelMenuPanel` (composer) | `ModelPickerDialog` (overlay) + Settings → Models | Ambas originais — unificado 29/07 |
+| Visibilidade de modelos | `ModelVisibilityDialog` | Toggles em Settings → Models | Ambas originais — unificado 29/07 |
+| Modo de aprovação | Settings General (`approvals.mode`) | `ModeChip` no composer (+ YOLO por sessão) | A original, **B nosso** — unificado 29/07 |
+| Ver subagentes | Aba Agents do Ambiente | Overlay `/agents` | Ambas originais — **não é duplicação**, ver abaixo |
+| Terminal | Linhas de ferramenta no chat | PTY embutido no Ambiente | Ambas originais |
+| Browser / preview HTML | Preview rail | Aba Browser do Ambiente | Preview original, aba Browser nossa |
+| Diffs | `inline_diff` → `$toolDiffs` (payload da ferramenta) | Review (árvore de trabalho) | Ambas originais |
+
+**Nosso, em modelos:** `lib/w4y-featured-models.ts`, `settings/models-settings.tsx` (invólucro que compõe o `ModelSettings` original com um painel nosso) e `settings/models-runtime-settings.tsx`. O menu do composer, o overlay de picker, o `model-picker` e o diálogo de visibilidade são originais quase intactos (+23, 0 e +5 linhas).
+
+**Subagentes — não era duplicação (verificado 29/07).** A aba Agents do Ambiente e o overlay `/agents` são **o mesmo componente com duas molduras**: `app/agents/index.tsx` exporta `AgentsPanelBody` (usado pelo `right-sidebar/index.tsx:167`) e `AgentsView` (usado pelo `desktop-controller.tsx:1097`), e ambos constroem a árvore com a mesma linha — `buildSubagentTree(allSubagents(subagentsBySession))` — a partir do mesmo atom. Não há estado rival nem derivador próprio. Esta linha da tabela estava mal classificada; fica registada para não voltar a gerar trabalho.
+
+**Modelos — resolvido 29/07.** A duplicação não estava nas UIs (todas originais) mas em **quem decide como pedir o catálogo**. Existe um ajudante partilhado original, `lib/model-options.ts` → `requestModelOptions()`, que encapsula "gateway ou REST + `explicit_only`" e tem testes a fixar esse contrato (*"Pickers ask for explicitly configured providers only (#56974)"*). O `app/chat/index.tsx` e o `components/model-visibility-dialog.tsx` reimplementavam esse ramo à mão, cada um com uma regra diferente de quando usar o gateway — a razão pela qual a fuga da Anthropic/Copilot teve de ser tapada duas vezes. Ambos passaram a chamar o ajudante. Delta de comportamento aceite pelo dono: com gateway ligado mas sem sessão, os dois passam a perguntar ao gateway em vez de irem pelo REST. Os chamadores que só pedem o catálogo global (Settings, prefetch) não decidem nada e ficaram como estavam; o onboarding usa `explicitOnly: false` de propósito e não deve ser unificado.
+
+**Aprovações — resolvido 29/07.** O `ModeChip` era nosso e ignorava o cache partilhado de config: lia `approvals.mode` uma vez ao montar para estado local do componente e gravava com `saveHermesConfig()` **sem** `setHermesConfigCache()`. Resultado: mudar pelo chip deixava as Settings a mostrar o valor antigo, e vice-versa. Passou a ler por `useHermesConfigRecord()` e a escrever pelo cache partilhado com recuo em caso de falha — o mesmo padrão que o `mcp-tab.tsx` usa para acções discretas. O ficheiro `app/hooks/use-config-record.ts` diz no cabeçalho que *toda* a superfície de definições lê e escreve por esta chave; o chip era a excepção.
 
 Nota conceptual: "Agents" significa três coisas diferentes no produto — subagentes (delegação), Agent Studio (roster de perfis) e Profiles (CRUD/SOUL).
 

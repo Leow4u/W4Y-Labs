@@ -1144,7 +1144,7 @@ export function restartGateway(): Promise<ActionResponse> {
 export function updateHermes(): Promise<ActionResponse> {
   return window.hermesDesktop.api<ActionResponse>({
     ...profileScoped(),
-    path: '/api/hermes/update',
+    path: '/api/wayne/update',
     method: 'POST'
   })
 }
@@ -1155,7 +1155,7 @@ export function updateHermes(): Promise<ActionResponse> {
 export function checkHermesUpdate(force = false): Promise<BackendUpdateCheckResponse> {
   return window.hermesDesktop.api<BackendUpdateCheckResponse>({
     ...profileScoped(),
-    path: `/api/hermes/update/check${force ? '?force=true' : ''}`
+    path: `/api/wayne/update/check${force ? '?force=true' : ''}`
   })
 }
 

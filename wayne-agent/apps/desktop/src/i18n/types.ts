@@ -1270,7 +1270,6 @@ export interface Translations {
     hermesActiveSessions: (version: string, count: number) => string
     restartGateway: string
     gatewayRestartFailed: string
-    updateHermes: string
     actionRunning: string
     actionDone: string
     actionFailed: string

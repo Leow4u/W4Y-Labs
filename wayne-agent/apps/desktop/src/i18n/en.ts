@@ -1842,7 +1842,6 @@ export const en: Translations = {
     hermesActiveSessions: (version, count) => `Work4You ${version} · Active sessions ${count}`,
     restartGateway: 'Restart gateway',
     gatewayRestartFailed: 'Gateway restart failed.',
-    updateHermes: 'Update Work4You',
     actionRunning: 'running',
     actionDone: 'done',
     actionFailed: 'failed',

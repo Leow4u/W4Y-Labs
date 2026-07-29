@@ -1109,7 +1109,6 @@ export const ja = defineLocale({
     hermesActiveSessions: (version, count) => `Work4You ${version} · アクティブセッション ${count}`,
     restartGateway: 'ゲートウェイを再起動',
     gatewayRestartFailed: 'ゲートウェイの再起動に失敗しました。',
-    updateHermes: 'Work4You を更新',
     actionRunning: '実行中',
     actionDone: '完了',
     actionFailed: '失敗',
