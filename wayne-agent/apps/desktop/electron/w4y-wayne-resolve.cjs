@@ -191,6 +191,22 @@ function tryResolveWayneBackend(backendArgs, helpers = {}) {
 }
 
 /**
+ * Parse a manifest body, tolerating a leading UTF-8 BOM.
+ *
+ * latest.json is written by hand at publish time, and PowerShell's Set-Content
+ * / Out-File emit a BOM by default. JSON.parse throws on U+FEFF, so a manifest
+ * published that way makes every engine update check fail with a parse error
+ * while the file looks perfectly fine to a human. That happened to the
+ * 20260728b manifest; the publish side now writes BOM-less, and this keeps a
+ * repeat from silently breaking updates again.
+ */
+function parseManifestJson(buf) {
+  let text = buf.toString("utf8");
+  if (text.charCodeAt(0) === 0xfeff) text = text.slice(1);
+  return JSON.parse(text);
+}
+
+/**
  * Fetch latest.json and return zipUrl (for future install.ps1 bootstrap).
  */
 async function fetchEngineZipUrl(https) {
@@ -207,7 +223,7 @@ async function fetchEngineZipUrl(https) {
         res.on("data", (c) => chunks.push(c));
         res.on("end", () => {
           try {
-            const j = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+            const j = parseManifestJson(Buffer.concat(chunks));
             if (j && typeof j.zipUrl === "string") resolve(j.zipUrl);
             else reject(new Error("latest.json missing zipUrl"));
           } catch (e) {
@@ -289,7 +305,7 @@ async function fetchEngineLatestManifest() {
         res.on("data", (c) => chunks.push(c));
         res.on("end", () => {
           try {
-            const j = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+            const j = parseManifestJson(Buffer.concat(chunks));
             if (j && typeof j.zipUrl === "string") resolve(j);
             else reject(new Error("latest.json missing zipUrl"));
           } catch (e) {
@@ -639,6 +655,7 @@ module.exports = {
   ensureWayneMcpSdk,
   ensureWayneEngineForPackaged,
   fetchEngineZipUrl,
+  parseManifestJson,
   isWayneSourceRoot,
   tryResolveWayneBackend,
   wayneRootCandidates,

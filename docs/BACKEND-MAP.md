@@ -160,6 +160,31 @@ ANTES de declarar o instalador pronto. (Erro real 17/07: os 5 módulos portados 
 git-*/hardening ficaram fora da lista; 0.2.0 crashou; 0.2.1 os incluiu.)
 
 
+## ⚠️ GOTCHA update do motor: BOM no `latest.json` parte o `JSON.parse` (incidente 29/07)
+
+O canal do motor (`https://storage.googleapis.com/w4y-engine-dist/latest.json`) esteve a servir um
+manifesto que começava com um BOM UTF-8 (`EF BB BF`). O leitor da app faz
+`JSON.parse(Buffer.concat(chunks).toString("utf8"))` em `w4y-wayne-resolve.cjs`, e `JSON.parse`
+rebenta em `U+FEFF` — `Unexpected token '\ufeff'`. Resultado: **toda a verificação de atualização do
+motor falhava**, com um ficheiro que a olho nu é JSON perfeitamente válido. Reproduzido com o código
+exacto da app antes de corrigir; `charCodeAt(0)` dava `65279`.
+
+Causa de raiz: não há script de publicação para este canal (só existe `publish-ui.ps1`, para o canal
+`web_dist`), por isso o `latest.json` é escrito à mão — e o `Set-Content`/`Out-File` do PowerShell 5.1
+mete BOM por omissão. Escrever sempre com `New-Object System.Text.UTF8Encoding $false`, como o
+`publish-ui.ps1` já faz e documenta (*"Electron JSON.parse is picky about BOM"*).
+
+Dois lados corrigidos: o manifesto publicado passou a ser BOM-less, e o leitor passa a tolerar um BOM
+à cabeça (`parseManifestJson`, contratos em `electron/engine-manifest-parse.test.cjs`) — um BOM no
+meio do corpo continua a falhar, para um corpo corrompido nunca ser reinterpretado como válido.
+
+**Armadilha de cache, na mesma passada:** o objecto antigo tinha sido publicado com
+`Cache-Control: public, max-age=3600`, por isso a borda continuou a servir a versão com BOM durante o
+resto do TTL mesmo depois de a origem estar corrigida (`gsutil stat` mostrava o objecto novo;
+`Invoke-WebRequest` devolvia `Age: 1315` e o `Content-Length` antigo). Manifestos vão com
+`Cache-Control: no-store`; artefactos com `max-age=3600`. É a mesma falha que o cabeçalho do
+`publish-ui.ps1` descreve.
+
 ## Toggle de conectores por sessão — o gate é nosso, não é nativo (19/07)
 
 > O **motor** desta secção continua válido. As referências de **UI**
