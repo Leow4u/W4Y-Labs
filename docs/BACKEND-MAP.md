@@ -1,9 +1,27 @@
-# Mapa do Backend — o que é nativo e o que a UX usa
+# Mapa do Backend — contratos verificados e factos duros
 
-> **Regra de uso (16/07/2026):** leia ISTO antes de construir qualquer coisa.
-> Se a capacidade não está aqui, leia o código UMA vez e escreva aqui — nunca duas.
-> A tela NUNCA inventa, nunca decide, nunca promete o que o backend não faz.
-> Toda linha marcada ✅ foi verificada em código com arquivo:linha em 15/07/2026.
+> **Regra de uso (reescrita a 29/07/2026).** Este documento guarda a *física* do
+> sistema: contratos verificados em código, topologia de segurança, gotchas e
+> incidentes que custaram a aprender. Factos de validade longa, não fotografias
+> do estado da UI.
+>
+> **Onde escrever o que descobriste** — a regra antiga dizia só "escreve aqui", e
+> essa ambiguidade fez nascer um terceiro documento a repetir metade deste:
+>
+> | Descobriste | Escreve em |
+> |---|---|
+> | Um contrato do motor, uma gotcha, um incidente | **aqui** |
+> | Que a UI não expõe algo que o motor já tem | [`INVENTARIO-SUPERFICIES.md`](./INVENTARIO-SUPERFICIES.md) |
+> | Uma decisão de produto, de público ou de âmbito | [`PRODUTO.md`](./PRODUTO.md) |
+>
+> Não abras um ficheiro novo para nenhum dos três. Lê o código uma vez e escreve
+> no sítio certo.
+>
+> Linhas marcadas ✅ foram verificadas em código, com ficheiro:linha, na data
+> indicada na secção. As secções sobre a SPA web antiga (`web/src`,
+> `RightDock.tsx`) e sobre a casca fina `apps/desktop-shell` saíram para
+> [`arquivo/BACKEND-MAP-legado-web-shell.md`](./arquivo/BACKEND-MAP-legado-web-shell.md)
+> — descreviam arquitecturas que já não são o produto.
 
 ## Contratos verificados (a "física" do sistema)
 
@@ -33,40 +51,6 @@
 | **Recalibração:** a alegação de "cross-tenant crítico / falsificação de sessão" pressupõe multi-tenant de PROCESSO COMPARTILHADO (um app, N tenants por param). Nossa topologia é 1 app por tenant → a versão "crítica" cross-tenant **não se sustenta hoje**. O limite REAL é: sem auth por-usuário DENTRO de um tenant | análise 16/07 | ⚠️ parcial |
 | **NÃO verificado:** posse de sessão INTRA-tenant (um usuário do mesmo tenant acessa sessão de outro?); modo gated/OAuth (`auth_required=True`) na prática. Precisa de UMA revisão de segurança com alvo — não repo-wide | — | ❌ |
 
-## Capacidades nativas AINDA NÃO ligadas na UX
-
-> **Executado em 16/07 (fly196 — Ondas 0+1):** itens **1** (scan, fly195), **2** (árvore
-> do servidor via `GET /api/projects/tree`; sidebar = renderizadora, regra cliente vira
-> fallback), **3** (colunas name/icon/color assumem; sidecar = legado somente-leitura com
-> backfill), **4** (CRUD por linha: PATCH/archive/DELETE; projeto LOCAL = só linha, nunca
-> toca disco), **8** (`match` serializado + trecho na modal), **10** (facts = perfil Code),
-> **11** (aninhamento └ via `parent_session_id`). Restam: 5, 6, 7, 9, 12 (só leitura do
-> gravado — sem discovery ativo), 13. Gotcha novo: `scoped_session_ids` do builder mistura
-> tiers (explícito+auto+descoberto) — o endpoint REST recorta só os explícitos, senão
-> sessões de projeto-auto SOMEM de Recentes (comentado no endpoint).
->
-> **fly197:** auto-projetos (tier 2, `isAuto`) agora RENDERIZADOS na sidebar como linhas
-> adotáveis — clique = adota (`projects.create` idempotente via `registerFolderProject`)
-> e entra no projeto; até adotar, sem menu/meta (não há linha pra operar). Com isso o
-> recorte de scoped voltou a cobrir TODOS os nós da árvore (todo escopado tem casa visível).
-> Padrão nativo confirmado: upstream `workspace-groups.ts` — *"isAuto... Deletable =
-> dismissable"*; o "dismiss" do desktop NÃO foi replicado (mecanismo não verificado).
-
-| # | Capacidade | Onde vive | Hoje na UX | Custo p/ ligar |
-|---|---|---|---|---|
-| 1 | **Scan de segurança na modal do marketplace** (veredito + achados + política) | `GET /api/skills/hub/scan` (web_server.py:11490) | **CONSTRUÍDA e verificada (tsc+build), aguardando deploy — fly195.** O console `?full=1` já usava; a tela do usuário não | só deploy |
-| 2 | **Árvore de projetos do servidor** — membership autoritativo, contagens, previews | `projects.tree` / `projects.project_sessions` (server.py:10952/10979) + `project_tree.py` (558 linhas) | sidebar agrupa no CLIENTE (regra portada; o motor não) | M |
-| 3 | **Nome/ícone/cor do projeto nas colunas do projects_db** | `projects_db.py` (`icon`, `color`, `description`) | web guarda num arquivo sidecar paralelo (`project-meta.ts`) — **duplicação de estado real** | P |
-| 4 | **CRUD de projeto por linha** — archive/delete/update/set_primary | `projects.archive/delete/update/set_primary` (server.py:10662-10718) | menus da sidebar operam PASTAS via `/api/files` | P–M |
-| 5 | **Raias de git** (branch/worktree por sessão) | `project_tree` lanes + `git_branch`/`git_repo_root` gravados por sessão | não renderiza. Dado JÁ é gravado p/ repos de nuvem; p/ pasta local NUNCA existirá (probe roda no host) | M — só p/ perfil "Code" |
-| 6 | **Worktrees de tarefa do kanban** — branch determinístico ancorado no repo do projeto | `kanban_db.py` (`workspace_kind`, `branch_name`, `project_id`), `branch_name_for` | Operações não expõe | M–G |
-| 7 | **Orquestração cross-agente** — assignee/decompose/dispatcher/swarm | kanban nativo *(da memória 10/07 — NÃO re-verificado em código)* | não exposta | G |
-| 8 | **Trecho ofensor no scan** (`Finding.match`) | existe no scanner; endpoint não serializa | UI mostra `arquivo:linha` sem o trecho | 1 linha de BACKEND |
-| 9 | **Épico billing** — Stripe, /planos, provisioner | branch própria *(memória 10/07)* | só avisos 50/75/90 + medidor foram pro ar (fly128) | M |
-| 10 | ~~`project.facts`~~ **RESOLVIDO 16/07**: detecção de workspace de código (manifests, package manager, comandos de verify) pro surface de verify do desktop; par com `verification.status` (server.py:5257). NÃO é gap de v0 — pertence ao perfil "Code" (junto das raias, item 6) | server.py:5239 | — | — |
-| 11 | **Aninhamento de ramificações** — sessão-filha sob a mãe (conector └─) via `parent_session_id`/`_lineage_root_id` | `_project_tree_row` (server.py:~10880); o desktop Hermes desenha via `flattenSessionsWithBranches` | nossa sidebar lista tudo plano — "Ramificar" existe mas a filha não aninha | P–M |
-| 12 | **Descoberta de repos** — repos com histórico mas sem sessão carregada viram projeto | `projects.discover_repos`/`record_repos` (server.py:10820/10832) | web não chama | P |
-| 13 | **Overlay /journey nativo** + profundidade do kanban (runs/logs/claims/dependências/anexos) | ui-tui overlays; `kanban_db.py` *(memória/plano — não re-verificado)* | Operações expõe o básico curado | M |
 
 ## Knowledge/RAG — auditoria 19/07 (agente Explore, file:line verificados)
 
@@ -106,105 +90,6 @@
   WhatsApp Cloud, WeCom callback, Composio events) ACORDAM a máquina via HTTP inbound.
 - Polish barato: `whatsapp_cloud` e `msgraph_webhook` sem entrada em `_PLATFORM_OVERRIDES` (rótulo cru).
 
-## ARQUIVOS — o Conhecimento virou superfície (20/07; engine 20260720f + fly224)
-
-**Não existe "nuvem × meu computador" pra unificar.** VERIFICADO ao vivo no motor local:
-a raiz gerenciada JÁ É `C:\Users\leona\Work4You` (a tela reporta `?path=` com esse caminho).
-Uma fonte "Meu computador" separada listaria a MESMA pasta duas vezes, e a segunda sem
-tamanho/data (a ponte do Electron devolve só `{name,path,isDirectory}`). No navegador puro
-ela não existe. **Não reabrir esse eixo** — ver [[one-project-model]].
-
-**Não existe índice de "arquivo produzido pelo agente".** A única lista de artefatos do repo
-está dentro de `task_events.payload` (só tarefas do kanban), sem rota de leitura; o vínculo
-sessão→arquivo é inferência por prefixo de cwd. Por isso a tela se chama **Arquivos**, não
-"Artefatos": o nome prometia procedência que nenhuma tabela prova.
-
-**O que unificou de verdade:** `web/src/lib/file-sources.ts` — uma SUPERFÍCIE = contrato de
-listagem + `FileCaps`. Grade/lista/menu RENDERIZAM por capacidade (o antigo prop `muted` só
-aplicava opacity e o botão continuava clicável). `cloud` = tudo; `knowledge` = só enviar e
-apagar, porque é só isso que /api/knowledge tem (sem leitura → sem baixar/pré-visualizar;
-sem pin → Favoritos não ganha caminho `knowledge://` impossível de reabrir).
-
-**Reingestão:** subir o mesmo documento duas vezes DUPLICAVA os fatos em silêncio.
-`lib/knowledge-upload.ts` faz DELETE antes do POST. Verificado no disco: manifest com UMA
-entrada e `facts: 1` após dois envios.
-
-**Erros:** `api.ts` agora lança `ApiError` com o status. Nunca casar a prosa INGLESA do
-backend — 404/403/409/413/422 têm cada um uma frase (os quatro 403 diferentes viram UMA só;
-pro dono significam a mesma coisa).
-
-**`knowledge/` protegido no servidor** (`_PROTECTED_ROOT_ENTRIES`): apagar pela API de
-arquivos deixava manifest e fatos órfãos, e o agente seguia respondendo de conhecimento
-fantasma. Esconder na curadoria do front não é proteção (?full=1 e a API crua alcançam).
-
-## AUDITORIA DE UX — ondas 0/1/2 (20/07; engine 20260720e + fly223)
-
-**`default` NÃO é agente — é a instalação.** Regra do dono: não pode aparecer em lugar nenhum
-onde dê pra selecionar, editar ou atribuir trabalho. Fonte única no frontend:
-`web/src/lib/agents.ts` (`isInstallation` / `realAgents` / `agentLabel` / `agentMonogram`).
-Piso no motor (não confiar só na UI): `kanban_decompose._build_roster` pula `is_default`,
-`_resolve_default_assignee` devolve `""`, e `kanban_db._default_spawn` **levanta** RuntimeError
-com motivo em PT quando o assignee é `default` (aparece no quadro pelo caminho de spawn-failure).
-
-**Perfil do usuário — endpoint NOVO `GET/PUT /api/memory/user-profile`** (web_server.py).
-Lê/escreve `<WAYNE_HOME>/memories/USER.md` através do próprio `MemoryStore`: mesmo limite de
-caracteres (`memory.user_char_limit`, default 1375), mesmo scan de injeção, mesmo writer atômico
-(entradas separadas por `\n§\n`) — escrever texto cru quebraria o guard de drift do memory tool.
-USER.md entra em TODO system prompt (`agent/system_prompt.py:432`), é por-perfil, e é o backing
-correto de "Instruções personalizadas" nas Configurações — que antes escrevia o **SOUL.md da
-instalação**, ou seja, a base herdada por todos os agentes.
-
-**Tokens de tipografia (a causa real das "letras pequenas"):** o root é 15px
-(`--theme-base-size`), então a escala rem do Tailwind mentia em toda a UI — `text-xs` = 11,25px
-em 526 lugares. A escala agora é ancorada em px no `@theme` do `index.css` (xs=12px é o PISO).
-Ao mexer em tamanho de fonte, mexer LÁ, não no call site.
-
-## AGENTES v3 — construído 20/07 (engine 20260720a + fly219; mockups → produto)
-
-**Backend novo (tudo smoke-testado):**
-- **Teto de créditos por agente** (`wayne_cli/budget.py`): cap em `limits.monthly_credits` do
-  config.yaml DO perfil (1cr=US$0,01); gasto = SUM(actual||estimated) do state.db no MÊS civil;
-  guarda em `prompt.submit` (server.py, _err 4030), `cron run_job` (skip com motivo) e
-  `kanban _default_spawn` (**raise** → após failure_limit a tarefa auto-bloqueia com a mensagem
-  VISÍVEL no quadro — nunca devolver None: vira limbo de claim). Fail-open (chave capada = stop real).
-- **Conhecimento K1** (`wayne_cli/knowledge.py` + REST `/api/knowledge` GET/upload/DELETE):
-  docs em `<profile>/knowledge/` + manifest; chunks ~700c no fact store holographic com
-  `[fonte: arquivo]` INLINE (citação via prefetch) + tag `src:` (delete por doc =
-  list_facts(category)+filtro tag+remove_fact). txt/md/csv/json/docx/xlsx/ipynb; PDF recusado
-  (`unsupported_format` — sem lib no lock). Ativa `memory.provider: holographic` no perfil se vazio
-  (NUNCA sobrescreve outro provider — limite 1-externo do MemoryManager).
-- **team.json** sidecar (`GET/PUT /api/profiles/{name}/team`): area + subagents[{name,role,icon}].
-- **Pulso** (`GET /api/profiles/pulse`): status vivo por perfil do registry IN-PROCESS do gateway
-  (sessões do painel E por-agente via WS vivem no MESMO processo — verificado; chats PTY `wayne -p`
-  são subprocesso e ficam de fora) + créditos do mês + cap + last_active/sessions_today do state.db.
-- **Inbox de aprovações** (`GET /api/approvals/pending` + `POST /api/approvals/respond`): aprovações
-  (tools.approval._gateway_queues por session_key) + clarify/sudo/secret
-  (server._pending/_pending_prompt_payloads por request_id, respond = _answers[rid]+event.set);
-  kanban needs_input entra pela UI via board REST.
-- Dockerfile.projects: +budget.py, +knowledge.py, +kanban_db.py, +cron/scheduler.py.
-
-**Frontend (tudo botão-real):** AgentsPage = visão do dono (cards por área, custo×teto, subagentes,
-"Ver time"); AgentTeamPage `/profiles/team?name=` (org: principal+papéis do team.json, +subagente
-inline); Estúdio ganhou nó Conhecimento (abre gaveta na aba certa); gaveta: aba Conhecimento
-(upload/remover REAL), ModelCatalogPicker (provedores OpenAI→Anthropic→Google→xAI + catálogo
-inteiro na busca) no lugar do datalist, toggle liga/desliga de canal POR agente (PUT
-platforms/{id} {enabled, profile} — vale após reinício do motor, a linha diz isso), curadoria de
-skills (12 + expandir); DelegateObjective (lib/delegate-draft.ts = draft LLM descartável →
-preview DAG → aprovar = kanban tasks REAIS com parents[] em ordem topológica, raízes nascem ready
-e TRABALHAM; recorrente vira cron do assignee); Operações ao vivo (workers 8s, Aprovar/Refazer na
-revisão, rail de fatos do board); Governança = inbox + editor de teto (saveConfig limits ?profile).
-**Vocabulário: zero "contratar".**
-**Follow-ups fechados (20/07, engine 20260720b + fly220):** (1) `GET /api/agent-trace?profile=`
-— timeline de tools da última sessão (state.db; duração ≈ gap desde a mensagem anterior; role=
-'tool' tem tool_name+timestamp) + custo; Estúdio mostra pill "Última execução" (clica → aba
-Atividade) e contagem mcp no nó. (2) PDF no Conhecimento: pypdf 6.1.3 lazy (pyproject+uv.lock;
-desktop venv via `uv pip install --python <venv>` — venv uv NÃO tem pip; imagem fly idem, tem
-`/usr/local/bin/uv`). (3) Esquadrão: `AgentDraft.team` → template composto cria principal +
-papéis no team.json (premium). **GOTCHA:** build-engine-zip.ps1 no PowerShell 5 gera zip com
-CONTRABARRAS nos entry names (quebra unzip POSIX) — sempre pwsh 7. **GOTCHA local (20/07):** o refresh in-place do desktop (robocopy) MESCLA web_dist sem apagar bundles antigos — mesmo acúmulo do fly193, só que na máquina do usuário (17 index-*.js). Inertes, mas após refresh manual limpar assets/ mantendo só o par referenciado no index.html. Nomes COMERCIAIS de modelo em toda a UI via modelCommercialName() (ModelCatalogPicker) — slug técnico nunca aparece; recomendação por necessidade = prop recommendedModel (escolha do LLM do rascunho/template).
-**LIÇÃO decompose (19/07):** decompose nativo NÃO tem dry-run e `recompute_ready` promove filho
-sem-pai a ready A CADA tick do dispatcher (auto_promote_children=false NÃO segura) — por isso o
-preview do Delegar é LLM especulativo e a criação só acontece no Aprovar.
 
 ## Kanban — verificado 16/07 (prints do Leonardo + greps)
 
@@ -235,21 +120,12 @@ preview do Delegar é LLM especulativo e a criação só acontece no Aprovar.
   de venda; `workspace_kind` scratch|dir|**worktree** (:135 — a porta do kanban profundo);
   `parents` = pipeline; skills por tarefa ≠ toolsets do perfil (o código valida e corrige, :2530).
 
-## Fontes = qual app/web o agente usou — RESOLVIDO fly203 (2 palpites falharam antes)
 
-- **NÃO existe** evento `connector.*` nem campo `toolkit` numa EXECUÇÃO de tool. O único sinal é o
-  NOME da tool, cru: `mcp_composio_GMAIL_FETCH_EMAILS` (contrato `mcp_<server>_<tool>` acima).
-- **`ConnectorEventsPanel` NÃO serve de reconhecedor** — ele lida com TRIGGERS (config de eventos),
-  lê `getConnectorTriggers` e o `toolkit` que só existe em objetos de TRIGGER (api.ts:1629), nunca
-  numa execução. Não confundir.
-- **Reconhecedor certo (fly203):** INVERTER — pegar os apps CONECTADOS (`getConnectorsStatus`,
-  `accounts[].toolkit` ACTIVE = slug tipo `gmail`, api.ts:1589) e marcar usado se o slug aparece como
-  substring (case-insensitive) num nome `mcp_composio*`. Testa contra o conjunto CONHECIDO, não
-  adivinha onde `<TOOLKIT>` termina (o que quebrou os regexes). "Internet" = categoria `toolWeb` do
-  ToolLine (`isWebSourceTool`, exportada), excluindo `mcp_composio*`. Gap conhecido: só escopo global —
-  app conectado só por-agente não entra (igual ao submenu de conectar do dock).
+## Nome de tool MCP + espectador de subagente — verificados 16/07 (D2.1)
 
-## Contratos do dock reativo — verificados 16/07 (D2.1)
+> Chamava-se "contratos do dock reativo". O dock era da SPA antiga; **estes dois
+> contratos são do motor e continuam a valer** — o segundo é a forma correcta de
+> assistir a um subagente sem roubar o transporte da sessão-mãe.
 
 - **Nome de tool MCP no `tool.start`:** `mcp_<server>_<tool>` (`tools/mcp_tool.py:3941`, caixa
   preservada). Ação de conector = `mcp_composio_GMAIL_FETCH_EMAILS` (escopos `composio` e
@@ -262,61 +138,6 @@ preview do Delegar é LLM especulativo e a criação só acontece no Aprovar.
   drop do socket ou `session.close` (:7888, idempotente). `child_session_id` vem no
   `subagent.start` (:3579). Serve igual pra assistir workers do kanban no futuro.
 
-## Desktop: casca fina × Hermes desktop completo (verificado 17/07)
-
-Nossa casca `apps/desktop-shell/` = 1048 linhas, 7 .cjs (carrega work4you.ai da NUVEM + executor
-local). O Hermes desktop COMPLETO `apps/desktop/electron/` está PARQUEADO no repo (dezenas de
-módulos). Reaproveitável por balde:
-
-- **Balde 1 — NÃO trazer (arquitetura, é o cérebro local):** `backend-command/ready/probes`,
-  `bootstrap-platform/runner` = sobem o Python NA MÁQUINA. Reversão cara (instalador 150-250MB,
-  ver [[mvp-v0-scope]]). O híbrido já resolve o que precisamos sem isso.
-- **Balde 2 — TRAZER (UX desktop, compatível com nuvem):** `desktop-uninstall`,
-  deep-link/protocol (`work4you://` no package.json, fiação a confirmar), `oauth-net-request`,
-  `hardening`. Já TEMOS: Tray, globalShortcut (main.cjs).
-  ⚠️ **AUTO-UPDATE — CORREÇÃO 17/07 (afirmei "reuso puro" e ERREI):** o `update-*.cjs` do Hermes
-  é **git self-update** (git fetch + rebuild `--build-only` + relaunch; ver update-remote.cjs) —
-  pressupõe repo clonado + Node + git na máquina. NÃO serve pra `.exe` empacotado (usuário final
-  não tem repo). Auto-update da nossa casca fina = **electron-updater + feed GitHub Releases** =
-  CONSTRUÇÃO, não port. Sem assinatura, cada update mostra aviso do Windows (funciona). Por isso
-  saiu do Desktop-1 e virou decisão à parte.
-- **Balde 3 — perfil "Code" (pós-validação):** `git-worktree-ops`, `git-repo-scan`, `git-root`,
-  `git-review-ops`, `fs-read-dir`, `vscode-marketplace`, `session-windows`.
-
-**Plano desktop (aprovado 17/07):**
-- **Desktop-1:** DL-01..07 (inverter padrão: desktop sem projeto = pasta local `~/Work4You`;
-  web sem projeto = nuvem). SÓ isso — auto-update saiu (é construção electron-updater, não port).
-- **Desktop-2 (APROVADO 17/07, incluído no plano):** git worktree local (`git-worktree-ops`,
-  `git-repo-scan`, `git-root`, `git-review-ops`) + fs-read-dir (navegação de arquivos local nativa).
-  Perfil "Code". Chega via auto-update — SEM reinstalação manual (por isso Desktop-1 traz o
-  auto-update primeiro). Conecta com raias/kanban-profundo LOCAL.
-- Regras DL: DL-01 criar `%USERPROFILE%\Work4You` no 1º boot + registrar no cofre
-  (`folders.cjs`: list/add/remove em userData/authorized-folders.json). DL-04 fail-closed JÁ existe
-  (terminal_tool). DL-05 lock JÁ existe. DL-07 rotina→nuvem é NATURAL (scheduler vive na nuvem,
-  usa WAYNE_HOME dela) — só blindar que criar rotina não carimbe cwd local. "Sem projeto" sai do
-  menu (é estado organizacional, não ambiente); "Executar na nuvem" vira escolha explícita no desktop.
-- Rebuild da casca = ação do Leonardo (baixar+reinstalar 1x); overlay web/backend = automático.
-
-## Preview de HTML no dock: EXISTE e auto-abre — mas só enxerga a NUVEM (verificado 17/07)
-A pré-visualização já está construída (RightDock.tsx `PreviewTab` ~:1330: iframe sandbox
-allow-scripts, toggle mobile/desktop, refresh, abrir em aba, botão Code). Auto-abre no fim do
-turno: NativeChatPage ~:742 procura um `.html` NOVO em `dockChanges` e emite
-`openSignal {tab:"preview", path}`. Contratos: `dockChanges` = inline_diff dos tool.complete
-(diffs por arquivo); `dockOutputs` (Saídas) = parser MEDIA:/@session/bare-path do texto do chat
-(rota INDEPENDENTE — por isso Saídas acha arquivo que o preview não abre). Leitura de bytes:
-`readDataUrlSmart` → `/api/fs/read-data-url` (+ `pathCandidates` p/ cwd relativo) — lê o root
-gerenciado DO SERVIDOR. **GAP modo Local: RESOLVIDO fly207 (17/07), sem mudar a casca.**
-Contrato: RPC `local.fs.read {session_id, path}` → `{ok, data_url, mime, size, name}`
-(server.py ~:10092; em `_LONG_HANDLERS` p/ não travar o read loop) — proxy pela op `read_file`
-do executor (executor.cjs:164, a ÚNICA com cofre por path; nunca usar op `shell` pra ler) via
-`local_exec(session_key, ...)` (server.py:1993). Web: seam `lib/localFile.ts`
-(normalizeLocalPath cobre `/c/…` MSYS e `C:\`/UNC; registry de reader — a página registra o
-reader da sessão viva); readDataUrlSmart/readTextSmart do RightDock roteiam path local pelo
-executor; gatilho de auto-preview ampliado pra Saídas (dockOutputs) além de dockChanges.
-LIMITES (próxima casca 0.2.2 resolve): `read_file` é utf-8 → binário local (png/pdf/office)
-recusado com erro limpo — precisa de op base64 na casca; `shell.openExternal` não está no
-preload → botão "Abrir no navegador" adiado pro mesmo slot; cap 10MB é pós-transferência
-(read_file não tem probe de tamanho).
 
 ## ⚠️ GOTCHA modo Local: sessão NASCE na nuvem — a 1ª msg do hero corre contra o `local.session.set` (fly206)
 `env_type=local-desktop` só é setado por `local.session.set` (server.py:9977) — o `session.create`
@@ -338,99 +159,15 @@ Verificar o pacote de verdade: `npx asar list release/win-unpacked/resources/app
 ANTES de declarar o instalador pronto. (Erro real 17/07: os 5 módulos portados fs-read-dir/
 git-*/hardening ficaram fora da lista; 0.2.0 crashou; 0.2.1 os incluiu.)
 
-## PIVÔ DESKTOP (17/07) — fatos verificados p/ o desktop com motor local (Cursor×VS Code)
 
-> **Produto (22/07 noite — estrela-guia opção A):** [`docs/PLATAFORMA.md`](./PLATAFORMA.md).
-> Desktop primário = **`apps/desktop` Hermes (renderer React)**, não `desktop-shell`+`web_dist`.
-> Trechos abaixo que dizem “UMA UI SÓ / frontend apps/desktop DESCARTA-SE” são **legado do
-> atalho 17–22/07** — úteis como evidência do shell transitório e da ponte S1/S2, **não** como
-> destino de produto. Ver [PLANO-REPARO.md](./PLANO-REPARO.md).
+## Toggle de conectores por sessão — o gate é nosso, não é nativo (19/07)
 
-Decisão do Leonardo (corrigida): desktop = Hermes COMPLETO (Electron + React) com marca Work4You;
-deltas W4Y (ZIP, login, ponte nuvem) encaixam nessa linhagem. Fatos históricos do pivô shell
-(2 investigações 17/07, arquivo:linha nos transcripts) — **legado / transição**:
-- **LEGADO “UMA UI SÓ”:** o gateway local serve o MESMO web_dist da nuvem (web_server.py:121,
-  :15113-15140) e injeta `window.__WAYNE_SESSION_TOKEN__` no index.html servido (:15055-15075) —
-  api.ts:102 já lê. O shell legado faz Electron → `loadURL(http://127.0.0.1:<porta>)`.
-  **Destino opção A:** UI primária = renderer `apps/desktop`, não descartar esse frontend.
-  Prontidão do motor: linha `WAYNE_DASHBOARD_READY port=N` (web_server.py:16439) ou ready-file (:16188).
-- **Motor de boot transplantável:** ~1.300 linhas em 5 módulos puros/testados do apps/desktop
-  (backend-command/ready/probes + bootstrap-runner) — instalam uv+Python3.11+PortableGit+ffmpeg/
-  ripgrep+clone+`uv sync --extra all` via scripts/install.ps1 (já meio-Wayne; URLs do repo em
-  :139-140 ainda NousResearch). Renames HERMES_*→WAYNE_* obrigatórios (~30 vars; backend lê WAYNE_).
-  1º boot: ~0,5-1,5GB download, 5-20 min (instalação guiada, não esconder). Instalador shell
-  ~100-150MB NSIS.
-- **Update upstream:** .exe é consumidor puro; git self-update via app Tauri separado
-  (hermes-setup) + `hermes update`; PRESSUPÕE repo público. Nosso repo é privado → decisão de
-  distribuição: mirror público × ZIP no nosso domínio (install.ps1 já tem fallback ZIP :1488) ×
-  payload embutido.
-- **Proteção (caixa "modelo na nuvem"):** NENHUM segredo-mestre chega ao tenant hoje (provisioning
-  keys/org Composio/Stripe = só provisioner+casca). Ao dispositivo iriam 2 chaves JÁ per-user:
-  OpenRouter capada (teto server-side na criação, server.js:39-48) + Composio do projeto DEDICADO
-  do tenant. **Proxy estilo Cursor é config-only no cliente:** runtime aceita base_url custom
-  (cli.py:3833-3837, auxiliary_client.py:2054+, cita LiteLLM) → construir depois, por gatilho.
-- **Cron local roda DENTRO do app** (WAYNE_DESKTOP=1): app fechado = agente local parado → 24/7
-  continua argumento da NUVEM (híbrido preservado).
-- **v1 NÃO leva:** renderer próprio, pool multi-perfil, updater Tauri, MSI, WSL, VS Code ext.
+> O **motor** desta secção continua válido. As referências de **UI**
+> (`useChatSession`, `NativeChatPage`, `ConnectorsPicker.tsx`) são da SPA antiga:
+> o `apps/desktop` tem de re-implementar a persistência e o reenvio no resume,
+> porque o registo do motor vive em memória e morre com o processo.
 
-**L1 ENTREGUE (17/07, casca 0.3.0) — contratos:** modo motor-local é o DEFAULT; escape `W4Y_CLOUD_SHELL=1` (e botão "Usar na nuvem" na tela de erro). `WAYNE_HOME=%LOCALAPPDATA%\wayne`; motor instalado em `<WAYNE_HOME>\wayne-agent` (venv preservado em updates). Fonte do motor: env `WAYNE_SOURCE_ZIP_URL` (setada pelo main.cjs; default `DEFAULT_ENGINE_ZIP_URL` no topo do main.cjs → bucket público `gs://w4y-engine-dist`, ZIP gerado por `platform/wayne-fly/build-engine-zip.ps1` — layout: 1 pasta top-level c/ pyproject+uv.lock+README+`.wayne-engine-version`+web_dist; **rodar `uv lock` antes de gerar release**). Boot: escada W4Y_DEV_SOURCE_ROOT→instalado→bootstrap (install.ps1 empacotado em resources/scripts); spawn `venv\python -m wayne_cli.main serve --host 127.0.0.1 --port 0` c/ `WAYNE_DESKTOP=1`+token+ready-file; prontidão = ready-file × `WAYNE_DASHBOARD_READY port=N` (90s). Chave: `<WAYNE_HOME>\.env` `OPENROUTER_API_KEY` (campo mascarado no boot.html; interim até /device/engine-key da casca ir pro ar). IPC boot: `w4y:boot:event` + invokes state/key/retry/cloud.
-**Deltas do e2e real (17/07 tarde):** ZIP v2 (`wayne-engine-20260717b.zip`) NÃO leva `web/` nem
-`ui-tui/` — fontes de UI no pacote disparavam rebuild npm no boot (staleness por mtime,
-`_web_ui_build_needed` main.py:4569; sem `web/package.json` o build é pulado limpo, :4827) e o
-rebuild quebrava sem `apps/shared` → timeout de 90s no 1º boot (incidente real). Config de
-fábrica: `cli-config.yaml.example` agora nasce no tier GRÁTIS (`nvidia/nemotron-3-ultra…:free`)
-— o default Opus do upstream dava 402 na 1ª mensagem de chave nova. Update do motor in-place
-PROVADO: `install.ps1 -Stage repository -NonInteractive` c/ `WAYNE_SOURCE_ZIP_URL` novo = 10,8s,
-venv/config preservados (robocopy sem /MIR: órfãos ficam — ui-tui velho é inerte). Casca 0.3.1:
-guard no `w4y:local:set` (modo motor = no-op — web_dist antiga não abre mais executor órfão pra
-nuvem). REGRA DE ARTEFATO (2ª queimadura hoje): subir `version` ANTES do electron-builder —
-build sem bump sobrescreve o .exe anterior com conteúdo novo (mesmo erro da tag p3 em forma de
-arquivo).
-**L2 ENTREGUE (casca 0.3.2 + servidor no ar):** login→chave: boot.html "Entrar com Work4You"
-→ janela filha work4you.ai/login (cookies na defaultSession) → polling `POST /device/engine-key`
-(net.request useSessionCookies; 401=espera, 200=grava .env, 402=segue sem chave no tier Grátis,
-429=1 retry 60s) — campo manual vira secundário. Update do motor no boot: `latest.json` do bucket
-(`{version, zipUrl}`, cache 60s) × marker `<WAYNE_HOME>\engine-source.json` (identidade = zipUrl);
-divergiu → `runStage repository` (exportado do runner) com WAYNE_SOURCE_ZIP_URL do manifesto;
-FAIL-OPEN total (qualquer erro = boot com motor atual); 0.3.0/0.3.1 sem marker fazem 1 refresh de
-convergência. Rate-limit do /device/engine-key em request NÃO-autenticada: se 429 pegar o polling
-pré-login no e2e, trocar detecção pra evento de navegação + POST único (risco anotado).
-**S0+S1 ENTREGUES (17/07 tarde, casca 0.3.3 + motor ZIP d):** S0 = /device-key cria chave Composio
-ADICIONAL por dispositivo (`api_keys/create` — NUNCA regenerate: invalida TODAS as keys do
-projeto, incl. a do Fly; endpoint fora do OpenAPI público, best-effort → composioKey null +
-composioError); user_id local = nuvem (`_connector_user_id` web_server.py:2075 — global/profile,
-SEM prefixo de tenant) → mesmas contas conectadas; motor lê .env POR REQUEST
-(load_wayne_dotenv override=True) → chave nova vale sem restart. Provisioner p5, casca 00029.
-Pendência: tenant legado precisa de projeto Composio nomeado = app (senão project_not_found).
-**⚠️ PAREDES Composio descobertas ao vivo (17/07, sondas de dentro do provisioner):** (1) o
-endpoint de key ADICIONAL não existe sob org-key auth — 404 nas 4 variantes de path (o do
-dashboard exige sessão de navegador); (2) `regenerate_api_key` → **403 "API key regeneration is
-not enabled for this organization"** — a rotação coordenada (fallback p6) está MORTA também.
-Consequência: /device-key entrega SÓ a chave de modelo; composioError informa. **Caminho durável
-(a construir, próxima onda): tenant-as-broker** — endpoint no web_server do TENANT (atrás do
-dashboard auth) devolvendo o próprio COMPOSIO_API_KEY do env pro dono logado; o shell chama
-work4you.ai/api/... com os cookies do login (o LB roteia /api/* pro tenant — mesma origem, zero
-Composio org API). Unblock imediato do Leonardo (17/07): chave transferida tenant→.env local via
-arquivo (nunca exibida), validada HTTP 200. Gate de login do boot: só aparece se OPENROUTER_API_KEY
-falta — com chave provisória presente o login (e a Composio) nunca roda; corrigir na 0.3.4 (gate
-também quando Composio falta + entrada de re-login).
-**2º elo dos conectores locais (achado 17/07): a chave NÃO basta — o agente precisa da entrada
-`mcp_servers.composio` na config** (url = tool-router session `trs_…` + header `${COMPOSIO_API_KEY}`
-placeholder; a página Plugins usa REST/env, as FERRAMENTAS vêm do MCP). Na nuvem ela foi gravada
-pelo fluxo de conectar; o motor local nasce sem. Unblock Leonardo: entrada replicada à mão da
-config do tenant (mesma trs_ URL — compartilhada, keyed por user, auth pela x-api-key). O
-tenant-as-broker da 0.3.4 deve entregar OS DOIS no login: chave + bloco mcp_servers (bootstrap
-completo de conectores no motor local).
-**3º elo (o que fechou o caso, 17/07): sessões do tool-router são STATEFUL e mono-consumidor** —
-copiar a `trs_` URL da nuvem dá "Session terminated" (o motor da nuvem é o dono dela). Cada motor
-precisa da PRÓPRIA sessão: `POST /api/v3.1/tool_router/session {user_id:"global"}` com a x-api-key
-do projeto (mesmo padrão de `_connector_session`, web_server.py:2158) → URL nova no config local.
-Verificado: discover_mcp_tools → 6 ferramentas-mestre (`mcp_composio_COMPOSIO_SEARCH_TOOLS`,
-`MULTI_EXECUTE_TOOL`…), mesmas contas (user_id global). O broker 0.3.4 minta a sessão NOVA no
-login — nunca copia a da nuvem.
-
-**TOGGLE DE CONECTORES POR SESSÃO (19/07, engine 20260719a + fly218):** o composer ganhou o
-controle "Conectores" (barra acoplada ABAIXO do card, hero mockup) com switch on/off por app,
+O composer ganhou o controle "Conectores" com switch on/off por app,
 escopo = A CONVERSA. Antes de construir foi verificado: **NÃO existe** liga/desliga nativo por
 toolkit (a API só tem catalog/status/connect/attach/DELETE account) — então o gate foi construído:
 - **Registro por sessão**: `tools/approval.py` `_session_disabled_connectors` (ao lado do
@@ -452,106 +189,67 @@ toolkit (a API só tem catalog/status/connect/attach/DELETE account) — então 
   `%LOCALAPPDATA%\wayne\engine-source.json` (senão o chip oferece o mesmo update de novo).
 - UI: `components/chat/ConnectorsPicker.tsx` (some quando 0 contas ACTIVE — tela não promete;
   logos via catalog + LogoTile). i18n `connectorsLabel/connectorsSession` ×16.
-**0.3.4 ENTREGUE (17/07, fly209 + instalador):** (1) CHIP DE UPDATE — pill accent "Atualizar" ao
-lado do nome no rodapé (AuthWidget, ref. ChatGPT), IPC `w4y:update:{check,apply}` (apply = killEngine
-→ app.relaunch+exit → boot aplica); check no mount + 30min; gated isLocalEngine + bridge (casca
-0.3.3 não tem → pill nunca renderiza). (2) BANDEJA no motor-local — fechar=esconder (motor+cron
-vivos), "Sair"=killEngine+quit (mata o zumbi que reconectava no motor velho), "Verificar
-atualizações". (3) GATE estendido — login aparece se falta OPENROUTER **OU** COMPOSIO. (4) BROKER
-`GET /api/device/connector-bootstrap` (web_server.py:2362, gated pelo mesmo middleware; 404 sem
-COMPOSIO_API_KEY) devolve `{composio_key, mcp_url: sessão NOVA, user_id:"global"}`; shell consome no
-login (net.request cookies), grava .env + escreve `mcp_servers.composio` no config.yaml (cirurgia de
-texto testada 28 casos: replace-url/append/insert, CRLF/BOM preservados, .bak, sanity pré-escrita) —
-os 3 elos dos conectores viram bootstrap automático. **⚠️ GALINHA-E-OVO:** o chip vive na CASCA →
-precisa da 0.3.4 instalada 1x pra existir; dali em diante o chip aplica todo update do motor sem
-reinstalar. Riscos abertos: ~~gate só-Composio recorre a cada boot sem "não perguntar de novo"~~
-(RESOLVIDO 0.3.5 — snooze persistido); GET connector-bootstrap minta sessão a cada chamada
-(sessões órfãs inócuas).
-S1 = mini-computador (RunTargetPicker no composer, gate isLocalEngine+bridge): sessão-nuvem na
-MESMA UI via WS ticketado (`w4y:cloud:wsUrl` minta em /api/auth/ws-ticket com cookies da
-defaultSession; ticket single-use ~30s TTL → GatewayClient ganhou WsUrlProvider, re-mint a cada
-connect) + `w4y:cloud:api` (proxy REST allowlist /api/* GET/POST) pra leituras de arquivo.
-Escolha trava na 1ª mensagem. DEGRADADO no S1 (= backlog S2): sessão-nuvem fora da sidebar,
-TaskHeaderActions/ModePicker ocultos, anexo de imagem vira file.attach (sem visão), dock
-git/Files/projeto vazios, espectador de subagente local-only.
 
-**S2 FATIA 1 ENTREGUE (17/07 noite, motor h + fly211):** desktop motor-local mescla os DOIS
-cérebros via a ponte S1: Recentes = sessões local+nuvem por recência (badge Cloud 3x3 c/ tooltip;
-merge SÓ em Recentes, nunca em projeto — cwd da nuvem não pertence a linha local; dedupe
-local-vence); clique em sessão-nuvem → `/chat?resume=<id>&run=cloud` (resume herda TODO o escopo
-degradado S1 via `cloudSession`); Agenda = rotinas local+nuvem mescladas, CRIAÇÃO vai pra NUVEM
-por padrão (história 24/7; fail-open → cria local + toast honesto), pausar/retomar/disparar da
-nuvem via POST; rodapé mostra IDENTIDADE REAL (`GET /api/auth/me` via ponte; sem login → "Conta").
-Contratos ponte: `GET /api/sessions` (shape idêntico), `GET/POST /api/cron/jobs[+/{id}/ações,
-blueprints/instantiate]` (`?profile=` local encaminhado — desconhecido na nuvem = vazio fail-open),
-`GET /api/auth/me`. **LIMITE (RESOLVIDO no bloco 0.3.5 abaixo): allowlist da ponte era GET/POST
-apenas** — sessão-nuvem sem menu "…" (renomear/arquivar/apagar = PATCH/DELETE) e rotina-nuvem sem
-editar/apagar; afordâncias ficavam OCULTAS (e continuam ocultas em casca ≤0.3.4 via `canMutate`). Optimistic-insert de sessão-nuvem nova suprimido (evento sem origem; aparece no reload
-do session-titled).
+## Factos duráveis salvos do pivô do desktop (17–18/07)
 
-**0.3.5 ENTREGUE (17/07 noite, casca 0.3.5 — só código; instalador NÃO buildado):** (1) ponte
-`w4y:cloud:api` agora GET/POST/PATCH/PUT/DELETE (guardas intactas: origem pinada, /api/* re-checado
-pós-normalização, JSON, corpo nunca logado; POST mantém corpo `{}` default, demais verbos só enviam
-corpo se fornecido). ⚠️ CONTRATO NOVO: preload expõe `cloud.canMutate:true` — cascas ≤0.3.4
-coagiam verbo desconhecido pra GET (um DELETE virava GET "que funciona"), então TODA afordância
-mutante de nuvem no web é gated em `cloudMutateAvailable()` (lib/cloudSession.ts, junto de
-`cloudMutateJson`). Desocultado: SidebarTasks — menu "…" de sessão-nuvem reduzido a
-renomear/arquivar-restaurar (PATCH /api/sessions/{id}) + apagar (DELETE); pin/copiar-id/nova-aba/
-ramificar/exportar continuam ocultos com motivo comentado no JSX. CronPage — rotina-nuvem ganha
-editar (PUT /api/cron/jobs/{id} {updates}) + apagar (DELETE …?profile=), calendário abre editor de
-rotina-nuvem; chave de delete de nuvem = prefixo `cloud:` antes do `profile:id`. (2) Gate
-só-Composio: checkbox "não perguntar de novo" no "Agora não" → `login-gate.json
-{composioSnoozed:true}` em userData; gate de MODELO nunca é pulado (condição `needModel ||
-(needComposio && !snoozed)` + skip-IPC valida `engine.lastGate`). Bandeja ganha "Entrar com
-Work4You" = `runLoginFlow({external:true})` (mesmo fluxo do gate, sem depender da fase "key";
-staleness só cancel/quit); chave vale ao vivo (.env por request), conectores gravados oferecem
-"Reiniciar agora" (mesmo relaunch do chip). (3) Badge instantâneo: `wayne:session-started` agora
-carrega `cloud:true` (useChatSession sabe o runTarget) → sidebar insere otimista COM badge +
-?run=cloud na hora; linha otimista-nuvem nunca agrupa em projeto local e é absorvida quando a
-lista da nuvem recarrega.
+A narrativa completa do pivô foi para
+[`arquivo/BACKEND-MAP-legado-web-shell.md`](./arquivo/BACKEND-MAP-legado-web-shell.md).
+O que sobrevive são estes factos, que continuam verdadeiros e continuam a custar
+caro se forem reaprendidos.
 
-**0.3.8 ENTREGUE (17/07 noite) — AUTO-UPDATE DA CASCA (fim das instalações manuais):**
-electron-updater provider `generic` no bucket (`latest.yml` + exe + blockmap na raiz de
-w4y-engine-dist; exe com versão no nome = imutável; latest.yml = ponteiro, cache no-cache).
-Chip UNIFICADO: check casca PRIMEIRO (shell-updater.cjs, fail-open 15s) → depois motor; apply
-casca = killEngine→download→quitAndInstall(true,true), falha → fallback pro relaunch de motor.
-Unsigned→unsigned OK (NsisUpdater pula verificação com publisherName null — provado no fonte;
-NUNCA adicionar publisherName sem certificado junto). RELEASE DE CASCA = (1) bump versão
-OBRIGATÓRIO (semver compare; mesma versão nunca dispara), (2) `dist:win`, (3) sanity
-`win-unpacked/resources/app-update.yml` existe, (4) subir exe+blockmap+latest.yml, (5) NÃO
-apagar exe/blockmap da versão anterior (differential). Override de feed p/ teste:
-W4Y_UPDATE_FEED_URL. build.files agora `node_modules/**/*` (devDeps auto-excluídas — provado
-via asar: só ws+electron-updater+árvore). Cache de download do updater:
-%LOCALAPPDATA%\work4you-desktop-updater. Risco aceito: UI escura durante download do apply
-(motor morre antes; inverter = 3 linhas se incomodar).
+**Conectores locais exigem três elos, não um.** Ter a chave do Composio não
+chega. (1) A chave no `.env` — o motor relê o `.env` **por request**
+(`load_wayne_dotenv override=True`), portanto chave nova vale sem reiniciar.
+(2) A entrada `mcp_servers.composio` no `config.yaml` — a página de plugins usa
+REST/env, mas as **ferramentas** vêm do MCP; um motor local nasce sem esta
+entrada. (3) Uma sessão de tool-router **própria**: as sessões `trs_…` são
+stateful e mono-consumidor, portanto copiar a URL da nuvem dá *"Session
+terminated"*. Cada motor tem de mintar a sua com
+`POST /api/v3.1/tool_router/session {user_id:"global"}`.
 
-**⚡ FLIP TESTADO E REVERTIDO NO MESMO DIA (18/07) — latência quebrou a UX:** liguei o proxy em
-todas as superfícies (desktop config.base_url, tenant nuvem OPENROUTER_BASE_URL env, provisioner
-p7, cli-config.yaml.example) com de-risking correto (conclusão real → 200; OPENAI ausente →
-fallback seguro; log `POST .../chat/completions 200` provando a observação). MAS o 1º uso real do
-Leonardo no desktop "pensou um tempão" → ele mandou desligar na hora. REVERTIDO TUDO: desktop
-config (config.yaml.prebak), `fly secrets unset OPENROUTER_BASE_URL -a wayne-w4y`, provisioner
-p8 (sem env), example de volta pra openrouter.ai direto, proxy de volta a dormir (suspend/min=0).
-**LIÇÃO:** o +1 hop do LiteLLM em gru NÃO é "dezenas de ms" na prática — somou latência sensível
-ao TTFB (ou o modelo Grátis Nemotron, já notado lento antes, ficou pior com o hop). **Antes de
-re-ligar por gatilho real: medir TTFB direto×proxy com modelo PAGO (Auto/Expert), não o Grátis,
-e considerar região do proxy = região do tenant.** O proxy segue no ar (mp1, dormindo) como
-opção. Fase 2 (chaves virtuais) e o flip ficam GATED de novo — só com gatilho + medição de
-latência aceitável.
+**Duas paredes do Composio, verificadas ao vivo por sondas de dentro do
+provisioner.** O endpoint de chave *adicional* não existe sob autenticação por
+org-key (404 nas quatro variantes de path; o do dashboard exige sessão de
+navegador). E `regenerate_api_key` devolve **403 "API key regeneration is not
+enabled for this organization"** — a rotação coordenada está morta. Consequência
+de desenho: o caminho durável é *tenant-as-broker*, um endpoint no `web_server`
+do tenant atrás do auth do dashboard, com os cookies do login.
+⚠️ `regenerate` **invalida todas as chaves do projeto**, incluindo a do Fly.
 
-**L3 ENTREGUE (17/07) — proxy de modelo construído:** app Fly `w4y-model-proxy`
-(tag mp1, LiteLLM main-stable v1.92.0, gru, **2GB — OOM em 512MB E 1024MB, ~850MB RSS no boot**;
-estacionado com suspend/min=0 = custo ~zero; NO FLIP → min=1). Fonte: platform/model-proxy/
-(config+Dockerfile+fly.toml+README-DEPLOY). Modo: pass-through endpoints EXATOS
-(`/openrouter/v1/{chat/completions,models,key}`) com forward_headers — a chave do CLIENTE
-atravessa até a OpenRouter (chaves capadas continuam valendo); rotas nativas trancadas por
-LITELLM_MASTER_KEY (secret Fly). GOTCHA: `auth:false` só com match EXATO de path (include_subpath
-cai na auth de virtual key). PROVAS em produção: chave fake → 401 "User not found" DA OpenRouter
-(passthrough provado); rota nativa sem master → 401 LiteLLM; /models → 200. FLIP (gated pelos
-gatilhos aprovados: abuso real / medidor ao vivo / enterprise): `model.base_url` →
-`https://w4y-model-proxy.fly.dev/openrouter/v1` no cliente — reversão = voltar o base_url.
-Gotcha do flip: base_url fora de openrouter.ai faz o runtime preferir OPENAI_API_KEY antes de
-OPENROUTER_API_KEY (cli.py:3841) — tenant só tem a segunda, fallback ok, conferir antes. GOTCHAS ativos: `wayne update` NÃO funciona em instalação ZIP (update = re-rodar estágio repository); `-IncludeDesktop` incompatível c/ ZIP; SOUL.md ainda Nous (rebrand em lockstep c/ default_soul.py, pendente). Provisioner — INCIDENTE REAL confirmado (investigação 17/07, ao vivo no Fly/GCP): o deploy de 11/07 22:24 (opção A Composio, commit 8a8751c) **reutilizou a tag de imagem `p3`** por cima da imagem billing de 07/07 — o `provisioner-w4y` em produção (release v10, digest `2b2dcd74…`) NÃO tem `/ensure-key` desde então. A casca em produção É a feat/billing (Cloud Run digest `61f0fb09…`, go-live 07/07) e o Cloud Scheduler `wayne-reconcile-keys` (ENABLED, `*/5min` → `/internal/reconcile-keys`) segue chamando `/ensure-key` → 404 **silencioso** (a rota devolve 200 c/ `falhas[]`); a injeção de chave capada na ativação Stripe (`webhooks/stripe`) falha igual → tenant pago fica na chave antiga sem teto. CONSERTO: merge `integ/billing-merge` (server.js unificado: /provision /archive /reconfigure /ensure-key /device-key + Composio A + redact + HMAC constant-time); deploy DEVE sair dessa branch. REGRA NOVA: **NUNCA reutilizar tag de imagem** (`p3` 2× = causa-raiz; sempre tag nova `p4, p5…` ou digest; rollback só por digest — a imagem billing do `p3` foi sobrescrita e não existe mais). Pós-deploy: conferir se alguma ativação paga ocorreu entre 11/07 e o fix (`billing_events`/logs).
+**Nunca reutilizar tag de imagem.** Incidente real confirmado no Fly/GCP: o
+deploy de 11/07 reutilizou a tag `p3` por cima da imagem de billing de 07/07. O
+provisioner em produção ficou **sem `/ensure-key`**, o Cloud Scheduler continuou
+a chamá-lo, e a rota devolvia 200 com `falhas[]` — **404 silencioso durante
+dias**. A injeção da chave capada na activação Stripe falhava do mesmo modo, e
+o tenant pago ficava sem tecto. A imagem antiga do `p3` foi sobrescrita e já não
+existe: **rollback só por digest**. Sempre tag nova.
+
+**A mesma classe de erro em forma de ficheiro:** subir a `version` **antes** do
+electron-builder. Build sem bump sobrescreve o `.exe` anterior com conteúdo novo.
+
+**O proxy de modelo existe, está parqueado, e o flip foi revertido no próprio
+dia.** App Fly `w4y-model-proxy` (LiteLLM, gru, **2 GB — faz OOM em 512 MB e em
+1 GB**, ~850 MB RSS no boot), a dormir com `suspend`/`min=0`, custo ~zero. Foi
+ligado em todas as superfícies a 18/07 com de-risking correcto e **revertido
+horas depois**: o salto extra somou latência sensível ao TTFB e o primeiro uso
+real foi "pensou um tempão". **Lição:** o hop do LiteLLM não é "dezenas de ms"
+na prática. Antes de re-ligar, medir TTFB directo × proxy com um modelo **pago**
+(não o gratuito, que já era lento) e considerar região do proxy = região do
+tenant. Gotcha do flip: com `base_url` fora da openrouter.ai, o runtime prefere
+`OPENAI_API_KEY` antes de `OPENROUTER_API_KEY` (`cli.py:3841`).
+
+**Gotchas de empacotamento do motor.** `wayne update` **não funciona** em
+instalação por ZIP (update = re-correr o estágio `repository`), e
+`-IncludeDesktop` é incompatível com ZIP. `WAYNE_SOURCE_ZIP_URL` **não aceita
+`file:///`** ("scheme not supported") — o refresh in-place usa a URL https do
+bucket. Depois de um refresh manual, actualizar também o marcador
+`engine-source.json`, senão o chip volta a oferecer o mesmo update.
+`build-engine-zip.ps1` no PowerShell 5 gera nomes de entrada com **contrabarras**
+e parte o unzip POSIX — sempre pwsh 7.
+
+**Refresh in-place mescla, não substitui.** O `robocopy` sem `/MIR` deixa órfãos:
+bundles antigos acumulam-se em `web_dist` na máquina do utilizador, tal como o
+`COPY` do Docker os acumulava na imagem. Inertes, mas enganam qualquer grep.
 
 ## ⚠️ 24/7 agendado — wake PARTIAL (atualizado 22/07)
 

@@ -155,7 +155,8 @@ Depois (fora do escopo aprovado agora).
 | [PLANO-REPARO.md](./PLANO-REPARO.md) | Execução do port desktop Hermes + sangria |
 | [NATIVO-VS-CONSTRUIDO.md](./NATIVO-VS-CONSTRUIDO.md) | Auditoria A/B/C/D |
 | [AGENT-STUDIO.md](./AGENT-STUDIO.md) | Próxima construção de produto |
-| [BACKEND-MAP.md](./BACKEND-MAP.md) | Fatos verificados; trechos “UMA UI SÓ / renderer morto” = **legado** |
+| [BACKEND-MAP.md](./BACKEND-MAP.md) | Contratos do motor, gotchas e incidentes verificados (os trechos “UMA UI SÓ / renderer morto” saíram para `arquivo/` a 29/07) |
+| [INVENTARIO-SUPERFICIES.md](./INVENTARIO-SUPERFICIES.md) | O que existe no motor × o que a UI expõe hoje |
 | [ARQUITETURA.md](./ARQUITETURA.md) | Onde roda cada superfície |
 | [AUDITORIA-PRODUTO-WORK4YOU.md](./AUDITORIA-PRODUTO-WORK4YOU.md) Fase 10 §9 “apps/desktop morto” | **OBSOLETO** sob esta estrela |
 | `wayne-agent/AGENTS.md` (§ Electron) | Atualizar apontando para `apps/desktop` |

@@ -510,7 +510,14 @@ The dashboard embeds the real `wayne --tui` — **not** a rewrite.  See `wayne_c
 > **Legacy:** `apps/desktop-shell/` (motor ZIP + `loadURL` of `web_dist`) is
 > superseded and no longer the shipping app. **Stop-ship** — do not add
 > features there. Do not treat “UMA UI SÓ = web_dist” as the product
-> destination (that note in BACKEND-MAP is legado).
+> destination; the sections that said so were archived on 29/07 to
+> `docs/arquivo/BACKEND-MAP-legado-web-shell.md`.
+>
+> **Where to write what you learn** — three live docs, no fourth:
+> `docs/BACKEND-MAP.md` for engine contracts, gotchas and incidents;
+> `docs/INVENTARIO-SUPERFICIES.md` for what the engine has versus what the UI
+> exposes; `docs/PRODUTO.md` for product, audience and scope. Update the one
+> that exists — never open a new file for these.
 
 **What unifies the product:** the **cloud runtime** (24/7 agents), reachable
 from web (window) and from desktop (Hermes app + bridge) — not forcing the

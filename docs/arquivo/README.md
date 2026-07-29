@@ -35,6 +35,7 @@ não impedem a leitura; mudar de pasta impede.
 | `ROADMAP.md` | 23/07/2026 | Roteiro por módulos M0–M5 | Substituído pelo `PRODUTO.md`; as fases de infra assentam num plano de Cloud Run entretanto abandonado |
 | `MOCKUPS-V1-SPEC.md` | 22/07/2026 | Mocks de aceitação visual em `/mockups/v1` | Ligado às ondas da auditoria acima, também arquivada |
 | `NATIVO-VS-CONSTRUIDO.md` | 22/07/2026 | Auditoria nativo × construído, com estimativa de desperdício em dias | Registo datado e válido. Sai porque é análise de um momento, não instrução — e porque o eixo do desktop mudou depois dela |
+| `BACKEND-MAP-legado-web-shell.md` | 29/07/2026 | Secções do `BACKEND-MAP.md` sobre a SPA web (`web/src`, `RightDock.tsx`) e a casca fina `apps/desktop-shell` | Descrevem duas arquitecturas substituídas pelo `apps/desktop`. Uma delas está *invertida*: chama "nossa casca" ao `desktop-shell` e "parqueado" ao `apps/desktop` |
 
 ## O que foi salvo antes de arquivar
 
@@ -49,3 +50,7 @@ documentos vivos ou para `PRODUTO.md`:
   enterprise (`PRODUTO.md`, mantido).
 - **A analogia estrutural:** Work4You está para o Hermes como o Cursor está
   para o VS Code (`PRODUTO.md`, mantido).
+- **Os três elos dos conectores locais**, as duas paredes do Composio, o
+  incidente da tag `p3` reutilizada e a lição de latência do proxy de modelo —
+  salvos de `BACKEND-MAP-legado-web-shell.md` para `BACKEND-MAP.md`, secção
+  "Factos duráveis salvos do pivô do desktop".

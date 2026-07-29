@@ -6,7 +6,15 @@ Levantamento só-leitura de **o que existe** e **o que está ligado**, superfíc
 
 **Objetivo:** responder, por capacidade, se o buraco é *UI que falta*, *método que ninguém chama*, ou *coisa feita duas vezes* — para parar de reconstruir o que já existe.
 
-**O que este doc não é:** não é plano nem recomendação. É estado. O eixo estratégico (nativo × construído, desperdício em dias) está em [`NATIVO-VS-CONSTRUIDO.md`](NATIVO-VS-CONSTRUIDO.md), auditoria de 22/07.
+**O que este doc não é:** não é plano nem recomendação. É estado — a fotografia de hoje.
+
+| Para saber | Ler |
+|---|---|
+| Contratos do motor, gotchas, incidentes (validade longa) | [`BACKEND-MAP.md`](BACKEND-MAP.md) |
+| O que o produto é e para quem | [`PRODUTO.md`](PRODUTO.md) |
+| Nativo × construído, desperdício em dias (22/07) | [`arquivo/NATIVO-VS-CONSTRUIDO.md`](arquivo/NATIVO-VS-CONSTRUIDO.md) |
+
+Se descobrires um **contrato** do motor em vez de um buraco na UI, escreve-o no `BACKEND-MAP.md`, não aqui.
 
 **Método:** três varreduras paralelas sobre `tools/`, `toolsets.py`, `wayne_cli/`, `acp_adapter/`, `tui_gateway/`, `wayne_cli/web_server.py`, `apps/desktop/{src,electron}`. "CHAMADO" = referência literal encontrada no cliente. Métodos montados dinamicamente escapariam à deteção.
 
