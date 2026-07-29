@@ -248,7 +248,24 @@ async function reviewList(repoPath, scope, baseRef, gitBin) {
     return { files: [], base: null, isRepo: false }
   }
 
-  const git = gitFor(cwd, gitBin)
+  // simple-git throws at construction when baseDir is missing (deleted
+  // worktree / stale cwd). Fail soft like repoStatus so the pane shows
+  // "not a repo" instead of an IPC error that strands Review empty.
+  try {
+    const stat = await fs.stat(cwd)
+    if (!stat.isDirectory()) {
+      return { files: [], base: null, isRepo: false }
+    }
+  } catch {
+    return { files: [], base: null, isRepo: false }
+  }
+
+  let git
+  try {
+    git = gitFor(cwd, gitBin)
+  } catch {
+    return { files: [], base: null, isRepo: false }
+  }
 
   try {
     if (scope === 'branch' || scope === 'lastTurn') {

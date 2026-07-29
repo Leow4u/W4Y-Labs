@@ -16,7 +16,7 @@ import {
   projectIdForCwd,
   projectWorkspacePath
 } from '@/store/projects'
-import { $currentBranch, $currentCwd, setCurrentCwd } from '@/store/session'
+import { $currentBranch, $currentCwd, $activeSessionId, setCurrentCwd } from '@/store/session'
 
 import { ProjectChip } from './project-chip'
 import { RunTargetChip } from './run-target-chip'
@@ -46,8 +46,10 @@ export function ComposerContextHeader({
   // Seed cwd + kick probe when a local project is scoped. Chips already render
   // via forceVisible; this hydrates live dirty/branch counts without blocking.
   // Critical: if `$currentCwd` is a stale unrelated path (home, previous
-  // project), Review/Changes probe that clean tree and show "NO DIFFS"/"Limpo"
-  // while the agent edits files in the scoped project.
+  // project) on a DRAFT (no live session), Review/Changes probe that clean tree
+  // and show "NO DIFFS"/"Limpo" while the user thinks they're in the project.
+  // A live session's cwd is authoritative — never yank it to the project root
+  // (worktrees / resumed chats write where the session says).
   useEffect(() => {
     if (cloudSlug.trim()) {
       return
@@ -69,8 +71,9 @@ export function ComposerContextHeader({
     const projectPath = projectWorkspacePath(scope)
     const cwd = $currentCwd.get()?.trim()
     const cwdBelongs = Boolean(cwd && projectIdForCwd(cwd) === scope)
+    const liveSession = Boolean($activeSessionId.get())
 
-    if (projectPath && !cwdBelongs) {
+    if (projectPath && !cwdBelongs && !liveSession) {
       setCurrentCwd(projectPath)
       void refreshRepoStatus(projectPath)
 
@@ -79,7 +82,7 @@ export function ComposerContextHeader({
 
     if (cwd) {
       void refreshRepoStatus(cwd)
-    } else if (projectPath) {
+    } else if (projectPath && !liveSession) {
       setCurrentCwd(projectPath)
       void refreshRepoStatus(projectPath)
     }

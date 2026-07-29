@@ -74,6 +74,7 @@ import {
   exitProjectScope,
   fetchProjectSessions,
   openProjectCreate,
+  projectIdForCwd,
   refreshProjects,
   refreshProjectTree,
   refreshWorktrees,
@@ -81,6 +82,7 @@ import {
   sessionBelongsToProject
 } from '@/store/projects'
 import {
+  $activeSessionId,
   $archivedSessions,
   $cronSessions,
   $currentCwd,
@@ -716,7 +718,23 @@ export function ChatSidebar({
     (project: SidebarProjectTree) => {
       const target = projectTreeCwd(project)
 
-      if (target && target !== currentCwd) {
+      if (!target) {
+        return
+      }
+
+      const cwd = currentCwd?.trim()
+
+      // Live session cwd is SoT for Review/Changes (agent writes there).
+      if ($activeSessionId.get()) {
+        return
+      }
+
+      // Already probing this project's root or a known worktree lane.
+      if (cwd && projectIdForCwd(cwd) === project.id) {
+        return
+      }
+
+      if (target !== currentCwd) {
         setCurrentCwd(target)
       }
     },

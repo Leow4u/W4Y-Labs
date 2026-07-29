@@ -28,12 +28,14 @@ import { useI18n } from '@/i18n'
 import { copyTextToClipboard } from '@/lib/desktop-fs'
 import { gitRef } from '@/lib/sanitize'
 import { cn } from '@/lib/utils'
-import { $repoStatus, $repoStatusLoading, $repoWorktrees } from '@/store/coding-status'
+import { $repoStatus, $repoWorktrees } from '@/store/coding-status'
+import { changesChipKind, summarizeReviewChanges } from '@/store/active-repo'
 import { notify, notifyError } from '@/store/notifications'
 import { $newWorktreeRequest } from '@/store/projects'
 import {
   $reviewCommitDefault,
   $reviewFiles,
+  $reviewLoading,
   $reviewShipBusy,
   $reviewShipInfo,
   type CommitAction,
@@ -112,12 +114,16 @@ export const CodingStatusRow = memo(function CodingStatusRow({
   const s = t.statusStack.coding
   const p = t.sidebar.projects
   const status = useStore($repoStatus)
-  const statusLoading = useStore($repoStatusLoading)
   const worktrees = useStore($repoWorktrees)
   const reviewFiles = useStore($reviewFiles)
+  const reviewLoading = useStore($reviewLoading)
   const ship = useStore($reviewShipInfo)
   const shipBusy = useStore($reviewShipBusy)
   const commitDefault = useStore($reviewCommitDefault)
+  // Changes chip + Review pane share `$reviewFiles` — never a parallel
+  // `$repoStatus` dirty story that can say Limpo while the pane has diffs.
+  const reviewSummary = summarizeReviewChanges(reviewFiles)
+  const chipKind = changesChipKind(reviewSummary, { loading: reviewLoading })
 
   const [branchOpen, setBranchOpen] = useState(false)
   const [branchName, setBranchName] = useState('')
@@ -331,7 +337,9 @@ export const CodingStatusRow = memo(function CodingStatusRow({
               title={s.openChanges}
               type="button"
             >
-              <span>{statusLoading ? '…' : reviewFiles.length > 0 ? s.changes : s.clean}</span>
+              <span>
+                {chipKind === 'loading' ? '…' : chipKind === 'clean' ? s.clean : s.changes}
+              </span>
             </button>
 
             <DropdownMenu>
@@ -409,11 +417,10 @@ export const CodingStatusRow = memo(function CodingStatusRow({
     ? worktrees.filter(w => w.path && !w.detached && w.branch && w.branch !== current)
     : []
 
-  const hasLineDelta = status.added > 0 || status.removed > 0
-  // Untracked files carry no line delta vs HEAD, so surface them as a count when
-  // they're the only change (otherwise +/- tells the story).
-  const untrackedOnly = !hasLineDelta && status.untracked > 0
-  const hasChanges = hasLineDelta || untrackedOnly || reviewFiles.length > 0
+  const hasLineDelta = reviewSummary.added > 0 || reviewSummary.removed > 0
+  // Untracked-only rows can carry 0/0 line deltas — still dirty for the chip.
+  const untrackedOnly = !hasLineDelta && reviewSummary.hasChanges
+  const hasChanges = reviewSummary.hasChanges
   const prLabel = ship.pr?.url ? s.openPr : s.createPr
 
   const branchMenu = onBranchOff ? (
@@ -620,10 +627,16 @@ export const CodingStatusRow = memo(function CodingStatusRow({
               title={s.openChanges}
               type="button"
             >
-              {hasLineDelta ? (
-                <DiffCount added={status.added} className="text-[0.7rem] leading-4" removed={status.removed} />
+              {chipKind === 'loading' ? (
+                <span>…</span>
+              ) : hasLineDelta ? (
+                <DiffCount
+                  added={reviewSummary.added}
+                  className="text-[0.7rem] leading-4"
+                  removed={reviewSummary.removed}
+                />
               ) : untrackedOnly ? (
-                <span className="text-amber-500/90">{s.changed(status.untracked)}</span>
+                <span className="text-amber-500/90">{s.changed(reviewSummary.fileCount)}</span>
               ) : (
                 <span>{hasChanges ? s.changes : s.clean}</span>
               )}
@@ -721,15 +734,15 @@ export const CodingStatusRow = memo(function CodingStatusRow({
 
         {hasLineDelta ? (
           <DiffCount
-            added={status.added}
+            added={reviewSummary.added}
             className={`text-[0.72rem] leading-4 ${status.ahead === 0 && status.behind === 0 ? 'ml-auto' : ''}`}
-            removed={status.removed}
+            removed={reviewSummary.removed}
           />
         ) : untrackedOnly ? (
           <span
             className={`shrink-0 text-[0.72rem] leading-4 text-amber-500/90 ${status.ahead === 0 && status.behind === 0 ? 'ml-auto' : ''}`}
           >
-            {s.changed(status.untracked)}
+            {s.changed(reviewSummary.fileCount)}
           </span>
         ) : null}
       </StatusRow>

@@ -1,6 +1,7 @@
 import { atom, computed } from 'nanostores'
 
 import type { HermesGitWorktree, HermesRepoStatus } from '@/global'
+import { pathsEqual } from '@/lib/fs-path'
 import { desktopGit } from '@/lib/desktop-git'
 
 import { $worktreeRefreshToken } from './projects'
@@ -56,11 +57,11 @@ async function loadWorktrees(target: string): Promise<void> {
   try {
     const worktrees = await list(target)
 
-    if (inflightCwd === target) {
+    if (pathsEqual(inflightCwd, target)) {
       $repoWorktrees.set(worktrees)
     }
   } catch {
-    if (inflightCwd === target) {
+    if (pathsEqual(inflightCwd, target)) {
       $repoWorktrees.set([])
     }
   }
@@ -98,8 +99,9 @@ export async function refreshRepoStatus(cwd?: null | string): Promise<void> {
     const status = await probe(target)
 
     // Drop the result if the cwd moved on while we were probing (a fast session
-    // switch) — the newer probe owns the atom.
-    if (seq === repoStatusRefreshSeq && inflightCwd === target) {
+    // switch) — the newer probe owns the atom. Normalize so slash/case noise
+    // doesn't discard a still-valid result.
+    if (seq === repoStatusRefreshSeq && pathsEqual(inflightCwd, target)) {
       $repoStatus.set(status)
 
       // Worktrees only matter inside a repo; clear them otherwise.
@@ -110,12 +112,12 @@ export async function refreshRepoStatus(cwd?: null | string): Promise<void> {
       }
     }
   } catch {
-    if (seq === repoStatusRefreshSeq && inflightCwd === target) {
+    if (seq === repoStatusRefreshSeq && pathsEqual(inflightCwd, target)) {
       $repoStatus.set(null)
       $repoWorktrees.set([])
     }
   } finally {
-    if (seq === repoStatusRefreshSeq && inflightCwd === target) {
+    if (seq === repoStatusRefreshSeq && pathsEqual(inflightCwd, target)) {
       $repoStatusLoading.set(false)
     }
   }

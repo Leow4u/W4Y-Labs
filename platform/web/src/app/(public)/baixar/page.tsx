@@ -10,8 +10,8 @@ import Link from "next/link";
 // set WINDOWS_DOWNLOAD_URL to the signed public URL of the NSIS installer exe.
 // Format: https://storage.googleapis.com/w4y-engine-dist/Work4You-<version>-win-x64.exe
 // Vazio ("") â†’ o botÃ£o aparece como "Em breve" (seguro para deploy antecipado).
-const WINDOWS_DOWNLOAD_URL = "https://storage.googleapis.com/w4y-engine-dist/Work4You-1.0.18-win-x64.exe";
-const VERSION = "1.0.18";
+const WINDOWS_DOWNLOAD_URL = "https://storage.googleapis.com/w4y-engine-dist/Work4You-1.0.19-win-x64.exe";
+const VERSION = "1.0.19";
 const WINDOWS_SIZE = "~104 MB";
 
 const PLATFORMS = [

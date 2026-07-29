@@ -9,6 +9,7 @@ import { isExcludedPath } from '@/lib/excluded-paths'
 import { requestOneShot } from '@/lib/oneshot'
 import { Codecs, persistentAtom } from '@/lib/persisted'
 
+import { activeRepoCwd, isActiveRepoCwd } from './active-repo'
 import { refreshRepoStatus } from './coding-status'
 import { $busy, $currentCwd } from './session'
 import { $workspaceChangeTick } from './workspace-events'
@@ -83,8 +84,6 @@ export const $reviewShipBusy = atom(false)
 // True while a commit message is being generated (drives the input's spinner).
 export const $reviewCommitMsgBusy = atom(false)
 
-const repoCwd = (): null | string => $currentCwd.get()?.trim() || null
-
 type ReviewBridge = NonNullable<NonNullable<NonNullable<Window['hermesDesktop']>['git']>['review']>
 let reviewRefreshSeq = 0
 let reviewRefreshTimer: ReturnType<typeof setTimeout> | null = null
@@ -93,8 +92,9 @@ let shipInfoLastCheckedAt = 0
 
 // The two things every review op needs: the repo cwd + the IPC bridge. Null when
 // either is missing (no session, remote backend), so callers bail in one line.
+// cwd is always `activeRepoCwd()` — same SoT as the Changes chip / commit bar.
 function reviewCtx(): { cwd: string; review: ReviewBridge } | null {
-  const cwd = repoCwd()
+  const cwd = activeRepoCwd()
   const review = desktopGit()?.review
 
   return cwd && review ? { cwd, review } : null
@@ -130,8 +130,9 @@ export async function refreshReview(): Promise<void> {
   try {
     const result = await review.list(cwd, 'uncommitted', null)
 
-    // Ignore a result that resolved after the cwd moved on.
-    if (seq !== reviewRefreshSeq || repoCwd() !== cwd) {
+    // Ignore a result that resolved after the cwd moved on. Compare via
+    // normalized paths so `C:\a` vs `C:/a` doesn't drop a valid refresh.
+    if (seq !== reviewRefreshSeq || !isActiveRepoCwd(cwd)) {
       return
     }
 
@@ -230,7 +231,7 @@ export async function refreshShipInfo(): Promise<void> {
   try {
     const info = await ctx.review.shipInfo(ctx.cwd)
 
-    if (seq === shipInfoSeq && repoCwd() === ctx.cwd) {
+    if (seq === shipInfoSeq && isActiveRepoCwd(ctx.cwd)) {
       $reviewShipInfo.set(info)
       shipInfoLastCheckedAt = Date.now()
     }
@@ -298,17 +299,17 @@ async function afterMutation(): Promise<void> {
 }
 
 export async function stageReviewFile(path: null | string): Promise<void> {
-  await desktopGit()?.review?.stage(repoCwd() ?? '', path)
+  await desktopGit()?.review?.stage(activeRepoCwd() ?? '', path)
   await afterMutation()
 }
 
 export async function unstageReviewFile(path: null | string): Promise<void> {
-  await desktopGit()?.review?.unstage(repoCwd() ?? '', path)
+  await desktopGit()?.review?.unstage(activeRepoCwd() ?? '', path)
   await afterMutation()
 }
 
 export async function revertReviewFile(path: null | string): Promise<void> {
-  await desktopGit()?.review?.revert(repoCwd() ?? '', path)
+  await desktopGit()?.review?.revert(activeRepoCwd() ?? '', path)
   await afterMutation()
 }
 
@@ -485,7 +486,7 @@ $busy.subscribe(busy => {
 $currentCwd.subscribe(() => {
   clearReviewSelection()
   $reviewFiles.set([])
-  $reviewLoading.set(Boolean(repoCwd()))
+  $reviewLoading.set(Boolean(activeRepoCwd()))
   scheduleReviewRefresh()
 
   if ($reviewOpen.get()) {

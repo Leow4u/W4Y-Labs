@@ -13,6 +13,8 @@ import { setSidebarAgentsGrouped } from '@/store/layout'
 import { notify } from '@/store/notifications'
 import { requestFreshSession } from '@/store/profile'
 import {
+  $activeSessionId,
+  $currentCwd,
   $selectedStoredSessionId,
   $sessions,
   setCurrentCwd,
@@ -151,6 +153,21 @@ export function enterProject(id: string, options?: { attachCwd?: boolean }): voi
 
   if (options?.attachCwd) {
     const path = projectWorkspacePath(id)
+    const cwd = $currentCwd.get()?.trim()
+
+    // Already inside this project (repo root or a worktree lane) — keep that
+    // cwd. Forcing the project root yanked Review/Changes off the dirty
+    // worktree the agent was editing, so the chip lied "Limpo" / "NO DIFFS"
+    // while chat inline diffs still showed the real edits.
+    if (cwd && projectIdForCwd(cwd) === id) {
+      return
+    }
+
+    // A live session owns the probe path (that's where the agent writes). Never
+    // overwrite it from a sidebar scope change — Review must track the session.
+    if ($activeSessionId.get()) {
+      return
+    }
 
     if (path) {
       setCurrentCwd(path)
