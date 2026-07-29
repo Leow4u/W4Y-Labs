@@ -3,6 +3,7 @@ import { type ChatMessage, chatMessageText } from '@/lib/chat-messages'
 import { normalizePersonalityValue } from '@/lib/chat-runtime'
 import { embeddedImageUrls, textWithoutEmbeddedImages } from '@/lib/embedded-images'
 import { requestDesktopOnboarding } from '@/store/onboarding'
+import { syncProjectScopeFromCwd } from '@/store/projects'
 import { $activeGatewayProfile, $profiles, normalizeProfileKey } from '@/store/profile'
 import {
   $currentCwd,
@@ -285,6 +286,10 @@ export function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionR
   if (info.cwd) {
     setCurrentCwd(info.cwd)
     sessionState.cwd = info.cwd
+    // Resume / runtime info restore cwd but not `$projectScope`. Without this,
+    // leaving the project overview and reopening the same session leaves the
+    // composer chip on "Choose a folder" while File system still shows the tree.
+    syncProjectScopeFromCwd(info.cwd)
   }
 
   if (info.branch !== undefined) {

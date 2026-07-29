@@ -179,6 +179,34 @@ export function exitProjectScope(): void {
   $projectScope.set(ALL_PROJECTS)
 }
 
+/** Re-bind Projetos / the composer folder chip to the project that owns `cwd`.
+ *
+ *  Resume restores `$currentCwd` (File system stays correct) but does not touch
+ *  `$projectScope`. After "back" to the overview — or opening a preview row
+ *  without drilling in — scope stays `ALL_PROJECTS`, so the chip reads
+ *  "Choose a folder" even though the session is already in a project tree.
+ *  Call this whenever a session's cwd is applied (resume / runtime info).
+ *  Does not attach cwd (session path is already authoritative). */
+export function syncProjectScopeFromCwd(cwd?: null | string): boolean {
+  const target = (cwd || '').trim()
+
+  if (!target) {
+    return false
+  }
+
+  const projectId = projectIdForCwd(target)
+
+  if (!projectId) {
+    return false
+  }
+
+  if (projectId !== $projectScope.get()) {
+    enterProject(projectId)
+  }
+
+  return true
+}
+
 // The cwd a NEW chat should start in. The "active project" is just an atom
 // ($projectScope) — so when you're inside a project, a new session (cmd-n, the
 // trunk "+") starts at that project's root (its primary repo = the default-branch

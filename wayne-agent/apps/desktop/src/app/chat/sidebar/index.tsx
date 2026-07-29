@@ -767,12 +767,18 @@ export function ChatSidebar({
 
   // A persisted scope can go stale (project archived/removed, or a profile
   // switch swapped the whole catalog). Once projects have loaded, drop back to
-  // the overview if the scoped id is gone.
+  // the overview if the scoped id is gone. Never clear while the tree is still
+  // loading — that raced resume/reopen and wiped a valid scope to ALL_PROJECTS
+  // ("Choose a folder" with File system still on the project).
   useEffect(() => {
+    if (projectTreeLoading) {
+      return
+    }
+
     if (projectScope !== ALL_PROJECTS && projectsActive && !enteredProject) {
       exitProjectScope()
     }
-  }, [projectScope, projectsActive, enteredProject])
+  }, [projectScope, projectsActive, enteredProject, projectTreeLoading])
 
   // The project overview (drill-in list) vs. the entered project's content.
   // Empty tree still yields [] so the Projetos section can show its empty state.

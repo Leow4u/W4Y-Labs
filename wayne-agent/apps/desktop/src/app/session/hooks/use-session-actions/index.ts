@@ -11,7 +11,7 @@ import { ensureCloudBrainActive, ensureLocalBrainActive } from '@/store/gateway'
 import { $pinnedSessionIds } from '@/store/layout'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile, normalizeProfileKey } from '@/store/profile'
-import { tombstoneSessions, untombstoneSessions } from '@/store/projects'
+import { tombstoneSessions, untombstoneSessions, syncProjectScopeFromCwd } from '@/store/projects'
 import {
   $runTarget,
   resolveCwdForPreferredTarget,
@@ -418,6 +418,7 @@ export function useSessionActions({
           activeSessionIdRef.current = cachedRuntimeId
           syncSessionStateToView(cachedRuntimeId, cachedViewState)
           setCurrentCwd(cachedViewState.cwd)
+          syncProjectScopeFromCwd(cachedViewState.cwd)
           setCurrentBranch(cachedViewState.branch)
           setSessionStartedAt(Date.now())
 

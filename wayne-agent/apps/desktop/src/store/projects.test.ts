@@ -19,7 +19,8 @@ import {
   projectNameFromPath,
   refreshProjects,
   refreshWorktrees,
-  sessionBelongsToProject
+  sessionBelongsToProject,
+  syncProjectScopeFromCwd
 } from './projects'
 
 vi.mock('@/i18n', () => ({
@@ -83,6 +84,52 @@ describe('project scope', () => {
   it('persists the scope to localStorage', () => {
     enterProject('p_abc')
     expect(window.localStorage.getItem('hermes.desktop.projectScope')).toBe('p_abc')
+  })
+})
+
+describe('syncProjectScopeFromCwd', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    $projectScope.set(ALL_PROJECTS)
+    $projectTree.set([
+      {
+        id: 'p_w4y',
+        label: 'W4Y Labs',
+        path: 'C:\\DEV\\W4Y Labs',
+        isAuto: false,
+        sessionCount: 1,
+        repos: [
+          {
+            id: 'repo_w4y',
+            label: 'W4Y Labs',
+            path: 'C:\\DEV\\W4Y Labs',
+            groups: [],
+            sessionCount: 1
+          }
+        ]
+      }
+    ])
+  })
+
+  it('re-enters the project that owns the session cwd after overview exit', () => {
+    exitProjectScope()
+    expect($projectScope.get()).toBe(ALL_PROJECTS)
+
+    expect(syncProjectScopeFromCwd('C:\\DEV\\W4Y Labs')).toBe(true)
+    expect($projectScope.get()).toBe('p_w4y')
+  })
+
+  it('is a no-op when cwd is empty or outside every project', () => {
+    enterProject('p_w4y')
+    expect(syncProjectScopeFromCwd('')).toBe(false)
+    expect(syncProjectScopeFromCwd('C:\\somewhere\\else')).toBe(false)
+    expect($projectScope.get()).toBe('p_w4y')
+  })
+
+  it('does not thrash when already scoped to that project', () => {
+    enterProject('p_w4y')
+    expect(syncProjectScopeFromCwd('C:\\DEV\\W4Y Labs\\wayne-agent')).toBe(true)
+    expect($projectScope.get()).toBe('p_w4y')
   })
 })
 
