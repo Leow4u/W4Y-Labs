@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-import re
 import tempfile
 from concurrent.futures import TimeoutError as FutureTimeout
 from contextvars import ContextVar, Token
@@ -42,7 +41,6 @@ _EDIT_APPROVAL_REQUESTER: ContextVar[EditApprovalRequester | None] = ContextVar(
 _PERMISSION_REQUEST_IDS = count(1)
 
 
-SENSITIVE_AUTO_APPROVE_NAMES = {".env", ".env.local", ".env.production", "id_rsa", "id_ed25519"}
 AUTO_APPROVE_ASK = "ask"
 AUTO_APPROVE_WORKSPACE = "workspace_session"
 AUTO_APPROVE_SESSION = "session"
@@ -129,27 +127,9 @@ def _proposal_for_patch_replace(arguments: dict[str, Any]) -> EditProposal:
 
 
 def _extract_v4a_patch_paths(patch_body: str) -> list[str]:
-    paths: list[str] = []
-    for match in re.finditer(
-        r'^\*\*\*\s+(?:Update|Add|Delete)\s+File:\s*(.+)$',
-        patch_body,
-        re.MULTILINE,
-    ):
-        path = match.group(1).strip()
-        if path:
-            paths.append(path)
-    for match in re.finditer(
-        r'^\*\*\*\s+Move\s+File:\s*(.+?)\s*->\s*(.+)$',
-        patch_body,
-        re.MULTILINE,
-    ):
-        src = match.group(1).strip()
-        dst = match.group(2).strip()
-        if src:
-            paths.append(src)
-        if dst:
-            paths.append(dst)
-    return paths
+    from tools.approval import extract_v4a_patch_paths
+
+    return extract_v4a_patch_paths(patch_body)
 
 
 def _proposal_for_patch_v4a(arguments: dict[str, Any]) -> EditProposal:
@@ -190,11 +170,12 @@ def build_edit_proposal(tool_name: str, arguments: dict[str, Any]) -> EditPropos
 
 
 def _is_sensitive_auto_approve_path(path: str) -> bool:
-    parts = Path(path).expanduser().parts
-    lowered = {part.lower() for part in parts}
-    if ".git" in lowered or ".ssh" in lowered:
-        return True
-    return Path(path).name.lower() in SENSITIVE_AUTO_APPROVE_NAMES
+    # Shared with the surfaces that are not ACP — see the sensitive-file edit
+    # floor in tools/approval.py. Keeping a second copy here is how `.env.staging`
+    # ended up auto-approved while `.env.production` asked.
+    from tools.approval import is_sensitive_edit_path
+
+    return is_sensitive_edit_path(path)
 
 
 def should_auto_approve_edit(proposal: EditProposal, policy: str, cwd: str | None = None) -> bool:

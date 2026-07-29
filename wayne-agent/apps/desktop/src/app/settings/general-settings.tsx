@@ -16,6 +16,7 @@ import { COMPLETION_SOUND_VARIANTS, previewCompletionSound } from '@/lib/complet
 import { triggerHaptic } from '@/lib/haptics'
 import { Loader2, RefreshCw } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { disarmSessionYolo } from '@/lib/yolo-session'
 import { $completionSoundVariantId, setCompletionSoundVariantId } from '@/store/completion-sound'
 import {
   $showReasoning,
@@ -132,6 +133,15 @@ export function GeneralSettings({ onOpenAbout, onOpenNotifications, onConfigSave
       setConfig(updated)
       await saveHermesConfig(updated)
       setHermesConfigCache(updated)
+
+      // config.yaml is not the whole story: `/yolo` and the composer chip arm a
+      // session-scoped bypass that outranks it. Writing "ask every time" here
+      // while that flag stayed set left the page describing a prompt the
+      // running chat would never show. The chip already drops it; so does this.
+      if (key === 'approvals.mode' && value !== 'off') {
+        await disarmSessionYolo().catch(error => notifyError(error, safety.yoloDisarmFailed))
+      }
+
       onConfigSaved?.()
       triggerHaptic('selection')
     } catch (error) {

@@ -1,4 +1,5 @@
-import { setYoloActive } from '@/store/session'
+import { activeGateway } from '@/store/gateway'
+import { $activeSessionId, $yoloActive, setYoloActive } from '@/store/session'
 
 export type GatewayRequester = <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T>
 
@@ -23,6 +24,30 @@ export async function setSessionYolo(
   setYoloActive(active)
 
   return active
+}
+
+/**
+ * Drop the session bypass if it is armed, for callers that hold no gateway
+ * handle of their own (Settings). Throws if the gateway refuses, so the caller
+ * can tell the user the mode saved but the live session did not follow.
+ */
+export async function disarmSessionYolo(): Promise<void> {
+  if (!$yoloActive.get()) {
+    return
+  }
+
+  const gateway = activeGateway()
+  const sessionId = $activeSessionId.get()
+
+  // Nothing live to talk to. Still clear the flag: leaving it set would have
+  // the composer chip claim a bypass that no session is actually running.
+  if (!gateway || !sessionId) {
+    setYoloActive(false)
+
+    return
+  }
+
+  await setSessionYolo((method, params) => gateway.request(method, params), sessionId, false)
 }
 
 /**

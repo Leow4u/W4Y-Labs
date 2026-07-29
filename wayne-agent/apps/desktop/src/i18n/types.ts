@@ -407,6 +407,8 @@ export interface Translations {
         smart: string
         off: string
       }
+      /** Shown when the mode saved but the live session kept its bypass. */
+      yoloDisarmFailed: string
       fields: Partial<
         Record<
           string,
@@ -1835,6 +1837,10 @@ export interface Translations {
     modeYolo: string
     modeYoloHint: string
     modeYoloConfirm: string
+    /** approvals.mode: off — the persistent bypass, not just this session. */
+    modeOff: string
+    modeOffHint: string
+    modeSaveFailed: string
     projectNone: string
     /** Chip label when no project is selected (Codex-style). */
     projectChoose: string

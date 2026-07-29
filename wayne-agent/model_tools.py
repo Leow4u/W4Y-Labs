@@ -1094,9 +1094,11 @@ def handle_function_call(
         # ACP/Zed edit approval runs before any file mutation.  The requester
         # is bound via ContextVar only for ACP sessions, so CLI/gateway paths
         # are unaffected when it is unset.
+        _acp_edit_approval_bound = False
         try:
-            from acp_adapter.edit_approval import maybe_require_edit_approval
+            from acp_adapter.edit_approval import get_edit_approval_requester, maybe_require_edit_approval
 
+            _acp_edit_approval_bound = get_edit_approval_requester() is not None
             edit_block_message = maybe_require_edit_approval(function_name, function_args)
             if edit_block_message is not None:
                 return edit_block_message
@@ -1104,6 +1106,28 @@ def handle_function_call(
             logger.debug("ACP edit approval guard error: %s", _edit_approval_err)
             if function_name in {"write_file", "patch"}:
                 return json.dumps({"error": "Edit approval denied: approval guard failed"}, ensure_ascii=False)
+
+        # The same sensitive-path rule for every other surface. ACP asked
+        # before rewriting a .env or an SSH key even under an autonomous
+        # policy; CLI, gateway, and desktop sessions never asked at all,
+        # because file_tools has no approval gate. Runs regardless of YOLO /
+        # approvals.mode=off — that is the point of it.
+        if function_name in {"write_file", "patch"} and not _acp_edit_approval_bound:
+            try:
+                from tools.approval import check_sensitive_edit_approval
+
+                _edit_guard = check_sensitive_edit_approval(function_name, function_args)
+            except Exception as _sensitive_edit_err:
+                logger.warning("Sensitive-file edit guard error: %s", _sensitive_edit_err)
+                return json.dumps({"error": "Edit blocked: approval guard failed"}, ensure_ascii=False)
+            if not _edit_guard.get("approved"):
+                return json.dumps(
+                    {"error": _edit_guard.get("message") or "Edit denied", **{
+                        k: v for k, v in _edit_guard.items()
+                        if k in {"approval_pending", "status", "pattern_key", "description"}
+                    }},
+                    ensure_ascii=False,
+                )
 
         # Notify the read-loop tracker when a non-read/search tool runs,
         # so the *consecutive* counter resets (reads after other work are fine).

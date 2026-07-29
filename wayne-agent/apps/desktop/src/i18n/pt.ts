@@ -161,6 +161,9 @@ export const pt = defineLocale({
     modeYolo: 'Ignorar permissões',
     modeYoloHint: 'Acesso irrestrito a ficheiros e rede nesta sessão',
     modeYoloConfirm: 'Clique de novo para confirmar',
+    modeOff: 'Nunca perguntar',
+    modeOffHint: 'Acesso irrestrito em todas as conversas e nas tarefas agendadas — até voltar a mudar',
+    modeSaveFailed: 'Não foi possível mudar o modo de aprovação',
     projectNone: 'Sem projeto',
     projectChoose: 'Escolha uma pasta',
     projectChipAria: 'Escolha uma pasta',
@@ -1278,8 +1281,10 @@ export const pt = defineLocale({
       approvalModes: {
         manual: 'Perguntar sempre',
         smart: 'Inteligente',
-        off: 'Desligado'
+        off: 'Nunca perguntar'
       },
+      yoloDisarmFailed:
+        'Guardado, mas esta conversa continua a ignorar permissões. Use /yolo ou abra uma conversa nova para a limpar.',
       fields: {
         'approvals.mode': {
           label: 'Modo de aprovação',

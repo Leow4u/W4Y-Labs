@@ -536,8 +536,9 @@ export const en: Translations = {
       approvalModes: {
         manual: 'Ask every time',
         smart: 'Smart',
-        off: 'Off'
+        off: 'Never ask'
       },
+      yoloDisarmFailed: 'Saved, but this chat is still skipping permissions. Run /yolo or start a new chat to clear it.',
       fields: {
         'approvals.mode': {
           label: 'Approval mode',
@@ -2563,6 +2564,9 @@ export const en: Translations = {
     modeYolo: 'Skip permissions',
     modeYoloHint: 'Unrestricted file and network access for this session',
     modeYoloConfirm: 'Click again to confirm',
+    modeOff: 'Never ask',
+    modeOffHint: 'Unrestricted access in every chat, and in scheduled jobs — until you change it back',
+    modeSaveFailed: 'Could not change the approval mode',
     projectNone: 'No project',
     projectChoose: 'Choose a folder',
     projectChipAria: 'Choose a folder',

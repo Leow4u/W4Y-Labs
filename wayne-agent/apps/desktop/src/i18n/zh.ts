@@ -526,8 +526,9 @@ export const zh: Translations = {
       approvalModes: {
         manual: '每次询问',
         smart: '智能',
-        off: '关闭'
+        off: '从不询问'
       },
+      yoloDisarmFailed: '已保存，但本次对话仍在跳过权限。运行 /yolo 或新建对话以清除。',
       fields: {
         'approvals.mode': {
           label: '审批模式',
@@ -2548,6 +2549,9 @@ export const zh: Translations = {
     modeYolo: '跳过权限',
     modeYoloHint: '本会话不限制文件与网络访问',
     modeYoloConfirm: '再次点击以确认',
+    modeOff: '从不询问',
+    modeOffHint: '所有对话与定时任务均不受限制，直到你改回为止',
+    modeSaveFailed: '无法更改审批模式',
     projectNone: '无项目',
     projectChoose: '选择文件夹',
     projectChipAria: '选择文件夹',

@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 import unicodedata
+from pathlib import Path
 from typing import Optional
 from wayne_cli.config import cfg_get
 
@@ -2924,6 +2925,219 @@ def check_execute_code_guard(code: str, env_type: str,
 
     return {"approved": True, "message": None,
             "user_approved": True, "description": description}
+
+
+# =========================================================================
+# Sensitive-file edit floor
+# =========================================================================
+#
+# ``acp_adapter/edit_approval.py`` has always refused to auto-approve edits to
+# .env files, SSH keys, and .git internals — "sensitive paths still ask even
+# under autonomous policies". That rule was reachable only from ACP: the
+# requester is bound in a ContextVar for the length of one ACP run, so CLI,
+# gateway, and desktop sessions left it unset and rewrote those files with no
+# prompt at all, in every mode — not just under bypass. file_tools has no
+# approval gate of its own; its only protection is a hard deny on system paths
+# and ~/.wayne/config.yaml.
+#
+# This is that rule at the shared dispatch point, and it is a floor rather than
+# a mode: YOLO and approvals.mode=off buy unattended work on a project, not
+# silent rewrites of the credentials and git history inside it. It sits above
+# the policy-file floor, which hard-denies Wayne's own config/.env; a project
+# .env is the user's to change, so this one asks instead of refusing.
+#
+# Narrower than the policy-file floor on purpose: approval is never persisted
+# past the session, because a permanent allowlist entry would reopen the floor
+# across restarts.
+
+SENSITIVE_EDIT_NAMES = frozenset({"id_dsa", "id_ecdsa", "id_ed25519", "id_rsa"})
+SENSITIVE_EDIT_DIRS = frozenset({".git", ".ssh"})
+
+
+def is_sensitive_edit_path(path: str) -> bool:
+    """Whether editing *path* must ask, regardless of the approval mode."""
+    try:
+        parts = Path(path).expanduser().parts
+    except (OSError, ValueError):
+        return False
+
+    lowered = {part.lower() for part in parts}
+    if lowered & SENSITIVE_EDIT_DIRS:
+        return True
+
+    name = Path(path).name.lower()
+    # `.env`, `.env.local`, `.env.production`, `.env.whatever`. The ACP list
+    # enumerated three spellings and let every other suffix through.
+    return name == ".env" or name.startswith(".env.") or name in SENSITIVE_EDIT_NAMES
+
+
+def extract_v4a_patch_paths(patch_body: str) -> list[str]:
+    """Pull the target paths out of a V4A patch body."""
+    paths: list[str] = []
+    for match in re.finditer(
+        r'^\*\*\*\s+(?:Update|Add|Delete)\s+File:\s*(.+)$',
+        patch_body,
+        re.MULTILINE,
+    ):
+        path = match.group(1).strip()
+        if path:
+            paths.append(path)
+    for match in re.finditer(
+        r'^\*\*\*\s+Move\s+File:\s*(.+?)\s*->\s*(.+)$',
+        patch_body,
+        re.MULTILINE,
+    ):
+        src = match.group(1).strip()
+        dst = match.group(2).strip()
+        if src:
+            paths.append(src)
+        if dst:
+            paths.append(dst)
+    return paths
+
+
+def extract_edit_paths(tool_name: str, arguments: dict) -> list[str]:
+    """Paths a file-mutating tool call would write.
+
+    Deliberately cheap: it reads arguments only. The ACP proposal builder reads
+    the file and runs a fuzzy match to render a diff, which is far too much
+    work to do on every dispatch just to decide whether to ask.
+    """
+    if not isinstance(arguments, dict):
+        return []
+
+    if tool_name == "write_file":
+        path = arguments.get("path")
+        return [str(path)] if path else []
+
+    if tool_name == "patch":
+        if arguments.get("mode", "replace") == "patch":
+            body = arguments.get("patch")
+            return extract_v4a_patch_paths(body) if isinstance(body, str) else []
+        path = arguments.get("path")
+        return [str(path)] if path else []
+
+    return []
+
+
+def check_sensitive_edit_approval(tool_name: str, arguments: dict) -> dict:
+    """Ask before a file edit touches credentials, SSH keys, or .git internals.
+
+    Returns the same dict contract as ``check_all_command_guards``. Runs before
+    the bypass check on purpose — see the section comment above.
+    """
+    sensitive = [p for p in extract_edit_paths(tool_name, arguments) if is_sensitive_edit_path(p)]
+    if not sensitive:
+        return {"approved": True, "message": None}
+
+    target = ", ".join(sensitive)
+    description = (
+        f"{tool_name} targeting a credential or repository-internal file ({target}). "
+        "These are gated even under YOLO / approvals.mode=off."
+    )
+    command = f"{tool_name} → {target}"
+    # Per path, so approving an edit to one .env does not silently cover every
+    # other secret in the workspace for the rest of the session.
+    pattern_key = f"sensitive_edit:{target}"
+
+    if env_var_enabled("WAYNE_CRON_SESSION"):
+        if _get_cron_approval_mode() == "deny":
+            return {
+                "approved": False,
+                "message": (
+                    f"BLOCKED: {description} Cron jobs run without a user "
+                    "present to approve it. Edit a different file, or set "
+                    "approvals.cron_mode: approve if this cron profile is "
+                    "intentionally trusted."
+                ),
+                "pattern_key": pattern_key,
+                "description": description,
+                "outcome": "blocked",
+                "user_consent": False,
+            }
+        return {"approved": True, "message": None}
+
+    session_key = get_current_session_key()
+    if is_approved(session_key, pattern_key):
+        return {"approved": True, "message": None}
+
+    if _is_gateway_approval_context():
+        with _lock:
+            notify_cb = _gateway_notify_cbs.get(session_key)
+
+        approval_data = {
+            "command": command,
+            "pattern_key": pattern_key,
+            "pattern_keys": [pattern_key],
+            "description": description,
+        }
+
+        if notify_cb is None:
+            submit_pending(session_key, approval_data)
+            return {
+                "approved": False,
+                "pattern_key": pattern_key,
+                "status": "pending_approval",
+                "approval_pending": True,
+                "command": command,
+                "description": description,
+                "message": f"⚠️ {description} Asking the user for approval.",
+            }
+
+        decision = _await_gateway_decision(session_key, notify_cb, approval_data, surface="gateway")
+        if decision.get("notify_failed"):
+            return {
+                "approved": False,
+                "message": f"BLOCKED: Failed to send the approval request for {target}. Do NOT retry.",
+                "pattern_key": pattern_key,
+                "description": description,
+                "outcome": "notify_failed",
+                "user_consent": False,
+            }
+        resolved = decision["resolved"]
+        choice = decision["choice"]
+    elif _is_interactive_cli():
+        from tools.terminal_tool import _get_approval_callback
+
+        choice = prompt_dangerous_approval(
+            command,
+            description,
+            allow_permanent=False,
+            approval_callback=_get_approval_callback(),
+        )
+        resolved = True
+    else:
+        # Headless, non-gateway, non-cron: there is no one to ask. Matches the
+        # documented execute_code limitation rather than inventing a new
+        # failure mode for scripts and tests that already write these files.
+        logger.warning(
+            "Sensitive-file edit auto-approved in a non-interactive, non-gateway "
+            "session (no approval surface available): %s", target,
+        )
+        return {"approved": True, "message": None}
+
+    if not resolved or choice is None or choice == "deny":
+        reason = "timed out without user response" if not resolved else "denied by user"
+        addendum = " Silence is not consent." if not resolved else ""
+        return {
+            "approved": False,
+            "message": (
+                f"BLOCKED: the edit to {target} {reason}. The user has NOT "
+                f"consented to changing this file. Do NOT retry and do NOT "
+                f"attempt the same change through another tool.{addendum}"
+            ),
+            "pattern_key": pattern_key,
+            "description": description,
+            "outcome": "timeout" if not resolved else "denied",
+            "user_consent": False,
+        }
+
+    # "always" is downgraded to session scope: a permanent allowlist entry
+    # would carry the bypass across restarts, which is the hole this closes.
+    if choice in {"always", "session"}:
+        approve_session(session_key, pattern_key)
+
+    return {"approved": True, "message": None, "user_approved": True, "description": description}
 
 
 # =========================================================================
