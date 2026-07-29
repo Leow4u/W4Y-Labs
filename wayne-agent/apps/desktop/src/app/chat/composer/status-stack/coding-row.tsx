@@ -32,17 +32,7 @@ import { $repoStatus, $repoWorktrees } from '@/store/coding-status'
 import { changesChipKind, summarizeReviewChanges } from '@/store/active-repo'
 import { notify, notifyError } from '@/store/notifications'
 import { $newWorktreeRequest } from '@/store/projects'
-import {
-  $reviewCommitDefault,
-  $reviewFiles,
-  $reviewLoading,
-  $reviewShipBusy,
-  $reviewShipInfo,
-  type CommitAction,
-  createOrOpenPr,
-  openReview,
-  refreshShipInfo
-} from '@/store/review'
+import { $reviewFiles, $reviewLoading, openReview } from '@/store/review'
 // Tiny uppercase section header, matching the composer "+" menu's labels.
 const MENU_SECTION = 'text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)'
 
@@ -67,13 +57,7 @@ const branchActionLabel = (branch: HermesGitBranch, copy: BranchActionCopy) => {
 interface CodingStatusRowProps {
   /** Compact Cursor-style chip for the strip below the composer. */
   variant?: 'bar' | 'chip'
-  /**
-   * Chip-only: keep Changes / Commit & PR / branch visible even while
-   * `$repoStatus` is still null (slow probe or project scoped before cwd
-   * attaches). Live status replaces the fallback as soon as it lands.
-   */
-  forceVisible?: boolean
-  /** Branch label while `$repoStatus` is null (session branch / lane). */
+  /** Branch label while status has an empty branch field (session branch / lane). */
   fallbackBranch?: string
   /** Branch the current draft off into a fresh worktree + session, based on
    *  `base` (a branch name; omitted = current HEAD). The composer owns the
@@ -94,14 +78,12 @@ interface CodingStatusRowProps {
 }
 
 /**
- * The always-on coding-context row, the BASE of the composer status stack:
- * current branch, dirty summary (+/-), and ahead/behind. Chip variant splits
- * into Cursor-like controls: current branch beside Local (truncate + tooltip;
- * click copies the branch), with Changes + Commit & PR on the RIGHT.
+ * Coding-context row for the composer status stack: current branch, dirty
+ * summary (+/-), and ahead/behind. Chip variant: branch beside Local; Changes
+ * on the right opens Review (Commit & PR live only in that pane).
  */
 export const CodingStatusRow = memo(function CodingStatusRow({
   variant = 'bar',
-  forceVisible = false,
   fallbackBranch = '',
   onBranchOff,
   onConvertBranch,
@@ -117,9 +99,6 @@ export const CodingStatusRow = memo(function CodingStatusRow({
   const worktrees = useStore($repoWorktrees)
   const reviewFiles = useStore($reviewFiles)
   const reviewLoading = useStore($reviewLoading)
-  const ship = useStore($reviewShipInfo)
-  const shipBusy = useStore($reviewShipBusy)
-  const commitDefault = useStore($reviewCommitDefault)
   // Changes chip + Review pane share `$reviewFiles` — never a parallel
   // `$repoStatus` dirty story that can say Limpo while the pane has diffs.
   const reviewSummary = summarizeReviewChanges(reviewFiles)
@@ -260,16 +239,6 @@ export const CodingStatusRow = memo(function CodingStatusRow({
     }
   }
 
-  // Keep gh/PR readiness fresh for the composer Commit & PR dropdown without
-  // requiring the review pane to have been opened first (chip shows even when clean).
-  useEffect(() => {
-    if (variant !== 'chip' || !status) {
-      return
-    }
-
-    void refreshShipInfo()
-  }, [variant, status?.branch, status?.ahead, status?.behind])
-
   const openReviewPane = () => {
     if (onOpen) {
       onOpen()
@@ -278,112 +247,9 @@ export const CodingStatusRow = memo(function CodingStatusRow({
     }
   }
 
-  // Commit / Commit & Push need a message → open Review on the ship bar.
-  // Create/Open PR reuses the same store action as ship-bar.tsx.
-  const runShipAction = (id: string) => {
-    if (id === 'createPr') {
-      if (!ship.ghReady) {
-        openReview()
-
-        return
-      }
-
-      void createOrOpenPr().catch(err => notifyError(err, ship.pr?.url ? s.openPr : s.createPr))
-
-      return
-    }
-
-    if (id === 'commit' || id === 'commitPush') {
-      $reviewCommitDefault.set(id as CommitAction)
-    }
-
-    openReview()
-  }
-
-  // Chip chrome must stay visible with a project open (Cursor) even before the
-  // git probe returns — bar variant still waits on real status.
+  // Wait for a real repo probe — never paint optimistic master/Limpo/Commit.
   if (!status) {
-    if (variant !== 'chip' || !forceVisible) {
-      return null
-    }
-
-    const optimisticBranch = fallbackBranch.trim() || s.noBranch
-    const prLabel = ship.pr?.url ? s.openPr : s.createPr
-
-    return (
-      <>
-        <div
-          className="flex min-w-0 flex-1 items-center justify-between gap-1"
-          data-slot="coding-status-chips"
-        >
-          <div className={cn(CHIP, 'group/branch-chip max-w-[14rem]')}>
-            <button
-              aria-label={s.copyBranch}
-              className="flex min-w-0 flex-1 items-center gap-1 bg-transparent text-left"
-              onClick={() => void copyBranchName(fallbackBranch.trim())}
-              title={optimisticBranch}
-              type="button"
-            >
-              <Codicon className="shrink-0 text-(--ui-green)" name="git-branch" size="0.8rem" />
-              <span className="min-w-0 truncate">{optimisticBranch}</span>
-            </button>
-          </div>
-
-          <div className="flex shrink-0 items-center gap-0.5">
-            <button
-              aria-label={s.changes}
-              className={CHIP}
-              onClick={openReviewPane}
-              title={s.openChanges}
-              type="button"
-            >
-              <span>
-                {chipKind === 'loading' ? '…' : chipKind === 'clean' ? s.clean : s.changes}
-              </span>
-            </button>
-
-            <DropdownMenu>
-              <div className="inline-flex h-6 items-center overflow-hidden rounded-md">
-                <button
-                  className={cn(CHIP, 'max-w-[10rem] rounded-r-none hover:bg-(--chrome-action-hover)', 'border-0')}
-                  disabled={shipBusy}
-                  onClick={() => openReview()}
-                  type="button"
-                >
-                  <Codicon name="check" size="0.75rem" />
-                  <span className="truncate">{s.commitAndPr}</span>
-                </button>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    aria-label={s.commitAndPr}
-                    className="h-6 rounded-l-none border-0 px-1 text-muted-foreground hover:bg-(--chrome-action-hover) hover:text-foreground"
-                    disabled={shipBusy}
-                    size="icon-xs"
-                    variant="ghost"
-                  >
-                    <Codicon name="chevron-down" size="0.7rem" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </div>
-              <DropdownMenuContent align="end" className="min-w-44" side="top" sideOffset={6}>
-                <DropdownMenuItem onSelect={() => runShipAction('commit')}>
-                  <span className="flex-1 truncate">{s.commit}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => runShipAction('commitPush')}>
-                  <span className="flex-1 truncate">{s.commitAndPush}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => runShipAction('createPr')}>
-                  <span className="flex-1 truncate" title={ship.ghReady ? prLabel : s.ghMissing}>
-                    {prLabel}
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </>
-    )
+    return null
   }
 
   const branchLabel = status.detached ? s.detached : status.branch || fallbackBranch.trim() || s.noBranch
@@ -421,7 +287,6 @@ export const CodingStatusRow = memo(function CodingStatusRow({
   // Untracked-only rows can carry 0/0 line deltas — still dirty for the chip.
   const untrackedOnly = !hasLineDelta && reviewSummary.hasChanges
   const hasChanges = reviewSummary.hasChanges
-  const prLabel = ship.pr?.url ? s.openPr : s.createPr
 
   const branchMenu = onBranchOff ? (
     <DropdownMenu>
@@ -590,8 +455,8 @@ export const CodingStatusRow = memo(function CodingStatusRow({
     </Dialog>
   )
 
-  // Chip variant: current branch beside Local (left); Changes + Commit & PR on
-  // the right near Auto/send. Long names truncate; tooltip keeps the full name.
+  // Chip variant: branch beside Local (left); Changes on the right opens Review.
+  // Commit & PR live only in the Review ship bar — not duplicated here.
   if (variant === 'chip') {
     return (
       <>
@@ -619,74 +484,27 @@ export const CodingStatusRow = memo(function CodingStatusRow({
             {branchMenu}
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5">
-            <button
-              aria-label={s.changes}
-              className={CHIP}
-              onClick={openReviewPane}
-              title={s.openChanges}
-              type="button"
-            >
-              {chipKind === 'loading' ? (
-                <span>…</span>
-              ) : hasLineDelta ? (
-                <DiffCount
-                  added={reviewSummary.added}
-                  className="text-[0.7rem] leading-4"
-                  removed={reviewSummary.removed}
-                />
-              ) : untrackedOnly ? (
-                <span className="text-amber-500/90">{s.changed(reviewSummary.fileCount)}</span>
-              ) : (
-                <span>{hasChanges ? s.changes : s.clean}</span>
-              )}
-            </button>
-
-            <DropdownMenu>
-              <div className="inline-flex h-6 items-center overflow-hidden rounded-md">
-                <button
-                  className={cn(CHIP, 'max-w-[10rem] rounded-r-none hover:bg-(--chrome-action-hover)', 'border-0')}
-                  disabled={shipBusy}
-                  onClick={() => openReview()}
-                  type="button"
-                >
-                  <Codicon name="check" size="0.75rem" />
-                  <span className="truncate">{s.commitAndPr}</span>
-                </button>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    aria-label={s.commitAndPr}
-                    className="h-6 rounded-l-none border-0 px-1 text-muted-foreground hover:bg-(--chrome-action-hover) hover:text-foreground"
-                    disabled={shipBusy}
-                    size="icon-xs"
-                    variant="ghost"
-                  >
-                    <Codicon name="chevron-down" size="0.7rem" />
-                  </Button>
-                </DropdownMenuTrigger>
-              </div>
-              <DropdownMenuContent align="end" className="min-w-44" side="top" sideOffset={6}>
-                <DropdownMenuItem onSelect={() => runShipAction('commit')}>
-                  <span className="flex-1 truncate">{s.commit}</span>
-                  {commitDefault === 'commit' && (
-                    <Codicon className="text-(--ui-text-tertiary)" name="check" size="0.75rem" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => runShipAction('commitPush')}>
-                  <span className="flex-1 truncate">{s.commitAndPush}</span>
-                  {commitDefault === 'commitPush' && (
-                    <Codicon className="text-(--ui-text-tertiary)" name="check" size="0.75rem" />
-                  )}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onSelect={() => runShipAction('createPr')}>
-                  <span className="flex-1 truncate" title={ship.ghReady ? prLabel : s.ghMissing}>
-                    {prLabel}
-                  </span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+          <button
+            aria-label={s.changes}
+            className={CHIP}
+            onClick={openReviewPane}
+            title={s.openChanges}
+            type="button"
+          >
+            {chipKind === 'loading' ? (
+              <span>…</span>
+            ) : hasLineDelta ? (
+              <DiffCount
+                added={reviewSummary.added}
+                className="text-[0.7rem] leading-4"
+                removed={reviewSummary.removed}
+              />
+            ) : untrackedOnly ? (
+              <span className="text-amber-500/90">{s.changed(reviewSummary.fileCount)}</span>
+            ) : (
+              <span>{hasChanges ? s.changes : s.clean}</span>
+            )}
+          </button>
         </div>
         {branchDialog}
       </>

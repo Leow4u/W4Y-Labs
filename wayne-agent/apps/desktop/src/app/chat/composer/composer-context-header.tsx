@@ -1,7 +1,8 @@
 /**
- * Codex-style full-width context header inside the composer:
- * project · Local/Cloud · current branch (left) …… Changes / Commit & PR (right).
- * Branch chip shows repoStatus.branch / $currentBranch (Cursor-style).
+ * Context header inside the composer:
+ * project · Local/Cloud · branch (left) …… Changes (right).
+ * Git chips only mount when `$repoStatus` confirms a real repo — never paint
+ * master/Limpo on a non-git folder. Commit & PR live in the Review pane.
  */
 import { useStore } from '@nanostores/react'
 import { type ComponentProps, useEffect } from 'react'
@@ -22,7 +23,7 @@ import { ProjectChip } from './project-chip'
 import { RunTargetChip } from './run-target-chip'
 import { CodingStatusRow } from './status-stack/coding-row'
 
-type BranchProps = Omit<ComponentProps<typeof CodingStatusRow>, 'fallbackBranch' | 'forceVisible' | 'variant'>
+type BranchProps = Omit<ComponentProps<typeof CodingStatusRow>, 'fallbackBranch' | 'variant'>
 
 export function ComposerContextHeader({
   sessionId,
@@ -37,19 +38,16 @@ export function ComposerContextHeader({
   const repoStatus = useStore($repoStatus)
   const sessionBranch = useStore($currentBranch)
   const hasProject = scope !== ALL_PROJECTS || Boolean(cloudSlug.trim())
-  // Git chrome: project/folder selected, OR session cwd already inside a repo.
-  // With a project open we always mount chips (forceVisible) — don't wait on
-  // $repoStatus, which can lag or stay null on a stale non-git cwd.
-  const showGitChrome = hasProject || Boolean(repoStatus)
+  // Git chrome only when the probe says we are in a repo. Forcing chips on
+  // every project lied "master / Limpo" on non-git folders (Dutelog).
+  const showGitChrome = Boolean(repoStatus)
   const fallbackBranch = (repoStatus?.branch || sessionBranch || '').trim()
 
-  // Seed cwd + kick probe when a local project is scoped. Chips already render
-  // via forceVisible; this hydrates live dirty/branch counts without blocking.
-  // Critical: if `$currentCwd` is a stale unrelated path (home, previous
-  // project) on a DRAFT (no live session), Review/Changes probe that clean tree
-  // and show "NO DIFFS"/"Limpo" while the user thinks they're in the project.
-  // A live session's cwd is authoritative — never yank it to the project root
-  // (worktrees / resumed chats write where the session says).
+  // Seed cwd + kick probe when a local project is scoped. Critical: if
+  // `$currentCwd` is a stale unrelated path on a DRAFT (no live session),
+  // Review/Changes would probe that tree while the user thinks they're in
+  // the project. A live session's cwd is authoritative — never yank it to
+  // the project root (worktrees / resumed chats write where the session says).
   useEffect(() => {
     if (cloudSlug.trim()) {
       return
@@ -101,7 +99,6 @@ export function ComposerContextHeader({
         <CodingStatusRow
           {...branch}
           fallbackBranch={fallbackBranch}
-          forceVisible={hasProject}
           variant="chip"
         />
       )}

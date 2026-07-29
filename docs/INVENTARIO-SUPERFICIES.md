@@ -313,7 +313,9 @@ A ausência do roster de agentes na navegação primária é deliberada (coment�
 
 ### 6.2 Veredito das superfícies recentes
 
-Tudo o que foi acrescentado ao composer está de facto ligado: `ProjectChip`, `RunTargetChip` (degrada para "Local" sem menu quando a cloud não responde), `CodingStatusRow`, chip Changes (lê `$reviewFiles`), Commit & PR (`git.review.*`), `ModelPill`, `ModeChip`, `ConnectorsPicker`, e a pilha de estado (todos, subagentes, processos, fila).
+Tudo o que foi acrescentado ao composer está de facto ligado: `ProjectChip`, `RunTargetChip` (degrada para "Local" sem menu quando a cloud não responde), `CodingStatusRow` (branch + chip Changes que lê `$reviewFiles` e abre Review), `ModelPill`, `ModeChip`, `ConnectorsPicker`, e a pilha de estado (todos, subagentes, processos, fila).
+
+**Chrome git no composer — rearranjado 29/07.** Alinhado ao Cursor: o composer não tem Commit/PR. Branch + Changes montam **só** quando `$repoStatus` confirma repo (`forceVisible` / paint optimista em pastas sem git removidos — Dutelog deixava de mentir `master`/`Limpo`). Commit & PR ficam só no `ship-bar` do painel Review; o chip Changes é atalho para esse painel, sem segundo fluxo de ship.
 
 ### 6.3 Duplicações de UI
 
