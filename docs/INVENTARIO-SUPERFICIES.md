@@ -317,6 +317,8 @@ Tudo o que foi acrescentado ao composer está de facto ligado: `ProjectChip`, `R
 
 **Chrome git no composer — rearranjado 29/07.** Alinhado ao Cursor: o composer não tem Commit/PR. Branch + Changes montam **só** quando `$repoStatus` confirma repo (`forceVisible` / paint optimista em pastas sem git removidos — Dutelog deixava de mentir `master`/`Limpo`). Commit & PR ficam só no `ship-bar` do painel Review; o chip Changes é atalho para esse painel, sem segundo fluxo de ship.
 
+**Aprovação inline em write_file/patch — 29/07.** O guarda de ficheiros sensíveis (§1.4) já emitia `approval.request`, e o desktop já mandava toast nativo do Windows; mas `APPROVAL_TOOLS` só tinha `terminal` e `execute_code`, por isso a barra Run/Reject não montava na linha do `write_file`/`patch`. Passou a incluir esses dois nomes — o toast fica como backup em segundo plano.
+
 ### 6.3 Duplicações de UI
 
 Coluna **Proveniência** apurada em 29/07 por comparação ficheiro-a-ficheiro com o checkout upstream em `C:/DEV/hermes-upstream`: o que existe lá é original do Hermes, o que só existe cá construímos nós. Isto importa porque a instrução do dono é *unificar na estrutura original* — e a maior parte destas duplicações **veio de fábrica**, não fomos nós que as criámos.

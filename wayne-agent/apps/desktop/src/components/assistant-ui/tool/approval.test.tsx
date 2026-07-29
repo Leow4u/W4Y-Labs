@@ -63,6 +63,24 @@ describe('PendingToolApproval', () => {
     expect(container.innerHTML).toBe('')
   })
 
+  it('renders the inline run/reject controls on a pending write_file row', () => {
+    // Sensitive-edit floor: approval.request for .env etc. must bind to the
+    // write_file row the same way terminal binds, not only the Windows toast.
+    setRequest('write_file .env.w4y-test')
+    render(<PendingToolApproval part={part('write_file')} />)
+
+    expect(screen.getByRole('button', { name: /Run/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Reject/ })).toBeTruthy()
+  })
+
+  it('renders the inline run/reject controls on a pending patch row', () => {
+    setRequest('patch .env')
+    render(<PendingToolApproval part={part('patch')} />)
+
+    expect(screen.getByRole('button', { name: /Run/ })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /Reject/ })).toBeTruthy()
+  })
+
   it('renders the inline run/reject controls on the pending terminal row', () => {
     setRequest('chmod -R 777 /tmp/x')
     render(<PendingToolApproval part={part('terminal')} />)

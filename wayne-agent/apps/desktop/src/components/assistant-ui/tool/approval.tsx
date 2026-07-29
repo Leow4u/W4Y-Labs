@@ -31,18 +31,22 @@ import type { ToolPart } from './fallback-model'
 
 // Inline approval control. Rendered as a compact button strip
 // under the pending tool row that raised the approval (the row already shows
-// the command, so the strip deliberately doesn't repeat it) instead of as a
-// modal overlay.
+// the command/path, so the strip deliberately doesn't repeat it) instead of as
+// a modal overlay.
 //
 // Binding is POSITIONAL, not command-matched: the desktop `tool.start` payload
 // carries no structured args (only tool_id/name/context — see
 // tui_gateway/server.py::_on_tool_start), so we cannot join the approval to the
 // row by command string. But `approval.request` only ever fires from the
-// `terminal` / `execute_code` guards and the agent thread blocks on exactly one
-// approval at a time, so the single pending row of those tools IS the row that
-// raised it. The command/description text comes from `$approvalRequest` (the
-// event payload), which is the only place that data reliably exists.
-export const APPROVAL_TOOLS = new Set(['terminal', 'execute_code'])
+// guards below and the agent thread blocks on exactly one approval at a time,
+// so the single pending row of those tools IS the row that raised it. The
+// command/description text comes from `$approvalRequest` (the event payload),
+// which is the only place that data reliably exists.
+//
+// write_file / patch are here for the sensitive-edit floor (tools/approval.py):
+// without them the request still arrives (and the Windows toast still fires),
+// but the inline bar never mounts on the edit row — only the floating fallback.
+export const APPROVAL_TOOLS = new Set(['terminal', 'execute_code', 'write_file', 'patch'])
 
 // Canonical gateway choices (ui-tui/src/components/prompts.tsx).
 type ApprovalChoice = 'once' | 'session' | 'always' | 'deny'
