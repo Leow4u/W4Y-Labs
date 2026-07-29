@@ -66,9 +66,11 @@ export function ReviewPane() {
   const hasFiles = files.length > 0
   // `{ path: null }` → revert all; `{ path: '…' }` → revert one file.
   const revertingAll = revertTarget?.path == null
+  // null = still probing this cwd — never show "not a repo" from a previous folder.
+  const probing = isRepo === null || loading
   // Delay the skeletons so fast loads (most project switches) just blank → content
   // instead of flashing a jarring loading state.
-  const showTreeSkeleton = useDelayedTrue(loading && !hasFiles)
+  const showTreeSkeleton = useDelayedTrue(probing && !hasFiles)
   const showDiffSkeleton = useDelayedTrue(diffLoading)
 
   return (
@@ -81,7 +83,7 @@ export function ReviewPane() {
           : 'border-l shadow-[inset_0.0625rem_0_0_color-mix(in_srgb,white_18%,transparent)]'
       )}
     >
-      {(loading || isRepo) && (
+      {(probing || isRepo) && (
         <RightSidebarSectionHeader data-suppress-pane-reveal-side="">
           <div className="flex min-w-0 flex-1">
             <SidebarPanelLabel>{c.review}</SidebarPanelLabel>
@@ -141,18 +143,18 @@ export function ReviewPane() {
         </RightSidebarSectionHeader>
       )}
 
-      {loading || isRepo ? (
+      {probing || isRepo ? (
         hasFiles ? (
           <ReviewFileTree />
         ) : showTreeSkeleton ? (
           <TreeSkeleton />
-        ) : loading ? (
+        ) : probing ? (
           <div className="min-h-0 flex-1" />
         ) : (
           <PaneEmptyState label={t.rightSidebar.noDiffs} />
         )
       ) : (
-        // No git repo at the session cwd — don't pretend the tree is clean.
+        // Probe returned false for THIS cwd — don't pretend the tree is clean.
         <PaneEmptyState label={c.notRepo} />
       )}
 

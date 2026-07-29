@@ -153,6 +153,21 @@ describe('refreshReview wiring', () => {
     expect($reviewFiles.get()).toEqual([])
     expect($reviewIsRepo.get()).toBe(false)
   })
+
+  it('forgets the previous folder not-a-repo verdict when cwd changes', async () => {
+    // Dutelog left isRepo=false; entering W4Y Labs must not keep painting that
+    // until the new probe returns — otherwise a real repo shows NOT A GIT REPOSITORY.
+    $reviewIsRepo.set(false)
+    stubReviewList(async () => ({ files: [], base: null, isRepo: true }))
+    setCurrentCwd('C:\\DEV\\W4Y Labs')
+
+    // The $currentCwd subscription clears the verdict synchronously.
+    expect($reviewIsRepo.get()).toBeNull()
+
+    await refreshReview()
+
+    expect($reviewIsRepo.get()).toBe(true)
+  })
 })
 
 describe('Changes chip derives from $reviewFiles (same state as Review pane)', () => {

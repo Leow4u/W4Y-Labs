@@ -59,10 +59,11 @@ export function toggleReviewTreeMode(): void {
 
 export const $reviewFiles = atom<HermesReviewFile[]>([])
 export const $reviewLoading = atom(false)
-// False when the active session isn't in a local git repo (detached/fresh chat,
-// remote backend). Lets the pane say "not a repo" instead of stranding on a
-// skeleton or implying a clean repo with "no changes".
-export const $reviewIsRepo = atom(true)
+// Tri-state: null = not probed yet for this cwd (never flash the previous
+// folder's "not a repo"); false = probe said non-git; true = in a repo.
+// Switching Dutelog → W4Y Labs used to leave false stuck and paint
+// "NOT A GIT REPOSITORY" on a real repo until something else refreshed.
+export const $reviewIsRepo = atom<boolean | null>(null)
 
 // Largest single-file churn (added + removed) in the current diff. Drives the
 // per-row data bars: each file's bar is its churn relative to this max, so the
@@ -486,6 +487,9 @@ $busy.subscribe(busy => {
 $currentCwd.subscribe(() => {
   clearReviewSelection()
   $reviewFiles.set([])
+  // Drop the previous folder's verdict so we never paint "not a repo" on the
+  // next cwd before its own probe returns.
+  $reviewIsRepo.set(null)
   $reviewLoading.set(Boolean(activeRepoCwd()))
   scheduleReviewRefresh()
 
