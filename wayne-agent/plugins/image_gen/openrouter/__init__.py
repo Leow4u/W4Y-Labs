@@ -40,18 +40,16 @@ from agent.image_gen_provider import (
 
 logger = logging.getLogger(__name__)
 
-# Quality-first model chain for OpenRouter-compatible endpoints.
+# Curated OpenRouter image models (Work4You Pro face).
 #
-# Default behavior (no env/config override): try the highest-fidelity OpenAI
-# image model first, then fall back to Gemini 3 Pro Image if the OpenAI model
-# is access-gated / unavailable / times out on this endpoint.
-#
-# Explicit override (OPENROUTER_IMAGE_MODEL, image_gen.<provider>.model, or
-# image_gen.model from ``wayne tools``): use exactly that model (no auto
-# fallback), so power users keep full control.
-DEFAULT_MODEL = "openai/gpt-5.4-image-2"
-_FALLBACK_MODEL = "google/gemini-3-pro-image"
+# Default: Nano Banana 2 (Gemini 3.1 Flash Image) — Pro-level visuals at Flash
+# speed. Fallback: OpenAI GPT Image. Explicit overrides (OPENROUTER_IMAGE_MODEL,
+# image_gen.<provider>.model, image_gen.model) pin a single model with no
+# auto-fallback.
+DEFAULT_MODEL = "google/gemini-3.1-flash-image"  # Nano Banana 2
+_FALLBACK_MODEL = "openai/gpt-5-image"
 _DEFAULT_MODEL_CHAIN = (DEFAULT_MODEL, _FALLBACK_MODEL)
+_NANO_BANANA = "google/gemini-2.5-flash-image"  # Nano Banana (classic)
 
 # Semantic aspect ratio (the image_gen contract) → OpenRouter's image_config
 # aspect_ratio strings.
@@ -65,9 +63,9 @@ _ASPECT_RATIOS = {
 # so we never overflow the model's limit.
 _MAX_REFERENCE_IMAGES = 3
 
-# Per single image call. The quality-first default (OpenAI image via OpenRouter)
-# is genuinely slow — a single cold row can run well past 3 minutes — so give
-# each call real headroom before we treat it as hung and fall back / retry.
+# Per single image call. Some OpenRouter image models are slow on cold
+# starts — give each call real headroom before we treat it as hung and
+# fall back / retry.
 _REQUEST_TIMEOUT = 300.0
 
 
@@ -232,13 +230,33 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
         return [
             {
                 "id": DEFAULT_MODEL,
-                "display": "OpenAI GPT-5.4 Image 2",
-                "strengths": "Highest fidelity; best prompt adherence; slower on OpenRouter",
+                "display": "Nano Banana 2 · Gemini 3.1 Flash Image",
+                "strengths": "Pro-tier quality at Flash speed — Work4You default",
+                "tier": "pro",
             },
             {
                 "id": _FALLBACK_MODEL,
+                "display": "GPT Image",
+                "strengths": "OpenAI fidelity; strong prompt adherence",
+                "tier": "pro",
+            },
+            {
+                "id": _NANO_BANANA,
+                "display": "Nano Banana · Gemini 2.5 Flash Image",
+                "strengths": "Classic Nano Banana — fast edits & generation",
+                "tier": "pro",
+            },
+            {
+                "id": "openai/gpt-5.4-image-2",
+                "display": "GPT-5.4 Image 2",
+                "strengths": "Highest OpenAI fidelity when enabled on the account",
+                "tier": "max",
+            },
+            {
+                "id": "google/gemini-3-pro-image",
                 "display": "Gemini 3 Pro Image",
-                "strengths": "Fast, reliable fallback with good layout adherence",
+                "strengths": "Higher-quality Gemini; slower/costlier than Nano Banana",
+                "tier": "max",
             },
         ]
 
@@ -366,7 +384,15 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
                     err_msg = resp.text[:300] if resp is not None else str(exc)
                 logger.error("%s image gen failed (%d) on %s: %s", self._name, status, model_id, err_msg)
                 hint = _access_error_hint(self._display, model_id, self._model_env_var, status, err_msg)
-                if hint and not is_last:
+                # Default Pro chain (Nano Banana → GPT Image): retry on
+                # access / not-found so a gated primary does not fail the
+                # whole request. Explicit single-model overrides never
+                # enter this branch (chain length 1).
+                low = (err_msg or "").lower()
+                retryable = status in (402, 403, 404) or any(
+                    s in low for s in ("no endpoints", "no allowed", "not a valid model")
+                )
+                if not is_last and (hint or retryable):
                     logger.info(
                         "%s model %s unavailable; retrying with fallback %s",
                         self._name,
@@ -493,7 +519,10 @@ def _build_providers() -> List[OpenRouterCompatImageProvider]:
             setup_schema={
                 "name": "OpenRouter (image)",
                 "badge": "paid",
-                "tag": "Gemini Flash Image & more via OpenRouter; uses OPENROUTER_API_KEY",
+                "tag": (
+                    "Nano Banana 2 + GPT Image (Pro) via OpenRouter; "
+                    "uses OPENROUTER_API_KEY"
+                ),
                 "env_vars": [
                     {
                         "key": "OPENROUTER_API_KEY",

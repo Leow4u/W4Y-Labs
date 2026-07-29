@@ -414,6 +414,80 @@ HARDLINE_PATTERNS_COMPILED = [
 
 
 # =========================================================================
+# Policy-file floor (Wayne security + credentials)
+# =========================================================================
+#
+# Pairs ``file_tools._check_sensitive_path`` (hard deny on write_file/patch).
+# Terminal coverage alone used to sit in DANGEROUS_PATTERNS, which YOLO /
+# approvals.mode=off bypass — so an agent could rewrite approvals.mode,
+# allowlists, or max_concurrent_children mid-session and immediately escape
+# the gate. Work4You PME surfaces hide many of those knobs from Settings;
+# hiding without a YOLO-immune floor is unpaired theater.
+#
+# Scope is deliberately narrow: only Wayne-managed security/credential files
+# and the ``wayne config set|edit`` CLI that mutates them. Project
+# ``config.yaml`` / ``.env`` and user SSH/shell-rc writes stay on the softer
+# DANGEROUS path (yolo may pass those — that is what yolo is for).
+
+_POLICY_FILE_WRITE_PATTERNS = [
+    (rf'\btee\b.*["\']?(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
+     "overwrite Wayne config/env via tee"),
+    (rf'>>?\s*["\']?(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
+     "overwrite Wayne config/env via redirection"),
+    (rf'\b(cp|mv|install)\b.*\s["\']?(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})["\']?{_COMMAND_TAIL}',
+     "copy/move file over Wayne config/env"),
+    (rf'\bsed\s+-[^\s]*i.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
+     "in-place edit of Wayne config/env"),
+    (rf'\bsed\s+--in-place\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
+     "in-place edit of Wayne config/env (long flag)"),
+    (rf'\b(?:perl|ruby)\b.*(?:^|\s)-[^\s]*i\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
+     "in-place edit of Wayne config/env (perl/ruby)"),
+    # CLI mutators that write the same files without looking like a shell
+    # redirect. Allow global flags between the binary and `config`
+    # (`wayne -p coder config set …`).
+    (r'\bwayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*config\s+(?:set|edit|migrate)\b',
+     "wayne config set/edit/migrate (mutates security policy)"),
+    (r'\bhermes\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*config\s+(?:set|edit|migrate)\b',
+     "hermes config set/edit/migrate (mutates security policy)"),
+]
+
+_POLICY_FILE_WRITE_PATTERNS_COMPILED = [
+    (re.compile(pattern, _RE_FLAGS), description)
+    for pattern, description in _POLICY_FILE_WRITE_PATTERNS
+]
+
+
+def detect_policy_file_write(command: str) -> tuple:
+    """Detect writes to Wayne security/credential files (config.yaml / .env).
+
+    Returns:
+        (is_policy_write, description) or (False, None)
+    """
+    for command_variant in _command_detection_variants(command):
+        normalized = command_variant.lower()
+        for pattern_re, description in _POLICY_FILE_WRITE_PATTERNS_COMPILED:
+            if pattern_re.search(normalized):
+                return (True, description)
+    return (False, None)
+
+
+def _policy_file_block_result(description: str) -> dict:
+    """Build the block result for a policy-file write (YOLO-immune)."""
+    return {
+        "approved": False,
+        "hardline": True,
+        "policy_file": True,
+        "message": (
+            f"BLOCKED (policy file): {description}. "
+            "The agent cannot modify Work4You / Wayne security settings or "
+            "credentials (config.yaml, .env) — not even with YOLO or "
+            "approvals.mode=off. Change these in Settings, or edit the file "
+            "yourself outside the agent."
+        ),
+    }
+
+
+# =========================================================================
 # Sudo stdin guard — block password guessing via "sudo -S"
 # =========================================================================
 # When SUDO_PASSWORD is not configured, any explicit "sudo -S" in the
@@ -2020,6 +2094,14 @@ def check_dangerous_command(command: str, env_type: str,
     if is_hardline:
         logger.warning("Hardline block: %s (command: %s)", hardline_desc, command[:200])
         return _hardline_block_result(hardline_desc)
+
+    # Policy-file floor: Wayne config.yaml / .env (and `wayne config set|edit`)
+    # cannot be mutated via the agent — even under yolo. Pairs the write_file
+    # / patch deny so Settings-hidden knobs stay user-owned.
+    is_policy, policy_desc = detect_policy_file_write(command)
+    if is_policy:
+        logger.warning("Policy-file block: %s (command: %s)", policy_desc, command[:200])
+        return _policy_file_block_result(policy_desc)
 
     # --yolo: bypass all approval prompts. Gateway /yolo is session-scoped;
     # CLI --yolo remains process-scoped via the env var for local use.

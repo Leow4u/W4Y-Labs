@@ -658,10 +658,9 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
 
     Reads ``config["browser"]["cloud_provider"]`` once and caches the result
     for the process lifetime. An explicit ``local`` provider disables cloud
-    fallback. If unset, fall back to Browser Use (managed Nous gateway or
-    direct API key) and then Browserbase (direct credentials only) — the
-    historic auto-detect order, now expressed as the
-    :data:`agent.browser_registry._LEGACY_PREFERENCE` walk.
+    fallback.     If unset, fall back to Firecrawl (when ``FIRECRAWL_API_KEY`` is set),
+    then Browser Use (managed Nous gateway or direct API key), then
+    Browserbase — :data:`agent.browser_registry._LEGACY_PREFERENCE`.
 
     Selection routes through :mod:`agent.browser_registry` so third-party
     browser plugins (``~/.wayne/plugins/browser/<vendor>/``) participate
@@ -728,23 +727,25 @@ def _get_cloud_provider() -> Optional[CloudBrowserProvider]:
         logger.debug("Could not read cloud_provider from config: %s", e)
 
     if resolved is None:
-        # Auto-detect path: Browser Use first (managed Nous gateway or
-        # direct API key), then Browserbase (direct credentials). Uses
-        # the legacy class names imported at the top of this module so
-        # tests that ``monkeypatch.setattr(browser_tool, "BrowserUseProvider", ...)``
-        # keep driving this branch deterministically. Third-party browser
-        # plugins are intentionally NOT reachable from auto-detect — they
-        # participate only via explicit ``browser.cloud_provider: <name>``,
-        # mirroring the firecrawl gate documented on
-        # :data:`agent.browser_registry._LEGACY_PREFERENCE`.
+        # Auto-detect path mirrors ``agent.browser_registry._LEGACY_PREFERENCE``:
+        # Firecrawl (shared web+browser key) → Browser Use (Nous/direct) →
+        # Browserbase. Uses the legacy class names imported at the top of this
+        # module so tests that patch ``BrowserUseProvider`` /
+        # ``BrowserbaseProvider`` / ``FirecrawlProvider`` keep driving this
+        # branch deterministically. Third-party browser plugins still require
+        # explicit ``browser.cloud_provider: <name>``.
         try:
-            fallback_provider = BrowserUseProvider()
-            if fallback_provider.is_configured():
+            fallback_provider = FirecrawlProvider()
+            if fallback_provider.is_available():
                 resolved = fallback_provider
             else:
-                fallback_provider = BrowserbaseProvider()
+                fallback_provider = BrowserUseProvider()
                 if fallback_provider.is_configured():
                     resolved = fallback_provider
+                else:
+                    fallback_provider = BrowserbaseProvider()
+                    if fallback_provider.is_configured():
+                        resolved = fallback_provider
         except Exception:  # pragma: no cover - defensive: never poison cache
             logger.debug("Cloud provider auto-detect failed", exc_info=True)
             return None

@@ -8,6 +8,7 @@ import {
   mintCloudWsUrl,
   type RunTarget,
 } from "@/lib/cloudSession";
+import { ENSURE_COMPOSIO_MCP_EVENT } from "@/lib/ensureComposioMcp";
 import { useI18n } from "@/i18n";
 import {
   stitchHistory,
@@ -1363,6 +1364,48 @@ export function useChatSession(
       return false;
     }
   }, []);
+
+  // Local engine (desktop-shell): attach mcp_servers.composio + reload.mcp so
+  // mcp_composio_* tools exist before the first Gmail/etc. turn. Without this,
+  // the UI shows connectors ACTIVE while the agent falls back to skills/SDK.
+  useEffect(() => {
+    if (!sessionReady || runTarget === "cloud") return;
+
+    let lastOkAt = 0;
+    const COOLDOWN_MS = 30_000;
+    let alive = true;
+
+    const run = async (force = false) => {
+      const now = Date.now();
+      if (!force && now - lastOkAt < COOLDOWN_MS) return;
+      try {
+        await api.attachConnectors("global");
+      } catch {
+        /* no COMPOSIO_API_KEY / route — still attempt reload if config exists */
+      }
+      if (!alive) return;
+      const gw = gwRef.current;
+      const sid = sessionIdRef.current;
+      if (!gw || !sid) return;
+      try {
+        await gw.request("reload.mcp", { confirm: true, session_id: sid });
+        lastOkAt = Date.now();
+      } catch {
+        /* best-effort */
+      }
+    };
+
+    void run(false);
+    const onEvt = (ev: Event) => {
+      const force = Boolean((ev as CustomEvent<{ force?: boolean }>).detail?.force);
+      void run(force);
+    };
+    window.addEventListener(ENSURE_COMPOSIO_MCP_EVENT, onEvt);
+    return () => {
+      alive = false;
+      window.removeEventListener(ENSURE_COMPOSIO_MCP_EVENT, onEvt);
+    };
+  }, [sessionReady, runTarget]);
 
   const branchChat = useCallback(async (): Promise<string | null> => {
     const gw = gwRef.current;

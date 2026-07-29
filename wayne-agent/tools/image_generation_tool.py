@@ -514,11 +514,9 @@ def _submit_fal_request(model: str, arguments: Dict[str, Any]):
                     )
                 )
             raise ValueError(
-                f"Nous Subscription gateway rejected model '{model}' "
-                f"(HTTP {status}). This model may not yet be enabled on "
-                f"the Nous Portal's FAL proxy. Either:\n"
-                f"  • Set FAL_KEY in your environment to use FAL.ai directly, or\n"
-                f"  • Pick a different model via `wayne tools` → Image Generation."
+                f"Image generation is temporarily unavailable for model '{model}' "
+                f"(HTTP {status}). Try another image model in Settings → Tools, "
+                f"or check your Work4You plan / usage."
                 f"{gateway_message}"
             ) from exc
         raise
@@ -1052,34 +1050,14 @@ def _build_no_backend_setup_message() -> str:
         know the registry exists and how to inspect it)
     """
     lines = ["Image generation is unavailable in this environment.", ""]
-    lines.append("Missing requirements:")
-    if managed_nous_tools_enabled():
-        lines.append(
-            "  - FAL_KEY is not set and the managed FAL gateway is unreachable"
-        )
-    else:
-        lines.append("  - FAL_KEY environment variable is not set")
-        gateway_message = nous_tool_gateway_unavailable_message(
-            "managed FAL image generation",
-        )
-        if gateway_message:
-            lines.append(f"  - {gateway_message}")
+    lines.append("Image generation isn't ready yet.")
     lines.append("")
-    lines.append("To enable image generation, do one of:")
-    lines.append(
-        "  1. Get a free API key at https://fal.ai and set "
-        "FAL_KEY=<your-key> (then restart the session)"
-    )
+    lines.append("In Work4You: open Settings → Tools → Image generation and")
+    lines.append("pick an available backend, or check your plan includes image use.")
     if managed_nous_tools_enabled():
         lines.append(
-            "  2. Sign in to a Nous account that has the managed FAL "
-            "gateway enabled (`wayne setup`)"
+            "(Managed image gateway unreachable — retry after reconnecting.)"
         )
-    lines.append(
-        "  3. Configure a different image_gen provider via `wayne tools` "
-        "→ Image Generation (run `wayne plugins list` to see installed "
-        "backends)"
-    )
     return "\n".join(lines)
 
 
@@ -1177,7 +1155,7 @@ IMAGE_GENERATE_SCHEMA = {
         "edit / transform an existing image (image-to-image) when the active "
         "model supports it. Pass `image_url` to edit that image; add "
         "`reference_image_urls` for style/composition references; omit both "
-        "for text-to-image. The underlying backend (FAL, OpenAI, xAI, etc.) "
+        "for text-to-image. The underlying backend (OpenRouter by default) "
         "and model are user-configured and not selectable by the agent. "
         "Returns the result in the `image` field — either a URL or an absolute "
         "file path. To show it to the user, reference that path/URL in your "
@@ -1277,41 +1255,44 @@ def _dispatch_to_plugin_provider(
     image_url: Optional[str] = None,
     reference_image_urls: Optional[list] = None,
 ):
-    """Route the call to a plugin-registered provider when one is selected.
+    """Route the call to a plugin-registered provider when one is active.
 
     Returns a JSON string on dispatch, or ``None`` to fall through to the
-    in-tree FAL fallback in ``image_generate_tool``.
+    in-tree FAL path (only used when ``image_gen.provider`` is explicitly
+    ``"fal"``).
 
-    Dispatch fires when ``image_gen.provider`` is explicitly set — including
-    ``"fal"`` itself, which now resolves to the
-    ``plugins/image_gen/fal/`` plugin (the plugin re-enters this module's
-    pipeline via ``_it`` indirection so behavior is identical to the
-    direct call, just routed through the registry).
+    Resolution:
+    1. Explicit ``image_gen.provider`` → that plugin (including ``fal``).
+    2. Else :func:`agent.image_gen_registry.get_active_provider` (prefers
+       OpenRouter; never auto-picks FAL).
+    3. Else ``None`` (caller may fall through only for explicit FAL).
 
     ``image_url`` / ``reference_image_urls`` enable image-to-image / editing:
     they are forwarded to the provider's ``generate()`` so the backend can
     route to its edit endpoint.
     """
     configured = _read_configured_image_provider()
-    if not configured:
-        return None
-
-    # Also read configured model so we can pass it to the plugin
     configured_model = _read_configured_image_model()
 
     try:
         # Import locally so plugin discovery isn't triggered just by
         # importing this module (tests rely on that).
-        from agent.image_gen_registry import get_provider
+        from agent.image_gen_registry import get_active_provider, get_provider
         from wayne_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
-        provider = get_provider(configured)
+        if configured:
+            provider = get_provider(configured)
+        else:
+            provider = get_active_provider()
+            # Auto path never uses FAL — leave that for explicit config only.
+            if provider is not None and provider.name == "fal":
+                return None
     except Exception as exc:
         logger.debug("image_gen plugin dispatch skipped: %s", exc)
         return None
 
-    if provider is None:
+    if configured and provider is None:
         try:
             # Long-lived sessions may have discovered plugins before a bundled
             # backend was patched in or before config changed. Retry once with
@@ -1321,7 +1302,7 @@ def _dispatch_to_plugin_provider(
         except Exception as exc:
             logger.debug("image_gen plugin force-refresh skipped: %s", exc)
 
-    if provider is None:
+    if configured and provider is None:
         return json.dumps({
             "success": False,
             "image": None,
@@ -1332,6 +1313,9 @@ def _dispatch_to_plugin_provider(
             ),
             "error_type": "provider_not_registered",
         })
+
+    if provider is None:
+        return None
 
     kwargs: Dict[str, Any] = {"prompt": prompt, "aspect_ratio": aspect_ratio}
     try:
@@ -1519,9 +1503,9 @@ def _handle_image_generate(args, **kw):
     reference_image_urls = args.get("reference_image_urls")
     task_id = kw.get("task_id")
 
-    # Route to a plugin-registered provider if one is active (and it's
-    # not the in-tree FAL path). When ``image_gen.provider == "krea"`` this
-    # already reaches the Krea plugin's managed gateway path.
+    # Route to the active plugin provider (OpenRouter by default for
+    # Work4You). When ``image_gen.provider == "krea"`` this already reaches
+    # the Krea plugin's managed gateway path.
     dispatched = _dispatch_to_plugin_provider(
         prompt, aspect_ratio,
         image_url=image_url,
@@ -1532,9 +1516,7 @@ def _handle_image_generate(args, **kw):
 
     # Managed-mode Krea routing: when no explicit plugin provider is configured
     # but the selected model is a native ``krea-2-*`` id, a portal user routes to
-    # the dedicated Krea managed gateway. ``fal-ai/krea/v2/*`` models stay on the
-    # FAL path below. Runs after plugin dispatch (which returns None when no
-    # provider is set) so the BYO/direct FAL path stays untouched.
+    # the dedicated Krea managed gateway.
     krea_routed = _maybe_route_managed_krea(
         prompt, aspect_ratio,
         image_url=image_url,
@@ -1543,13 +1525,27 @@ def _handle_image_generate(args, **kw):
     if krea_routed is not None:
         return _postprocess_image_generate_result(krea_routed, task_id=task_id)
 
-    raw = image_generate_tool(
-        prompt=prompt,
-        aspect_ratio=aspect_ratio,
-        image_url=image_url,
-        reference_image_urls=reference_image_urls,
-    )
-    return _postprocess_image_generate_result(raw, task_id=task_id)
+    # In-tree FAL only when the user explicitly pinned ``image_gen.provider:
+    # fal``. Work4You defaults to OpenRouter — never burn turns on FAL.
+    if _read_configured_image_provider() == "fal":
+        raw = image_generate_tool(
+            prompt=prompt,
+            aspect_ratio=aspect_ratio,
+            image_url=image_url,
+            reference_image_urls=reference_image_urls,
+        )
+        return _postprocess_image_generate_result(raw, task_id=task_id)
+
+    return json.dumps({
+        "success": False,
+        "image": None,
+        "error": (
+            "No OpenRouter image backend is available. Configure "
+            "OPENROUTER_API_KEY (same key as chat) or set "
+            "image_gen.provider in config.yaml. FAL is not used by default."
+        ),
+        "error_type": "missing_api_key",
+    })
 
 
 # ---------------------------------------------------------------------------
@@ -1571,8 +1567,9 @@ def _active_image_capabilities() -> Dict[str, Any]:
     """Best-effort: return the active backend/model's image capabilities.
 
     Resolution order mirrors the runtime dispatch:
-    1. If ``image_gen.provider`` is set, ask that plugin provider.
-    2. Otherwise inspect the in-tree FAL model catalog for the active model.
+    1. Explicit ``image_gen.provider`` (non-fal) → that plugin.
+    2. Else :func:`get_active_provider` (OpenRouter preferred).
+    3. Else in-tree FAL catalog only when provider is explicitly ``fal``.
 
     Returns a dict like ``{"modalities": [...], "max_reference_images": N,
     "model": "...", "provider": "..."}``. Never raises.
@@ -1580,42 +1577,48 @@ def _active_image_capabilities() -> Dict[str, Any]:
     info: Dict[str, Any] = {"modalities": ["text"], "max_reference_images": 0}
 
     configured_provider = _read_configured_image_provider()
-    if configured_provider and configured_provider != "fal":
-        try:
-            from agent.image_gen_registry import get_provider
-            from wayne_cli.plugins import _ensure_plugins_discovered
-
-            _ensure_plugins_discovered()
-            provider = get_provider(configured_provider)
-            if provider is not None:
-                caps = {}
-                try:
-                    caps = provider.capabilities() or {}
-                except Exception:  # noqa: BLE001
-                    caps = {}
-                info["provider"] = provider.display_name
-                info["model"] = _read_configured_image_model() or (provider.default_model() or "")
-                if caps.get("modalities"):
-                    info["modalities"] = list(caps["modalities"])
-                if caps.get("max_reference_images"):
-                    info["max_reference_images"] = int(caps["max_reference_images"])
-                return info
-        except Exception:  # noqa: BLE001
-            pass
-
-    # In-tree FAL path (provider unset or == "fal").
     try:
-        model_id, meta = _resolve_fal_model()
-        info["provider"] = "FAL.ai"
-        info["model"] = meta.get("display", model_id)
-        if meta.get("edit_endpoint"):
-            info["modalities"] = ["text", "image"]
-            info["max_reference_images"] = int(meta.get("max_reference_images") or 1)
+        from agent.image_gen_registry import get_active_provider, get_provider
+        from wayne_cli.plugins import _ensure_plugins_discovered
+
+        _ensure_plugins_discovered()
+        if configured_provider and configured_provider != "fal":
+            provider = get_provider(configured_provider)
+        elif configured_provider == "fal":
+            provider = None
         else:
-            info["modalities"] = ["text"]
-            info["max_reference_images"] = 0
+            provider = get_active_provider()
+            if provider is not None and provider.name == "fal":
+                provider = None
+        if provider is not None:
+            caps = {}
+            try:
+                caps = provider.capabilities() or {}
+            except Exception:  # noqa: BLE001
+                caps = {}
+            info["provider"] = provider.display_name
+            info["model"] = _read_configured_image_model() or (provider.default_model() or "")
+            if caps.get("modalities"):
+                info["modalities"] = list(caps["modalities"])
+            if caps.get("max_reference_images"):
+                info["max_reference_images"] = int(caps["max_reference_images"])
+            return info
     except Exception:  # noqa: BLE001
         pass
+
+    if configured_provider == "fal":
+        try:
+            model_id, meta = _resolve_fal_model()
+            info["provider"] = "FAL.ai"
+            info["model"] = meta.get("display", model_id)
+            if meta.get("edit_endpoint"):
+                info["modalities"] = ["text", "image"]
+                info["max_reference_images"] = int(meta.get("max_reference_images") or 1)
+            else:
+                info["modalities"] = ["text"]
+                info["max_reference_images"] = 0
+        except Exception:  # noqa: BLE001
+            pass
 
     return info
 

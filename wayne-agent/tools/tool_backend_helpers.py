@@ -180,3 +180,30 @@ def fal_key_is_configured() -> bool:
         except Exception:
             value = None
     return bool(value and value.strip())
+
+
+def openrouter_key_is_configured() -> bool:
+    """Return True when an OpenRouter API key is available.
+
+    Checks ``OPENROUTER_API_KEY`` in the environment / ``~/.wayne/.env``,
+    then falls back to the shared runtime provider resolver (covers key-pool
+    / Work4You tenant injection). Used to auto-enable ``video_gen`` without
+    requiring FAL credits.
+    """
+    value = os.getenv("OPENROUTER_API_KEY")
+    if value is None:
+        try:
+            from wayne_cli.config import get_env_value
+
+            value = get_env_value("OPENROUTER_API_KEY")
+        except Exception:
+            value = None
+    if value and str(value).strip():
+        return True
+    try:
+        from wayne_cli.runtime_provider import resolve_runtime_provider
+
+        runtime = resolve_runtime_provider(requested="openrouter")
+        return bool(str(runtime.get("api_key") or "").strip())
+    except Exception:
+        return False

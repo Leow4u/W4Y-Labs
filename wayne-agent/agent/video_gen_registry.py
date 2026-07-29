@@ -11,12 +11,15 @@ Active selection
 The active provider is chosen by ``video_gen.provider`` in ``config.yaml``.
 If unset, :func:`get_active_provider` applies fallback logic:
 
-1. If exactly one provider is registered, use it.
-2. Otherwise return ``None`` (the tool surfaces a helpful error pointing
-   the user at ``wayne tools``).
+1. Prefer ``openrouter`` when available (Work4You / shared OpenRouter
+   billing — same key as chat + image gen).
+2. Otherwise the first remaining available non-``fal`` provider, or
+   ``None``.
 
-Mirrors ``agent/image_gen_registry.py`` so the two surfaces behave the
-same.
+``fal`` is never auto-selected — Work4You bills media via OpenRouter only.
+Explicit ``video_gen.provider: fal`` still works for power users.
+
+Mirrors ``agent/image_gen_registry.py`` so the two surfaces behave the same.
 """
 
 from __future__ import annotations
@@ -78,6 +81,16 @@ def get_active_provider() -> Optional[VideoGenProvider]:
 
     Reads ``video_gen.provider`` from config.yaml; falls back per the
     module docstring.
+
+    **Availability semantics** (mirrors :mod:`agent.image_gen_registry`):
+
+    - When ``video_gen.provider`` is explicitly set, the configured
+      provider is returned even if :meth:`VideoGenProvider.is_available`
+      reports False — the dispatcher surfaces a precise auth error rather
+      than silently switching backends.
+    - When ``video_gen.provider`` is unset, the fallback path is filtered by
+      ``is_available()`` so we don't pick a provider the user has no
+      credentials for.
     """
     configured: Optional[str] = None
     try:
@@ -95,6 +108,13 @@ def get_active_provider() -> Optional[VideoGenProvider]:
     with _lock:
         snapshot = dict(_providers)
 
+    def _is_available_safe(p: VideoGenProvider) -> bool:
+        try:
+            return bool(p.is_available())
+        except Exception as exc:  # noqa: BLE001
+            logger.debug("video_gen provider %s.is_available() raised %s", p.name, exc)
+            return False
+
     if configured:
         provider = snapshot.get(configured)
         if provider is not None:
@@ -104,9 +124,19 @@ def get_active_provider() -> Optional[VideoGenProvider]:
             configured,
         )
 
-    # Fallback: single-provider case
-    if len(snapshot) == 1:
-        return next(iter(snapshot.values()))
+    openrouter = snapshot.get("openrouter")
+    if openrouter is not None and _is_available_safe(openrouter):
+        return openrouter
+
+    available = [
+        p
+        for p in snapshot.values()
+        if p.name != "fal" and _is_available_safe(p)
+    ]
+    if len(available) == 1:
+        return available[0]
+    if available:
+        return sorted(available, key=lambda p: p.name)[0]
 
     return None
 

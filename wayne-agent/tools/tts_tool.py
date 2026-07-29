@@ -2150,9 +2150,46 @@ def _generate_kittentts(text: str, output_path: str, tts_config: Dict[str, Any])
 # ===========================================================================
 # Main tool function
 # ===========================================================================
+def _apply_tts_overrides(
+    tts_config: Dict[str, Any],
+    *,
+    provider_override: Optional[str] = None,
+    voice_override: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Return a shallow-copied TTS config with optional provider/voice overrides.
+
+    Used by the desktop Settings “preview voice” path so a picker selection can
+    be heard before it is saved. Does not mutate the loaded config dict.
+    """
+    if not provider_override and not voice_override:
+        return tts_config
+
+    cfg = dict(tts_config)
+    if provider_override:
+        cfg["provider"] = str(provider_override).strip()
+
+    if voice_override:
+        provider = _get_provider(cfg)
+        block = cfg.get(provider)
+        nested = dict(block) if isinstance(block, dict) else {}
+        # Providers store the selectable voice under voice_id or voice.
+        voice_key = (
+            "voice_id"
+            if provider in {"elevenlabs", "xai", "minimax", "mistral"}
+            else "voice"
+        )
+        nested[voice_key] = str(voice_override).strip()
+        cfg[provider] = nested
+
+    return cfg
+
+
 def text_to_speech_tool(
     text: str,
     output_path: Optional[str] = None,
+    *,
+    provider_override: Optional[str] = None,
+    voice_override: Optional[str] = None,
 ) -> str:
     """
     Convert text to speech audio.
@@ -2167,6 +2204,10 @@ def text_to_speech_tool(
     Args:
         text: The text to convert to speech.
         output_path: Optional custom save path. Defaults to ~/voice-memos/<timestamp>.mp3
+        provider_override: Optional provider name (desktop preview only; not
+            exposed on the model tool schema).
+        voice_override: Optional voice / voice_id for that provider (desktop
+            preview only).
 
     Returns:
         str: JSON result with success, file_path, and optionally MEDIA tag.
@@ -2174,7 +2215,11 @@ def text_to_speech_tool(
     if not text or not text.strip():
         return tool_error("Text is required", success=False)
 
-    tts_config = _load_tts_config()
+    tts_config = _apply_tts_overrides(
+        _load_tts_config(),
+        provider_override=provider_override,
+        voice_override=voice_override,
+    )
     provider = _get_provider(tts_config)
 
     # User-declared command provider (type: command under tts.providers.<name>)

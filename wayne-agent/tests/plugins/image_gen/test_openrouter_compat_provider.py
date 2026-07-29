@@ -102,14 +102,20 @@ class TestProviderClass:
             # Default must be an image-output model id (provider/model form).
             assert "/" in DEFAULT_MODEL and "image" in DEFAULT_MODEL
 
-    def test_default_chain_prefers_quality_then_fallback(self):
-        from plugins.image_gen.openrouter import _FALLBACK_MODEL, _DEFAULT_MODEL_CHAIN
+    def test_default_chain_prefers_nano_banana_then_gpt_image(self):
+        from plugins.image_gen.openrouter import (
+            DEFAULT_MODEL,
+            _FALLBACK_MODEL,
+            _DEFAULT_MODEL_CHAIN,
+        )
 
         with patch("plugins.image_gen.openrouter._load_image_gen_config", return_value={}):
             chain = _openrouter()._resolve_model_chain()
         assert chain == list(_DEFAULT_MODEL_CHAIN)
-        assert chain[0].startswith("openai/")
+        assert chain[0] == DEFAULT_MODEL
+        assert "gemini" in chain[0] and "image" in chain[0]
         assert chain[-1] == _FALLBACK_MODEL
+        assert chain[-1].startswith("openai/")
 
     def test_model_env_override(self, monkeypatch):
         monkeypatch.setenv("OPENROUTER_IMAGE_MODEL", "black-forest-labs/flux.2-pro")
@@ -268,7 +274,7 @@ class TestGenerate:
             result = _openrouter().generate(prompt="a pet")
 
         assert result["success"] is True
-        assert result["image"] == "/tmp/openrouter_gen.png"
+        assert Path(result["image"]) == Path("/tmp/openrouter_gen.png")
         assert result["provider"] == "openrouter"
         mock_save.assert_called_once()
 
@@ -282,7 +288,7 @@ class TestGenerate:
             result = _openrouter().generate(prompt="a pet")
 
         assert result["success"] is True
-        assert result["image"] == "/tmp/openrouter_gen_url.png"
+        assert Path(result["image"]) == Path("/tmp/openrouter_gen_url.png")
         mock_save_url.assert_called_once()
 
     def test_empty_response(self):
@@ -399,7 +405,7 @@ class TestGenerate:
         assert "OpenAI image access" in result["error"]
         assert mock_post.call_count == 1  # explicit override: no auto-fallback chain
 
-    def test_access_gated_default_model_falls_back_to_gemini(self):
+    def test_access_gated_default_model_falls_back_to_gpt_image(self):
         import requests as req_lib
 
         from plugins.image_gen.openrouter import DEFAULT_MODEL, _FALLBACK_MODEL
@@ -420,7 +426,7 @@ class TestGenerate:
 
         assert result["success"] is True
         assert result["model"] == _FALLBACK_MODEL
-        assert result["image"] == "/tmp/openrouter_gen_fallback.png"
+        assert Path(result["image"]) == Path("/tmp/openrouter_gen_fallback.png")
         assert mock_post.call_count == 2
         first_model = mock_post.call_args_list[0].kwargs["json"]["model"]
         second_model = mock_post.call_args_list[1].kwargs["json"]["model"]

@@ -115,7 +115,7 @@ def _get_subagent_approval_callback():
 # "delegation" toolset in _build_child_agent), NOT by the model naming toolsets
 # — the model has no toolsets argument. Subagents inherit the parent's toolsets.
 
-_DEFAULT_MAX_CONCURRENT_CHILDREN = 3
+_DEFAULT_MAX_CONCURRENT_CHILDREN = 4
 # One-shot guard: the high-concurrency cost advisory is emitted at most once
 # per process. _get_max_concurrent_children() runs on every get_definitions()
 # schema rebuild (via _build_top_level_description / _build_tasks_param_description),
@@ -353,7 +353,7 @@ def _normalize_role(r: Optional[str]) -> str:
 
 def _get_max_concurrent_children() -> int:
     """Read delegation.max_concurrent_children from config, falling back to
-    DELEGATION_MAX_CONCURRENT_CHILDREN env var, then the default (3).
+    DELEGATION_MAX_CONCURRENT_CHILDREN env var, then the default (4).
 
     Users can raise this as high as they want; only the floor (1) is enforced.
 
@@ -3357,7 +3357,7 @@ DELEGATE_TASK_SCHEMA = {
                     "required": ["goal"],
                 },
                 # No maxItems — the runtime limit is configurable via
-                # delegation.max_concurrent_children (default 3) and
+                # delegation.max_concurrent_children (default 4) and
                 # enforced with a clear error in delegate_task().
                 "description": "(rebuilt at get_definitions() time)",
             },

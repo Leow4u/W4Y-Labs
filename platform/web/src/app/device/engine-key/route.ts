@@ -91,10 +91,12 @@ export async function POST(req: NextRequest) {
   // S0 conectores: repassa a chave Composio do projeto dedicado quando o
   // provisionador conseguiu criá-la (o app grava COMPOSIO_API_KEY no .env do
   // motor local). Ausente/null = motor segue sem conectores (best-effort).
+  // toolEnv: Firecrawl / Langfuse shared platform secrets for the desktop .env.
   return NextResponse.json({
     key: dk.key,
     limitUsd: dk.limitUsd,
     envVar: "OPENROUTER_API_KEY",
     ...(dk.composioKey ? { composioKey: dk.composioKey, composioEnvVar: "COMPOSIO_API_KEY" } : {}),
+    ...(dk.toolEnv ? { toolEnv: dk.toolEnv } : {}),
   });
 }

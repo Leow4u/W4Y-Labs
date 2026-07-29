@@ -67,13 +67,14 @@ $deployArgs = @(
         'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev',
         'PROVISIONER_URL=https://provisioner-w4y.fly.dev',
         'FREE_OPEN=1',
-        # Billing: price IDs de teste (Stripe test mode) por plano x intervalo.
         'STRIPE_PRICE_STARTER=price_1TqadkCn608ngT3WOPRy6FXx',
         'STRIPE_PRICE_STARTER_YEAR=price_1TqadkCn608ngT3WfLm7zvbk',
         'STRIPE_PRICE_PRO=price_1TqadlCn608ngT3WHgbjXtP8',
         'STRIPE_PRICE_PRO_YEAR=price_1TqadlCn608ngT3WBSa9jKMb',
         'STRIPE_PRICE_MAX=price_1TqadmCn608ngT3WEWLIoznD',
-        'STRIPE_PRICE_MAX_YEAR=price_1TqadmCn608ngT3W1TyH0tDQ'
+        'STRIPE_PRICE_MAX_YEAR=price_1TqadmCn608ngT3W1TyH0tDQ',
+        # Metered on-demand overage ($0.01/unit) — Billing Meter event w4y_ondemand_overage_cent
+        'STRIPE_PRICE_OVERAGE=price_1Twvq8Cn608ngT3WHeZov3BZ'
     ) -join ',')),
     # Landing pública sempre quente — visitante nunca espera cold start.
     '--min-instances=1',

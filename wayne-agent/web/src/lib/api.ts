@@ -2336,6 +2336,8 @@ export interface EnvVarInfo {
   is_set: boolean;
   redacted_value: string | null;
   description: string;
+  /** Short human label from OPTIONAL_ENV_VARS `prompt`. */
+  prompt?: string;
   url: string | null;
   category: string;
   is_password: boolean;

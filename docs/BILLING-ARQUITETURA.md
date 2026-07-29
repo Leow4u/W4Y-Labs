@@ -1,9 +1,23 @@
 # Work4You — Arquitetura de Billing & Modelo de Negócio
 
-> Referência oficial (2026-07-07, **atualizado 2026-07-21** — alinhado à Auditoria Produto Fase 10).
+> Referência oficial (2026-07-07, **atualizado 2026-07-24** — face UI alinhada ao Cursor).
 > Fechado com o Leonardo. Números são **estimativas de planejamento**; a **arquitetura e a lógica de margem** estão decididos. Câmbio assumido ~R$5,5/US$.
 
-## ⚠️ Atualização v2 — vocabulário UI (jul/2026)
+## ⚠️ Atualização v3 — face UI Cursor + on-demand (24/07/2026)
+
+A **face** do produto deixa de espelhar Manus (créditos / Relay·MAX / Hobby·Pro·Business como vocabulário principal).
+
+| Face antiga (cancelada na UI) | Face nova (Cursor-like) |
+|---|---|
+| Créditos Manus | **Plan & Usage**: included → esgota → on-demand |
+| Relay / MAX como tiers de produto | Modelos no picker (Settings → Modelos) |
+| Contas/Chaves = OAuth de LLM | **Conta** = perfil Work4You + Plan & Usage |
+
+Infra por baixo (chave OpenRouter por tenant com teto, Stripe) **permanece**. Settings → Conta lê plano via `/api/account/plan`, medidor included via gateway `usage.account`, Upgrade → `/planos`, Manage → `/planos/portal` (Stripe Customer Portal).
+
+**On-demand + spend limit (v1 + metered MVP):** Conta liga on-demand e define teto \$/ciclo (\PATCH /planos/spend-limit\ → ceiling OpenRouter). Caps: starter \ · pro \ · max \. No \invoice.paid\, o overage do ciclo anterior é reportado via Stripe Billing Meter (\w4y_ondemand_overage_cent\, price \price_1Twvq8Cn608ngT3WHeZov3BZ\ a \.01/unidade) e aparece na **próxima fatura**. Env: \STRIPE_PRICE_OVERAGE\. Conta diz: reportado no fim do ciclo, cobrado na próxima fatura. Command Center → Usage = telemetria Hermes (não billing).
+
+## ⚠️ Atualização v2 — vocabulário UI (jul/2026) — legado
 
 A auditoria produto (**Fase 10**) substitui na **interface**:
 

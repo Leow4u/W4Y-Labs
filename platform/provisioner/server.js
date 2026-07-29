@@ -6,10 +6,16 @@
 //   POST /reconfigure{app, plan}                               (regime base/premium)
 //   POST /ensure-key {app, tenantId, limitUsd}  → {hash}       (cria+injeta chave capada)
 //   POST /device-key {app, tenantId, limitUsd, deviceLabel?}   (key OpenRouter por dispositivo
-//                     + composioKey adicional do projeto do tenant, best-effort)
+//                     + composioKey adicional do projeto do tenant, best-effort
+//                     + toolEnv plataforma: Firecrawl / Langfuse quando ops setou)
 //   GET  /healthz
 // Não toca no banco: a CASCA é dona do registry. O /provision devolve o
 // resultado por callback assinado (HMAC) em CASCA_URL/onboarding/complete.
+//
+// Ops — secrets obrigatórios no app Fly do provisioner (shared, não per-tenant):
+//   W4Y_FIRECRAWL_API_KEY, W4Y_LANGFUSE_PUBLIC_KEY, W4Y_LANGFUSE_SECRET_KEY
+//   (opcional W4Y_LANGFUSE_BASE_URL). Sem eles, browser/observability ficam
+//   off até ops setar — correto para cloud-first. Nunca logar os valores.
 const http = require("node:http");
 const crypto = require("node:crypto");
 const { execFile } = require("node:child_process");
@@ -84,6 +90,25 @@ async function createDeviceKey({ tenantId, limitUsd }) {
 const COMPOSIO_BASE = (process.env.COMPOSIO_BASE || "https://backend.composio.dev").replace(/\/$/, "");
 const COMPOSIO_ORG_KEY = process.env.COMPOSIO_ORG_KEY || "";
 const COMPOSIO_LOGO_URL = process.env.COMPOSIO_LOGO_URL || "";
+
+// Shared platform tool secrets (Firecrawl + Langfuse). Read once at boot;
+// empty → omit from Fly secrets / device toolEnv (features stay off).
+function platformToolEnv() {
+  const env = {};
+  const firecrawl = String(process.env.W4Y_FIRECRAWL_API_KEY || "").trim();
+  const lfPub = String(process.env.W4Y_LANGFUSE_PUBLIC_KEY || "").trim();
+  const lfSec = String(process.env.W4Y_LANGFUSE_SECRET_KEY || "").trim();
+  const lfBase = String(process.env.W4Y_LANGFUSE_BASE_URL || "").trim();
+  if (firecrawl) env.FIRECRAWL_API_KEY = firecrawl;
+  if (lfPub) env.WAYNE_LANGFUSE_PUBLIC_KEY = lfPub;
+  if (lfSec) env.WAYNE_LANGFUSE_SECRET_KEY = lfSec;
+  if (lfBase) env.WAYNE_LANGFUSE_BASE_URL = lfBase;
+  return env;
+}
+
+function platformToolSecretArgs() {
+  return Object.entries(platformToolEnv()).map(([k, v]) => `${k}=${v}`);
+}
 
 async function composioOrg(method, pathname, body) {
   const res = await fetch(COMPOSIO_BASE + pathname, {
@@ -234,6 +259,7 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
     } else if (process.env.COMPOSIO_API_KEY) {
       secrets.push(`COMPOSIO_API_KEY=${process.env.COMPOSIO_API_KEY}`);
     }
+    secrets.push(...platformToolSecretArgs());
     await fly("secrets", "set", "-a", app, "--stage", ...secrets);
 
     const tomlPath = path.join(os.tmpdir(), `fly.${app}.toml`);
@@ -300,11 +326,13 @@ async function reconfigure({ app, plan }) {
   await fly("deploy", "-c", tomlPath, "-a", app, "--image", IMAGE, "--ha=false", "--regions", REGION);
 }
 
-// Seta o secret OPENROUTER_API_KEY na máquina Fly do tenant. Sem --stage: aplica
-// de imediato e reinicia a máquina, então o agente sobe usando a chave capada.
-// A redação de segredos é global (sh()) — o erro nunca traz a key crua.
+// Seta o secret OPENROUTER_API_KEY (+ toolEnv plataforma quando ops setou) na
+// máquina Fly do tenant. Sem --stage: aplica de imediato e reinicia a máquina,
+// então o agente sobe usando a chave capada. A redação de segredos é global
+// (sh()) — o erro nunca traz a key crua.
 async function injectKey(app, key) {
-  await fly("secrets", "set", "-a", app, `OPENROUTER_API_KEY=${key}`);
+  const extras = platformToolSecretArgs();
+  await fly("secrets", "set", "-a", app, `OPENROUTER_API_KEY=${key}`, ...extras);
 }
 
 // Fonte ÚNICA da chave capada: cria a runtime key OpenRouter (limite = teto) E a
@@ -406,16 +434,22 @@ const server = http.createServer(async (req, res) => {
       } catch (e) {
         composioError = redact(String(e.message || e)).slice(0, 120);
       }
+      // Platform tool secrets (Firecrawl / Langfuse) — shared org keys for the
+      // desktop .env. Never log values; only whether the bag is non-empty.
+      const toolEnv = platformToolEnv();
+      const toolEnvKeys = Object.keys(toolEnv);
       // log de auditoria sem segredo: só nome/hash/id identificam as keys
       console.log(
         `[provisioner] device-key tenant=${body.tenantId} app=${body.app || "?"} name=${dk.name} limit=${limitUsd}` +
-        ` composio=${composioKey ? `ok:${composioKeyId || "?"}` : `miss:${composioError || "?"}`}`,
+        ` composio=${composioKey ? `ok:${composioKeyId || "?"}` : `miss:${composioError || "?"}`}` +
+        ` toolEnv=${toolEnvKeys.length ? toolEnvKeys.join(",") : "none"}`,
       );
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
         ok: true, key: dk.key, hash: dk.hash, limitUsd, name: dk.name,
         composioKey, ...(composioKeyId ? { composioKeyId } : {}),
         ...(composioError ? { composioError } : {}),
+        ...(toolEnvKeys.length ? { toolEnv } : {}),
       }));
     } catch (e) {
       res.writeHead(502, { "Content-Type": "application/json" });

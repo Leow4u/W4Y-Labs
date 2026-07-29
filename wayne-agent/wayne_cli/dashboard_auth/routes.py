@@ -13,6 +13,7 @@ The routes:
   GET  /api/auth/providers → list registered providers (login bootstrap)
   GET  /api/auth/me        → current Session as JSON (auth-required)
   GET  /api/account/plan   → tenant plan via platform /planos/plan (auth-required)
+  PATCH /api/account/spend-limit → platform /planos/spend-limit (on-demand cap)
 """
 from __future__ import annotations
 
@@ -639,6 +640,61 @@ async def api_account_plan(request: Request):
         raise HTTPException(status_code=503, detail="plan_unavailable") from exc
     if not isinstance(data, dict):
         raise HTTPException(status_code=503, detail="plan_unavailable")
+    return data
+
+
+@router.patch("/api/account/spend-limit", name="account_spend_limit")
+async def api_account_spend_limit(request: Request):
+    """Proxy Conta on-demand spend-limit PATCH to the platform.
+
+    Same cookie-forward pattern as ``/api/account/plan``. Body JSON is passed
+    through unchanged; errors map to the platform status when possible.
+    """
+    sess = getattr(request.state, "session", None)
+    if sess is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    cookie = request.headers.get("cookie") or ""
+    if not cookie.strip():
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="bad_json") from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="bad_json")
+
+    import httpx
+
+    platform = (
+        os.environ.get("W4Y_PLATFORM_ORIGIN") or "https://work4you.ai"
+    ).rstrip("/")
+    try:
+        with httpx.Client(timeout=httpx.Timeout(15.0), follow_redirects=True) as client:
+            r = client.patch(
+                f"{platform}/planos/spend-limit",
+                headers={
+                    "cookie": cookie,
+                    "accept": "application/json",
+                    "content-type": "application/json",
+                },
+                json=body,
+            )
+    except httpx.RequestError as exc:
+        logging.getLogger(__name__).warning(
+            "account/spend-limit platform unreachable: %s", exc
+        )
+        raise HTTPException(status_code=503, detail="platform_unavailable") from exc
+    if r.status_code == 401:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    try:
+        data = r.json()
+    except ValueError:
+        data = {"error": "bad_platform_response"}
+    if r.status_code >= 400:
+        detail = data.get("error") if isinstance(data, dict) else "spend_limit_failed"
+        raise HTTPException(status_code=r.status_code, detail=detail)
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=503, detail="spend_limit_failed")
     return data
 
 

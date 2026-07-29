@@ -29,7 +29,7 @@ from wayne_cli.nous_subscription import (
     get_nous_subscription_features,
 )
 from wayne_cli.nous_account import format_nous_portal_entitlement_message
-from tools.tool_backend_helpers import fal_key_is_configured
+from tools.tool_backend_helpers import fal_key_is_configured, openrouter_key_is_configured
 from utils import base_url_hostname, is_truthy_value
 
 logger = logging.getLogger(__name__)
@@ -105,9 +105,10 @@ def gui_toolset_label(label: str) -> str:
 # They're still in _WAYNE_CORE_TOOLS (available at runtime if enabled),
 # but the setup checklist won't pre-select them for first-time users.
 #
-# Video gen is off by default — it's a niche, paid, slow feature. Users
-# who want it opt in via `wayne tools` → Video Generation, which walks
-# them through provider + model selection.
+# Video *analysis* (`video`) is ON by default — ``video_analyze`` lives in
+# ``_WAYNE_CORE_TOOLS`` so the agent can see attached videos without an
+# extra toggle. Video *generation* (`video_gen`) stays off until OpenRouter
+# (or another backend) is present — auto-enabled below like homeassistant.
 #
 # X search is off by default for users without xAI credentials, but
 # auto-enables when SuperGrok OAuth tokens are stored OR XAI_API_KEY is
@@ -115,7 +116,7 @@ def gui_toolset_label(label: str) -> str:
 # `wayne tools` → X (Twitter) Search setup walks users through credential
 # setup. The tool's check_fn means the schema still won't appear to the
 # model if the credential later goes missing or expires.
-_DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search"}
+_DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video_gen", "x_search"}
 
 
 def _xai_credentials_present() -> bool:
@@ -1524,6 +1525,17 @@ def _get_platform_tools(
         if x_search_auto_enabled:
             enabled_toolsets.add("x_search")
 
+        # Auto-enable ``video_gen`` when OpenRouter creds are set
+        # (image_generate is already in the core composite; video_generate
+        # lives only in the video_gen toolset). Work4You bills video via
+        # OpenRouter only — FAL is not auto-enabled.
+        video_gen_auto_enabled = (
+            _toolset_allowed_for_platform("video_gen", platform)
+            and openrouter_key_is_configured()
+        )
+        if video_gen_auto_enabled:
+            enabled_toolsets.add("video_gen")
+
         default_off = set(_DEFAULT_OFF_TOOLSETS)
         # Legacy safety: if the platform's own name matches a default-off
         # toolset (e.g. `homeassistant` platform + `homeassistant` toolset),
@@ -1546,7 +1558,23 @@ def _get_platform_tools(
         # strip the entry we just added.
         if x_search_auto_enabled and "x_search" in default_off:
             default_off.remove("x_search")
+        if video_gen_auto_enabled and "video_gen" in default_off:
+            default_off.remove("video_gen")
         enabled_toolsets -= default_off
+
+    # Always keep video analysis available (see attached videos). ``video_analyze``
+    # is also in ``_WAYNE_CORE_TOOLS``; this inject covers explicit saved lists
+    # that pre-date the always-on policy.
+    if _toolset_allowed_for_platform("video", platform):
+        enabled_toolsets.add("video")
+
+    # OpenRouter creds present → keep video generation on even for saved
+    # toolset lists (Work4You bills video via OpenRouter only).
+    if (
+        _toolset_allowed_for_platform("video_gen", platform)
+        and openrouter_key_is_configured()
+    ):
+        enabled_toolsets.add("video_gen")
 
     # Recover non-configurable platform toolsets (e.g. discord, feishu_doc,
     # feishu_drive).  These are part of the platform's default composite but

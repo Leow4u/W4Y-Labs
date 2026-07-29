@@ -124,5 +124,10 @@ class TestWriteAllowed:
         from wayne_constants import get_wayne_home
 
         home = get_wayne_home()
-        for name in ["auth.json", "config.yaml", "webhook_subscriptions.json"]:
+        for name in ["auth.json", "webhook_subscriptions.json"]:
             assert _is_write_denied(str(home / name)) is False, f"{name} should be writable"
+
+    def test_wayne_config_yaml_write_denied(self):
+        from wayne_constants import get_wayne_home
+
+        assert _is_write_denied(str(get_wayne_home() / "config.yaml")) is True

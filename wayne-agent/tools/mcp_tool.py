@@ -259,7 +259,13 @@ try:
     except ImportError:
         logger.debug("MCP notification types not available -- dynamic tool discovery disabled")
 except ImportError:
-    logger.debug("mcp package not installed -- MCP tool support disabled")
+    # WARNING: with mcp_servers.composio configured, a missing SDK is the
+    # exact failure mode that makes desktop fall back to skill/terminal
+    # "install composio" paths. DEBUG hid this completely in agent.log.
+    logger.warning(
+        "mcp package not installed -- MCP tool support disabled "
+        "(install with: uv pip install 'wayne-agent[mcp]' or 'mcp==1.26.0')"
+    )
 
 
 def _check_message_handler_support() -> bool:
@@ -4007,6 +4013,26 @@ def sanitize_mcp_name_component(value: str) -> str:
     return re.sub(r"[^A-Za-z0-9_]", "_", str(value or ""))
 
 
+_COMPOSIO_MANAGE_CONNECTIONS_HINT = (
+    " FIRST tool for connect/authorize requests (e.g. apollo, gmail, linkedin) "
+    "— do NOT call SEARCH_TOOLS or MULTI_EXECUTE_TOOL first. Call this with "
+    "the toolkit slug. If a Connect Link URL is returned "
+    "(https://connect.composio.dev/link/..., "
+    "https://dashboard.composio.dev/link/..., or "
+    "https://app.composio.dev/link/...), paste it verbatim in your reply as a "
+    "markdown link so the UI can show the Authorize card. If Composio already "
+    "lists an ACTIVE account but the user still asks to connect, mint a fresh "
+    "Connect Link anyway (stale tokens are common) — do not stop at "
+    "'already connected'."
+)
+
+_COMPOSIO_SEARCH_TOOLS_CONNECT_HINT = (
+    " For user requests to connect/authorize/link an app, do NOT use this "
+    "tool first — call mcp_composio_COMPOSIO_MANAGE_CONNECTIONS with the "
+    "toolkit slug and paste any Connect Link in the reply."
+)
+
+
 def _convert_mcp_schema(server_name: str, mcp_tool) -> dict:
     """Convert an MCP tool listing to the Wayne registry schema format.
 
@@ -4021,9 +4047,19 @@ def _convert_mcp_schema(server_name: str, mcp_tool) -> dict:
     safe_tool_name = sanitize_mcp_name_component(mcp_tool.name)
     safe_server_name = sanitize_mcp_name_component(server_name)
     prefixed_name = f"mcp_{safe_server_name}_{safe_tool_name}"
+    description = mcp_tool.description or f"MCP tool {mcp_tool.name} from {server_name}"
+    # Composio connect-by-chat: models often skip MANAGE_CONNECTIONS for
+    # "connect X" and never emit the Connect Link the desktop scrapes.
+    server_l = safe_server_name.lower()
+    tool_u = safe_tool_name.upper()
+    if server_l in {"composio", "composio_agente"}:
+        if "MANAGE_CONNECTIONS" in tool_u and "Connect Link" not in description:
+            description = f"{description.rstrip()}{_COMPOSIO_MANAGE_CONNECTIONS_HINT}"
+        elif "SEARCH_TOOLS" in tool_u and "MANAGE_CONNECTIONS" not in description:
+            description = f"{description.rstrip()}{_COMPOSIO_SEARCH_TOOLS_CONNECT_HINT}"
     return {
         "name": prefixed_name,
-        "description": mcp_tool.description or f"MCP tool {mcp_tool.name} from {server_name}",
+        "description": description,
         "parameters": _normalize_mcp_input_schema(getattr(mcp_tool, "inputSchema", None)),
     }
 
@@ -4391,7 +4427,9 @@ def register_mcp_servers(servers: Dict[str, dict]) -> List[str]:
         List of all currently registered MCP tool names.
     """
     if not _MCP_AVAILABLE:
-        logger.debug("MCP SDK not available -- skipping explicit MCP registration")
+        logger.warning(
+            "MCP SDK not available -- skipping explicit MCP registration"
+        )
         return []
 
     servers = _filter_suspicious_mcp_servers(servers)
@@ -4498,7 +4536,10 @@ def discover_mcp_tools() -> List[str]:
         List of all registered MCP tool names.
     """
     if not _MCP_AVAILABLE:
-        logger.debug("MCP SDK not available -- skipping MCP tool discovery")
+        logger.warning(
+            "MCP SDK not available -- skipping MCP tool discovery "
+            "(mcp_servers in config will have no effect until the SDK is installed)"
+        )
         return []
 
     servers = _load_mcp_config()

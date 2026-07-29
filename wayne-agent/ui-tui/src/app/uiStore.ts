@@ -23,7 +23,7 @@ const buildUiState = (): UiState => ({
   pasteCollapseChars: 2000,
   sections: {},
   sessionTitle: '',
-  showReasoning: false,
+  showReasoning: true,
   sid: null,
   status: 'summoning wayne…',
   statusBar: 'top',

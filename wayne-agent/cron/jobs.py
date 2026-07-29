@@ -85,6 +85,7 @@ TICKER_INTERVAL_SECONDS = 60
 _jobs_file_lock = threading.RLock()
 _jobs_lock_state = threading.local()
 OUTPUT_DIR = CRON_DIR / "output"
+PENDING_EVENTS_DIR = CRON_DIR / "pending_events"
 ONESHOT_GRACE_SECONDS = 120
 
 
@@ -284,8 +285,10 @@ def ensure_dirs():
     """Ensure cron directories exist with secure permissions."""
     CRON_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    PENDING_EVENTS_DIR.mkdir(parents=True, exist_ok=True)
     _secure_dir(CRON_DIR)
     _secure_dir(OUTPUT_DIR)
+    _secure_dir(PENDING_EVENTS_DIR)
 
 
 # =============================================================================
@@ -1208,6 +1211,94 @@ def trigger_job(job_id: str) -> Optional[Dict[str, Any]]:
             "next_run_at": _wayne_now().isoformat(),
         },
     )
+
+
+def _pending_event_path(job_id: str) -> Path:
+    """Sidecar path for a one-shot external trigger payload (Composio / webhook)."""
+    safe = "".join(c for c in str(job_id) if c.isalnum() or c in "-_")[:64] or "unknown"
+    return PENDING_EVENTS_DIR / f"{safe}.json"
+
+
+def write_pending_event(job_id: str, event: Dict[str, Any]) -> None:
+    """Store a one-shot event payload consumed on the next run of ``job_id``."""
+    if not job_id or not isinstance(event, dict):
+        return
+    PENDING_EVENTS_DIR.mkdir(parents=True, exist_ok=True)
+    _secure_dir(PENDING_EVENTS_DIR)
+    path = _pending_event_path(job_id)
+    payload = {
+        "job_id": job_id,
+        "written_at": _wayne_now().isoformat(),
+        "event": event,
+    }
+    fd, tmp_path = tempfile.mkstemp(
+        dir=str(PENDING_EVENTS_DIR), suffix=".tmp", prefix=".pev_"
+    )
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as handle:
+            json.dump(payload, handle, ensure_ascii=False, indent=2)
+            handle.write("\n")
+        os.replace(tmp_path, path)
+    except Exception:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+        raise
+
+
+def consume_pending_event(job_id: str) -> Optional[Dict[str, Any]]:
+    """Read and delete the pending event for ``job_id`` (at most once per fire)."""
+    if not job_id:
+        return None
+    path = _pending_event_path(job_id)
+    if not path.is_file():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return None
+    try:
+        path.unlink(missing_ok=True)
+    except OSError:
+        pass
+    if isinstance(raw, dict):
+        event = raw.get("event")
+        return event if isinstance(event, dict) else raw
+    return None
+
+
+def find_jobs_for_composio_trigger(
+    *,
+    trigger_id: str = "",
+    trigger_slug: str = "",
+) -> List[Dict[str, Any]]:
+    """Return enabled (or paused) jobs whose ``composio_triggers`` match id/slug."""
+    tid = (trigger_id or "").strip()
+    slug = (trigger_slug or "").strip()
+    if not tid and not slug:
+        return []
+    matches: List[Dict[str, Any]] = []
+    for job in list_jobs(include_disabled=True):
+        triggers = job.get("composio_triggers")
+        if not isinstance(triggers, list):
+            continue
+        for entry in triggers:
+            if not isinstance(entry, dict):
+                continue
+            entry_id = str(entry.get("id") or "").strip()
+            entry_slug = str(entry.get("slug") or entry.get("trigger") or "").strip()
+            if tid and entry_id and entry_id == tid:
+                matches.append(job)
+                break
+            if slug and entry_slug and entry_slug == slug:
+                matches.append(job)
+                break
+    return matches
 
 
 def remove_job(job_id: str) -> bool:

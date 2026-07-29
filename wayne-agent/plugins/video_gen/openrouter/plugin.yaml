@@ -1,0 +1,7 @@
+name: openrouter
+version: 1.0.0
+description: "OpenRouter video generation (async Videos API). Text-to-video and image-to-video via Veo, Seedance, Wan, Sora, and more — billed on OPENROUTER_API_KEY."
+author: Wayne Agent
+kind: backend
+requires_env:
+  - OPENROUTER_API_KEY

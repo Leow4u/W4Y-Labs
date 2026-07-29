@@ -9,9 +9,8 @@ Covers:
   scenarios:
     * explicit config wins ignoring availability (so dispatcher surfaces
       a typed credentials error)
-    * legacy preference walk: browser-use → browserbase (filtered by
-      availability)
-    * firecrawl is NOT in the legacy walk — explicit-only
+    * legacy preference walk: firecrawl → browser-use → browserbase
+      (filtered by availability)
     * unknown name falls through to auto-detect
     * ``local`` short-circuits to None
 
@@ -253,14 +252,30 @@ class TestRegistryResolution:
         # With no credentials anywhere, auto-detect should also fail.
         assert _resolve("not-a-real-provider") is None
 
-    def test_legacy_walk_prefers_browser_use_over_browserbase(
+    def test_legacy_walk_prefers_firecrawl_when_key_present(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Rule 3: walk order is browser-use → browserbase."""
+        """Rule 3: firecrawl wins the walk when FIRECRAWL_API_KEY is set."""
         _ensure_plugins_loaded()
         from agent.browser_registry import _resolve
 
-        # Both available — browser-use should win.
+        monkeypatch.setenv("FIRECRAWL_API_KEY", "fc-k")
+        monkeypatch.setenv("BROWSER_USE_API_KEY", "k1")
+        monkeypatch.setenv("BROWSERBASE_API_KEY", "k2")
+        monkeypatch.setenv("BROWSERBASE_PROJECT_ID", "p")
+
+        provider = _resolve(None)
+        assert provider is not None
+        assert provider.name == "firecrawl"
+
+    def test_legacy_walk_prefers_browser_use_over_browserbase(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Rule 3: without Firecrawl, walk order is browser-use → browserbase."""
+        _ensure_plugins_loaded()
+        from agent.browser_registry import _resolve
+
+        # Both available — browser-use should win (firecrawl key absent).
         monkeypatch.setenv("BROWSER_USE_API_KEY", "k1")
         monkeypatch.setenv("BROWSERBASE_API_KEY", "k2")
         monkeypatch.setenv("BROWSERBASE_PROJECT_ID", "p")
@@ -283,24 +298,18 @@ class TestRegistryResolution:
         assert provider is not None
         assert provider.name == "browserbase"
 
-    def test_firecrawl_not_in_legacy_walk_even_when_only_one_available(
+    def test_firecrawl_auto_selected_when_only_eligible(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        """Regression: firecrawl is NEVER auto-selected even when single-eligible.
-
-        Pre-PR-#25214, the dispatcher only auto-detected between Browser Use
-        and Browserbase; firecrawl was reachable solely via explicit
-        config. We preserve that gate because FIRECRAWL_API_KEY is shared
-        with the *web* firecrawl plugin — auto-routing a web-extract user
-        to a paid cloud browser would be a real behaviour regression.
-        """
+        """Firecrawl is in the legacy walk — key alone selects cloud browser."""
         _ensure_plugins_loaded()
         from agent.browser_registry import _resolve
 
         monkeypatch.setenv("FIRECRAWL_API_KEY", "k")
 
-        # Only firecrawl is_available() — but it's not in the legacy walk.
-        assert _resolve(None) is None
+        provider = _resolve(None)
+        assert provider is not None
+        assert provider.name == "firecrawl"
 
 
 # ---------------------------------------------------------------------------

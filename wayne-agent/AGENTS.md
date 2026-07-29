@@ -998,7 +998,7 @@ Two shapes:
 - **Single:** pass `goal` (+ optional `context`, `toolsets`).
 - **Batch (parallel):** pass `tasks: [...]` — each gets its own subagent
   running concurrently. Concurrency is capped by
-  `delegation.max_concurrent_children` (default 3).
+  `delegation.max_concurrent_children` (default 4).
 
 Roles:
 

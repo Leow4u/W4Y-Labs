@@ -381,7 +381,8 @@ export const pt: Translations = {
     dockAddSource: "Adicionar fonte",
     dockSourceWeb: "Internet",
     dockSourceApp: "App conectado",
-    connectAppPrompt: "Conecte meu {app} para usarmos nesta tarefa.",
+    connectAppPrompt:
+      "Quero conectar o {app}. Chame já mcp_composio_COMPOSIO_MANAGE_CONNECTIONS (não use SEARCH_TOOLS antes) e cole o Connect Link (https://connect.composio.dev/link/...) na resposta para eu autorizar no chat.",
     dockPlan: "Plano",
     dockResults: "Resultados",
     dockAgentsActive: "Ativos",

@@ -549,6 +549,45 @@ class WebhookAdapter(BasePlatformAdapter):
                 {"status": "ignored", "event": event_type}
             )
 
+        # Automations bridge: route linked to a cron job → trigger_job (same
+        # path as Play / Composio bind). Skip the gateway agent turn.
+        cron_job_id = str(route_config.get("cron_job_id") or "").strip()
+        if not cron_job_id and route_name.startswith("automation-"):
+            cron_job_id = route_name[len("automation-") :].strip()
+        if cron_job_id:
+            try:
+                from cron.jobs import get_job, trigger_job, write_pending_event
+
+                job = get_job(cron_job_id)
+                if not job:
+                    return web.json_response(
+                        {"error": f"Automation job not found: {cron_job_id}"},
+                        status=404,
+                    )
+                write_pending_event(
+                    cron_job_id,
+                    {
+                        "source": "webhook",
+                        "route": route_name,
+                        "event_type": event_type,
+                        "data": payload if isinstance(payload, dict) else {"raw": payload},
+                    },
+                )
+                trigger_job(cron_job_id)
+                return web.json_response(
+                    {"status": "triggered", "job_id": cron_job_id, "via": "cron"}
+                )
+            except Exception as exc:
+                logger.exception(
+                    "[webhook] Failed to trigger automation %s via route %s",
+                    cron_job_id,
+                    route_name,
+                )
+                return web.json_response(
+                    {"error": f"Failed to trigger automation: {exc}"},
+                    status=500,
+                )
+
         # Format prompt from template
         prompt_template = route_config.get("prompt", "")
         prompt = self._render_prompt(

@@ -92,7 +92,14 @@ export function openUpgrade(planHint?: PlanKey): void {
   openPlans(planHint ? `plan=${planHint}` : undefined);
 }
 
+/** Absolute path for portal when the caller builds a full URL (desktop). */
+export const BILLING_PORTAL_PATH = "/planos/portal";
+
 /** "Manage subscription" → Stripe customer portal, via the platform (D5). */
 export function openBillingPortal(): void {
-  openPlans("portal=1");
+  if (isLocalEngine()) {
+    window.open(`https://work4you.ai${BILLING_PORTAL_PATH}`);
+  } else {
+    window.location.href = BILLING_PORTAL_PATH;
+  }
 }

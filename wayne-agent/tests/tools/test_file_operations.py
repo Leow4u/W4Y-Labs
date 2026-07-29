@@ -83,12 +83,17 @@ class TestIsWriteDenied:
 
     @pytest.mark.parametrize(
         "path",
-        ["auth.json", "config.yaml", "webhook_subscriptions.json"],
+        ["auth.json", "webhook_subscriptions.json"],
     )
     def test_wayne_control_files_requested_writable(self, path):
         from wayne_constants import get_wayne_home
 
         assert _is_write_denied(str(get_wayne_home() / path)) is False
+
+    def test_wayne_config_yaml_write_denied(self):
+        from wayne_constants import get_wayne_home
+
+        assert _is_write_denied(str(get_wayne_home() / "config.yaml")) is True
 
     @pytest.mark.parametrize(
         "path",
@@ -128,7 +133,7 @@ class TestIsWriteDenied:
 
     @pytest.mark.parametrize(
         "name",
-        ["auth.json", "config.yaml", "webhook_subscriptions.json"],
+        ["auth.json", "webhook_subscriptions.json"],
     )
     def test_control_files_requested_writable_in_profile_mode(self, tmp_path, monkeypatch, name):
         root = tmp_path / "wayne"
@@ -138,6 +143,15 @@ class TestIsWriteDenied:
 
         assert _is_write_denied(str(profile / name)) is False
         assert _is_write_denied(str(root / name)) is False
+
+    def test_config_yaml_denied_in_profile_mode(self, tmp_path, monkeypatch):
+        root = tmp_path / "wayne"
+        profile = root / "profiles" / "coder"
+        profile.mkdir(parents=True)
+        monkeypatch.setenv("WAYNE_HOME", str(profile))
+
+        assert _is_write_denied(str(profile / "config.yaml")) is True
+        assert _is_write_denied(str(root / "config.yaml")) is True
 
     def test_mcp_tokens_dir_protected_in_profile_mode(self, tmp_path, monkeypatch):
         """mcp-tokens/ under profile AND under root must both be denied."""

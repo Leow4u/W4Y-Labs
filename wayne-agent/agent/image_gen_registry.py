@@ -11,11 +11,15 @@ Active selection
 The active provider is chosen by ``image_gen.provider`` in ``config.yaml``.
 If unset, :func:`get_active_provider` applies fallback logic:
 
-1. If exactly one provider is registered, use it.
-2. Otherwise if a provider named ``fal`` is registered, use it (legacy
-   default — matches pre-plugin behavior).
-3. Otherwise return ``None`` (the tool surfaces a helpful error pointing
-   the user at ``wayne tools``).
+1. If exactly one *available* provider is registered (excluding ``fal``),
+   use it.
+2. Otherwise prefer ``openrouter`` when available (Work4You / shared
+   OpenRouter billing — same key as chat).
+3. Otherwise the first remaining available non-``fal`` provider, or
+   ``None``.
+
+``fal`` is never auto-selected — Work4You bills media via OpenRouter only.
+Explicit ``image_gen.provider: fal`` still works for power users.
 """
 
 from __future__ import annotations
@@ -36,9 +40,7 @@ _lock = threading.Lock()
 def register_provider(provider: ImageGenProvider) -> None:
     """Register an image generation provider.
 
-    Re-registration (same ``name``) overwrites the previous entry and logs
-    a debug message — this makes hot-reload scenarios (tests, dev loops)
-    behave predictably.
+    Re-registration (same ``name``) overwrites the previous entry.
     """
     if not isinstance(provider, ImageGenProvider):
         raise TypeError(
@@ -84,8 +86,7 @@ def get_active_provider() -> Optional[ImageGenProvider]:
       provider is returned even if :meth:`ImageGenProvider.is_available`
       reports False — the dispatcher surfaces a precise "X_API_KEY is not
       set" error rather than silently switching backends.
-    - When ``image_gen.provider`` is unset, the fallback path (single-
-      provider shortcut and the FAL legacy preference) is filtered by
+    - When ``image_gen.provider`` is unset, the fallback path is filtered by
       ``is_available()`` so we don't pick a provider the user has no
       credentials for.
     """
@@ -125,16 +126,21 @@ def get_active_provider() -> Optional[ImageGenProvider]:
             configured,
         )
 
-    # 2. Fallback: single registered provider — but only if it's actually
-    #    available (no credentials = don't surface it as "active").
-    available = [p for p in snapshot.values() if _is_available_safe(p)]
+    # 2. Prefer OpenRouter (same billing key as chat / Work4You tenant).
+    openrouter = snapshot.get("openrouter")
+    if openrouter is not None and _is_available_safe(openrouter):
+        return openrouter
+
+    # 3. Remaining available providers — never auto-pick ``fal``.
+    available = [
+        p
+        for p in snapshot.values()
+        if p.name != "fal" and _is_available_safe(p)
+    ]
     if len(available) == 1:
         return available[0]
-
-    # 3. Fallback: prefer legacy FAL for backward compat, when available.
-    fal = snapshot.get("fal")
-    if fal is not None and _is_available_safe(fal):
-        return fal
+    if available:
+        return sorted(available, key=lambda p: p.name)[0]
 
     return None
 

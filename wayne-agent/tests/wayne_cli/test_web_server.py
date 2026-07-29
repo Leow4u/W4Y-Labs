@@ -1468,6 +1468,32 @@ class TestWebServerEndpoints:
         for key, info in data.items():
             assert info["channel_managed"] is (key in channel_keys)
 
+    def test_get_env_vars_marks_platform_managed_keys(self):
+        from wayne_cli.web_server import W4Y_PLATFORM_MANAGED_ENV
+
+        data = self.client.get("/api/env").json()
+        assert all("platform_managed" in info for info in data.values())
+        for key, info in data.items():
+            assert info["platform_managed"] is (key in W4Y_PLATFORM_MANAGED_ENV)
+
+    def test_put_env_rejects_platform_managed_keys(self):
+        resp = self.client.put(
+            "/api/env",
+            json={"key": "FIRECRAWL_API_KEY", "value": "should-not-stick"},
+        )
+        assert resp.status_code == 400
+        assert "managed by Work4You" in resp.json()["detail"]
+
+    def test_langfuse_connect_gone(self):
+        resp = self.client.post(
+            "/api/langfuse/connect",
+            json={
+                "public_key": "pk-lf-test",
+                "secret_key": "sk-lf-test",
+            },
+        )
+        assert resp.status_code == 410
+
     def test_get_env_vars_surfaces_catalog_providers(self):
         """Every keys-tab provider in the unified catalog must appear in /api/env
         as a provider card, even when it has no hand entry in OPTIONAL_ENV_VARS.
@@ -1933,14 +1959,16 @@ class TestWebServerEndpoints:
         assert "Copy member ID" in fields["SLACK_ALLOWED_USERS"]["help"]
 
     def test_weixin_messaging_metadata_describes_personal_ilink_setup(self):
-        resp = self.client.get("/api/messaging/platforms")
-
-        assert resp.status_code == 200
-        weixin = next(
-            platform
-            for platform in resp.json()["platforms"]
-            if platform["id"] == "weixin"
+        # Weixin stays in the full catalog (gateway + Keys ownership) but is
+        # hidden from the Channels UI denylist — assert metadata via builder.
+        from wayne_cli.web_server import (
+            _CHANNELS_UI_HIDDEN_PLATFORMS,
+            _build_catalog_entry,
+            _messaging_env_info,
         )
+
+        assert "weixin" in _CHANNELS_UI_HIDDEN_PLATFORMS
+        weixin = _build_catalog_entry("weixin")
         assert weixin["name"] == "Weixin / WeChat (Personal)"
         assert "personal WeChat" in weixin["description"]
         assert "Official Account" not in f"{weixin['name']} {weixin['description']}"
@@ -1948,11 +1976,11 @@ class TestWebServerEndpoints:
             "https://hermes-agent.nousresearch.com/docs/user-guide/messaging/weixin/"
         )
 
-        fields = {field["key"]: field for field in weixin["env_vars"]}
         for key in ("WEIXIN_ACCOUNT_ID", "WEIXIN_TOKEN", "WEIXIN_BASE_URL"):
-            assert "iLink" in fields[key]["description"]
-            assert "QR login" in fields[key]["description"]
-            assert "Official Account" not in fields[key]["description"]
+            fields = _messaging_env_info(key)
+            assert "iLink" in fields["description"]
+            assert "QR login" in fields["description"]
+            assert "Official Account" not in fields["description"]
 
     def test_teams_messaging_metadata_links_setup_guide(self):
         # Teams is a platform plugin, so the catalog entry is built from the
@@ -1980,8 +2008,9 @@ class TestWebServerEndpoints:
         )
 
     def test_messaging_catalog_covers_gateway_platforms(self):
-        """Catalog is derived from the Platform enum, so every built-in shows up."""
+        """Catalog is derived from the Platform enum (minus Channels-UI-hidden)."""
         from gateway.config import Platform
+        from wayne_cli.web_server import _CHANNELS_UI_HIDDEN_PLATFORMS
 
         resp = self.client.get("/api/messaging/platforms")
         platforms = {entry["id"] for entry in resp.json()["platforms"]}
@@ -1989,7 +2018,20 @@ class TestWebServerEndpoints:
         for member in Platform.__members__.values():
             if member.value == "local":
                 continue
+            if member.value in _CHANNELS_UI_HIDDEN_PLATFORMS:
+                assert member.value not in platforms, (
+                    f"Hidden gateway platform {member.value} leaked into /api/messaging/platforms"
+                )
+                continue
             assert member.value in platforms, f"Missing gateway platform {member.value} from /api/messaging/platforms"
+
+    def test_messaging_catalog_hides_work4you_denylist(self):
+        from wayne_cli.web_server import _CHANNELS_UI_HIDDEN_PLATFORMS
+
+        resp = self.client.get("/api/messaging/platforms")
+        platforms = {entry["id"] for entry in resp.json()["platforms"]}
+        leaked = platforms & _CHANNELS_UI_HIDDEN_PLATFORMS
+        assert not leaked, f"Hidden platforms still in Channels catalog: {sorted(leaked)}"
 
     def test_messaging_catalog_includes_plugin_platforms(self, monkeypatch):
         """Plugin-registered adapters appear in the catalog without per-platform code."""

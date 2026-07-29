@@ -17,6 +17,7 @@ import { CheckCircle2, Loader2, Plug } from "lucide-react";
 
 import { api } from "@/lib/api";
 import type { ConnectorToolkit } from "@/lib/api";
+import { requestEnsureComposioMcp } from "@/lib/ensureComposioMcp";
 import { useI18n } from "@/i18n";
 
 type Phase = "idle" | "waiting" | "connected";
@@ -113,46 +114,75 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
   }, [context]);
 
   const authorize = async () => {
+    // Snapshot BEFORE opening — a fast OAuth can ACTIVE the account before
+    // we finish the first status read, hiding a "new id" transition.
+    let beforeStatus = new Map<string, string>();
+    try {
+      const st = await api.getConnectorsStatus("global");
+      beforeStatus = new Map(
+        st.accounts.filter((a) => a.id).map((a) => [a.id, a.status]),
+      );
+    } catch {
+      /* carry on without a snapshot */
+    }
+
     // Keep the window handle (no "noopener", OTHERWISE window.open returns
     // null) so we can close it automatically once the connection is detected —
     // Composio's success page ("You can close this window now") does not close
     // itself, and an opener may close the window it opened even cross-origin.
     const win = window.open(url, "_blank");
     setPhase("waiting");
-    let before = new Set<string>();
-    try {
-      const st = await api.getConnectorsStatus("global");
-      before = new Set(
-        st.accounts.filter((a) => a.status === "ACTIVE").map((a) => a.id),
+
+    const findActivated = (
+      accounts: { id: string; toolkit: string; status: string }[],
+    ) => {
+      const activated = accounts.filter(
+        (a) => a.id && a.status === "ACTIVE" && beforeStatus.get(a.id) !== "ACTIVE",
       );
-    } catch {
-      /* carry on without a snapshot */
-    }
+      if (!activated.length) return undefined;
+      const slug = (app?.slug || "").toLowerCase();
+      if (slug) {
+        const match = activated.find(
+          (a) => (a.toolkit || "").toLowerCase() === slug,
+        );
+        if (match) return match;
+      }
+      return activated[0];
+    };
+
+    const check = async (): Promise<boolean> => {
+      const st = await api.getConnectorsStatus("global");
+      const fresh = findActivated(st.accounts);
+      if (!fresh) return false;
+      setToolkit(fresh.toolkit);
+      setPhase("connected");
+      requestEnsureComposioMcp(true);
+      try {
+        win?.close();
+      } catch {
+        /* window already closed by the user */
+      }
+      return true;
+    };
+
     const poll = (tries: number) => {
       if (!aliveRef.current) return;
       timerRef.current = setTimeout(async () => {
         try {
-          const st = await api.getConnectorsStatus("global");
-          const fresh = st.accounts.find(
-            (a) => a.status === "ACTIVE" && !before.has(a.id),
-          );
-          if (fresh) {
-            setToolkit(fresh.toolkit);
-            setPhase("connected");
-            try {
-              win?.close();
-            } catch {
-              /* window already closed by the user */
-            }
-            return;
-          }
+          if (await check()) return;
         } catch {
           /* try again */
         }
-        if (tries < 34) poll(tries + 1);
+        if (tries < 40) poll(tries + 1);
         else if (aliveRef.current) setPhase("idle");
-      }, 3500);
+      }, tries === 0 ? 800 : 2500);
     };
+
+    try {
+      if (await check()) return;
+    } catch {
+      /* poll */
+    }
     poll(0);
   };
 
@@ -169,7 +199,11 @@ export function ConnectLinkCard({ url, context }: { url: string; context?: strin
           {title}
         </span>
         <span className="mt-0.5 block type-caption text-muted-foreground">
-          {phase === "waiting" ? tc.waiting : tc.authSecure}
+          {phase === "waiting"
+            ? tc.waiting
+            : phase === "connected"
+              ? tc.connected
+              : tc.authSecure}
         </span>
       </span>
       {phase === "connected" ? (

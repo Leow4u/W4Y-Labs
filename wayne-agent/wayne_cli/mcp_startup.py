@@ -31,15 +31,22 @@ def start_background_mcp_discovery(*, logger, thread_name: str) -> None:
     with _mcp_discovery_lock:
         if _mcp_discovery_started:
             return
-        _mcp_discovery_started = True
         if not _has_configured_mcp_servers():
+            # Do NOT latch started=True here. Desktop may write mcp_servers.composio
+            # via /api/connectors/attach AFTER the first WS connect; latching early
+            # permanently skips discovery for the whole process lifetime.
+            logger.info("MCP discovery deferred: no mcp_servers in config yet")
             return
+
+        _mcp_discovery_started = True
 
         def _discover() -> None:
             try:
                 _discover_mcp_tools_without_interactive_oauth()
             except Exception:
-                logger.debug("Background MCP tool discovery failed", exc_info=True)
+                # WARNING (not debug): silent discovery failure is how desktop
+                # sessions lose mcp_composio_* and fall back to skills/SDK.
+                logger.warning("Background MCP tool discovery failed", exc_info=True)
 
         thread = threading.Thread(
             target=_discover,
@@ -48,6 +55,23 @@ def start_background_mcp_discovery(*, logger, thread_name: str) -> None:
         )
         _mcp_discovery_thread = thread
         thread.start()
+
+
+def restart_mcp_discovery(*, logger, thread_name: str = "mcp-rediscovery") -> None:
+    """Force a new discovery pass (e.g. after connectors/attach rewrote config).
+
+    Clears the started latch so a process that deferred discovery (no servers
+    at first WS connect) or needs a fresh Composio tool-router URL can recover
+    without a full backend restart.
+    """
+    global _mcp_discovery_started, _mcp_discovery_thread
+
+    with _mcp_discovery_lock:
+        # Allow a new thread even if a previous discovery finished.
+        _mcp_discovery_started = False
+        _mcp_discovery_thread = None
+
+    start_background_mcp_discovery(logger=logger, thread_name=thread_name)
 
 
 def _resolve_discovery_timeout(explicit: "float | None") -> float:

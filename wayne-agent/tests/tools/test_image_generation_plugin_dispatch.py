@@ -97,3 +97,47 @@ class TestPluginDispatch:
         assert payload["success"] is True
         assert payload["provider"] == "codex"
         assert payload["aspect_ratio"] == "portrait"
+
+    def test_dispatch_uses_active_openrouter_without_config(self, monkeypatch, tmp_path):
+        """Unset image_gen.provider must still hit OpenRouter — not FAL."""
+        from tools import image_generation_tool
+        from wayne_cli import plugins as plugins_module
+
+        class _OR(ImageGenProvider):
+            @property
+            def name(self) -> str:
+                return "openrouter"
+
+            def generate(self, prompt, aspect_ratio="landscape", **kwargs):
+                return {
+                    "success": True,
+                    "image": "/tmp/or.png",
+                    "provider": "openrouter",
+                    "prompt": prompt,
+                    "aspect_ratio": aspect_ratio,
+                }
+
+        class _Fal(ImageGenProvider):
+            @property
+            def name(self) -> str:
+                return "fal"
+
+            def generate(self, prompt, aspect_ratio="landscape", **kwargs):
+                return {
+                    "success": True,
+                    "image": "/tmp/fal.png",
+                    "provider": "fal",
+                }
+
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
+        (tmp_path / "config.yaml").write_text("{}\n")
+        image_gen_registry.register_provider(_OR())
+        image_gen_registry.register_provider(_Fal())
+
+        monkeypatch.setattr(image_generation_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(plugins_module, "_ensure_plugins_discovered", lambda **kw: None)
+
+        dispatched = image_generation_tool._dispatch_to_plugin_provider("draw cat", "square")
+        payload = json.loads(dispatched)
+        assert payload["success"] is True
+        assert payload["provider"] == "openrouter"

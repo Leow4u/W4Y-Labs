@@ -17,6 +17,7 @@ from tools.approval import (
     approve_session,
     detect_dangerous_command,
     detect_hardline_command,
+    detect_policy_file_write,
     is_approved,
     load_permanent,
     prompt_dangerous_approval,
@@ -558,6 +559,54 @@ class TestWayneConfigWriteProtection:
     def test_custom_wayne_home(self):
         dangerous, key, desc = detect_dangerous_command("echo x | tee $WAYNE_HOME/config.yaml")
         assert dangerous is True
+
+    def test_policy_floor_blocks_under_yolo(self):
+        """config.yaml writes must stay blocked even when YOLO is armed."""
+        from tools.approval import check_dangerous_command, enable_session_yolo, disable_session_yolo
+
+        session = "test-policy-yolo"
+        enable_session_yolo(session)
+        try:
+            with mock_patch.dict(
+                os.environ,
+                {"WAYNE_SESSION_KEY": session, "WAYNE_GATEWAY_SESSION": "1"},
+                clear=False,
+            ):
+                result = check_dangerous_command(
+                    "echo 'approvals:\\n  mode: off' > ~/.wayne/config.yaml",
+                    env_type="local",
+                )
+            assert result["approved"] is False
+            assert result.get("policy_file") is True or result.get("hardline") is True
+            assert "policy" in result["message"].lower() or "config" in result["message"].lower()
+        finally:
+            disable_session_yolo(session)
+
+    def test_policy_floor_blocks_wayne_config_set_under_yolo(self):
+        from tools.approval import check_dangerous_command, enable_session_yolo, disable_session_yolo
+
+        session = "test-policy-yolo-cli"
+        enable_session_yolo(session)
+        try:
+            with mock_patch.dict(
+                os.environ,
+                {"WAYNE_SESSION_KEY": session, "WAYNE_GATEWAY_SESSION": "1"},
+                clear=False,
+            ):
+                result = check_dangerous_command(
+                    "wayne config set approvals.mode off",
+                    env_type="local",
+                )
+            assert result["approved"] is False
+            assert result.get("policy_file") is True or result.get("hardline") is True
+        finally:
+            disable_session_yolo(session)
+
+    def test_policy_floor_allows_read(self):
+        from tools.approval import detect_policy_file_write
+
+        is_policy, _ = detect_policy_file_write("cat ~/.wayne/config.yaml")
+        assert is_policy is False
 
     def test_perl_in_place_config(self):
         # perl -i performs the same in-place mutation as sed -i but was not

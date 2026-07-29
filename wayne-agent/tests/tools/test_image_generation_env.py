@@ -45,7 +45,7 @@ def test_fal_key_empty_is_unset(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_no_backend_message_mentions_fal_signup_and_plugins(monkeypatch):
+def test_no_backend_message_points_to_work4you_settings(monkeypatch):
     from tools import image_generation_tool
 
     monkeypatch.setattr(
@@ -54,10 +54,10 @@ def test_no_backend_message_mentions_fal_signup_and_plugins(monkeypatch):
 
     msg = image_generation_tool._build_no_backend_setup_message()
 
-    assert "FAL_KEY" in msg
-    assert "https://fal.ai" in msg
-    # Plugin pointer so users on a stale image_gen.provider know where to look.
-    assert "wayne tools" in msg or "wayne plugins" in msg
+    # Work4You PME path: no vendor credit signup URLs in the agent error surface.
+    assert "fal.ai" not in msg.lower()
+    assert "FAL_KEY" not in msg
+    assert "Settings" in msg or "Image generation" in msg
 
 
 def test_no_backend_message_mentions_managed_gateway_when_enabled(monkeypatch):
@@ -69,8 +69,9 @@ def test_no_backend_message_mentions_managed_gateway_when_enabled(monkeypatch):
 
     msg = image_generation_tool._build_no_backend_setup_message()
 
-    assert "managed FAL gateway" in msg
-    assert "Nous account" in msg or "wayne setup" in msg
+    assert "fal.ai" not in msg.lower()
+    assert "Settings" in msg or "Image generation" in msg
+    assert "gateway" in msg.lower() or "reconnect" in msg.lower()
 
 
 def test_image_generate_tool_returns_actionable_error_when_no_backend(monkeypatch):
@@ -94,5 +95,5 @@ def test_image_generate_tool_returns_actionable_error_when_no_backend(monkeypatc
     )
 
     assert result["success"] is False
-    assert "https://fal.ai" in result["error"]
-    assert "FAL_KEY" in result["error"]
+    assert "fal.ai" not in result["error"].lower()
+    assert "Settings" in result["error"] or "Image generation" in result["error"]

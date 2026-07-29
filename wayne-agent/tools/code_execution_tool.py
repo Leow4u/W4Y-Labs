@@ -977,6 +977,19 @@ def _execute_remote(
         _ship_file_to_remote(env, f"{sandbox_dir}/wayne_tools.py", tools_src)
         _ship_file_to_remote(env, f"{sandbox_dir}/script.py", code)
 
+        from tools.sandbox_fs_guard import (
+            build_sandbox_fs_env,
+            remote_bootstrap_source,
+            render_standalone_module,
+        )
+
+        _ship_file_to_remote(
+            env, f"{sandbox_dir}/wayne_sandbox_fs.py", render_standalone_module()
+        )
+        _ship_file_to_remote(
+            env, f"{sandbox_dir}/_wayne_sandbox_bootstrap.py", remote_bootstrap_source()
+        )
+
         # Wrapped so the thread inherits the turn's approval context + callbacks
         # (see tools.thread_context) — else sandbox RPC tool calls lose approval
         # routing (#33057).
@@ -992,20 +1005,26 @@ def _execute_remote(
         rpc_thread.start()
 
         # Build environment variable prefix for the script
+        _fs_env = build_sandbox_fs_env([sandbox_dir, temp_dir])
+        _fs_env["WAYNE_SANDBOX_SCRIPT"] = f"{sandbox_dir}/script.py"
         env_prefix = (
             f"WAYNE_RPC_DIR={shlex.quote(f'{sandbox_dir}/rpc')} "
             f"WAYNE_RPC_TOKEN={shlex.quote(rpc_token)} "
-            f"PYTHONDONTWRITEBYTECODE=1"
+            f"PYTHONDONTWRITEBYTECODE=1 "
+            f"WAYNE_SANDBOX_SCRIPT={shlex.quote(_fs_env['WAYNE_SANDBOX_SCRIPT'])} "
+            f"WAYNE_SANDBOX_ALLOW_ROOTS={shlex.quote(_fs_env['WAYNE_SANDBOX_ALLOW_ROOTS'])} "
+            f"WAYNE_SANDBOX_DENY_PATHS={shlex.quote(_fs_env['WAYNE_SANDBOX_DENY_PATHS'])} "
+            f"WAYNE_SANDBOX_DENY_PREFIXES={shlex.quote(_fs_env['WAYNE_SANDBOX_DENY_PREFIXES'])}"
         )
         tz = os.getenv("WAYNE_TIMEZONE", "").strip()
         if tz:
             env_prefix += f" TZ={shlex.quote(tz)}"
 
-        # Execute the script on the remote backend
+        # Execute via bootstrap so the FS guard is installed before user code.
         logger.info("Executing code on %s backend (task %s)...",
                      env_type, effective_task_id[:8])
         script_result = env.execute(
-            f"cd {quoted_sandbox_dir} && {env_prefix} python3 script.py",
+            f"cd {quoted_sandbox_dir} && {env_prefix} python3 _wayne_sandbox_bootstrap.py",
             timeout=timeout,
         )
 
@@ -1331,8 +1350,18 @@ def execute_code(
         _child_cwd = _resolve_child_cwd(_mode, tmpdir)
         _script_path = os.path.join(tmpdir, "script.py")
 
+        # Cursor/Codex-style FS boundary: raw open()/pathlib cannot write
+        # WAYNE_HOME (config.yaml, .env, …). RPC write_file stays gated.
+        from tools.sandbox_fs_guard import build_sandbox_fs_env, local_bootstrap_source
+
+        child_env.update(build_sandbox_fs_env([_child_cwd, tmpdir]))
+        child_env["WAYNE_SANDBOX_SCRIPT"] = _script_path
+        _bootstrap_path = os.path.join(tmpdir, "_wayne_sandbox_bootstrap.py")
+        with open(_bootstrap_path, "w", encoding="utf-8") as f:
+            f.write(local_bootstrap_source())
+
         proc = subprocess.Popen(
-            [_child_python, _script_path],
+            [_child_python, _bootstrap_path],
             cwd=_child_cwd,
             env=child_env,
             stdout=subprocess.PIPE,

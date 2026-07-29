@@ -41,6 +41,10 @@ def build_write_denied_paths(home: str) -> set[str]:
             # Top-level .env, even when running under a profile — overwriting it
             # leaks credentials across every profile that inherits from root (#15981).
             str(wayne_root / ".env"),
+            # Security policy — paired with file_tools._check_sensitive_path and
+            # the execute_code sandbox FS guard. Agent must not rewrite this.
+            str(wayne_home / "config.yaml"),
+            str(wayne_root / "config.yaml"),
             # Active profile Anthropic PKCE credential store.
             str(wayne_home / ".anthropic_oauth.json"),
             # Top-level Anthropic PKCE credential store remains sensitive even

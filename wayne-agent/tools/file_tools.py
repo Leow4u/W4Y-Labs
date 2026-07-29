@@ -604,13 +604,15 @@ def _check_sensitive_path(filepath: str, task_id: str = "default") -> str | None
     # Prevent agents from modifying the Wayne config file directly.
     # approvals.mode and other security settings live here; a malicious or
     # prompt-injected agent could silently disable exec approval by writing to
-    # this file.
+    # this file. Terminal writes are hardline-blocked the same way (policy-file
+    # floor in tools/approval.py) so YOLO cannot open a side door.
     wayne_config = _get_wayne_config_resolved()
     if wayne_config and (resolved == wayne_config or normalized == wayne_config):
         return (
             f"Refusing to write to Wayne config file: {filepath}\n"
             "Agent cannot modify security-sensitive configuration. "
-            "Edit ~/.wayne/config.yaml directly or use 'wayne config' instead."
+            "Change settings in the Work4You Settings UI, or edit "
+            "~/.wayne/config.yaml yourself outside the agent."
         )
     return None
 

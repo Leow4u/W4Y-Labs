@@ -110,6 +110,8 @@ export async function requestDeviceKey(opts: {
   composioKey: string | null;
   composioKeyId: string | null;
   composioError: string | null;
+  /** Shared platform tool secrets (Firecrawl / Langfuse). Never log values. */
+  toolEnv: Record<string, string> | null;
 } | null> {
   try {
     const r = await call("/device-key", opts);
@@ -122,8 +124,19 @@ export async function requestDeviceKey(opts: {
       composioKey?: string | null;
       composioKeyId?: string | null;
       composioError?: string | null;
+      toolEnv?: Record<string, unknown> | null;
     };
     if (!j.key || !j.hash) return null;
+    let toolEnv: Record<string, string> | null = null;
+    if (j.toolEnv && typeof j.toolEnv === "object" && !Array.isArray(j.toolEnv)) {
+      const cleaned: Record<string, string> = {};
+      for (const [k, v] of Object.entries(j.toolEnv)) {
+        if (typeof k === "string" && typeof v === "string" && v.trim()) {
+          cleaned[k] = v.trim();
+        }
+      }
+      if (Object.keys(cleaned).length) toolEnv = cleaned;
+    }
     return {
       key: j.key,
       hash: j.hash,
@@ -132,6 +145,7 @@ export async function requestDeviceKey(opts: {
       composioKey: typeof j.composioKey === "string" && j.composioKey ? j.composioKey : null,
       composioKeyId: typeof j.composioKeyId === "string" && j.composioKeyId ? j.composioKeyId : null,
       composioError: typeof j.composioError === "string" && j.composioError ? j.composioError : null,
+      toolEnv,
     };
   } catch {
     return null;

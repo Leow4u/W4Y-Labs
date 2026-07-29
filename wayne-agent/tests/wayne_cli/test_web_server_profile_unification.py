@@ -109,35 +109,36 @@ class TestProfileScopedConfig:
 
 class TestProfileScopedEnv:
     def test_env_set_lands_in_target_profile_only(self, client, isolated_profiles):
+        # Use a non-platform-managed key — FAL_KEY / OpenRouter / etc. reject PUT.
         resp = client.put(
             "/api/env",
-            json={"key": "FAL_KEY", "value": "test-fal-123", "profile": "worker_beta"},
+            json={"key": "EXA_API_KEY", "value": "test-exa-123", "profile": "worker_beta"},
         )
         assert resp.status_code == 200
         worker_env = (isolated_profiles["worker_beta"] / ".env").read_text()
-        assert "test-fal-123" in worker_env
+        assert "test-exa-123" in worker_env
         default_env_path = isolated_profiles["default"] / ".env"
         if default_env_path.exists():
-            assert "test-fal-123" not in default_env_path.read_text()
+            assert "test-exa-123" not in default_env_path.read_text()
 
     def test_env_list_reads_target_profile(self, client, isolated_profiles):
         (isolated_profiles["worker_beta"] / ".env").write_text(
-            "FAL_KEY=worker-only-value\n", encoding="utf-8"
+            "EXA_API_KEY=worker-only-value\n", encoding="utf-8"
         )
         resp = client.get("/api/env", params={"profile": "worker_beta"})
         assert resp.status_code == 200
-        assert resp.json()["FAL_KEY"]["is_set"] is True
+        assert resp.json()["EXA_API_KEY"]["is_set"] is True
         resp = client.get("/api/env")
-        assert resp.json()["FAL_KEY"]["is_set"] is False
+        assert resp.json()["EXA_API_KEY"]["is_set"] is False
 
     def test_env_delete_scoped(self, client, isolated_profiles):
         (isolated_profiles["worker_beta"] / ".env").write_text(
-            "FAL_KEY=doomed\n", encoding="utf-8"
+            "EXA_API_KEY=doomed\n", encoding="utf-8"
         )
         resp = client.request(
             "DELETE",
             "/api/env",
-            json={"key": "FAL_KEY", "profile": "worker_beta"},
+            json={"key": "EXA_API_KEY", "profile": "worker_beta"},
         )
         assert resp.status_code == 200
         assert "doomed" not in (isolated_profiles["worker_beta"] / ".env").read_text()

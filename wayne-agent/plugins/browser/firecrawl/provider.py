@@ -14,8 +14,8 @@ hits ``/v2/browser``).
 Config keys this provider responds to::
 
     browser:
-      cloud_provider: "firecrawl"   # explicit selection only — not in the
-                                    # legacy auto-detect walk
+      cloud_provider: "firecrawl"   # optional — also auto-selected when
+                                    # FIRECRAWL_API_KEY is set (legacy walk)
 
 Auth env vars::
 

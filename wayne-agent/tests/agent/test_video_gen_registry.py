@@ -78,13 +78,27 @@ class TestGetActiveProvider:
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
         assert video_gen_registry.get_active_provider() is None
 
-    def test_multi_without_config_returns_none(self, tmp_path, monkeypatch):
-        """Unlike image_gen (which falls back to 'fal'), video_gen has no
-        legacy default — when there are multiple providers and no config,
-        the registry returns None and the tool surfaces a helpful error.
-        """
+    def test_openrouter_preferred_over_fal_without_config(self, tmp_path, monkeypatch):
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
+        video_gen_registry.register_provider(_FakeProvider("fal"))
+        video_gen_registry.register_provider(_FakeProvider("openrouter"))
         video_gen_registry.register_provider(_FakeProvider("xai"))
+        active = video_gen_registry.get_active_provider()
+        assert active is not None and active.name == "openrouter"
+
+    def test_fal_never_auto_selected(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
+        (tmp_path / "config.yaml").write_text("{}\n")
+        video_gen_registry.register_provider(_FakeProvider("fal"))
+        video_gen_registry.register_provider(_FakeProvider("xai"))
+        video_gen_registry.register_provider(
+            _FakeProvider("openrouter", available=False)
+        )
+        active = video_gen_registry.get_active_provider()
+        assert active is not None and active.name == "xai"
+
+    def test_fal_alone_is_not_auto_selected(self, tmp_path, monkeypatch):
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
         video_gen_registry.register_provider(_FakeProvider("fal"))
         assert video_gen_registry.get_active_provider() is None
 
@@ -97,6 +111,7 @@ class TestGetActiveProvider:
         )
         video_gen_registry.register_provider(_FakeProvider("xai"))
         video_gen_registry.register_provider(_FakeProvider("fal"))
+        video_gen_registry.register_provider(_FakeProvider("openrouter"))
         active = video_gen_registry.get_active_provider()
         assert active is not None and active.name == "fal"
 

@@ -3,6 +3,7 @@ import {
   text,
   integer,
   numeric,
+  boolean,
   timestamp,
   jsonb,
   uuid,
@@ -140,6 +141,13 @@ export const billing = pgTable("billing", {
   keyInjectedAt: timestamp("key_injected_at", { withTimezone: true }),
   monthlyCreditsUsd: numeric("monthly_credits_usd", { precision: 12, scale: 2 }),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  // On-demand (Cursor-style): after included pool, extra OR headroom up to this USD.
+  ondemandEnabled: boolean("ondemand_enabled").notNull().default(false),
+  ondemandSpendLimitUsd: numeric("ondemand_spend_limit_usd", { precision: 12, scale: 2 })
+    .notNull()
+    .default("0"),
+  // OpenRouter key.usage at cycle start (last renew / first enable) — for included vs on-demand split.
+  cycleUsageBaselineUsd: numeric("cycle_usage_baseline_usd", { precision: 12, scale: 2 }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

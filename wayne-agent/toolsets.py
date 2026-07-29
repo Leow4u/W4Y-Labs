@@ -39,8 +39,9 @@ _WAYNE_CORE_TOOLS = [
     "read_terminal", "close_terminal",
     # File manipulation
     "read_file", "write_file", "patch", "search_files",
-    # Vision + image generation
-    "vision_analyze", "image_generate",
+    # Vision + image generation + video analysis (always-on; video_gen stays
+    # opt-in via the video_gen toolset / FAL_KEY auto-enable).
+    "vision_analyze", "image_generate", "video_analyze",
     # Skills
     "skills_list", "skill_view", "skill_manage",
     # Browser automation
@@ -349,7 +350,7 @@ TOOLSETS = {
             "web_search", "web_extract",
             "terminal", "process", "read_terminal", "close_terminal",
             "read_file", "write_file", "patch", "search_files",
-            "vision_analyze",
+            "vision_analyze", "video_analyze",
             "skills_list", "skill_view", "skill_manage",
             "browser_navigate", "browser_snapshot", "browser_click",
             "browser_type", "browser_scroll", "browser_back",
@@ -381,7 +382,7 @@ TOOLSETS = {
             "web_search", "web_extract",
             "terminal", "process",
             "read_file", "write_file", "patch", "search_files",
-            "vision_analyze",
+            "vision_analyze", "video_analyze",
             "skills_list", "skill_view", "skill_manage",
             "browser_navigate", "browser_snapshot", "browser_click",
             "browser_type", "browser_scroll", "browser_back",
@@ -403,8 +404,8 @@ TOOLSETS = {
             "terminal", "process",
             # File manipulation
             "read_file", "write_file", "patch", "search_files",
-            # Vision + image generation
-            "vision_analyze", "image_generate",
+            # Vision + image generation + video analysis
+            "vision_analyze", "image_generate", "video_analyze",
             # Skills
             "skills_list", "skill_view", "skill_manage",
             # Browser automation

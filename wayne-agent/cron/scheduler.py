@@ -2029,6 +2029,39 @@ def _build_job_prompt(job: dict, prerun_script: Optional[tuple] = None) -> str:
                 logger.warning("context_from: failed to read output for job %r: %s", source_job_id, e)
                 # silent skip — do not pollute the prompt with error messages
 
+    # One-shot payload from Composio / automation webhook → trigger_job.
+    try:
+        from cron.jobs import consume_pending_event
+
+        pending = consume_pending_event(str(job.get("id") or ""))
+    except Exception:
+        logger.exception("Failed to consume pending trigger event for job %s", job.get("id"))
+        pending = None
+    if isinstance(pending, dict) and pending:
+        import json as _json
+
+        slug = str(
+            pending.get("trigger_slug")
+            or pending.get("route")
+            or pending.get("source")
+            or "trigger"
+        )
+        data = pending.get("data") if isinstance(pending.get("data"), dict) else pending
+        try:
+            blob = _json.dumps(data, ensure_ascii=False, indent=2, default=str)
+        except Exception:
+            blob = str(data)
+        if len(blob) > 8000:
+            blob = blob[:8000] + "\n… [truncated]"
+        prompt = (
+            f"## Trigger event ({slug})\n"
+            "This run was started by an external trigger. Use the payload "
+            "below as context for your instructions.\n\n"
+            f"```json\n{blob}\n```\n\n"
+            f"{prompt}"
+        )
+        has_injected_data = True
+
     # Always prepend cron execution guidance so the agent knows how
     # delivery works and can suppress delivery when appropriate.
     cron_hint = (
