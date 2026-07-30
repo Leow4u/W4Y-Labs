@@ -14161,6 +14161,9 @@ class SkillToggle(BaseModel):
 
 @app.get("/api/skills")
 async def get_skills(profile: Optional[str] = None):
+    from pathlib import Path as _Path
+
+    from agent.skill_utils import get_project_skills_dir
     from tools.skills_tool import _find_all_skills
     from wayne_cli.skills_config import get_disabled_skills
     from tools.skill_usage import (
@@ -14175,19 +14178,30 @@ async def get_skills(profile: Optional[str] = None):
         skills = _find_all_skills(skip_disabled=True)
         usage = load_usage()
         # Set-based provenance (same classification as skill_usage.provenance,
-        # without a per-skill manifest read): hub > bundled > agent, where
-        # "agent" covers agent-authored AND local hand-made skills — the ones
-        # the user may edit/delete from the UI.
+        # without a per-skill manifest read): project > hub > bundled > agent.
+        # "project" = ``<cwd>/.wayne/skills`` (Work4You product); "agent" =
+        # agent-authored AND local hand-made under ~/.wayne/skills.
         bundled_names = _read_bundled_manifest_names()
         hub_names = _read_hub_installed_names()
+        project_root = get_project_skills_dir()
     for s in skills:
         s["enabled"] = s["name"] not in disabled
         s["usage"] = activity_count(usage.get(s["name"], {}))
-        s["provenance"] = (
-            "hub" if s["name"] in hub_names
-            else "bundled" if s["name"] in bundled_names
-            else "agent"
-        )
+        skill_dir = s.pop("dir", None)
+        provenance = "agent"
+        if project_root and skill_dir:
+            try:
+                _Path(skill_dir).resolve().relative_to(project_root)
+                provenance = "project"
+            except (ValueError, OSError):
+                provenance = "agent"
+        if provenance != "project":
+            provenance = (
+                "hub" if s["name"] in hub_names
+                else "bundled" if s["name"] in bundled_names
+                else "agent"
+            )
+        s["provenance"] = provenance
     return skills
 
 

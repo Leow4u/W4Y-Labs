@@ -695,8 +695,8 @@ export interface SkillInfo {
   name: string
   /** Total observed activity (use + view + patch). Absent on older backends. */
   usage?: number
-  /** 'agent' = learned/local (editable), 'bundled' = ships with Hermes, 'hub' = installed. */
-  provenance?: 'agent' | 'bundled' | 'hub'
+  /** 'agent' = learned/local (editable), 'bundled' = formula kit, 'hub' = legacy install, 'project' = <cwd>/.wayne/skills. */
+  provenance?: 'agent' | 'bundled' | 'hub' | 'project'
 }
 
 export interface ToolsetInfo {

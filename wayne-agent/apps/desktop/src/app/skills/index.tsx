@@ -34,12 +34,11 @@ import { asText, includesQuery, prettyName } from '../settings/helpers'
 import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
 import { ConnectorsTab } from './connectors-tab'
-import { SkillsHub } from './hub'
 import { $skillsSortDesc } from './store'
 
-// Product face: Skills (learned + Hub) · Conectores · Browse Hub.
-// Tools / MCP were Hermes admin surface — removed per PRODUTO.md Fórmula vs Conectores.
-const SKILLS_MODES = ['skills', 'connectors', 'hub'] as const
+// Product face: Skills (learned + project files) · Conectores.
+// Browse Hub / Tools / MCP removed per PRODUTO.md (Cursor-like; contas = Conectores).
+const SKILLS_MODES = ['skills', 'connectors'] as const
 
 const SKILLS_QUERY_KEY = ['skills-list'] as const
 
@@ -49,9 +48,9 @@ const usageOf = (skill: SkillInfo): number => (typeof skill.usage === 'number' ?
 
 const categoryFor = (skill: SkillInfo): string => asText(skill.category) || 'general'
 
-/** Product-facing skills: learned (agent) + installed from Hub. Bundled kit = formula. */
+/** Product-facing skills: learned, project files, legacy hub installs. Kit = formula. */
 export function isProductSkill(skill: SkillInfo): boolean {
-  return skill.provenance === 'agent' || skill.provenance === 'hub'
+  return skill.provenance === 'agent' || skill.provenance === 'hub' || skill.provenance === 'project'
 }
 
 // Row subtitle: category, with provenance badged.
@@ -65,6 +64,11 @@ function skillSubtitle(skill: SkillInfo): React.ReactNode {
       {provenance === 'agent' && (
         <Badge className="shrink-0 normal-case" variant="default">
           learned
+        </Badge>
+      )}
+      {provenance === 'project' && (
+        <Badge className="shrink-0 normal-case" variant="muted">
+          project
         </Badge>
       )}
       {provenance === 'hub' && (
@@ -237,11 +241,6 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
     return (
       <div className="flex h-full min-h-0 flex-1">
         <PanelEmpty
-          action={
-            <Button onClick={() => setMode('hub')} size="sm">
-              {t.skills.tabHub}
-            </Button>
-          }
           description={t.skills.emptyProductSkillsDesc}
           icon="search"
           title={t.skills.emptyProductSkillsTitle}
@@ -258,17 +257,14 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
       onTabChange={id => setMode(id as (typeof SKILLS_MODES)[number])}
       searchHidden={mode === 'connectors'}
       searchHints={searchHints}
-      searchPlaceholder={mode === 'hub' ? t.skills.hub.searchPlaceholder : t.skills.searchSkills}
+      searchPlaceholder={t.skills.searchSkills}
       searchValue={query}
       tabs={[
         { id: 'skills', label: t.skills.tabSkills, meta: skills ? productSkills.length : null },
-        { id: 'connectors', label: t.skills.tabConnectors },
-        { id: 'hub', label: t.skills.tabHub }
+        { id: 'connectors', label: t.skills.tabConnectors }
       ]}
     >
-      {mode === 'hub' ? (
-        <SkillsHub query={query} />
-      ) : mode === 'connectors' ? (
+      {mode === 'connectors' ? (
         <ConnectorsTab />
       ) : skillsFailed && !skills ? (
         <PanelEmpty
@@ -370,6 +366,10 @@ function DetailHeader({
 function SkillDetail({ onArchive, onEdit, skill }: { onArchive: () => void; onEdit: () => void; skill: SkillInfo }) {
   const { t } = useI18n()
   const editable = skill.provenance === 'agent'
+  const provenanceLabel =
+    skill.provenance && skill.provenance in t.skills.provenance
+      ? t.skills.provenance[skill.provenance as keyof typeof t.skills.provenance]
+      : skill.provenance
 
   return (
     <>
@@ -379,9 +379,7 @@ function SkillDetail({ onArchive, onEdit, skill }: { onArchive: () => void; onEd
           <>
             <PanelPill>{prettyName(categoryFor(skill))}</PanelPill>
             {skill.provenance && skill.provenance !== 'bundled' && (
-              <PanelPill tone={skill.provenance === 'agent' ? 'good' : 'muted'}>
-                {t.skills.provenance[skill.provenance]}
-              </PanelPill>
+              <PanelPill tone={skill.provenance === 'agent' ? 'good' : 'muted'}>{provenanceLabel}</PanelPill>
             )}
           </>
         }
@@ -396,6 +394,11 @@ function SkillDetail({ onArchive, onEdit, skill }: { onArchive: () => void; onEd
             {t.skills.archive}
           </Button>
         </div>
+      )}
+      {skill.provenance === 'project' && (
+        <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+          {t.skills.projectSkillHint}
+        </p>
       )}
       {skill.provenance === 'hub' && (
         <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">

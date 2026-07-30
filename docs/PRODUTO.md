@@ -165,7 +165,7 @@ Utilizador pede no chat
         │
         ├── Fórmula Work4You  →  image / video / research / vision / files / terminal
         ├── Conectores        →  OAuth (Composio) + BYO (ex. Firecrawl)
-        └── Skills            →  método / playbook (learned ou Hub)
+        └── Skills            →  método / playbook (learned ou <projeto>/.wayne/skills)
 ```
 
 ### Regras de classificação
@@ -188,18 +188,16 @@ conectar Firecrawl. Uma porta.
 
 ### Alvo da UI “Habilidades” (sidebar)
 
-Hoje (espelho Hermes admin): Skills | Tools | Conectores | MCP | Browse Hub.
+Face do produto (estilo Cursor): **Skills | Conectores**. Sem Browse Hub / Tools / MCP.
 
 | Entrada | Destino |
 |---------|---------|
-| **Skills** | Learned + criar/editar/arquivar. Kit bundled não listado com toggle (está na fórmula). |
-| **Conectores** | Única porta para contas e BYO (incl. potenciais de research/imagem se forem conta do user). Featured + catálogo. |
-| **Browse Hub** | Instalar métodos novos (skills). Não instalar “APIs”. |
-| **Tools** | Remover da face do produto. Toolsets = decisão de plataforma no motor. |
-| **MCP** | Remover como aba. Plumbing sob Conectores / motor. |
+| **Skills** | Receitas: learned (`~/.wayne/skills`) + ficheiros do projeto (`<cwd>/.wayne/skills/**/SKILL.md`). Kit bundled = fórmula (não listado com toggle). |
+| **Conectores** | Única porta para contas e BYO (Gmail, GitHub, Notion, Firecrawl…). Featured + catálogo. |
+| **Browse Hub** | **Fora da face.** Loja Hermes não compete com Conectores nem com o kit. |
+| **Tools / MCP** | Fora da face. Toolsets / MCP = motor / plumbing sob Conectores. |
 
-A fotografia actual da app (abas Tools/MCP ainda visíveis) está em
-`docs/INVENTARIO-SUPERFICIES.md` — estado, não destino. Destino = esta secção.
+**ELI5:** Conectores = as tuas contas. Skills = receitas (já no app ou no repo). Não há loja a meio.
 
 Billing do que a fórmula inclui por plano: `docs/BILLING-ARQUITETURA.md`
 (passo separado).

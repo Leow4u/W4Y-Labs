@@ -1578,15 +1578,17 @@ export const en: Translations = {
     provenance: {
       agent: 'Learned',
       bundled: 'Built-in',
-      hub: 'Hub'
+      hub: 'Hub',
+      project: 'Project'
     },
     emptyNoneFound: noun => `No ${noun} found`,
     emptyNothingMatches: query => `Nothing matches “${query}”.`,
     emptyNoneAvailable: noun => `No ${noun} available yet.`,
-    emptyProductSkillsTitle: 'No project skills yet',
+    emptyProductSkillsTitle: 'No recipes yet',
     emptyProductSkillsDesc:
-      'Skills the agent learns here, and ones you install from Browse Hub, show up in this list. Built-in capabilities are already part of Work4You — just ask in chat.',
-    hubSkillManageHint: 'Installed from the Hub — uninstall or update under Browse Hub.',
+      'Recipes the agent learns here, or SKILL.md files under your project’s .wayne/skills folder, show up in this list. Built-in Work4You capabilities are already available in chat. Accounts (Gmail, GitHub, Notion…) live under Connectors.',
+    projectSkillHint: 'From this project’s .wayne/skills folder — edit the file in the repo to change it.',
+    hubSkillManageHint: 'Installed earlier from the skill hub. Built-in capabilities stay in chat; accounts stay under Connectors.',
     changesApplyNewSessions: 'Changes apply to new sessions.',
     skillUpdated: 'Skill updated',
     edit: 'Edit',

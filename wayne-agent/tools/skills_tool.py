@@ -613,7 +613,11 @@ def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
     Returns:
         List of skill metadata dicts (name, description, category).
     """
-    from agent.skill_utils import get_external_skills_dirs, iter_skill_index_files
+    from agent.skill_utils import (
+        get_external_skills_dirs,
+        get_project_skills_dir,
+        iter_skill_index_files,
+    )
 
     skills = []
     seen_names: set = set()
@@ -621,11 +625,15 @@ def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
     # Load disabled set once (not per-skill)
     disabled = set() if skip_disabled else _get_disabled_skill_names()
 
-    # Scan local dir first, then external dirs (local takes precedence)
+    # Scan local dir first, then external dirs, then project ``.wayne/skills``
+    # (local takes precedence on name collisions).
     dirs_to_scan = []
     if SKILLS_DIR.exists():
         dirs_to_scan.append(SKILLS_DIR)
     dirs_to_scan.extend(get_external_skills_dirs())
+    project_skills = get_project_skills_dir()
+    if project_skills is not None and project_skills not in dirs_to_scan:
+        dirs_to_scan.append(project_skills)
 
     for scan_dir in dirs_to_scan:
         for skill_md in iter_skill_index_files(scan_dir, "SKILL.md"):
@@ -664,11 +672,17 @@ def _find_all_skills(*, skip_disabled: bool = False) -> List[Dict[str, Any]]:
                 category = _get_category_from_path(skill_md)
 
                 seen_names.add(name)
-                skills.append({
+                entry = {
                     "name": name,
                     "description": description,
                     "category": category,
-                })
+                }
+                # Absolute dir for provenance (project vs home); stripped by API.
+                try:
+                    entry["dir"] = str(skill_dir.resolve())
+                except OSError:
+                    pass
+                skills.append(entry)
 
             except (UnicodeDecodeError, PermissionError) as e:
                 logger.debug("Failed to read skill file %s: %s", skill_md, e)

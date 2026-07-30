@@ -1039,12 +1039,13 @@ export interface Translations {
     bulkUpdated: (count: number) => string
     bulkNoChange: string
     usageCount: (count: number | string) => string
-    provenance: Record<'agent' | 'bundled' | 'hub', string>
+    provenance: Record<'agent' | 'bundled' | 'hub' | 'project', string>
     emptyNoneFound: (noun: string) => string
     emptyNothingMatches: (query: string) => string
     emptyNoneAvailable: (noun: string) => string
     emptyProductSkillsTitle: string
     emptyProductSkillsDesc: string
+    projectSkillHint: string
     hubSkillManageHint: string
     changesApplyNewSessions: string
     skillUpdated: string

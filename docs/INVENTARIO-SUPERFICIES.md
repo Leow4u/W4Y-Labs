@@ -365,11 +365,11 @@ Chaves do motor sem UI nenhuma: `display.tool_progress`, `display.tool_progress_
 
 | Aba (`app/skills/`) | Estado após UI 29/07 | Destino produto ([PRODUTO.md](PRODUTO.md#fórmula-vs-conectores)) |
 |---|---|---|
-| Skills | Só `provenance` agent/hub; sem toggles; empty → Hub | Learned + Hub; kit bundled = fórmula |
-| Tools / toolsets | **Removida da face** (código de painel toolset deixa de montar) | Fora da face — decisão de plataforma no motor |
+| Skills | `agent` + `project` (+ hub legado); sem toggles; sem CTA Hub | Learned + `<cwd>/.wayne/skills`; kit = fórmula |
+| Tools / toolsets | **Removida da face** | Fora da face — decisão de plataforma no motor |
 | Conectores | Mantém | Única porta contas/BYO |
-| MCP | **Removida da face** (`mcp-tab.tsx` órfão; deep-links → Conectores) | Tubagem sob Conectores / motor |
-| Browse Hub | Landing = catálogo curado (`/api/skills/hub/catalog`); search esconde kit bundled | Só métodos instaláveis, não dump do fork / APIs |
+| MCP | **Removida da face** | Tubagem sob Conectores / motor |
+| Browse Hub | **Removida da face** (`hub.tsx` órfão) | Sem loja na sidebar |
 
 **Resíduo motor (não é UI):** providers Nous/BYO e toolsets activos no `config.yaml` / runtime — a fórmula ainda não força defaults de plataforma no backend; só a face deixou de expô-los.
 

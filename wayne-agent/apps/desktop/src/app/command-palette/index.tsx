@@ -625,13 +625,6 @@ export function CommandPalette() {
           keywords: ['connectors', 'composio', 'integrations', 'gmail', 'slack', 'mcp'],
           label: `${capLabel}: ${t.skills.tabConnectors}`,
           run: go(`${SKILLS_ROUTE}?tab=connectors`)
-        },
-        {
-          icon: Layers3,
-          id: 'cap-hub',
-          keywords: ['hub', 'browse', 'install', 'skills', 'marketplace'],
-          label: `${capLabel}: ${t.skills.tabHub}`,
-          run: go(`${SKILLS_ROUTE}?tab=hub`)
         }
       ]
     })

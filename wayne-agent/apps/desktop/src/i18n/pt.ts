@@ -215,15 +215,16 @@ export const pt = defineLocale({
 
   skills: {
     tabConnectors: 'Conectores',
-    emptyProductSkillsTitle: 'Ainda sem skills do projeto',
+    emptyProductSkillsTitle: 'Ainda sem receitas',
     emptyProductSkillsDesc:
-      'Skills que o agente aprende aqui, e as que instalares no Browse Hub, aparecem nesta lista. As capacidades nativas já fazem parte da Work4You — basta pedir no chat.',
-    hubSkillManageHint: 'Instalada pelo Hub — desinstala ou actualiza em Browse Hub.',
-    hub: {
-      featured: 'Skills em destaque',
-      landingHint:
-        'Métodos curados que podes instalar. O que já vem na Work4You está disponível no chat — pesquisa aqui só extras oficiais e da comunidade.',
-      noResults: 'Nenhuma skill instalável corresponde. O kit nativo fica no chat, não aqui.'
+      'Receitas que o agente aprende aqui, ou ficheiros SKILL.md em .wayne/skills na pasta do projeto, aparecem nesta lista. O que já vem na Work4You está disponível no chat. Contas (Gmail, GitHub, Notion…) ficam em Conectores.',
+    projectSkillHint: 'Vem da pasta .wayne/skills deste projeto — edita o ficheiro no repo para alterar.',
+    hubSkillManageHint: 'Instalada antes pelo hub de skills. Capacidades nativas ficam no chat; contas ficam em Conectores.',
+    provenance: {
+      agent: 'Aprendida',
+      bundled: 'Nativa',
+      hub: 'Hub',
+      project: 'Projeto'
     }
   },
 

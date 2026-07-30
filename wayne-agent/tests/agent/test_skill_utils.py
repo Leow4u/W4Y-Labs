@@ -5,8 +5,10 @@ from unittest.mock import patch
 from agent.skill_utils import (
     extract_skill_conditions,
     extract_skill_config_vars,
+    get_all_skills_dirs,
     get_disabled_skill_names,
     get_external_skills_dirs,
+    get_project_skills_dir,
     is_excluded_skill_path,
     is_external_skill_path,
     is_skill_support_path,
@@ -239,6 +241,31 @@ def test_is_external_skill_path_matches_configured_external_dir(tmp_path, monkey
 
     assert is_external_skill_path(external / "team-skill" / "SKILL.md") is True
     assert is_external_skill_path(local_skills / "local-skill" / "SKILL.md") is False
+
+
+def test_get_project_skills_dir_from_terminal_cwd(tmp_path, monkeypatch):
+    """``<cwd>/.wayne/skills`` is discovered via TERMINAL_CWD for project recipes."""
+    from agent import skill_utils
+
+    wayne_home = tmp_path / ".wayne"
+    (wayne_home / "skills").mkdir(parents=True)
+    project = tmp_path / "repo"
+    project_skills = project / ".wayne" / "skills"
+    project_skills.mkdir(parents=True)
+    (project_skills / "playbook" / "SKILL.md").parent.mkdir(parents=True)
+    (project_skills / "playbook" / "SKILL.md").write_text(
+        "---\nname: playbook\ndescription: Project recipe.\n---\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("WAYNE_HOME", str(wayne_home))
+    monkeypatch.setenv("TERMINAL_CWD", str(project))
+    skill_utils._external_dirs_cache_clear()
+
+    found = get_project_skills_dir()
+    assert found is not None
+    assert found.resolve() == project_skills.resolve()
+    assert project_skills.resolve() in {p.resolve() for p in get_all_skills_dirs()}
 
 
 def test_iter_skill_index_files_prunes_skill_support_dirs(tmp_path):

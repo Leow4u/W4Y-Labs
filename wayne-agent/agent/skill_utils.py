@@ -496,14 +496,68 @@ def get_external_skills_dirs() -> List[Path]:
     return result
 
 
+def get_project_skills_dir() -> Optional[Path]:
+    """Return ``<cwd>/.wayne/skills`` when the active working tree has one.
+
+    Work4You product face: project-local recipes (Cursor-like), separate from
+    ``~/.wayne/skills/`` and from Hub installs. Resolution order:
+
+    1. ``terminal.cwd`` from config.yaml (when absolute / real)
+    2. ``TERMINAL_CWD`` env (gateway / desktop project attach)
+    3. Process ``cwd``
+
+    Does not create the directory. Not cached — project cwd changes per session.
+    """
+    candidates: List[str] = []
+    try:
+        from wayne_cli.config import load_config
+
+        cfg_terminal = load_config().get("terminal") or {}
+        raw_cfg = str(cfg_terminal.get("cwd") or "").strip()
+        if raw_cfg and raw_cfg not in {".", "auto", "cwd"}:
+            candidates.append(raw_cfg)
+    except Exception:
+        pass
+
+    env_cwd = str(os.environ.get("TERMINAL_CWD") or "").strip()
+    if env_cwd and env_cwd not in {".", "auto", "cwd"}:
+        candidates.append(env_cwd)
+
+    try:
+        candidates.append(str(Path.cwd()))
+    except OSError:
+        pass
+
+    seen: Set[Path] = set()
+    local_skills = get_skills_dir().resolve()
+    for raw in candidates:
+        try:
+            base = Path(os.path.expanduser(os.path.expandvars(raw))).resolve()
+        except (OSError, RuntimeError):
+            continue
+        if not base.is_absolute() or not base.is_dir():
+            continue
+        project_skills = (base / ".wayne" / "skills").resolve()
+        if project_skills in seen or project_skills == local_skills:
+            continue
+        seen.add(project_skills)
+        if project_skills.is_dir():
+            return project_skills
+    return None
+
+
 def get_all_skills_dirs() -> List[Path]:
     """Return all skill directories: local ``~/.wayne/skills/`` first, then external.
 
     The local dir is always first (and always included even if it doesn't exist
     yet — callers handle that).  External dirs follow in config order.
+    Project ``<cwd>/.wayne/skills`` is appended when present.
     """
     dirs = [get_skills_dir()]
     dirs.extend(get_external_skills_dirs())
+    project = get_project_skills_dir()
+    if project is not None and project not in dirs:
+        dirs.append(project)
     return dirs
 
 
