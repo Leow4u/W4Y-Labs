@@ -2325,6 +2325,7 @@ export const zh: Translations = {
     empty: '没有匹配的连接器。',
     featuredSection: '精选',
     connectedSection: '已连接',
+    installedCount: count => `已安装 ${count}`,
     devSection: '开发',
     viewFullCatalog: '查看完整目录 →',
     backToFeatured: '返回精选',

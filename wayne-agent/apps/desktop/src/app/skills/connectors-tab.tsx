@@ -1,13 +1,15 @@
 /**
  * Personalizar → Conectores (manage) + Browse Marketplace (catalog).
- * Manage shows connected accounts only; marketplace is the Cursor-style
- * category browse with “show N more” expand. OAuth/connect stays the same.
+ * Manage: Cursor-style list (same density as Skills). Marketplace: list by
+ * category with “show N more”. OAuth/connect stays the same.
  */
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { LogoTile } from '@/components/connectors/logo-tile'
 import { Button } from '@/components/ui/button'
+import { Codicon } from '@/components/ui/codicon'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { PageLoader } from '@/components/page-loader'
 import { useI18n } from '@/i18n'
 import {
@@ -31,19 +33,20 @@ import type { ConnectorAccount, ConnectorToolkit } from '@/lib/connectors-types'
 import { notify, notifyError } from '@/store/notifications'
 import { cn } from '@/lib/utils'
 
+import { ICON_BUTTON } from '../master-detail'
 import { PanelEmpty } from '../overlays/panel'
 import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 
 const MARKETPLACE_PREVIEW = 6
 
-function ConnectorCard({
+function ConnectorListRow({
   tk,
   accounts,
   connecting,
   disconnecting,
   onConnect,
   onDisconnect,
-  compact
+  menu
 }: {
   tk: ConnectorToolkit
   accounts: ConnectorAccount[]
@@ -51,59 +54,93 @@ function ConnectorCard({
   disconnecting: boolean
   onConnect: (tk: ConnectorToolkit) => void
   onDisconnect: (tk: ConnectorToolkit) => void
-  compact?: boolean
+  /** manage rows use ⋯; marketplace keeps an inline Connect. */
+  menu?: boolean
 }) {
   const { t } = useI18n()
   const tc = t.connectors
   const state = stateOf(accounts)
   const busy = connecting || disconnecting
+  const category = (tk.categories || [])[0]
+  const subtitle = category || tk.description || ''
 
   return (
     <div
       className={cn(
-        'flex items-start gap-3 rounded-xl border border-border bg-card',
-        compact ? 'p-3' : 'p-3.5'
+        'group flex h-11 w-full items-center border-b border-border last:border-b-0',
+        'text-(--ui-text-secondary) hover:bg-muted/40'
       )}
     >
-      <LogoTile toolkit={tk} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <span className="truncate text-sm font-medium text-foreground">{tk.name}</span>
-          {!compact &&
-            (tk.categories || []).slice(0, 1).map(c => (
-              <span
-                className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.65rem] text-muted-foreground"
-                key={c}
-              >
-                {c}
-              </span>
-            ))}
-        </div>
-        {tk.description ? (
-          <p className="mt-1 line-clamp-2 text-[0.75rem] text-muted-foreground">{tk.description}</p>
+      <div className="flex h-full min-w-0 flex-1 items-center gap-2.5 px-3">
+        <LogoTile className="h-5 w-5 rounded-md p-0.5 text-[0.65rem]" toolkit={tk} />
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-[0.78rem] font-medium text-foreground/85">{tk.name}</span>
+          {subtitle ? (
+            <span className="block truncate text-[0.62rem] text-muted-foreground/50">{subtitle}</span>
+          ) : null}
+        </span>
+        {state === 'connected' ? (
+          <span className="shrink-0 text-[0.65rem] font-medium text-emerald-700 dark:text-emerald-400">
+            {tc.connected}
+          </span>
         ) : null}
-        <div className="mt-2.5 flex flex-wrap items-center gap-2">
-          {state === 'connected' ? (
-            <>
-              <span className="text-[0.7rem] font-medium text-emerald-700 dark:text-emerald-400">
-                {tc.connected}
-              </span>
-              <Button
-                disabled={busy}
-                onClick={() => onDisconnect(tk)}
-                size="sm"
-                variant="ghost"
-              >
-                {disconnecting ? tc.connecting : tc.disconnect}
-              </Button>
-            </>
+        {!menu ? (
+          state === 'connected' ? (
+            <Button
+              className="h-7 shrink-0 px-2 text-[0.72rem]"
+              disabled={busy}
+              onClick={() => onDisconnect(tk)}
+              size="xs"
+              variant="ghost"
+            >
+              {disconnecting ? tc.connecting : tc.disconnect}
+            </Button>
           ) : (
-            <Button disabled={busy} onClick={() => onConnect(tk)} size="sm">
+            <Button
+              className="h-7 shrink-0 px-2 text-[0.72rem]"
+              disabled={busy}
+              onClick={() => onConnect(tk)}
+              size="xs"
+              variant="ghost"
+            >
               {connecting ? tc.connecting : state === 'broken' ? tc.reconnect : tc.connect}
             </Button>
-          )}
-        </div>
+          )
+        ) : null}
       </div>
+      {menu ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              aria-label={tk.name}
+              className={cn(
+                ICON_BUTTON,
+                'mr-1.5 shrink-0 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100'
+              )}
+              disabled={busy}
+              size="icon"
+              variant="ghost"
+            >
+              <Codicon name="ellipsis" size="0.8125rem" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40" sideOffset={6}>
+            {state === 'connected' ? (
+              <DropdownMenuItem
+                className="text-destructive focus:text-destructive"
+                disabled={busy}
+                onSelect={() => onDisconnect(tk)}
+              >
+                {disconnecting ? tc.connecting : tc.disconnect}
+              </DropdownMenuItem>
+            ) : (
+              <DropdownMenuItem disabled={busy} onSelect={() => onConnect(tk)}>
+                {connecting ? tc.connecting : state === 'broken' ? tc.reconnect : tc.connect}
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
     </div>
   )
 }
@@ -111,11 +148,11 @@ function ConnectorCard({
 function CategorySection({
   title,
   items,
-  renderCard
+  renderRow
 }: {
   title: string
   items: ConnectorToolkit[]
-  renderCard: (tk: ConnectorToolkit) => ReactNode
+  renderRow: (tk: ConnectorToolkit) => ReactNode
 }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
@@ -125,14 +162,14 @@ function CategorySection({
   if (items.length === 0) return null
 
   return (
-    <section>
-      <h3 className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+    <section className="overflow-hidden rounded-lg border border-border">
+      <h3 className="flex h-9 items-center border-b border-border px-3 text-[0.78rem] font-medium text-foreground">
         {title}
       </h3>
-      <div className="grid gap-3 sm:grid-cols-2">{visible.map(renderCard)}</div>
+      <div>{visible.map(renderRow)}</div>
       {hidden > 0 ? (
         <button
-          className="mt-2 text-[0.75rem] font-medium text-muted-foreground hover:text-foreground"
+          className="flex h-9 w-full items-center border-t border-border px-3 text-left text-[0.72rem] font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground"
           onClick={() => setExpanded(v => !v)}
           type="button"
         >
@@ -349,13 +386,13 @@ export function ConnectorsTab({
     }
   }, [accounts.length, refreshStatus, tc])
 
-  const card = (tk: ConnectorToolkit, compact?: boolean) => (
-    <ConnectorCard
+  const row = (tk: ConnectorToolkit, menu?: boolean) => (
+    <ConnectorListRow
       accounts={byToolkit.get(tk.slug.toLowerCase()) || []}
-      compact={compact}
       connecting={connecting === tk.slug}
       disconnecting={disconnecting === tk.slug}
       key={tk.slug}
+      menu={menu}
       onConnect={onConnect}
       onDisconnect={onDisconnect}
       tk={tk}
@@ -406,31 +443,37 @@ export function ConnectorsTab({
     }
 
     return (
-      <div className="flex flex-col gap-4 overflow-y-auto p-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h3 className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-            {tc.connectedSection}
-          </h3>
-          <div className="flex items-center gap-2">
-            {onOpenMarketplace ? (
-              <Button onClick={onOpenMarketplace} size="sm" variant="ghost">
-                {tc.addConnector}
-              </Button>
-            ) : null}
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+          <span className="truncate text-[0.78rem] font-medium text-foreground">
+            {tc.installedCount(filteredConnected.length)}
+          </span>
+          <div className="flex shrink-0 items-center gap-1">
             {accounts.length > 0 ? (
               <Button
+                className="h-7 px-2 text-[0.75rem]"
                 disabled={disconnectingAll || Boolean(disconnecting)}
                 onClick={() => void onDisconnectAll()}
-                size="sm"
+                size="xs"
                 variant="ghost"
               >
                 {disconnectingAll ? tc.connecting : tc.disconnectAll}
               </Button>
             ) : null}
+            {onOpenMarketplace ? (
+              <Button
+                className="h-7 px-2 text-[0.75rem]"
+                onClick={onOpenMarketplace}
+                size="xs"
+                variant="ghost"
+              >
+                {tc.addConnector}
+              </Button>
+            ) : null}
           </div>
         </div>
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredConnected.map(tk => card(tk))}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+          {filteredConnected.map(tk => row(tk, true))}
         </div>
       </div>
     )
@@ -438,18 +481,16 @@ export function ConnectorsTab({
 
   // Marketplace
   return (
-    <div className="flex flex-col gap-6 overflow-y-auto p-4 pb-6">
-      <p className="text-[0.8rem] text-muted-foreground">{tc.marketplaceTitle}</p>
-
+    <div className="flex flex-col gap-4 overflow-y-auto p-4 pb-6">
       <CategorySection
         items={marketplaceFeatured}
-        renderCard={tk => card(tk, true)}
+        renderRow={tk => row(tk, false)}
         title={tc.featuredSection}
       />
       {marketplaceDev.length > 0 ? (
         <CategorySection
           items={marketplaceDev}
-          renderCard={tk => card(tk, true)}
+          renderRow={tk => row(tk, false)}
           title={tc.devSection}
         />
       ) : null}
@@ -457,7 +498,7 @@ export function ConnectorsTab({
         <CategorySection
           items={items}
           key={category}
-          renderCard={tk => card(tk, true)}
+          renderRow={tk => row(tk, false)}
           title={category}
         />
       ))}

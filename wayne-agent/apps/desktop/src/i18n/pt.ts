@@ -244,6 +244,7 @@ export const pt = defineLocale({
     empty: 'Nenhum conector corresponde.',
     featuredSection: 'Destaques',
     connectedSection: 'Conectados',
+    installedCount: count => `Instalados ${count}`,
     devSection: 'Desenvolvimento',
     viewFullCatalog: 'Ver catálogo completo →',
     backToFeatured: 'Voltar aos destaques',

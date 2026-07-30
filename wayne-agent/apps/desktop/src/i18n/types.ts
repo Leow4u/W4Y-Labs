@@ -1636,6 +1636,8 @@ export interface Translations {
     empty: string
     featuredSection: string
     connectedSection: string
+    /** Cursor Plugins header: "Installed N". */
+    installedCount: (count: number) => string
     devSection: string
     viewFullCatalog: string
     backToFeatured: string

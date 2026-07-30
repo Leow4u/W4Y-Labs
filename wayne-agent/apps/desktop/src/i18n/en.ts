@@ -2337,6 +2337,7 @@ export const en: Translations = {
     empty: 'No connectors match.',
     featuredSection: 'Featured',
     connectedSection: 'Connected',
+    installedCount: count => `Installed ${count}`,
     devSection: 'Development',
     viewFullCatalog: 'View full catalog →',
     backToFeatured: 'Back to featured',
