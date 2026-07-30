@@ -1057,6 +1057,18 @@ export interface Translations {
     changesApplyNewSessions: string
     skillUpdated: string
     edit: string
+    open: string
+    rowMenu: string
+    addSkill: string
+    userSection: (count: number) => string
+    newSkillTitle: string
+    newSkillDesc: string
+    newSkillPlaceholder: string
+    newSkillHint: string
+    skillCreated: string
+    createFailed: string
+    editLearnedOnlyTitle: string
+    editLearnedOnlyDesc: string
     archive: string
     skillArchivedTitle: string
     skillArchivedMessage: string

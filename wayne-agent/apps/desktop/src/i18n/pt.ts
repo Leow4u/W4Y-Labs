@@ -206,7 +206,24 @@ export const pt = defineLocale({
       bundled: 'Nativa',
       hub: 'Hub',
       project: 'Projeto'
-    }
+    },
+    open: 'Abrir',
+    rowMenu: 'Ações da skill',
+    addSkill: '+ Adicionar',
+    userSection: count => `Skills do utilizador${count > 0 ? ` (${count})` : ''}`,
+    newSkillTitle: 'Nova skill',
+    newSkillDesc: 'Cria um SKILL.md nas skills aprendidas. Podes editar de seguida.',
+    newSkillPlaceholder: 'nome-da-skill',
+    newSkillHint: 'Letras minúsculas, dígitos, pontos, hífens e underscores.',
+    skillCreated: 'Skill criada',
+    createFailed: 'Não foi possível criar a skill',
+    editLearnedOnlyTitle: 'Só skills aprendidas abrem aqui',
+    editLearnedOnlyDesc:
+      'Skills de hub e de projeto editam-se nos ficheiros de origem — as aprendidas abrem no editor em baixo.',
+    edit: 'Editar',
+    archive: 'Arquivar',
+    skillUpdated: 'Skill atualizada',
+    changesApplyNewSessions: 'As alterações aplicam-se a novas sessões.'
   },
 
   connectors: {

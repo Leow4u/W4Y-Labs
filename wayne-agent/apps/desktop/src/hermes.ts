@@ -601,6 +601,23 @@ export function getSkills(): Promise<SkillInfo[]> {
   })
 }
 
+export interface SkillWriteResult {
+  error?: string
+  message?: string
+  success?: boolean
+  [key: string]: unknown
+}
+
+/** Create a user skill (SKILL.md) via the same validated path as skill_manage. */
+export function createSkill(skill: { name: string; content: string; category?: string }): Promise<SkillWriteResult> {
+  return window.hermesDesktop.api<SkillWriteResult>({
+    ...profileScoped(),
+    path: '/api/skills',
+    method: 'POST',
+    body: skill
+  })
+}
+
 export function getStarmapGraph(): Promise<StarmapGraph> {
   return window.hermesDesktop.api<StarmapGraph>({
     ...profileScoped(),

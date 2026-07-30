@@ -1,3 +1,7 @@
+/**
+ * Personalizar → Skills: Cursor-style list + bottom DetailPane editor.
+ * Click / ⋯ Open = same path as the old Edit button (getLearningNode + CodeEditor).
+ */
 import { useStore } from '@nanostores/react'
 import { useQuery } from '@tanstack/react-query'
 import type * as React from 'react'
@@ -7,35 +11,35 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { ArchiveSkillConfirmDialog } from '@/app/learning/archive-skill-confirm-dialog'
 import { CodeEditor } from '@/components/chat/code-editor'
 import { PageLoader } from '@/components/page-loader'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
-import { editLearningNode, getLearningNode, getSkills, type HermesGateway } from '@/hermes'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { createSkill, editLearningNode, getLearningNode, getSkills, type HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { openExternalLink } from '@/lib/external-link'
 import { compactNumber } from '@/lib/format'
 import { queryClient, writeCache } from '@/lib/query-client'
 import { normalize } from '@/lib/text'
+import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeProfile } from '@/store/profile'
 import type { SkillInfo } from '@/types/hermes'
-import { cn } from '@/lib/utils'
 
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
 import { useRouteEnumParam } from '../hooks/use-route-enum-param'
-import {
-  CapRow,
-  DetailColumn,
-  DetailPane,
-  ListColumn,
-  ListStrip,
-  ListStripButton,
-  MasterDetail
-} from '../master-detail'
-import { PanelPill } from '../overlays/panel'
+import { DetailPane, ICON_BUTTON, ListStrip, ListStripButton } from '../master-detail'
 import { PageSearchShell } from '../page-search-shell'
-import { asText, includesQuery, prettyName } from '../settings/helpers'
+import { asText, includesQuery } from '../settings/helpers'
 import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
 import { ConnectorsTab } from './connectors-tab'
@@ -45,8 +49,6 @@ import { $skillsSortDesc } from './store'
 
 const SKILLS_DOCS_URL = 'https://hermes-agent.nousresearch.com/docs/user-guide/features/skills'
 
-// Personalizar (Cursor Customize): Skills · Conectores · MCPs + Browse Marketplace.
-// Browse Hub stays off the product face (PRODUTO.md).
 const SKILLS_MODES = ['skills', 'connectors', 'mcp'] as const
 
 const SKILLS_QUERY_KEY = ['skills-list'] as const
@@ -55,38 +57,32 @@ const setSkills = writeCache<SkillInfo[]>(SKILLS_QUERY_KEY)
 
 const usageOf = (skill: SkillInfo): number => (typeof skill.usage === 'number' ? skill.usage : 0)
 
-const categoryFor = (skill: SkillInfo): string => asText(skill.category) || 'general'
-
 /** Product-facing skills: learned, project files, legacy hub installs. Kit = formula. */
 export function isProductSkill(skill: SkillInfo): boolean {
   return skill.provenance === 'agent' || skill.provenance === 'hub' || skill.provenance === 'project'
 }
 
-// Row subtitle: category + provenance — no summary / Edit / Archive in the list.
-function skillSubtitle(skill: SkillInfo): React.ReactNode {
-  const category = prettyName(categoryFor(skill))
-  const provenance = skill.provenance
+const isEditableSkill = (skill: SkillInfo): boolean => skill.provenance === 'agent'
 
-  return (
-    <>
-      <span className="truncate">{category}</span>
-      {provenance === 'agent' && (
-        <Badge className="shrink-0 normal-case" variant="default">
-          learned
-        </Badge>
-      )}
-      {provenance === 'project' && (
-        <Badge className="shrink-0 normal-case" variant="muted">
-          project
-        </Badge>
-      )}
-      {provenance === 'hub' && (
-        <Badge className="shrink-0 normal-case" variant="muted">
-          hub
-        </Badge>
-      )}
-    </>
-  )
+function skillCreateTemplate(name: string): string {
+  return `---
+name: ${name}
+description: Describe when Agent should use this skill.
+---
+
+# ${name}
+
+Numbered steps, exact commands, and pitfalls go here.
+`
+}
+
+function slugSkillName(raw: string): string {
+  return raw
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 64)
 }
 
 function filteredSkills(skills: SkillInfo[], query: string, desc: boolean): SkillInfo[] {
@@ -125,7 +121,6 @@ export function SkillsView({
       const params = new URLSearchParams(search)
       if (open) {
         params.set('view', 'marketplace')
-        // Marketplace is connectors catalog — keep tab coherent for deep-links.
         if (params.get('tab') !== 'connectors' && params.get('tab') !== 'mcp' && params.get('tab') !== 'skills') {
           params.delete('tab')
         }
@@ -165,16 +160,11 @@ export function SkillsView({
     [query, skills, skillsSortDesc]
   )
 
-  // Detail only after an explicit click — no auto-select of the first row.
-  const activeSkill = useMemo(
-    () => visibleSkills.find(s => s.name === selectedSkill) ?? null,
-    [selectedSkill, visibleSkills]
-  )
-
   const [skillEditor, setSkillEditor] = useState<null | { content: string; name: string }>(null)
   const [skillDraft, setSkillDraft] = useState('')
   const [skillSaving, setSkillSaving] = useState(false)
   const [archiveTarget, setArchiveTarget] = useState<null | string>(null)
+  const [createOpen, setCreateOpen] = useState(false)
   const skillEditorEpoch = useRef(0)
 
   useOnProfileSwitch(() => {
@@ -183,6 +173,7 @@ export function SkillsView({
     setSkillDraft('')
     setArchiveTarget(null)
     setSelectedSkill(null)
+    setCreateOpen(false)
   })
 
   const openSkillEditor = async (name: string) => {
@@ -195,11 +186,24 @@ export function SkillsView({
         return
       }
 
+      setSelectedSkill(name)
       setSkillEditor({ content: node.content, name })
       setSkillDraft(node.content)
     } catch (err) {
       notifyError(err, name)
     }
+  }
+
+  const openSkill = (skill: SkillInfo) => {
+    if (!isEditableSkill(skill)) {
+      notify({
+        kind: 'info',
+        title: t.skills.editLearnedOnlyTitle,
+        message: t.skills.editLearnedOnlyDesc
+      })
+      return
+    }
+    void openSkillEditor(skill.name)
   }
 
   const saveSkillEdit = async () => {
@@ -258,9 +262,14 @@ export function SkillsView({
     return (
       <CustomizeEmpty
         actions={
-          <CustomizeEmptyAction onClick={() => openExternalLink(SKILLS_DOCS_URL)}>
-            {t.skills.documentation}
-          </CustomizeEmptyAction>
+          <>
+            <CustomizeEmptyAction onClick={() => setCreateOpen(true)} variant="muted">
+              {t.skills.addSkill}
+            </CustomizeEmptyAction>
+            <CustomizeEmptyAction onClick={() => openExternalLink(SKILLS_DOCS_URL)}>
+              {t.skills.documentation}
+            </CustomizeEmptyAction>
+          </>
         }
         description={t.skills.emptyProductSkillsDesc}
         title={t.skills.emptyProductSkillsTitle}
@@ -345,43 +354,43 @@ export function SkillsView({
       ) : visibleSkills.length === 0 ? (
         skillsEmpty()
       ) : (
-        <MasterDetail pane={skillEditorPane} split="wide">
-          <ListColumn
-            header={
-              <ListStrip
-                left={
+        <div className="flex h-full min-h-0 flex-col">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+            <ListStrip
+              left={
+                <>
+                  <span className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                    {t.skills.userSection(visibleSkills.length)}
+                  </span>
                   <ListStripButton onClick={() => $skillsSortDesc.set(!$skillsSortDesc.get())}>
                     {skillsSortDesc ? t.skills.sortMostUsedDesc : t.skills.sortLeastUsedAsc}
                   </ListStripButton>
-                }
-              />
-            }
-          >
-            {visibleSkills.map(skill => (
-              <CapRow
-                active={activeSkill?.name === skill.name}
-                key={skill.name}
-                meta={usageOf(skill) > 0 ? `×${compactNumber(usageOf(skill))}` : undefined}
-                onSelect={() => setSelectedSkill(skill.name)}
-                subtitle={skillSubtitle(skill)}
-                title={skill.name}
-              />
-            ))}
-          </ListColumn>
-          <DetailColumn footer={t.skills.changesApplyNewSessions}>
-            {activeSkill ? (
-              <SkillDetail
-                onArchive={() => setArchiveTarget(activeSkill.name)}
-                onEdit={() => void openSkillEditor(activeSkill.name)}
-                skill={activeSkill}
-              />
-            ) : (
-              <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-                {t.skills.noDescription}
-              </p>
-            )}
-          </DetailColumn>
-        </MasterDetail>
+                </>
+              }
+              right={
+                <Button onClick={() => setCreateOpen(true)} size="xs" variant="ghost">
+                  {t.skills.addSkill}
+                </Button>
+              }
+            />
+            <div className="mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-0.5">
+              {visibleSkills.map(skill => (
+                <SkillListRow
+                  active={selectedSkill === skill.name || skillEditor?.name === skill.name}
+                  key={skill.name}
+                  meta={usageOf(skill) > 0 ? `×${compactNumber(usageOf(skill))}` : undefined}
+                  onArchive={isEditableSkill(skill) ? () => setArchiveTarget(skill.name) : undefined}
+                  onOpen={() => openSkill(skill)}
+                  skill={skill}
+                />
+              ))}
+            </div>
+            <p className="shrink-0 pt-2 text-right text-[0.65rem] text-muted-foreground/50">
+              {t.skills.changesApplyNewSessions}
+            </p>
+          </div>
+          {skillEditorPane}
+        </div>
       )}
       {archiveTarget && (
         <ArchiveSkillConfirmDialog
@@ -408,74 +417,168 @@ export function SkillsView({
           skillName={archiveTarget}
         />
       )}
+      <NewSkillDialog
+        onClose={() => setCreateOpen(false)}
+        onCreated={name => {
+          setCreateOpen(false)
+          void refreshCapabilities().then(() => void openSkillEditor(name))
+        }}
+        open={createOpen}
+      />
     </PageSearchShell>
   )
 }
 
-function DetailHeader({
-  description,
-  pills,
-  title
+function SkillListRow({
+  active,
+  meta,
+  onArchive,
+  onOpen,
+  skill
 }: {
-  description: React.ReactNode
-  pills?: React.ReactNode
-  title: string
+  active: boolean
+  meta?: string
+  onArchive?: () => void
+  onOpen: () => void
+  skill: SkillInfo
 }) {
+  const { t } = useI18n()
+  const description = asText(skill.description) || t.skills.noDescription
+
   return (
-    <header>
-      <div className="flex min-h-6 flex-wrap items-center gap-2">
-        <h3 className="min-w-0 truncate text-[0.9375rem] font-semibold tracking-tight">{title}</h3>
-        {pills}
-      </div>
-      <p className="mt-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
-        {description}
-      </p>
-    </header>
+    <div
+      className={cn(
+        'group flex w-full items-start gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors',
+        active ? 'border-border/80 bg-muted/60' : 'bg-muted/35 hover:bg-muted/55'
+      )}
+    >
+      <button
+        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+        onClick={onOpen}
+        type="button"
+      >
+        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground">
+          <Codicon name="sparkle" size="0.875rem" />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="flex items-center gap-2">
+            <span className="truncate text-[0.875rem] font-semibold text-foreground">{skill.name}</span>
+            {meta ? (
+              <span className="shrink-0 text-[0.65rem] tabular-nums text-muted-foreground/70">{meta}</span>
+            ) : null}
+          </span>
+          <span className="mt-0.5 line-clamp-2 text-[0.75rem] leading-snug text-muted-foreground">{description}</span>
+        </span>
+      </button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label={t.skills.rowMenu}
+            className={cn(ICON_BUTTON, 'mt-0.5 shrink-0 opacity-70 group-hover:opacity-100')}
+            size="icon"
+            variant="ghost"
+          >
+            <Codicon name="ellipsis" size="0.875rem" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36" sideOffset={6}>
+          <DropdownMenuItem onSelect={onOpen}>{t.skills.open}</DropdownMenuItem>
+          {onArchive ? (
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onSelect={onArchive}
+            >
+              {t.skills.archive}
+            </DropdownMenuItem>
+          ) : null}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   )
 }
 
-function SkillDetail({ onArchive, onEdit, skill }: { onArchive: () => void; onEdit: () => void; skill: SkillInfo }) {
+function NewSkillDialog({
+  onClose,
+  onCreated,
+  open
+}: {
+  onClose: () => void
+  onCreated: (name: string) => void
+  open: boolean
+}) {
   const { t } = useI18n()
-  const editable = skill.provenance === 'agent'
-  const provenanceLabel =
-    skill.provenance && skill.provenance in t.skills.provenance
-      ? t.skills.provenance[skill.provenance as keyof typeof t.skills.provenance]
-      : skill.provenance
+  const [name, setName] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const slug = slugSkillName(name)
+  const invalid = name.trim().length > 0 && slug.length === 0
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!slug || saving) return
+
+    setSaving(true)
+    setError(null)
+    try {
+      await createSkill({ name: slug, content: skillCreateTemplate(slug) })
+      notify({
+        kind: 'success',
+        title: t.skills.skillCreated,
+        message: t.skills.appliesToNewSessions(slug)
+      })
+      setName('')
+      onCreated(slug)
+    } catch (err) {
+      const message = err instanceof Error ? err.message : t.skills.createFailed
+      setError(message)
+      notifyError(err, slug)
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
-    <>
-      <DetailHeader
-        description={asText(skill.description) || t.skills.noDescription}
-        pills={
-          <>
-            <PanelPill>{prettyName(categoryFor(skill))}</PanelPill>
-            {skill.provenance && skill.provenance !== 'bundled' && (
-              <PanelPill tone={skill.provenance === 'agent' ? 'good' : 'muted'}>{provenanceLabel}</PanelPill>
-            )}
-          </>
+    <Dialog
+      onOpenChange={value => {
+        if (!value && !saving) {
+          setName('')
+          setError(null)
+          onClose()
         }
-        title={skill.name}
-      />
-      {editable && (
-        <div className="flex items-center gap-2">
-          <Button onClick={onEdit} size="xs" variant="text">
-            {t.skills.edit}
-          </Button>
-          <Button className="text-destructive hover:text-destructive" onClick={onArchive} size="xs" variant="text">
-            {t.skills.archive}
-          </Button>
-        </div>
-      )}
-      {skill.provenance === 'project' && (
-        <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-          {t.skills.projectSkillHint}
-        </p>
-      )}
-      {skill.provenance === 'hub' && (
-        <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-          {t.skills.hubSkillManageHint}
-        </p>
-      )}
-    </>
+      }}
+      open={open}
+    >
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>{t.skills.newSkillTitle}</DialogTitle>
+          <DialogDescription>{t.skills.newSkillDesc}</DialogDescription>
+        </DialogHeader>
+        <form className="grid gap-4" onSubmit={event => void submit(event)}>
+          <div className="grid gap-1.5">
+            <Input
+              aria-invalid={invalid || Boolean(error)}
+              autoFocus
+              onChange={event => {
+                setName(event.target.value)
+                setError(null)
+              }}
+              placeholder={t.skills.newSkillPlaceholder}
+              value={name}
+            />
+            <p className={cn('text-[0.66rem] leading-4', invalid || error ? 'text-destructive' : 'text-muted-foreground')}>
+              {error ?? t.skills.newSkillHint}
+            </p>
+          </div>
+          <DialogFooter className="gap-2 sm:justify-between">
+            <Button disabled={saving} onClick={onClose} type="button" variant="ghost">
+              {t.common.cancel}
+            </Button>
+            <Button disabled={saving || !slug || invalid} type="submit">
+              {saving ? t.common.saving : t.common.confirm}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }
