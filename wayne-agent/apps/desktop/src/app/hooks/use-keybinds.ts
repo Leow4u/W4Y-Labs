@@ -47,7 +47,6 @@ import { useTheme } from '@/themes/context'
 import { requestComposerFocus, requestVoiceToggle } from '../chat/composer/focus'
 import { SIDEBAR_COLLAPSE_MEDIA_QUERY } from '../layout-constants'
 import {
-  AGENT_STUDIO_ROUTE,
   AGENTS_ROUTE,
   ARTIFACTS_ROUTE,
   CRON_ROUTE,
@@ -197,7 +196,7 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
     'profile.prev': () => cycleProfile(-1),
     'profile.toggleAll': toggleShowAllProfiles,
     'profile.create': () => {
-      navigate(AGENT_STUDIO_ROUTE)
+      navigate(PROFILES_ROUTE)
       requestProfileCreate()
     }
   }

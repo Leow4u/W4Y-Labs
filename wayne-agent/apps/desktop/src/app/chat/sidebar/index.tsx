@@ -141,8 +141,7 @@ const NON_SESSION_LOAD_STEP = 10
 
 const NEW_SESSION_KBD = comboTokens('mod+n')
 
-// Work-first (docs/PRODUTO.md): Nova sessão is the daily path. Agent roster
-// (profiles / islands) stays off primary nav — open via command palette.
+// Work-first (docs/PRODUTO.md): Nova sessão is the daily path.
 const SIDEBAR_NAV: SidebarNavItem[] = [
   {
     id: 'new-session',

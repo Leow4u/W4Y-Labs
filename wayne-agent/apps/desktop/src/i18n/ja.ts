@@ -1548,7 +1548,6 @@ export const ja = defineLocale({
   sidebar: {
     nav: {
       'new-session': '新しいセッション',
-      'agent-studio': 'エージェント',
       cron: '自動化',
       skills: 'スキルとツール',
       messaging: 'メッセージング',

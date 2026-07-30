@@ -45,7 +45,6 @@ export function prefetchSettingsData(): void {
   })
 }
 
-export const prefetchAgentStudio = () => once('agent-studio', () => import('./agent-studio'))
 export const prefetchAgents = () => once('agents', () => import('./agents'))
 export const prefetchArtifacts = () => once('artifacts', () => import('./artifacts'))
 export const prefetchCommandCenter = () => once('command-center', () => import('./command-center'))
@@ -63,9 +62,6 @@ export const prefetchStarmap = () => once('starmap', () => import('./starmap'))
  *  renders the always-loaded chat view) are no-ops. */
 export function prefetchNavView(id: string): void {
   switch (id) {
-    case 'agent-studio':
-      prefetchAgentStudio()
-      break
     case 'cron':
       prefetchCron()
       break

@@ -123,7 +123,6 @@ export type CommandDispatchResponse =
   | PrefillCommandDispatchResponse
 
 export type SidebarNavId =
-  | 'agent-studio'
   | 'artifacts'
   | 'command-center'
   | 'cron'

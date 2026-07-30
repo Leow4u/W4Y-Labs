@@ -116,7 +116,7 @@ Apagada a 29/07; o histórico do git guarda-a. Foram com ela os dez ficheiros vi
 |---|---|---|
 | **Motor tem, UI não expõe** | Grande | `display.tool_progress`, `display.background_process_notifications`, `smart_model_routing`, `display.skin`, maior parte de `curator.*` e `logging.*`; RPC `session.compress`/`undo`/`branch`/`history`; `delegation.pause`, `subagent.interrupt`; billing RPC completo |
 | **Feito duas vezes** | Médio | §1.5 — duas árvores Electron a partilhar um `latest.yml`; Git (Electron IPC **e** REST); terminal (PTY Electron **e** `/api/pty`); modelos (3 UIs); subagentes (2 conchas); aprovações (2 caminhos de escrita); "o que mudou" no git (2 sondas) |
-| **Existe mas escondido** | Médio | Profiles, Starmap, Agent Studio, Command Center e Settings fora da navegação primária; `?tab=providers`, `?tab=keys`, `?tab=gateway`, `?tab=config:advanced` só por deep-link |
+| **Existe mas escondido** | Médio | Profiles, Starmap, Command Center e Settings fora da navegação primária; `?tab=providers`, `?tab=keys`, `?tab=gateway`, `?tab=config:advanced` só por deep-link |
 | **UI expõe errado** | Pequeno mas caro | §1.3 — controlo de permissão a prometer aprovação que o agente não ia pedir |
 | **Uma superfície tem, as outras não** | Pequeno | §1.4 — guarda de ficheiros sensíveis preso ao ACP; `file_tools` sem portão de aprovação nenhum |
 | **Declarado e morto** | Pequeno | §1.1 e §1.2; `setGlobalYolo()` sem chamadores; eventos `skin.changed` e `voice.*` emitidos sem ouvinte; blocos de áudio tipados no ACP sem conversão |
@@ -313,7 +313,7 @@ Não consumidos: portal, pairing, pool de credenciais, knowledge, agent-trace, t
 | Alcance | Superfícies |
 |---|---|
 | Navegação primária | Chat, sidebar, composer, Ambiente (Files/Agents/Browser/Terminal), Review, Preview, Capabilities, Messaging, Artifacts, Automations |
-| Só paleta / atalho / deep-link | Settings, Command Center, Agents (overlay), Profiles, Starmap, Agent Studio, Model picker, Model visibility, Pet generate, Keybinds |
+| Só paleta / atalho / deep-link | Settings, Command Center, Agents (overlay), Profiles, Starmap, Model picker, Model visibility, Pet generate, Keybinds |
 | Settings na navegação principal | General, Account, Appearance, Voice, Notifications, Browser & Network, Memory, Models, About |
 | Settings só por deep-link | `?tab=providers`, `?tab=gateway`, `?tab=keys`, `?tab=config:advanced` |
 
@@ -351,7 +351,7 @@ Coluna **Proveniência** apurada em 29/07 por comparação ficheiro-a-ficheiro c
 
 Sincronizar o cache não chegou: as duas superfícies concordavam no valor e continuavam a descrever mal o que o motor ia fazer. O resto — `off` colapsado em `manual`, YOLO de sessão que as Settings não desarmavam, falha silenciosa — está em **§1.3**.
 
-Nota conceptual: "Agents" significa três coisas diferentes no produto — subagentes (delegação), Agent Studio (roster de perfis) e Profiles (CRUD/SOUL).
+Nota conceptual: "Agents" no produto = (1) subagentes live (`delegate_task` / painel) e (2) futuro Personalizar → Subagentes (defs). Agent Studio (roster de perfis) foi removido 30/07. Profiles continua como CRUD técnico, não como segundo produto.
 
 ### 6.4 Persistência das definições
 

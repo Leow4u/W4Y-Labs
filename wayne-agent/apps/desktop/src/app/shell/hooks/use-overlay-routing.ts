@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { type CommandCenterSection } from '@/app/command-center'
 import {
-  AGENT_STUDIO_ROUTE,
   AGENTS_ROUTE,
   appViewForPath,
   COMMAND_CENTER_ROUTE,
@@ -61,7 +60,6 @@ export function useOverlayRouting() {
   }, [closeOverlayToPreviousRoute, commandCenterOpen, navigate])
 
   const openAgents = useCallback(() => navigate(AGENTS_ROUTE), [navigate])
-  const openAgentStudio = useCallback(() => navigate(AGENT_STUDIO_ROUTE), [navigate])
   const openStarmap = useCallback(() => navigate(STARMAP_ROUTE), [navigate])
 
   return {
@@ -71,7 +69,6 @@ export function useOverlayRouting() {
     commandCenterInitialSection,
     commandCenterOpen,
     currentView,
-    openAgentStudio,
     openAgents,
     openCommandCenterSection,
     openStarmap,

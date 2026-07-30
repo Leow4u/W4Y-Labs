@@ -1,6 +1,6 @@
 # Work4You — Definição de produto (canónico)
 
-> **Status:** fonte única de verdade de produto. Actualizado 29/07/2026.
+> **Status:** fonte única de verdade de produto. Actualizado 30/07/2026.
 >
 > **Se outro documento contradiz este, o outro está caduco.** Sem excepção.
 >
@@ -36,7 +36,7 @@ O que decorre disto, e vale para todas as decisões de UI e de copy:
   computadores.
 
 **Depois:** Enterprise (conta de organização com vários utilizadores), sem
-redefinir Work + Studio.
+redefinir o produto Work.
 
 ### O que não somos
 
@@ -59,15 +59,25 @@ documentos que a continham estão em `docs/arquivo/`.
 
 ## O que é a Work4You
 
-Uma plataforma com **dois produtos iniciais** (mesma app, mesma base técnica):
+Uma plataforma com **um produto** no v1 (mesma app, mesma base técnica):
 
 | Produto | O que é para o utilizador | Analogia de mercado |
 |--------|---------------------------|---------------------|
-| **Work** | Agente do dia a dia — chat, canais, ficheiros, rotina | Claude Cowork / ChatGPT "work" |
-| **Agent Studio** | Criar e gerir outros agentes na mesma base | Copilot Agent Studio (lista + connected) |
+| **Work** | O agente do dia a dia — chat, canais, ficheiros, rotina, Personalizar | Cursor (Customize + agent) / Claude Code |
+
+**Agent Studio está morto.** Não há segundo produto “criar agentes Hermes por
+profile / lista + connected”. Não se constrói módulo Studio, roster de perfis
+como agentes, nem orquestração Work→Studio. Código ou rotas que ainda digam
+`agent-studio` / “Agentes Studio” foram removidos da app; docs satélites
+que ainda digam Studio nesta parte estão caducos até limpeza.
 
 **Enterprise** (organização → vários utilizadores) fica para **depois**. Não
 baratear o produto; também não meter complexidade multi-tenant org no v1.
+
+A extensão do Work no sentido Cursor (“o utilizador define especialistas a que
+o agente delega”) é **Personalizar → Subagentes**: templates leves
+(`delegate_task`), não ilhas de profile. Ver estudo de desenho em curso; a
+decisão de produto aqui é só: **Studio fora; Subagentes = caminho correcto**.
 
 ---
 
@@ -75,49 +85,44 @@ baratear o produto; também não meter complexidade multi-tenant org no v1.
 
 - A plataforma / runtime por baixo é Work4You; tecnicamente é o stack Hermes (fork interno).
 - **Wayne Agent** = nome **interno** do orquestrador. Nunca marca de produto.
-- Regra de construção: se a capacidade já existe no Hermes (profile, canal, cron, memória, `delegate_task`, conectores), o trabalho é **UI + copy + polish** — não uma camada nova de plataforma.
+- Regra de construção: se a capacidade já existe no Hermes (canal, cron, memória, `delegate_task`, conectores, skills), o trabalho é **UI + copy + polish** — não uma camada nova de plataforma.
+- **Profiles** no motor (= `WAYNE_HOME` isolado) podem existir como mecanismo interno / multi-instância. **Não** são o produto “criar agentes” nem justificação para reabrir Studio.
 
 ### Guardrail anti-complexidade
 
 Antes de qualquer feature:
 
 1. Isto já existe no Hermes?
-2. Serve **Work** ou **Agent Studio** (lista + connected) no v1?
-3. Se não for crítico e exigir motor novo / canvas / workflow / org → **não construir** sem aprovação explícita.
+2. Serve o **Work** (incluindo Personalizar: Skills, Conectores, MCPs, e no futuro Subagentes)?
+3. Se não for crítico e exigir motor novo / canvas / workflow / org / Studio → **não construir** sem aprovação explícita.
 
 Já queimámos tempo a empilhar camadas em cima de um upstream que funciona. Não repetir.
 
 ---
 
-## Produto 1 — Work
+## Produto — Work
 
 - É o agente **Default** de todos os utilizadores.
 - Comportamento = Hermes (sem mais nem menos), com **UI** ajustada ao benchmark (Cursor).
-- **Utilizadores não modificam** o Default como se fosse um agente Studio (sem "editar o Work" no Studio).
-- **Invariante de UI/API:** o Default **nunca** aparece como agente editável no Agent Studio nem em Profiles (lista, SOUL.md, rename, delete). Pode aparecer como **Work** no dia a dia (sessões, switcher home) e como **fonte de clone** ao criar um agente Studio. Lapidação do Default = passo futuro interno — não self-service.
-- Participa da orquestração: no chat ou num canal ligado ao Work, o utilizador pode pedir para consultar / delegar a um agente do Studio; o Work chama esse agente e devolve o resultado.
-- Handoffs orquestrados pelo Default quando houver capacidade; **logs visíveis**.
+- **Utilizadores não “editam o Work” como se fosse um agente configurável à la Studio** — a lapidação do Default é passo futuro interno, não self-service de SOUL/profile.
+- **Invariante:** não expor o Default como agente editável num roster Studio (lista, rename, delete de “agente Work”). Sessões e home mostram **Work**; Personalizar estende capacidades (Skills, Conectores, Subagentes…), não clona o Default.
+- Delegação no turno: o modelo usa `delegate_task` (e, quando existir a aba, defs de Subagentes do utilizador). **Não** há handoff para “outro agente Studio”.
 - Treino / lapidação do Default = **passo futuro**, não bloqueia o v1.
 
 ---
 
-## Produto 2 — Agent Studio
+## Morto — Agent Studio (não construir)
 
-- Superfície para criar agentes **Hermes-class** (memória, skills, canais, etc.).
-- Base técnica = mesma do Hermes (ex.: profiles como ilhas).
-- UX de destino imediato: **lista** (roster) + indicação de **agentes connected** — não canvas, não workflow visual, não "times" nomeados no v1.
-- Connected primeiro; times / canvas / workflows = **muito mais tarde**.
-- Cada agente pode ter (ao longo do tempo) base de conhecimento, guardrails, fluxos próprios — sempre em cima da base Hermes, sem reinventar o core.
-- Credenciais: Work e Studio são planos de identidade distintos; partilha ("Usar as minhas") só **explícita**, nunca silenciosa.
-- Studio **não** se constrói em cima de um único agente-exemplo (LinkedIn, stock, etc.). Exemplos só ilustram o **nível de simplicidade** do v1 (um agente útil que faz o seu trabalho), não o roadmap do produto.
+Alinhamento **30/07/2026:** Agent Studio **não** é produto. Não há:
 
-### Fora do Studio no v1
+- Módulo / rota de produto “Agent Studio”
+- Agentes separados por profile como face do utilizador
+- Lista + connected de “agentes Hermes-class” como segundo produto
+- Canvas, times nomeados, marketplace de agentes, workflow visual
 
-- Canvas / ReactFlow
-- Compilador de workflow
-- Times nomeados como entidade
-- Marketplace / A-B de agentes
-- Enterprise org
+Specs antigas (`docs/arquivo/AGENT-STUDIO.md`, planos com Fase Studio) são
+arquivo. Se `PLATAFORMA.md` / `LINGUAGEM.md` / `BRIEF-SITE-*` ainda falarem em
+Studio, estão caducos nesta parte até limpeza — **manda este ficheiro**.
 
 ---
 
@@ -127,23 +132,25 @@ Já queimámos tempo a empilhar camadas em cima de um upstream que funciona. Nã
 Utilizador
     │
     ▼
-┌─────────┐     delega (logs)     ┌──────────────────┐
-│  Work   │ ───────────────────► │ Agentes Studio   │
-│ Default │ ◄─────────────────── │ (lista+connected)│
-└─────────┘                       └──────────────────┘
+┌──────────────────────────────────────────┐
+│  Work (Default)                          │
+│  chat · canais · ficheiros · rotina      │
+│  Personalizar: Skills · Conectores · …   │
+│  (+ Subagentes = defs leves p/ delegar)  │
+└──────────────────────────────────────────┘
     │
     └── UI Work4You  ·  motor Hermes (invisível)
 ```
 
-- Lista no Studio = **quem existe** (+ quem está connected).
-- Colaboração = Work (e depois connected) — **não** um diagrama obrigatório.
+Um produto. Especialistas do utilizador = **Subagentes** (quando existirem),
+não um segundo produto Studio.
 
 ---
 
 ## Fórmula vs Conectores
 
-> Alinhamento 29/07/2026. Aplica-se ao **Work**; o Studio herda a mesma
-> separação (fórmula do produto vs contas do agente). Não existe “modo
+> Alinhamento 29/07/2026 (fórmula/conectores). Alinhamento 30/07/2026: **só
+> Work** — Agent Studio morto; esta secção aplica-se ao Work. Não existe “modo
 > avançado” da receita — a Coca-Cola não deixa o cliente editar a fórmula.
 
 ### Quatro camadas
@@ -245,14 +252,15 @@ oficial.
 
 Uma proposta está alinhada se:
 
-- [ ] Serve Work e/ou Agent Studio (lista + connected)
-- [ ] Não introduz canvas/workflow/org no v1
+- [ ] Serve o **Work** (não reabre Agent Studio / agentes-por-profile)
+- [ ] Não introduz canvas/workflow/org/Studio no v1
 - [ ] Não trata Wayne/Hermes como marca de produto
-- [ ] Não edita o Default como agente Studio
+- [ ] Não expõe o Default como agente editável tipo Studio
 - [ ] Prefere reuso Hermes a motor novo
 - [ ] Trata o utilizador como técnico competente — sem explicar o básico
 - [ ] Não põe a fórmula (providers, toolsets nativos) na cara do utilizador
 - [ ] Contas / BYO do utilizador entram só por Conectores (uma porta)
-- [ ] Skills na face = learned + Hub; kit bundled não é grelha de toggles
+- [ ] Skills na face = learned + métodos; kit bundled não é grelha de toggles
+- [ ] “Agentes do utilizador” = Subagentes (Personalizar), não profiles/Studio
 
 Se falhar algum ponto → fora de escopo até nova decisão registada **neste** ficheiro.

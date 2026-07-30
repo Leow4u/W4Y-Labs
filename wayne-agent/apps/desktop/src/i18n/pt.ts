@@ -27,30 +27,6 @@ export const pt = defineLocale({
     ]
   },
 
-  agentStudio: {
-    title: 'Agentes',
-    subtitle: 'Perfis de agentes isolados — não o chat de Work do dia a dia.',
-    identityHint:
-      'O trabalho diário começa em Nova sessão. Esta lista é para agentes extra (cada um numa ilha/perfil). Não reutilizam em silêncio o seu Gmail, WhatsApp ou LinkedIn — partilha credenciais só quando escolher “Usar as minhas”.',
-    newAgent: 'Novo perfil',
-    searchPlaceholder: 'Buscar agentes…',
-    count: n => `${n} ${n === 1 ? 'agente' : 'agentes'}`,
-    loading: 'A carregar agentes…',
-    emptyTitle: 'Ainda sem agentes isolados',
-    empty:
-      'Crie um perfil/ilha para um cliente, papel ou fluxo. Para o dia a dia, use Nova sessão.',
-    emptySearch: 'Nenhum agente corresponde a essa busca.',
-    loadFailed: 'Não foi possível carregar os agentes',
-    colName: 'Agente',
-    colChannels: 'Canais',
-    colStatus: 'Estado',
-    colModel: 'Modelo',
-    colSkills: 'Skills',
-    noChannels: 'Ainda nenhum',
-    statusIdle: 'Parado',
-    statusWorking: 'A trabalhar'
-  },
-
   profiles: {
     close: 'Fechar perfis',
     nameHint: 'Letras minúsculas, dígitos, hífens e underscores. Tem de começar por letra ou dígito.',
@@ -132,7 +108,7 @@ export const pt = defineLocale({
     failedRename: 'Não foi possível mudar o nome do perfil',
     workLockedTitle: 'Agente Work',
     workLocked:
-      'O Work (Default) é o seu agente do dia a dia — não é um agente do Studio e não pode ser editado, renomeado ou apagado aqui.'
+      'O Work (Default) é o seu agente do dia a dia — não pode ser editado, renomeado ou apagado aqui.'
   },
 
   composer: {
@@ -260,8 +236,7 @@ export const pt = defineLocale({
     emptyConnectedDesc: 'Liga Gmail, Notion, Slack e outras contas que o agente pode usar.',
     addConnector: '+ Adicionar',
     marketplaceTitle: 'Navegar conectores',
-    workScopeHint:
-      'Estes conectores são do seu agente de Work (dia a dia). Agentes do Studio mantêm contas próprias, salvo se partilhar explicitamente.',
+    workScopeHint: 'Estes conectores são do seu agente de Work.',
     authTitle: 'Conexão de aplicativo',
     authorize: 'Autorizar',
     waiting: 'Aguardando autorização…',
@@ -275,7 +250,6 @@ export const pt = defineLocale({
     nav: {
       'session.new': 'Nova sessão',
       'new-session': 'Nova sessão',
-      'agent-studio': 'Agentes',
       cron: 'Automações',
       skills: 'Personalizar',
       messaging: 'Canais',

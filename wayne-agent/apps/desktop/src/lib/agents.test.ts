@@ -24,7 +24,7 @@ describe('isWorkProfile / realAgents', () => {
     expect(isWorkProfile(stub({ name: 'social-media' }))).toBe(false)
   })
 
-  it('excludes Work from Studio roster', () => {
+  it('excludes Work from non-default profile lists', () => {
     const list = realAgents([
       stub({ name: 'default', is_default: true }),
       stub({ name: 'social-media' }),

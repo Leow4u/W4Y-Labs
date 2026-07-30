@@ -123,9 +123,6 @@ import { useGroupRegistry } from './shell/use-group-registry'
 import { OverlayFallback, ViewFallback } from './shell/view-fallback'
 import { UpdatesOverlay } from './updates-overlay'
 
-const AgentStudioView = lazy(async () => ({
-  default: (await import('./agent-studio')).AgentStudioView
-}))
 const AgentsView = lazy(async () => ({ default: (await import('./agents')).AgentsView }))
 const ArtifactsView = lazy(async () => ({ default: (await import('./artifacts')).ArtifactsView }))
 const CommandCenterView = lazy(async () => ({ default: (await import('./command-center')).CommandCenterView }))
@@ -1285,14 +1282,7 @@ export function DesktopController() {
             }
             path="cron"
           />
-          <Route
-            element={
-              <Suspense fallback={<ViewFallback />}>
-                <AgentStudioView setStatusbarItemGroup={setStatusbarItemGroup} />
-              </Suspense>
-            }
-            path="agent-studio"
-          />
+          <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="agent-studio" />
           <Route element={null} path="profiles" />
           <Route element={null} path="settings" />
           <Route element={null} path="command-center" />

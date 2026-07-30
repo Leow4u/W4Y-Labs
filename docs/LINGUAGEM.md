@@ -28,20 +28,21 @@ de API. Renomear um rótulo obscuro é bom; explicar o óbvio é condescendênci
 | MCP (`mcp.json`, catálogo de servers) | Tubagem sob Conectores — **não** aba nem jargão de produto |
 | Memory Graph / Starmap | O que aprendi / Learning map |
 | YOLO | Aprovar sozinho (copy amigável, não o acrônimo) |
-| Profiles | Equipe / Agentes (quando for lista de pessoas-agente) |
+| Profiles | Perfis (mecanismo interno / multi-instância — não “Agent Studio”) |
+| Agent Studio | **Morto** — não usar na copy nem na navegação |
 
 Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmula-vs-conectores).
 
 ## Já aplicado
 
 - Labels EN em `apps/desktop/src/i18n/en.ts` (cron, artifacts, sidebar, statusbar, command center).
-- Entrada **Agent Studio** na command palette + rota `/agent-studio`.
+- **Agent Studio removido** da app (rota, view, palette) — 30/07/2026.
 - **Banho de marca (UI):** wordmark Work4You no empty state; tema default `work4you` (oliva/carvão); títulos Electron/`en.ts` sem “Hermes” na cara do utilizador. Favicon/ícones de app aguardam asset final.
 
 ## Próximos
 
 1. Locale `pt-BR` via `defineLocale()` (parcial → EN fallback).  
-2. Alinhar copy da página Habilidades ao destino produto (Skills + Conectores + Hub; Tools/MCP fora da face) — ver PRODUTO.md.  
+2. Alinhar copy da página Personalizar ao destino produto (Skills + Conectores + Subagentes; Tools/MCP fora da face) — ver PRODUTO.md.  
 3. Empty states em PT na jornada principal (chat, agenda, entregas).  
 4. Revisar tool titles em `ToolTitleKey` para verbs de negócio.
 5. Favicon / `assets/icon.*` quando a arte final chegar.
@@ -50,5 +51,5 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 ## Fora
 
 - Reescrever o chat React do zero.  
-- Construir Studio no `desktop-shell`.
+- Reabrir Agent Studio / agentes-por-profile.
 - Renomear APIs internas (`hermesDesktop`, IPC `hermes:*`).

@@ -9,11 +9,8 @@ export const CRON_ROUTE = '/cron'
 export const PROFILES_ROUTE = '/profiles'
 export const AGENTS_ROUTE = '/agents'
 export const STARMAP_ROUTE = '/starmap'
-/** Isolated-agent roster (PRODUTO.md Agent Studio) — secondary to Work chat. */
-export const AGENT_STUDIO_ROUTE = '/agent-studio'
 
 export type AppView =
-  | 'agent-studio'
   | 'agents'
   | 'artifacts'
   | 'chat'
@@ -26,7 +23,6 @@ export type AppView =
   | 'starmap'
 
 export type AppRouteId =
-  | 'agent-studio'
   | 'agents'
   | 'artifacts'
   | 'command-center'
@@ -54,8 +50,7 @@ export const APP_ROUTES = [
   { id: 'cron', path: CRON_ROUTE, view: 'cron' },
   { id: 'profiles', path: PROFILES_ROUTE, view: 'profiles' },
   { id: 'agents', path: AGENTS_ROUTE, view: 'agents' },
-  { id: 'starmap', path: STARMAP_ROUTE, view: 'starmap' },
-  { id: 'agent-studio', path: AGENT_STUDIO_ROUTE, view: 'agent-studio' }
+  { id: 'starmap', path: STARMAP_ROUTE, view: 'starmap' }
 ] as const satisfies readonly AppRoute[]
 
 const APP_VIEW_BY_PATH = new Map<string, AppView>(APP_ROUTES.map(route => [route.path, route.view]))

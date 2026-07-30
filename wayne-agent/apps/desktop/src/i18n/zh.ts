@@ -1683,28 +1683,6 @@ export const zh: Translations = {
       '带上问题、目标或文件。我先检查，再给出具体下一步。'
     ]
   },
-  agentStudio: {
-    title: '代理',
-    subtitle: '独立代理配置档案 — 不是日常 Work 聊天。',
-    identityHint:
-      '日常工作从「新建会话」开始。此列表用于额外代理（各自独立的配置档案）。它们不会静默复用你的 Gmail、WhatsApp 或 LinkedIn — 仅在你选择「使用我的」时共享凭据。',
-    newAgent: '新建配置档案',
-    searchPlaceholder: '搜索代理…',
-    count: n => `${n} 个代理`,
-    loading: '正在加载代理…',
-    emptyTitle: '还没有独立代理',
-    empty: '为客户、角色或工作流创建一个独立配置档案。日常工作请使用「新建会话」。',
-    emptySearch: '没有匹配的代理。',
-    loadFailed: '无法加载代理',
-    colName: '代理',
-    colChannels: '频道',
-    colStatus: '状态',
-    colModel: '模型',
-    colSkills: '技能',
-    noChannels: '暂无',
-    statusIdle: '空闲',
-    statusWorking: '工作中'
-  },
   agents: {
     close: '关闭代理',
     title: '派生树',
@@ -2344,8 +2322,7 @@ export const zh: Translations = {
     emptyConnectedDesc: '连接 Gmail、Notion、Slack 等账号供代理使用。',
     addConnector: '+ 添加',
     marketplaceTitle: '浏览连接器',
-    workScopeHint:
-      '这些连接器属于你的日常 Work 代理。Studio 代理使用各自的账号，除非你明确共享。',
+    workScopeHint: '这些连接器属于你的 Work 代理。',
     authTitle: '应用连接',
     authorize: '授权',
     waiting: '等待授权…',
@@ -2393,7 +2370,6 @@ export const zh: Translations = {
   sidebar: {
     nav: {
       'new-session': '新建会话',
-      'agent-studio': '代理',
       cron: '自动化',
       skills: '自定义',
       messaging: '消息平台',

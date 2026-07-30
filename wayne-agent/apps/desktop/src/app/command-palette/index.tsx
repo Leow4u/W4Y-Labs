@@ -25,7 +25,6 @@ import {
   type IconComponent,
   Info,
   KeyRound,
-  Layers3,
   Link2,
   MessageCircle,
   Monitor,
@@ -61,7 +60,6 @@ import { type ThemeMode, useTheme } from '@/themes/context'
 import { isUserTheme, resolveTheme } from '@/themes/user-themes'
 
 import {
-  AGENT_STUDIO_ROUTE,
   AGENTS_ROUTE,
   ARTIFACTS_ROUTE,
   COMMAND_CENTER_ROUTE,
@@ -458,22 +456,6 @@ export function CommandPalette() {
           },
           { action: 'nav.profiles', icon: Users, id: 'nav-profiles', label: t.profiles.title, run: go(PROFILES_ROUTE) },
           { action: 'nav.agents', icon: Cpu, id: 'nav-agents', label: t.agents.title, run: go(AGENTS_ROUTE) },
-          {
-            icon: Layers3,
-            id: 'nav-agent-studio',
-            keywords: [
-              'agent studio',
-              'agents',
-              'agentes',
-              'profiles',
-              'perfis',
-              'isolated',
-              'roster',
-              'work4you'
-            ],
-            label: t.agentStudio.title,
-            run: go(AGENT_STUDIO_ROUTE)
-          },
           {
             icon: Starmap,
             id: 'nav-starmap',

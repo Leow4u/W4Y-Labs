@@ -1688,29 +1688,6 @@ export const en: Translations = {
       'Bring the problem, goal, or file. I’ll inspect first and keep the next step concrete.'
     ]
   },
-  agentStudio: {
-    title: 'Agents',
-    subtitle: 'Isolated agent profiles — not your daily Work chat.',
-    identityHint:
-      'Daily work starts with New session. This list is for extra agents (each its own profile island). They do not silently reuse your Gmail, WhatsApp, or LinkedIn — share credentials only when you choose “Use mine”.',
-    newAgent: 'New profile',
-    searchPlaceholder: 'Search agents…',
-    count: n => `${n} ${n === 1 ? 'agent' : 'agents'}`,
-    loading: 'Loading agents…',
-    emptyTitle: 'No isolated agents yet',
-    empty:
-      'Create a profile island for a client, role, or workflow. For day-to-day work, use New session instead.',
-    emptySearch: 'No agents match that search.',
-    loadFailed: 'Could not load agents',
-    colName: 'Agent',
-    colChannels: 'Channels',
-    colStatus: 'Status',
-    colModel: 'Model',
-    colSkills: 'Skills',
-    noChannels: 'None yet',
-    statusIdle: 'Idle',
-    statusWorking: 'Working'
-  },
   agents: {
     close: 'Close agents',
     title: 'Spawn tree',
@@ -2141,7 +2118,7 @@ export const en: Translations = {
     failedRename: 'Failed to rename profile',
     workLockedTitle: 'Work agent',
     workLocked:
-      'Work (Default) is your day-to-day agent — it is not a Studio agent and cannot be edited, renamed, or deleted here.'
+      'Work (Default) is your day-to-day agent — it cannot be edited, renamed, or deleted here.'
   },
 
   cron: {
@@ -2357,8 +2334,7 @@ export const en: Translations = {
     emptyConnectedDesc: 'Link Gmail, Notion, Slack, and other accounts your agent can use.',
     addConnector: '+ Add',
     marketplaceTitle: 'Browse connectors',
-    workScopeHint:
-      'These connectors belong to your Work agent (day-to-day). Studio agents keep their own accounts unless you explicitly share.',
+    workScopeHint: 'These connectors belong to your Work agent.',
     authTitle: 'App connection',
     authorize: 'Authorize',
     waiting: 'Waiting for authorization…',
@@ -2406,7 +2382,6 @@ export const en: Translations = {
   sidebar: {
     nav: {
       'new-session': 'New session',
-      'agent-studio': 'Agents',
       cron: 'Automations',
       skills: 'Customize',
       messaging: 'Channels',

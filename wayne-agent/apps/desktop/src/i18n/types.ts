@@ -1139,28 +1139,6 @@ export interface Translations {
     emptyBodies: readonly string[]
   }
 
-  agentStudio: {
-    title: string
-    subtitle: string
-    identityHint: string
-    newAgent: string
-    searchPlaceholder: string
-    count: (n: number) => string
-    loading: string
-    emptyTitle: string
-    empty: string
-    emptySearch: string
-    loadFailed: string
-    colName: string
-    colChannels: string
-    colStatus: string
-    colModel: string
-    colSkills: string
-    noChannels: string
-    statusIdle: string
-    statusWorking: string
-  }
-
   agents: {
     close: string
     title: string
@@ -1655,7 +1633,7 @@ export interface Translations {
     emptyConnectedDesc: string
     addConnector: string
     marketplaceTitle: string
-    /** Work (day-to-day) vs Studio agents identity plane. */
+    /** Scope hint for Work connectors. */
     workScopeHint: string
     /** Chat ConnectLinkCard + connect-by-chat prompts. */
     authTitle: string
