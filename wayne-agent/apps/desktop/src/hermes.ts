@@ -48,6 +48,7 @@ import type {
   SessionInfo,
   SessionMessagesResponse,
   SessionSearchResponse,
+  SkillHubCatalogResponse,
   SkillHubPreview,
   SkillHubScanResult,
   SkillHubSearchResponse,
@@ -156,6 +157,7 @@ export type {
   SessionRuntimeInfo,
   SessionSearchResponse,
   SessionSearchResult,
+  SkillHubCatalogResponse,
   SkillHubInstalledEntry,
   SkillHubPreview,
   SkillHubResult,
@@ -1210,6 +1212,18 @@ export function getSkillHubSources(): Promise<SkillHubSourcesResponse> {
   return window.hermesDesktop.api<SkillHubSourcesResponse>({
     ...profileScoped(),
     path: '/api/skills/hub/sources',
+    timeoutMs: HUB_REQUEST_TIMEOUT_MS
+  })
+}
+
+/** Curated optional-skills marketplace (local, no network). Default = featured. */
+export function getSkillHubCatalog(full = false): Promise<SkillHubCatalogResponse> {
+  const params = new URLSearchParams()
+  if (full) params.set('full', '1')
+  const qs = params.toString()
+  return window.hermesDesktop.api<SkillHubCatalogResponse>({
+    ...profileScoped(),
+    path: `/api/skills/hub/catalog${qs ? `?${qs}` : ''}`,
     timeoutMs: HUB_REQUEST_TIMEOUT_MS
   })
 }

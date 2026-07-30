@@ -18,7 +18,9 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import {
+  getSkillHubCatalog,
   getSkillHubSources,
+  getSkills,
   previewSkillHub,
   scanSkillHub,
   searchSkillsHub,
@@ -28,6 +30,12 @@ import {
 import { useI18n } from '@/i18n'
 import { stripAnsi } from '@/lib/ansi'
 import { Loader2 } from '@/lib/icons'
+import {
+  bundledSkillNames,
+  curateHubSearchResults,
+  filterCatalogSkills,
+  mergeHubListings
+} from '@/lib/skill-hub-curation'
 import { cn } from '@/lib/utils'
 import {
   $hubActions,
@@ -144,17 +152,35 @@ export function SkillsHub({ query }: SkillsHubProps) {
   const { t } = useI18n()
   const h = t.skills.hub
 
-  // Sources + featured + the installed map — one cached fetch, revalidated on
-  // mount and re-fetched (from the store) after an action lands.
+  // Connected hubs (search fan-out) — chips only; landing featured comes from
+  // the curated local catalog, not the raw wayne-index dump.
   const sourcesQuery = useQuery({
     queryKey: HUB_SOURCES_KEY,
     queryFn: getSkillHubSources,
     staleTime: 5 * 60_000
   })
 
+  // Product marketplace: FEATURED_OPTIONAL_SKILL_IDS (~10 methods), not the
+  // whole optional-skills / Official(Nous) dump.
+  const catalogQuery = useQuery({
+    queryKey: ['skill-hub-catalog'],
+    queryFn: () => getSkillHubCatalog(false),
+    staleTime: 5 * 60_000
+  })
+
+  // Kit skills (formula) — strip from remote search so Install isn't offered
+  // for capabilities that already ship with Work4You.
+  const skillsQuery = useQuery({
+    queryKey: ['skills-for-hub-curation'],
+    queryFn: getSkills,
+    staleTime: 5 * 60_000
+  })
+
   // Debounced hub search, keyed on the settled query so RQ dedupes/caches per
   // term and abandons stale terms for us (no hand-rolled sequence guard).
   const term = useDebounced(query.trim(), 350)
+
+  const bundled = useMemo(() => bundledSkillNames(skillsQuery.data ?? []), [skillsQuery.data])
 
   // Progressive per-source search: one query per source the backend says is
   // worth hitting individually (it marks index-covered API sources unsearchable
@@ -237,7 +263,7 @@ export function SkillsHub({ query }: SkillsHubProps) {
 
   // Merge every source's results, deduped by identifier preferring higher trust
   // (mirrors the backend's unified_search rank). Recomputes as each source lands.
-  const results = useMemo(() => {
+  const remoteResults = useMemo(() => {
     const seen = new Map<string, SkillHubResult>()
 
     for (const q of sourceSearches) {
@@ -250,15 +276,33 @@ export function SkillsHub({ query }: SkillsHubProps) {
       }
     }
 
-    return [...seen.values()].sort(
-      (a, b) => (TRUST_RANK[b.trust_level] ?? 0) - (TRUST_RANK[a.trust_level] ?? 0) || a.name.localeCompare(b.name)
+    return curateHubSearchResults(
+      [...seen.values()].sort(
+        (a, b) =>
+          (TRUST_RANK[b.trust_level] ?? 0) - (TRUST_RANK[a.trust_level] ?? 0) || a.name.localeCompare(b.name)
+      ),
+      bundled
     )
-  }, [sourceSearches])
+  }, [sourceSearches, bundled])
 
-  // Installed map: sources seeds it, search results patch it (a term can surface
-  // installs the sources list didn't feature); the optimistic override wins so a
-  // just-(un)installed row reflects its own outcome without the refetch race.
-  const installed = { ...(sourcesQuery.data?.installed ?? {}) }
+  const catalogSkills = catalogQuery.data?.skills ?? []
+  const catalogMatches = useMemo(
+    () => filterCatalogSkills(catalogSkills, term),
+    [catalogSkills, term]
+  )
+
+  // Landing = curated catalog. Search = catalog matches first, then remote hubs
+  // (minus formula kit skills).
+  const results = useMemo(
+    () => (term.length === 0 ? catalogSkills : mergeHubListings(catalogMatches, remoteResults)),
+    [term, catalogSkills, catalogMatches, remoteResults]
+  )
+
+  // Installed map: catalog + sources + search; optimistic override wins.
+  const installed = {
+    ...(catalogQuery.data?.installed ?? {}),
+    ...(sourcesQuery.data?.installed ?? {})
+  }
 
   for (const q of sourceSearches) {
     Object.assign(installed, q.data?.installed ?? {})
@@ -267,17 +311,19 @@ export function SkillsHub({ query }: SkillsHubProps) {
   const isInstalled = (identifier: string) => overrides[identifier] ?? Boolean(installed[identifier])
 
   const sources = sourcesQuery.data?.sources ?? []
-  const featured = sourcesQuery.data?.featured ?? []
 
   // Still fetching from at least one source; "done" only once every source has
   // settled (so "No results" doesn't flash while slower sources are still in).
   const anyFetching = term.length > 0 && sourceSearches.some(q => q.isFetching)
-  const searched = term.length > 0 && sourceSearches.length > 0 && sourceSearches.every(q => !q.isFetching)
+  const searched =
+    term.length > 0 &&
+    !catalogQuery.isLoading &&
+    (sourceSearches.length === 0 || sourceSearches.every(q => !q.isFetching))
   const showLanding = term.length === 0
-  const listed = showLanding ? featured : results
-  // Only block the whole pane on the first sources landing; after that results
-  // stream in progressively while a subtle footer shows more are coming.
-  const searching = anyFetching && results.length === 0
+  const listed = results
+  // Block on first catalog load (landing) or empty search while remotes load.
+  const searching =
+    (showLanding && catalogQuery.isLoading) || (anyFetching && remoteResults.length === 0 && catalogMatches.length === 0)
   const hasInstalled = Object.keys(installed).length > 0
 
   return (

@@ -218,7 +218,13 @@ export const pt = defineLocale({
     emptyProductSkillsTitle: 'Ainda sem skills do projeto',
     emptyProductSkillsDesc:
       'Skills que o agente aprende aqui, e as que instalares no Browse Hub, aparecem nesta lista. As capacidades nativas já fazem parte da Work4You — basta pedir no chat.',
-    hubSkillManageHint: 'Instalada pelo Hub — desinstala ou actualiza em Browse Hub.'
+    hubSkillManageHint: 'Instalada pelo Hub — desinstala ou actualiza em Browse Hub.',
+    hub: {
+      featured: 'Skills em destaque',
+      landingHint:
+        'Métodos curados que podes instalar. O que já vem na Work4You está disponível no chat — pesquisa aqui só extras oficiais e da comunidade.',
+      noResults: 'Nenhuma skill instalável corresponde. O kit nativo fica no chat, não aqui.'
+    }
   },
 
   connectors: {

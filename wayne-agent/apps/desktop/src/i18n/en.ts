@@ -1601,8 +1601,8 @@ export const en: Translations = {
       connectedHubs: 'Connected hubs:',
       featured: 'Featured skills',
       landingHint:
-        'Search the hub to browse installable skills from the official index, GitHub, and community sources.',
-      noResults: 'No matching skills found in the hub.',
+        'Curated methods you can install. Built-in Work4You capabilities are already available in chat — search here for extras from official and community hubs.',
+      noResults: 'No matching installable skills. Built-in kit skills stay in chat, not here.',
       resultCount: (count, ms) => `${count} result${count === 1 ? '' : 's'}${ms !== null ? ` in ${ms}ms` : ''}`,
       timedOut: sources => `Timed out: ${sources}`,
       installed: 'Installed',

@@ -965,6 +965,10 @@ export interface SkillHubResult {
   trust_level: string
   repo: string | null
   tags: string[]
+  /** Category on catalog listings (optional-skills tree). */
+  category?: string
+  /** True when part of the curated user-facing catalog set. */
+  featured?: boolean
 }
 
 export interface SkillHubInstalledEntry {
@@ -978,6 +982,14 @@ export interface SkillHubSourcesResponse {
   index_available: boolean
   featured: SkillHubResult[]
   installed: Record<string, SkillHubInstalledEntry>
+}
+
+/** `GET /api/skills/hub/catalog` — curated official optional-skills marketplace. */
+export interface SkillHubCatalogResponse {
+  skills: SkillHubResult[]
+  installed: Record<string, SkillHubInstalledEntry>
+  total?: number
+  full?: boolean
 }
 
 export interface SkillHubSearchResponse {
