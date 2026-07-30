@@ -1299,6 +1299,7 @@ def execute_code(
         child_env["WAYNE_RPC_SOCKET"] = rpc_endpoint
         child_env["WAYNE_RPC_TOKEN"] = rpc_token
         child_env["PYTHONDONTWRITEBYTECODE"] = "1"
+        child_env["WAYNE_IN_AGENT_TOOL"] = "1"
         # Force UTF-8 for the child's stdio and default file encoding.
         #
         # Without this, on Windows sys.stdout is bound to the console code

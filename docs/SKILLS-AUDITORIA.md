@@ -65,6 +65,12 @@ baoyu-comic · stocks · lbo-model · adversarial-ux-test · scrapling.
 
 Constant: `wayne_cli.skills_config.KIT_TRIMMED_TO_OPTIONAL_SKILLS`.
 
+**Agent hub install blocked (30/07):** hardline on `wayne skills install|update|
+snapshot import`; `do_install` refuses `WAYNE_IN_AGENT_TOOL=1` (terminal /
+execute_code). `skill_manage` (learned methods) unchanged. Sync no longer
+backfills demoted optional leftovers into `.hub/lock.json` — it purges them.
+Provenance prefers bundled over hub so kit skills stay off the Skills face.
+
 ---
 
 

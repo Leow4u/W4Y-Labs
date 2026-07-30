@@ -719,7 +719,8 @@ class TestSyncSkills:
         assert "new-skill" in captured
         assert "wayne skills reset new-skill" in captured
 
-    def test_backfills_official_optional_provenance_for_existing_identical_skill(self, tmp_path):
+    def test_purges_backfilled_optional_demotion_leftovers(self, tmp_path):
+        """Demoted kit→optional leftovers must leave the Skills face, not become hub."""
         bundled = self._setup_bundled(tmp_path)
         optional = tmp_path / "optional-skills"
         optional_skill = optional / "mlops" / "training" / "trl-fine-tuning"
@@ -740,18 +741,72 @@ class TestSyncSkills:
         (active / "references").mkdir()
         (active / "references" / "api.md").write_text("api\n")
 
+        # Stale backfill entry — the bug class we are fixing.
+        lock_path = skills_dir / ".hub" / "lock.json"
+        lock_path.parent.mkdir(parents=True)
+        lock_path.write_text(json.dumps({
+            "version": 1,
+            "installed": {
+                "trl-fine-tuning": {
+                    "source": "official",
+                    "identifier": "official/mlops/training/trl-fine-tuning",
+                    "trust_level": "builtin",
+                    "scan_verdict": "backfilled",
+                    "install_path": "mlops/training/trl-fine-tuning",
+                    "files": ["SKILL.md"],
+                    "metadata": {"backfilled_from": "optional-skills"},
+                }
+            },
+        }))
+
         with self._patches(bundled, skills_dir, manifest_file):
             with patch("tools.skills_sync._get_optional_dir", return_value=optional):
                 result = sync_skills(quiet=True)
 
-        assert result["optional_provenance_backfilled"] == ["trl-fine-tuning"]
-        lock_path = skills_dir / ".hub" / "lock.json"
+        assert result["optional_provenance_backfilled"] == []
+        assert result["optional_demotion_purged"] == ["trl-fine-tuning"]
+        assert not active.exists()
         data = json.loads(lock_path.read_text())
-        entry = data["installed"]["trl-fine-tuning"]
-        assert entry["source"] == "official"
-        assert entry["identifier"] == "official/mlops/training/trl-fine-tuning"
-        assert entry["trust_level"] == "builtin"
-        assert entry["install_path"] == "mlops/training/trl-fine-tuning"
+        assert "trl-fine-tuning" not in data["installed"]
+
+    def test_does_not_purge_intentional_hub_optional_install(self, tmp_path):
+        bundled = self._setup_bundled(tmp_path)
+        optional = tmp_path / "optional-skills"
+        optional_skill = optional / "mlops" / "training" / "trl-fine-tuning"
+        optional_skill.mkdir(parents=True)
+        (optional_skill / "SKILL.md").write_text("# upstream optional\n")
+
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
+        active = skills_dir / "mlops" / "training" / "trl-fine-tuning"
+        active.mkdir(parents=True)
+        (active / "SKILL.md").write_text("# upstream optional\n")
+
+        lock_path = skills_dir / ".hub" / "lock.json"
+        lock_path.parent.mkdir(parents=True)
+        lock_path.write_text(json.dumps({
+            "version": 1,
+            "installed": {
+                "trl-fine-tuning": {
+                    "source": "official",
+                    "identifier": "official/mlops/training/trl-fine-tuning",
+                    "trust_level": "builtin",
+                    "scan_verdict": "safe",
+                    "install_path": "mlops/training/trl-fine-tuning",
+                    "files": ["SKILL.md"],
+                    "metadata": {},
+                }
+            },
+        }))
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            with patch("tools.skills_sync._get_optional_dir", return_value=optional):
+                result = sync_skills(quiet=True)
+
+        assert result["optional_demotion_purged"] == []
+        assert active.exists()
+        data = json.loads(lock_path.read_text())
+        assert "trl-fine-tuning" in data["installed"]
 
     def test_does_not_backfill_optional_provenance_for_modified_skill(self, tmp_path):
         bundled = self._setup_bundled(tmp_path)
@@ -771,6 +826,8 @@ class TestSyncSkills:
                 result = sync_skills(quiet=True)
 
         assert result["optional_provenance_backfilled"] == []
+        assert result["optional_demotion_purged"] == []
+        assert active.exists()
         assert not (skills_dir / ".hub" / "lock.json").exists()
 
     def test_repair_official_optional_restores_reorganized_skill_with_backup(self, tmp_path):

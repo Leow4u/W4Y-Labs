@@ -899,10 +899,11 @@ def provenance(skill_name: str) -> str:
     'agent' covers both agent-authored and local manually-authored skills —
     anything not seeded from the bundled repo or installed via the hub.
     """
-    if is_hub_installed(skill_name):
-        return "hub"
+    # Formula kit wins over a stale hub lock (same rule as /api/skills).
     if is_bundled(skill_name):
         return "bundled"
+    if is_hub_installed(skill_name):
+        return "hub"
     return "agent"
 
 

@@ -828,6 +828,10 @@ def _make_run_env(env: dict) -> dict:
     # engaged so a sibling session's os.environ mirror can't leak in).
     _inject_session_context_env(run_env)
 
+    # Mark agent-tool children so CLI funnels (e.g. wayne skills install)
+    # can refuse hub installs while human shells / dashboard spawns stay open.
+    run_env["WAYNE_IN_AGENT_TOOL"] = "1"
+
     for _marker in _ACTIVE_VENV_MARKER_VARS:
         run_env.pop(_marker, None)
 

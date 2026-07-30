@@ -11,6 +11,7 @@ handler are thin wrappers that parse args and delegate.
 """
 
 import json
+import os
 import re
 import shutil
 from pathlib import Path
@@ -512,6 +513,21 @@ def do_install(identifier: str, category: str = "", force: bool = False,
     (so pair it with ``name_override`` when installing from a URL that has
     no frontmatter).
     """
+    # Work4You: refuse when invoked from an agent tool child (terminal /
+    # execute_code set WAYNE_IN_AGENT_TOOL=1). Human CLI, dashboard spawn,
+    # and TUI keep working. Methods → skill_manage; accounts → Conectores.
+    _agent_tool = (os.environ.get("WAYNE_IN_AGENT_TOOL") or "").strip().lower()
+    if _agent_tool in {"1", "true", "yes", "on"}:
+        c = console or _console
+        c.print(
+            "[bold red]Blocked:[/] hub skill install from an agent turn.\n"
+            "Create or evolve methods with [bold]skill_manage[/]; "
+            "connect accounts under [bold]Conectores[/]. "
+            "The formula kit seeds automatically — do not run "
+            "`wayne skills install` from tools.\n"
+        )
+        return
+
     from tools.skills_hub import (
         GitHubAuth, create_source_router, ensure_hub_dirs,
         quarantine_bundle, install_from_quarantine, HubLockFile,

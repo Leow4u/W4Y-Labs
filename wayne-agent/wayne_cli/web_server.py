@@ -14194,9 +14194,12 @@ async def get_skills(profile: Optional[str] = None):
             except (ValueError, OSError):
                 provenance = "agent"
         if provenance != "project":
+            # Formula kit wins over a stale hub lock (e.g. excel-author once
+            # installed via hub, later promoted into skills/). Kit stays off
+            # the product Skills face (bundled ≠ isProductSkill).
             provenance = (
-                "hub" if s["name"] in hub_names
-                else "bundled" if s["name"] in bundled_names
+                "bundled" if s["name"] in bundled_names
+                else "hub" if s["name"] in hub_names
                 else "agent"
             )
         s["provenance"] = provenance

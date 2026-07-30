@@ -399,11 +399,22 @@ HARDLINE_PATTERNS = [
     (_CMDPOS + r'init\s+[06]\b', "init 0/6 (shutdown/reboot)"),
     (_CMDPOS + r'systemctl\s+(poweroff|reboot|halt|kexec)\b', "systemctl poweroff/reboot"),
     (_CMDPOS + r'telinit\s+[06]\b', "telinit 0/6 (shutdown/reboot)"),
+    # Work4You: agent must not pull hub/optional catalog skills. Methods are
+    # authored via skill_manage (learned); accounts live under Conectores; the
+    # formula kit seeds via sync_skills. Allow global flags between `wayne`
+    # and `skills` (e.g. `wayne -p coder skills install …`). YOLO-immune.
+    # Anchored with _CMDPOS so `echo wayne skills install` does not match.
+    (_CMDPOS + r'wayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*skills\s+install\b',
+     "hub skill install (use skill_manage to create methods; Conectores for accounts)"),
+    (_CMDPOS + r'wayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*skills\s+update\b',
+     "hub skill update (hub installs are not agent-managed)"),
+    (_CMDPOS + r'wayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*skills\s+snapshot\s+import\b',
+     "hub skill snapshot import (hub installs are not agent-managed)"),
 ]
 
 # Pre-compiled variant used by the hot-path matcher. Building these at module
 # load eliminates the ~2.6 ms cold-cache re.compile fan-out on the first
-# terminal() call per process (12 HARDLINE + 47 DANGEROUS patterns, each
+# terminal() call per process (15 HARDLINE + 47 DANGEROUS patterns, each
 # potentially evicted from Python's 512-entry ``re._cache`` by unrelated
 # regex work elsewhere in the agent). DANGEROUS_PATTERNS_COMPILED is built
 # at the end of this module after DANGEROUS_PATTERNS is defined.

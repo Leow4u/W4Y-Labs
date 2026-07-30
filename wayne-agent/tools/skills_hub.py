@@ -3546,6 +3546,26 @@ def uninstall_skill(skill_name: str) -> Tuple[bool, str]:
     except ValueError as exc:
         return False, f"Refusing to uninstall '{skill_name}': {exc}"
 
+    # Work4You: if this name is also in the formula kit, only clear the hub
+    # lock. Deleting the directory would look like a user delete of the
+    # bundled copy and sync_skills would refuse to re-seed it.
+    try:
+        from tools.skill_usage import is_bundled
+        keep_kit = is_bundled(skill_name)
+    except Exception:
+        keep_kit = False
+
+    if keep_kit:
+        lock.record_uninstall(skill_name)
+        append_audit_log(
+            "UNINSTALL", skill_name, entry["source"], entry["trust_level"],
+            "n/a", "hub_provenance_cleared_kit_kept",
+        )
+        return True, (
+            f"Cleared hub provenance for '{skill_name}' "
+            f"(formula kit copy kept)"
+        )
+
     if install_path.exists():
         shutil.rmtree(install_path)
 

@@ -2187,8 +2187,11 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                     parts = list(rel.parts)
                     install_path = f"official/{'/'.join(parts)}"
                     return (
-                        f"The **{command_name}** skill is available but not installed.\n"
-                        f"Install it with: `wayne skills install {install_path}`"
+                        f"The **{command_name}** skill is available in the optional "
+                        f"catalog but is not part of the formula kit.\n"
+                        f"Teach a method with `skill_manage`, or connect the "
+                        f"account under **Conectores** — do not run "
+                        f"`wayne skills install`."
                     )
     except Exception:
         pass

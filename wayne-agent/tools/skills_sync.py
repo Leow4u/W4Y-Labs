@@ -387,14 +387,111 @@ def restore_official_optional_skill(name: str, *, restore: bool = False) -> dict
     }
 
 
+def _purge_backfilled_optional_copies(quiet: bool = False) -> List[str]:
+    """Remove demotion leftovers that look like hub installs but aren't.
+
+    Targets official optional skills whose active copy is byte-identical to
+    optional-skills/ AND either has no hub lock entry or a lock entry with
+    ``scan_verdict: backfilled``. Deletes the skill dir and clears the lock
+    entry so they leave the product Skills face.
+
+    Real hub installs (user/agent previously ran ``wayne skills install`` with
+    a real scan) are left alone.
+    """
+    optional_dir = _get_optional_dir()
+    if not optional_dir.exists() or not SKILLS_DIR.exists():
+        return []
+
+    lock_path = SKILLS_DIR / ".hub" / "lock.json"
+    try:
+        data = json.loads(lock_path.read_text(encoding="utf-8")) if lock_path.exists() else {"version": 1, "installed": {}}
+    except (json.JSONDecodeError, OSError):
+        data = {"version": 1, "installed": {}}
+    installed = data.setdefault("installed", {})
+    if not isinstance(installed, dict):
+        installed = {}
+        data["installed"] = installed
+
+    purged: List[str] = []
+    lock_changed = False
+    for skill_md in sorted(optional_dir.rglob("SKILL.md")):
+        if is_excluded_skill_path(skill_md):
+            continue
+        src = skill_md.parent
+        try:
+            install_path = _safe_rel_install_path(src, optional_dir)
+        except ValueError as e:
+            logger.debug("Skipping optional skill with unsafe path %s: %s", src, e)
+            continue
+        dest = SKILLS_DIR / Path(*install_path.split("/"))
+        if not dest.exists() or not dest.is_dir():
+            continue
+        if _dir_hash(dest) != _dir_hash(src):
+            continue
+
+        lock_name = src.name
+        entry = installed.get(lock_name)
+        if entry is None:
+            # Also match by install_path key variants.
+            for k, v in list(installed.items()):
+                if isinstance(v, dict) and v.get("install_path") == install_path:
+                    entry = v
+                    lock_name = k
+                    break
+
+        if isinstance(entry, dict) and entry.get("scan_verdict") not in (None, "backfilled"):
+            # Intentional hub install — keep.
+            continue
+
+        try:
+            _rmtree_writable(dest)
+        except (OSError, ValueError) as e:
+            logger.warning("Could not purge demoted optional skill %s: %s", dest, e)
+            continue
+
+        if lock_name in installed:
+            del installed[lock_name]
+            lock_changed = True
+        purged.append(lock_name)
+        if not quiet:
+            print(f"  × {lock_name} (demoted optional leftover purged)")
+
+    if lock_changed:
+        lock_path.parent.mkdir(parents=True, exist_ok=True)
+        import tempfile
+
+        payload = json.dumps(data, indent=2, ensure_ascii=False) + "\n"
+        fd, tmp_path = tempfile.mkstemp(
+            dir=str(lock_path.parent),
+            prefix=".lock_",
+            suffix=".tmp",
+        )
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8") as f:
+                f.write(payload)
+                f.flush()
+                os.fsync(f.fileno())
+            atomic_replace(tmp_path, lock_path)
+        except BaseException:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass
+            raise
+    return purged
+
+
 def _backfill_optional_provenance(quiet: bool = False) -> List[str]:
     """Mark already-present official optional skills as hub-installed.
 
-    This covers the migration case where a skill used to be bundled (or was
-    manually copied into the active skills tree) and later lives under
-    optional-skills/. If the active copy is byte-identical to the official
-    optional source, record official hub provenance without copying or
-    reinstalling anything. Modified/local skills are left alone.
+    Used by the explicit ``restore_official_optional_skill`` repair path only.
+    Everyday ``sync_skills`` no longer backfills — that stamped demoted kit
+    leftovers into .hub/lock.json and resurfaced them as "hub" on the Skills
+    face (Work4You product regression).
+
+    If the active copy is byte-identical to the official optional source,
+    record official hub provenance without copying or reinstalling anything.
+    Modified/local skills are left alone.
     """
     optional_dir = _get_optional_dir()
     if not optional_dir.exists():
@@ -705,7 +802,14 @@ def sync_skills(quiet: bool = False) -> dict:
                 logger.debug("Could not copy %s: %s", desc_md, e)
 
     _write_manifest(manifest)
-    optional_provenance_backfilled = _backfill_optional_provenance(quiet=quiet)
+    # Work4You: do NOT auto-backfill optional copies as hub installs. When a
+    # skill leaves the kit for optional-skills/, leftover identical dirs under
+    # ~/.wayne/skills used to be stamped into .hub/lock.json and reappear on
+    # the Skills face as "hub". Purge those demotion leftovers instead.
+    # Intentional hub installs (real scan_verdict, not "backfilled") stay.
+    # restore_official_optional_skill() still calls _backfill_optional_provenance
+    # for the explicit repair path.
+    purged_optional = _purge_backfilled_optional_copies(quiet=quiet)
 
     return {
         "copied": copied,
@@ -715,7 +819,8 @@ def sync_skills(quiet: bool = False) -> dict:
         "cleaned": cleaned,
         "suppressed": suppressed_skipped,
         "total_bundled": len(bundled_skills),
-        "optional_provenance_backfilled": optional_provenance_backfilled,
+        "optional_provenance_backfilled": [],
+        "optional_demotion_purged": purged_optional,
         "shadowed_by_external": shadowed_by_external,
     }
 
