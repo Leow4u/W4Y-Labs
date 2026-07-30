@@ -945,7 +945,8 @@ export const ja = defineLocale({
     provenance: {
       agent: '学習済み',
       bundled: '組み込み',
-      hub: 'ハブ'
+      hub: 'ハブ',
+      project: 'プロジェクト'
     },
     emptyNoneFound: noun => `${noun} が見つかりません`,
     emptyNothingMatches: query => `「${query}」に一致するものはありません。`,
