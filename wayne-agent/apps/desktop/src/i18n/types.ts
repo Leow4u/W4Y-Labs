@@ -1638,6 +1638,13 @@ export interface Translations {
     featuredSection: string
     /** Cursor marketplace hero row. */
     discoverSection: string
+    /** CTA on Discover hero cards. */
+    discoverCta: string
+    /** Fixed Discover pitches — Instagram, LinkedIn, Gmail. */
+    discoverPitch: Record<
+      'instagram' | 'linkedin' | 'gmail',
+      { eyebrow: string; title: string; description: string }
+    >
     connectedSection: string
     /** Cursor Plugins header: "Installed N". */
     installedCount: (count: number) => string

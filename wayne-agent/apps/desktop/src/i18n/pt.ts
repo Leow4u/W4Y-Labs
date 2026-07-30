@@ -244,6 +244,27 @@ export const pt = defineLocale({
     empty: 'Nenhum conector corresponde.',
     featuredSection: 'Destaques',
     discoverSection: 'Descobrir',
+    discoverCta: 'Ligar agora',
+    discoverPitch: {
+      instagram: {
+        eyebrow: 'Marca no automático',
+        title: 'Instagram',
+        description:
+          'Publicações, DMs e presença viva — o agente opera o Instagram para você parar de viver no app e continuar a vender.'
+      },
+      linkedin: {
+        eyebrow: 'Rede que abre portas',
+        title: 'LinkedIn',
+        description:
+          'Posts, outreach e relacionamento B2B — presença profissional no automático, sem viver no feed.'
+      },
+      gmail: {
+        eyebrow: 'Inbox sob controlo',
+        title: 'Gmail',
+        description:
+          'Triagem, respostas e follow-ups — o agente trata do e-mail para você fechar o que só um humano resolve.'
+      }
+    },
     connectedSection: 'Conectados',
     installedCount: count => `Instalados ${count}`,
     devSection: 'Desenvolvimento',

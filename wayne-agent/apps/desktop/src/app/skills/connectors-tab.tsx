@@ -22,9 +22,12 @@ import {
 } from '@/lib/connectors-api'
 import { $connectorsRevision, notifyConnectorsChanged } from '@/store/connectors'
 import {
+  discoverPitchKey,
   filterConnectors,
   groupConnectorsByCategory,
+  normalizeConnectorKey,
   pickConnected,
+  resolveDiscoverConnectors,
   resolveFeaturedConnectors,
   resolveFeaturedDevConnectors,
   stateOf
@@ -38,7 +41,6 @@ import { PanelEmpty } from '../overlays/panel'
 import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 
 const MARKETPLACE_PREVIEW = 4
-const DISCOVER_COUNT = 3
 
 function toolkitLabel(tk: ConnectorToolkit): string {
   return (tk.name || tk.slug || '').trim()
@@ -156,7 +158,7 @@ function ConnectorListRow({
   )
 }
 
-/** Cursor Discover hero cards — three wide tiles. */
+/** Discover heroes — Instagram / LinkedIn / Gmail with product marketing copy. */
 function DiscoverCard({
   busy,
   onAdd,
@@ -167,20 +169,34 @@ function DiscoverCard({
   tk: ConnectorToolkit
 }) {
   const { t } = useI18n()
-  const label = toolkitLabel(tk)
+  const tc = t.connectors
+  const pitchKey = discoverPitchKey(tk.slug)
+  const pitch = pitchKey ? tc.discoverPitch[pitchKey] : null
+  const title = pitch?.title || toolkitLabel(tk)
+  const description = pitch?.description || tk.description || ''
 
   return (
     <button
-      className="flex min-h-[8.5rem] flex-col items-start gap-2 rounded-xl border border-border bg-muted/25 p-4 text-left transition-colors hover:bg-muted/45 disabled:opacity-50"
+      className="flex min-h-[11rem] flex-col items-start gap-2.5 rounded-xl border border-border bg-gradient-to-b from-muted/40 to-muted/15 p-4 text-left transition-colors hover:from-muted/55 hover:to-muted/25 disabled:opacity-50"
       disabled={busy}
       onClick={onAdd}
       type="button"
     >
-      <LogoTile className="h-9 w-9 rounded-lg" toolkit={tk} />
-      <span className="truncate text-[0.875rem] font-semibold text-foreground">{label}</span>
-      {tk.description ? (
-        <span className="line-clamp-2 text-[0.72rem] leading-snug text-muted-foreground">{tk.description}</span>
+      <div className="flex w-full items-start justify-between gap-2">
+        <LogoTile className="h-10 w-10 rounded-xl" toolkit={tk} />
+        {pitch?.eyebrow ? (
+          <span className="rounded-full bg-foreground px-2 py-0.5 text-[0.6rem] font-semibold tracking-wide text-background">
+            {pitch.eyebrow}
+          </span>
+        ) : null}
+      </div>
+      <span className="text-[1rem] font-semibold tracking-tight text-foreground">{title}</span>
+      {description ? (
+        <span className="line-clamp-3 flex-1 text-[0.75rem] leading-snug text-muted-foreground">{description}</span>
       ) : null}
+      <span className="mt-auto text-[0.72rem] font-semibold text-foreground">
+        {busy ? tc.connecting : tc.discoverCta} →
+      </span>
     </button>
   )
 }
@@ -358,6 +374,7 @@ export function ConnectorsTab({
 
   const featured = useMemo(() => resolveFeaturedConnectors(toolkits), [toolkits])
   const featuredDev = useMemo(() => resolveFeaturedDevConnectors(toolkits), [toolkits])
+  const discoverBase = useMemo(() => resolveDiscoverConnectors(toolkits), [toolkits])
   const connected = useMemo(() => pickConnected(toolkits, byToolkit), [toolkits, byToolkit])
 
   const filteredConnected = useMemo(
@@ -365,6 +382,10 @@ export function ConnectorsTab({
     [connected, search]
   )
 
+  const marketplaceDiscover = useMemo(
+    () => filterConnectors(discoverBase, search, null),
+    [discoverBase, search]
+  )
   const marketplaceFeatured = useMemo(
     () => filterConnectors(featured, search, null),
     [featured, search]
@@ -373,6 +394,12 @@ export function ConnectorsTab({
     () => filterConnectors(featuredDev, search, null),
     [featuredDev, search]
   )
+
+  const discoverKeySet = useMemo(() => {
+    const s = new Set<string>()
+    for (const tk of discoverBase) s.add(normalizeConnectorKey(tk.slug))
+    return s
+  }, [discoverBase])
 
   const featuredSlugSet = useMemo(() => {
     const s = new Set<string>()
@@ -577,20 +604,21 @@ export function ConnectorsTab({
     )
   }
 
-  // Marketplace — Cursor Discover + Featured + category grids (Composio data).
-  const discover = marketplaceFeatured.slice(0, DISCOVER_COUNT)
-  const featuredRest = marketplaceFeatured.slice(DISCOVER_COUNT)
+  // Marketplace — Discover heroes (IG / LinkedIn / Gmail) + Featured + categories.
+  const featuredRest = marketplaceFeatured.filter(
+    tk => !discoverKeySet.has(normalizeConnectorKey(tk.slug))
+  )
 
   return (
     <div
       className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto overscroll-contain px-5 py-5"
       data-testid="connectors-marketplace"
     >
-      {discover.length > 0 ? (
+      {marketplaceDiscover.length > 0 ? (
         <section className="flex flex-col gap-2.5">
           <h3 className="text-[0.78rem] font-semibold text-foreground">{tc.discoverSection}</h3>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-            {discover.map(tk => (
+            {marketplaceDiscover.map(tk => (
               <DiscoverCard
                 busy={connecting === tk.slug}
                 key={tk.slug}
@@ -633,7 +661,8 @@ export function ConnectorsTab({
         />
       ))}
 
-      {marketplaceFeatured.length === 0 &&
+      {marketplaceDiscover.length === 0 &&
+        featuredRest.length === 0 &&
         marketplaceDev.length === 0 &&
         restByCategory.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">{tc.empty}</p>

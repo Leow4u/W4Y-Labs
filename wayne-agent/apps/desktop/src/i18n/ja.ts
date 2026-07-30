@@ -1498,6 +1498,25 @@ export const ja = defineLocale({
     empty: '一致するコネクタがありません。',
     featuredSection: 'おすすめ',
     discoverSection: '発見',
+    discoverCta: '今すぐ接続',
+    discoverPitch: {
+      instagram: {
+        eyebrow: 'ブランドを自動運用',
+        title: 'Instagram',
+        description:
+          '投稿・DM・ブランドの存在感——エージェントが Instagram を回し、あなたは売ることに集中。'
+      },
+      linkedin: {
+        eyebrow: '扉を開くネットワーク',
+        title: 'LinkedIn',
+        description: '投稿・アウトリーチ・B2B 関係——フィードに張り付かず、プロの存在感を自動で。'
+      },
+      gmail: {
+        eyebrow: '受信トレイを掌握',
+        title: 'Gmail',
+        description: '仕分け・返信・フォローアップ——メールはエージェントに任せ、人にしかできない仕事へ。'
+      }
+    },
     connectedSection: '接続済み',
     installedCount: count => `インストール済み ${count}`,
     devSection: '開発',

@@ -2339,6 +2339,27 @@ export const en: Translations = {
     empty: 'No connectors match.',
     featuredSection: 'Featured',
     discoverSection: 'Discover',
+    discoverCta: 'Connect now',
+    discoverPitch: {
+      instagram: {
+        eyebrow: 'Brand on autopilot',
+        title: 'Instagram',
+        description:
+          'Posts, DMs, and a living brand presence — the agent runs Instagram so you stop living in the app and keep selling.'
+      },
+      linkedin: {
+        eyebrow: 'Network that opens doors',
+        title: 'LinkedIn',
+        description:
+          'Posts, outreach, and B2B relationships — professional presence on autopilot, without living in the feed.'
+      },
+      gmail: {
+        eyebrow: 'Inbox under control',
+        title: 'Gmail',
+        description:
+          'Triage, replies, and follow-ups — the agent handles email so you focus on the work only a human can close.'
+      }
+    },
     connectedSection: 'Connected',
     installedCount: count => `Installed ${count}`,
     devSection: 'Development',

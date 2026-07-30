@@ -2326,6 +2326,24 @@ export const zh: Translations = {
     empty: '没有匹配的连接器。',
     featuredSection: '精选',
     discoverSection: '发现',
+    discoverCta: '立即连接',
+    discoverPitch: {
+      instagram: {
+        eyebrow: '品牌自动驾驶',
+        title: 'Instagram',
+        description: '发布、私信与品牌存在感——代理替你运营 Instagram，让你专注成交。'
+      },
+      linkedin: {
+        eyebrow: '打开大门的人脉',
+        title: 'LinkedIn',
+        description: '帖子、外联与 B2B 关系——专业形象自动运转，不必泡在信息流里。'
+      },
+      gmail: {
+        eyebrow: '收件箱尽在掌控',
+        title: 'Gmail',
+        description: '分拣、回复与跟进——代理处理邮件，你专注只有人能完成的事。'
+      }
+    },
     connectedSection: '已连接',
     installedCount: count => `已安装 ${count}`,
     devSection: '开发',

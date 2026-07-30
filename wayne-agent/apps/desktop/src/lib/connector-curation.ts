@@ -3,7 +3,14 @@
  */
 import type { ConnectorAccount, ConnectorToolkit } from './connectors-types'
 
+/** Marketplace Discover heroes — fixed order, heavy product marketing. */
+export const DISCOVER_CONNECTOR_SLUGS = ['instagram', 'linkedin', 'gmail'] as const
+
+export type DiscoverPitchKey = (typeof DISCOVER_CONNECTOR_SLUGS)[number]
+
 export const FEATURED_CONNECTOR_SLUGS = [
+  'instagram',
+  'linkedin',
   'gmail',
   'googlecalendar',
   'google_calendar',
@@ -27,8 +34,6 @@ export const FEATURED_CONNECTOR_SLUGS = [
   'stripe',
   'mercadopago',
   'mercado_pago',
-  'instagram',
-  'linkedin',
   'meta_ads',
   'facebook'
 ] as const
@@ -67,6 +72,19 @@ export function resolveFeaturedConnectors(toolkits: ConnectorToolkit[]): Connect
 
 export function resolveFeaturedDevConnectors(toolkits: ConnectorToolkit[]): ConnectorToolkit[] {
   return pickBySlugs(toolkits, FEATURED_DEV_CONNECTOR_SLUGS)
+}
+
+/** Fixed Discover trio (Instagram → LinkedIn → Gmail), catalog-resolved. */
+export function resolveDiscoverConnectors(toolkits: ConnectorToolkit[]): ConnectorToolkit[] {
+  return pickBySlugs(toolkits, DISCOVER_CONNECTOR_SLUGS)
+}
+
+export function discoverPitchKey(slug: string): DiscoverPitchKey | null {
+  const key = normalizeConnectorKey(slug)
+  if (key.includes('instagram')) return 'instagram'
+  if (key.includes('linkedin')) return 'linkedin'
+  if (key.includes('gmail')) return 'gmail'
+  return null
 }
 
 export function stateOf(
