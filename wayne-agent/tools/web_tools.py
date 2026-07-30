@@ -354,11 +354,24 @@ def _ddgs_package_importable() -> bool:
     presence rather than an env var / config entry.  Wrapped in a helper
     so auto-detect and ``_is_backend_available`` share the same check
     (and tests can monkeypatch a single symbol).
+
+    When the package is missing, try a one-shot lazy install
+    (``search.ddgs``) so Work4You keeps ``web_search`` in the schema
+    without a Firecrawl key — otherwise the agent falls back to raw
+    ``terminal`` + curl and burns minutes on free models.
     """
     try:
         import ddgs  # noqa: F401
         return True
     except ImportError:
+        pass
+    try:
+        from tools.lazy_deps import ensure as _lazy_ensure
+
+        _lazy_ensure("search.ddgs")
+        import ddgs  # noqa: F401
+        return True
+    except Exception:
         return False
 
 # ─── Firecrawl Client ────────────────────────────────────────────────────────

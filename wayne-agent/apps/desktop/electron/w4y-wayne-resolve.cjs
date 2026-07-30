@@ -409,20 +409,46 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
     throw new Error(`Falha ao baixar o motor: ${err && err.message}`);
   }
 
+  // Extract to a fresh temp dir, then merge into engineRoot. Extracting
+  // straight into an existing install nests as engineRoot/wayne-agent/ when
+  // the ZIP wraps a top-level folder — promoteIfNeeded used to bail early
+  // because engineRoot was already a source root, leaving the old code live
+  // while engine-version.json claimed the new version (incident 29/07).
+  const tmpExtract = path.join(os.tmpdir(), `w4y-engine-extract-${Date.now()}`);
   log("Extraindo arquivos do motor…", null);
   try {
-    await extractZipTo(tmpZip, engineRoot, (line) => log(line, null));
+    await extractZipTo(tmpZip, tmpExtract, (line) => log(line, null));
   } catch (err) {
     try { fs.unlinkSync(tmpZip); } catch { void 0; }
+    try { fs.rmSync(tmpExtract, { recursive: true, force: true }); } catch { void 0; }
     throw new Error(`Falha ao extrair o motor: ${err && err.message}`);
   }
   try { fs.unlinkSync(tmpZip); } catch { void 0; }
 
+  const sourceRoot = resolveExtractedSourceRoot(tmpExtract);
+  if (!sourceRoot) {
+    try { fs.rmSync(tmpExtract, { recursive: true, force: true }); } catch { void 0; }
+    throw new Error(
+      `ZIP do motor não contém wayne_cli/main.py (extraído em '${tmpExtract}'). ` +
+      `Verifique a estrutura do ZIP publicado no GCS.`
+    );
+  }
+
+  log("Aplicando ficheiros do motor…", null);
+  try {
+    mergeEngineTree(sourceRoot, engineRoot);
+  } catch (err) {
+    try { fs.rmSync(tmpExtract, { recursive: true, force: true }); } catch { void 0; }
+    throw new Error(`Falha ao aplicar o motor: ${err && err.message}`);
+  }
+  try { fs.rmSync(tmpExtract, { recursive: true, force: true }); } catch { void 0; }
+
+  // Safety net for any leftover nested wrapper from older broken updates.
   try { promoteIfNeeded(engineRoot); } catch { void 0; }
 
   if (!isWayneSourceRoot(engineRoot)) {
     throw new Error(
-      `Motor extraído em '${engineRoot}' não parece válido (wayne_cli/main.py não encontrado). ` +
+      `Motor em '${engineRoot}' não parece válido (wayne_cli/main.py não encontrado). ` +
       `Verifique a estrutura do ZIP publicado no GCS.`
     );
   }
@@ -523,24 +549,84 @@ function extractZipTo(zipPath, destDir, onLog) {
 }
 
 /**
+ * Locate the Wayne source root inside an extracted ZIP directory.
+ * Handles both flat layouts and a single top-level wrapper folder.
+ */
+function resolveExtractedSourceRoot(extractDir) {
+  if (isWayneSourceRoot(extractDir)) return extractDir;
+  let entries;
+  try {
+    entries = fs.readdirSync(extractDir);
+  } catch {
+    return null;
+  }
+  for (const name of entries) {
+    const inner = path.join(extractDir, name);
+    try {
+      if (fs.statSync(inner).isDirectory() && isWayneSourceRoot(inner)) {
+        return inner;
+      }
+    } catch {
+      // skip
+    }
+  }
+  return null;
+}
+
+/**
+ * Copy engine source files from srcRoot onto destRoot, preserving the local
+ * venv (`.venv` / `venv`) so updates do not wipe installed packages.
+ */
+function mergeEngineTree(srcRoot, destRoot) {
+  fs.mkdirSync(destRoot, { recursive: true });
+  const skip = new Set([".venv", "venv", "__pycache__", ".pytest_cache"]);
+  for (const name of fs.readdirSync(srcRoot)) {
+    if (skip.has(name)) continue;
+    const src = path.join(srcRoot, name);
+    const dst = path.join(destRoot, name);
+    fs.rmSync(dst, { recursive: true, force: true });
+    fs.cpSync(src, dst, { recursive: true, force: true });
+  }
+}
+
+/**
  * After extraction, the ZIP may have a single wrapper directory (GitHub archive
  * style: `wayne-agent-main/`). If so, promote its contents to destDir.
+ *
+ * Also repairs the in-place-update nest (`destDir/wayne-agent/`) left by older
+ * builds that extracted a wrapped ZIP into an already-valid engine root.
  */
 function promoteIfNeeded(destDir) {
-  if (isWayneSourceRoot(destDir)) return; // already correct
-  const entries = fs.readdirSync(destDir);
-  if (entries.length !== 1) return;
-  const inner = path.join(destDir, entries[0]);
-  const stat = fs.statSync(inner);
-  if (!stat.isDirectory()) return;
-  if (!isWayneSourceRoot(inner)) return;
-  // Move contents of inner/ up to destDir.
-  for (const name of fs.readdirSync(inner)) {
-    const src = path.join(inner, name);
-    const dst = path.join(destDir, name);
-    fs.renameSync(src, dst);
+  if (!isWayneSourceRoot(destDir)) {
+    const entries = fs.readdirSync(destDir);
+    if (entries.length !== 1) return;
+    const inner = path.join(destDir, entries[0]);
+    const stat = fs.statSync(inner);
+    if (!stat.isDirectory()) return;
+    if (!isWayneSourceRoot(inner)) return;
+    for (const name of fs.readdirSync(inner)) {
+      const src = path.join(inner, name);
+      const dst = path.join(destDir, name);
+      fs.renameSync(src, dst);
+    }
+    try { fs.rmdirSync(inner); } catch { void 0; }
+    return;
   }
-  try { fs.rmdirSync(inner); } catch { void 0; }
+
+  // destDir is already a source root — look for a nested wrapper left by a
+  // broken in-place extract and merge it over the live tree.
+  for (const name of ["wayne-agent", "wayne-agent-main"]) {
+    const inner = path.join(destDir, name);
+    if (!exists(inner)) continue;
+    try {
+      if (!fs.statSync(inner).isDirectory() || !isWayneSourceRoot(inner)) continue;
+    } catch {
+      continue;
+    }
+    mergeEngineTree(inner, destDir);
+    try { fs.rmSync(inner, { recursive: true, force: true }); } catch { void 0; }
+    return;
+  }
 }
 
 /**
@@ -659,6 +745,9 @@ module.exports = {
   isWayneSourceRoot,
   tryResolveWayneBackend,
   wayneRootCandidates,
+  resolveExtractedSourceRoot,
+  mergeEngineTree,
+  promoteIfNeeded,
   // Engine version tracking and update primitives
   readEngineVersionMarker,
   writeEngineVersionMarker,

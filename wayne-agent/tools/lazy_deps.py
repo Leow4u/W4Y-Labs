@@ -113,6 +113,9 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
     "search.exa": ("exa-py==2.10.2",),
     "search.firecrawl": ("firecrawl-py==4.17.0",),
     "search.parallel": ("parallel-web==0.4.2",),
+    # Free DuckDuckGo metasearch — no API key. Work4You uses this when
+    # FIRECRAWL_API_KEY is not injected so web_search stays in the schema.
+    "search.ddgs": ("ddgs==9.14.4",),
 
     # ─── TTS providers ─────────────────────────────────────────────────────
     # Pinned to exact versions to match pyproject.toml's no-ranges policy
