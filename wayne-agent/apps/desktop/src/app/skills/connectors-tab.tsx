@@ -32,6 +32,7 @@ import { notify, notifyError } from '@/store/notifications'
 import { cn } from '@/lib/utils'
 
 import { PanelEmpty } from '../overlays/panel'
+import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 
 const MARKETPLACE_PREVIEW = 6
 
@@ -381,29 +382,31 @@ export function ConnectorsTab({
   if (variant === 'manage') {
     if (filteredConnected.length === 0) {
       return (
-        <div className="flex h-full min-h-0 flex-1 flex-col">
-          <PanelEmpty
-            action={
-              onOpenMarketplace ? (
-                <Button onClick={onOpenMarketplace} size="sm">
-                  {tc.addConnector}
-                </Button>
-              ) : undefined
-            }
-            description={
-              search.trim()
-                ? tc.empty
-                : tc.emptyConnectedDesc
-            }
-            icon="link"
-            title={search.trim() ? tc.empty : tc.emptyConnectedTitle}
-          />
-        </div>
+        <CustomizeEmpty
+          actions={
+            search.trim() ? undefined : (
+              <>
+                {onOpenMarketplace ? (
+                  <CustomizeEmptyAction onClick={onOpenMarketplace} variant="muted">
+                    {tc.addConnector}
+                  </CustomizeEmptyAction>
+                ) : null}
+                <CustomizeEmptyAction
+                  onClick={() => window.hermesDesktop?.openExternal?.('https://composio.dev/tools')}
+                >
+                  {t.skills.documentation}
+                </CustomizeEmptyAction>
+              </>
+            )
+          }
+          description={search.trim() ? tc.empty : tc.emptyConnectedDesc}
+          title={search.trim() ? tc.empty : tc.emptyConnectedTitle}
+        />
       )
     }
 
     return (
-      <div className="flex flex-col gap-4 overflow-y-auto p-1">
+      <div className="flex flex-col gap-4 overflow-y-auto p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h3 className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
             {tc.connectedSection}
@@ -435,7 +438,7 @@ export function ConnectorsTab({
 
   // Marketplace
   return (
-    <div className="flex flex-col gap-6 overflow-y-auto p-1 pb-6">
+    <div className="flex flex-col gap-6 overflow-y-auto p-4 pb-6">
       <p className="text-[0.8rem] text-muted-foreground">{tc.marketplaceTitle}</p>
 
       <CategorySection

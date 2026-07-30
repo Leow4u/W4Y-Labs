@@ -1009,6 +1009,9 @@ export interface Translations {
     browseMarketplace: string
     /** Leaves marketplace and returns to manage tabs. */
     manageConnected: string
+    documentation: string
+    /** Cursor-style search: "Search Skills for default..." */
+    searchFor: (kind: string, scope: string) => string
     all: string
     searchSkills: string
     searchToolsets: string

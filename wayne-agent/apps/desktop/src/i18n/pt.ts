@@ -216,11 +216,13 @@ export const pt = defineLocale({
   skills: {
     tabConnectors: 'Conectores',
     tabMcp: 'MCPs',
-    browseMarketplace: 'Navegar',
+    browseMarketplace: 'Navegar Marketplace',
     manageConnected: 'Gerir',
-    emptyProductSkillsTitle: 'Ainda sem receitas',
+    documentation: 'Documentação',
+    searchFor: (kind, scope) => `Pesquisar ${kind} para ${scope}...`,
+    emptyProductSkillsTitle: 'Estende a Work4You com Skills',
     emptyProductSkillsDesc:
-      'Receitas que o agente aprende aqui, ou ficheiros SKILL.md em .wayne/skills na pasta do projeto, aparecem nesta lista. O que já vem na Work4You está disponível no chat. Contas (Gmail, GitHub, Notion…) ficam em Conectores.',
+      'Skills agrupam métodos que o agente pode seguir — receitas aprendidas, SKILL.md do projeto e playbooks. O kit nativo fica no chat; contas ficam em Conectores.',
     projectSkillHint: 'Vem da pasta .wayne/skills deste projeto — edita o ficheiro no repo para alterar.',
     hubSkillManageHint: 'Instalada antes pelo hub de skills. Capacidades nativas ficam no chat; contas ficam em Conectores.',
     provenance: {
@@ -254,7 +256,7 @@ export const pt = defineLocale({
     backToFeatured: 'Voltar aos destaques',
     showMore: count => `Ver ${count} mais`,
     showLess: 'Ver menos',
-    emptyConnectedTitle: 'Ainda sem conectores',
+    emptyConnectedTitle: 'Liga ferramentas externas',
     emptyConnectedDesc: 'Liga Gmail, Notion, Slack e outras contas que o agente pode usar.',
     addConnector: '+ Adicionar',
     marketplaceTitle: 'Navegar conectores',

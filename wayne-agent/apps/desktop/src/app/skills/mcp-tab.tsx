@@ -48,6 +48,7 @@ import { setHermesConfigCache, useHermesConfigRecord } from '../hooks/use-config
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { DetailPane, ICON_BUTTON, MASTER_DETAIL_WIDE_COLS } from '../master-detail'
 import { PanelAddButton, PanelEmpty } from '../overlays/panel'
+import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 import { prettyName } from '../settings/helpers'
 import { useDeepLinkHighlight } from '../settings/use-deep-link-highlight'
 
@@ -887,23 +888,18 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
   // the catalog (kept out when the user is already browsing it).
   if (Object.keys(servers).length === 0 && !dirty && leftView === 'servers') {
     return (
-      <div className="flex h-full min-h-0 flex-1">
-        <PanelEmpty
-          action={
-            <span className="flex items-center gap-2">
-              <Button onClick={addServer} size="sm">
-                {m.newServer}
-              </Button>
-              <Button onClick={() => setLeftView('catalog')} size="sm" variant="text">
-                {m.tabCatalog}
-              </Button>
-            </span>
-          }
-          description={m.emptyDesc}
-          icon="plug"
-          title={m.emptyTitle}
-        />
-      </div>
+      <CustomizeEmpty
+        actions={
+          <>
+            <CustomizeEmptyAction onClick={addServer} variant="muted">
+              {m.newServer.startsWith('+') ? m.newServer : `+ ${m.newServer}`}
+            </CustomizeEmptyAction>
+            <CustomizeEmptyAction onClick={() => setLeftView('catalog')}>{m.tabCatalog}</CustomizeEmptyAction>
+          </>
+        }
+        description={m.emptyDesc}
+        title={m.emptyTitle}
+      />
     )
   }
 

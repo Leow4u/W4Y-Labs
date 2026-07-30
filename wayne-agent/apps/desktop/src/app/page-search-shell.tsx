@@ -31,17 +31,59 @@ interface PageSearchShellProps extends React.ComponentProps<'section'> {
   /** Right-aligned control in the header's trailing cell (e.g. a refresh button)
    *  so mouse users get a visible affordance for the refresh hotkey. */
   searchTrailingAction?: ReactNode
+  /**
+   * `customize` = Cursor Customize layout: search + primary action on one
+   * centered row, pill tabs on the next, content in a soft card.
+   * Default keeps the legacy 3-column header used by other pages.
+   */
+  variant?: 'default' | 'customize'
+  /** Shown before pill tabs in `customize` (Cursor identity / scope chip). */
+  tabLeading?: ReactNode
 }
 
 function ShellTabs({
   tabs,
   activeTab,
-  onTabChange
+  onTabChange,
+  pill,
+  leading
 }: {
   tabs: PageShellTab[]
   activeTab?: string
   onTabChange?: (id: string) => void
+  pill?: boolean
+  /** Cursor Customize: identity / scope pill before category tabs. */
+  leading?: ReactNode
 }) {
+  if (pill) {
+    return (
+      <div className="flex flex-wrap items-center justify-center gap-1.5">
+        {leading}
+        {tabs.map(tab => {
+          const active = tab.id === (activeTab ?? tabs[0]?.id)
+          return (
+            <button
+              className={cn(
+                'inline-flex h-8 items-center rounded-full px-3.5 text-[0.8125rem] font-medium transition-colors',
+                active
+                  ? 'bg-muted text-foreground'
+                  : 'bg-transparent text-muted-foreground hover:bg-muted/60 hover:text-foreground'
+              )}
+              key={tab.id}
+              onClick={() => onTabChange?.(tab.id)}
+              type="button"
+            >
+              {tab.label}
+              {typeof tab.meta === 'number' ? (
+                <span className="ml-1.5 text-[0.7rem] font-normal text-muted-foreground">{tab.meta}</span>
+              ) : null}
+            </button>
+          )
+        })}
+      </div>
+    )
+  }
+
   return (
     <ResponsiveTabs
       onChange={id => onTabChange?.(id)}
@@ -65,21 +107,61 @@ export function PageSearchShell({
   searchValue,
   searchHidden = false,
   searchTrailingAction,
+  variant = 'default',
+  tabLeading,
   ...props
 }: PageSearchShellProps) {
   const hasTabs = (tabs?.length ?? 0) > 0
+  const customize = variant === 'customize'
+
+  if (customize) {
+    return (
+      <section
+        {...props}
+        className={cn('flex h-full min-w-0 flex-col overflow-hidden bg-(--ui-chat-surface-background)', className)}
+      >
+        <div className="shrink-0 px-8 pt-[calc(var(--titlebar-height)+1.25rem)]">
+          {(!searchHidden || searchTrailingAction) && (
+            <div className="mx-auto flex w-full max-w-[34rem] items-center gap-2.5">
+              {!searchHidden && (
+                <SearchField
+                  appearance="pill"
+                  containerClassName="min-w-0 flex-1"
+                  onChange={onSearchChange}
+                  placeholder={searchPlaceholder}
+                  value={searchValue}
+                />
+              )}
+              {searchTrailingAction ? <div className="shrink-0">{searchTrailingAction}</div> : null}
+            </div>
+          )}
+          {hasTabs ? (
+            <div className="mx-auto mt-5 flex w-full max-w-[48rem] justify-center">
+              <ShellTabs
+                activeTab={activeTab}
+                leading={tabLeading}
+                onTabChange={onTabChange}
+                pill
+                tabs={tabs!}
+              />
+            </div>
+          ) : null}
+          {filters ? <div className="mx-auto mt-2 flex w-full max-w-[48rem] flex-wrap justify-center gap-2">{filters}</div> : null}
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden px-8 pb-8 pt-5">
+          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.02)]">
+            {children}
+          </div>
+        </div>
+      </section>
+    )
+  }
 
   return (
     <section
       {...props}
       className={cn('flex h-full min-w-0 flex-col overflow-hidden bg-(--ui-chat-surface-background)', className)}
     >
-      {/*
-        Header lives in the page body, below the window chrome (the shell floats
-        traffic lights over the top titlebar-height strip, which the `pt` clears
-        and leaves draggable). Search left, tabs centered on the page via the
-        1fr/auto/1fr grid; the trailing 1fr keeps the center honest.
-      */}
       {/*
         IMPORTANT: do NOT put `-webkit-app-region: drag` on this header. It spans
         full width over the band where the floating titlebar icon clusters live,

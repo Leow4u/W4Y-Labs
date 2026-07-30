@@ -9,13 +9,17 @@ import { CodeEditor } from '@/components/chat/code-editor'
 import { PageLoader } from '@/components/page-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Codicon } from '@/components/ui/codicon'
 import { editLearningNode, getLearningNode, getSkills, type HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { openExternalLink } from '@/lib/external-link'
 import { compactNumber } from '@/lib/format'
 import { queryClient, writeCache } from '@/lib/query-client'
 import { normalize } from '@/lib/text'
 import { notify, notifyError } from '@/store/notifications'
+import { $activeProfile } from '@/store/profile'
 import type { SkillInfo } from '@/types/hermes'
+import { cn } from '@/lib/utils'
 
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
@@ -29,14 +33,17 @@ import {
   ListStripButton,
   MasterDetail
 } from '../master-detail'
-import { PanelEmpty, PanelPill } from '../overlays/panel'
+import { PanelPill } from '../overlays/panel'
 import { PageSearchShell } from '../page-search-shell'
 import { asText, includesQuery, prettyName } from '../settings/helpers'
 import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
 import { ConnectorsTab } from './connectors-tab'
+import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 import { McpTab } from './mcp-tab'
 import { $skillsSortDesc } from './store'
+
+const SKILLS_DOCS_URL = 'https://hermes-agent.nousresearch.com/docs/user-guide/features/skills'
 
 // Personalizar (Cursor Customize): Skills · Conectores · MCPs + Browse Marketplace.
 // Browse Hub stays off the product face (PRODUTO.md).
@@ -109,6 +116,7 @@ export function SkillsView({
   const navigate = useNavigate()
   const { hash, pathname, search } = useLocation()
   const [mode, setMode] = useRouteEnumParam('tab', SKILLS_MODES, 'skills')
+  const activeProfile = useStore($activeProfile)
 
   const marketplace = useMemo(() => new URLSearchParams(search).get('view') === 'marketplace', [search])
 
@@ -152,30 +160,10 @@ export function SkillsView({
 
   useRefreshHotkey(refreshCapabilities)
 
-  const productSkills = useMemo(() => (skills ? skills.filter(isProductSkill) : []), [skills])
-
   const visibleSkills = useMemo(
     () => (skills ? filteredSkills(skills, query, skillsSortDesc) : []),
     [query, skills, skillsSortDesc]
   )
-
-  const searchHints = useMemo(() => {
-    if (marketplace || mode !== 'skills' || productSkills.length === 0) {
-      return undefined
-    }
-
-    const counts = new Map<string, number>()
-
-    for (const skill of productSkills) {
-      const key = categoryFor(skill)
-      counts.set(key, (counts.get(key) || 0) + 1)
-    }
-
-    return [...counts.entries()]
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 5)
-      .map(([category]) => t.common.tryHint(category.toLowerCase()))
-  }, [marketplace, mode, productSkills, t])
 
   // Detail only after an explicit click — no auto-select of the first row.
   const activeSkill = useMemo(
@@ -260,34 +248,33 @@ export function SkillsView({
 
     if (q) {
       return (
-        <div className="flex h-full min-h-0 flex-1">
-          <PanelEmpty
-            description={t.skills.emptyNothingMatches(q)}
-            icon="search"
-            title={t.skills.emptyNoneFound(t.skills.tabSkills.toLowerCase())}
-          />
-        </div>
+        <CustomizeEmpty
+          description={t.skills.emptyNothingMatches(q)}
+          title={t.skills.emptyNoneFound(t.skills.tabSkills.toLowerCase())}
+        />
       )
     }
 
     return (
-      <div className="flex h-full min-h-0 flex-1">
-        <PanelEmpty
-          description={t.skills.emptyProductSkillsDesc}
-          icon="search"
-          title={t.skills.emptyProductSkillsTitle}
-        />
-      </div>
+      <CustomizeEmpty
+        actions={
+          <CustomizeEmptyAction onClick={() => openExternalLink(SKILLS_DOCS_URL)}>
+            {t.skills.documentation}
+          </CustomizeEmptyAction>
+        }
+        description={t.skills.emptyProductSkillsDesc}
+        title={t.skills.emptyProductSkillsTitle}
+      />
     )
   }
 
   const searchPlaceholder = marketplace
-    ? t.connectors.searchPlaceholder
+    ? t.skills.searchFor(t.skills.tabConnectors, activeProfile)
     : mode === 'connectors'
-      ? t.connectors.searchPlaceholder
+      ? t.skills.searchFor(t.skills.tabConnectors, activeProfile)
       : mode === 'mcp'
-        ? t.settings.searchPlaceholder.mcp
-        : t.skills.searchSkills
+        ? t.skills.searchFor(t.skills.tabMcp, activeProfile)
+        : t.skills.searchFor(t.skills.tabSkills, activeProfile)
 
   const onTabChange = (id: string) => {
     if (marketplace) setMarketplace(false)
@@ -302,23 +289,40 @@ export function SkillsView({
       activeTab={marketplace ? undefined : mode}
       onSearchChange={setQuery}
       onTabChange={onTabChange}
-      searchHints={searchHints}
       searchPlaceholder={searchPlaceholder}
       searchTrailingAction={
-        <Button onClick={() => setMarketplace(!marketplace)} size="sm" variant={marketplace ? 'outline' : 'default'}>
+        <button
+          className={cn(
+            'inline-flex h-9 shrink-0 items-center rounded-full px-4 text-[0.8125rem] font-medium transition-opacity',
+            marketplace
+              ? 'border border-border bg-transparent text-foreground hover:bg-muted/60'
+              : 'bg-foreground text-background hover:opacity-90'
+          )}
+          onClick={() => setMarketplace(!marketplace)}
+          type="button"
+        >
           {marketplace ? t.skills.manageConnected : t.skills.browseMarketplace}
-        </Button>
+        </button>
       }
       searchValue={query}
+      tabLeading={
+        marketplace ? undefined : (
+          <span className="inline-flex h-8 max-w-[14rem] items-center gap-1.5 rounded-full bg-muted px-3 text-[0.8125rem] font-medium text-foreground">
+            <Codicon className="shrink-0 text-muted-foreground" name="account" size="0.875rem" />
+            <span className="truncate">{activeProfile}</span>
+          </span>
+        )
+      }
       tabs={
         marketplace
           ? undefined
           : [
-              { id: 'skills', label: t.skills.tabSkills, meta: skills ? productSkills.length : null },
+              { id: 'skills', label: t.skills.tabSkills },
               { id: 'connectors', label: t.skills.tabConnectors },
               { id: 'mcp', label: t.skills.tabMcp }
             ]
       }
+      variant="customize"
     >
       {marketplace ? (
         <ConnectorsTab onOpenMarketplace={() => setMarketplace(true)} search={query} variant="marketplace" />
@@ -327,14 +331,13 @@ export function SkillsView({
       ) : mode === 'mcp' ? (
         <McpTab gateway={gateway} />
       ) : skillsFailed && !skills ? (
-        <PanelEmpty
-          action={
-            <Button onClick={() => void refreshCapabilities()} size="sm">
+        <CustomizeEmpty
+          actions={
+            <CustomizeEmptyAction onClick={() => void refreshCapabilities()} variant="muted">
               {t.skills.refresh}
-            </Button>
+            </CustomizeEmptyAction>
           }
-          description={skillsError instanceof Error ? skillsError.message : undefined}
-          icon="error"
+          description={skillsError instanceof Error ? skillsError.message : t.skills.skillsLoadFailed}
           title={t.skills.skillsLoadFailed}
         />
       ) : !skills ? (

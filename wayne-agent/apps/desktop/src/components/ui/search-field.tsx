@@ -23,6 +23,8 @@ interface SearchFieldProps {
   inputRef?: RefObject<HTMLInputElement | null>
   trailingAction?: ReactNode
   'aria-label'?: string
+  /** `pill` = Cursor Customize boxed search; default is underline/receding. */
+  appearance?: 'underline' | 'pill'
 }
 
 /**
@@ -42,10 +44,12 @@ export function SearchField({
   onClear,
   inputRef,
   trailingAction,
-  'aria-label': ariaLabel
+  'aria-label': ariaLabel,
+  appearance = 'underline'
 }: SearchFieldProps) {
   const { t } = useI18n()
   const clear = onClear ?? (() => onChange(''))
+  const pill = appearance === 'pill'
 
   // One hint per mount, picked at random — fresh nudge every visit, no
   // mid-page carousel.
@@ -59,9 +63,14 @@ export function SearchField({
         // min-w-0 is load-bearing: without it the content-sized input sets the
         // container's flex min-width and the field bulldozes its siblings
         // instead of shrinking to fit its context.
-        'inline-flex min-w-0 max-w-full items-center gap-1.5 border-b border-transparent px-0.5 transition-[color,border-color,opacity]',
-        // Recede until the user reaches for it.
-        !value && 'opacity-30 focus-within:opacity-100',
+        'inline-flex min-w-0 max-w-full items-center gap-1.5 transition-[color,border-color,opacity,background-color]',
+        pill
+          ? 'h-9 w-full rounded-full border border-border/80 bg-muted/40 px-3.5 opacity-100 focus-within:border-border focus-within:bg-muted/55'
+          : cn(
+              'border-b border-transparent px-0.5',
+              // Recede until the user reaches for it.
+              !value && 'opacity-30 focus-within:opacity-100'
+            ),
         containerClassName
       )}
     >
@@ -73,7 +82,8 @@ export function SearchField({
           // text; min-w-0 lets it shrink back below content size when the
           // context is narrower — long queries scroll inside the field.
           // text-xs matches the form controls (Input/Select via controlVariants).
-          'h-7 min-w-0 max-w-full bg-transparent text-xs text-foreground [field-sizing:content] placeholder:text-muted-foreground focus:outline-none',
+          'min-w-0 max-w-full flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none',
+          pill ? 'h-8 text-[0.8125rem]' : 'h-7 text-xs [field-sizing:content]',
           inputClassName
         )}
         onChange={event => onChange(event.target.value)}
