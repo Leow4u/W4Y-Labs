@@ -1584,8 +1584,9 @@ export const zh: Translations = {
     emptyNoneAvailable: noun => `暂无可用的${noun}。`,
     emptyProductSkillsTitle: '尚无项目技能',
     emptyProductSkillsDesc:
-      '代理在此学到的技能，以及你从 Browse Hub 安装的技能，会出现在此列表。内置能力已是 Work4You 的一部分——直接在对话中提出即可。',
-    hubSkillManageHint: '从 Hub 安装 — 请在 Browse Hub 中卸载或更新。',
+      '代理在此学到的技能，以及项目 .wayne/skills 下的 SKILL.md，会出现在此列表。内置能力已是 Work4You 的一部分——直接在对话中提出即可。账户（Gmail、GitHub、Notion…）在连接器。',
+    projectSkillHint: '来自本项目的 .wayne/skills 文件夹 — 在仓库中编辑文件即可更改。',
+    hubSkillManageHint: '此前从技能中心安装。内置能力在对话中；账户在连接器。',
     changesApplyNewSessions: '更改将应用于新会话。',
     skillUpdated: '技能已更新',
     edit: '编辑',
