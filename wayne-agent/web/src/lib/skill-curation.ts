@@ -14,7 +14,9 @@
 const PT_DISPLAY: Record<string, string> = {
   // Produtividade / documentos
   "excel-presentations": "Planilhas e relatórios (Excel)",
-  powerpoint: "Apresentações (PowerPoint)",
+  "excel-author": "Planilhas auditáveis (Excel)",
+  "pptx-author": "Apresentações (PowerPoint)",
+  "doc-coauthoring": "Co-autoria de documentos",
   "ocr-and-documents": "Ler documentos e OCR",
   maps: "Mapas e rotas",
   obsidian: "Notas no Obsidian",
@@ -22,6 +24,8 @@ const PT_DISPLAY: Record<string, string> = {
   "architecture-diagram": "Diagramas de arquitetura",
   "baoyu-infographic": "Infográficos",
   "claude-design": "Design com IA",
+  "frontend-design": "Direção visual de UI",
+  "theme-factory": "Temas de cor e tipografia",
   excalidraw: "Quadros e desenhos (Excalidraw)",
   sketch: "Esboços e wireframes",
   // Texto

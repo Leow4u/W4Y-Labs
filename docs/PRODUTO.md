@@ -204,6 +204,17 @@ A fotografia actual da app (abas Tools/MCP ainda visíveis) está em
 Billing do que a fórmula inclui por plano: `docs/BILLING-ARQUITETURA.md`
 (passo separado).
 
+**Skills conector-disfarçado:** as 12 skills que pediam API/conta do
+utilizador (Notion, Airtable, Google Workspace, …) foram tiradas do kit
+bundled → `optional-skills/` + `skills.disabled` (migrate v34). Contas =
+só Conectores. Ver `docs/SKILLS-AUDITORIA.md`.
+
+**Anthropic skills:** example-skills Apache 2.0 (frontend-design, theme-factory,
+doc-coauthoring, …) entram no kit/Hub com crédito + LICENSE. Document skills
+proprietárias (docx/pdf/pptx/xlsx) **não** se redistribuem — o `powerpoint` do
+kit foi removido (migrate v35). Decks/planilhas = `pptx-author` + `excel-author`
+(OSS). Ver `docs/SKILLS-AUDITORIA.md`.
+
 ---
 
 ## Onde está o resto da verdade

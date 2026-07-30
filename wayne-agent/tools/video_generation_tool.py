@@ -197,25 +197,23 @@ def _read_configured_video_model() -> Optional[str]:
 
 
 def check_video_generation_requirements() -> bool:
-    """Return True when at least one registered provider reports available.
+    """Return True when dispatch can run a video backend.
 
-    Triggers plugin discovery (idempotent) so user-installed plugins are
-    visible to the toolset gate.
+    Uses :func:`agent.video_gen_registry.get_active_provider` so the tool
+    only appears when a call would succeed (skips unavailable configured
+    providers; prefers OpenRouter).
     """
     try:
-        from agent.video_gen_registry import list_providers
+        from agent.video_gen_registry import get_active_provider
         from wayne_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
-        for provider in list_providers():
-            try:
-                if provider.is_available():
-                    return True
-            except Exception:
-                continue
+        provider = get_active_provider()
+        if provider is None:
+            return False
+        return bool(provider.is_available())
     except Exception:
-        pass
-    return False
+        return False
 
 
 # ---------------------------------------------------------------------------
@@ -247,18 +245,18 @@ def _resolve_active_provider():
 def _missing_provider_error(configured: Optional[str]) -> str:
     if configured:
         msg = (
-            f"video_gen.provider='{configured}' is set but no plugin "
-            f"registered that name. Run `wayne plugins list` to see "
-            f"installed video gen backends, or `wayne tools` → Video "
-            f"Generation to pick one."
+            f"Video generation backend '{configured}' is not available for "
+            f"this account. Video gen uses the same plan credentials as chat "
+            f"when ready — try again after signing in, or ask without video."
         )
         return json.dumps(error_response(
             error=msg, error_type="provider_not_registered",
             provider=configured,
         ))
     msg = (
-        "No video generation backend is configured. Run `wayne tools` → "
-        "Video Generation to enable one (xAI, FAL, or Google Veo)."
+        "Video generation is unavailable right now — no backend is ready "
+        "for this account. It uses the same plan credentials as chat when "
+        "available."
     )
     return json.dumps(error_response(
         error=msg, error_type="no_provider_configured",

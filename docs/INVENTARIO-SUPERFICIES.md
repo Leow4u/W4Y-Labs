@@ -373,6 +373,8 @@ Chaves do motor sem UI nenhuma: `display.tool_progress`, `display.tool_progress_
 
 **Resíduo motor (não é UI):** providers Nous/BYO e toolsets activos no `config.yaml` / runtime — a fórmula ainda não força defaults de plataforma no backend; só a face deixou de expô-los.
 
+**Gates (29/07):** `web.backend` / `image_gen.provider` / `video_gen.provider` configurados mas **sem credencial** já não são escolhidos no dispatch — caem para backend disponível (ex. OpenRouter, Parallel) ou a tool some do schema. Erros deixam de pedir `wayne tools` / `FAL_KEY` ao agente.
+
 ---
 
 ## 7. Incertezas assumidas

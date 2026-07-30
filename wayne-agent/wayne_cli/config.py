@@ -2209,6 +2209,26 @@ DEFAULT_CONFIG = {
     # always goes to ~/.wayne/skills/.
     "skills": {
         "external_dirs": [],   # e.g. ["~/.agents/skills", "/shared/team-skills"]
+        # Credential-gated skills that live under Conectores (Composio), not the
+        # default kit. Also seeded into optional-skills/; copies already in
+        # ~/.wayne/skills/ are disabled via config migrate v34.
+        # `powerpoint` — Anthropic proprietary document skill; removed from kit
+        # (migrate v35). Use pptx-author / excel-author instead.
+        "disabled": [
+            "airtable",
+            "gif-search",
+            "google-workspace",
+            "himalaya",
+            "huggingface-hub",
+            "nano-pdf",
+            "notion",
+            "openhue",
+            "powerpoint",
+            "teams-meeting-pipeline",
+            "weights-and-biases",
+            "xurl",
+            "yuanbao",
+        ],
         # Substitute ${WAYNE_SKILL_DIR} and ${WAYNE_SESSION_ID} in SKILL.md
         # content with the absolute skill directory and the active session id
         # before the agent sees it (the upstream ${HERMES_*} spellings are
@@ -3134,7 +3154,7 @@ DEFAULT_CONFIG = {
     },
 
     # Config schema version - bump this when adding new required fields
-    "_config_version": 33,
+    "_config_version": 35,
 }
 
 # =============================================================================
@@ -5827,6 +5847,69 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                     "  ✓ Removed deprecated delegation.max_async_children — "
                     "delegation.max_concurrent_children now caps background "
                     "delegations too."
+                )
+
+    # ── Version 33 → 34: connector-disguised skills → Conectores ──
+    # Moved from skills/ to optional-skills/. Copies already seeded into
+    # ~/.wayne/skills/ stay on disk (sync only cleans the manifest) — disable
+    # them so the agent stops treating API-key skills as methods.
+    if current_ver < 34:
+        from wayne_cli.skills_config import CONNECTOR_DISGUISED_SKILLS
+
+        config = read_raw_config()
+        skills_cfg = config.get("skills")
+        if not isinstance(skills_cfg, dict):
+            skills_cfg = {}
+            config["skills"] = skills_cfg
+        disabled = skills_cfg.get("disabled")
+        if not isinstance(disabled, list):
+            disabled = []
+        before = set(disabled)
+        merged = sorted(before | set(CONNECTOR_DISGUISED_SKILLS))
+        if merged != sorted(before):
+            skills_cfg["disabled"] = merged
+            config["skills"] = skills_cfg
+            _persist_migration(config)
+            added = sorted(set(CONNECTOR_DISGUISED_SKILLS) - before)
+            results["config_added"].append(
+                f"skills.disabled += {', '.join(added)} (connectors, not skills)"
+            )
+            if not quiet:
+                print(
+                    "  ✓ Disabled connector-disguised skills — use Conectores "
+                    f"for accounts ({len(added)} name(s))."
+                )
+
+    # ── Version 34 → 35: drop Anthropic proprietary powerpoint redistrib ──
+    # Document skills (docx/pdf/pptx/xlsx) in anthropics/skills are not Apache.
+    # Kit copy of `powerpoint` removed; disable seeded copies. OSS path:
+    # pptx-author + excel-author (Apache from anthropics/financial-services).
+    if current_ver < 35:
+        from wayne_cli.skills_config import ANTHROPIC_PROPRIETARY_REMOVED_SKILLS
+
+        config = read_raw_config()
+        skills_cfg = config.get("skills")
+        if not isinstance(skills_cfg, dict):
+            skills_cfg = {}
+            config["skills"] = skills_cfg
+        disabled = skills_cfg.get("disabled")
+        if not isinstance(disabled, list):
+            disabled = []
+        before = set(disabled)
+        merged = sorted(before | set(ANTHROPIC_PROPRIETARY_REMOVED_SKILLS))
+        if merged != sorted(before):
+            skills_cfg["disabled"] = merged
+            config["skills"] = skills_cfg
+            _persist_migration(config)
+            added = sorted(set(ANTHROPIC_PROPRIETARY_REMOVED_SKILLS) - before)
+            results["config_added"].append(
+                f"skills.disabled += {', '.join(added)} "
+                "(Anthropic proprietary document skill removed from kit)"
+            )
+            if not quiet:
+                print(
+                    "  ✓ Disabled proprietary Anthropic document skill(s) — "
+                    f"use pptx-author / excel-author ({len(added)} name(s))."
                 )
 
     # ── Post-migration: disable exfiltration-shaped MCP stdio entries ──

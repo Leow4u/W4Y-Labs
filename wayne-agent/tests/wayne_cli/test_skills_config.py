@@ -3,6 +3,74 @@ from unittest.mock import patch
 
 
 # ---------------------------------------------------------------------------
+# Connector-disguised skills (product: Conectores, not default kit)
+# ---------------------------------------------------------------------------
+
+class TestConnectorDisguisedSkills:
+    def test_constant_matches_default_disabled_seed(self):
+        from wayne_cli.config import DEFAULT_CONFIG
+        from wayne_cli.skills_config import CONNECTOR_DISGUISED_SKILLS
+
+        disabled = set(DEFAULT_CONFIG["skills"]["disabled"])
+        assert CONNECTOR_DISGUISED_SKILLS <= disabled
+
+    def test_optional_skills_tree_has_each_name(self):
+        from pathlib import Path
+
+        from wayne_cli.skills_config import CONNECTOR_DISGUISED_SKILLS
+        from wayne_constants import get_optional_skills_dir
+
+        optional = get_optional_skills_dir(Path(__file__).resolve().parents[2] / "optional-skills")
+        found = {p.parent.name for p in optional.rglob("SKILL.md")}
+        missing = CONNECTOR_DISGUISED_SKILLS - found
+        assert not missing, f"still under skills/ or missing: {sorted(missing)}"
+
+
+class TestAnthropicProprietaryRemovedSkills:
+    def test_powerpoint_in_default_disabled(self):
+        from wayne_cli.config import DEFAULT_CONFIG
+        from wayne_cli.skills_config import ANTHROPIC_PROPRIETARY_REMOVED_SKILLS
+
+        disabled = set(DEFAULT_CONFIG["skills"]["disabled"])
+        assert ANTHROPIC_PROPRIETARY_REMOVED_SKILLS <= disabled
+
+    def test_powerpoint_not_in_bundled_skills_tree(self):
+        from pathlib import Path
+
+        from wayne_cli.skills_config import ANTHROPIC_PROPRIETARY_REMOVED_SKILLS
+
+        repo = Path(__file__).resolve().parents[2]
+        bundled = {p.parent.name for p in (repo / "skills").rglob("SKILL.md")}
+        leaked = ANTHROPIC_PROPRIETARY_REMOVED_SKILLS & bundled
+        assert not leaked, f"proprietary skill still bundled: {sorted(leaked)}"
+
+    def test_apache_anthropic_skills_shipped(self):
+        from pathlib import Path
+
+        repo = Path(__file__).resolve().parents[2]
+        kit = {
+            "frontend-design": repo / "skills/creative/frontend-design/SKILL.md",
+            "theme-factory": repo / "skills/creative/theme-factory/SKILL.md",
+            "doc-coauthoring": repo / "skills/productivity/doc-coauthoring/SKILL.md",
+        }
+        optional = {
+            "web-artifacts-builder": repo
+            / "optional-skills/web-development/web-artifacts-builder/SKILL.md",
+            "mcp-builder": repo / "optional-skills/mcp/mcp-builder/SKILL.md",
+            "webapp-testing": repo
+            / "optional-skills/web-development/webapp-testing/SKILL.md",
+        }
+        for name, path in {**kit, **optional}.items():
+            assert path.is_file(), name
+            text = path.read_text(encoding="utf-8")
+            assert "Apache-2.0" in text or "Apache License" in (
+                path.parent / "LICENSE.txt"
+            ).read_text(encoding="utf-8")
+            assert (path.parent / "NOTICE.md").is_file()
+            assert (path.parent / "LICENSE.txt").is_file()
+
+
+# ---------------------------------------------------------------------------
 # get_disabled_skills
 # ---------------------------------------------------------------------------
 

@@ -17,6 +17,34 @@ from wayne_cli.config import cfg_get, load_config, save_config
 from wayne_cli.colors import Colors, color
 from wayne_cli.platforms import PLATFORMS as _PLATFORMS
 
+# Credential-gated skills that belong under Conectores (Composio/MCP), not the
+# default bundled kit. Kept in optional-skills/ for Hub install; also unioned
+# into skills.disabled on config migrate so copies already seeded into
+# ~/.wayne/skills/ stop auto-loading. See docs/SKILLS-AUDITORIA.md + PRODUTO.md.
+CONNECTOR_DISGUISED_SKILLS: frozenset[str] = frozenset({
+    "airtable",
+    "gif-search",
+    "google-workspace",
+    "himalaya",
+    "huggingface-hub",
+    "nano-pdf",
+    "notion",
+    "openhue",
+    "teams-meeting-pipeline",
+    "weights-and-biases",
+    "xurl",
+    "yuanbao",
+})
+
+# Anthropic document skills (docx/pdf/pptx/xlsx) are source-available, not
+# Apache — redistributing them (or derivatives) violates their LICENSE.
+# The shipped `powerpoint` kit copy carried that proprietary LICENSE and was
+# removed; disable any copy already seeded into ~/.wayne/skills/. Deck work
+# stays on OSS `pptx-author` + `excel-author` until we reimplement cleanly.
+ANTHROPIC_PROPRIETARY_REMOVED_SKILLS: frozenset[str] = frozenset({
+    "powerpoint",
+})
+
 # Backward-compatible view: {key: label_string} so existing code that
 # iterates ``PLATFORMS.items()`` or calls ``PLATFORMS.get(key)`` keeps
 # working without changes to every call site.

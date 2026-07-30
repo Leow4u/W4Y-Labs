@@ -84,13 +84,12 @@ def get_active_provider() -> Optional[VideoGenProvider]:
 
     **Availability semantics** (mirrors :mod:`agent.image_gen_registry`):
 
-    - When ``video_gen.provider`` is explicitly set, the configured
-      provider is returned even if :meth:`VideoGenProvider.is_available`
-      reports False — the dispatcher surfaces a precise auth error rather
-      than silently switching backends.
-    - When ``video_gen.provider`` is unset, the fallback path is filtered by
-      ``is_available()`` so we don't pick a provider the user has no
-      credentials for.
+    - When ``video_gen.provider`` is explicitly set **and available**, that
+      provider wins.
+    - When the configured provider is missing or unavailable, fall through
+      to an available backend (OpenRouter preferred) so the agent never
+      receives a "set API key" error for a backend the product does not
+      expose.
     """
     configured: Optional[str] = None
     try:
@@ -117,10 +116,10 @@ def get_active_provider() -> Optional[VideoGenProvider]:
 
     if configured:
         provider = snapshot.get(configured)
-        if provider is not None:
+        if provider is not None and _is_available_safe(provider):
             return provider
         logger.debug(
-            "video_gen.provider='%s' configured but not registered; falling back",
+            "video_gen.provider='%s' configured but missing/unavailable; falling back",
             configured,
         )
 

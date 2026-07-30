@@ -1050,10 +1050,12 @@ def _build_no_backend_setup_message() -> str:
         know the registry exists and how to inspect it)
     """
     lines = ["Image generation is unavailable in this environment.", ""]
-    lines.append("Image generation isn't ready yet.")
+    lines.append("Image generation isn't ready yet for this account.")
     lines.append("")
-    lines.append("In Work4You: open Settings → Tools → Image generation and")
-    lines.append("pick an available backend, or check your plan includes image use.")
+    lines.append(
+        "It uses your Work4You plan credentials (same as chat) when available. "
+        "Sign in or check your plan includes image use, then try again."
+    )
     if managed_nous_tools_enabled():
         lines.append(
             "(Managed image gateway unreachable — retry after reconnecting.)"
@@ -1062,41 +1064,37 @@ def _build_no_backend_setup_message() -> str:
 
 
 def check_image_generation_requirements() -> bool:
-    """True if any image gen backend is available.
+    """True when dispatch can actually run an image backend.
 
-    Providers are considered in this order:
-
-    1. The in-tree FAL backend (FAL_KEY or managed gateway).
-    2. Any plugin-registered provider whose ``is_available()`` returns True.
-
-    Plugins win only when the in-tree FAL path is NOT ready, which matches
-    the historical behavior: shipping wayne with a FAL key configured
-    should still expose the tool. The active selection among ready
-    providers is resolved per-call by ``image_gen.provider``.
+    Uses :func:`agent.image_gen_registry.get_active_provider` (which skips
+    unavailable configured providers and prefers OpenRouter) so the tool
+    only appears in the model schema when a call would succeed — not when
+    a stale ``image_gen.provider`` points at a missing API key while
+    another backend is ready (or vice versa).
     """
     try:
-        if check_fal_api_key():
-            # Trigger the lazy fal_client import here as the SDK presence
-            # check. Raises ImportError if the optional ``fal-client``
-            # package isn't installed; the caller's except ImportError
-            # below catches that and continues to plugin probing.
-            _load_fal_client()
-            return True
-    except ImportError:
-        pass
-
-    # Probe plugin providers. Discovery is idempotent and cheap.
-    try:
-        from agent.image_gen_registry import list_providers
+        from agent.image_gen_registry import get_active_provider
         from wayne_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
-        for provider in list_providers():
+        provider = get_active_provider()
+        if provider is not None:
             try:
                 if provider.is_available():
                     return True
             except Exception:
-                continue
+                pass
+    except Exception:
+        pass
+
+    # Explicit in-tree FAL only when the active resolver did not already
+    # pick a plugin — keeps FAL_KEY-only setups working when provider=fal.
+    try:
+        if check_fal_api_key() and _read_configured_image_provider() == "fal":
+            _load_fal_client()
+            return True
+    except ImportError:
+        pass
     except Exception:
         pass
 
@@ -1540,9 +1538,9 @@ def _handle_image_generate(args, **kw):
         "success": False,
         "image": None,
         "error": (
-            "No OpenRouter image backend is available. Configure "
-            "OPENROUTER_API_KEY (same key as chat) or set "
-            "image_gen.provider in config.yaml. FAL is not used by default."
+            "Image generation is unavailable right now — no image backend "
+            "is ready for this account. It uses the same Work4You plan "
+            "credentials as chat when available."
         ),
         "error_type": "missing_api_key",
     })

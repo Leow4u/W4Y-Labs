@@ -118,6 +118,20 @@ class TestGetActiveProvider:
         active = image_gen_registry.get_active_provider()
         assert active is not None and active.name == "fal"
 
+    def test_unavailable_configured_provider_falls_back_to_openrouter(
+        self, tmp_path, monkeypatch
+    ):
+        import yaml
+
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
+        (tmp_path / "config.yaml").write_text(
+            yaml.safe_dump({"image_gen": {"provider": "fal"}})
+        )
+        image_gen_registry.register_provider(_FakeProvider("fal", available=False))
+        image_gen_registry.register_provider(_FakeProvider("openrouter"))
+        active = image_gen_registry.get_active_provider()
+        assert active is not None and active.name == "openrouter"
+
     def test_missing_configured_provider_falls_back_to_openrouter(self, tmp_path, monkeypatch):
         import yaml
 

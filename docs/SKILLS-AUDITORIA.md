@@ -21,13 +21,12 @@
 ## 🟢 Funciona hoje (17)
 
 architecture-diagram · ascii-art · baoyu-infographic · claude-design · design-md · excalidraw ·
-humanizer · p5js · popular-web-designs · pretext · sketch · songwriting-and-ai-music ·
-obsidian · maps · arxiv · llm-wiki · polymarket
+frontend-design · theme-factory · doc-coauthoring · humanizer · p5js · popular-web-designs ·
+pretext · sketch · songwriting-and-ai-music · obsidian · maps · arxiv · llm-wiki · polymarket ·
+pptx-author · excel-author
 
-Featured atual (7): architecture-diagram, baoyu-infographic, claude-design, excalidraw, maps,
-obsidian, web-research-competitive-intelligence. **Candidatos a promover (zero custo):**
-humanizer (revisão de texto p/ tom humano), sketch (mockups HTML), arxiv (pesquisa acadêmica),
-polymarket (dados de mercados de previsão), llm-wiki (base de conhecimento em markdown).
+Featured (web SkillsPage): inclui pptx-author (não powerpoint), excel-*, ocr, design skills,
+youtube, research… Ver `FEATURED_SKILLS` em `wayne-agent/web/src/pages/SkillsPage.tsx`.
 
 ## 🟡 Pip leve — destravável com um overlay `uv pip install` (~100 MB total)
 
@@ -43,25 +42,49 @@ polymarket (dados de mercados de previsão), llm-wiki (base de conhecimento em m
 > Nota técnica: instalar NO VENV do agente (`uv pip install --python /opt/wayne/.venv/bin/python3 …`),
 > num overlay Docker fino sobre a imagem fly (mesmo padrão do Dockerfile.ui). Persistente, sem rebuild da base.
 
+## Anthropic document skills (29/07/2026) — legal
+
+`docx` / `pdf` / `pptx` / `xlsx` em [anthropics/skills](https://github.com/anthropics/skills)
+são **source-available, não Apache** — proibido redistribuir / derivar no kit.
+
+| Acção | Estado |
+|---|---|
+| Removido do kit `skills/productivity/powerpoint` (LICENSE proprietária Anthropic) | feito |
+| OSS no kit: `excel-author` + `pptx-author` (Apache, anthropics/financial-services) | mantido |
+| Apache example-skills importados (crédito Anthropic + LICENSE + NOTICE) | feito — ver abaixo |
+| Reimplementar Office do zero / acordo Anthropic / MCP MIT Excel | **ainda por decidir** |
+
+### Apache 2.0 importados (crédito Anthropic)
+
+**Kit (`skills/`):** `frontend-design`, `theme-factory`, `doc-coauthoring`
+
+**Hub / optional:** `web-artifacts-builder`, `mcp-builder`, `webapp-testing`
+
+Candidatos Apache ainda **não** importados (próxima onda): algorithmic-art,
+brand-guidelines, canvas-design, internal-comms, slack-gif-creator, skill-creator…
+
 ## 🔴 Pesadas — decisão caso a caso
 
 | Skill | Bloqueio | Vale? |
 |---|---|---|
-| **powerpoint** | LibreOffice/soffice (~600 MB) + poppler p/ QA visual e miniaturas | **SIM, recomendado** — era top-4 do produto; custo = só disco |
+| **pptx-author** (OSS) | `python-pptx` (pip) — sem LibreOffice obrigatório | **SIM** — substitui o `powerpoint` proprietário no featured |
+| ~~powerpoint~~ | ~~LibreOffice + poppler~~ | **removido** — LICENSE Anthropic proprietária |
 | research-paper-writing | LaTeX/texlive (~300 MB–1 GB) + pips | Talvez (credibilidade); LaTeX serve também ao manim-video |
 | manim-video | LaTeX + manim | Carona do LaTeX |
 | comfyui · heartmula · vllm · llama-cpp · lm-evaluation-harness · audiocraft · segment-anything | **GPU + modelos multi-GB** | **NÃO neste container** (fly sem GPU; são skills de ML/dev — já ficam internas) |
 | songsee | toolchain Go p/ compilar | Não (nicho) |
 
-## 🔌 Conectores disfarçados (12) — workstream Conectores/MCP
+## 🔌 Conectores disfarçados (12) — movidos 29/07/2026
 
 huggingface-hub · himalaya (e-mail) · gif-search (Tenor) · weights-and-biases · airtable ·
 google-workspace · **nano-pdf** (o CLI usa um LLM próprio → exige API key!) · notion ·
 teams-meeting-pipeline (MS Graph) · openhue (bridge físico na LAN — inalcançável da nuvem) ·
 xurl (X/Twitter pago) · yuanbao (Tencent)
 
-> Não estão "quebrados": precisam de conta/credencial do usuário. Lar canônico = **Conectores (MCP)**
-> (já no roadmap). Surpresa da auditoria: `nano-pdf` mudou de "pip leve" para conector (API key de LLM).
+> **Estado:** saíram de `skills/` → `optional-skills/` (não entram no kit default).
+> Config migrate `_config_version` 34 uniõe estes nomes em `skills.disabled` para
+> cópias já semeadas em `~/.wayne/skills/`. Lar de produto = **Conectores**
+> (Composio). Constante: `wayne_cli.skills_config.CONNECTOR_DISGUISED_SKILLS`.
 
 ## ⚫ Incompatíveis / nicho (27) — ficam internas (`?full=1`)
 
@@ -85,8 +108,10 @@ o chat com um prompt de exemplo pré-preenchido.
   (humanizer, sketch, arxiv, polymarket…), 7 → ~11.
 - **Onda B — overlay pip (~100 MB, custo ≈ 0):** openpyxl, youtube-transcript-api, pymupdf(+4llm)
   → devolve Gerador de Excel, Conteúdo do YouTube e OCR ao featured (~14).
-- **Onda C — LibreOffice (~600 MB disco, custo ≈ 0):** PowerPoint completo (criar + QA visual + miniatura).
-  Testar pico de RAM em 2 GB; subir p/ 4 GB só se necessário (~+US$5–10/mês, só quando em uso).
+- **Onda C — Office OSS:** aprofundar `pptx-author` / `excel-author` (código nosso ou
+  OSS limpo). **Não** vendor Anthropic `pptx`/`xlsx` proprietários. LibreOffice
+  só se o caminho OSS o exigir (QA visual), não como justificação para copiar
+  a skill proprietária.
 - **Onda D — LaTeX (opcional):** research-paper-writing compilando PDF + manim-video.
 - **Permanente fora (não é bug):** GPU/ML, macOS, GUI, dev-tools — internos ou não aplicáveis.
 - **Conectores:** os 12 credenciados via workstream Conectores/MCP.

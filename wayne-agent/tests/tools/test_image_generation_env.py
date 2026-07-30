@@ -54,10 +54,12 @@ def test_no_backend_message_points_to_work4you_settings(monkeypatch):
 
     msg = image_generation_tool._build_no_backend_setup_message()
 
-    # Work4You curated path: no vendor credit signup URLs in the agent error surface.
+    # Work4You curated path: no vendor credit signup URLs / Tools picker in the
+    # agent error surface.
     assert "fal.ai" not in msg.lower()
     assert "FAL_KEY" not in msg
-    assert "Settings" in msg or "Image generation" in msg
+    assert "wayne tools" not in msg.lower()
+    assert "Image generation" in msg or "plan" in msg.lower()
 
 
 def test_no_backend_message_mentions_managed_gateway_when_enabled(monkeypatch):
@@ -70,7 +72,8 @@ def test_no_backend_message_mentions_managed_gateway_when_enabled(monkeypatch):
     msg = image_generation_tool._build_no_backend_setup_message()
 
     assert "fal.ai" not in msg.lower()
-    assert "Settings" in msg or "Image generation" in msg
+    assert "wayne tools" not in msg.lower()
+    assert "Image generation" in msg or "plan" in msg.lower()
     assert "gateway" in msg.lower() or "reconnect" in msg.lower()
 
 

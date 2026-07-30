@@ -80,15 +80,15 @@ def get_active_provider() -> Optional[ImageGenProvider]:
     Reads ``image_gen.provider`` from config.yaml; falls back per the
     module docstring.
 
-    **Availability semantics** (mirrors :mod:`agent.web_search_registry`):
+    **Availability semantics:**
 
-    - When ``image_gen.provider`` is explicitly set, the configured
-      provider is returned even if :meth:`ImageGenProvider.is_available`
-      reports False — the dispatcher surfaces a precise "X_API_KEY is not
-      set" error rather than silently switching backends.
-    - When ``image_gen.provider`` is unset, the fallback path is filtered by
-      ``is_available()`` so we don't pick a provider the user has no
-      credentials for.
+    - When ``image_gen.provider`` is explicitly set **and available**, that
+      provider wins.
+    - When the configured provider is missing or ``is_available()`` is False,
+      fall through to an available backend (OpenRouter preferred). Returning
+      an unavailable configured provider made the tool stay in the schema
+      (another backend was ready) while dispatch asked the agent for an API
+      key — never acceptable in Work4You.
     """
     configured: Optional[str] = None
     try:
@@ -114,15 +114,13 @@ def get_active_provider() -> Optional[ImageGenProvider]:
             logger.debug("image_gen provider %s.is_available() raised %s", p.name, exc)
             return False
 
-    # 1. Explicit config wins — return regardless of is_available() so the
-    #    user gets a precise downstream error message rather than a silent
-    #    backend switch.
+    # 1. Explicit config wins only when that provider can actually run.
     if configured:
         provider = snapshot.get(configured)
-        if provider is not None:
+        if provider is not None and _is_available_safe(provider):
             return provider
         logger.debug(
-            "image_gen.provider='%s' configured but not registered; falling back",
+            "image_gen.provider='%s' configured but missing/unavailable; falling back",
             configured,
         )
 

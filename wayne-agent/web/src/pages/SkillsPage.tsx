@@ -147,18 +147,23 @@ function isInternalView(): boolean {
  *  container. Full audit of the 72 + wave plan: docs/SKILLS-AUDITORIA.md.
  *  Waves B+C installed via platform/wayne-fly/Dockerfile.deps (openpyxl,
  *  youtube-transcript-api, pymupdf, markitdown[pptx], LibreOffice+poppler) —
- *  that's why excel/youtube/ocr/powerpoint are back in featured. */
+ *  that's why excel/youtube/ocr are back in featured. Proprietary Anthropic
+ *  `powerpoint` removed — featured deck skill is OSS `pptx-author`. */
 const FEATURED_SKILLS = new Set<string>([
   // Productivity / documents
   "excel-presentations",
-  "powerpoint",
+  "pptx-author",
+  "excel-author",
   "ocr-and-documents",
+  "doc-coauthoring",
   "maps",
   "obsidian",
   // Visual creation (generate HTML/SVG/JSON with the agent's native tools)
   "architecture-diagram",
   "baoyu-infographic",
   "claude-design",
+  "frontend-design",
+  "theme-factory",
   "excalidraw",
   "sketch",
   // Text
@@ -178,9 +183,10 @@ const FEATURED_SKILLS = new Set<string>([
 const FEATURED_ORDER = [
   // Leonardo's order (without nano-pdf, reclassified as a connector: the CLI
   // uses its own LLM with an API key). OCR covers the PDF/documents front.
+  // Proprietary Anthropic powerpoint removed — pptx-author is the OSS deck path.
   "youtube-content",
   "excel-presentations",
-  "powerpoint",
+  "pptx-author",
   "web-research-competitive-intelligence",
 ];
 

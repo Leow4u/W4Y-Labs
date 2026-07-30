@@ -8,7 +8,7 @@ platforms: [linux, macos, windows]
 metadata:
   wayne:
     tags: [design, html, prototype, ux, ui, creative, artifact, deck, motion, design-system]
-    related_skills: [design-md, popular-web-designs, excalidraw, architecture-diagram]
+    related_skills: [frontend-design, theme-factory, design-md, popular-web-designs, excalidraw, architecture-diagram]
 ---
 
 # Claude Design for CLI/API Agents

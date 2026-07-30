@@ -205,12 +205,24 @@ def _get_backend() -> str:
     """Determine which web backend to use (shared fallback).
 
     Reads ``web.backend`` from config.yaml (set by ``wayne tools``).
-    Falls back to whichever API key is present for users who configured
-    keys manually without running setup.
+    The configured name is used **only when that backend is currently
+    available** — otherwise we fall through to auto-detect. Returning an
+    unavailable configured name (e.g. ``firecrawl`` without
+    ``FIRECRAWL_API_KEY``) made ``check_web_api_key`` pass via a free
+    backend while dispatch still tried Firecrawl and asked the agent for
+    an API key.
     """
     configured = (_load_web_config().get("backend") or "").lower().strip()
-    if configured in _LEGACY_WEB_BACKENDS or _registered_web_provider(configured) is not None:
-        return configured
+    if configured and (
+        configured in _LEGACY_WEB_BACKENDS
+        or _registered_web_provider(configured) is not None
+    ):
+        if _is_backend_available(configured):
+            return configured
+        logger.debug(
+            "web.backend=%r configured but unavailable; falling through to auto-detect",
+            configured,
+        )
 
     # Fallback for manual / legacy config — pick the highest-priority
     # available backend. Explicit user credentials (TAVILY_API_KEY etc.)
@@ -248,7 +260,9 @@ def _get_backend() -> str:
         except Exception as exc:  # noqa: BLE001 — a broken provider is skipped
             logger.debug("web provider %r.is_available() raised: %s", provider.name, exc)
 
-    return "firecrawl"  # default (backward compat)
+    # Empty string = nothing usable. Callers / check_fn treat this as off —
+    # do NOT default to "firecrawl" (that name without a key is not a backend).
+    return ""
 
 
 def _get_search_backend() -> str:
@@ -675,8 +689,9 @@ def web_search_tool(query: str, limit: int = 5) -> str:
             response_data = {
                 "success": False,
                 "error": (
-                    "No web search provider configured. "
-                    "Run `wayne tools` to set one up."
+                    "Web search is unavailable right now — no search backend "
+                    "is ready for this account. Try again later, or use the "
+                    "browser tools if the page URL is already known."
                 ),
             }
         else:
@@ -829,10 +844,9 @@ async def web_extract_tool(
                         {
                             "success": False,
                             "error": (
-                                f"{provider.display_name} is a search-only "
-                                "backend and cannot extract URL content. "
-                                "Set web.extract_backend to firecrawl, "
-                                "tavily, exa, or parallel."
+                                f"{provider.display_name} can search but cannot "
+                                "extract URL content. Try web_search for links, "
+                                "or browser tools when you already have a URL."
                             ),
                         },
                         ensure_ascii=False,
@@ -843,9 +857,8 @@ async def web_extract_tool(
                         {
                             "success": False,
                             "error": (
-                                "No web extract provider configured. "
-                                "Set web.extract_backend to firecrawl, "
-                                "tavily, exa, or parallel."
+                                "Web extract is unavailable right now — no "
+                                "extract backend is ready for this account."
                             ),
                         },
                         ensure_ascii=False,
