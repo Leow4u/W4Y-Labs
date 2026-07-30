@@ -330,18 +330,20 @@ export function SkillsView({
       onTabChange={onTabChange}
       searchPlaceholder={searchPlaceholder}
       searchTrailingAction={
-        <button
-          className={cn(
-            'inline-flex h-9 shrink-0 items-center rounded-full px-4 text-[0.8125rem] font-medium transition-opacity',
-            marketplace
-              ? 'border border-border bg-transparent text-foreground hover:bg-muted/60'
-              : 'bg-foreground text-background hover:opacity-90'
-          )}
-          onClick={() => setMarketplace(!marketplace)}
-          type="button"
-        >
-          {marketplace ? t.skills.manageConnected : t.skills.browseMarketplace}
-        </button>
+        mode === 'mcp' && !marketplace ? undefined : (
+          <button
+            className={cn(
+              'inline-flex h-9 shrink-0 items-center rounded-full px-4 text-[0.8125rem] font-medium transition-opacity',
+              marketplace
+                ? 'border border-border bg-transparent text-foreground hover:bg-muted/60'
+                : 'bg-foreground text-background hover:opacity-90'
+            )}
+            onClick={() => setMarketplace(!marketplace)}
+            type="button"
+          >
+            {marketplace ? t.skills.manageConnected : t.skills.browseMarketplace}
+          </button>
+        )
       }
       searchValue={query}
       tabLeading={

@@ -723,6 +723,7 @@ export interface Translations {
       savedTitle: string
       savedMessage: (name: string) => string
       newServer: string
+      installedCount: (count: number) => string
       reload: string
       reloading: string
       emptyTitle: string

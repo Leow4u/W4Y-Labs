@@ -610,6 +610,13 @@ export const pt = defineLocale({
       about: 'Sobre',
       notifications: 'Notificações'
     },
+    mcp: {
+      newServer: '+ Novo',
+      installedCount: count => `Instalados ${count}`,
+      emptyTitle: 'Ligar ferramentas externas com MCP',
+      emptyDesc:
+        'Servidores Model Context Protocol ligam a Work4You a ferramentas e fontes externas como Linear, Figma e Notion.'
+    },
     keys: {
       loading: 'A carregar chaves e credenciais…',
       failedLoad: 'Falha ao carregar as chaves',

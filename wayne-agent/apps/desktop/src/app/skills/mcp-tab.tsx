@@ -11,7 +11,6 @@ import {
   SiVercel
 } from '@icons-pack/react-simple-icons'
 import { useStore } from '@nanostores/react'
-import { useQuery } from '@tanstack/react-query'
 import { type ComponentType, type SVGProps, useEffect, useMemo, useRef, useState } from 'react'
 
 import { type CodeEditorApi } from '@/components/chat/code-editor'
@@ -21,22 +20,23 @@ import { PageLoader } from '@/components/page-loader'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { ErrorBanner } from '@/components/ui/error-state'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { TextTab } from '@/components/ui/text-tab'
 import {
   authMcpServer,
-  getActionStatus,
   getLogs,
-  getMcpCatalog,
   type HermesGateway,
-  installMcpCatalogEntry,
-  type McpCatalogEntry,
   type McpTestResult,
   saveMcpServers,
   testMcpServer
 } from '@/hermes'
 import { type Translations, useI18n } from '@/i18n'
+import { openExternalLink } from '@/lib/external-link'
+import {
+  isInternalMcpServer,
+  mergePreservingInternalMcp,
+  withoutInternalMcp
+} from '@/lib/mcp-internal'
 import { countEnabledTools, isToolEnabled, toggleToolInServer } from '@/lib/mcp-tool-filter'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
@@ -47,10 +47,12 @@ import type { HermesConfigRecord } from '@/types/hermes'
 import { setHermesConfigCache, useHermesConfigRecord } from '../hooks/use-config-record'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { DetailPane, ICON_BUTTON, MASTER_DETAIL_WIDE_COLS } from '../master-detail'
-import { PanelAddButton, PanelEmpty } from '../overlays/panel'
 import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 import { prettyName } from '../settings/helpers'
 import { useDeepLinkHighlight } from '../settings/use-deep-link-highlight'
+
+/** Official MCP primer — empty-state Documentation CTA (Cursor-equivalent). */
+const MCP_DOCS_URL = 'https://modelcontextprotocol.io/introduction'
 
 type McpServers = Record<string, Record<string, unknown>>
 
@@ -111,10 +113,6 @@ function getServers(config: HermesConfigRecord | null): McpServers {
 const serverEnabled = (server: Record<string, unknown>) => server.enabled !== false
 
 const NEEDS_AUTH_RE = /\b(401|unauthorized|forbidden|invalid[_ ]?token|authentication|oauth)\b/i
-
-// Shared cache for the Nous-approved catalog — feeds both description enrichment
-// and the Catalog install view; invalidated after an install.
-const MCP_CATALOG_KEY = ['mcp-catalog'] as const
 
 // Probe results outlive the component: each probe is a REAL connect/disconnect
 // (stdio servers get spawned!), so re-entering the page must not re-probe the
@@ -406,41 +404,16 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
     }
   }
 
-  const servers = useMemo(() => getServers(config ?? null), [config])
+  // Full map from config (includes internal Composio). Product list/editor use
+  // `servers` only — persist always re-merges internals so Save cannot wipe them.
+  const allServers = useMemo(() => getServers(config ?? null), [config])
+  const servers = useMemo(() => withoutInternalMcp(allServers), [allServers])
 
   // Config/document order, not alphabetical — the list mirrors mcp.json.
   const names = useMemo(() => Object.keys(servers), [servers])
 
-  // Left column view: the configured fleet, or the Nous-approved catalog to
-  // install from. Both share one cached catalog fetch (also feeds description
-  // enrichment below), so switching between them never re-requests.
-  const [leftView, setLeftView] = useState<'catalog' | 'servers'>('servers')
-
-  // Key by active profile — installed/enabled badges are per-profile, so sharing
-  // one cache across profiles would flash the previous profile's state on switch.
-  const catalogQuery = useQuery({
-    queryKey: [...MCP_CATALOG_KEY, normalizeProfileKey(useStore($activeGatewayProfile))],
-    queryFn: getMcpCatalog,
-    staleTime: 5 * 60_000
-  })
-
-  const catalog = catalogQuery.data?.entries ?? []
-
-  const descriptionFor = (serverName: string, server: Record<string, unknown>): null | string => {
-    const lower = serverName.toLowerCase()
-
-    const match = catalog.find(
-      entry =>
-        entry.name.toLowerCase() === lower ||
-        (entry.url && entry.url === server.url) ||
-        (entry.command && entry.command === server.command)
-    )
-
-    return match?.description ?? null
-  }
-
   const resetDraft = (entries: McpServers) => {
-    setDraft(wrapDoc(entries))
+    setDraft(wrapDoc(withoutInternalMcp(entries)))
     setDirty(false)
     setDocVersion(version => version + 1)
   }
@@ -449,7 +422,7 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
   // other edits. Unparseable drafts are left alone — save resolves the race.
   const patchDraft = (mutate: (doc: McpServers) => McpServers) => {
     try {
-      setDraft(wrapDoc(mutate(parseServersDoc(draft))))
+      setDraft(wrapDoc(withoutInternalMcp(mutate(parseServersDoc(draft)))))
       setDocVersion(version => version + 1)
     } catch {
       // Draft is mid-edit / invalid JSON; the user's text wins until save.
@@ -567,8 +540,9 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
       probeCache.set(probeKey(serverName, probedConfig), { at: Date.now(), result })
 
       if (result.ok) {
-        // The endpoint persisted `auth: oauth` — mirror it locally.
-        const nextServers = { ...servers, [serverName]: { ...servers[serverName], auth: 'oauth' } }
+        // The endpoint persisted `auth: oauth` — mirror it locally (keep Composio).
+        const nextUser = { ...servers, [serverName]: { ...servers[serverName], auth: 'oauth' } }
+        const nextServers = mergePreservingInternalMcp(nextUser, allServers)
         setConfig(current => (current ? { ...current, mcp_servers: nextServers } : current))
 
         // Mirror `auth: oauth` into the editor too. If we only reset a clean
@@ -642,44 +616,24 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
   }
 
   // Whole-map replace (NOT saveHermesConfig, which deep-merges and so can never
-  // delete a server, drop `enabled: false`, or remove a nested field). Only
-  // after the replace lands do we write the cache through + reload live sessions.
+  // delete a server, drop `enabled: false`, or remove a nested field). Always
+  // re-merge internal Composio from config so a product Save cannot wipe it.
   // Returns false when the profile switched mid-save: the write hit profile A's
   // backend (correct), but the client-side cache/editor now belong to B, so the
   // caller must skip its post-await writes.
-  const persist = async (nextServers: McpServers): Promise<boolean> => {
+  const persist = async (nextUserFacing: McpServers): Promise<boolean> => {
     const epoch = profileEpoch.current
-    await saveMcpServers(nextServers)
+    const merged = mergePreservingInternalMcp(nextUserFacing, allServers)
+    await saveMcpServers(merged)
 
     if (profileEpoch.current !== epoch) {
       return false
     }
 
-    setConfig(current => ({ ...current, mcp_servers: nextServers }))
+    setConfig(current => ({ ...current, mcp_servers: merged }))
     void silentReload()
 
     return true
-  }
-
-  // A catalog install wrote a new server into config.yaml on the backend —
-  // refresh the catalog (installed state) and the config, then RECONCILE THE
-  // EDITOR DRAFT with the fresh servers. Without this a dirty draft (or even a
-  // clean one the seed never refreshes) would omit the new server, and the next
-  // whole-map Save would silently drop it.
-  const onCatalogInstalled = async () => {
-    void catalogQuery.refetch()
-    const { data } = await refetchConfig()
-    const nextServers = getServers(data ?? null)
-
-    if (dirty) {
-      // Keep the user's in-progress edits (doc wins), add any server the install
-      // introduced that the draft doesn't have yet.
-      patchDraft(doc => ({ ...nextServers, ...doc }))
-    } else {
-      resetDraft(nextServers)
-    }
-
-    void silentReload()
   }
 
   const withEnabled = (server: Record<string, unknown>, enabled: boolean) => {
@@ -792,14 +746,14 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
     let base: McpServers
 
     try {
-      base = parseServersDoc(draft)
+      base = withoutInternalMcp(parseServersDoc(draft))
     } catch {
       base = { ...servers }
     }
 
     let key = 'my-server'
 
-    for (let i = 2; key in base; i++) {
+    for (let i = 2; key in base || isInternalMcpServer(key); i++) {
       key = `my-server-${i}`
     }
 
@@ -827,7 +781,7 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
     let entries: McpServers
 
     try {
-      entries = parseServersDoc(draft)
+      entries = withoutInternalMcp(parseServersDoc(draft))
     } catch (err) {
       notifyError(err, m.invalidJson)
 
@@ -884,9 +838,9 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
     return <PageLoader className="min-h-24" label={configLoading ? m.loading : t.skills.loading} />
   }
 
-  // Zero servers and a pristine doc: one centered invitation — with a path into
-  // the catalog (kept out when the user is already browsing it).
-  if (Object.keys(servers).length === 0 && !dirty && leftView === 'servers') {
+  // No user-facing servers (Composio alone does not count) and a pristine doc:
+  // Cursor-style empty invitation — + New + Documentation. No catalog here.
+  if (names.length === 0 && !dirty) {
     return (
       <CustomizeEmpty
         actions={
@@ -894,7 +848,9 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
             <CustomizeEmptyAction onClick={addServer} variant="muted">
               {m.newServer.startsWith('+') ? m.newServer : `+ ${m.newServer}`}
             </CustomizeEmptyAction>
-            <CustomizeEmptyAction onClick={() => setLeftView('catalog')}>{m.tabCatalog}</CustomizeEmptyAction>
+            <CustomizeEmptyAction onClick={() => openExternalLink(MCP_DOCS_URL)}>
+              {t.skills.documentation}
+            </CustomizeEmptyAction>
           </>
         }
         description={m.emptyDesc}
@@ -921,14 +877,16 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
 
   const activeEntry = savedEntry ?? draftEntry
 
+  const showServerConfig = Boolean(selected && activeEntry && !isInternalMcpServer(selected))
+
   return (
     <div className={cn('grid h-full min-h-0 grid-cols-1', MASTER_DETAIL_WIDE_COLS)}>
-      {/* LEFT: the focused block's server config, or the fleet list / catalog. */}
+      {/* LEFT: focused server config, or Cursor-dense installed list. */}
       <aside className="flex min-h-0 flex-col overflow-hidden border-r border-(--ui-stroke-quaternary)">
-        {leftView === 'servers' && selected && activeEntry ? (
+        {showServerConfig && selected && activeEntry ? (
           <ServerConfig
             authing={authing === selected}
-            description={descriptionFor(selected, activeEntry)}
+            description={null}
             entry={activeEntry}
             name={selected}
             onAuthenticate={() => void authenticate(selected)}
@@ -942,49 +900,41 @@ export function McpTab({ gateway }: { gateway: HermesGateway | null }) {
             saving={saving}
           />
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col p-2">
-            {/* Geometry mirrors ListStrip (mb-1 h-6 pl-2) so these tabs land on
-                the exact line the sort link occupies in the Skills/Tools views. */}
-            <div className="mb-1 flex h-6 shrink-0 items-center gap-3 pl-2 pr-1">
-              {(['servers', 'catalog'] as const).map(view => (
-                <TextTab
-                  active={leftView === view}
-                  className="h-6 px-0 text-[0.72rem]"
-                  key={view}
-                  onClick={() => setLeftView(view)}
-                >
-                  {view === 'servers' ? m.tabServers : m.tabCatalog}
-                </TextTab>
-              ))}
+          <div className="flex min-h-0 flex-1 flex-col">
+            <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+              <span className="truncate text-[0.78rem] font-medium text-foreground">
+                {m.installedCount(names.length)}
+              </span>
+              <Button
+                className="h-7 shrink-0 px-2 text-[0.75rem]"
+                onClick={addServer}
+                size="xs"
+                variant="ghost"
+              >
+                {m.newServer.startsWith('+') ? m.newServer : `+ ${m.newServer}`}
+              </Button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain [scrollbar-gutter:stable]">
-              {leftView === 'catalog' ? (
-                <McpCatalog entries={catalog} loading={catalogQuery.isLoading} onInstalled={onCatalogInstalled} />
-              ) : (
-                <>
-                  {names.map(serverName => {
-                    const server = servers[serverName]
-                    const status = statusOf(server, probes[serverName])
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              {names.map(serverName => {
+                const server = servers[serverName]
+                const status = statusOf(server, probes[serverName])
 
-                    return (
-                      <McpRow
-                        active={false}
-                        busy={saving}
-                        enabled={serverEnabled(server)}
-                        key={serverName}
-                        name={serverName}
-                        onProbe={() => void runProbe(serverName)}
-                        onRemove={() => void removeServer(serverName)}
-                        onSelect={() => focusServer(serverName)}
-                        onToggle={checked => void toggleServer(serverName, checked)}
-                        status={status}
-                        statusText={statusLine(m, status, probes[serverName], server)}
-                      />
-                    )
-                  })}
-                  <PanelAddButton label={m.newServer} onClick={addServer} />
-                </>
-              )}
+                return (
+                  <McpRow
+                    active={false}
+                    busy={saving}
+                    enabled={serverEnabled(server)}
+                    key={serverName}
+                    name={serverName}
+                    onProbe={() => void runProbe(serverName)}
+                    onRemove={() => void removeServer(serverName)}
+                    onSelect={() => focusServer(serverName)}
+                    onToggle={checked => void toggleServer(serverName, checked)}
+                    status={status}
+                    statusText={statusLine(m, status, probes[serverName], server)}
+                  />
+                )
+              })}
             </div>
           </div>
         )}
@@ -1278,174 +1228,7 @@ function ServerIconActions({
   )
 }
 
-// Small gray attribute chip (transport / auth / needs-build), matching the
-// catalog's flat row treatment.
-function CatalogTag({ children }: { children: string }) {
-  return (
-    <span className="rounded bg-(--ui-bg-tertiary) px-1.5 py-0.5 text-[0.6rem] text-(--ui-text-secondary)">
-      {children}
-    </span>
-  )
-}
-
-// The Nous-approved MCP catalog: one-click installs of curated servers, with an
-// inline prompt for any required credentials (never shows stored values). On
-// install the parent refetches config + catalog and reloads live sessions.
-function McpCatalog({
-  entries,
-  loading,
-  onInstalled
-}: {
-  entries: McpCatalogEntry[]
-  loading: boolean
-  onInstalled: () => void
-}) {
-  const { t } = useI18n()
-  const m = t.settings.mcp
-  const [installing, setInstalling] = useState<null | string>(null)
-  const [envDrafts, setEnvDrafts] = useState<Record<string, Record<string, string>>>({})
-  const [envOpenFor, setEnvOpenFor] = useState<null | string>(null)
-
-  const install = async (entry: McpCatalogEntry) => {
-    const required = entry.required_env.filter(env => env.required)
-    const draft = envDrafts[entry.name] ?? {}
-
-    // Reveal the credential prompt first; only error once it's shown and unfilled.
-    if (required.some(env => !draft[env.name]?.trim())) {
-      if (envOpenFor !== entry.name) {
-        setEnvOpenFor(entry.name)
-
-        return
-      }
-
-      notify({ kind: 'error', title: m.catalogEnvPrompt(entry.name), message: m.catalogEnvRequired })
-
-      return
-    }
-
-    setInstalling(entry.name)
-
-    try {
-      const res = await installMcpCatalogEntry(entry.name, draft)
-
-      // Git-backed entries clone in the background — keep the row busy and poll
-      // the action to completion before refetching / re-enabling, so a re-click
-      // can't spawn a second install over the first's tracked process. A non-zero
-      // exit is a real failure — surface it instead of a false success.
-      if (res.background && res.action) {
-        for (;;) {
-          const status = await getActionStatus(res.action, 1)
-
-          if (!status.running) {
-            if (status.exit_code !== 0) {
-              throw new Error(m.catalogInstallFailed(entry.name))
-            }
-
-            break
-          }
-
-          await new Promise(resolve => setTimeout(resolve, CATALOG_INSTALL_POLL_MS))
-        }
-      }
-
-      notify({ kind: 'success', title: m.catalogInstallStarted(entry.name), message: '' })
-      setEnvOpenFor(null)
-      onInstalled()
-    } catch (err) {
-      notifyError(err, m.catalogInstallFailed(entry.name))
-    } finally {
-      setInstalling(null)
-    }
-  }
-
-  if (loading) {
-    return <PageLoader className="min-h-24" label={m.catalogLoading} />
-  }
-
-  if (entries.length === 0) {
-    return <PanelEmpty description={m.catalogEmpty} icon="plug" title={m.tabCatalog} />
-  }
-
-  return (
-    <div className="flex flex-col">
-      {entries.map(entry => {
-        const draft = envDrafts[entry.name] ?? {}
-
-        return (
-          <div className="rounded-md px-2 py-2" key={entry.name}>
-            <div className="flex items-start gap-2">
-              {/* 2px nudge so the start-aligned avatar sits where McpRow's
-                  center-aligned one does — no jump when flipping Servers⇄Catalog. */}
-              <McpAvatar
-                className="mt-0.5"
-                name={entry.name}
-                status={entry.installed ? (entry.enabled ? 'ok' : 'off') : 'unknown'}
-              />
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="truncate text-[0.78rem] font-medium text-foreground/85">
-                    {prettyName(entry.name)}
-                  </span>
-                  <CatalogTag>{entry.transport}</CatalogTag>
-                  {entry.auth_type === 'oauth' && <CatalogTag>OAuth</CatalogTag>}
-                  {entry.auth_type === 'api_key' && <CatalogTag>API key</CatalogTag>}
-                  {entry.needs_install && !entry.installed && <CatalogTag>{m.catalogNeedsInstall}</CatalogTag>}
-                  {entry.installed && (
-                    <span className="text-[0.6rem] text-emerald-400">
-                      {entry.enabled ? m.catalogEnabled : m.catalogInstalled}
-                    </span>
-                  )}
-                </div>
-                <p className="mt-0.5 line-clamp-2 text-[0.68rem] text-muted-foreground/70">{entry.description}</p>
-                {envOpenFor === entry.name && entry.required_env.length > 0 && (
-                  <div className="mt-2 grid gap-2">
-                    {entry.required_env.map(env => (
-                      <label className="grid gap-1" key={env.name}>
-                        <span className="text-[0.62rem] text-muted-foreground">
-                          {env.prompt || env.name}
-                          {env.required ? ' *' : ''}
-                        </span>
-                        <Input
-                          className="h-7 text-xs"
-                          onChange={event =>
-                            setEnvDrafts(prev => ({
-                              ...prev,
-                              [entry.name]: { ...prev[entry.name], [env.name]: event.currentTarget.value }
-                            }))
-                          }
-                          type="password"
-                          value={draft[env.name] ?? ''}
-                        />
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <Button
-                className="mt-0.5 shrink-0"
-                disabled={entry.installed || installing !== null}
-                onClick={() => void install(entry)}
-                size="xs"
-                variant="text"
-              >
-                {installing === entry.name
-                  ? m.catalogInstalling
-                  : entry.installed
-                    ? m.catalogInstalled
-                    : m.catalogInstall}
-              </Button>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 const LOG_POLL_MS = 2000
-
-// Cadence for polling a background (git-bootstrap) catalog install to completion.
-const CATALOG_INSTALL_POLL_MS = 1500
 
 const STDIO_MARKER_RE = /^===== \[.*\] starting MCP server '(.+)' =====$/
 
@@ -1607,7 +1390,7 @@ function McpRow({
   return (
     <div
       className={cn(
-        'group/row row-hover flex h-11 w-full shrink-0 items-center gap-2 rounded-md pl-2 pr-1.5 hover:text-foreground',
+        'group/row flex h-11 w-full shrink-0 items-center gap-2 border-b border-border px-3 last:border-b-0 hover:bg-muted/40 hover:text-foreground',
         active ? 'bg-(--ui-row-active-background) text-foreground' : 'text-(--ui-text-secondary)'
       )}
       id={`mcp-server-${name}`}
