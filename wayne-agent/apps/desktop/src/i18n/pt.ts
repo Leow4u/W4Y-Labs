@@ -215,6 +215,9 @@ export const pt = defineLocale({
 
   skills: {
     tabConnectors: 'Conectores',
+    tabMcp: 'MCPs',
+    browseMarketplace: 'Navegar',
+    manageConnected: 'Gerir',
     emptyProductSkillsTitle: 'Ainda sem receitas',
     emptyProductSkillsDesc:
       'Receitas que o agente aprende aqui, ou ficheiros SKILL.md em .wayne/skills na pasta do projeto, aparecem nesta lista. O que já vem na Work4You está disponível no chat. Contas (Gmail, GitHub, Notion…) ficam em Conectores.',
@@ -249,6 +252,12 @@ export const pt = defineLocale({
     devSection: 'Desenvolvimento',
     viewFullCatalog: 'Ver catálogo completo →',
     backToFeatured: 'Voltar aos destaques',
+    showMore: count => `Ver ${count} mais`,
+    showLess: 'Ver menos',
+    emptyConnectedTitle: 'Ainda sem conectores',
+    emptyConnectedDesc: 'Liga Gmail, Notion, Slack e outras contas que o agente pode usar.',
+    addConnector: '+ Adicionar',
+    marketplaceTitle: 'Navegar conectores',
     workScopeHint:
       'Estes conectores são do seu agente de Work (dia a dia). Agentes do Studio mantêm contas próprias, salvo se partilhar explicitamente.',
     authTitle: 'Conexão de aplicativo',
@@ -266,7 +275,7 @@ export const pt = defineLocale({
       'new-session': 'Nova sessão',
       'agent-studio': 'Agentes',
       cron: 'Automações',
-      skills: 'Habilidades',
+      skills: 'Personalizar',
       messaging: 'Canais',
       artifacts: 'Entregas'
     },
@@ -557,7 +566,7 @@ export const pt = defineLocale({
     nav: {
       newChat: { title: 'Nova sessão', detail: 'Começar uma sessão nova' },
       settings: { title: 'Definições', detail: 'Configurar o Work4You no desktop' },
-      skills: { title: 'Habilidades', detail: 'Skills, ferramentas e integrações' },
+      skills: { title: 'Personalizar', detail: 'Skills, conectores e MCP' },
       messaging: { title: 'Canais', detail: 'Telegram, Slack, Discord e mais' },
       artifacts: { title: 'Entregas', detail: 'Ver resultados gerados' }
     }

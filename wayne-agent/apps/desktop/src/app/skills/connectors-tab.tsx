@@ -1,14 +1,13 @@
 /**
- * Capabilities → Connectors tab — Composio marketplace (featured + connect).
- * Full catalog behind ?catalog=1. Raw MCP editor stays on the MCP tab.
+ * Personalizar → Conectores (manage) + Browse Marketplace (catalog).
+ * Manage shows connected accounts only; marketplace is the Cursor-style
+ * category browse with “show N more” expand. OAuth/connect stays the same.
  */
 import { useStore } from '@nanostores/react'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 
 import { LogoTile } from '@/components/connectors/logo-tile'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { PageLoader } from '@/components/page-loader'
 import { useI18n } from '@/i18n'
 import {
@@ -22,7 +21,8 @@ import {
 import { $connectorsRevision, notifyConnectorsChanged } from '@/store/connectors'
 import {
   filterConnectors,
-  pickConnectedExtra,
+  groupConnectorsByCategory,
+  pickConnected,
   resolveFeaturedConnectors,
   resolveFeaturedDevConnectors,
   stateOf
@@ -33,13 +33,16 @@ import { cn } from '@/lib/utils'
 
 import { PanelEmpty } from '../overlays/panel'
 
+const MARKETPLACE_PREVIEW = 6
+
 function ConnectorCard({
   tk,
   accounts,
   connecting,
   disconnecting,
   onConnect,
-  onDisconnect
+  onDisconnect,
+  compact
 }: {
   tk: ConnectorToolkit
   accounts: ConnectorAccount[]
@@ -47,6 +50,7 @@ function ConnectorCard({
   disconnecting: boolean
   onConnect: (tk: ConnectorToolkit) => void
   onDisconnect: (tk: ConnectorToolkit) => void
+  compact?: boolean
 }) {
   const { t } = useI18n()
   const tc = t.connectors
@@ -54,19 +58,25 @@ function ConnectorCard({
   const busy = connecting || disconnecting
 
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border bg-card p-3.5">
+    <div
+      className={cn(
+        'flex items-start gap-3 rounded-xl border border-border bg-card',
+        compact ? 'p-3' : 'p-3.5'
+      )}
+    >
       <LogoTile toolkit={tk} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span className="truncate text-sm font-medium text-foreground">{tk.name}</span>
-          {(tk.categories || []).slice(0, 1).map(c => (
-            <span
-              className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.65rem] text-muted-foreground"
-              key={c}
-            >
-              {c}
-            </span>
-          ))}
+          {!compact &&
+            (tk.categories || []).slice(0, 1).map(c => (
+              <span
+                className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[0.65rem] text-muted-foreground"
+                key={c}
+              >
+                {c}
+              </span>
+            ))}
         </div>
         {tk.description ? (
           <p className="mt-1 line-clamp-2 text-[0.75rem] text-muted-foreground">{tk.description}</p>
@@ -97,18 +107,63 @@ function ConnectorCard({
   )
 }
 
-export function ConnectorsTab() {
+function CategorySection({
+  title,
+  items,
+  renderCard
+}: {
+  title: string
+  items: ConnectorToolkit[]
+  renderCard: (tk: ConnectorToolkit) => ReactNode
+}) {
+  const { t } = useI18n()
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? items : items.slice(0, MARKETPLACE_PREVIEW)
+  const hidden = Math.max(0, items.length - MARKETPLACE_PREVIEW)
+
+  if (items.length === 0) return null
+
+  return (
+    <section>
+      <h3 className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+        {title}
+      </h3>
+      <div className="grid gap-3 sm:grid-cols-2">{visible.map(renderCard)}</div>
+      {hidden > 0 ? (
+        <button
+          className="mt-2 text-[0.75rem] font-medium text-muted-foreground hover:text-foreground"
+          onClick={() => setExpanded(v => !v)}
+          type="button"
+        >
+          {expanded ? t.connectors.showLess : t.connectors.showMore(hidden)}
+        </button>
+      ) : null}
+    </section>
+  )
+}
+
+export interface ConnectorsTabProps {
+  /** manage = connected only; marketplace = Browse Marketplace catalog */
+  variant?: 'manage' | 'marketplace'
+  /** Shell search query (marketplace / manage filter). */
+  search?: string
+  /** Open Browse Marketplace from manage empty/+Add. */
+  onOpenMarketplace?: () => void
+}
+
+export function ConnectorsTab({
+  variant = 'manage',
+  search = '',
+  onOpenMarketplace
+}: ConnectorsTabProps) {
   const { t } = useI18n()
   const tc = t.connectors
   const connectorsRevision = useStore($connectorsRevision)
-  const [params, setParams] = useSearchParams()
-  const catalog = params.get('catalog') === '1'
 
   const [toolkits, setToolkits] = useState<ConnectorToolkit[]>([])
   const [accounts, setAccounts] = useState<ConnectorAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [search, setSearch] = useState('')
   const [connecting, setConnecting] = useState<string | null>(null)
   const [disconnecting, setDisconnecting] = useState<string | null>(null)
   const [disconnectingAll, setDisconnectingAll] = useState(false)
@@ -137,7 +192,6 @@ export function ConnectorsTab() {
     setLoading(true)
     setError(null)
     try {
-      // Ensure mcp_servers.composio exists when COMPOSIO_API_KEY is present.
       await attachConnectors('global').catch(() => null)
       const [catalogRes] = await Promise.all([getConnectorsCatalog(), refreshStatus()])
       if (!aliveRef.current) return
@@ -168,16 +222,34 @@ export function ConnectorsTab() {
 
   const featured = useMemo(() => resolveFeaturedConnectors(toolkits), [toolkits])
   const featuredDev = useMemo(() => resolveFeaturedDevConnectors(toolkits), [toolkits])
-  const featuredAll = useMemo(() => [...featured, ...featuredDev], [featured, featuredDev])
-  const connectedExtra = useMemo(
-    () => pickConnectedExtra(toolkits, featuredAll, byToolkit),
-    [toolkits, featuredAll, byToolkit]
+  const connected = useMemo(() => pickConnected(toolkits, byToolkit), [toolkits, byToolkit])
+
+  const filteredConnected = useMemo(
+    () => filterConnectors(connected, search, null),
+    [connected, search]
   )
 
-  const catalogShown = useMemo(
-    () => filterConnectors(toolkits, search, null),
-    [toolkits, search]
+  const marketplaceFeatured = useMemo(
+    () => filterConnectors(featured, search, null),
+    [featured, search]
   )
+  const marketplaceDev = useMemo(
+    () => filterConnectors(featuredDev, search, null),
+    [featuredDev, search]
+  )
+
+  const featuredSlugSet = useMemo(() => {
+    const s = new Set<string>()
+    for (const tk of [...featured, ...featuredDev]) s.add(tk.slug.toLowerCase())
+    return s
+  }, [featured, featuredDev])
+
+  const restByCategory = useMemo(() => {
+    const rest = filterConnectors(toolkits, search, null).filter(
+      tk => !featuredSlugSet.has(tk.slug.toLowerCase())
+    )
+    return groupConnectorsByCategory(rest)
+  }, [toolkits, search, featuredSlugSet])
 
   const pollUntilActive = useCallback(
     (slug: string, tries = 0) => {
@@ -276,16 +348,10 @@ export function ConnectorsTab() {
     }
   }, [accounts.length, refreshStatus, tc])
 
-  const setCatalog = (open: boolean) => {
-    const next = new URLSearchParams(params)
-    if (open) next.set('catalog', '1')
-    else next.delete('catalog')
-    setParams(next)
-  }
-
-  const card = (tk: ConnectorToolkit) => (
+  const card = (tk: ConnectorToolkit, compact?: boolean) => (
     <ConnectorCard
       accounts={byToolkit.get(tk.slug.toLowerCase()) || []}
+      compact={compact}
       connecting={connecting === tk.slug}
       disconnecting={disconnecting === tk.slug}
       key={tk.slug}
@@ -312,75 +378,92 @@ export function ConnectorsTab() {
     )
   }
 
-  return (
-    <div className="flex flex-col gap-4 p-1">
-      <p className="rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-[0.75rem] leading-relaxed text-muted-foreground">
-        {tc.workScopeHint}
-      </p>
-      <div className="flex flex-wrap items-center gap-2">
-        <Input
-          className="max-w-sm"
-          onChange={e => setSearch(e.target.value)}
-          placeholder={tc.searchPlaceholder}
-          value={search}
-        />
-        <Button onClick={() => setCatalog(!catalog)} size="sm" variant="ghost">
-          {catalog ? tc.backToFeatured : tc.viewFullCatalog}
-        </Button>
-        {accounts.length > 0 ? (
-          <Button
-            disabled={disconnectingAll || Boolean(disconnecting)}
-            onClick={() => void onDisconnectAll()}
-            size="sm"
-            variant="ghost"
-          >
-            {disconnectingAll ? tc.connecting : tc.disconnectAll}
-          </Button>
-        ) : null}
-      </div>
-
-      {catalog ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {catalogShown.map(card)}
+  if (variant === 'manage') {
+    if (filteredConnected.length === 0) {
+      return (
+        <div className="flex h-full min-h-0 flex-1 flex-col">
+          <PanelEmpty
+            action={
+              onOpenMarketplace ? (
+                <Button onClick={onOpenMarketplace} size="sm">
+                  {tc.addConnector}
+                </Button>
+              ) : undefined
+            }
+            description={
+              search.trim()
+                ? tc.empty
+                : tc.emptyConnectedDesc
+            }
+            icon="link"
+            title={search.trim() ? tc.empty : tc.emptyConnectedTitle}
+          />
         </div>
-      ) : (
-        <>
-          {connectedExtra.length > 0 && (
-            <section>
-              <h3 className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                {tc.connectedSection}
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {connectedExtra.map(card)}
-              </div>
-            </section>
-          )}
-          <section>
-            <h3 className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-              {tc.featuredSection}
-            </h3>
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {(search.trim() ? filterConnectors(featured, search, null) : featured).map(card)}
-            </div>
-          </section>
-          {featuredDev.length > 0 && (
-            <section>
-              <h3 className="mb-2 text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                {tc.devSection}
-              </h3>
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {(search.trim() ? filterConnectors(featuredDev, search, null) : featuredDev).map(
-                  card
-                )}
-              </div>
-            </section>
-          )}
-        </>
-      )}
+      )
+    }
 
-      {!catalog && featured.length === 0 && toolkits.length === 0 && (
-        <p className={cn('py-8 text-center text-sm text-muted-foreground')}>{tc.empty}</p>
-      )}
+    return (
+      <div className="flex flex-col gap-4 overflow-y-auto p-1">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
+            {tc.connectedSection}
+          </h3>
+          <div className="flex items-center gap-2">
+            {onOpenMarketplace ? (
+              <Button onClick={onOpenMarketplace} size="sm" variant="ghost">
+                {tc.addConnector}
+              </Button>
+            ) : null}
+            {accounts.length > 0 ? (
+              <Button
+                disabled={disconnectingAll || Boolean(disconnecting)}
+                onClick={() => void onDisconnectAll()}
+                size="sm"
+                variant="ghost"
+              >
+                {disconnectingAll ? tc.connecting : tc.disconnectAll}
+              </Button>
+            ) : null}
+          </div>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {filteredConnected.map(tk => card(tk))}
+        </div>
+      </div>
+    )
+  }
+
+  // Marketplace
+  return (
+    <div className="flex flex-col gap-6 overflow-y-auto p-1 pb-6">
+      <p className="text-[0.8rem] text-muted-foreground">{tc.marketplaceTitle}</p>
+
+      <CategorySection
+        items={marketplaceFeatured}
+        renderCard={tk => card(tk, true)}
+        title={tc.featuredSection}
+      />
+      {marketplaceDev.length > 0 ? (
+        <CategorySection
+          items={marketplaceDev}
+          renderCard={tk => card(tk, true)}
+          title={tc.devSection}
+        />
+      ) : null}
+      {restByCategory.map(({ category, items }) => (
+        <CategorySection
+          items={items}
+          key={category}
+          renderCard={tk => card(tk, true)}
+          title={category}
+        />
+      ))}
+
+      {marketplaceFeatured.length === 0 &&
+        marketplaceDev.length === 0 &&
+        restByCategory.length === 0 && (
+          <p className={cn('py-8 text-center text-sm text-muted-foreground')}>{tc.empty}</p>
+        )}
     </div>
   )
 }

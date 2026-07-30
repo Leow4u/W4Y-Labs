@@ -78,16 +78,38 @@ export function stateOf(
   return 'none'
 }
 
+export function pickConnected(
+  toolkits: ConnectorToolkit[],
+  byToolkit: Map<string, ConnectorAccount[]>
+): ConnectorToolkit[] {
+  return toolkits.filter(tk => stateOf(byToolkit.get(tk.slug.toLowerCase()) || []) === 'connected')
+}
+
 export function pickConnectedExtra(
   toolkits: ConnectorToolkit[],
   featured: ConnectorToolkit[],
   byToolkit: Map<string, ConnectorAccount[]>
 ): ConnectorToolkit[] {
   const featuredSlugs = new Set(featured.map(t => t.slug.toLowerCase()))
-  return toolkits.filter(tk => {
-    if (featuredSlugs.has(tk.slug.toLowerCase())) return false
-    return stateOf(byToolkit.get(tk.slug.toLowerCase()) || []) === 'connected'
-  })
+  return pickConnected(toolkits, byToolkit).filter(tk => !featuredSlugs.has(tk.slug.toLowerCase()))
+}
+
+/** Group catalog toolkits by first category for marketplace sections. */
+export function groupConnectorsByCategory(
+  toolkits: ConnectorToolkit[]
+): { category: string; items: ConnectorToolkit[] }[] {
+  const buckets = new Map<string, ConnectorToolkit[]>()
+  for (const tk of toolkits) {
+    const cat = (tk.categories && tk.categories[0]) || 'General'
+    if (!buckets.has(cat)) buckets.set(cat, [])
+    buckets.get(cat)!.push(tk)
+  }
+  return [...buckets.entries()]
+    .map(([category, items]) => ({
+      category,
+      items: items.slice().sort((a, b) => a.name.localeCompare(b.name))
+    }))
+    .sort((a, b) => a.category.localeCompare(b.category))
 }
 
 export function filterConnectors(

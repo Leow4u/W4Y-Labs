@@ -129,7 +129,7 @@ export function ConnectorsPicker({
 
   const openMarketplace = () => {
     setOpen(false)
-    navigate(`${SKILLS_ROUTE}?tab=connectors`)
+    navigate(`${SKILLS_ROUTE}?view=marketplace`)
   }
 
   const featuredNotConnected = useMemo(() => {

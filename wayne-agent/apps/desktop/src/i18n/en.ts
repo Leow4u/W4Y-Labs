@@ -1541,6 +1541,8 @@ export const en: Translations = {
     tabConnectors: 'Connectors',
     tabMcp: 'MCP',
     tabHub: 'Browse Hub',
+    browseMarketplace: 'Browse Marketplace',
+    manageConnected: 'Manage',
     all: 'All',
     searchSkills: 'Search skills...',
     searchToolsets: 'Search tools...',
@@ -1825,7 +1827,7 @@ export const en: Translations = {
     nav: {
       newChat: { title: 'New session', detail: 'Start a fresh session' },
       settings: { title: 'Settings', detail: 'Configure Work4You desktop' },
-      skills: { title: 'Capabilities', detail: 'Skills, tools, and integrations' },
+      skills: { title: 'Customize', detail: 'Skills, connectors, and MCP' },
       messaging: { title: 'Channels', detail: 'Set up Telegram, Slack, Discord, and more' },
       artifacts: { title: 'Deliverables', detail: 'Browse generated outputs' }
     },
@@ -2346,6 +2348,12 @@ export const en: Translations = {
     devSection: 'Development',
     viewFullCatalog: 'View full catalog →',
     backToFeatured: 'Back to featured',
+    showMore: count => `Show ${count} more`,
+    showLess: 'Show less',
+    emptyConnectedTitle: 'No connectors yet',
+    emptyConnectedDesc: 'Link Gmail, Notion, Slack, and other accounts your agent can use.',
+    addConnector: '+ Add',
+    marketplaceTitle: 'Browse connectors',
     workScopeHint:
       'These connectors belong to your Work agent (day-to-day). Studio agents keep their own accounts unless you explicitly share.',
     authTitle: 'App connection',
@@ -2397,7 +2405,7 @@ export const en: Translations = {
       'new-session': 'New session',
       'agent-studio': 'Agents',
       cron: 'Automations',
-      skills: 'Capabilities',
+      skills: 'Customize',
       messaging: 'Channels',
       artifacts: 'Deliverables'
     },

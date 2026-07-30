@@ -21,6 +21,16 @@ vi.mock('@/store/notifications', () => ({
   notifyError: vi.fn()
 }))
 
+vi.mock('./connectors-tab', () => ({
+  ConnectorsTab: ({ variant }: { variant?: string }) => (
+    <div data-testid={`connectors-${variant ?? 'manage'}`}>connectors</div>
+  )
+}))
+
+vi.mock('./mcp-tab', () => ({
+  McpTab: () => <div data-testid="mcp-tab">mcp</div>
+}))
+
 function skill(overrides: Record<string, unknown> = {}) {
   return {
     name: 'demo',
@@ -82,28 +92,34 @@ describe('SkillsView product face', () => {
     expect(screen.queryByRole('switch')).toBeNull()
   })
 
-  it('exposes Skills and Connectors only — not Browse Hub, Tools, or MCP', async () => {
+  it('exposes Skills, Connectors, and MCP — not Browse Hub or Tools', async () => {
     await renderSkills()
 
     await waitFor(() => expect(screen.getAllByText('Skills').length).toBeGreaterThan(0))
     expect(screen.getAllByText('Connectors').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('MCP').length).toBeGreaterThan(0)
     expect(screen.queryByText('Browse Hub')).toBeNull()
     expect(screen.queryByText('Tools')).toBeNull()
-    expect(screen.queryByText('MCP')).toBeNull()
+    expect(screen.getByRole('button', { name: 'Browse Marketplace' })).toBeTruthy()
   })
 
-  it('coerces legacy ?tab=toolsets, ?tab=mcp, and ?tab=hub to the Skills tab', async () => {
+  it('opens marketplace view via ?view=marketplace', async () => {
+    await renderSkills('/skills?view=marketplace')
+    await screen.findByTestId('connectors-marketplace')
+    expect(screen.getByRole('button', { name: 'Manage' })).toBeTruthy()
+  })
+
+  it('opens MCP tab via ?tab=mcp', async () => {
+    await renderSkills('/skills?tab=mcp')
+    await screen.findByTestId('mcp-tab')
+  })
+
+  it('coerces legacy ?tab=toolsets and ?tab=hub to the Skills tab', async () => {
     getSkills.mockResolvedValue([skill({ name: 'learned-one', provenance: 'agent' })])
 
     await renderSkills('/skills?tab=toolsets')
     await screen.findAllByText('learned-one')
     expect(screen.queryByRole('switch')).toBeNull()
-
-    cleanup()
-    queryClient.clear()
-
-    await renderSkills('/skills?tab=mcp')
-    await screen.findAllByText('learned-one')
 
     cleanup()
     queryClient.clear()

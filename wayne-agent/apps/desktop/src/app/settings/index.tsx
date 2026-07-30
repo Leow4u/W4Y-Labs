@@ -57,14 +57,14 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
   const navigate = useNavigate()
   const { search } = useLocation()
 
-  // Legacy `/settings?tab=mcp` → Conectores (MCP is no longer a product tab).
+  // Legacy `/settings?tab=mcp` → Personalizar MCP tab.
   // Archived chats moved to the sidebar — old `?tab=sessions` opens that section.
   useEffect(() => {
     const params = new URLSearchParams(search)
     const tab = params.get('tab')
 
     if (tab === 'mcp') {
-      navigate(`${SKILLS_ROUTE}?tab=connectors`, { replace: true })
+      navigate(`${SKILLS_ROUTE}?tab=mcp`, { replace: true })
       return
     }
 

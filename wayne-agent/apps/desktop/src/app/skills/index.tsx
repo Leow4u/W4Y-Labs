@@ -2,13 +2,14 @@ import { useStore } from '@nanostores/react'
 import { useQuery } from '@tanstack/react-query'
 import type * as React from 'react'
 import { useCallback, useMemo, useRef, useState } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 
 import { ArchiveSkillConfirmDialog } from '@/app/learning/archive-skill-confirm-dialog'
 import { CodeEditor } from '@/components/chat/code-editor'
 import { PageLoader } from '@/components/page-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { editLearningNode, getLearningNode, getSkills } from '@/hermes'
+import { editLearningNode, getLearningNode, getSkills, type HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { compactNumber } from '@/lib/format'
 import { queryClient, writeCache } from '@/lib/query-client'
@@ -34,11 +35,12 @@ import { asText, includesQuery, prettyName } from '../settings/helpers'
 import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
 
 import { ConnectorsTab } from './connectors-tab'
+import { McpTab } from './mcp-tab'
 import { $skillsSortDesc } from './store'
 
-// Product face: Skills (learned + project files) · Conectores.
-// Browse Hub / Tools / MCP removed per PRODUTO.md (Cursor-like; contas = Conectores).
-const SKILLS_MODES = ['skills', 'connectors'] as const
+// Personalizar (Cursor Customize): Skills · Conectores · MCPs + Browse Marketplace.
+// Browse Hub stays off the product face (PRODUTO.md).
+const SKILLS_MODES = ['skills', 'connectors', 'mcp'] as const
 
 const SKILLS_QUERY_KEY = ['skills-list'] as const
 
@@ -53,7 +55,7 @@ export function isProductSkill(skill: SkillInfo): boolean {
   return skill.provenance === 'agent' || skill.provenance === 'hub' || skill.provenance === 'project'
 }
 
-// Row subtitle: category, with provenance badged.
+// Row subtitle: category + provenance — no summary / Edit / Archive in the list.
 function skillSubtitle(skill: SkillInfo): React.ReactNode {
   const category = prettyName(categoryFor(skill))
   const provenance = skill.provenance
@@ -95,11 +97,39 @@ function filteredSkills(skills: SkillInfo[], query: string, desc: boolean): Skil
 
 interface SkillsViewProps extends React.ComponentProps<'section'> {
   setStatusbarItemGroup?: SetStatusbarItemGroup
+  gateway?: HermesGateway | null
 }
 
-export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...props }: SkillsViewProps) {
+export function SkillsView({
+  setStatusbarItemGroup: _setStatusbarItemGroup,
+  gateway = null,
+  ...props
+}: SkillsViewProps) {
   const { t } = useI18n()
+  const navigate = useNavigate()
+  const { hash, pathname, search } = useLocation()
   const [mode, setMode] = useRouteEnumParam('tab', SKILLS_MODES, 'skills')
+
+  const marketplace = useMemo(() => new URLSearchParams(search).get('view') === 'marketplace', [search])
+
+  const setMarketplace = useCallback(
+    (open: boolean) => {
+      const params = new URLSearchParams(search)
+      if (open) {
+        params.set('view', 'marketplace')
+        // Marketplace is connectors catalog — keep tab coherent for deep-links.
+        if (params.get('tab') !== 'connectors' && params.get('tab') !== 'mcp' && params.get('tab') !== 'skills') {
+          params.delete('tab')
+        }
+      } else {
+        params.delete('view')
+        params.delete('catalog')
+      }
+      const qs = params.toString()
+      navigate({ hash, pathname, search: qs ? `?${qs}` : '' }, { replace: true })
+    },
+    [hash, navigate, pathname, search]
+  )
 
   const [query, setQuery] = useState('')
 
@@ -130,7 +160,7 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
   )
 
   const searchHints = useMemo(() => {
-    if (mode !== 'skills' || productSkills.length === 0) {
+    if (marketplace || mode !== 'skills' || productSkills.length === 0) {
       return undefined
     }
 
@@ -145,10 +175,11 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
       .sort(([, a], [, b]) => b - a)
       .slice(0, 5)
       .map(([category]) => t.common.tryHint(category.toLowerCase()))
-  }, [mode, productSkills, t])
+  }, [marketplace, mode, productSkills, t])
 
+  // Detail only after an explicit click — no auto-select of the first row.
   const activeSkill = useMemo(
-    () => visibleSkills.find(s => s.name === selectedSkill) ?? visibleSkills[0] ?? null,
+    () => visibleSkills.find(s => s.name === selectedSkill) ?? null,
     [selectedSkill, visibleSkills]
   )
 
@@ -163,6 +194,7 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
     setSkillEditor(null)
     setSkillDraft('')
     setArchiveTarget(null)
+    setSelectedSkill(null)
   })
 
   const openSkillEditor = async (name: string) => {
@@ -249,23 +281,51 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
     )
   }
 
+  const searchPlaceholder = marketplace
+    ? t.connectors.searchPlaceholder
+    : mode === 'connectors'
+      ? t.connectors.searchPlaceholder
+      : mode === 'mcp'
+        ? t.settings.searchPlaceholder.mcp
+        : t.skills.searchSkills
+
+  const onTabChange = (id: string) => {
+    if (marketplace) setMarketplace(false)
+    setMode(id as (typeof SKILLS_MODES)[number])
+    setQuery('')
+    setSelectedSkill(null)
+  }
+
   return (
     <PageSearchShell
       {...props}
-      activeTab={mode}
+      activeTab={marketplace ? undefined : mode}
       onSearchChange={setQuery}
-      onTabChange={id => setMode(id as (typeof SKILLS_MODES)[number])}
-      searchHidden={mode === 'connectors'}
+      onTabChange={onTabChange}
       searchHints={searchHints}
-      searchPlaceholder={t.skills.searchSkills}
+      searchPlaceholder={searchPlaceholder}
+      searchTrailingAction={
+        <Button onClick={() => setMarketplace(!marketplace)} size="sm" variant={marketplace ? 'outline' : 'default'}>
+          {marketplace ? t.skills.manageConnected : t.skills.browseMarketplace}
+        </Button>
+      }
       searchValue={query}
-      tabs={[
-        { id: 'skills', label: t.skills.tabSkills, meta: skills ? productSkills.length : null },
-        { id: 'connectors', label: t.skills.tabConnectors }
-      ]}
+      tabs={
+        marketplace
+          ? undefined
+          : [
+              { id: 'skills', label: t.skills.tabSkills, meta: skills ? productSkills.length : null },
+              { id: 'connectors', label: t.skills.tabConnectors },
+              { id: 'mcp', label: t.skills.tabMcp }
+            ]
+      }
     >
-      {mode === 'connectors' ? (
-        <ConnectorsTab />
+      {marketplace ? (
+        <ConnectorsTab onOpenMarketplace={() => setMarketplace(true)} search={query} variant="marketplace" />
+      ) : mode === 'connectors' ? (
+        <ConnectorsTab onOpenMarketplace={() => setMarketplace(true)} search={query} variant="manage" />
+      ) : mode === 'mcp' ? (
+        <McpTab gateway={gateway} />
       ) : skillsFailed && !skills ? (
         <PanelEmpty
           action={
@@ -306,12 +366,16 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
             ))}
           </ListColumn>
           <DetailColumn footer={t.skills.changesApplyNewSessions}>
-            {activeSkill && (
+            {activeSkill ? (
               <SkillDetail
                 onArchive={() => setArchiveTarget(activeSkill.name)}
                 onEdit={() => void openSkillEditor(activeSkill.name)}
                 skill={activeSkill}
               />
+            ) : (
+              <p className="text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+                {t.skills.noDescription}
+              </p>
             )}
           </DetailColumn>
         </MasterDetail>
@@ -326,6 +390,10 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
 
             if (skillEditor?.name === name) {
               setSkillEditor(null)
+            }
+
+            if (selectedSkill === name) {
+              setSelectedSkill(null)
             }
 
             return () => setSkills(snapshot)

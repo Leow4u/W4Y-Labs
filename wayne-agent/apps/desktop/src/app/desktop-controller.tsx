@@ -1253,7 +1253,7 @@ export function DesktopController() {
           <Route
             element={
               <Suspense fallback={<ViewFallback />}>
-                <SkillsView setStatusbarItemGroup={setStatusbarItemGroup} />
+                <SkillsView gateway={gatewayRef.current} setStatusbarItemGroup={setStatusbarItemGroup} />
               </Suspense>
             }
             path="skills"

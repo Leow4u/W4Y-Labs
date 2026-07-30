@@ -689,7 +689,7 @@ export function CommandPalette() {
 
     result.push({ heading: t.commandCenter.settingsFields, items: fieldItems })
 
-    // MCP plumbing is no longer a product tab — accounts live under Conectores.
+    // MCP servers deep-link into Personalizar → MCPs.
     if (mcpServers.length > 0) {
       result.push({
         heading: t.commandCenter.mcpServers,
@@ -698,7 +698,7 @@ export function CommandPalette() {
           id: `mcp-${name}`,
           keywords: ['mcp', 'server', 'tool', 'connectors'],
           label: name,
-          run: go(`${SKILLS_ROUTE}?tab=connectors`)
+          run: go(`${SKILLS_ROUTE}?tab=mcp`)
         }))
       })
     }

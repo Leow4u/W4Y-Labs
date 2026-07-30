@@ -1005,6 +1005,10 @@ export interface Translations {
     tabConnectors: string
     tabMcp: string
     tabHub: string
+    /** Opens the connectors marketplace (Cursor Customize “Browse Marketplace”). */
+    browseMarketplace: string
+    /** Leaves marketplace and returns to manage tabs. */
+    manageConnected: string
     all: string
     searchSkills: string
     searchToolsets: string
@@ -1642,6 +1646,12 @@ export interface Translations {
     devSection: string
     viewFullCatalog: string
     backToFeatured: string
+    showMore: (count: number) => string
+    showLess: string
+    emptyConnectedTitle: string
+    emptyConnectedDesc: string
+    addConnector: string
+    marketplaceTitle: string
     /** Work (day-to-day) vs Studio agents identity plane. */
     workScopeHint: string
     /** Chat ConnectLinkCard + connect-by-chat prompts. */
