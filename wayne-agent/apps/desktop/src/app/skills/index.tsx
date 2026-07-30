@@ -11,6 +11,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { ArchiveSkillConfirmDialog } from '@/app/learning/archive-skill-confirm-dialog'
 import { CodeEditor } from '@/components/chat/code-editor'
 import { PageLoader } from '@/components/page-loader'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import {
@@ -28,7 +29,7 @@ import { useI18n } from '@/i18n'
 import { openExternalLink } from '@/lib/external-link'
 import { compactNumber } from '@/lib/format'
 import { queryClient, writeCache } from '@/lib/query-client'
-import { normalize } from '@/lib/text'
+import { normalize, prettyName } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeProfile } from '@/store/profile'
@@ -37,7 +38,7 @@ import type { SkillInfo } from '@/types/hermes'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
 import { useRouteEnumParam } from '../hooks/use-route-enum-param'
-import { DetailPane, ICON_BUTTON, ListStrip, ListStripButton } from '../master-detail'
+import { DetailPane, ICON_BUTTON, ListStripButton } from '../master-detail'
 import { PageSearchShell } from '../page-search-shell'
 import { asText, includesQuery } from '../settings/helpers'
 import type { SetStatusbarItemGroup } from '../shell/statusbar-controls'
@@ -57,12 +58,41 @@ const setSkills = writeCache<SkillInfo[]>(SKILLS_QUERY_KEY)
 
 const usageOf = (skill: SkillInfo): number => (typeof skill.usage === 'number' ? skill.usage : 0)
 
+const categoryFor = (skill: SkillInfo): string => asText(skill.category) || 'general'
+
 /** Product-facing skills: learned, project files, legacy hub installs. Kit = formula. */
 export function isProductSkill(skill: SkillInfo): boolean {
   return skill.provenance === 'agent' || skill.provenance === 'hub' || skill.provenance === 'project'
 }
 
 const isEditableSkill = (skill: SkillInfo): boolean => skill.provenance === 'agent'
+
+/** Row subtitle: category + provenance — Cursor-dense, same chips as before. */
+function skillSubtitle(skill: SkillInfo): React.ReactNode {
+  const category = prettyName(categoryFor(skill))
+  const provenance = skill.provenance
+
+  return (
+    <>
+      <span className="truncate">{category}</span>
+      {provenance === 'agent' && (
+        <Badge className="shrink-0 normal-case" variant="default">
+          learned
+        </Badge>
+      )}
+      {provenance === 'project' && (
+        <Badge className="shrink-0 normal-case" variant="muted">
+          project
+        </Badge>
+      )}
+      {provenance === 'hub' && (
+        <Badge className="shrink-0 normal-case" variant="muted">
+          hub
+        </Badge>
+      )}
+    </>
+  )
+}
 
 function skillCreateTemplate(name: string): string {
   return `---
@@ -355,25 +385,26 @@ export function SkillsView({
         skillsEmpty()
       ) : (
         <div className="flex h-full min-h-0 flex-col">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden p-4">
-            <ListStrip
-              left={
-                <>
-                  <span className="text-[0.7rem] font-medium uppercase tracking-[0.06em] text-muted-foreground">
-                    {t.skills.userSection(visibleSkills.length)}
-                  </span>
-                  <ListStripButton onClick={() => $skillsSortDesc.set(!$skillsSortDesc.get())}>
-                    {skillsSortDesc ? t.skills.sortMostUsedDesc : t.skills.sortLeastUsedAsc}
-                  </ListStripButton>
-                </>
-              }
-              right={
-                <Button onClick={() => setCreateOpen(true)} size="xs" variant="ghost">
-                  {t.skills.addSkill}
-                </Button>
-              }
-            />
-            <div className="mt-2 min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-0.5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex h-9 shrink-0 items-center justify-between gap-2 border-b border-border px-3">
+              <div className="flex min-w-0 items-center gap-2">
+                <span className="truncate text-[0.78rem] font-medium text-foreground">
+                  {t.skills.userSection(visibleSkills.length)}
+                </span>
+                <ListStripButton onClick={() => $skillsSortDesc.set(!$skillsSortDesc.get())}>
+                  {skillsSortDesc ? t.skills.sortMostUsedDesc : t.skills.sortLeastUsedAsc}
+                </ListStripButton>
+              </div>
+              <Button
+                className="h-7 shrink-0 px-2 text-[0.75rem]"
+                onClick={() => setCreateOpen(true)}
+                size="xs"
+                variant="ghost"
+              >
+                {t.skills.addSkill}
+              </Button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
               {visibleSkills.map(skill => (
                 <SkillListRow
                   active={selectedSkill === skill.name || skillEditor?.name === skill.name}
@@ -385,7 +416,7 @@ export function SkillsView({
                 />
               ))}
             </div>
-            <p className="shrink-0 pt-2 text-right text-[0.65rem] text-muted-foreground/50">
+            <p className="shrink-0 border-t border-border px-3 py-1.5 text-right text-[0.65rem] text-muted-foreground/50">
               {t.skills.changesApplyNewSessions}
             </p>
           </div>
@@ -443,51 +474,49 @@ function SkillListRow({
   skill: SkillInfo
 }) {
   const { t } = useI18n()
-  const description = asText(skill.description) || t.skills.noDescription
 
   return (
     <div
       className={cn(
-        'group flex w-full items-start gap-3 rounded-xl border border-transparent px-3 py-2.5 transition-colors',
-        active ? 'border-border/80 bg-muted/60' : 'bg-muted/35 hover:bg-muted/55'
+        'group flex h-11 w-full items-center border-b border-border last:border-b-0',
+        active ? 'bg-(--ui-row-active-background) text-foreground' : 'text-(--ui-text-secondary) hover:bg-muted/40'
       )}
     >
       <button
-        className="flex min-w-0 flex-1 items-start gap-3 text-left"
+        className="flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-left"
         onClick={onOpen}
         type="button"
       >
-        <span className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-background/80 text-muted-foreground">
-          <Codicon name="sparkle" size="0.875rem" />
+        <span className="flex size-5 shrink-0 items-center justify-center text-muted-foreground/70">
+          <Codicon name="sparkle" size="0.75rem" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="flex items-center gap-2">
-            <span className="truncate text-[0.875rem] font-semibold text-foreground">{skill.name}</span>
-            {meta ? (
-              <span className="shrink-0 text-[0.65rem] tabular-nums text-muted-foreground/70">{meta}</span>
-            ) : null}
+          <span className="block truncate text-[0.78rem] font-medium text-foreground/85">{skill.name}</span>
+          <span className="flex min-w-0 items-center gap-1 text-[0.62rem] text-muted-foreground/50">
+            {skillSubtitle(skill)}
           </span>
-          <span className="mt-0.5 line-clamp-2 text-[0.75rem] leading-snug text-muted-foreground">{description}</span>
         </span>
+        {meta ? (
+          <span className="shrink-0 rounded bg-(--ui-bg-quinary) px-1 py-px text-[0.6rem] tabular-nums leading-3.5 text-(--ui-text-tertiary)">
+            {meta}
+          </span>
+        ) : null}
       </button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             aria-label={t.skills.rowMenu}
-            className={cn(ICON_BUTTON, 'mt-0.5 shrink-0 opacity-70 group-hover:opacity-100')}
+            className={cn(ICON_BUTTON, 'mr-1.5 shrink-0 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100')}
             size="icon"
             variant="ghost"
           >
-            <Codicon name="ellipsis" size="0.875rem" />
+            <Codicon name="ellipsis" size="0.8125rem" />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-36" sideOffset={6}>
           <DropdownMenuItem onSelect={onOpen}>{t.skills.open}</DropdownMenuItem>
           {onArchive ? (
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onSelect={onArchive}
-            >
+            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onArchive}>
               {t.skills.archive}
             </DropdownMenuItem>
           ) : null}

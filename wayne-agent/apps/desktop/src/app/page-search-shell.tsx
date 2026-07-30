@@ -149,7 +149,7 @@ export function PageSearchShell({
           {filters ? <div className="mx-auto mt-2 flex w-full max-w-[48rem] flex-wrap justify-center gap-2">{filters}</div> : null}
         </div>
         <div className="min-h-0 flex-1 overflow-hidden px-8 pb-8 pt-5">
-          <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.02)]">
+          <div className="mx-auto flex h-full min-h-0 w-full max-w-[40rem] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.02)]">
             {children}
           </div>
         </div>
