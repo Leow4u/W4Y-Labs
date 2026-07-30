@@ -1497,9 +1497,11 @@ export const ja = defineLocale({
     connectFailed: '接続できませんでした',
     empty: '一致するコネクタがありません。',
     featuredSection: 'おすすめ',
+    discoverSection: '発見',
     connectedSection: '接続済み',
     installedCount: count => `インストール済み ${count}`,
     devSection: '開発',
+    add: '追加',
     viewFullCatalog: 'カタログ全体を表示 →',
     backToFeatured: 'おすすめに戻る',
     workScopeHint:

@@ -39,6 +39,11 @@ interface PageSearchShellProps extends React.ComponentProps<'section'> {
   variant?: 'default' | 'customize'
   /** Shown before pill tabs in `customize` (Cursor identity / scope chip). */
   tabLeading?: ReactNode
+  /**
+   * Customize content card width. Marketplace needs Cursor’s wider Discover
+   * grid; Skills / Conectores manage stay narrow.
+   */
+  contentWidth?: 'narrow' | 'wide'
 }
 
 function ShellTabs({
@@ -109,10 +114,13 @@ export function PageSearchShell({
   searchTrailingAction,
   variant = 'default',
   tabLeading,
+  contentWidth = 'narrow',
   ...props
 }: PageSearchShellProps) {
   const hasTabs = (tabs?.length ?? 0) > 0
   const customize = variant === 'customize'
+  const cardMax = contentWidth === 'wide' ? 'max-w-[52rem]' : 'max-w-[40rem]'
+  const searchMax = contentWidth === 'wide' ? 'max-w-[40rem]' : 'max-w-[34rem]'
 
   if (customize) {
     return (
@@ -122,7 +130,7 @@ export function PageSearchShell({
       >
         <div className="shrink-0 px-8 pt-[calc(var(--titlebar-height)+1.25rem)]">
           {(!searchHidden || searchTrailingAction) && (
-            <div className="mx-auto flex w-full max-w-[34rem] items-center gap-2.5">
+            <div className={cn('mx-auto flex w-full items-center gap-2.5', searchMax)}>
               {!searchHidden && (
                 <SearchField
                   appearance="pill"
@@ -149,7 +157,12 @@ export function PageSearchShell({
           {filters ? <div className="mx-auto mt-2 flex w-full max-w-[48rem] flex-wrap justify-center gap-2">{filters}</div> : null}
         </div>
         <div className="min-h-0 flex-1 overflow-hidden px-8 pb-8 pt-5">
-          <div className="mx-auto flex h-full min-h-0 w-full max-w-[40rem] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.02)]">
+          <div
+            className={cn(
+              'mx-auto flex h-full min-h-0 w-full flex-col overflow-hidden rounded-xl border border-border bg-background shadow-[0_0_0_1px_rgba(0,0,0,0.02)]',
+              cardMax
+            )}
+          >
             {children}
           </div>
         </div>

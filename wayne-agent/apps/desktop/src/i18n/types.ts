@@ -1636,6 +1636,8 @@ export interface Translations {
     connectFailed: string
     empty: string
     featuredSection: string
+    /** Cursor marketplace hero row. */
+    discoverSection: string
     connectedSection: string
     /** Cursor Plugins header: "Installed N". */
     installedCount: (count: number) => string
@@ -1647,6 +1649,8 @@ export interface Translations {
     emptyConnectedTitle: string
     emptyConnectedDesc: string
     addConnector: string
+    /** Marketplace tile CTA (Cursor “Add”). */
+    add: string
     marketplaceTitle: string
     /** Scope hint for Work connectors. */
     workScopeHint: string

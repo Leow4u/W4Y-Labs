@@ -1,10 +1,10 @@
 /**
  * Personalizar → Conectores (manage) + Browse Marketplace (catalog).
- * Manage: Cursor-style list (same density as Skills). Marketplace: list by
- * category with “show N more”. OAuth/connect stays the same.
+ * Manage: Cursor-style dense list. Marketplace: Cursor Discover / Featured /
+ * category grids over Composio toolkits (never show the Composio brand).
  */
 import { useStore } from '@nanostores/react'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { LogoTile } from '@/components/connectors/logo-tile'
 import { Button } from '@/components/ui/button'
@@ -37,7 +37,16 @@ import { ICON_BUTTON } from '../master-detail'
 import { PanelEmpty } from '../overlays/panel'
 import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 
-const MARKETPLACE_PREVIEW = 6
+const MARKETPLACE_PREVIEW = 4
+const DISCOVER_COUNT = 3
+
+function toolkitLabel(tk: ConnectorToolkit): string {
+  return (tk.name || tk.slug || '').trim()
+}
+
+function isUsableToolkit(tk: ConnectorToolkit): boolean {
+  return Boolean(tk?.slug && toolkitLabel(tk))
+}
 
 function ConnectorListRow({
   tk,
@@ -74,7 +83,9 @@ function ConnectorListRow({
       <div className="flex h-full min-w-0 flex-1 items-center gap-2.5 px-3">
         <LogoTile className="h-5 w-5 rounded-md p-0.5 text-[0.65rem]" toolkit={tk} />
         <span className="min-w-0 flex-1">
-          <span className="block truncate text-[0.78rem] font-medium text-foreground/85">{tk.name}</span>
+          <span className="block truncate text-[0.78rem] font-medium text-foreground/85">
+            {toolkitLabel(tk)}
+          </span>
           {subtitle ? (
             <span className="block truncate text-[0.62rem] text-muted-foreground/50">{subtitle}</span>
           ) : null}
@@ -145,14 +156,93 @@ function ConnectorListRow({
   )
 }
 
-function CategorySection({
+/** Cursor Discover hero cards — three wide tiles. */
+function DiscoverCard({
+  busy,
+  onAdd,
+  tk
+}: {
+  busy: boolean
+  onAdd: () => void
+  tk: ConnectorToolkit
+}) {
+  const { t } = useI18n()
+  const label = toolkitLabel(tk)
+
+  return (
+    <button
+      className="flex min-h-[8.5rem] flex-col items-start gap-2 rounded-xl border border-border bg-muted/25 p-4 text-left transition-colors hover:bg-muted/45 disabled:opacity-50"
+      disabled={busy}
+      onClick={onAdd}
+      type="button"
+    >
+      <LogoTile className="h-9 w-9 rounded-lg" toolkit={tk} />
+      <span className="truncate text-[0.875rem] font-semibold text-foreground">{label}</span>
+      {tk.description ? (
+        <span className="line-clamp-2 text-[0.72rem] leading-snug text-muted-foreground">{tk.description}</span>
+      ) : null}
+    </button>
+  )
+}
+
+/** Cursor Featured / category row — icon, name, desc, Add. */
+function MarketplaceTile({
+  accounts,
+  connecting,
+  onConnect,
+  tk
+}: {
+  accounts: ConnectorAccount[]
+  connecting: boolean
+  onConnect: (tk: ConnectorToolkit) => void
+  tk: ConnectorToolkit
+}) {
+  const { t } = useI18n()
+  const tc = t.connectors
+  const state = stateOf(accounts)
+  const busy = connecting
+  const label = toolkitLabel(tk)
+
+  return (
+    <div className="flex min-h-[3.25rem] items-center gap-3 rounded-lg px-1.5 py-2 hover:bg-muted/40">
+      <LogoTile className="h-8 w-8 rounded-lg" toolkit={tk} />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[0.8125rem] font-medium text-foreground">{label}</div>
+        {tk.description ? (
+          <div className="truncate text-[0.68rem] text-muted-foreground">{tk.description}</div>
+        ) : null}
+      </div>
+      {state === 'connected' ? (
+        <span className="shrink-0 text-[0.68rem] font-medium text-emerald-700 dark:text-emerald-400">
+          {tc.connected}
+        </span>
+      ) : (
+        <Button
+          className="h-7 shrink-0 px-2.5 text-[0.72rem]"
+          disabled={busy}
+          onClick={() => onConnect(tk)}
+          size="xs"
+          variant="secondary"
+        >
+          {busy ? tc.connecting : state === 'broken' ? tc.reconnect : tc.add}
+        </Button>
+      )}
+    </div>
+  )
+}
+
+function MarketplaceSection({
   title,
   items,
-  renderRow
+  byToolkit,
+  connecting,
+  onConnect
 }: {
   title: string
   items: ConnectorToolkit[]
-  renderRow: (tk: ConnectorToolkit) => ReactNode
+  byToolkit: Map<string, ConnectorAccount[]>
+  connecting: string | null
+  onConnect: (tk: ConnectorToolkit) => void
 }) {
   const { t } = useI18n()
   const [expanded, setExpanded] = useState(false)
@@ -162,14 +252,22 @@ function CategorySection({
   if (items.length === 0) return null
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border">
-      <h3 className="flex h-9 items-center border-b border-border px-3 text-[0.78rem] font-medium text-foreground">
-        {title}
-      </h3>
-      <div>{visible.map(renderRow)}</div>
+    <section className="flex flex-col gap-2">
+      <h3 className="text-[0.78rem] font-semibold text-foreground">{title}</h3>
+      <div className="grid grid-cols-1 gap-x-6 gap-y-0.5 sm:grid-cols-2">
+        {visible.map(tk => (
+          <MarketplaceTile
+            accounts={byToolkit.get(tk.slug.toLowerCase()) || []}
+            connecting={connecting === tk.slug}
+            key={tk.slug}
+            onConnect={onConnect}
+            tk={tk}
+          />
+        ))}
+      </div>
       {hidden > 0 ? (
         <button
-          className="flex h-9 w-full items-center border-t border-border px-3 text-left text-[0.72rem] font-medium text-muted-foreground hover:bg-muted/40 hover:text-foreground"
+          className="self-start text-[0.72rem] font-medium text-muted-foreground hover:text-foreground"
           onClick={() => setExpanded(v => !v)}
           type="button"
         >
@@ -233,7 +331,7 @@ export function ConnectorsTab({
       await attachConnectors('global').catch(() => null)
       const [catalogRes] = await Promise.all([getConnectorsCatalog(), refreshStatus()])
       if (!aliveRef.current) return
-      setToolkits(catalogRes.toolkits || [])
+      setToolkits((catalogRes.toolkits || []).filter(isUsableToolkit))
     } catch (err) {
       if (aliveRef.current) {
         setError(err instanceof Error ? err.message : String(err))
@@ -479,26 +577,58 @@ export function ConnectorsTab({
     )
   }
 
-  // Marketplace
+  // Marketplace — Cursor Discover + Featured + category grids (Composio data).
+  const discover = marketplaceFeatured.slice(0, DISCOVER_COUNT)
+  const featuredRest = marketplaceFeatured.slice(DISCOVER_COUNT)
+
   return (
-    <div className="flex flex-col gap-4 overflow-y-auto p-4 pb-6">
-      <CategorySection
-        items={marketplaceFeatured}
-        renderRow={tk => row(tk, false)}
-        title={tc.featuredSection}
-      />
+    <div
+      className="flex min-h-0 flex-1 flex-col gap-7 overflow-y-auto overscroll-contain px-5 py-5"
+      data-testid="connectors-marketplace"
+    >
+      {discover.length > 0 ? (
+        <section className="flex flex-col gap-2.5">
+          <h3 className="text-[0.78rem] font-semibold text-foreground">{tc.discoverSection}</h3>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            {discover.map(tk => (
+              <DiscoverCard
+                busy={connecting === tk.slug}
+                key={tk.slug}
+                onAdd={() => void onConnect(tk)}
+                tk={tk}
+              />
+            ))}
+          </div>
+        </section>
+      ) : null}
+
+      {featuredRest.length > 0 ? (
+        <MarketplaceSection
+          byToolkit={byToolkit}
+          connecting={connecting}
+          items={featuredRest}
+          onConnect={tk => void onConnect(tk)}
+          title={tc.featuredSection}
+        />
+      ) : null}
+
       {marketplaceDev.length > 0 ? (
-        <CategorySection
+        <MarketplaceSection
+          byToolkit={byToolkit}
+          connecting={connecting}
           items={marketplaceDev}
-          renderRow={tk => row(tk, false)}
+          onConnect={tk => void onConnect(tk)}
           title={tc.devSection}
         />
       ) : null}
+
       {restByCategory.map(({ category, items }) => (
-        <CategorySection
+        <MarketplaceSection
+          byToolkit={byToolkit}
+          connecting={connecting}
           items={items}
           key={category}
-          renderRow={tk => row(tk, false)}
+          onConnect={tk => void onConnect(tk)}
           title={category}
         />
       ))}
@@ -506,7 +636,7 @@ export function ConnectorsTab({
       {marketplaceFeatured.length === 0 &&
         marketplaceDev.length === 0 &&
         restByCategory.length === 0 && (
-          <p className={cn('py-8 text-center text-sm text-muted-foreground')}>{tc.empty}</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">{tc.empty}</p>
         )}
     </div>
   )

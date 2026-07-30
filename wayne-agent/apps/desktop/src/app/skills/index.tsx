@@ -326,6 +326,7 @@ export function SkillsView({
     <PageSearchShell
       {...props}
       activeTab={marketplace ? undefined : mode}
+      contentWidth={marketplace ? 'wide' : 'narrow'}
       onSearchChange={setQuery}
       onTabChange={onTabChange}
       searchPlaceholder={searchPlaceholder}
