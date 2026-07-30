@@ -42,7 +42,31 @@ youtube, research… Ver `FEATURED_SKILLS` em `wayne-agent/web/src/pages/SkillsP
 > Nota técnica: instalar NO VENV do agente (`uv pip install --python /opt/wayne/.venv/bin/python3 …`),
 > num overlay Docker fino sobre a imagem fly (mesmo padrão do Dockerfile.ui). Persistente, sem rebuild da base.
 
-## Anthropic document skills (29/07/2026) — legal
+## Day-0 potency wave (30/07/2026)
+
+Product: ship a **curated kit**, not Browse Hub pre-installs. Study:
+`skills-day0-potency-study` canvas + implement wave A/B.
+
+**Promoted optional → `skills/` (kit):** concept-diagrams · creative-ideation ·
+one-three-one-rule · qmd · 3-statement-model · dcf-model · comps-analysis ·
+webapp-testing · web-artifacts-builder · mcp-builder · code-wiki ·
+rest-graphql-debug · subagent-driven-development · docker-management.
+
+**Not promoted:** `optional-skills/devops/cli` is **inference-sh-cli** (model/apps
+gateway) — stays optional.
+
+**Trimmed kit → `optional-skills/` + `skills.disabled` migrate `_config_version` 36:**
+apple-* · comfyui · heartmula · vllm · llama-cpp · audiocraft · segment-anything ·
+lm-evaluation-harness · computer-use · touchdesigner-mcp · petdex · dogfood ·
+claude-code · codex · opencode · wayne-agent.
+
+**Marketing waves (stay optional / featured catalog only):** hyperframes ·
+baoyu-comic · stocks · lbo-model · adversarial-ux-test · scrapling.
+
+Constant: `wayne_cli.skills_config.KIT_TRIMMED_TO_OPTIONAL_SKILLS`.
+
+---
+
 
 `docx` / `pdf` / `pptx` / `xlsx` em [anthropics/skills](https://github.com/anthropics/skills)
 são **source-available, não Apache** — proibido redistribuir / derivar no kit.

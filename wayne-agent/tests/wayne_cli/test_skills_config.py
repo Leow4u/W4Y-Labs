@@ -26,7 +26,76 @@ class TestConnectorDisguisedSkills:
         assert not missing, f"still under skills/ or missing: {sorted(missing)}"
 
 
-class TestAnthropicProprietaryRemovedSkills:
+class TestKitTrimmedToOptionalSkills:
+    def test_trimmed_in_default_disabled(self):
+        from wayne_cli.config import DEFAULT_CONFIG
+        from wayne_cli.skills_config import KIT_TRIMMED_TO_OPTIONAL_SKILLS
+
+        disabled = set(DEFAULT_CONFIG["skills"]["disabled"])
+        assert KIT_TRIMMED_TO_OPTIONAL_SKILLS <= disabled
+
+    def test_trimmed_not_in_bundled_skills_tree(self):
+        from pathlib import Path
+
+        from wayne_cli.skills_config import KIT_TRIMMED_TO_OPTIONAL_SKILLS
+
+        repo = Path(__file__).resolve().parents[2]
+        bundled = {p.parent.name for p in (repo / "skills").rglob("SKILL.md")}
+        leaked = KIT_TRIMMED_TO_OPTIONAL_SKILLS & bundled
+        assert not leaked, f"trimmed skill still in kit: {sorted(leaked)}"
+
+    def test_trimmed_lives_under_optional(self):
+        from pathlib import Path
+
+        from wayne_cli.skills_config import KIT_TRIMMED_TO_OPTIONAL_SKILLS
+        from wayne_constants import get_optional_skills_dir
+
+        optional = get_optional_skills_dir(Path(__file__).resolve().parents[2] / "optional-skills")
+        found = {p.parent.name for p in optional.rglob("SKILL.md")}
+        missing = KIT_TRIMMED_TO_OPTIONAL_SKILLS - found
+        assert not missing, f"trimmed skill missing from optional: {sorted(missing)}"
+
+
+class TestDay0PromotedSkillsInKit:
+    """Skills promoted from optional → kit for day-0 potency (30/07/2026)."""
+
+    PROMOTED = frozenset({
+        "concept-diagrams",
+        "creative-ideation",
+        "one-three-one-rule",
+        "qmd",
+        "3-statement-model",
+        "dcf-model",
+        "comps-analysis",
+        "webapp-testing",
+        "web-artifacts-builder",
+        "mcp-builder",
+        "code-wiki",
+        "rest-graphql-debug",
+        "subagent-driven-development",
+        "docker-management",
+    })
+
+    def test_promoted_in_bundled_tree(self):
+        from pathlib import Path
+
+        repo = Path(__file__).resolve().parents[2]
+        bundled = {p.parent.name for p in (repo / "skills").rglob("SKILL.md")}
+        missing = self.PROMOTED - bundled
+        assert not missing, f"promoted skill not in kit: {sorted(missing)}"
+
+    def test_inference_sh_cli_stayed_optional(self):
+        """devops/cli was inference-sh-cli — must not land in day-0 kit."""
+        from pathlib import Path
+
+        repo = Path(__file__).resolve().parents[2]
+        bundled = {p.parent.name for p in (repo / "skills").rglob("SKILL.md")}
+        assert "inference-sh-cli" not in bundled
+        optional = {p.parent.name for p in (repo / "optional-skills").rglob("SKILL.md")}
+        assert "inference-sh-cli" in optional or "cli" in {
+            p.name for p in (repo / "optional-skills" / "devops").iterdir() if p.is_dir()
+        }
+
     def test_powerpoint_in_default_disabled(self):
         from wayne_cli.config import DEFAULT_CONFIG
         from wayne_cli.skills_config import ANTHROPIC_PROPRIETARY_REMOVED_SKILLS
@@ -52,15 +121,12 @@ class TestAnthropicProprietaryRemovedSkills:
             "frontend-design": repo / "skills/creative/frontend-design/SKILL.md",
             "theme-factory": repo / "skills/creative/theme-factory/SKILL.md",
             "doc-coauthoring": repo / "skills/productivity/doc-coauthoring/SKILL.md",
-        }
-        optional = {
             "web-artifacts-builder": repo
-            / "optional-skills/web-development/web-artifacts-builder/SKILL.md",
-            "mcp-builder": repo / "optional-skills/mcp/mcp-builder/SKILL.md",
-            "webapp-testing": repo
-            / "optional-skills/web-development/webapp-testing/SKILL.md",
+            / "skills/web-development/web-artifacts-builder/SKILL.md",
+            "mcp-builder": repo / "skills/mcp/mcp-builder/SKILL.md",
+            "webapp-testing": repo / "skills/web-development/webapp-testing/SKILL.md",
         }
-        for name, path in {**kit, **optional}.items():
+        for name, path in kit.items():
             assert path.is_file(), name
             text = path.read_text(encoding="utf-8")
             assert "Apache-2.0" in text or "Apache License" in (

@@ -2216,15 +2216,34 @@ DEFAULT_CONFIG = {
         # (migrate v35). Use pptx-author / excel-author instead.
         "disabled": [
             "airtable",
+            "apple-notes",
+            "apple-reminders",
+            "audiocraft",
+            "claude-code",
+            "codex",
+            "comfyui",
+            "computer-use",
+            "dogfood",
+            "findmy",
             "gif-search",
             "google-workspace",
+            "heartmula",
             "himalaya",
             "huggingface-hub",
+            "imessage",
+            "llama-cpp",
+            "lm-evaluation-harness",
             "nano-pdf",
             "notion",
+            "opencode",
             "openhue",
+            "petdex",
             "powerpoint",
+            "segment-anything",
             "teams-meeting-pipeline",
+            "touchdesigner-mcp",
+            "vllm",
+            "wayne-agent",
             "weights-and-biases",
             "xurl",
             "yuanbao",
@@ -3154,7 +3173,7 @@ DEFAULT_CONFIG = {
     },
 
     # Config schema version - bump this when adding new required fields
-    "_config_version": 35,
+    "_config_version": 36,
 }
 
 # =============================================================================
@@ -5910,6 +5929,37 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 print(
                     "  ✓ Disabled proprietary Anthropic document skill(s) — "
                     f"use pptx-author / excel-author ({len(added)} name(s))."
+                )
+
+    # ── Version 35 → 36: day-0 potency — trim GPU/macOS/meta from kit seed ──
+    # Moved to optional-skills/. Disable seeded copies so existing installs
+    # match the curated kit (promote list already lives under skills/).
+    if current_ver < 36:
+        from wayne_cli.skills_config import KIT_TRIMMED_TO_OPTIONAL_SKILLS
+
+        config = read_raw_config()
+        skills_cfg = config.get("skills")
+        if not isinstance(skills_cfg, dict):
+            skills_cfg = {}
+            config["skills"] = skills_cfg
+        disabled = skills_cfg.get("disabled")
+        if not isinstance(disabled, list):
+            disabled = []
+        before = set(disabled)
+        merged = sorted(before | set(KIT_TRIMMED_TO_OPTIONAL_SKILLS))
+        if merged != sorted(before):
+            skills_cfg["disabled"] = merged
+            config["skills"] = skills_cfg
+            _persist_migration(config)
+            added = sorted(set(KIT_TRIMMED_TO_OPTIONAL_SKILLS) - before)
+            results["config_added"].append(
+                f"skills.disabled += {', '.join(added)} "
+                "(trimmed from day-0 kit → optional)"
+            )
+            if not quiet:
+                print(
+                    "  ✓ Disabled niche/GPU/macOS/meta skills trimmed from the "
+                    f"day-0 kit ({len(added)} name(s); install from optional)."
                 )
 
     # ── Post-migration: disable exfiltration-shaped MCP stdio entries ──

@@ -30,7 +30,21 @@ const PT_DISPLAY: Record<string, string> = {
   sketch: "Esboços e wireframes",
   // Texto
   humanizer: "Humanizar texto",
-  // Pesquisa
+  "concept-diagrams": "Diagramas de conceito",
+  "creative-ideation": "Ideação criativa",
+  "one-three-one-rule": "Regra 1-3-1 (comunicação)",
+  qmd: "Notas QMD / research",
+  "3-statement-model": "Modelo financeiro 3 statements",
+  "dcf-model": "Modelo DCF",
+  "comps-analysis": "Análise de comparáveis",
+  "webapp-testing": "Testar web apps",
+  "web-artifacts-builder": "Artefactos web",
+  "mcp-builder": "Construir servidores MCP",
+  "code-wiki": "Wiki do código",
+  "rest-graphql-debug": "Debug REST/GraphQL",
+  "subagent-driven-development": "Dev com subagentes",
+  "docker-management": "Docker",
+  // Research
   "web-research-competitive-intelligence": "Pesquisa de concorrência",
   arxiv: "Artigos científicos (arXiv)",
   "research-paper-writing": "Escrever artigos científicos",

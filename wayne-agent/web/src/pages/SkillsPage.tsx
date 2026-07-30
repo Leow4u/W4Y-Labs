@@ -166,15 +166,31 @@ const FEATURED_SKILLS = new Set<string>([
   "theme-factory",
   "excalidraw",
   "sketch",
-  // Text
+  "concept-diagrams",
+  "creative-ideation",
+  // Text / communication
   "humanizer",
+  "one-three-one-rule",
   // Research
   "web-research-competitive-intelligence",
   "arxiv",
   "research-paper-writing",
   "polymarket",
+  "qmd",
+  // Finance methods (Excel path)
+  "3-statement-model",
+  "dcf-model",
+  "comps-analysis",
   // Media
   "youtube-content",
+  // Dev / MCP playbooks (day-0 potency 30/07)
+  "webapp-testing",
+  "web-artifacts-builder",
+  "mcp-builder",
+  "code-wiki",
+  "rest-graphql-debug",
+  "subagent-driven-development",
+  "docker-management",
 ]);
 
 /** Order pinned to the TOP of the Habilidades grid (Leonardo's request). The

@@ -45,6 +45,31 @@ ANTHROPIC_PROPRIETARY_REMOVED_SKILLS: frozenset[str] = frozenset({
     "powerpoint",
 })
 
+# Skills moved kit → optional-skills/ (day-0 potency trim, 30/07/2026).
+# GPU/macOS/meta-agents/GUI — stay installable via optional, but disable any
+# copies already seeded into ~/.wayne/skills/ so fresh potency stays curated.
+KIT_TRIMMED_TO_OPTIONAL_SKILLS: frozenset[str] = frozenset({
+    "apple-notes",
+    "apple-reminders",
+    "findmy",
+    "imessage",
+    "comfyui",
+    "heartmula",
+    "vllm",
+    "llama-cpp",
+    "audiocraft",
+    "segment-anything",
+    "lm-evaluation-harness",
+    "computer-use",
+    "touchdesigner-mcp",
+    "petdex",
+    "dogfood",
+    "claude-code",
+    "codex",
+    "opencode",
+    "wayne-agent",
+})
+
 # Backward-compatible view: {key: label_string} so existing code that
 # iterates ``PLATFORMS.items()`` or calls ``PLATFORMS.get(key)`` keeps
 # working without changes to every call site.

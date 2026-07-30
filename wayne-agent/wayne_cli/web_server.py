@@ -12169,16 +12169,14 @@ async def search_skills_hub(
 # set, so the allowlist hides them automatically. Keyed by IDENTIFIER
 # (official/<category>/<slug>), which is stable regardless of the SKILL.md name.
 FEATURED_OPTIONAL_SKILL_IDS = frozenset({
-    "official/email/agentmail",
-    "official/productivity/shopify",
-    "official/productivity/telephony",
-    "official/research/osint-investigation",
-    "official/finance/3-statement-model",
-    "official/finance/stocks",
-    "official/research/qmd",
-    "official/creative/creative-ideation",
-    "official/communication/one-three-one-rule",
+    # Marketing / later waves only — day-0 promotes now live under skills/ kit.
+    # No connector-smelling entries (agentmail/shopify/telephony/osint).
     "official/creative/hyperframes",
+    "official/creative/baoyu-comic",
+    "official/finance/stocks",
+    "official/finance/lbo-model",
+    "official/dogfood/adversarial-ux-test",
+    "official/research/scrapling",
 })
 
 
