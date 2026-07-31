@@ -230,7 +230,7 @@ async function getSessionToken(): Promise<string> {
     _sessionToken = injected;
     return _sessionToken;
   }
-  throw new Error("Session token not available — page must be served by the Wayne dashboard server");
+  throw new Error("Session token not available — page must be served by the Work4You dashboard server");
 }
 
 /**

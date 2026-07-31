@@ -1035,7 +1035,7 @@ export const ja: Translations = {
     enableRuntime: "有効化",
     forceReinstall: "強制再インストール (既存のフォルダを先に削除)",
     headline:
-      "Work4You プラグインを発見、インストール、有効化、更新します (`wayne plugins` 相当)。",
+      "Work4You プラグインを発見、インストール、有効化、更新します (`work4you plugins` 相当)。",
     identifierLabel: "Git URL または owner/repo",
     inactive: "非アクティブ",
     installBtn: "インストール",

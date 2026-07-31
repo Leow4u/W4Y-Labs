@@ -144,7 +144,7 @@ export default function ChatTerminalPage({ isActive = true }: { isActive?: boole
     typeof window !== "undefined" &&
     !window.__WAYNE_SESSION_TOKEN__ &&
     !window.__WAYNE_AUTH_REQUIRED__
-      ? "Session token unavailable. Open this page through `wayne dashboard`, not directly."
+      ? "Session token unavailable. Open this page through `work4you dashboard`, not directly."
       : null,
   );
   const [copyState, setCopyState] = useState<"idle" | "copied">("idle");

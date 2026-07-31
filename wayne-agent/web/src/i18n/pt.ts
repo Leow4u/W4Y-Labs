@@ -180,7 +180,7 @@ export const pt: Translations = {
     startedInBackground: "Iniciado em segundo plano — verifique os registros para acompanhar",
     stopped: "Parado",
     updateWayne: "Atualizar Work4You",
-    updatingWayne: "Atualizanda Work4You…",
+    updatingWayne: "Atualizando Work4You…",
     waitingForOutput: "Aguardando saída…",
   },
 
@@ -1038,7 +1038,7 @@ export const pt: Translations = {
     enableRuntime: "Ativar",
     forceReinstall: "Forçar reinstalação (excluir pasta existente primeiro)",
     headline:
-      "Descobrir, instalar, ativar e atualizar plugins Work4You (paridade com `wayne plugins`).",
+      "Descobrir, instalar, ativar e atualizar plugins Work4You (paridade com `work4you plugins`).",
     identifierLabel: "URL Git ou owner/repo",
     inactive: "inativo",
     installBtn: "Instalar",

@@ -1034,7 +1034,7 @@ export const zhHant: Translations = {
     enableRuntime: "啟用",
     forceReinstall: "強制重新安裝（先刪除既有資料夾）",
     headline:
-      "探索、安裝、啟用並更新 Work4You 外掛（對齊 `wayne plugins` CLI）。",
+      "探索、安裝、啟用並更新 Work4You 外掛（對齊 `work4you plugins` CLI）。",
     identifierLabel: "Git 網址或 owner/repo",
     inactive: "未啟用",
     installBtn: "安裝",

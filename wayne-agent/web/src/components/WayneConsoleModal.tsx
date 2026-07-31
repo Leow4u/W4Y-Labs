@@ -104,8 +104,8 @@ export function WayneConsoleModal({ open, onClose }: WayneConsoleModalProps) {
   const termRef = useRef<XtermTerminal | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
   const lineRef = useRef("");
-  const promptRef = useRef("wayne> ");
-  const inputPromptRef = useRef("wayne> ");
+  const promptRef = useRef("work4you> ");
+  const inputPromptRef = useRef("work4you> ");
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef<number | null>(null);
   const activeCommandRef = useRef(false);
@@ -274,7 +274,7 @@ export function WayneConsoleModal({ open, onClose }: WayneConsoleModalProps) {
       if (!term) return;
 
       if (frame.type === "ready") {
-        const nextPrompt = frame.prompt || "wayne> ";
+        const nextPrompt = frame.prompt || "work4you> ";
         promptRef.current = nextPrompt;
         inputPromptRef.current = nextPrompt;
         hasReadyFrameRef.current = true;
@@ -398,7 +398,7 @@ export function WayneConsoleModal({ open, onClose }: WayneConsoleModalProps) {
     setConsoleContext("pending");
     setConsoleProfile(profile || "current");
     hasReadyFrameRef.current = false;
-    writeLine(term, "\x1b[2mConnecting to Wayne Console...\x1b[0m");
+    writeLine(term, "\x1b[2mConnecting to Work4You Console...\x1b[0m");
 
     void (async () => {
       try {
@@ -507,7 +507,7 @@ export function WayneConsoleModal({ open, onClose }: WayneConsoleModalProps) {
               id="wayne-console-title"
               className="font-mondwest text-display text-base tracking-wider"
             >
-              Wayne Console
+              Work4You Console
             </h2>
             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
               <Badge tone={statusTone}>{connectionState}</Badge>
