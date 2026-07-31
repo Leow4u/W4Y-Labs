@@ -143,6 +143,8 @@ class TestBlueBubblesHelpers:
         assert adapter.require_mention is True
         assert adapter._message_matches_mention_patterns("Wayne, summarize this")
         assert adapter._message_matches_mention_patterns("@Wayne agent help")
+        assert adapter._message_matches_mention_patterns("Work4You, summarize this")
+        assert adapter._message_matches_mention_patterns("@Work4You agent help")
         assert not adapter._message_matches_mention_patterns("casual family chatter")
         assert not adapter._message_matches_mention_patterns("antiwayne should not match")
 

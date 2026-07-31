@@ -27,7 +27,7 @@ TELEGRAM_ONBOARDING_URL_ENV = "TELEGRAM_ONBOARDING_URL"
 # actual deep link, so this is only used by local helpers/tests.
 DEFAULT_MANAGER_BOT = "WayneSetupBot"
 
-DEFAULT_BOT_NAME = "Wayne Agent"
+DEFAULT_BOT_NAME = "Work4You"
 DEFAULT_POLL_TIMEOUT = 180
 POLL_INTERVAL = 2
 
@@ -123,14 +123,14 @@ def generate_username_slug(length: int = 16) -> str:
 
 
 def generate_bot_username(profile_name: Optional[str] = None) -> str:
-    """Generate a secure suggested bot username like ``wayne_<slug>_bot``.
+    """Generate a secure suggested bot username like ``work4you_<slug>_bot``.
 
     ``profile_name`` is accepted for backward compatibility with the original
     PoC, but is intentionally not embedded in the username. The username has to
     carry enough entropy for backend correlation.
     """
     _ = profile_name
-    return f"wayne_{generate_username_slug()}_bot"
+    return f"work4you_{generate_username_slug()}_bot"
 
 
 def generate_deep_link(
@@ -286,11 +286,11 @@ def auto_setup_telegram_bot_result(
     _ = manager_bot, profile_name
     resolved_api_url = _api_url(api_url)
     print()
-    print(f"  Contacting Wayne Telegram onboarding service: {resolved_api_url}")
+    print(f"  Contacting the Work4You Telegram onboarding service: {resolved_api_url}")
     sys.stdout.flush()
     pairing = create_pairing(resolved_api_url)
     if not pairing:
-        print("  ✗ Could not reach the Wayne Telegram onboarding service.")
+        print("  ✗ Could not reach the Work4You Telegram onboarding service.")
         print("    Try the manual setup instead, or check your network.")
         return None
 

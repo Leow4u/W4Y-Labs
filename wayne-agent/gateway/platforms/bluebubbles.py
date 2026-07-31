@@ -46,9 +46,12 @@ MAX_TEXT_LENGTH = 4000
 
 # BlueBubbles/iMessage does not expose a stable bot mention identity like
 # Slack (<@U...>), Telegram (@botname), or Matrix (MXID). When users opt into
-# group mention gating without custom aliases, use conservative Wayne wake
-# words so `require_mention: true` is a one-line enablement path.
+# group mention gating without custom aliases, use conservative Work4You/Wayne
+# wake words so `require_mention: true` is a one-line enablement path. The
+# legacy "wayne" wake words stay supported — users type them by habit.
 DEFAULT_MENTION_PATTERNS = [
+    r"(?<![\w@])@?work4you\s+agent\b[,:\-]?",
+    r"(?<![\w@])@?work4you\b[,:\-]?",
     r"(?<![\w@])@?wayne\s+agent\b[,:\-]?",
     r"(?<![\w@])@?wayne\b[,:\-]?",
 ]
