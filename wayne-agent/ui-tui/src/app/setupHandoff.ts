@@ -17,7 +17,7 @@ export interface RunExternalSetupOptions {
 export async function runExternalSetup({ args, ctx, done, launcher, suspend }: RunExternalSetupOptions) {
   const { gateway, session, transcript } = ctx
 
-  transcript.sys(`launching \`wayne ${args.join(' ')}\`…`)
+  transcript.sys(`launching \`work4you ${args.join(' ')}\`…`)
   patchUiState({ status: 'setup running…' })
 
   let result: LaunchResult = { code: null }
@@ -27,14 +27,14 @@ export async function runExternalSetup({ args, ctx, done, launcher, suspend }: R
   })
 
   if (result.error) {
-    transcript.sys(`error launching wayne: ${result.error}`)
+    transcript.sys(`error launching work4you: ${result.error}`)
     patchUiState({ status: 'setup required' })
 
     return
   }
 
   if (result.code !== 0) {
-    transcript.sys(`wayne ${args[0]} exited with code ${result.code}`)
+    transcript.sys(`work4you ${args[0]} exited with code ${result.code}`)
     patchUiState({ status: 'setup required' })
 
     return

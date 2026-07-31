@@ -404,7 +404,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
               - run{' '}
             </Text>
             <Text bold color={t.color.warn}>
-              {info.update_command || 'wayne update'}
+              {info.update_command || 'work4you update'}
             </Text>
             <Text bold={false} color={t.color.warn} dimColor>
               {' '}

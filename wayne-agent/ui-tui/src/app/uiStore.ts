@@ -25,7 +25,7 @@ const buildUiState = (): UiState => ({
   sessionTitle: '',
   showReasoning: true,
   sid: null,
-  status: 'summoning wayne…',
+  status: 'starting work4you…',
   statusBar: 'top',
   streaming: true,
   theme: DEFAULT_THEME,
