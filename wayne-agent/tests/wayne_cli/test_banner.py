@@ -62,9 +62,10 @@ def test_build_welcome_banner_uses_normalized_toolset_names():
         )
 
     output = console.export_text()
-    assert "homeassistant:" in output
-    assert "honcho:" in output
-    assert "web:" in output
+    assert "homeassistant" in output
+    assert "honcho" in output
+    assert "web" in output
+    assert "toolsets:" in output
     assert "homeassistant_tools:" not in output
     assert "honcho_tools:" not in output
     assert "web_tools:" not in output
@@ -89,7 +90,11 @@ def test_build_welcome_banner_title_is_hyperlinked_to_release():
         _patch.object(_mcp, "get_mcp_status", return_value=[]),
         _patch.object(_banner, "get_latest_release_tag", return_value=tag_url),
     ):
-        console = Console(file=buf, force_terminal=True, color_system="truecolor", width=160)
+        # legacy_windows=False so OSC-8 links emit on Windows CI/dev hosts too.
+        console = Console(
+            file=buf, force_terminal=True, color_system="truecolor", width=160,
+            legacy_windows=False,
+        )
         _banner.build_welcome_banner(
             console=console, model="x", cwd="/tmp",
             session_id="abc123",
@@ -99,7 +104,7 @@ def test_build_welcome_banner_title_is_hyperlinked_to_release():
 
     raw = buf.getvalue()
     # The existing version label must still be present in the title
-    assert "Wayne Agent v" in raw, "Version label missing from title"
+    assert "Work4You v" in raw, "Version label missing from title"
     # OSC-8 hyperlink escape sequence present with the release URL
     assert "\x1b]8;" in raw, "OSC-8 hyperlink not emitted"
     assert "releases/tag/v2026.4.23" in raw, "Release URL missing from banner output"
@@ -131,7 +136,7 @@ def test_build_welcome_banner_title_falls_back_when_no_tag():
         )
 
     raw = buf.getvalue()
-    assert "Wayne Agent v" in raw, "Version label missing from title"
+    assert "Work4You v" in raw, "Version label missing from title"
     assert "\x1b]8;" not in raw, "OSC-8 hyperlink should not be emitted without a tag"
 
 
@@ -277,7 +282,8 @@ def test_banner_skills_section_reflects_disabled_skills_toolset():
         )
     out_enabled = console.export_text()
     assert "Skills toolset disabled" not in out_enabled
-    assert "ascii-art" in out_enabled
+    # creative(2) + devops(1) — banner shows counts, not the skill name dump
+    assert "3 skills" in out_enabled
 
 
 def test_build_welcome_banner_moa_provider_shows_preset_and_aggregator(tmp_path, monkeypatch):

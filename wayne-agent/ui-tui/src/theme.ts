@@ -236,7 +236,7 @@ function normalizeAnsiForeground(color: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'Wayne Agent',
+  name: 'Work4You',
   icon: '⚕',
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',

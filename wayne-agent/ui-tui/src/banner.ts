@@ -43,38 +43,21 @@ export function parseRichMarkup(markup: string): Line[] {
   return lines
 }
 
-// W4Y rebrand (2026-07-04): the terminal greets with the PRODUCT wordmark
-// (Work4You); the agent identifies itself in the tagline underneath
-// (see TAG_FULL in components/branding.tsx).
+// Compact W4Y monogram — real ANSI-Shadow W (same as wayne_cli/banner.py).
 const LOGO_ART = [
-  '██╗    ██╗ ██████╗ ██████╗ ██╗  ██╗██╗  ██╗██╗   ██╗ ██████╗ ██╗   ██╗',
-  '██║    ██║██╔═══██╗██╔══██╗██║ ██╔╝██║  ██║╚██╗ ██╔╝██╔═══██╗██║   ██║',
-  '██║ █╗ ██║██║   ██║██████╔╝█████╔╝ ███████║ ╚████╔╝ ██║   ██║██║   ██║',
-  '██║███╗██║██║   ██║██╔══██╗██╔═██╗ ╚════██║  ╚██╔╝  ██║   ██║██║   ██║',
-  '╚███╔███╔╝╚██████╔╝██║  ██║██║  ██╗     ██║   ██║   ╚██████╔╝╚██████╔╝',
-  ' ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝     ╚═╝   ╚═╝    ╚═════╝  ╚═════╝ '
+  '██╗    ██╗██╗  ██╗██╗   ██╗',
+  '██║    ██║██║  ██║╚██╗ ██╔╝',
+  '██║ █╗ ██║███████║ ╚████╔╝ ',
+  '██║███╗██║╚════██║  ╚██╔╝  ',
+  '╚███╔███╔╝     ██║   ██║   ',
+  ' ╚══╝╚══╝      ╚═╝   ╚═╝   '
 ]
 
-const CADUCEUS_ART = [
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀',
-  '⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀',
-  '⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀',
-  '⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀'
-]
+// Default left-panel hero is the same mark (skins may override via banner_hero).
+const CADUCEUS_ART = LOGO_ART
 
 const LOGO_GRADIENT = [0, 0, 1, 1, 2, 2] as const
-const CADUC_GRADIENT = [2, 2, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 3, 3, 3] as const
+const CADUC_GRADIENT = LOGO_GRADIENT
 
 const colorize = (art: string[], gradient: readonly number[], c: ThemeColors): Line[] => {
   const p = [c.primary, c.accent, c.border, c.muted]
@@ -88,6 +71,7 @@ export const CADUCEUS_WIDTH = Math.max(...CADUCEUS_ART.map(line => line.length))
 export const logo = (c: ThemeColors, customLogo?: string): Line[] =>
   customLogo ? parseRichMarkup(customLogo) : colorize(LOGO_ART, LOGO_GRADIENT, c)
 
+/** Left-panel hero. Name kept for skin/API back-compat; default art is W4Y mark. */
 export const caduceus = (c: ThemeColors, customHero?: string): Line[] =>
   customHero ? parseRichMarkup(customHero) : colorize(CADUCEUS_ART, CADUC_GRADIENT, c)
 

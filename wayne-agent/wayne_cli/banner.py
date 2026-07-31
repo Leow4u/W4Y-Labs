@@ -58,29 +58,20 @@ def _skin_color(key: str, fallback: str) -> str:
 
 from wayne_cli import __version__ as VERSION, __release_date__ as RELEASE_DATE
 
-WAYNE_AGENT_LOGO = """[bold #FFD700]██╗  ██╗███████╗██████╗ ███╗   ███╗███████╗███████╗       █████╗  ██████╗ ███████╗███╗   ██╗████████╗[/]
-[bold #FFD700]██║  ██║██╔════╝██╔══██╗████╗ ████║██╔════╝██╔════╝      ██╔══██╗██╔════╝ ██╔════╝████╗  ██║╚══██╔══╝[/]
-[#FFBF00]███████║█████╗  ██████╔╝██╔████╔██║█████╗  ███████╗█████╗███████║██║  ███╗█████╗  ██╔██╗ ██║   ██║[/]
-[#FFBF00]██╔══██║██╔══╝  ██╔══██╗██║╚██╔╝██║██╔══╝  ╚════██║╚════╝██╔══██║██║   ██║██╔══╝  ██║╚██╗██║   ██║[/]
-[#CD7F32]██║  ██║███████╗██║  ██║██║ ╚═╝ ██║███████╗███████║      ██║  ██║╚██████╔╝███████╗██║ ╚████║   ██║[/]
-[#CD7F32]╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝╚══════╝      ╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚═╝  ╚═══╝   ╚═╝[/]"""
+# Compact W4Y monogram — real ANSI-Shadow W (not K-shaped) + 4 + Y.
+W4Y_MARK = """[bold #FF7A2E]██╗    ██╗██╗  ██╗██╗   ██╗[/]
+[bold #FF7A2E]██║    ██║██║  ██║╚██╗ ██╔╝[/]
+[#FF8C42]██║ █╗ ██║███████║ ╚████╔╝ [/]
+[#FF8C42]██║███╗██║╚════██║  ╚██╔╝  [/]
+[#E86A1F]╚███╔███╔╝     ██║   ██║   [/]
+[#E86A1F] ╚══╝╚══╝      ╚═╝   ╚═╝   [/]"""
 
-WAYNE_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
-[#FFBF00]⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]"""
+W4Y_TAGLINE = "O teu agente no terminal"
 
+# Back-compat aliases (skins/docs/tests may still import old names).
+WORK4YOU_LOGO = W4Y_MARK
+WAYNE_AGENT_LOGO = W4Y_MARK
+WAYNE_CADUCEUS = W4Y_MARK
 
 
 # =========================================================================
@@ -321,7 +312,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
 def format_banner_version_label() -> str:
     """Return the version label shown in the startup banner title."""
-    base = f"Wayne Agent v{VERSION} ({RELEASE_DATE})"
+    base = f"Work4You v{VERSION} ({RELEASE_DATE})"
     state = get_git_banner_state()
     if not state:
         return base
@@ -400,20 +391,10 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
                          get_toolset_for_tool=None,
                          context_length: int = None,
                          provider: str = None):
-    """Build and print a welcome banner with caduceus on left and info on right.
+    """Print a Claude-style welcome panel: one box, short tips, no tool dump.
 
-    Args:
-        console: Rich Console instance.
-        model: Current model name.
-        cwd: Current working directory.
-        tools: List of tool definitions.
-        enabled_toolsets: List of enabled toolset names.
-        session_id: Session identifier.
-        get_toolset_for_tool: Callable to map tool name -> toolset name.
-        context_length: Model's context window size in tokens.
-        provider: Active provider id. When ``"moa"``, ``model`` is a MoA
-            preset name and the banner renders the aggregator instead of a
-            bare model slug.
+    Left: greeting + W4Y mark + model/cwd/session.
+    Right: getting-started tips + compact status (counts, MCP, alerts).
     """
     from model_tools import check_tool_availability, TOOLSET_REQUIREMENTS
     from rich.panel import Panel
@@ -425,12 +406,8 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     enabled_toolsets = enabled_toolsets or []
 
     _, unavailable_toolsets = check_tool_availability(quiet=True)
-    # The availability check walks the GLOBAL toolset registry, so it includes
-    # toolsets that aren't part of this agent's platform set at all (e.g.
-    # `discord`, `feishu_doc` on a CLI session). Those must never surface in the
-    # banner's "Available Tools" — they aren't exposed to the agent. Restrict to
-    # toolsets actually enabled for this agent; a toolset that's enabled but
-    # currently has unmet deps legitimately shows as disabled/lazy below.
+    # Restrict unavailable toolsets to those enabled for this agent so global
+    # registry noise (discord/feishu on CLI) never leaks into the banner.
     _enabled_ts = {str(t) for t in enabled_toolsets}
     if _enabled_ts:
         unavailable_toolsets = [
@@ -438,9 +415,6 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
             if str(item.get("id", item.get("name", ""))) in _enabled_ts
         ]
     disabled_tools = set()
-    # Tools whose toolset has a check_fn are lazy-initialized (e.g. honcho,
-    # homeassistant) — they show as unavailable at banner time because the
-    # check hasn't run yet, but they aren't misconfigured.
     lazy_tools = set()
     for item in unavailable_toolsets:
         toolset_name = item.get("name", "")
@@ -451,28 +425,36 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         else:
             disabled_tools.update(tools_in_ts)
 
-    layout_table = Table.grid(padding=(0, 2))
-    layout_table.add_column("left", justify="center")
-    layout_table.add_column("right", justify="left")
-
-    # Resolve skin colors once for the entire banner
     accent = _skin_color("banner_accent", "#FFBF00")
     dim = _skin_color("banner_dim", "#B8860B")
     text = _skin_color("banner_text", "#FFF8DC")
     session_color = _skin_color("session_border", "#8B8682")
+    title_color = _skin_color("banner_title", "#FFD700")
+    border_color = _skin_color("banner_border", "#CD7F32")
 
-    # Use skin's custom caduceus art if provided
     try:
         from wayne_cli.skin_engine import get_active_skin
         _bskin = get_active_skin()
-        _hero = _bskin.banner_hero if hasattr(_bskin, 'banner_hero') and _bskin.banner_hero else WAYNE_CADUCEUS
+        _hero = _bskin.banner_hero if getattr(_bskin, "banner_hero", None) else W4Y_MARK
     except Exception:
         _bskin = None
-        _hero = WAYNE_CADUCEUS
-    left_lines = ["", _hero, ""]
+        _hero = W4Y_MARK
+
+    # ── Left: greeting + mark + session meta ─────────────────────────────
+    try:
+        import getpass
+        _user = (getpass.getuser() or "").strip()
+    except Exception:
+        _user = ""
+    _first = _user.split("\\")[-1].split()[0] if _user else ""
+    if _first:
+        greet = f"[bold {text}]Olá, {_first[:1].upper() + _first[1:]}![/]"
+    else:
+        greet = f"[bold {text}]Bem-vindo![/]"
+
+    left_lines = [greet, "", _hero, ""]
+
     if (provider or "").strip().lower() == "moa":
-        # MoA virtual provider: ``model`` is a preset name. Show the preset and
-        # its aggregator so the banner is meaningful instead of a bare slug.
         preset_name = model
         agg_label = ""
         try:
@@ -489,85 +471,83 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
             agg_label = ""
         if len(preset_name) > 28:
             preset_name = preset_name[:25] + "..."
-        agg_str = f" [dim {dim}]·[/] [dim {dim}]agg {agg_label}[/]" if agg_label else ""
-        ctx_str = f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]" if context_length else ""
-        left_lines.append(f"[{accent}]MoA: {preset_name}[/]{agg_str}{ctx_str} [dim {dim}]·[/] [dim {dim}]Nous Research[/]")
+        meta = f"[{accent}]MoA: {preset_name}[/]"
+        if agg_label:
+            meta += f" [dim {dim}]·[/] [dim {dim}]agg {agg_label}[/]"
+        if context_length:
+            meta += f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]"
+        left_lines.append(meta)
     else:
         model_short = model.split("/")[-1] if "/" in model else model
         if model_short.endswith(".gguf"):
             model_short = model_short[:-5]
-        if len(model_short) > 28:
-            model_short = model_short[:25] + "..."
-        ctx_str = f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]" if context_length else ""
-        left_lines.append(f"[{accent}]{model_short}[/]{ctx_str} [dim {dim}]·[/] [dim {dim}]Nous Research[/]")
+        if len(model_short) > 36:
+            model_short = model_short[:33] + "..."
+        meta = f"[{accent}]{model_short}[/]"
+        if context_length:
+            meta += f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]"
+        left_lines.append(meta)
 
     if os.getenv("WAYNE_YOLO_MODE"):
-        left_lines.append(f"[bold red]⚠ YOLO mode[/] [dim {dim}]— all approval prompts bypassed[/]")
+        left_lines.append(f"[bold red]⚠ YOLO mode[/] [dim {dim}]— approvals bypassed[/]")
     left_lines.append(f"[dim {dim}]{cwd}[/]")
     if session_id:
-        left_lines.append(f"[dim {session_color}]Session: {session_id}[/]")
-    left_content = "\n".join(left_lines)
+        left_lines.append(f"[dim {session_color}]{session_id}[/]")
 
-    right_lines = [f"[bold {accent}]Available Tools[/]"]
-    toolsets_dict: Dict[str, list] = {}
+    # ── Right: tips + compact status (no tool/skill dump) ─────────────────
+    right_lines = [
+        f"[bold {accent}]Para começar[/]",
+        f"[{text}]·[/] [dim {dim}]/help[/] [{text}]— comandos[/]",
+        f"[{text}]·[/] [dim {dim}]/tools[/] [{text}]— ferramentas[/]",
+        f"[{text}]·[/] [dim {dim}]/skills[/] [{text}]— skills[/]",
+        "",
+        f"[bold {accent}]Estado[/]",
+    ]
 
+    _skills_enabled = (not _enabled_ts) or ("skills" in _enabled_ts)
+    if _skills_enabled:
+        skills_by_category = get_available_skills()
+        total_skills = sum(len(s) for s in skills_by_category.values())
+    else:
+        skills_by_category = {}
+        total_skills = 0
+
+    # Compact toolset names (normalized) for status — never dump every tool.
+    toolsets_seen: list = []
+    _seen = set()
     for tool in tools:
         tool_name = tool["function"]["name"]
-        toolset = _display_toolset_name(get_toolset_for_tool(tool_name) or "other")
-        toolsets_dict.setdefault(toolset, []).append(tool_name)
-
+        display = _display_toolset_name(get_toolset_for_tool(tool_name) or "other")
+        if display not in _seen:
+            _seen.add(display)
+            toolsets_seen.append(display)
     for item in unavailable_toolsets:
-        toolset_id = item.get("id", item.get("name", "unknown"))
-        display_name = _display_toolset_name(toolset_id)
-        if display_name not in toolsets_dict:
-            toolsets_dict[display_name] = []
-        for tool_name in item.get("tools", []):
-            if tool_name not in toolsets_dict[display_name]:
-                toolsets_dict[display_name].append(tool_name)
+        display = _display_toolset_name(item.get("id", item.get("name", "unknown")))
+        if display not in _seen:
+            _seen.add(display)
+            toolsets_seen.append(display)
 
-    sorted_toolsets = sorted(toolsets_dict.keys())
-    display_toolsets = sorted_toolsets[:8]
-    remaining_toolsets = len(sorted_toolsets) - 8
+    summary = f"[{text}]{len(tools)} tools[/] [dim {dim}]·[/] [{text}]{total_skills} skills[/]"
+    if toolsets_seen:
+        shown = ", ".join(sorted(toolsets_seen)[:6])
+        if len(toolsets_seen) > 6:
+            shown += f" +{len(toolsets_seen) - 6}"
+        right_lines.append(f"[dim {dim}]toolsets:[/] [{text}]{shown}[/]")
+    right_lines.append(summary)
 
-    for toolset in display_toolsets:
-        tool_names = toolsets_dict[toolset]
-        colored_names = []
-        for name in sorted(tool_names):
-            if name in disabled_tools:
-                colored_names.append(f"[red]{name}[/]")
-            elif name in lazy_tools:
-                colored_names.append(f"[yellow]{name}[/]")
-            else:
-                colored_names.append(f"[{text}]{name}[/]")
+    if not _skills_enabled:
+        right_lines.append(f"[dim {dim}]Skills toolset disabled[/]")
 
-        tools_str = ", ".join(colored_names)
-        if len(", ".join(sorted(tool_names))) > 45:
-            short_names = []
-            length = 0
-            for name in sorted(tool_names):
-                if length + len(name) + 2 > 42:
-                    short_names.append("...")
-                    break
-                short_names.append(name)
-                length += len(name) + 2
-            colored_names = []
-            for name in short_names:
-                if name == "...":
-                    colored_names.append("[dim]...[/]")
-                elif name in disabled_tools:
-                    colored_names.append(f"[red]{name}[/]")
-                elif name in lazy_tools:
-                    colored_names.append(f"[yellow]{name}[/]")
-                else:
-                    colored_names.append(f"[{text}]{name}[/]")
-            tools_str = ", ".join(colored_names)
+    # Unavailable / lazy tools — short notice only when relevant
+    if disabled_tools:
+        sample = ", ".join(sorted(disabled_tools)[:3])
+        extra = f" +{len(disabled_tools) - 3}" if len(disabled_tools) > 3 else ""
+        right_lines.append(f"[red]unavailable:[/] [{text}]{sample}{extra}[/]")
+    if lazy_tools:
+        sample = ", ".join(sorted(lazy_tools)[:3])
+        extra = f" +{len(lazy_tools) - 3}" if len(lazy_tools) > 3 else ""
+        right_lines.append(f"[yellow]lazy:[/] [{text}]{sample}{extra}[/]")
 
-        right_lines.append(f"[dim {dim}]{toolset}:[/] {tools_str}")
-
-    if remaining_toolsets > 0:
-        right_lines.append(f"[dim {dim}](and {remaining_toolsets} more toolsets...)[/]")
-
-    # MCP Servers section (only if configured)
     try:
         from tools.mcp_tool import get_mcp_status
         mcp_status = get_mcp_status()
@@ -576,13 +556,13 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
 
     if mcp_status:
         right_lines.append("")
-        right_lines.append(f"[bold {accent}]MCP Servers[/]")
+        right_lines.append(f"[bold {accent}]MCP[/]")
         for srv in mcp_status:
             status = srv.get("status")
             if srv["connected"]:
                 right_lines.append(
                     f"[dim {dim}]{srv['name']}[/] [{text}]({srv['transport']})[/] "
-                    f"[dim {dim}]—[/] [{text}]{srv['tools']} tool(s)[/]"
+                    f"[dim {dim}]·[/] [{text}]{srv['tools']} tool(s)[/]"
                 )
             elif srv.get("disabled") or status == "disabled":
                 right_lines.append(
@@ -605,109 +585,59 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
                     f"[red]— failed[/]"
                 )
 
-    right_lines.append("")
-    right_lines.append(f"[bold {accent}]Available Skills[/]")
-    # The skills catalog is only reachable when the `skills` toolset is enabled
-    # (it exposes skill_view / skill_manage). When it's disabled — e.g. a Blank
-    # Slate install — the agent literally cannot load any skill, so advertising
-    # the on-disk catalog here is misleading. Reflect the real state instead.
-    _skills_enabled = (not _enabled_ts) or ("skills" in _enabled_ts)
-    if _skills_enabled:
-        skills_by_category = get_available_skills()
-        total_skills = sum(len(s) for s in skills_by_category.values())
-    else:
-        skills_by_category = {}
-        total_skills = 0
-
-    if not _skills_enabled:
-        right_lines.append(f"[dim {dim}]Skills toolset disabled[/]")
-    elif skills_by_category:
-        for category in sorted(skills_by_category.keys()):
-            skill_names = sorted(skills_by_category[category])
-            if len(skill_names) > 8:
-                display_names = skill_names[:8]
-                skills_str = ", ".join(display_names) + f" +{len(skill_names) - 8} more"
-            else:
-                skills_str = ", ".join(skill_names)
-            if len(skills_str) > 50:
-                skills_str = skills_str[:47] + "..."
-            right_lines.append(f"[dim {dim}]{category}:[/] [{text}]{skills_str}[/]")
-    else:
-        right_lines.append(f"[dim {dim}]No skills installed[/]")
-
-    right_lines.append("")
-    mcp_connected = sum(1 for s in mcp_status if s["connected"]) if mcp_status else 0
-    summary_parts = [f"{len(tools)} tools", f"{total_skills} skills"]
-    if mcp_connected:
-        summary_parts.append(f"{mcp_connected} MCP servers")
-    summary_parts.append("/help for commands")
-    # Indicate when the codex_app_server runtime is active so users
-    # understand why tool counts may not match what's actually reachable
-    # (codex builds its own tool list inside the spawned subprocess).
     try:
         from wayne_cli.codex_runtime_switch import get_current_runtime
         from wayne_cli.config import load_config as _load_cfg
         if get_current_runtime(_load_cfg()) == "codex_app_server":
             right_lines.append(
-                f"[bold {accent}]Runtime:[/] [{text}]codex app-server[/] "
-                f"[dim {dim}](terminal/file ops/MCP run inside codex)[/]"
+                f"[bold {accent}]Runtime:[/] [{text}]codex app-server[/]"
             )
     except Exception:
         pass
-    # Show active profile name when not 'default'
+
     try:
         from wayne_cli.profiles import get_active_profile_name
         _profile_name = get_active_profile_name()
         if _profile_name and _profile_name != "default":
             right_lines.append(f"[bold {accent}]Profile:[/] [{text}]{_profile_name}[/]")
     except Exception:
-        pass  # Never break the banner over a profiles.py bug
+        pass
 
-    right_lines.append(f"[dim {dim}]{' · '.join(summary_parts)}[/]")
-
-    # Update check — use prefetched result if available
+    alerts: list = []
     try:
         behind = get_update_result(timeout=0.5)
         if behind is not None and behind != 0:
             from wayne_cli.config import get_managed_update_command, recommended_update_command
             if behind > 0:
                 commits_word = "commit" if behind == 1 else "commits"
-                right_lines.append(
+                alerts.append(
                     f"[bold yellow]⚠ {behind} {commits_word} behind[/]"
-                    f"[dim yellow] — run [bold]{recommended_update_command()}[/bold] to update[/]"
+                    f"[dim yellow] · run [bold]{recommended_update_command()}[/bold][/]"
                 )
             else:
-                # UPDATE_AVAILABLE_NO_COUNT: nix-built wayne; we know an update
-                # exists but not by how much, and we don't know how the user
-                # installed it (nix run, profile, system flake, home-manager).
                 managed_cmd = get_managed_update_command()
                 line = "[bold yellow]⚠ update available[/]"
                 if managed_cmd:
-                    line += f"[dim yellow] — run [bold]{managed_cmd}[/bold][/]"
-                right_lines.append(line)
+                    line += f"[dim yellow] · run [bold]{managed_cmd}[/bold][/]"
+                alerts.append(line)
     except Exception:
-        pass  # Never break the banner over an update check
+        pass
 
-    # Pip-install warning — `pip install wayne-agent` is not the supported
-    # install path (it exists on PyPI for internal/CI reasons, not end users).
-    # Such installs miss the git checkout + installer-managed deps, so updates,
-    # self-update, and issue triage don't behave correctly. Warn, don't block.
     try:
         from wayne_cli.config import detect_install_method
         if detect_install_method() == "pip":
-            right_lines.append(
+            alerts.append(
                 "[bold yellow]⚠ pip install not officially supported[/]"
-                "[dim yellow] — exists for reasons other than user install; "
-                "expect instability and an inability to support issues[/]"
+                "[dim yellow] · expect instability[/]"
             )
     except Exception:
-        pass  # Never break the banner over the install-method check
+        pass
 
-    right_content = "\n".join(right_lines)
-    layout_table.add_row(left_content, right_content)
+    layout_table = Table.grid(padding=(0, 3))
+    layout_table.add_column("left", justify="left", ratio=1)
+    layout_table.add_column("right", justify="left", ratio=1)
+    layout_table.add_row("\n".join(left_lines), "\n".join(right_lines))
 
-    title_color = _skin_color("banner_title", "#FFD700")
-    border_color = _skin_color("banner_border", "#CD7F32")
     version_label = format_banner_version_label()
     release_info = get_latest_release_tag()
     if release_info:
@@ -715,17 +645,20 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         title_markup = f"[bold {title_color}][link={_url}]{version_label}[/link][/]"
     else:
         title_markup = f"[bold {title_color}]{version_label}[/]"
+
     outer_panel = Panel(
         layout_table,
         title=title_markup,
+        title_align="left",
         border_style=border_color,
-        padding=(0, 2),
+        padding=(1, 2),
+        subtitle=f"[dim {dim}]{W4Y_TAGLINE}[/]",
+        subtitle_align="left",
     )
 
     console.print()
-    term_width = shutil.get_terminal_size().columns
-    if term_width >= 95:
-        _logo = _bskin.banner_logo if _bskin and hasattr(_bskin, 'banner_logo') and _bskin.banner_logo else WAYNE_AGENT_LOGO
-        console.print(_logo)
-        console.print()
     console.print(outer_panel)
+    for alert in alerts:
+        console.print(f"  {alert}")
+    if alerts:
+        console.print()

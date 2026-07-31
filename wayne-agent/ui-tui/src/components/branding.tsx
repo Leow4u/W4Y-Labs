@@ -44,9 +44,9 @@ export function ArtLines({ lines }: { lines: [string, string][] }) {
 // Terminals can't scale glyphs, so "responsive" means picking a layout that
 // fits the available columns. Thresholds are picked so each tier reads
 // comfortably without forcing wrap or truncation drift on box-drawing edges.
-const TAG_FULL = 'Wayne Agent · The Digital Employee of the Gods'
-const TAG_MID = 'The Digital Employee of the Gods'
-const TAG_TINY = 'Wayne Agent'
+const TAG_FULL = 'Work4You · O teu agente no terminal'
+const TAG_MID = 'Work4You'
+const TAG_TINY = 'Work4You'
 const HIDE_BELOW = 34
 const COMPACT_FROM = 58
 
@@ -169,7 +169,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
   const strip = (s: string) => (s.endsWith('_tools') ? s.slice(0, -6) : s)
 
   // ── Local collapse state for each section ──
-  const [toolsOpen, setToolsOpen] = useState(true)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [skillsOpen, setSkillsOpen] = useState(false)
   const [systemOpen, setSystemOpen] = useState(false)
   const [mcpOpen, setMcpOpen] = useState(false)
