@@ -407,8 +407,8 @@ export async function applyUpdates(opts: DesktopUpdateApplyOptions = {}): Promis
         ...IDLE,
         applying: false,
         stage: 'manual',
-        message: result.command ?? 'hermes update',
-        command: result.command ?? 'hermes update'
+        message: result.command ?? 'work4you update',
+        command: result.command ?? 'work4you update'
       })
 
       return result
@@ -563,7 +563,7 @@ export async function applyBackendUpdate(): Promise<DesktopUpdateApplyResult> {
 
     if (!started.ok) {
       const message = (started as { message?: string }).message || translateNow('updates.applyStatus.notAvailable')
-      const command = (started as { update_command?: string }).update_command || 'hermes update'
+      const command = (started as { update_command?: string }).update_command || 'work4you update'
       $backendUpdateApply.set({ ...IDLE, applying: false, stage: 'manual', message, command })
 
       return { ok: false, error: 'manual', manual: true, message, command }

@@ -831,7 +831,7 @@ let nativeThemeListenerInstalled = false
 let bootProgressState = {
   error: null,
   fakeMode: BOOT_FAKE_MODE,
-  message: 'Waiting to start Hermes backend',
+  message: 'Waiting to start Work4You engine',
   phase: 'idle',
   progress: 0,
   running: false,
@@ -1278,7 +1278,7 @@ async function waitForUpdateToFinish() {
   while (marker && Date.now() < deadline) {
     await advanceBootProgress(
       'backend.update-wait',
-      'An update is finishing — Hermes will start automatically when it completes…',
+      'An update is finishing — Work4You will start automatically when it completes…',
       12
     )
     await new Promise(r => setTimeout(r, UPDATE_WAIT_POLL_MS))
@@ -1369,7 +1369,7 @@ function unwrapWindowsVenvHermesCommand(command, backendArgs) {
   }
 
   return {
-    label: `existing Hermes Python at ${python}`,
+    label: `existing Work4You Python at ${python}`,
     command: python,
     args: ['-m', 'hermes_cli.main', ...backendArgs],
     bootstrap: false,
@@ -2264,13 +2264,13 @@ async function applyUpdates(opts = {}) {
       // the GUI button's contract: append --branch <current> for non-main
       // checkouts, keep it bare for main so the card stays clean.
       const updateRoot = resolveUpdateRoot()
-      let command = 'hermes update'
+      let command = 'work4you update'
       try {
         const head = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: updateRoot })
         const current = (head.stdout || '').trim()
         if (head.code === 0 && current && current !== 'HEAD') {
           const branch = await resolveHealedBranch(updateRoot, current)
-          if (branch !== 'main') command = `hermes update --branch ${branch}`
+          if (branch !== 'main') command = `work4you update --branch ${branch}`
         }
       } catch {
         // Best-effort: fall back to bare `hermes update` if branch detection fails.
@@ -2481,8 +2481,8 @@ async function applyUpdatesPosixInApp() {
   const updateRoot = resolveUpdateRoot()
   const hermes = resolveHermesCliBinary(updateRoot)
   if (!hermes) {
-    emitUpdateProgress({ stage: 'manual', message: 'hermes update', percent: null })
-    return { ok: true, manual: true, command: 'hermes update', hermesRoot: updateRoot }
+    emitUpdateProgress({ stage: 'manual', message: 'work4you update', percent: null })
+    return { ok: true, manual: true, command: 'work4you update', hermesRoot: updateRoot }
   }
 
   // Put the Hermes-managed Node and the venv on PATH so `hermes desktop`'s
@@ -2537,8 +2537,8 @@ async function applyUpdatesPosixInApp() {
     stage: 'update'
   })
   if (updated.code !== 0) {
-    emitUpdateProgress({ stage: 'error', message: 'hermes update failed.', error: updated.error || 'update-failed' })
-    return { ok: false, error: 'hermes update failed' }
+    emitUpdateProgress({ stage: 'error', message: 'work4you update failed.', error: updated.error || 'update-failed' })
+    return { ok: false, error: 'work4you update failed' }
   }
 
   emitUpdateProgress({ stage: 'rebuild', message: 'Rebuilding the desktop app…', percent: 60 })
@@ -2641,7 +2641,7 @@ async function applyUpdatesPosixInApp() {
         stage: 'guiSkew',
         message:
           'Backend updated, but the desktop app package was not changed. ' +
-          'Update or reinstall the Hermes desktop app to match.',
+          'Update or reinstall the Work4You desktop app to match.',
         percent: 100
       })
       rememberLog(
@@ -2665,7 +2665,7 @@ async function applyUpdatesPosixInApp() {
       sandboxBlocked: true,
       message:
         'Backend updated. The rebuilt app can’t relaunch automatically ' +
-        '(sandbox helper needs root). Quit and reopen Hermes to finish.'
+        '(sandbox helper needs root). Quit and reopen Work4You to finish.'
     }
   }
 
@@ -2994,7 +2994,7 @@ function createActiveBackend(backendArgs) {
 
   return {
     kind: 'python',
-    label: `Hermes at ${ACTIVE_HERMES_ROOT}`,
+    label: `Work4You engine at ${ACTIVE_HERMES_ROOT}`,
     command,
     args: ['-m', 'hermes_cli.main', ...backendArgs],
     env: buildDesktopBackendEnv({
@@ -3035,7 +3035,7 @@ function resolveHermesBackend(backendArgs) {
     )
     return {
       kind: 'bootstrap-needed',
-      label: `Work4You motor (Wayne) not found. Install or clone wayne-agent under ${expectedRoot}, or set WAYNE_DESKTOP_ROOT.`,
+      label: `Work4You motor not found. Install or clone wayne-agent under ${expectedRoot}, or set WAYNE_DESKTOP_ROOT.`,
       command: null,
       args: backendArgs,
       bootstrap: true,
@@ -3053,7 +3053,7 @@ function resolveHermesBackend(backendArgs) {
   //    checkout. Honour it as-is (no bootstrap; the user is driving).
   const overrideRoot = process.env.HERMES_DESKTOP_HERMES_ROOT && path.resolve(process.env.HERMES_DESKTOP_HERMES_ROOT)
   if (overrideRoot && isHermesSourceRoot(overrideRoot)) {
-    const backend = createPythonBackend(overrideRoot, `Hermes source at ${overrideRoot}`, backendArgs)
+    const backend = createPythonBackend(overrideRoot, `Work4You engine source at ${overrideRoot}`, backendArgs)
     if (backend) return backend
   }
 
@@ -3062,7 +3062,7 @@ function resolveHermesBackend(backendArgs) {
   //    installed `hermes` on PATH so local Python edits are actually exercised.
   //    (In dev with no checkout, SOURCE_REPO_ROOT won't pass isHermesSourceRoot.)
   if (!IS_PACKAGED && isHermesSourceRoot(SOURCE_REPO_ROOT)) {
-    const backend = createPythonBackend(SOURCE_REPO_ROOT, `Hermes source at ${SOURCE_REPO_ROOT}`, backendArgs)
+    const backend = createPythonBackend(SOURCE_REPO_ROOT, `Work4You engine source at ${SOURCE_REPO_ROOT}`, backendArgs)
     if (backend) return backend
   }
 
@@ -3122,7 +3122,7 @@ function resolveHermesBackend(backendArgs) {
       if (verifyHermesCli(hermesCommand, { shell: shellForProbe })) {
         return (
           unwrapWindowsVenvHermesCommand(hermesCommand, backendArgs) || {
-            label: `existing Hermes CLI at ${hermesCommand}`,
+            label: `existing Work4You CLI at ${hermesCommand}`,
             command: hermesCommand,
             args: backendArgs,
             bootstrap: false,
@@ -3177,7 +3177,7 @@ function resolveHermesBackend(backendArgs) {
   //    is a recoverable state the GUI can drive through.
   return {
     kind: 'bootstrap-needed',
-    label: 'Hermes Agent not installed yet; bootstrap required',
+    label: 'Work4You engine not installed yet; bootstrap required',
     command: null,
     args: backendArgs,
     bootstrap: true,
@@ -3323,7 +3323,7 @@ async function ensureRuntime(backend) {
     bootstrapAbortController = null
 
     if (bootstrapResult.cancelled) {
-      const cancelledError = new Error('Hermes install was cancelled.')
+      const cancelledError = new Error('Work4You install was cancelled.')
       cancelledError.isBootstrapFailure = true
       cancelledError.bootstrapCancelled = true
       bootstrapFailure = cancelledError
@@ -3332,7 +3332,7 @@ async function ensureRuntime(backend) {
 
     if (!bootstrapResult.ok) {
       const bootstrapError = new Error(
-        `Hermes bootstrap failed${bootstrapResult.failedStage ? ` at stage '${bootstrapResult.failedStage}'` : ''}: ` +
+        `Work4You bootstrap failed${bootstrapResult.failedStage ? ` at stage '${bootstrapResult.failedStage}'` : ''}: ` +
           `${bootstrapResult.error || 'unknown error'}. ` +
           `Check ${path.join(HERMES_HOME, 'logs', 'desktop.log')} for the full transcript.`
       )
@@ -3359,7 +3359,7 @@ async function ensureRuntime(backend) {
   // attests they ran successfully).
   if (!isHermesSourceRoot(ACTIVE_HERMES_ROOT)) {
     throw new Error(
-      `Hermes install at ${ACTIVE_HERMES_ROOT} is missing or incomplete. ` +
+      `Work4You install at ${ACTIVE_HERMES_ROOT} is missing or incomplete. ` +
         'Reinstall via the desktop installer or scripts/install.ps1.'
     )
   }
@@ -3372,10 +3372,10 @@ async function ensureRuntime(backend) {
   // here via an external `hermes` on PATH, this check still helps.
   if (IS_WINDOWS && !findGitBash()) {
     throw new Error(
-      'Git for Windows is required for Hermes on Windows (provides Git Bash, ' +
+      'Git for Windows is required for Work4You on Windows (provides Git Bash, ' +
         "which the agent's terminal tool uses). Install it from " +
         'https://git-scm.com/download/win or run `winget install -e --id Git.Git`, ' +
-        'then relaunch Hermes.'
+        'then relaunch Work4You.'
     )
   }
 
@@ -3389,15 +3389,15 @@ async function ensureRuntime(backend) {
     // install.ps1 succeeds. If we hit this, the user (or a deleted venv)
     // broke the invariant; tell them to re-run the install.
     throw new Error(
-      `Hermes venv missing at ${VENV_ROOT}. Re-run the desktop installer or ` + '`scripts/install.ps1` to rebuild it.'
+      `Work4You venv missing at ${VENV_ROOT}. Re-run the desktop installer or ` + '`scripts/install.ps1` to rebuild it.'
     )
   }
 
   backend.command = getVenvPython(VENV_ROOT)
-  backend.label = `Hermes at ${ACTIVE_HERMES_ROOT} (venv: ${VENV_ROOT})`
+  backend.label = `Work4You engine at ${ACTIVE_HERMES_ROOT} (venv: ${VENV_ROOT})`
   updateBootProgress({
     phase: 'runtime.ready',
-    message: 'Hermes runtime is ready',
+    message: 'Work4You runtime is ready',
     progress: 82,
     running: true,
     error: null
@@ -3413,7 +3413,7 @@ function fetchJson(url, token, options = {}) {
     const timeoutMs = resolveTimeoutMs(options.timeoutMs, DEFAULT_FETCH_TIMEOUT_MS)
 
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      reject(new Error(`Unsupported Hermes backend URL protocol: ${parsed.protocol}`))
+      reject(new Error(`Unsupported Work4You engine URL protocol: ${parsed.protocol}`))
       return
     }
 
@@ -3455,7 +3455,7 @@ function fetchJson(url, token, options = {}) {
             reject(
               new Error(
                 `Expected JSON from ${url} but got HTML (status ${res.statusCode}). ` +
-                  'The endpoint is likely missing on the Hermes backend.'
+                  'The endpoint is likely missing on the Work4You engine.'
               )
             )
             return
@@ -3471,7 +3471,7 @@ function fetchJson(url, token, options = {}) {
 
     req.on('error', reject)
     req.setTimeout(timeoutMs, () => {
-      req.destroy(new Error(`Timed out connecting to Hermes backend after ${timeoutMs}ms`))
+      req.destroy(new Error(`Timed out connecting to Work4You engine after ${timeoutMs}ms`))
     })
     if (body) req.write(body)
     req.end()
@@ -3497,7 +3497,7 @@ function fetchPublicJson(url, options = {}) {
     const timeoutMs = resolveTimeoutMs(options.timeoutMs, DEFAULT_FETCH_TIMEOUT_MS)
 
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      reject(new Error(`Unsupported Hermes backend URL protocol: ${parsed.protocol}`))
+      reject(new Error(`Unsupported Work4You engine URL protocol: ${parsed.protocol}`))
       return
     }
 
@@ -3529,7 +3529,7 @@ function fetchPublicJson(url, options = {}) {
             reject(
               new Error(
                 `Expected JSON from ${url} but got HTML (status ${res.statusCode}). ` +
-                  'The endpoint is likely missing on the Hermes backend.'
+                  'The endpoint is likely missing on the Work4You engine.'
               )
             )
             return
@@ -3545,7 +3545,7 @@ function fetchPublicJson(url, options = {}) {
 
     req.on('error', reject)
     req.setTimeout(timeoutMs, () => {
-      req.destroy(new Error(`Timed out connecting to Hermes backend after ${timeoutMs}ms`))
+      req.destroy(new Error(`Timed out connecting to Work4You engine after ${timeoutMs}ms`))
     })
     if (body) req.write(body)
     req.end()
@@ -4059,7 +4059,7 @@ async function waitForHermes(baseUrl, token) {
     }
   }
 
-  throw new Error(`Hermes backend did not become ready: ${lastError?.message || 'timeout'}`)
+  throw new Error(`Work4You engine did not become ready: ${lastError?.message || 'timeout'}`)
 }
 
 function getWindowButtonPosition() {
@@ -4640,7 +4640,7 @@ function openOauthLoginWindow(baseUrl) {
       win = new BrowserWindow({
         width: 520,
         height: 720,
-        title: 'Sign in to Hermes gateway',
+        title: 'Sign in to Work4You gateway',
         autoHideMenuBar: true,
         webPreferences: {
           contextIsolation: true,
@@ -4695,7 +4695,7 @@ function fetchJsonViaOauthSession(url, options = {}) {
       return
     }
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      reject(new Error(`Unsupported Hermes backend URL protocol: ${parsed.protocol}`))
+      reject(new Error(`Unsupported Work4You engine URL protocol: ${parsed.protocol}`))
       return
     }
     const body = serializeJsonBody(options.body)
@@ -4718,7 +4718,7 @@ function fetchJsonViaOauthSession(url, options = {}) {
       } catch {
         // already finished
       }
-      reject(new Error(`Timed out connecting to Hermes backend after ${timeoutMs}ms`))
+      reject(new Error(`Timed out connecting to Work4You engine after ${timeoutMs}ms`))
     }, timeoutMs)
 
     request.on('response', res => {
@@ -5053,7 +5053,7 @@ async function buildRemoteConnection(rawUrl, authMode, token, source) {
     // the authoritative liveness check.
     if (!(await hasLiveOauthSession(baseUrl))) {
       const err = new Error(
-        'Remote Hermes gateway uses OAuth, but you are not signed in. ' +
+        'Remote Work4You gateway uses OAuth, but you are not signed in. ' +
           'Open Settings → Gateway and click "Sign in", or switch back to Local.'
       )
       err.needsOauthLogin = true
@@ -5085,7 +5085,7 @@ async function buildRemoteConnection(rawUrl, authMode, token, source) {
 
   if (!token) {
     throw new Error(
-      'Remote Hermes gateway is selected, but no session token is saved. ' +
+      'Remote Work4You gateway is selected, but no session token is saved. ' +
         'Open Settings → Gateway and save a token, or switch back to Local.'
     )
   }
@@ -5126,7 +5126,7 @@ async function resolveRemoteBackend(profile) {
     if (!rawEnvToken) {
       throw new Error(
         'HERMES_DESKTOP_REMOTE_URL is set but HERMES_DESKTOP_REMOTE_TOKEN is not. ' +
-          'Both must be provided to connect to a remote Hermes backend.'
+          'Both must be provided to connect to a remote Work4You engine.'
       )
     }
     return buildRemoteConnection(rawEnvUrl, 'token', rawEnvToken, 'env')
@@ -5543,7 +5543,7 @@ async function spawnPoolBackend(profile, entry) {
     backendPool.delete(profile)
     if (!ready) {
       rejectStart?.(
-        new Error(`Hermes backend for profile "${profile}" exited before it became ready (${signal || code}).`)
+        new Error(`Work4You engine for profile "${profile}" exited before it became ready (${signal || code}).`)
       )
     }
   })
@@ -5664,16 +5664,16 @@ async function startHermes() {
   if (connectionPromise) return connectionPromise
 
   connectionPromise = (async () => {
-    await advanceBootProgress('backend.resolve', 'Resolving Hermes backend', 8)
+    await advanceBootProgress('backend.resolve', 'Resolving Work4You engine', 8)
     // Resolve for the desktop's primary profile so a per-profile remote
     // override on the active profile is honored (falls back to env / global).
     const remote = await resolveRemoteBackend(primaryProfileKey())
     if (remote) {
-      await advanceBootProgress('backend.remote', `Connecting to remote Hermes backend at ${remote.baseUrl}`, 24)
+      await advanceBootProgress('backend.remote', `Connecting to remote Work4You engine at ${remote.baseUrl}`, 24)
       await waitForHermes(remote.baseUrl, remote.token)
       updateBootProgress({
         phase: 'backend.ready',
-        message: 'Remote Hermes backend is ready',
+        message: 'Remote Work4You engine is ready',
         progress: 94,
         running: true,
         error: null
@@ -5710,7 +5710,7 @@ async function startHermes() {
     if (activeProfile) {
       backendArgs.unshift('--profile', activeProfile)
     }
-    await advanceBootProgress('backend.runtime', 'Resolving Hermes runtime', 28)
+    await advanceBootProgress('backend.runtime', 'Resolving Work4You runtime', 28)
     let backend = await ensureRuntime(resolveHermesBackend(backendArgs))
     if (backend.w4yWayne) {
       backend = w4yWayne.ensureWayneMcpSdk(backend, rememberLog) || backend
@@ -5721,7 +5721,7 @@ async function startHermes() {
     const webDist = resolveWebDist()
     const readyFile = backend.readyFile ? makeDashboardReadyFile() : null
 
-    await advanceBootProgress('backend.spawn', `Starting Hermes backend via ${backend.label}`, 84)
+    await advanceBootProgress('backend.spawn', `Starting Work4You engine via ${backend.label}`, 84)
     rememberLog(`Starting Hermes backend via ${backend.label}`)
 
     const isWayneBackend =
@@ -5773,7 +5773,7 @@ async function startHermes() {
       updateBootProgress(
         {
           error: error.message,
-          message: `Hermes backend failed to start: ${error.message}`,
+          message: `Work4You engine failed to start: ${error.message}`,
           phase: 'backend.error',
           running: false
         },
@@ -5790,7 +5790,7 @@ async function startHermes() {
       connectionPromise = null
       sendBackendExit({ code, signal })
       if (!backendReady) {
-        const message = `Hermes backend exited before it became ready (${signal || code}).`
+        const message = `Work4You engine exited before it became ready (${signal || code}).`
         updateBootProgress(
           {
             error: message,
@@ -5802,13 +5802,13 @@ async function startHermes() {
         )
         rejectBackendStart?.(
           new Error(
-            `Hermes backend exited before it became ready (${signal || code}). Log: ${DESKTOP_LOG_PATH}\n${recentHermesLog()}`
+            `Work4You engine exited before it became ready (${signal || code}). Log: ${DESKTOP_LOG_PATH}\n${recentHermesLog()}`
           )
         )
       }
     })
 
-    await advanceBootProgress('backend.port', 'Waiting for Hermes backend to launch', 86)
+    await advanceBootProgress('backend.port', 'Waiting for Work4You engine to launch', 86)
     // Discover the ephemeral port the child bound to
     const port = await Promise.race([
       waitForDashboardPortAnnouncement(hermesProcess, { readyFile }),
@@ -5819,7 +5819,7 @@ async function startHermes() {
     }
 
     const baseUrl = `http://127.0.0.1:${port}`
-    await advanceBootProgress('backend.wait', 'Waiting for Hermes backend to become ready', 90)
+    await advanceBootProgress('backend.wait', 'Waiting for Work4You engine to become ready', 90)
     await Promise.race([waitForHermes(baseUrl, token), backendStartFailed])
     backendReady = true
     backendStartFailure = null
@@ -5830,7 +5830,7 @@ async function startHermes() {
     })
     updateBootProgress({
       phase: 'backend.ready',
-      message: 'Hermes backend is ready. Finalizing desktop startup',
+      message: 'Work4You engine is ready. Finalizing desktop startup',
       progress: 94,
       running: true,
       error: null
@@ -7326,7 +7326,7 @@ ipcMain.handle('hermes:git:scanRepos', async (_event, roots, options) => {
 
 ipcMain.handle('hermes:terminal:start', async (event, payload = {}) => {
   if (!nodePty) {
-    throw new Error('PTY support is unavailable. Reinstall desktop dependencies and restart Hermes.')
+    throw new Error('PTY support is unavailable. Reinstall desktop dependencies and restart Work4You.')
   }
 
   ensureSpawnHelperExecutable()
@@ -7611,7 +7611,7 @@ async function runDesktopUninstall(mode) {
     return {
       ok: false,
       error: 'agent-missing',
-      message: `Can't run the uninstaller: no Hermes agent venv at ${VENV_ROOT}.`
+      message: `Can't run the uninstaller: no Work4You agent venv at ${VENV_ROOT}.`
     }
   }
 

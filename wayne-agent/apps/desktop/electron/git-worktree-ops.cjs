@@ -183,7 +183,7 @@ async function ensureGitRepo(gitBin, dir) {
         '-c',
         'user.email=hermes@localhost',
         '-c',
-        'user.name=Hermes',
+        'user.name=Work4You',
         'commit',
         '--allow-empty',
         '-m',

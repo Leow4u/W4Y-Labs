@@ -173,7 +173,7 @@ function tryResolveWayneBackend(backendArgs, helpers = {}) {
 
     return {
       kind: "python",
-      label: `Wayne (Work4You) at ${root}`,
+      label: `Work4You engine at ${root}`,
       command,
       args: ["-m", "wayne_cli.main", ...backendArgs],
       env: {
@@ -429,7 +429,7 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
   if (!sourceRoot) {
     try { fs.rmSync(tmpExtract, { recursive: true, force: true }); } catch { void 0; }
     throw new Error(
-      `ZIP do motor não contém wayne_cli/main.py (extraído em '${tmpExtract}'). ` +
+      `ZIP do motor Work4You não contém wayne_cli/main.py (extraído em '${tmpExtract}'). ` +
       `Verifique a estrutura do ZIP publicado no GCS.`
     );
   }
@@ -448,7 +448,7 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
 
   if (!isWayneSourceRoot(engineRoot)) {
     throw new Error(
-      `Motor em '${engineRoot}' não parece válido (wayne_cli/main.py não encontrado). ` +
+      `Motor Work4You em '${engineRoot}' não parece válido (wayne_cli/main.py não encontrado). ` +
       `Verifique a estrutura do ZIP publicado no GCS.`
     );
   }
@@ -711,7 +711,7 @@ async function ensureWayneEngineForPackaged(destRoot, opts = {}) {
 
   if (!isWayneSourceRoot(destRoot)) {
     throw new Error(
-      `Motor extraído em '${destRoot}' não parece ser um checkout válido do wayne-agent ` +
+      `Motor Work4You extraído em '${destRoot}' não parece ser um checkout válido do wayne-agent ` +
       `(wayne_cli/main.py não encontrado). Verifique a estrutura do ZIP publicado em GCS.`
     );
   }

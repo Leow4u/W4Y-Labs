@@ -302,7 +302,7 @@ async function gatewayRequest<T>(method: string, params: Record<string, unknown>
   const gateway = primaryBrainGateway()
 
   if (!gateway || gateway.connectionState !== 'open') {
-    throw new Error('Hermes gateway is not connected')
+    throw new Error('Work4You gateway is not connected')
   }
 
   return gateway.request<T>(method, params)
