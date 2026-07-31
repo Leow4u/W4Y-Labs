@@ -31,9 +31,25 @@ class TestGetDefaultWayneRoot:
     """Tests for get_default_wayne_root() — Docker/custom deployment awareness."""
 
     def test_no_wayne_home_returns_native(self, tmp_path, monkeypatch):
-        """When WAYNE_HOME is not set, returns ~/.wayne."""
+        """Fresh install without WAYNE_HOME: the new-brand ~/.work4you."""
         monkeypatch.delenv("WAYNE_HOME", raising=False)
+        monkeypatch.delenv("WORK4YOU_HOME", raising=False)
+        monkeypatch.delenv("LOCALAPPDATA", raising=False)
+        monkeypatch.setattr(wayne_constants.sys, "platform", "linux")
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
+
+        assert get_default_wayne_root() == tmp_path / ".work4you"
+
+    def test_no_wayne_home_falls_back_to_unmigrated_legacy_root(
+        self, tmp_path, monkeypatch
+    ):
+        """An un-migrated ~/.wayne keeps winning until the data moves."""
+        monkeypatch.delenv("WAYNE_HOME", raising=False)
+        monkeypatch.delenv("WORK4YOU_HOME", raising=False)
+        monkeypatch.delenv("LOCALAPPDATA", raising=False)
+        monkeypatch.setattr(wayne_constants.sys, "platform", "linux")
+        monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        (tmp_path / ".wayne").mkdir()
 
         assert get_default_wayne_root() == tmp_path / ".wayne"
 
@@ -81,38 +97,45 @@ class TestGetDefaultWayneRoot:
         assert get_default_wayne_root() == docker_root
 
     def test_no_wayne_home_returns_localappdata_root_on_windows(self, tmp_path, monkeypatch):
-        """Native Windows falls back to %LOCALAPPDATA%\\wayne, not ~/.wayne."""
+        """Native Windows fresh install: %LOCALAPPDATA%\\work4you."""
         local_appdata = tmp_path / "LocalAppData"
         monkeypatch.delenv("WAYNE_HOME", raising=False)
+        monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "Home")
         monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
 
-        assert get_default_wayne_root() == local_appdata / "wayne"
+        assert get_default_wayne_root() == local_appdata / "work4you"
 
     def test_no_wayne_home_uses_windows_path_when_localappdata_missing(self, tmp_path, monkeypatch):
-        """Windows fallback still uses AppData/Local/wayne without LOCALAPPDATA."""
+        """Windows fresh install without LOCALAPPDATA: AppData/Local/work4you."""
         home = tmp_path / "Home"
         monkeypatch.delenv("WAYNE_HOME", raising=False)
+        monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.delenv("LOCALAPPDATA", raising=False)
         monkeypatch.setattr(Path, "home", lambda: home)
         monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
 
-        assert get_default_wayne_root() == home / "AppData" / "Local" / "wayne"
+        assert get_default_wayne_root() == home / "AppData" / "Local" / "work4you"
 
 
 class TestGetWayneHome:
     """Tests for get_wayne_home() platform-aware fallback."""
 
     def test_windows_fallback_uses_localappdata(self, tmp_path, monkeypatch):
-        """When WAYNE_HOME is unset on Windows, use %LOCALAPPDATA%\\wayne."""
+        """Unset home env on fresh Windows: %LOCALAPPDATA%\\work4you; an
+        un-migrated legacy wayne dir keeps winning until data moves."""
         local_appdata = tmp_path / "LocalAppData"
         monkeypatch.delenv("WAYNE_HOME", raising=False)
+        monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "Home")
         monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
         monkeypatch.setattr(wayne_constants, "_profile_fallback_warned", False)
 
+        assert get_wayne_home() == local_appdata / "work4you"
+
+        (local_appdata / "wayne").mkdir(parents=True)
         assert get_wayne_home() == local_appdata / "wayne"
 
 
