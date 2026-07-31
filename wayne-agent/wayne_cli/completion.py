@@ -97,9 +97,9 @@ def generate_bash(parser: argparse.ArgumentParser) -> str:
 
     cases_str = "\n".join(cases)
 
-    return f"""# Wayne Agent bash completion
+    return f"""# Work4You bash completion
 # Add to ~/.bashrc:
-#   eval "$(wayne completion bash)"
+#   eval "$(work4you completion bash)"
 
 _wayne_profiles() {{
     local profiles_dir="$HOME/.wayne/profiles"
@@ -135,7 +135,7 @@ _wayne_completion() {{
     fi
 }}
 
-complete -F _wayne_completion wayne
+complete -F _wayne_completion work4you wayne
 """
 
 
@@ -199,10 +199,10 @@ def generate_zsh(parser: argparse.ArgumentParser) -> str:
             )
     sub_cases_str = "\n".join(sub_cases)
 
-    return f"""#compdef wayne
-# Wayne Agent zsh completion
+    return f"""#compdef work4you wayne
+# Work4You zsh completion
 # Add to ~/.zshrc:
-#   eval "$(wayne completion zsh)"
+#   eval "$(work4you completion zsh)"
 
 _wayne_profiles() {{
     local -a profiles
@@ -240,7 +240,7 @@ _wayne() {{
     esac
 }}
 
-compdef _wayne wayne
+compdef _wayne work4you wayne
 """
 
 
@@ -254,9 +254,9 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
     top_cmds_str = " ".join(top_cmds)
 
     lines: list[str] = [
-        "# Wayne Agent fish completion",
+        "# Work4You fish completion",
         "# Add to your config:",
-        "#   wayne completion fish | source",
+        "#   work4you completion fish | source",
         "",
         "# Helper: list available profiles",
         "function __wayne_profiles",
@@ -269,10 +269,10 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         "end",
         "",
         "# Disable file completion by default",
-        "complete -c wayne -f",
+        "complete -c work4you -c wayne -f",
         "",
         "# Complete profile names after -p / --profile",
-        "complete -c wayne -f -s p -l profile"
+        "complete -c work4you -c wayne -f -s p -l profile"
         " -d 'Profile name' -xa '(__wayne_profiles)'",
         "",
         "# Top-level subcommands",
@@ -282,7 +282,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         info = tree["subcommands"][cmd]
         help_text = _clean(info.get("help", ""))
         lines.append(
-            f"complete -c wayne -f "
+            f"complete -c work4you -c wayne -f "
             f"-n 'not __fish_seen_subcommand_from {top_cmds_str}' "
             f"-a {cmd} -d '{help_text}'"
         )
@@ -301,7 +301,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
             sinfo = info["subcommands"][sc]
             sh = _clean(sinfo.get("help", ""))
             lines.append(
-                f"complete -c wayne -f "
+                f"complete -c work4you -c wayne -f "
                 f"-n '__fish_seen_subcommand_from {cmd}' "
                 f"-a {sc} -d '{sh}'"
             )
@@ -309,7 +309,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         if cmd == "profile":
             for action in sorted(profile_name_actions):
                 lines.append(
-                    f"complete -c wayne -f "
+                    f"complete -c work4you -c wayne -f "
                     f"-n '__fish_seen_subcommand_from {action}; "
                     f"and __fish_seen_subcommand_from profile' "
                     f"-a '(__wayne_profiles)' -d 'Profile name'"

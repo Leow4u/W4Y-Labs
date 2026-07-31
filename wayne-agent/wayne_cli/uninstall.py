@@ -306,7 +306,7 @@ def uninstall_gateway_service():
 #   3. Downloads PortableGit to ``%LOCALAPPDATA%\wayne\git\`` and Node to
 #      ``%LOCALAPPDATA%\wayne\node\`` as user-scoped, isolated copies.
 #      These are ~200MB combined and serve no purpose after uninstall.
-#   4. On the ``wayne dashboard`` + gateway paths, drops files into
+#   4. On the ``work4you dashboard`` + gateway paths, drops files into
 #      ``%LOCALAPPDATA%\wayne\gateway-service\`` and sometimes
 #      ``%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\`` — the
 #      latter is handled by ``gateway_windows.uninstall()`` already.
@@ -446,7 +446,7 @@ def _uninstall_profile(profile) -> None:
     """Fully uninstall a single named profile: stop its gateway service,
     remove its alias wrapper, and wipe its WAYNE_HOME directory.
 
-    We shell out to ``wayne -p <name> gateway stop|uninstall`` because
+    We shell out to ``work4you -p <name> gateway stop|uninstall`` because
     service names, unit paths, and plist paths are all derived from the
     current WAYNE_HOME and can't be easily switched in-process.
     """
@@ -495,7 +495,7 @@ def _uninstall_profile(profile) -> None:
 def run_gui_uninstall(args):
     """GUI-only uninstall: remove the Chat GUI, leave the agent + data intact.
 
-    Mirrors ``wayne uninstall --gui``. Removes the desktop app's built
+    Mirrors ``work4you uninstall --gui``. Removes the desktop app's built
     artifacts, the packaged app bundle (best-effort), and the Electron
     userData dir — nothing under ``$WAYNE_HOME`` config/sessions/.env, and
     never the Python agent or its venv.
@@ -512,16 +512,16 @@ def run_gui_uninstall(args):
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA, Colors.BOLD))
-    print(color("│         ⚕ Wayne Chat GUI Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
+    print(color("│         ⚕ Work4You Chat GUI Uninstaller               │", Colors.MAGENTA, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.MAGENTA, Colors.BOLD))
     print()
 
     if not summary["gui_installed"]:
-        print("No Wayne Chat GUI installation was found.")
+        print("No Work4You Chat GUI installation was found.")
         print(f"  Checked: {wayne_home}, and the standard app locations for this OS.")
         return
 
-    print(color("This removes the Chat GUI only. The Wayne agent stays installed.", Colors.CYAN))
+    print(color("This removes the Chat GUI only. The Work4You agent stays installed.", Colors.CYAN))
     print()
     print(color("Will remove:", Colors.YELLOW, Colors.BOLD))
     for p in summary["source_built_artifacts"]:
@@ -533,7 +533,7 @@ def run_gui_uninstall(args):
     print()
     if agent_is_installed(wayne_home):
         print(color("Kept intact:", Colors.GREEN, Colors.BOLD))
-        print(f"  • The Wayne agent at {wayne_home / 'wayne-agent'}")
+        print(f"  • The Work4You agent at {wayne_home / 'wayne-agent'}")
         print(f"  • Your config, sessions, and secrets under {wayne_home}")
         print()
 
@@ -559,8 +559,8 @@ def run_gui_uninstall(args):
     print(color("│            ✓ Chat GUI Uninstalled!                      │", Colors.GREEN, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.GREEN, Colors.BOLD))
     print()
-    print("The Wayne agent is still installed. Run 'wayne' to use the CLI,")
-    print("or 'wayne uninstall' to remove the agent too.")
+    print("The Work4You agent is still installed. Run 'work4you' to use the CLI,")
+    print("or 'work4you uninstall' to remove the agent too.")
     print()
 
 
@@ -601,7 +601,7 @@ def run_uninstall(args):
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA, Colors.BOLD))
-    print(color("│            ⚕ Wayne Agent Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
+    print(color("│            ⚕ Work4You Uninstaller                     │", Colors.MAGENTA, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.MAGENTA, Colors.BOLD))
     print()
     
@@ -671,7 +671,7 @@ def run_uninstall(args):
     # Final confirmation
     print()
     if full_uninstall:
-        print(color("⚠️  WARNING: This will permanently delete ALL Wayne data!", Colors.RED, Colors.BOLD))
+        print(color("⚠️  WARNING: This will permanently delete ALL Work4You data!", Colors.RED, Colors.BOLD))
         print(color("   Including: configs, API keys, sessions, scheduled jobs, logs", Colors.RED))
         if remove_profiles:
             print(color(
@@ -680,7 +680,7 @@ def run_uninstall(args):
                 Colors.RED
             ))
     else:
-        print("This will remove the Wayne code but keep your configuration and data.")
+        print("This will remove the Work4You code but keep your configuration and data.")
     
     print()
     try:
@@ -750,7 +750,7 @@ def _perform_uninstall(
             for entry in removed_path_entries:
                 log_success(f"Removed from User PATH: {entry}")
         else:
-            log_info("No Wayne-owned PATH entries in User environment")
+            log_info("No Work4You-owned PATH entries in User environment")
 
         log_info("Removing WAYNE_HOME / WAYNE_GIT_BASH_PATH User env vars...")
         removed_env = remove_wayne_env_vars_windows()
@@ -758,7 +758,7 @@ def _perform_uninstall(
             for name in removed_env:
                 log_success(f"Removed User env var: {name}")
         else:
-            log_info("No Wayne-set User env vars to remove")
+            log_info("No Work4You-set User env vars to remove")
     
     # 3. Remove wrapper script
     log_info("Removing wayne command...")
@@ -772,13 +772,13 @@ def _perform_uninstall(
     # 3b. Remove node/npm/npx symlinks the installer left in ~/.local/bin
     #     (only when they still point into this Wayne home's node dir, so we
     #     never clobber an existing nvm / user-managed Node).
-    log_info("Removing Wayne-managed node/npm/npx symlinks...")
+    log_info("Removing Work4You-managed node/npm/npx symlinks...")
     removed_node_links = remove_node_symlinks(wayne_home)
     if removed_node_links:
         for link in removed_node_links:
             log_success(f"Removed {link}")
     else:
-        log_info("No Wayne-managed node/npm/npx symlinks found")
+        log_info("No Work4You-managed node/npm/npx symlinks found")
 
     # 3c. Remove the desktop Chat GUI's artifacts too (built renderer/release,
     #     node_modules, the packaged app bundle, and the Electron userData
@@ -879,7 +879,7 @@ def _perform_uninstall(
         print(color("Reload your shell to complete the process:", Colors.YELLOW))
         print("  source ~/.bashrc  # or ~/.zshrc")
     print()
-    print("Thank you for using Wayne Agent! ⚕")
+    print("Thank you for using Work4You! ⚕")
     print()
 
 

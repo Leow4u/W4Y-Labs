@@ -134,7 +134,7 @@ def _warn_if_openclaw_running(auto_yes: bool) -> None:
     print_info(
         "Messaging platforms (Telegram, Discord, Slack) only allow one "
         "active session per bot token. If you continue, both OpenClaw and "
-        "Wayne may try to use the same token, causing disconnects."
+        "Work4You may try to use the same token, causing disconnects."
     )
     print_info("Recommendation: stop OpenClaw before migrating.")
     print()
@@ -169,7 +169,7 @@ def _warn_if_gateway_running(auto_yes: bool) -> None:
 
     print()
     print_error(
-        "Wayne gateway is running with active connections: "
+        "Work4You gateway is running with active connections: "
         + ", ".join(connected)
     )
     print_info(
@@ -177,7 +177,7 @@ def _warn_if_gateway_running(auto_yes: bool) -> None:
         "conflicts (Telegram, Discord, and Slack only allow one active "
         "session per token)."
     )
-    print_info("Recommendation: stop the gateway first with 'wayne gateway stop'.")
+    print_info("Recommendation: stop the gateway first with 'work4you gateway stop'.")
     print()
     if not auto_yes and not prompt_yes_no("Continue anyway?", default=False):
         print_info("Migration cancelled. Stop the gateway and try again.")
@@ -301,13 +301,13 @@ def claw_command(args):
     elif action in {"cleanup", "clean"}:
         _cmd_cleanup(args)
     else:
-        print("Usage: wayne claw <command> [options]")
+        print("Usage: work4you claw <command> [options]")
         print()
         print("Commands:")
-        print("  migrate          Migrate settings from OpenClaw to Wayne")
+        print("  migrate          Migrate settings from OpenClaw to Work4You")
         print("  cleanup          Archive leftover OpenClaw directories after migration")
         print()
-        print("Run 'wayne claw <command> --help' for options.")
+        print("Run 'work4you claw <command> --help' for options.")
 
 
 def _cmd_migrate(args):
@@ -348,7 +348,7 @@ def _cmd_migrate(args):
     )
     print(
         color(
-            "│          ⚕ Wayne — OpenClaw Migration                 │",
+            "│          ⚕ Work4You — OpenClaw Migration              │",
             Colors.MAGENTA,
         )
     )
@@ -364,7 +364,7 @@ def _cmd_migrate(args):
         print()
         print_error(f"OpenClaw directory not found: {source_dir}")
         print_info("Make sure your OpenClaw installation is at the expected path.")
-        print_info("You can specify a custom path: wayne claw migrate --source /path/to/.openclaw")
+        print_info("You can specify a custom path: work4you claw migrate --source /path/to/.openclaw")
         return
 
     # Find the migration script
@@ -492,7 +492,7 @@ def _cmd_migrate(args):
     if not auto_yes:
         if not sys.stdin.isatty():
             print_info("Non-interactive session — preview only.")
-            print_info("To execute, re-run with: wayne claw migrate --yes")
+            print_info("To execute, re-run with: work4you claw migrate --yes")
             return
         if not prompt_yes_no("Proceed with migration?", default=True):
             print_info("Migration cancelled.")
@@ -514,12 +514,12 @@ def _cmd_migrate(args):
                 size_str = _format_size(backup_archive.stat().st_size)
                 print()
                 print_success(f"Pre-migration backup: {backup_archive} ({size_str})")
-                print_info(f"Restore with: wayne import {backup_archive.name}")
+                print_info(f"Restore with: work4you import {backup_archive.name}")
         except Exception as e:
             print()
             print_error(f"Could not create pre-migration backup: {e}")
             print_info(
-                "Re-run with --no-backup to skip, or free up disk space under the Wayne home."
+                "Re-run with --no-backup to skip, or free up disk space under the Work4You home."
             )
             logger.debug("Pre-migration backup error", exc_info=True)
             return
@@ -544,7 +544,7 @@ def _cmd_migrate(args):
         logger.debug("OpenClaw migration error", exc_info=True)
         if backup_archive:
             print_info(f"A pre-migration backup is available at: {backup_archive}")
-            print_info(f"Restore with: wayne import {backup_archive.name}")
+            print_info(f"Restore with: work4you import {backup_archive.name}")
         return
 
     # Print results
@@ -574,7 +574,7 @@ def _cmd_cleanup(args):
     )
     print(
         color(
-            "│          ⚕ Wayne — OpenClaw Cleanup                   │",
+            "│          ⚕ Work4You — OpenClaw Cleanup                │",
             Colors.MAGENTA,
         )
     )
@@ -615,7 +615,7 @@ def _cmd_cleanup(args):
                 print_info("Non-interactive session — aborting. Stop OpenClaw and re-run.")
                 return
             if not prompt_yes_no("Proceed anyway?", default=False):
-                print_info("Aborted. Stop OpenClaw first, then re-run: wayne claw cleanup")
+                print_info("Aborted. Stop OpenClaw first, then re-run: work4you claw cleanup")
                 return
 
     total_archived = 0
@@ -669,7 +669,7 @@ def _cmd_cleanup(args):
             print_info(f"Would archive: {source_dir} → {archive_path}")
         elif not auto_yes and not sys.stdin.isatty():
             print_info(f"Non-interactive session — would archive: {source_dir}")
-            print_info("To execute, re-run with: wayne claw cleanup --yes")
+            print_info("To execute, re-run with: work4you claw cleanup --yes")
         elif auto_yes or prompt_yes_no(f"Archive {source_dir}?", default=True):
             try:
                 archive_path = _archive_directory(source_dir)
@@ -788,7 +788,7 @@ def _print_migration_report(report: dict, dry_run: bool):
     if dry_run:
         print()
         print_info("To execute the migration, run without --dry-run:")
-        print_info(f"  wayne claw migrate --preset {report.get('preset', 'full')}")
+        print_info(f"  work4you claw migrate --preset {report.get('preset', 'full')}")
     elif migrated:
         print()
         print_success("Migration complete!")
@@ -803,7 +803,7 @@ def _print_migration_report(report: dict, dry_run: bool):
             print(color("  Your OPENROUTER_API_KEY and other provider keys must be added manually.", Colors.YELLOW))
             print()
             print_info("To migrate API keys, re-run with:")
-            print_info("  wayne claw migrate --migrate-secrets")
+            print_info("  work4you claw migrate --migrate-secrets")
             print()
             print_info("Or add your key manually:")
-            print_info("  wayne config set OPENROUTER_API_KEY sk-or-v1-...")
+            print_info("  work4you config set OPENROUTER_API_KEY sk-or-v1-...")

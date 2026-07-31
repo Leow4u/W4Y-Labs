@@ -95,7 +95,7 @@ class TestGenerateBash:
     def test_contains_completion_function_and_register(self):
         out = generate_bash(_make_parser())
         assert "_wayne_completion()" in out
-        assert "complete -F _wayne_completion wayne" in out
+        assert "complete -F _wayne_completion work4you wayne" in out
 
     def test_top_level_commands_present(self):
         out = generate_bash(_make_parser())
@@ -127,7 +127,7 @@ class TestGenerateBash:
 class TestGenerateZsh:
     def test_contains_compdef_header(self):
         out = generate_zsh(_make_parser())
-        assert "#compdef wayne" in out
+        assert "#compdef work4you wayne" in out
 
     def test_top_level_commands_present(self):
         out = generate_zsh(_make_parser())
@@ -142,7 +142,7 @@ class TestGenerateZsh:
 
     def test_registers_compdef_instead_of_invoking_completion_function(self):
         out = generate_zsh(_make_parser())
-        assert 'compdef _wayne wayne' in out
+        assert 'compdef _wayne work4you wayne' in out
         assert '_wayne "$@"' not in out
 
     def test_preserves_valid_zsh_arguments_alias_syntax(self):
@@ -178,7 +178,7 @@ class TestGenerateZsh:
                 [
                     "zsh",
                     "-fc",
-                    f"autoload -Uz compinit && compinit -D; source {path}; [[ ${{_comps[wayne]}} == _wayne ]]",
+                    f"autoload -Uz compinit && compinit -D; source {path}; [[ ${{_comps[wayne]}} == _wayne && ${{_comps[work4you]}} == _wayne ]]",
                 ],
                 capture_output=True,
                 text=True,
@@ -196,7 +196,7 @@ class TestGenerateZsh:
 class TestGenerateFish:
     def test_disables_file_completion(self):
         out = generate_fish(_make_parser())
-        assert "complete -c wayne -f" in out
+        assert "complete -c work4you -c wayne -f" in out
 
     def test_top_level_commands_present(self):
         out = generate_fish(_make_parser())

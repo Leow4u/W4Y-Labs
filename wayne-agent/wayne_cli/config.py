@@ -132,7 +132,7 @@ def _warn_config_parse_failure(config_path: Path, exc: Exception) -> None:
         msg += f" A copy of the corrupted file was saved to {backup_path}."
     logger.warning(msg)
     try:
-        sys.stderr.write(f"⚠️  wayne config: {msg}\n")
+        sys.stderr.write(f"⚠️  work4you config: {msg}\n")
         sys.stderr.flush()
     except Exception:
         pass
@@ -209,7 +209,7 @@ def _reject_denylisted_env_var(key: str) -> None:
         raise ValueError(
             f"Environment variable {key!r} is on the writer denylist. "
             "Names that influence subprocess execution (LD_PRELOAD, "
-            "PYTHONPATH, PATH, EDITOR, ...) or Wayne runtime location "
+            "PYTHONPATH, PATH, EDITOR, ...) or Work4You runtime location "
             "(WAYNE_HOME, WAYNE_PROFILE, ...) cannot be persisted via "
             "the env writer. If you really need this, edit "
             "~/.wayne/.env directly."
@@ -504,21 +504,19 @@ def is_uv_tool_install() -> bool:
 
 
 def recommended_update_command_for_method(method: str) -> str:
-    """Return the update command or guidance for a given install method."""
+    """Return the update command or guidance for a given install method.
+
+    This fork is not distributed via Homebrew, PyPI, or Docker Hub —
+    recommending ``brew upgrade`` / ``pip install --upgrade wayne-agent`` /
+    ``docker pull`` would replace the engine with the upstream package.
+    Docker installs rebuild from the checkout; everything else routes
+    through the built-in updater.
+    """
     if method == "nixos":
         return _NIX_UPDATE_MSG
-    if method == "homebrew":
-        return "brew upgrade wayne-agent"
     if method == "docker":
-        return "docker pull nousresearch/wayne-agent:latest"
-    if method == "pip":
-        if is_uv_tool_install():
-            return "uv tool upgrade wayne-agent"
-        import shutil
-        if shutil.which("uv"):
-            return "uv pip install --upgrade wayne-agent"
-        return "pip install --upgrade wayne-agent"
-    return "wayne update"
+        return "docker compose build && docker compose up -d --force-recreate"
+    return "work4you update"
 
 
 def recommended_update_command() -> str:
@@ -530,50 +528,40 @@ def recommended_update_command() -> str:
     return recommended_update_command_for_method(method)
 
 
-# Long-form text for ``wayne update`` / ``--check`` when running inside the
-# Docker image.  Surfaced by ``cmd_update`` and ``_cmd_update_check`` in
+# Long-form text for ``work4you update`` / ``--check`` when running inside
+# the Docker image.  Surfaced by ``cmd_update`` and ``_cmd_update_check`` in
 # wayne_cli/main.py; lives here so the wording stays consistent and we
 # don't grow two slightly-different copies.
 #
 # Why this matters:
-#   - The published image excludes ``.git`` (see .dockerignore), so the
-#     git-based update path can never succeed inside the container.
-#   - The pre-existing fallback message ("✗ Not a git repository. Please
-#     reinstall: curl ... install.sh") is actively misleading inside Docker
-#     — that script installs a *new* host-side Wayne, it doesn't update
-#     the running container.
-#   - The right action is ``docker pull`` + restart the container; this
-#     helper spells that out, with notes on tag pinning and config
-#     persistence so users don't get blindsided.
+#   - The image excludes ``.git`` (see .dockerignore), so the git-based
+#     update path can never succeed inside the container.
+#   - The image is built locally from the engine checkout (see
+#     docker-compose.yml) — there is no registry to pull from. The right
+#     action is rebuild + restart; this helper spells that out, with a note
+#     on config persistence so users don't get blindsided.
 _DOCKER_UPDATE_MESSAGE = """\
-✗ ``wayne update`` doesn't apply inside the Docker container.
+✗ ``work4you update`` doesn't apply inside the Docker container.
 
-Wayne Agent runs as a published image (nousresearch/wayne-agent), not a
-git checkout — the container has no working tree to pull into.  Update by
-pulling a fresh image and restarting your container instead:
+Work4You runs as a container image, not a git checkout — the container has
+no working tree to pull into.  Update by rebuilding the image from your
+engine checkout and restarting the container:
 
-  docker pull nousresearch/wayne-agent:latest
-  # then restart whatever started the container, e.g.:
-  docker compose up -d --force-recreate wayne-agent
-  # or, for ad-hoc runs, exit the current container and `docker run` again
+  docker compose build
+  docker compose up -d --force-recreate
+  # or, for ad-hoc runs, exit the container, rebuild, and `docker run` again
 
 Verify the new version after restart:
-  docker run --rm nousresearch/wayne-agent:latest --version
+  docker compose run --rm gateway --version
 
 Notes:
-  • If you pinned a specific tag (e.g. ``:v0.14.0``) the ``:latest`` tag
-    won't move your container — pull the newer tag you actually want, or
-    switch to ``:latest`` / ``:main`` for rolling updates.  See available
-    tags at https://hub.docker.com/r/nousresearch/wayne-agent/tags
   • Your config and session history live under ``$WAYNE_HOME`` (``/opt/data``
     in the container, typically bind-mounted from the host) and persist
-    across image upgrades — re-pulling doesn't lose any state.
-  • Running a fork?  Build your own image with this repo's ``Dockerfile``
-    and replace the ``docker pull`` step with your build/push pipeline."""
+    across image upgrades — rebuilding doesn't lose any state."""
 
 
 def format_docker_update_message() -> str:
-    """Return the user-facing message for ``wayne update`` inside Docker.
+    """Return the user-facing message for ``work4you update`` inside Docker.
 
     Centralised so ``cmd_update`` (the apply path) and ``_cmd_update_check``
     (the dry-run path) share the same wording.  See ``_DOCKER_UPDATE_MESSAGE``
@@ -582,7 +570,7 @@ def format_docker_update_message() -> str:
     return _DOCKER_UPDATE_MESSAGE
 
 
-def format_managed_message(action: str = "modify this Wayne installation") -> str:
+def format_managed_message(action: str = "modify this Work4You installation") -> str:
     """Build a user-facing error for managed installs."""
     managed_system = get_managed_system() or "a package manager"
     raw = os.getenv("WAYNE_MANAGED", "").strip().lower()
@@ -590,7 +578,7 @@ def format_managed_message(action: str = "modify this Wayne installation") -> st
     if managed_system == "NixOS":
         env_hint = "true" if raw in _MANAGED_TRUE_VALUES else raw or "true"
         return (
-            f"Cannot {action}: this Wayne installation is managed by NixOS "
+            f"Cannot {action}: this Work4You installation is managed by NixOS "
             f"(WAYNE_MANAGED={env_hint}).\n"
             "Edit services.wayne-agent.settings in your configuration.nix and run:\n"
             "  sudo nixos-rebuild switch"
@@ -599,15 +587,14 @@ def format_managed_message(action: str = "modify this Wayne installation") -> st
     if managed_system == "Homebrew":
         env_hint = raw or "homebrew"
         return (
-            f"Cannot {action}: this Wayne installation is managed by Homebrew "
+            f"Cannot {action}: this Work4You installation is managed by Homebrew "
             f"(WAYNE_MANAGED={env_hint}).\n"
-            "Use:\n"
-            "  brew upgrade wayne-agent"
+            "Use your Homebrew formula to upgrade or reinstall."
         )
 
     return (
-        f"Cannot {action}: this Wayne installation is managed by {managed_system}.\n"
-        "Use your package manager to upgrade or reinstall Wayne."
+        f"Cannot {action}: this Work4You installation is managed by {managed_system}.\n"
+        "Use your package manager to upgrade or reinstall Work4You."
     )
 
 def managed_error(action: str = "modify configuration"):
@@ -3244,7 +3231,7 @@ OPTIONAL_ENV_VARS = {
     "VERTEX_CREDENTIALS_PATH": {
         "description": "Path to a Google Cloud service account JSON for Vertex AI (Gemini). "
                        "Vertex uses OAuth2, not a static API key — this points at the "
-                       "credentials Wayne mints short-lived tokens from. Falls back to "
+                       "credentials Work4You mints short-lived tokens from. Falls back to "
                        "GOOGLE_APPLICATION_CREDENTIALS, then to ADC (gcloud auth "
                        "application-default login). Set project/region under vertex: in config.yaml.",
         "prompt": "Vertex service account JSON path (leave empty to use ADC / GOOGLE_APPLICATION_CREDENTIALS)",
@@ -3576,7 +3563,7 @@ OPTIONAL_ENV_VARS = {
         "category": "provider",
     },
     "AZURE_FOUNDRY_BASE_URL": {
-        "description": "Azure Foundry base URL (set via 'wayne model' for endpoint-specific config)",
+        "description": "Azure Foundry base URL (set via 'work4you model' for endpoint-specific config)",
         "prompt": "Azure Foundry base URL",
         "url": None,
         "password": False,
@@ -3642,7 +3629,7 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "TOOL_GATEWAY_USER_TOKEN": {
-        "description": "Explicit Nous Subscriber access token for tool-gateway requests (optional; otherwise read from the Wayne auth store)",
+        "description": "Explicit Nous Subscriber access token for tool-gateway requests (optional; otherwise read from the Work4You auth store)",
         "prompt": "Tool-gateway user token",
         "url": None,
         "password": True,
@@ -3994,7 +3981,7 @@ OPTIONAL_ENV_VARS = {
         "category": "messaging",
     },
     "SLACK_ALLOWED_USERS": {
-        "description": "Comma-separated Slack member IDs allowed to use Wayne, e.g. U01ABC2DEF3. Without this, Slack may connect but deny messages by default.",
+        "description": "Comma-separated Slack member IDs allowed to use Work4You, e.g. U01ABC2DEF3. Without this, Slack may connect but deny messages by default.",
         "prompt": "Allowed Slack member IDs",
         "help": "In Slack, open your profile, choose More or the three-dot menu, then Copy member ID. Add multiple IDs comma-separated.",
         "url": "https://api.slack.com/apps",
@@ -4266,15 +4253,15 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "GATEWAY_PROXY_URL": {
-        "description": "URL of a remote Wayne API server to forward messages to (proxy mode). When set, the gateway handles platform I/O only — all agent work is delegated to the remote server. Use for Docker E2EE containers that relay to a host agent. Also configurable via gateway.proxy_url in config.yaml.",
-        "prompt": "Remote Wayne API server URL (e.g. http://192.168.1.100:8642)",
+        "description": "URL of a remote Work4You API server to forward messages to (proxy mode). When set, the gateway handles platform I/O only — all agent work is delegated to the remote server. Use for Docker E2EE containers that relay to a host agent. Also configurable via gateway.proxy_url in config.yaml.",
+        "prompt": "Remote Work4You API server URL (e.g. http://192.168.1.100:8642)",
         "url": None,
         "password": False,
         "category": "messaging",
         "advanced": True,
     },
     "GATEWAY_PROXY_KEY": {
-        "description": "Bearer token for authenticating with the remote Wayne API server (proxy mode). Must match the API_SERVER_KEY on the remote host.",
+        "description": "Bearer token for authenticating with the remote Work4You API server (proxy mode). Must match the API_SERVER_KEY on the remote host.",
         "prompt": "Remote API server auth key",
         "url": None,
         "password": True,
@@ -5072,7 +5059,7 @@ def validate_config_structure(config: Optional[Dict[str, Any]] = None) -> List["
         try:
             config = load_config()
         except Exception:
-            return [ConfigIssue("error", "Could not load config.yaml", "Run 'wayne setup' to create a valid config")]
+            return [ConfigIssue("error", "Could not load config.yaml", "Run 'work4you setup' to create a valid config")]
 
     issues: List[ConfigIssue] = []
 
@@ -5182,7 +5169,7 @@ def validate_config_structure(config: Optional[Dict[str, Any]] = None) -> List["
     if cp and not model_cfg:
         issues.append(ConfigIssue(
             "warning",
-            "custom_providers defined but no 'model' section — Wayne won't know which provider to use",
+            "custom_providers defined but no 'model' section — Work4You won't know which provider to use",
             "Add a model section:\n"
             "  model:\n"
             "    provider: custom\n"
@@ -5222,7 +5209,7 @@ def print_config_warnings(config: Optional[Dict[str, Any]] = None) -> None:
     for ci in issues:
         marker = "\033[31m✗\033[0m" if ci.severity == "error" else "\033[33m⚠\033[0m"
         lines.append(f"  {marker} {ci.message}")
-    lines.append("  \033[2mRun 'wayne doctor' for fix suggestions.\033[0m")
+    lines.append("  \033[2mRun 'work4you doctor' for fix suggestions.\033[0m")
     sys.stderr.write("\n".join(lines) + "\n\n")
 
 
@@ -5635,7 +5622,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 else:
                     print(
                         "  ✓ Plugins now opt-in: no existing plugins to grandfather. "
-                        "Use `wayne plugins enable <name>` to activate."
+                        "Use `work4you plugins enable <name>` to activate."
                     )
 
     # ── Version 22 → 23: seed curator defaults + create logs/curator/ ──
@@ -5710,7 +5697,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 if not quiet:
                     print(
                         "  ✓ Curator settings now available "
-                        f"({', '.join(added_curator)}) — edit via `wayne config set`"
+                        f"({', '.join(added_curator)}) — edit via `work4you config set`"
                     )
             if added_aux:
                 results["config_added"].append(
@@ -5719,7 +5706,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 if not quiet:
                     print(
                         "  ✓ auxiliary.curator settings now available "
-                        f"({', '.join(added_aux)}) — edit via `wayne config set`"
+                        f"({', '.join(added_aux)}) — edit via `work4you config set`"
                     )
 
     # ── Version 24 → 25: lower model_catalog TTL 24h → 1h ──
@@ -6094,7 +6081,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                         print(f"  ✓ Saved {name}")
                     print()
             else:
-                print("  Set later with: wayne config set <key> <value>")
+                print("  Set later with: work4you config set <key> <value>")
     
     # Check for missing config fields.
     #
@@ -6153,7 +6140,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 print()
             _persist_migration(config)
         else:
-            print("  Set later with: wayne config set <key> <value>")
+            print("  Set later with: work4you config set <key> <value>")
 
     return results
 
@@ -7633,7 +7620,7 @@ def show_config():
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.CYAN))
-    print(color("│              ⚕ Wayne Configuration                    │", Colors.CYAN))
+    print(color("│              ⚕ Work4You Configuration                 │", Colors.CYAN))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.CYAN))
 
     # Managed scope: surface that some settings are administrator-pinned so the
@@ -7706,7 +7693,7 @@ def show_config():
         if _env_ghost is not None and str(_env_ghost).strip() != str(_cfg_max_turns).strip():
             print(color(
                 f"                ⚠ .env has stale WAYNE_MAX_ITERATIONS={_env_ghost} "
-                f"(run 'wayne doctor --fix' to remove)",
+                f"(run 'work4you doctor --fix' to remove)",
                 Colors.YELLOW,
             ))
     except Exception:
@@ -7828,9 +7815,9 @@ def show_config():
 
     print()
     print(color("─" * 60, Colors.DIM))
-    print(color("  wayne config edit     # Edit config file", Colors.DIM))
-    print(color("  wayne config set <key> <value>", Colors.DIM))
-    print(color("  wayne setup           # Run setup wizard", Colors.DIM))
+    print(color("  work4you config edit     # Edit config file", Colors.DIM))
+    print(color("  work4you config set <key> <value>", Colors.DIM))
+    print(color("  work4you setup           # Run setup wizard", Colors.DIM))
     print()
 
 
@@ -7992,12 +7979,12 @@ def config_command(args):
         key = getattr(args, 'key', None)
         value = getattr(args, 'value', None)
         if not key or value is None:
-            print("Usage: wayne config set <key> <value>")
+            print("Usage: work4you config set <key> <value>")
             print()
             print("Examples:")
-            print("  wayne config set model anthropic/claude-sonnet-4")
-            print("  wayne config set terminal.backend docker")
-            print("  wayne config set OPENROUTER_API_KEY sk-or-...")
+            print("  work4you config set model anthropic/claude-sonnet-4")
+            print("  work4you config set terminal.backend docker")
+            print("  work4you config set OPENROUTER_API_KEY sk-or-...")
             sys.exit(1)
         set_config_value(key, value)
     
@@ -8097,7 +8084,7 @@ def config_command(args):
         if missing_config:
             print()
             print(color(f"  {len(missing_config)} new config option(s) available", Colors.YELLOW))
-            print("    Run 'wayne config migrate' to add them")
+            print("    Run 'work4you config migrate' to add them")
         
         print()
     
@@ -8105,13 +8092,13 @@ def config_command(args):
         print(f"Unknown config command: {subcmd}")
         print()
         print("Available commands:")
-        print("  wayne config           Show current configuration")
-        print("  wayne config edit      Open config in editor")
-        print("  wayne config set <key> <value>   Set a config value")
-        print("  wayne config check     Check for missing/outdated config")
-        print("  wayne config migrate   Update config with new options")
-        print("  wayne config path      Show config file path")
-        print("  wayne config env-path  Show .env file path")
+        print("  work4you config           Show current configuration")
+        print("  work4you config edit      Open config in editor")
+        print("  work4you config set <key> <value>   Set a config value")
+        print("  work4you config check     Check for missing/outdated config")
+        print("  work4you config migrate   Update config with new options")
+        print("  work4you config path      Show config file path")
+        print("  work4you config env-path  Show .env file path")
         sys.exit(1)
 
 

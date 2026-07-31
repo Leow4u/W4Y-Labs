@@ -852,7 +852,7 @@ class TestPasteCallbackSkipToken:
         _paste_callback_reader(result)
         err = capsys.readouterr().err
         assert "OAuth skipped" in err
-        assert "wayne mcp login" in err
+        assert "work4you mcp login" in err
 
     def test_skip_does_not_overwrite_http_winner(self, monkeypatch):
         """If HTTP listener already wrote a code, `skip` must not stomp it."""

@@ -83,40 +83,19 @@ class TestIsUvToolInstall:
 
 
 class TestRecommendedUpdateCommandForUvTool:
-    def test_uv_tool_install_recommends_uv_tool_upgrade(self):
+    def test_pip_layouts_route_through_builtin_updater(self):
+        """The fork is not on PyPI: recommending ``pip install --upgrade
+        wayne-agent`` / ``uv tool upgrade wayne-agent`` would replace the
+        engine with the upstream package, so every pip-ish layout routes
+        through the built-in updater regardless of uv availability."""
         from wayne_cli import config
 
-        with patch("shutil.which", return_value="/usr/local/bin/uv"), \
-             patch.object(config, "is_uv_tool_install", return_value=True):
-            cmd = config.recommended_update_command_for_method("pip")
-            assert cmd == "uv tool upgrade wayne-agent"
-
-    def test_uv_tool_install_recommends_uv_tool_upgrade_even_without_uv_on_path(self):
-        """Recommendation reflects the *install method*, not whether ``uv`` is
-        currently on PATH — the user needs to know the right command to run."""
-        from wayne_cli import config
-
-        with patch("shutil.which", return_value=None), \
-             patch.object(config, "is_uv_tool_install", return_value=True):
-            cmd = config.recommended_update_command_for_method("pip")
-            assert cmd == "uv tool upgrade wayne-agent"
-
-    def test_uv_pip_install_keeps_legacy_recommendation(self):
-        """Existing behavior: uv is on PATH but Wayne is a regular pip install."""
-        from wayne_cli import config
-
-        with patch("shutil.which", return_value="/usr/local/bin/uv"), \
-             patch.object(config, "is_uv_tool_install", return_value=False):
-            cmd = config.recommended_update_command_for_method("pip")
-            assert cmd == "uv pip install --upgrade wayne-agent"
-
-    def test_no_uv_falls_back_to_plain_pip(self):
-        from wayne_cli import config
-
-        with patch("shutil.which", return_value=None), \
-             patch.object(config, "is_uv_tool_install", return_value=False):
-            cmd = config.recommended_update_command_for_method("pip")
-            assert cmd == "pip install --upgrade wayne-agent"
+        for uv_on_path in ("/usr/local/bin/uv", None):
+            for uv_tool in (True, False):
+                with patch("shutil.which", return_value=uv_on_path), \
+                     patch.object(config, "is_uv_tool_install", return_value=uv_tool):
+                    cmd = config.recommended_update_command_for_method("pip")
+                    assert cmd == "work4you update"
 
     def test_recommendation_does_not_spawn_subprocess(self):
         """Computing the recommendation string must be cheap — no ``uv tool list``
@@ -131,7 +110,7 @@ class TestRecommendedUpdateCommandForUvTool:
              patch("subprocess.run") as mock_run:
             cmd = config.recommended_update_command_for_method("pip")
             mock_run.assert_not_called()
-            assert cmd == "uv pip install --upgrade wayne-agent"
+            assert cmd == "work4you update"
 
 
 # ---------------------------------------------------------------------------

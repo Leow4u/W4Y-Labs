@@ -938,7 +938,7 @@ def test_rename_summary_consolidation_shows_target(curator_env):
     assert "archived 2 skill(s):" in result
     assert "pdf-extraction → document-tools" in result
     assert "docx-extraction → document-tools" in result
-    assert "full report: wayne curator status" in result
+    assert "full report: work4you curator status" in result
 
 
 def test_rename_summary_pruned_marked_explicitly(curator_env):
@@ -1055,7 +1055,7 @@ def test_rename_summary_pin_hint_appears_when_consolidation_produced_umbrella(cu
         ],
         model_final="",
     )
-    assert "wayne curator pin document-tools" in result
+    assert "work4you curator pin document-tools" in result
     assert "keep an umbrella stable" in result
 
 
@@ -1086,7 +1086,7 @@ def test_rename_summary_pin_hint_skipped_for_pruned_only_runs(curator_env):
     )
     # Block still renders (skills were archived) but no pin hint.
     assert "archived 2 skill(s):" in result
-    assert "wayne curator pin" not in result
+    assert "work4you curator pin" not in result
     assert "keep an umbrella stable" not in result
 
 
@@ -1119,7 +1119,7 @@ def test_rename_summary_pin_hint_picks_one_umbrella_when_multiple_absorbed(curat
         model_final="",
     )
     # Sorted picks alphabetically first.
-    assert "wayne curator pin umbrella-alpha" in result
+    assert "work4you curator pin umbrella-alpha" in result
     # Exactly one hint line, not one per umbrella.
-    pin_lines = [ln for ln in result.splitlines() if "wayne curator pin" in ln]
+    pin_lines = [ln for ln in result.splitlines() if "work4you curator pin" in ln]
     assert len(pin_lines) == 1

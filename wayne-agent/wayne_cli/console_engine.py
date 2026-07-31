@@ -93,8 +93,8 @@ def _strip_console_status_footer(text: str) -> str:
     last = _strip_ansi(lines[-1]).strip()
     prev = _strip_ansi(lines[-2]).strip()
     if not (
-        prev.startswith("Run 'wayne doctor'")
-        and last.startswith("Run 'wayne setup'")
+        prev.startswith("Run 'work4you doctor'")
+        and last.startswith("Run 'work4you setup'")
     ):
         return text.rstrip()
 

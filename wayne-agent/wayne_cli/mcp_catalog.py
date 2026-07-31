@@ -162,7 +162,7 @@ def _parse_manifest(path: Path) -> CatalogEntry:
     if mv != _MANIFEST_VERSION:
         raise CatalogError(
             f"{path}: manifest_version {mv!r} unsupported "
-            f"(this Wayne understands version {_MANIFEST_VERSION})"
+            f"(this Work4You understands version {_MANIFEST_VERSION})"
         )
 
     name = data.get("name") or ""
@@ -568,7 +568,7 @@ def _apply_tool_selection(
             print(color(
                 f"  Couldn\'t probe server. Applied manifest default "
                 f"({len(manifest_default)} tools). "
-                f"Run `wayne mcp configure {entry.name}` after the server "
+                f"Run `work4you mcp configure {entry.name}` after the server "
                 "is reachable to refine.",
                 Colors.YELLOW,
             ))
@@ -577,7 +577,7 @@ def _apply_tool_selection(
             print(color(
                 f"  Couldn\'t probe server; installed with no tool filter "
                 "(all tools enabled when reachable). "
-                f"Run `wayne mcp configure {entry.name}` after first "
+                f"Run `work4you mcp configure {entry.name}` after first "
                 "connect to prune.",
                 Colors.YELLOW,
             ))
@@ -638,7 +638,7 @@ def _apply_tool_selection(
         # so the server is installed but contributes nothing until reconfigured.
         _write_tools_include(entry.name, [])
         print(color(
-            f"  No tools selected. Run `wayne mcp configure {entry.name}` "
+            f"  No tools selected. Run `work4you mcp configure {entry.name}` "
             "to change.",
             Colors.YELLOW,
         ))
@@ -708,7 +708,7 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
             # decoupled from provider-auth lifecycle.
             print(color(
                 f"  This MCP uses {entry.auth.provider} OAuth. Run "
-                f"`wayne auth {entry.auth.provider}` if you have not "
+                f"`work4you auth {entry.auth.provider}` if you have not "
                 "already authenticated.",
                 Colors.YELLOW,
             ))
@@ -744,7 +744,7 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     print(color(
         f"  ✓ Installed '{entry.name}' "
         f"({'enabled' if enable else 'disabled'}). "
-        f"Start a new Wayne session to load its tools.",
+        f"Start a new Work4You session to load its tools.",
         Colors.GREEN,
     ))
     if entry.post_install:

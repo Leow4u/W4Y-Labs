@@ -536,7 +536,7 @@ class MCPOAuthManager:
             raise OAuthNonInteractiveError(
                 "MCP OAuth for "
                 f"'{server_name}': non-interactive environment and no "
-                "cached tokens found. Run `wayne mcp login "
+                "cached tokens found. Run `work4you mcp login "
                 f"{server_name}` interactively first to complete initial "
                 "authorization."
             )

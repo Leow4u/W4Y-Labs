@@ -249,7 +249,7 @@ class TestRendering:
         assert fake_advisory.id in joined
         assert fake_advisory.title in joined
         assert "fake-malicious-pkg==6.6.6" in joined
-        assert "wayne doctor" in joined
+        assert "work4you doctor" in joined
 
     def test_full_remediation_text_contains_all_steps(self, fake_advisory):
         hit = adv.AdvisoryHit(

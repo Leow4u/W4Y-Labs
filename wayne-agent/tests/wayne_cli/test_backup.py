@@ -2055,7 +2055,7 @@ class TestRunPreUpdateBackup:
         assert "Creating pre-update backup" in out
         assert "Saved:" in out
         assert "Restore:" in out
-        assert "wayne import" in out
+        assert "work4you import" in out
         assert "Disable:" in out
         # Actual backup was created
         backups = list((wayne_home / "backups").glob("pre-update-*.zip"))

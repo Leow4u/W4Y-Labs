@@ -56,7 +56,7 @@ class TestFastFails:
         assert exc.value.code == 1
         out = capsys.readouterr().out
         assert "not logged into Nous Portal" in out
-        assert "wayne setup" in out
+        assert "work4you setup" in out
 
     def test_managed_install_refuses(self, capsys):
         with patch("wayne_cli.config.is_managed", return_value=True):
