@@ -5,11 +5,11 @@
 # Installation script for Linux, macOS, and Android/Termux.
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
 #
-# Usage:
-#   curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+# Usage (from a checkout of the Work4You engine repo):
+#   bash scripts/install.sh
 #
 # Or with options:
-#   curl -fsSL ... | bash -s -- --no-venv --skip-setup
+#   bash scripts/install.sh --no-venv --skip-setup
 #
 # ============================================================================
 
@@ -43,8 +43,10 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:NousResearch/hermes-agent.git"
-REPO_URL_HTTPS="https://github.com/NousResearch/hermes-agent.git"
+# Source resolution (Work4You distribution model): the engine git remote comes
+# from the environment (WAYNE_SOURCE_REPO_URL) — mirrors install.ps1. Nothing
+# is ever fetched from a hardcoded upstream repo.
+SOURCE_REPO_URL="${WAYNE_SOURCE_REPO_URL:-}"
 WAYNE_HOME="${WAYNE_HOME:-$HOME/.wayne}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
@@ -527,7 +529,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  iex (irm https://hermes-agent.nousresearch.com/install.ps1)"
+            log_info "  powershell -ExecutionPolicy ByPass -NoProfile -File scripts\\install.ps1"
             exit 1
             ;;
         *)
@@ -1268,22 +1270,22 @@ clone_repo() {
             exit 1
         fi
     else
-        # Try SSH first (for private repo access), fall back to HTTPS
+        if [ -z "$SOURCE_REPO_URL" ]; then
+            # User-facing error in PT (product language); code stays in English.
+            log_error "Fonte de instalação não configurada."
+            log_info "Defina a variável de ambiente WAYNE_SOURCE_REPO_URL (URL git do motor Work4You)"
+            log_info "e execute o instalador novamente."
+            exit 1
+        fi
         # GIT_SSH_COMMAND disables interactive prompts and sets a short timeout
-        # so SSH fails fast instead of hanging when no key is configured.
-        log_info "Trying SSH clone..."
+        # so SSH URLs fail fast instead of hanging when no key is configured.
+        log_info "Cloning engine source..."
         if GIT_SSH_COMMAND="ssh -o BatchMode=yes -o ConnectTimeout=5" \
-           git clone --depth 1 --branch "$BRANCH" "$REPO_URL_SSH" "$INSTALL_DIR" 2>/dev/null; then
-            log_success "Cloned via SSH"
+           git clone --depth 1 --branch "$BRANCH" "$SOURCE_REPO_URL" "$INSTALL_DIR"; then
+            log_success "Cloned engine source"
         else
-            rm -rf "$INSTALL_DIR" 2>/dev/null  # Clean up partial SSH clone
-            log_info "SSH failed, trying HTTPS..."
-            if git clone --depth 1 --branch "$BRANCH" "$REPO_URL_HTTPS" "$INSTALL_DIR"; then
-                log_success "Cloned via HTTPS"
-            else
-                log_error "Failed to clone repository"
-                exit 1
-            fi
+            log_error "Failed to clone repository"
+            exit 1
         fi
     fi
 

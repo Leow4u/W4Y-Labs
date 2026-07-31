@@ -3322,7 +3322,7 @@ class TestNewEndpoints:
         first = blueprints[0]
         assert "fields" in first
         assert first["command"].startswith("/blueprint")
-        assert first["appUrl"].startswith("wayne://")
+        assert first["appUrl"].startswith("work4you://")
 
     def test_blueprint_instantiate_creates_job(self):
         resp = self.client.post(
