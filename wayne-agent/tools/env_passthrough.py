@@ -110,7 +110,7 @@ def register_env_passthrough(var_names: Iterable[str]) -> None:
             continue
         if _is_wayne_provider_credential(name):
             logger.warning(
-                "env passthrough: refusing to register Wayne provider "
+                "env passthrough: refusing to register Work4You provider "
                 "credential %r (blocked by _WAYNE_PROVIDER_ENV_BLOCKLIST). "
                 "Skills must not override the execute_code sandbox's "
                 "credential scrubbing; see GHSA-rhgp-j443-p4rf.",

@@ -277,7 +277,7 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
     except Exception as e:
         return json.dumps({
             "error": f"computer_use backend unavailable: {e}",
-            "hint": "If the cua-driver binary is missing, run `wayne computer-use install`. "
+            "hint": "If the cua-driver binary is missing, run `work4you computer-use install`. "
                     "If a Python dependency is missing, the error above shows the exact install command.",
         })
 

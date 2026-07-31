@@ -28,8 +28,8 @@ def hooks_command(args) -> None:
     sub = getattr(args, "hooks_action", None)
 
     if not sub:
-        print("Usage: wayne hooks {list|test|revoke|doctor}")
-        print("Run 'wayne hooks --help' for details.")
+        print("Usage: work4you hooks {list|test|revoke|doctor}")
+        print("Run 'work4you hooks --help' for details.")
         return
 
     if sub in {"list", "ls"}:
@@ -56,7 +56,7 @@ def _cmd_list(_args) -> None:
 
     if not specs:
         print("No shell hooks configured in ~/.wayne/config.yaml.")
-        print("See `wayne hooks --help` or")
+        print("See `work4you hooks --help` or")
         print("    website/docs/user-guide/features/hooks.md")
         print("for the config schema and worked examples.")
         return
@@ -95,7 +95,7 @@ def _cmd_list(_args) -> None:
                         print(
                             f"      ⚠ script modified since approval "
                             f"(was {mtime_at}, now {mtime_now}) — "
-                            f"run `wayne hooks doctor` to re-validate"
+                            f"run `work4you hooks doctor` to re-validate"
                         )
         print()
 
@@ -268,7 +268,7 @@ def _print_run_result(result: Dict[str, Any]) -> None:
 
     parsed = result.get("parsed")
     if parsed:
-        print(f"      parsed (Wayne wire shape): {json.dumps(parsed)}")
+        print(f"      parsed (Work4You wire shape): {json.dumps(parsed)}")
     else:
         print("      parsed: <none — hook contributed nothing to the dispatcher>")
 
@@ -351,7 +351,7 @@ def _doctor_one(spec, shell_hooks) -> int:
             problems += 1
             print(f"      ⚠ script modified since approval "
                   f"(was {mtime_at}, now {mtime_now}) — review changes, "
-                  f"then `wayne hooks revoke` + re-approve to refresh")
+                  f"then `work4you hooks revoke` + re-approve to refresh")
         elif mtime_now and mtime_at and mtime_now == mtime_at:
             print("      ✓ script unchanged since approval")
 
@@ -363,7 +363,7 @@ def _doctor_one(spec, shell_hooks) -> int:
     if not entry:
         print("      ℹ skipped JSON smoke test — not allowlisted yet. "
               "Approve the hook first (via TTY prompt or --accept-hooks), "
-              "then re-run `wayne hooks doctor`.")
+              "then re-run `work4you hooks doctor`.")
     elif shell_hooks.script_is_executable(spec.command):
         payload = _DEFAULT_PAYLOADS.get(spec.event, {"extra": {}})
         result = shell_hooks.run_once(spec, payload)

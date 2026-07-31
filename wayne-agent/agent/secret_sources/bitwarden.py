@@ -492,7 +492,7 @@ def fetch_bitwarden_secrets(
             "bws binary not available — auto-install failed and `bws` is "
             "not on PATH.  Install manually from "
             "https://github.com/bitwarden/sdk-sm/releases or re-run "
-            "`wayne secrets bitwarden setup`."
+            "`work4you secrets bitwarden setup`."
         )
 
     secrets, warnings = _run_bws_list(bws, access_token, project_id, server_url)
@@ -621,14 +621,14 @@ def apply_bitwarden_secrets(
     if not access_token:
         result.error = (
             f"secrets.bitwarden.enabled is true but {access_token_env} is "
-            "not set.  Run `wayne secrets bitwarden setup`."
+            "not set.  Run `work4you secrets bitwarden setup`."
         )
         return result
 
     if not project_id:
         result.error = (
             "secrets.bitwarden.project_id is empty.  "
-            "Run `wayne secrets bitwarden setup`."
+            "Run `work4you secrets bitwarden setup`."
         )
         return result
 
@@ -637,7 +637,7 @@ def apply_bitwarden_secrets(
     if binary is None:
         result.error = (
             "bws binary not available and auto-install is disabled.  "
-            "Run `wayne secrets bitwarden setup` to install."
+            "Run `work4you secrets bitwarden setup` to install."
         )
         return result
 
