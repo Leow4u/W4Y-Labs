@@ -2,7 +2,7 @@
 
 ``begin_authorization`` / ``complete_authorization`` are the transport-agnostic
 core: the code can arrive via the loopback listener here or a future
-``wayne://`` handler. Endpoints are env-overridable with local-dev defaults
+``work4you://`` handler. Endpoints are env-overridable with local-dev defaults
 because ``/authorize`` (dashboard) and ``/oauth/token`` (API) live on
 different origins.
 """

@@ -143,13 +143,13 @@ class TestRenderers:
 
     def test_deeplink_shape(self):
         url = blueprint_deeplink(get_blueprint("morning-brief"), {"time": "07:15"})
-        assert url.startswith("wayne://blueprint/morning-brief?")
+        assert url.startswith("work4you://blueprint/morning-brief?")
         assert "time=07" in url
 
     def test_catalog_entry_has_all_surfaces(self):
         entry = blueprint_catalog_entry(get_blueprint("morning-brief"))
         assert entry["command"].startswith("/blueprint")
-        assert entry["appUrl"].startswith("wayne://")
+        assert entry["appUrl"].startswith("work4you://")
         assert entry["scheduleHuman"]
         assert "fields" in entry
 

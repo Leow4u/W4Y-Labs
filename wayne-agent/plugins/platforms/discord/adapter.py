@@ -7775,7 +7775,7 @@ def register(ctx) -> None:
         check_fn=check_discord_requirements,
         is_connected=_is_connected,
         required_env=["DISCORD_BOT_TOKEN"],
-        install_hint="pip install 'wayne-agent[messaging]'",
+        install_hint="pip install -e '.[messaging]'",
         # Interactive setup wizard — replaces the central
         # wayne_cli/setup.py::_setup_discord function.  Same shape as Teams.
         setup_fn=interactive_setup,

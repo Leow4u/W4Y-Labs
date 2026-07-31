@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 def _print_aiohttp_missing() -> None:
     print(
         "wayne proxy requires aiohttp. Install one of:\n"
-        "  pip install 'wayne-agent[messaging]'\n"
+        "  pip install -e '.[messaging]'\n"
         "  pip install aiohttp",
         file=sys.stderr,
     )

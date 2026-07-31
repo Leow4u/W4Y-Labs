@@ -6,7 +6,7 @@ sounddevice or system audio players.
 
 Dependencies (optional):
     pip install sounddevice numpy
-    or: pip install wayne-agent[voice]
+    or: pip install -e '.[voice]'
 """
 
 import logging
