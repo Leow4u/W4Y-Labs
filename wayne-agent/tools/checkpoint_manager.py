@@ -409,7 +409,7 @@ def _migrate_legacy_store(base: Path) -> Optional[Path]:
     if legacy_root is not None:
         logger.info(
             "Migrated pre-v2 checkpoint repos to %s. "
-            "Clear with `wayne checkpoints clear-legacy` when safe.",
+            "Clear with `work4you checkpoints clear-legacy` when safe.",
             legacy_root,
         )
     return legacy_root

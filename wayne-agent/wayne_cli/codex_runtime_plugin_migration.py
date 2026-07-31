@@ -84,7 +84,7 @@ class MigrationReport:
                 )
                 lines.append(f"  - {name}{note}")
         else:
-            lines.append("No MCP servers found in Wayne config.")
+            lines.append("No MCP servers found in Work4You config.")
         if self.migrated_plugins:
             lines.append(
                 f"Migrated {len(self.migrated_plugins)} native Codex plugin(s):"
@@ -191,7 +191,7 @@ def _translate_one_server(
         if key in _KEYS_DROPPED_WITH_WARNING:
             skipped.append(f"{key} (no codex equivalent)")
         elif key not in _KNOWN_WAYNE_KEYS:
-            skipped.append(f"{key} (unknown Wayne key)")
+            skipped.append(f"{key} (unknown Work4You key)")
 
     return out, skipped
 
@@ -649,7 +649,7 @@ def migrate(
     wayne_servers = (wayne_config or {}).get("mcp_servers") or {}
     if not isinstance(wayne_servers, dict):
         report.errors.append(
-            "mcp_servers in Wayne config is not a dict; cannot migrate."
+            "mcp_servers in Work4You config is not a dict; cannot migrate."
         )
         return report
 

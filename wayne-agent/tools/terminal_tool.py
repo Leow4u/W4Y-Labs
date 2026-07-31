@@ -1955,7 +1955,7 @@ def _foreground_background_guidance(command: str) -> str | None:
     if _SHELL_LEVEL_BACKGROUND_RE.search(unquoted):
         return (
             "Foreground command uses shell-level background wrappers (nohup/disown/setsid). "
-            "Use terminal(background=true) so Wayne can track the process, then run "
+            "Use terminal(background=true) so Work4You can track the process, then run "
             "readiness checks and tests in separate commands."
         )
 
@@ -2283,7 +2283,7 @@ def terminal_tool(
                         "Blocked: cannot restart or stop the gateway from inside the "
                         "gateway process. The gateway would kill this command before "
                         "it could complete (SIGTERM propagates to child processes). "
-                        "Run `wayne gateway restart` from a separate shell outside "
+                        "Run `work4you gateway restart` from a separate shell outside "
                         "the running gateway."
                     ),
                     "status": "error",

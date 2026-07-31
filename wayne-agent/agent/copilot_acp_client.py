@@ -147,7 +147,7 @@ def _format_messages_as_prompt(
         "If no tool is needed, answer normally.",
     ]
     if model:
-        sections.append(f"Wayne requested model hint: {model}")
+        sections.append(f"Work4You requested model hint: {model}")
 
     if isinstance(tools, list) and tools:
         tool_specs: list[dict[str, Any]] = []
@@ -603,10 +603,10 @@ class CopilotACPClient:
                         "  npm install -g @github/copilot\n"
                         "  # then verify with: copilot --help\n\n"
                         "If `copilot` already resolves to the new CLI but you still see this,\n"
-                        "point Wayne at it explicitly:\n"
+                        "point Work4You at it explicitly:\n"
                         "  export WAYNE_COPILOT_ACP_COMMAND=/path/to/new/copilot\n\n"
                         "Alternative: use the `copilot` provider (no ACP, hits the Copilot API\n"
-                        "directly with a Copilot subscription token) via `wayne setup`.\n\n"
+                        "directly with a Copilot subscription token) via `work4you setup`.\n\n"
                         f"Original error:\n{stderr_text}"
                     )
                 raise RuntimeError(f"Copilot ACP process exited early: {stderr_text}")
@@ -744,7 +744,7 @@ class CopilotACPClient:
             response = _jsonrpc_error(
                 message_id,
                 -32601,
-                f"ACP client method '{method}' is not supported by Wayne yet.",
+                f"ACP client method '{method}' is not supported by Work4You yet.",
             )
 
         process.stdin.write(json.dumps(response) + "\n")

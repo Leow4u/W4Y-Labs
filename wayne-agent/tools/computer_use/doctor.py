@@ -248,7 +248,7 @@ def run_doctor(
     binary = shutil.which(driver_cmd)
     if not binary:
         print(f"cua-driver: not installed (looked for {driver_cmd!r}).")
-        print("  Run: wayne computer-use install")
+        print("  Run: work4you computer-use install")
         return 2
 
     try:

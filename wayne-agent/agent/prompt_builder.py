@@ -257,12 +257,12 @@ KANBAN_GUIDANCE = (
     "or paste ids; the kernel rejects the completion on any phantom id.\n"
     "- **Orchestrating: discover profiles first.** The dispatcher SILENTLY "
     "drops a card with an unknown assignee (it sits in `ready` forever). Ground "
-    "every assignee in a real profile (`wayne profile list`, or ask the user), "
+    "every assignee in a real profile (`work4you profile list`, or ask the user), "
     "and express dependencies via `parents=[...]` on `kanban_create`, not prose.\n"
     "\n"
     "## Do NOT\n"
     "\n"
-    "- Do not shell out to `wayne kanban <verb>` for board operations. Use "
+    "- Do not shell out to `work4you kanban <verb>` for board operations. Use "
     "the `kanban_*` tools — they work across all terminal backends.\n"
     "- Do not complete a task you didn't actually finish. Block it.\n"
     "- Do not call `clarify` to ask questions. You are running headless — "
@@ -567,7 +567,7 @@ def computer_use_guidance(platform_name: Optional[str] = None) -> str:
         "## When something is broken\n"
         "If `computer_use` consistently fails (empty captures, missing "
         "elements, clicks not landing, type going nowhere), ask the user to "
-        "run `wayne computer-use doctor` and share the output. That command "
+        "run `work4you computer-use doctor` and share the output. That command "
         "runs cua-driver's structured health-report — per-platform checks "
         "for permissions, display server, accessibility tree reachability "
         "— and the failure message tells you exactly what to fix.\n"
@@ -733,7 +733,7 @@ PLATFORM_HINTS = {
         "default-deliver cron job will message them in this session."
     ),
     "tui": (
-        "You are running in the Wayne terminal UI (TUI). "
+        "You are running in the Work4You terminal UI (TUI). "
         "Cron jobs scheduled from this session are LOCAL-ONLY: their output is "
         "saved (viewable via cronjob action='list') but is NOT delivered back "
         "into this TUI session — there is no live-delivery channel here. If the "
@@ -1107,8 +1107,8 @@ def build_environment_hints() -> str:
                 f"Terminal backend: {backend}. Your `terminal`, `read_file`, "
                 f"`write_file`, `patch`, and `search_files` tools all operate "
                 f"inside this {backend} environment — NOT on the machine "
-                f"where Wayne itself is running. The host OS, home, and cwd "
-                f"of the Wayne process are irrelevant; only the following "
+                f"where Work4You itself is running. The host OS, home, and cwd "
+                f"of the Work4You process are irrelevant; only the following "
                 f"backend state matters:\n{probe}"
             )
         else:
@@ -1133,7 +1133,7 @@ def build_environment_hints() -> str:
     _in_desktop = (os.getenv("WAYNE_DESKTOP") or "").strip().lower() in _truthy
     _in_desktop_term = (os.getenv("WAYNE_DESKTOP_TERMINAL") or "").strip().lower() in _truthy
     if _in_desktop or _in_desktop_term:
-        _desktop_hint = "Runtime surface: you're running inside the Wayne desktop GUI app."
+        _desktop_hint = "Runtime surface: you're running inside the Work4You desktop GUI app."
         if _in_desktop_term:
             _desktop_hint += (
                 " You're in its embedded terminal pane, beside the GUI chat — the user can "
@@ -1657,8 +1657,8 @@ def build_skills_system_prompt(
             "Whenever the user asks you to configure, set up, install, enable, disable, modify, "
             "or troubleshoot Wayne Agent itself — its CLI, config, models, providers, tools, "
             "skills, voice, gateway, plugins, or any feature — load the `wayne-agent` skill "
-            "first. It has the actual commands (e.g. `wayne config set …`, `wayne tools`, "
-            "`wayne setup`) so you don't have to guess or invent workarounds.\n"
+            "first. It has the actual commands (e.g. `work4you config set …`, `work4you tools`, "
+            "`work4you setup`) so you don't have to guess or invent workarounds.\n"
             "If a skill has issues, fix it with skill_manage(action='patch').\n"
             "After difficult/iterative tasks, offer to save as a skill. "
             "If a skill you loaded was missing steps, had wrong commands, or needed "
@@ -1742,7 +1742,7 @@ def build_nous_subscription_prompt(valid_tool_names: "set[str] | None" = None) -
             "When a Nous-managed feature is active, do not ask the user for Firecrawl, FAL, OpenAI TTS, OpenAI Whisper, or Browser-Use API keys.",
             "If the user is not subscribed and asks for a capability that Nous subscription would unlock or simplify, suggest Nous subscription as one option alongside direct setup or local alternatives.",
             "Do not mention subscription unless the user asks about it or it directly solves the current missing capability.",
-            "Useful commands: wayne setup, wayne setup tools, wayne setup terminal, wayne status.",
+            "Useful commands: work4you setup, work4you setup tools, work4you setup terminal, work4you status.",
         ]
     )
     return "\n".join(lines)
