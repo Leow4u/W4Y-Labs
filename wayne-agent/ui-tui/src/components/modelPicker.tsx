@@ -260,7 +260,7 @@ export function ModelPicker({ allowPersistGlobal = true, gw, onCancel, onSelect,
                         authenticated: false,
                         models: [],
                         total_models: 0,
-                        warning: p.key_env ? `paste ${p.key_env} to activate` : 'run `wayne model` to configure'
+                        warning: p.key_env ? `paste ${p.key_env} to activate` : 'run `work4you model` to configure'
                       }
                     : p
                 )
@@ -338,7 +338,7 @@ export function ModelPicker({ allowPersistGlobal = true, gw, onCancel, onSelect,
             setFilter('')
           }
 
-          // Other auth types: no-op (warning shown tells them to run wayne model)
+          // Other auth types: no-op (warning shown tells them to run work4you model)
           return
         }
 
