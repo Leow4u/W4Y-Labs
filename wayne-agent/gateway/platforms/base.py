@@ -758,7 +758,7 @@ async def cache_image_from_url(url: str, ext: str = ".jpg", retries: int = 2) ->
                     "GET",
                     url,
                     headers={
-                        "User-Agent": "Mozilla/5.0 (compatible; WayneAgent/1.0)",
+                        "User-Agent": "Mozilla/5.0 (compatible; Work4You/1.0)",
                         "Accept": "image/*,*/*;q=0.8",
                     },
                 ) as response:
@@ -878,7 +878,7 @@ async def cache_audio_from_url(url: str, ext: str = ".ogg", retries: int = 2) ->
                     "GET",
                     url,
                     headers={
-                        "User-Agent": "Mozilla/5.0 (compatible; WayneAgent/1.0)",
+                        "User-Agent": "Mozilla/5.0 (compatible; Work4You/1.0)",
                         "Accept": "audio/*,*/*;q=0.8",
                     },
                 ) as response:
@@ -1818,6 +1818,9 @@ class TextDebounceState:
 
 _PLAINTEXT_GATEWAY_RESTART_PATTERNS: tuple[re.Pattern[str], ...] = (
     re.compile(r"^(?:please\s+)?restart\s+(?:the\s+)?gateway[.!?\s]*$", re.IGNORECASE),
+    re.compile(r"^(?:please\s+)?restart\s+(?:the\s+)?work4you\s+gateway[.!?\s]*$", re.IGNORECASE),
+    re.compile(r"^(?:please\s+)?restart\s+work4you[.!?\s]*$", re.IGNORECASE),
+    # Legacy wake phrases — users type these by habit; keep accepting them.
     re.compile(r"^(?:please\s+)?restart\s+(?:the\s+)?wayne\s+gateway[.!?\s]*$", re.IGNORECASE),
     re.compile(r"^(?:please\s+)?restart\s+wayne[.!?\s]*$", re.IGNORECASE),
 )

@@ -1616,7 +1616,7 @@ if _config_path.exists():
         )
         print(
             "  Gateway will fall back to .env values, which may not match "
-            "your current config.yaml. Run `wayne doctor` to investigate.",
+            "your current config.yaml. Run `work4you doctor` to investigate.",
             file=sys.stderr,
         )
 
@@ -2167,7 +2167,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                 if slug == normalized and declared_name in disabled:
                     return (
                         f"The **{command_name}** skill is installed but disabled.\n"
-                        f"Enable it with: `wayne skills config`"
+                        f"Enable it with: `work4you skills config`"
                     )
 
         # Check optional skills (shipped with repo but not installed)
@@ -2191,7 +2191,7 @@ def _check_unavailable_skill(command_name: str) -> str | None:
                         f"catalog but is not part of the formula kit.\n"
                         f"Teach a method with `skill_manage`, or connect the "
                         f"account under **Conectores** — do not run "
-                        f"`wayne skills install`."
+                        f"`work4you skills install`."
                     )
     except Exception:
         pass
@@ -3462,18 +3462,18 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
     def _telegram_topic_root_lobby_message(self) -> str:
         return (
             "This main chat is reserved for system commands.\n\n"
-            "To start a new Wayne chat, open the All Messages topic at the top "
+            "To start a new Work4You chat, open the All Messages topic at the top "
             "of this bot interface and send any message there. Telegram will "
             "create a new topic for that message; each topic works as an "
-            "independent Wayne session."
+            "independent Work4You session."
         )
 
     def _telegram_topic_root_new_message(self) -> str:
         return (
-            "To start a new parallel Wayne chat, open the All Messages topic "
+            "To start a new parallel Work4You chat, open the All Messages topic "
             "at the top of this bot interface and send any message there. "
             "Telegram will create a new topic for it.\n\n"
-            "Each topic is an independent Wayne session. Use /new inside an "
+            "Each topic is an independent Work4You session. Use /new inside an "
             "existing topic only if you want to replace that topic's current session."
         )
 
@@ -3481,7 +3481,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         if not self._is_telegram_topic_lane(source):
             return None
         return (
-            "Started a new Wayne session in this topic.\n\n"
+            "Started a new Work4You session in this topic.\n\n"
             "Tip: for parallel work, open All Messages and send a message there "
             "to create a separate topic instead of using /new here. /new replaces "
             "the session attached to the current topic."
@@ -4507,7 +4507,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         logger.warning(
             "%s paused after %d consecutive failures (%s) — "
             "fix the underlying issue then run `/platform resume %s` "
-            "to retry, or `wayne gateway restart` to restart the gateway.",
+            "to retry, or `work4you gateway restart` to restart the gateway.",
             platform.value, info.get("attempts", 0),
             info["pause_reason"], platform.value,
         )
@@ -4889,7 +4889,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         if active_count < max_sessions:
             return None
         return (
-            f"Wayne is at the active session limit ({active_count}/{max_sessions}). "
+            f"Work4You is at the active session limit ({active_count}/{max_sessions}). "
             "Try again when another session finishes."
         )
 
@@ -6443,7 +6443,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         
         Returns True if at least one adapter connected successfully.
         """
-        logger.info("Starting Wayne Gateway...")
+        logger.info("Starting Work4You Gateway...")
         try:
             self._gateway_loop = asyncio.get_running_loop()
         except RuntimeError:
@@ -6462,7 +6462,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                 logger.warning(
                     "Stale systemd unit detected: %s has TimeoutStopSec=%.0fs but "
                     "drain_timeout=%.0fs (expected >=%.0fs). systemd may SIGKILL the "
-                    "gateway mid-drain. Run `wayne gateway install --force` "
+                    "gateway mid-drain. Run `work4you gateway install --force` "
                     "to regenerate the unit, or shorten agent.restart_drain_timeout.",
                     _alignment.get("unit", "(unknown)"),
                     _alignment["timeout_stop_sec"],
@@ -6534,7 +6534,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             if _adv_msg:
                 logger.warning("%s", _adv_msg)
                 logger.warning(
-                    "Run `wayne doctor` on the gateway host for full "
+                    "Run `work4you doctor` on the gateway host for full "
                     "remediation steps."
                 )
         except Exception:
@@ -7222,7 +7222,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         # (no permission, topics-mode off, parent is a DM, etc.). When
         # None we fall through to using the home channel directly — the
         # synthetic turn still lands; just without thread isolation.
-        thread_name = f"Wayne — {cli_title}"
+        thread_name = f"Work4You — {cli_title}"
         try:
             new_thread_id = await adapter.create_handoff_thread(
                 str(home.chat_id), thread_name,
@@ -8666,7 +8666,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                             f"Hi~ I don't recognize you yet!\n\n"
                             f"Here's your pairing code: `{code}`\n\n"
                             f"Ask the bot owner to run:\n"
-                            f"`wayne pairing approve {platform_name} {code}`"
+                            f"`work4you pairing approve {platform_name} {code}`"
                         )
                 else:
                     adapter = self._adapter_for_source(source)
@@ -9791,7 +9791,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                         if _skill_name in _get_plat_disabled(platform=_plat):
                             return (
                                 f"The **{_skill_name}** skill is disabled for {_plat}.\n"
-                                f"Enable it with: `wayne skills config`"
+                                f"Enable it with: `work4you skills config`"
                             )
                     user_instruction = event.get_command_args().strip()
                     msg = build_skill_invocation_message(
@@ -10968,7 +10968,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                 )
                 notice = (
                     f"📬 No home channel is set for {platform_name.title()}. "
-                    f"A home channel is where Wayne delivers cron job results "
+                    f"A home channel is where Work4You delivers cron job results "
                     f"and cross-platform messages.\n\n"
                     f"Type {sethome_cmd} to make this chat your home channel, "
                     f"or ignore to skip."
@@ -13002,7 +13002,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         try:
             send_result = await adapter.send(
                 source.chat_id,
-                "System topic for Wayne commands and status.",
+                "System topic for Work4You commands and status.",
                 metadata={"thread_id": str(thread_id)},
             )
             message_id = getattr(send_result, "message_id", None)
@@ -13045,7 +13045,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         """Return a Bot API-safe forum topic name from a generated session title."""
         cleaned = re.sub(r"\s+", " ", str(title or "")).strip()
         if not cleaned:
-            return "Wayne Chat"
+            return "Work4You Chat"
         # Telegram forum topic names are short (currently 1-128 chars). Keep
         # extra room for multi-byte titles and avoid trailing ellipsis churn.
         if len(cleaned) > 120:
@@ -13229,11 +13229,11 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             "  /topic <id>        Inside a topic: restore a previous session by ID\n"
             "\n"
             "How it works:\n"
-            "1. Run /topic once in this DM — Wayne checks BotFather Threads\n"
+            "1. Run /topic once in this DM — Work4You checks BotFather Threads\n"
             "   Settings are enabled and flips on multi-session mode.\n"
             "2. Tap All Messages at the top of the bot and send any message.\n"
             "   Telegram creates a new topic for that message; each topic is\n"
-            "   an independent Wayne session (fresh history, fresh context).\n"
+            "   an independent Work4You session (fresh history, fresh context).\n"
             "3. The root DM becomes a system lobby — send /topic, /status,\n"
             "   /help, /usage there. Normal prompts go in a topic.\n"
             "4. /new inside a topic resets just that topic's session.\n"
@@ -13273,7 +13273,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             "Multi-session topic mode is now OFF for this chat.\n\n"
             "Existing topics in Telegram aren't removed — they'll just stop "
             "being gated as independent sessions. The root DM works as a "
-            "normal Wayne chat again. Run /topic to re-enable later."
+            "normal Work4You chat again. Run /topic to re-enable later."
         )
 
 
@@ -13281,7 +13281,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         lines = [
             "Telegram multi-session topics are enabled.",
             "",
-            "To create a new Wayne chat, open All Messages at the top of this "
+            "To create a new Work4You chat, open All Messages at the top of this "
             "bot interface and send any message there. Telegram will create a "
             "new topic for it.",
             "",
@@ -13374,7 +13374,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
 
         response = f"Session restored: {title}"
         if last_assistant:
-            response += f"\n\nLast Wayne message:\n{last_assistant}"
+            response += f"\n\nLast Work4You message:\n{last_assistant}"
         return response
 
 
@@ -13924,13 +13924,13 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                     if exit_code == 0:
                         await adapter.send(
                             chat_id,
-                            "✅ Wayne update finished.",
+                            "✅ Work4You update finished.",
                             metadata=_non_conversational_metadata(metadata, platform=platform),
                         )
                     else:
                         await adapter.send(
                             chat_id,
-                            "❌ Wayne update failed (exit code {}).".format(exit_code),
+                            "❌ Work4You update failed (exit code {}).".format(exit_code),
                             metadata=_non_conversational_metadata(metadata, platform=platform),
                         )
                     logger.info("Update finished (exit=%s), notified %s", exit_code, session_key)
@@ -14019,7 +14019,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             try:
                 await adapter.send(
                     chat_id,
-                    "❌ Wayne update timed out after 30 minutes.",
+                    "❌ Work4You update timed out after 30 minutes.",
                     metadata=_non_conversational_metadata(metadata, platform=platform),
                 )
             except Exception:
@@ -14119,13 +14119,13 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                     if len(output) > 3500:
                         output = "…" + output[-3500:]
                     if exit_code == 0:
-                        msg = f"✅ Wayne update finished.\n\n```\n{output}\n```"
+                        msg = f"✅ Work4You update finished.\n\n```\n{output}\n```"
                     else:
-                        msg = f"❌ Wayne update failed.\n\n```\n{output}\n```"
+                        msg = f"❌ Work4You update failed.\n\n```\n{output}\n```"
                 elif exit_code == 0:
-                    msg = "✅ Wayne update finished successfully."
+                    msg = "✅ Work4You update finished successfully."
                 else:
-                    msg = "❌ Wayne update failed. Check the gateway logs or run `wayne update` manually for details."
+                    msg = "❌ Work4You update failed. Check the gateway logs or run `work4you update` manually for details."
                 await adapter.send(
                     chat_id,
                     msg,
@@ -14233,7 +14233,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
         """
         delivered: set[tuple[str, str, Optional[str]]] = set()
         skipped = skip_targets or set()
-        message = "♻️ Gateway online — Wayne is back and ready."
+        message = "♻️ Gateway online — Work4You is back and ready."
 
         for platform, adapter in self.adapters.items():
             home = self.config.get_home_channel(platform)
@@ -19700,14 +19700,14 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
             wayne_home = str(get_wayne_home())
             logger.error(
                 "Another gateway instance is already running (PID %d, WAYNE_HOME=%s). "
-                "Use 'wayne gateway restart' to replace it, or 'wayne gateway stop' first.",
+                "Use 'work4you gateway restart' to replace it, or 'work4you gateway stop' first.",
                 existing_pid, wayne_home,
             )
             print(
                 f"\n❌ Gateway already running (PID {existing_pid}).\n"
-                f"   Use 'wayne gateway restart' to replace it,\n"
-                f"   or 'wayne gateway stop' to kill it first.\n"
-                f"   Or use 'wayne gateway run --replace' to auto-replace.\n"
+                f"   Use 'work4you gateway restart' to replace it,\n"
+                f"   or 'work4you gateway stop' to kill it first.\n"
+                f"   Or use 'work4you gateway run --replace' to auto-replace.\n"
             )
             return False
 
@@ -20110,7 +20110,7 @@ def main():
 
     import argparse
     
-    parser = argparse.ArgumentParser(description="Wayne Gateway - Multi-platform messaging")
+    parser = argparse.ArgumentParser(description="Work4You Gateway - Multi-platform messaging")
     parser.add_argument("--config", "-c", help="Path to gateway config file")
     parser.add_argument("--verbose", "-v", action="store_true", help="Verbose output")
     

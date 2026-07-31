@@ -4393,7 +4393,7 @@ def _make_agent(
                 logger.warning(
                     "Unknown skill(s) requested, skipping: %s. "
                     "Continuing with: %s. "
-                    "List available skills with `wayne skills list`.",
+                    "List available skills with `work4you skills list`.",
                     missing_display,
                     ", ".join(loaded_skills),
                 )
@@ -7710,7 +7710,7 @@ def _(rid, params: dict) -> dict:
     provider = getattr(agent, "provider", None) or "unknown"
     model = getattr(agent, "model", None) or "(unknown)"
     lines = [
-        "Wayne TUI Status",
+        "Work4You TUI Status",
         "",
         f"Session ID: {key}",
         f"Path: {display_wayne_home()}",
@@ -9859,14 +9859,14 @@ def _(rid, params: dict) -> dict:
                 if has_history
                 else None
             ),
-            "Restart exactly the app intended for the Preview URL, not Wayne Desktop itself.",
+            "Restart exactly the app intended for the Preview URL, not the Work4You desktop app itself.",
             "The Preview URL and port are the target. Preserve that target unless you conclude it is impossible.",
             "If the prior conversation shows a specific command that bound this URL/port, prefer re-running THAT exact command (in the same cwd) over guessing a new one.",
-            "First inspect what process, if any, owns the Preview URL port. If a stale server exists, inspect its cwd and prefer that cwd over the Wayne/Desktop process cwd.",
+            "First inspect what process, if any, owns the Preview URL port. If a stale server exists, inspect its cwd and prefer that cwd over the Work4You/desktop process cwd.",
             "The Current working directory is only a hint. Do not assume it is the preview app root when the port owner or files indicate another root.",
             "If the console shows a module-script MIME error for src/main.tsx or similar, a static server is serving source files. Do not restart python -m http.server or any dumb static server for that app.",
             "For module-script MIME failures, inspect package.json/vite config in the candidate app root and start the real dev server/bundler (for example npm/pnpm/yarn dev) so module transforms happen.",
-            "Before declaring success, verify the Preview URL responds with the intended app, not Wayne Desktop. If it serves Wayne/Desktop UI or another unrelated app, stop that process and report failure.",
+            "Before declaring success, verify the Preview URL responds with the intended app, not the Work4You desktop app. If it serves the Work4You/desktop UI or another unrelated app, stop that process and report failure.",
             "Do not modify files. Do not ask the user unless blocked.",
             "Prefer existing project scripts or commands when they are clear.",
             "If a stale process owns the needed port, handle it safely.",
@@ -11468,7 +11468,7 @@ def _(rid, params: dict) -> dict:
                     "provider": provider,
                     "model": runtime.get("model"),
                     "source": source,
-                    "error": "No Wayne provider is configured.",
+                    "error": "No Work4You provider is configured.",
                 },
             )
 
@@ -11826,16 +11826,16 @@ def _(rid, params: dict) -> dict:
 def _cli_exec_blocked(argv: list[str]) -> str | None:
     """Return user hint if this argv must not run headless in the gateway process."""
     if not argv:
-        return "bare `wayne` is interactive — use `/wayne chat -q …` or run `wayne` in another terminal"
+        return "bare `work4you` is interactive — use `/wayne chat -q …` or run `work4you` in another terminal"
     a0 = argv[0].lower()
     if a0 == "setup":
-        return "`wayne setup` needs a full terminal — run it outside the TUI"
+        return "`work4you setup` needs a full terminal — run it outside the TUI"
     if a0 == "gateway":
-        return "`wayne gateway` is long-running — run it in another terminal"
+        return "`work4you gateway` is long-running — run it in another terminal"
     if a0 == "sessions" and len(argv) > 1 and argv[1].lower() == "browse":
-        return "`wayne sessions browse` is interactive — use /resume here, or run browse in another terminal"
+        return "`work4you sessions browse` is interactive — use /resume here, or run browse in another terminal"
     if a0 == "config" and len(argv) > 1 and argv[1].lower() == "edit":
-        return "`wayne config edit` needs $EDITOR in a real terminal"
+        return "`work4you config edit` needs $EDITOR in a real terminal"
     return None
 
 
@@ -12886,7 +12886,7 @@ def _(rid, params: dict) -> dict:
                 rid,
                 4003,
                 f"{pconfig.name} uses {pconfig.auth_type} auth — "
-                f"run `wayne model` to configure",
+                f"run `work4you model` to configure",
             )
         if not pconfig.api_key_env_vars:
             return _err(rid, 4004, f"no env var defined for {pconfig.name}")
