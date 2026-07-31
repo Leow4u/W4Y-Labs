@@ -264,7 +264,7 @@ except ImportError:
     # "install composio" paths. DEBUG hid this completely in agent.log.
     logger.warning(
         "mcp package not installed -- MCP tool support disabled "
-        "(install with: uv pip install 'wayne-agent[mcp]' or 'mcp==1.26.0')"
+        "(install with: uv pip install -e '.[mcp]' or 'mcp==1.26.0')"
     )
 
 
@@ -1818,10 +1818,10 @@ class MCPServerTask:
         if not _MCP_AVAILABLE:
             raise ImportError(
                 f"MCP server '{self.name}' requires the 'mcp' Python SDK, but "
-                "it is not installed. Install with:\n"
-                "  pip install 'wayne-agent[mcp]'\n"
+                "it is not installed. Install from the engine directory with:\n"
+                "  pip install -e '.[mcp]'\n"
                 "or (full install):\n"
-                "  pip install 'wayne-agent[all]'"
+                "  pip install -e '.[all]'"
             )
 
         command = config.get("command")

@@ -5344,7 +5344,7 @@ async def _standalone_send(
     (images, video, voice, documents). Replaces the legacy _send_feishu helper.
     """
     if not FEISHU_AVAILABLE:
-        return {"error": "Feishu dependencies not installed. Run: pip install 'wayne-agent[feishu]'"}
+        return {"error": "Feishu dependencies not installed. Run: pip install -e '.[feishu]' from the engine directory"}
 
     media_files = media_files or []
     try:
@@ -5592,7 +5592,7 @@ def register(ctx) -> None:
         is_connected=_is_connected,
         validate_config=_is_connected,
         required_env=["FEISHU_APP_ID", "FEISHU_APP_SECRET"],
-        install_hint="pip install 'wayne-agent[feishu]'",
+        install_hint="pip install -e '.[feishu]'",
         setup_fn=interactive_setup,
         apply_yaml_config_fn=_apply_yaml_config,
         allowed_users_env="FEISHU_ALLOWED_USERS",

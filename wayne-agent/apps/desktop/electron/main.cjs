@@ -7720,18 +7720,19 @@ ipcMain.handle('hermes:vscode-theme:fetch', async (_event, id) => fetchMarketpla
 ipcMain.handle('hermes:vscode-theme:search', async (_event, query) => searchMarketplaceThemes(String(query || ''), 20))
 
 // ---------------------------------------------------------------------------
-// hermes:// deep links (e.g. hermes://blueprint/morning-brief?time=08:00).
+// work4you:// deep links (e.g. work4you://blueprint/morning-brief?time=08:00).
 // A docs/dashboard "Send to App" button opens this URL; we route it into the
 // running app's chat composer. Three delivery paths: macOS 'open-url',
 // Win/Linux running-app 'second-instance' (argv), Win/Linux cold-start argv.
+// Legacy hermes:// links keep working: both schemes stay registered.
 // ---------------------------------------------------------------------------
-const HERMES_PROTOCOL = 'hermes'
+const DEEP_LINK_PROTOCOLS = ['work4you', 'hermes'] // canonical first
 let _pendingDeepLink = null
 let _rendererReadyForDeepLink = false
 
 function _extractDeepLink(argv) {
   if (!Array.isArray(argv)) return null
-  return argv.find(a => typeof a === 'string' && a.startsWith(`${HERMES_PROTOCOL}://`)) || null
+  return argv.find(a => typeof a === 'string' && DEEP_LINK_PROTOCOLS.some(p => a.startsWith(`${p}://`))) || null
 }
 
 function handleDeepLink(url) {
@@ -7743,7 +7744,7 @@ function handleDeepLink(url) {
     rememberLog(`[deeplink] ignoring malformed url: ${url}`)
     return
   }
-  // hermes://blueprint/<key>?slot=val  -> host="blueprint", path="/<key>"
+  // work4you://blueprint/<key>?slot=val  -> host="blueprint", path="/<key>"
   const kind = parsed.hostname || ''
   const name = decodeURIComponent((parsed.pathname || '').replace(/^\//, ''))
   const params = {}
@@ -7774,7 +7775,7 @@ ipcMain.handle('hermes:deep-link-ready', () => {
     const queued = _pendingDeepLink
     _pendingDeepLink = null
     handleDeepLink(
-      `${HERMES_PROTOCOL}://${queued.kind}/${encodeURIComponent(queued.name)}` +
+      `${DEEP_LINK_PROTOCOLS[0]}://${queued.kind}/${encodeURIComponent(queued.name)}` +
         (Object.keys(queued.params).length ? '?' + new URLSearchParams(queued.params).toString() : '')
     )
   }
@@ -7783,12 +7784,14 @@ ipcMain.handle('hermes:deep-link-ready', () => {
 
 function registerDeepLinkProtocol() {
   try {
-    if (process.defaultApp && process.argv.length >= 2) {
-      // Dev: register with the electron exec path + entry script so the OS can
-      // relaunch us with the URL.
-      app.setAsDefaultProtocolClient(HERMES_PROTOCOL, process.execPath, [path.resolve(process.argv[1])])
-    } else {
-      app.setAsDefaultProtocolClient(HERMES_PROTOCOL)
+    for (const proto of DEEP_LINK_PROTOCOLS) {
+      if (process.defaultApp && process.argv.length >= 2) {
+        // Dev: register with the electron exec path + entry script so the OS can
+        // relaunch us with the URL.
+        app.setAsDefaultProtocolClient(proto, process.execPath, [path.resolve(process.argv[1])])
+      } else {
+        app.setAsDefaultProtocolClient(proto)
+      }
     }
   } catch (err) {
     rememberLog(`[deeplink] protocol registration failed: ${err.message}`)
