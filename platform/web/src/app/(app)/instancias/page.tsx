@@ -45,7 +45,7 @@ export default async function InstanciasPage() {
       <div className="mx-auto max-w-3xl px-6 py-8">
         <h1 className="text-xl font-semibold">Instâncias</h1>
         <p className="mt-1 mb-6 text-sm text-neutral-500">
-          Seu workspace Work4You — o Wayne Agent dedicado do seu tenant, acessado
+          Seu workspace Work4You — a instância dedicada do seu tenant, acessada
           pelo domínio único work4you.ai.
         </p>
 
@@ -91,13 +91,13 @@ export default async function InstanciasPage() {
                     href="/login/enter"
                     className="font-brand shrink-0 rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-neutral-900"
                   >
-                    Entrar no Wayne Agent →
+                    Entrar no Work4You →
                   </a>
                 </div>
               </div>
             ))}
             <p className="text-xs text-neutral-400">
-              A entrada usa login unificado e abre o Wayne em /chat na mesma origem.
+              A entrada usa login unificado e abre o Work4You em /chat na mesma origem.
             </p>
           </div>
         )}

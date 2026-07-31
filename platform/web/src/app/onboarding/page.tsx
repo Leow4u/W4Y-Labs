@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
       <div>
         <h1 className="font-brand text-2xl font-semibold">Preparando o seu funcionário digital</h1>
         <p className="mt-2 text-sm text-neutral-500">
-          Estamos criando a sua instância dedicada do Wayne Agent na nuvem — memória, arquivos e
+          Estamos criando a sua instância dedicada do Work4You na nuvem — memória, arquivos e
           ferramentas só suas. Leva cerca de um minuto.
         </p>
       </div>
