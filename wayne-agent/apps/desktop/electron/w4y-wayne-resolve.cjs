@@ -27,8 +27,18 @@ function exists(p) {
   }
 }
 
+// Engine package rename (brand migration): the CLI package is becoming
+// work4you_cli. Desktop and engine update on separate channels, so the
+// resolver must accept BOTH spellings — new first — indefinitely.
+function engineEntryModule(root) {
+  if (!root) return null;
+  if (exists(path.join(root, "work4you_cli", "main.py"))) return "work4you_cli";
+  if (exists(path.join(root, "wayne_cli", "main.py"))) return "wayne_cli";
+  return null;
+}
+
 function isWayneSourceRoot(root) {
-  return Boolean(root && exists(path.join(root, "wayne_cli", "main.py")));
+  return Boolean(engineEntryModule(root));
 }
 
 function getVenvPython(venvRoot) {
@@ -63,6 +73,7 @@ function wayneRootCandidates(opts = {}) {
   // Monorepo: apps/desktop/electron → ../../.. = wayne-agent
   list.push(path.resolve(__dirname, "../../.."));
   const home = resolveWayneHome();
+  list.push(path.join(home, "work4you-agent"));
   list.push(path.join(home, "wayne-agent"));
   return [...new Set(list.map((p) => path.resolve(p)))];
 }
@@ -175,7 +186,7 @@ function tryResolveWayneBackend(backendArgs, helpers = {}) {
       kind: "python",
       label: `Work4You engine at ${root}`,
       command,
-      args: ["-m", "wayne_cli.main", ...backendArgs],
+      args: ["-m", `${engineEntryModule(root) || "wayne_cli"}.main`, ...backendArgs],
       env: {
         ...envExtra,
         WAYNE_HOME: wayneHome,
@@ -346,7 +357,10 @@ async function checkEngineUpdate(wayneHome) {
   const local = readEngineVersionMarker(wayneHome);
 
   if (!local) {
-    const engineRoot = path.join(wayneHome, "wayne-agent");
+    const engineRoot = [
+      path.join(wayneHome, "work4you-agent"),
+      path.join(wayneHome, "wayne-agent"),
+    ].find(isWayneSourceRoot) || path.join(wayneHome, "wayne-agent");
     if (!isWayneSourceRoot(engineRoot)) {
       // Engine not on disk at all — first-run territory, not an update scenario.
       return { available: false, local: null, remote, notInstalled: true };
@@ -429,7 +443,7 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
   if (!sourceRoot) {
     try { fs.rmSync(tmpExtract, { recursive: true, force: true }); } catch { void 0; }
     throw new Error(
-      `ZIP do motor Work4You não contém wayne_cli/main.py (extraído em '${tmpExtract}'). ` +
+      `ZIP do motor Work4You não contém work4you_cli/main.py (nem wayne_cli/main.py) (extraído em '${tmpExtract}'). ` +
       `Verifique a estrutura do ZIP publicado no GCS.`
     );
   }
@@ -448,7 +462,7 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
 
   if (!isWayneSourceRoot(engineRoot)) {
     throw new Error(
-      `Motor Work4You em '${engineRoot}' não parece válido (wayne_cli/main.py não encontrado). ` +
+      `Motor Work4You em '${engineRoot}' não parece válido (work4you_cli/main.py ou wayne_cli/main.py não encontrado). ` +
       `Verifique a estrutura do ZIP publicado no GCS.`
     );
   }
@@ -615,7 +629,12 @@ function promoteIfNeeded(destDir) {
 
   // destDir is already a source root — look for a nested wrapper left by a
   // broken in-place extract and merge it over the live tree.
-  for (const name of ["wayne-agent", "wayne-agent-main"]) {
+  for (const name of [
+    "work4you-agent",
+    "work4you-agent-main",
+    "wayne-agent",
+    "wayne-agent-main",
+  ]) {
     const inner = path.join(destDir, name);
     if (!exists(inner)) continue;
     try {
@@ -712,7 +731,7 @@ async function ensureWayneEngineForPackaged(destRoot, opts = {}) {
   if (!isWayneSourceRoot(destRoot)) {
     throw new Error(
       `Motor Work4You extraído em '${destRoot}' não parece ser um checkout válido do wayne-agent ` +
-      `(wayne_cli/main.py não encontrado). Verifique a estrutura do ZIP publicado em GCS.`
+      `(work4you_cli/main.py ou wayne_cli/main.py não encontrado). Verifique a estrutura do ZIP publicado em GCS.`
     );
   }
 
