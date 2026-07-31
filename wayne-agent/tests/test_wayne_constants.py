@@ -834,3 +834,37 @@ class TestGetWayneDir:
         legacy.symlink_to(empty)
         result = get_wayne_dir("cache/audio", "audio_cache")
         assert result == tmp_path / "cache/audio"
+
+
+class TestWork4youEnvBridge:
+    """Tests for apply_work4you_env_aliases() + WORK4YOU_HOME dual-read."""
+
+    def test_work4you_home_alone_resolves_home(self, tmp_path, monkeypatch):
+        monkeypatch.delenv("WAYNE_HOME", raising=False)
+        monkeypatch.setenv("WORK4YOU_HOME", str(tmp_path / "w4y"))
+        assert get_wayne_home() == tmp_path / "w4y"
+
+    def test_wayne_home_wins_over_work4you_home(self, tmp_path, monkeypatch):
+        """Spawner-injected WAYNE_HOME must beat the user-facing spelling —
+        profile children inherit the parent's WORK4YOU_HOME too."""
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path / "profile"))
+        monkeypatch.setenv("WORK4YOU_HOME", str(tmp_path / "global"))
+        assert get_wayne_home() == tmp_path / "profile"
+
+    def test_alias_mirrors_new_names_onto_legacy(self, monkeypatch):
+        monkeypatch.delenv("WAYNE_TIMEZONE", raising=False)
+        monkeypatch.setenv("WORK4YOU_TIMEZONE", "America/Sao_Paulo")
+        wayne_constants.apply_work4you_env_aliases()
+        assert os.environ["WAYNE_TIMEZONE"] == "America/Sao_Paulo"
+
+    def test_alias_does_not_clobber_preset_legacy_value(self, monkeypatch):
+        monkeypatch.setenv("WAYNE_TIMEZONE", "UTC")
+        monkeypatch.setenv("WORK4YOU_TIMEZONE", "America/Sao_Paulo")
+        wayne_constants.apply_work4you_env_aliases()
+        assert os.environ["WAYNE_TIMEZONE"] == "UTC"
+
+    def test_alias_ignores_unrelated_vars(self, monkeypatch):
+        monkeypatch.delenv("WAYNE_XYZZY", raising=False)
+        monkeypatch.setenv("WORKFORYOU_XYZZY", "nope")
+        wayne_constants.apply_work4you_env_aliases()
+        assert "WAYNE_XYZZY" not in os.environ

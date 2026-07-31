@@ -19,6 +19,39 @@ _WAYNE_HOME_OVERRIDE: ContextVar[str | object] = ContextVar(
     "_WAYNE_HOME_OVERRIDE", default=_UNSET
 )
 
+_WORK4YOU_ENV_PREFIX = "WORK4YOU_"
+_LEGACY_ENV_PREFIX = "WAYNE_"
+
+
+def apply_work4you_env_aliases() -> None:
+    """Bridge WORK4YOU_* environment variables onto their legacy WAYNE_* names.
+
+    The user-facing env interface is WORK4YOU_* (brand migration); internal
+    code still reads WAYNE_* until the package rename lands. Mirroring at
+    import time (and again after .env loads) gives every reader the new
+    names without touching hundreds of call sites.
+
+    Precedence: a pre-set WAYNE_* value WINS. Internal subprocess spawners
+    (systemd templates, the kanban dispatcher, per-profile launchers) inject
+    WAYNE_HOME explicitly into children that may also inherit the parent's
+    WORK4YOU_HOME — letting the new name win there would break profile
+    isolation. The first-boot migrate rewrites persisted WAYNE_* config
+    (registry, service units) to WORK4YOU_*, after which only one spelling
+    exists per machine.
+    """
+    for key in list(os.environ):
+        if not key.startswith(_WORK4YOU_ENV_PREFIX):
+            continue
+        legacy = _LEGACY_ENV_PREFIX + key[len(_WORK4YOU_ENV_PREFIX):]
+        if legacy not in os.environ:
+            os.environ[legacy] = os.environ[key]
+
+
+# Run the bridge as early as possible: this module is the first import of
+# every entry point (import-safe, no dependencies), so WORK4YOU_* spellings
+# are visible to all later readers. env_loader re-runs it after .env loads.
+apply_work4you_env_aliases()
+
 
 def set_wayne_home_override(path: str | Path | None) -> Token:
     """Set a context-local Wayne home override and return its reset token.
@@ -72,7 +105,12 @@ def get_wayne_home() -> Path:
     if override:
         return Path(override)
 
-    val = os.environ.get("WAYNE_HOME", "").strip()
+    # WAYNE_HOME first: internal spawners inject it explicitly (profile
+    # isolation) while WORK4YOU_HOME is the user-facing spelling — see
+    # apply_work4you_env_aliases for the precedence rationale.
+    val = os.environ.get("WAYNE_HOME", "").strip() or os.environ.get(
+        "WORK4YOU_HOME", ""
+    ).strip()
     if val:
         return Path(val)
 
