@@ -301,7 +301,7 @@ Record Key (ctrl+b), Max Recording Seconds (120), Auto Tts (off), Beep Enabled (
 | Edge Voice (en-US-AriaNeural) | Voz do provedor grátis | 🔒 Sistema — ⚠️ default em inglês; definir padrão PT-BR quando voz virar produto |
 | Elevenlabs Voice Id / Model Id · Openai Model / Voice · Gemini Model / Voice / Audio Tags / Persona Prompt File · Xai Voice Id / Language / Sample Rate / Bit Rate · Mistral Model / Voice Id · Neutts Ref Audio / Ref Text / Model / Device · Piper Voice | Vozes e parâmetros por provedor (19 campos) | 🔒 Sistema (×19) |
 
-⚖️ Candidato de produto: **"Voz do seu Wayne"** — seleção amigável de 2–3 vozes PT-BR curadas (benchmark: Claude mobile).
+⚖️ Candidato de produto: **"Voz do assistente"** — seleção amigável de 2–3 vozes PT-BR curadas (benchmark: Claude mobile).
 
 ### STT (`stt.*`) — o ouvido do Wayne
 | Campo | O que faz | Veredicto |
@@ -311,7 +311,7 @@ Record Key (ctrl+b), Max Recording Seconds (120), Auto Tts (off), Beep Enabled (
 | Local Model (base) / Local Language (auto) | Whisper local; idioma auto detecta PT | 🔒 Sistema (×2) |
 | Openai Model / Mistral Model / Elevenlabs Model Id / Language Code / Tag Audio Events / Diarize | Modelos e extras das APIs | 🔒 Sistema (×6) |
 
-**Saldo: 0 usuário / 37 sistema (candidato: "Voz do seu Wayne").**
+**Saldo: 0 usuário / 37 sistema (candidato: "Voz do assistente").**
 
 ## 10. Navegação e busca — Browser (16) + Web (4) + X Search (3) = 23 campos
 
@@ -396,7 +396,7 @@ As 16 tarefas: vision (descrever imagens), web_extract (resumir páginas), compr
 | Memória | 6 | 2 (memória, perfil) | aprovação de escrita da memória |
 | Compressão | 9 | 0 | — |
 | Segurança | 17 | 0 | redact PII (privacidade futura) |
-| Áudio (Voz/TTS/STT) | 37 | 0 | "Voz do seu Wayne" (vozes curadas) |
+| Áudio (Voz/TTS/STT) | 37 | 0 | "Voz do assistente" (vozes curadas) |
 | Navegação/busca (Browser/Web/X) | 23 | 0 | — |
 | Canais (Discord/Telegram/Slack/Matrix/Mattermost) | 34 | 0 | prefs por canal na página Channels |
 | Auxiliary (16 tarefas) | 83 | 0 | — (face = página Modelos) |
@@ -407,7 +407,7 @@ As 16 tarefas: vision (descrever imagens), web_extract (resumir páginas), compr
 
 **480 campos → 3 de usuário:** Fuso horário · Memória ligada/desligada · Perfil do usuário ligado/desligado. (+ o card Tema do painel, que já vive na Config.)
 
-**Os 8 candidatos futuros:** aprovação de escrita de memória, aprovação de escrita de skills e modo de aprovações (família "autonomia do agente") · instruções personalizadas · mostrar raciocínio · tema do chat (skin) · redact PII (privacidade) · voz do Wayne (vozes curadas).
+**Os 8 candidatos futuros:** aprovação de escrita de memória, aprovação de escrita de skills e modo de aprovações (família "autonomia do agente") · instruções personalizadas · mostrar raciocínio · tema do chat (skin) · redact PII (privacidade) · voz do assistente (vozes curadas).
 
 **Achados de segurança (urgência do Bloco 2):** credenciais do painel (dashboard.basic_auth.*) visíveis/editáveis · delegation.api_key · 16× auxiliary.*.api_key.
 
