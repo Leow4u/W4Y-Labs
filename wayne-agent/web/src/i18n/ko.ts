@@ -1035,7 +1035,7 @@ export const ko: Translations = {
     enableRuntime: "활성화",
     forceReinstall: "강제 재설치 (기존 폴더를 먼저 삭제)",
     headline:
-      "Work4You 플러그인을 검색, 설치, 활성화 및 업데이트합니다 (`wayne plugins` 동등).",
+      "Work4You 플러그인을 검색, 설치, 활성화 및 업데이트합니다 (`work4you plugins` 동등).",
     identifierLabel: "Git URL 또는 owner/repo",
     inactive: "비활성",
     installBtn: "설치",
@@ -1725,7 +1725,7 @@ export const ko: Translations = {
     urlTitle: "URL로 커넥터 추가",
     addBtn: "추가",
     importBtn: "가져오기",
-    createWithWayne: "Work4You으로 만들기",
+    createWithWayne: "Work4You로 만들기",
     namePh: "이름",
     commandPh: "명령어 (예: npx)",
     argsPh: "인수 (공백으로 구분)",

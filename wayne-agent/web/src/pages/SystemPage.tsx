@@ -644,8 +644,8 @@ export default function SystemPage() {
         title="Update Work4You?"
         description={
           updateInfo && updateInfo.behind && updateInfo.behind > 0
-            ? `This will run 'wayne update' (${updateInfo.update_command}) and pull ${updateInfo.behind} new commit${updateInfo.behind === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`
-            : `This will run 'wayne update' (${updateInfo?.update_command ?? "wayne update"}) and restart the gateway when it finishes.`
+            ? `This will run 'work4you update' (${updateInfo.update_command}) and pull ${updateInfo.behind} new commit${updateInfo.behind === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`
+            : `This will run 'work4you update' (${updateInfo?.update_command ?? "work4you update"}) and restart the gateway when it finishes.`
         }
         confirmLabel="Update now"
       />
@@ -974,7 +974,7 @@ export default function SystemPage() {
             )}
             {!portal?.logged_in && (
               <p className="text-xs text-muted-foreground">
-                Log in with <span className="font-mono">wayne portal</span>.
+                Log in with <span className="font-mono">work4you portal</span>.
               </p>
             )}
           </CardContent>
@@ -1082,7 +1082,7 @@ export default function SystemPage() {
               </Link>
               <span className="ml-auto">
                 New credentials:{" "}
-                <span className="font-mono">wayne memory setup</span>
+                <span className="font-mono">work4you memory setup</span>
               </span>
             </div>
 

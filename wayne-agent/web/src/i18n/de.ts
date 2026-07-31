@@ -1036,7 +1036,7 @@ export const de: Translations = {
     enableRuntime: "Aktivieren",
     forceReinstall: "Neuinstallation erzwingen (bestehenden Ordner zuerst löschen)",
     headline:
-      "Work4You-Plugins entdecken, installieren, aktivieren und aktualisieren (entspricht `wayne plugins`).",
+      "Work4You-Plugins entdecken, installieren, aktivieren und aktualisieren (entspricht `work4you plugins`).",
     identifierLabel: "Git-URL oder owner/repo",
     inactive: "inaktiv",
     installBtn: "Installieren",
@@ -1300,7 +1300,7 @@ export const de: Translations = {
     cyclePercentUsed: "{pct}% der Credits dieses Zyklus verbraucht.",
     cycleDepleted: "Die Credits dieses Zyklus sind aufgebraucht — sie erneuern sich im nächsten Zyklus.",
     planTab: "Plan & Nutzung",
-    defaultTier: "Waynes Standardmodus",
+    defaultTier: "Standardmodus von Work4You",
     defaultTierHint: "Gilt überall für neue Aufgaben — im Chat kannst du weiterhin pro Aufgabe wechseln.",
     tierAppliedToast: "Standardmodus aktualisiert",
     usageTitle: "Nutzung",

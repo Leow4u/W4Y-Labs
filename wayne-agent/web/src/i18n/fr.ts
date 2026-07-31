@@ -1037,7 +1037,7 @@ export const fr: Translations = {
     enableRuntime: "Activer",
     forceReinstall: "Forcer la réinstallation (supprimer d'abord le dossier existant)",
     headline:
-      "Découvrez, installez, activez et mettez à jour les plugins Work4You (parité avec `wayne plugins`).",
+      "Découvrez, installez, activez et mettez à jour les plugins Work4You (parité avec `work4you plugins`).",
     identifierLabel: "URL Git ou owner/repo",
     inactive: "inactif",
     installBtn: "Installer",

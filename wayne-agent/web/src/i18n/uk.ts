@@ -1037,7 +1037,7 @@ export const uk: Translations = {
     enableRuntime: "Увімкнути",
     forceReinstall: "Примусово перевстановити (спершу видалити наявну теку)",
     headline:
-      "Знаходьте, встановлюйте, вмикайте та оновлюйте плагіни Work4You (паритет з `wayne plugins`).",
+      "Знаходьте, встановлюйте, вмикайте та оновлюйте плагіни Work4You (паритет з `work4you plugins`).",
     identifierLabel: "Git URL або owner/repo",
     inactive: "неактивний",
     installBtn: "Встановити",
