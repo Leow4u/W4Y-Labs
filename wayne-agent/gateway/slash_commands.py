@@ -79,7 +79,7 @@ def _model_switch_skew_guard() -> Optional[str]:
         error=(
             f"This gateway is running code from {boot_rev} but the checkout on "
             f"disk is now {disk_rev}. Switching models would risk a stale-module "
-            f"crash — restart the gateway to load the new code: wayne gateway restart"
+            f"crash — restart the gateway to load the new code: work4you gateway restart"
         ),
     )
 
@@ -1153,7 +1153,7 @@ class GatewaySlashCommandsMixin:
                 return (
                     f"✓ {platform.value} paused. "
                     f"Resume with `/platform resume {platform.value}` or "
-                    f"`wayne gateway restart` to reset."
+                    f"`work4you gateway restart` to reset."
                 )
             # action == "resume"
             if platform not in failed:
@@ -4267,7 +4267,7 @@ class GatewaySlashCommandsMixin:
             return (
                 "No skill bundles installed.\n"
                 "Create one on the host with:\n"
-                "  `wayne bundles create <name> --skill <s1> --skill <s2>`\n"
+                "  `work4you bundles create <name> --skill <s1> --skill <s2>`\n"
                 f"Directory: `{_bundles_dir()}`"
             )
 
@@ -4425,7 +4425,7 @@ class GatewaySlashCommandsMixin:
 
             lines.append("")
             lines.append(
-                "For the full logs, run `wayne debug share` from the CLI "
+                "For the full logs, run `work4you debug share` from the CLI "
                 "(also written locally)."
             )
             return "\n".join(lines)
@@ -4461,7 +4461,7 @@ class GatewaySlashCommandsMixin:
                 return t("gateway.update.platform_not_messaging")
 
         if is_managed():
-            return f"✗ {format_managed_message('update Wayne Agent')}"
+            return f"✗ {format_managed_message('update Work4You')}"
 
         project_root = Path(__file__).parent.parent.resolve()
         git_dir = project_root / '.git'

@@ -252,7 +252,7 @@ def _get_pty_active_session_files(app: "FastAPI") -> dict[str, Path]:
         return app.state.pty_active_session_files
 
 
-app = FastAPI(title="Wayne Agent", version=__version__, lifespan=_lifespan)
+app = FastAPI(title="Work4You", version=__version__, lifespan=_lifespan)
 
 # Memory-provider OAuth connect routes live in the memory layer, not here.
 from wayne_cli.memory_oauth import router as _memory_oauth_router  # noqa: E402
@@ -717,7 +717,7 @@ _SCHEMA_OVERRIDES: Dict[str, Dict[str, Any]] = {
     "updates.non_interactive_local_changes": {
         "type": "select",
         "description": (
-            "When the chat app / gateway updates Wayne (no terminal prompt), "
+            "When the chat app / gateway updates Work4You (no terminal prompt), "
             "what to do with uncommitted local source edits. 'stash' keeps them "
             "and re-applies them after the update; 'discard' throws them away. "
             "Terminal updates always ask, regardless of this setting."
@@ -4359,7 +4359,7 @@ async def update_wayne():
     """Kick off ``wayne update`` in the background."""
     if _dashboard_local_update_managed_externally():
         message = (
-            "Wayne updates are managed outside this dashboard in "
+            "Work4You updates are managed outside this dashboard in "
             "containerized environments. The built-in local updater is "
             "disabled here."
         )
@@ -4481,7 +4481,7 @@ async def check_wayne_update(force: bool = False):
             "can_apply": False,
             "update_command": "managed outside dashboard",
             "message": (
-                "Wayne updates are managed outside this dashboard in "
+                "Work4You updates are managed outside this dashboard in "
                 "containerized environments."
             ),
         }
@@ -6935,11 +6935,11 @@ _MESSAGING_ENV_FALLBACKS: dict[str, dict[str, Any]] = {
         "password": True,
     },
     "WEIXIN_ACCOUNT_ID": {
-        "description": "iLink Bot account ID obtained through QR login in wayne gateway setup",
+        "description": "iLink Bot account ID obtained through QR login in work4you gateway setup",
         "prompt": "iLink Bot account ID",
     },
     "WEIXIN_TOKEN": {
-        "description": "iLink Bot token obtained through QR login in wayne gateway setup",
+        "description": "iLink Bot token obtained through QR login in work4you gateway setup",
         "prompt": "iLink Bot token",
         "password": True,
     },
@@ -7456,7 +7456,7 @@ async def _telegram_onboarding_request(
 
 @app.post("/api/messaging/telegram/onboarding/start")
 async def start_telegram_onboarding(body: TelegramOnboardingStart):
-    bot_name = (body.bot_name or "Wayne Agent").strip() or "Wayne Agent"
+    bot_name = (body.bot_name or "Work4You").strip() or "Work4You"
     payload = await _telegram_onboarding_request(
         "POST",
         "/v1/telegram/pairings",
@@ -7918,7 +7918,7 @@ def _anthropic_oauth_status() -> Dict[str, Any]:
         return {
             "logged_in": True,
             "source": "wayne_pkce",
-            "source_label": f"Wayne PKCE ({_WAYNE_OAUTH_FILE})",
+            "source_label": f"Work4You PKCE ({_WAYNE_OAUTH_FILE})",
             "token_preview": _truncate_token(wayne_creds.get("accessToken")),
             "expires_at": wayne_creds.get("expiresAt"),
             "has_refresh_token": bool(wayne_creds.get("refreshToken")),
@@ -8215,7 +8215,7 @@ def _oauth_provider_disconnect_hint(provider: Dict[str, Any], status: Dict[str, 
         if _oauth_provider_disconnect_command(provider):
             # The GUI offers a one-click "run in terminal" path; this hint is the
             # fallback wording for surfaces that only show text.
-            return "Managed outside Wayne — run the disconnect command to remove it."
+            return "Managed outside Work4You — run the disconnect command to remove it."
         return "Managed by that provider's CLI; remove it there."
     if status.get("source") == "env_var":
         return "Remove the API key from Settings → Keys instead."
@@ -10577,7 +10577,7 @@ async def test_mcp_server(name: str, profile: Optional[str] = None):
 async def auth_mcp_server(name: str, profile: Optional[str] = None):
     """Run the OAuth flow for an HTTP MCP server (opens the system browser).
 
-    Mirrors ``wayne mcp login``: wipe cached OAuth state so the probe forces
+    Mirrors ``work4you mcp login``: wipe cached OAuth state so the probe forces
     a fresh browser flow, connect, then verify a token actually landed on disk
     (some providers serve tools/list unauthenticated — see
     ``_reauth_oauth_server``).  Blocks until the browser flow completes, so it
@@ -10646,7 +10646,7 @@ async def auth_mcp_server(name: str, profile: Optional[str] = None):
                     "error": (
                         "The server responded, but no OAuth token was obtained — "
                         "this provider may require a manually-registered OAuth "
-                        "client (see `wayne mcp login`)."
+                        "client (see `work4you mcp login`)."
                     ),
                     "tools": [],
                 }
@@ -11278,7 +11278,7 @@ async def remove_credential_pool_entry(provider: str, index: int):
 #
 # Selecting a provider only writes config.memory.provider (full interactive
 # provider setup, with its API-key prompts, stays on the CLI via
-# `wayne memory setup`).  The dashboard covers the common admin actions:
+# `work4you memory setup`).  The dashboard covers the common admin actions:
 # see which provider is active, switch the built-in store on/off, and wipe
 # built-in memory files.
 # ---------------------------------------------------------------------------
@@ -11342,7 +11342,7 @@ async def set_memory_provider(body: MemoryProviderSelect):
         if provider not in valid:
             raise HTTPException(
                 status_code=400,
-                detail=f"Unknown memory provider '{provider}'. Run `wayne memory setup` to configure a new one.",
+                detail=f"Unknown memory provider '{provider}'. Run `work4you memory setup` to configure a new one.",
             )
 
     cfg = load_config()
@@ -11977,7 +11977,7 @@ async def update_skills_hub(
 # provenance).  Keep in sync with create_source_router()'s source list.
 _SKILL_HUB_SOURCE_LABELS = {
     "official": "Official (Nous)",
-    "wayne-index": "Wayne Index",
+    "wayne-index": "Work4You Index",
     "skills-sh": "skills.sh",
     "well-known": "Well-Known",
     "url": "Direct URL",
@@ -12567,7 +12567,7 @@ def _assert_studio_profile_mutable(name: str) -> None:
 def _profile_setup_command(name: str) -> str:
     """Return the shell command used to configure a profile in the CLI."""
     _resolve_profile_dir(name)
-    return "wayne setup" if name == "default" else f"{name} setup"
+    return "work4you setup" if name == "default" else f"{name} setup"
 
 
 def _write_profile_model(profile_dir: Path, provider: str, model: str) -> None:
@@ -15986,7 +15986,7 @@ async def console_ws(ws: WebSocket) -> None:
                         "type": "error",
                         "id": command_id,
                         "message": (
-                            "Command timed out. Wayne Console returned to the prompt."
+                            "Command timed out. Work4You Console returned to the prompt."
                         ),
                         "command": line,
                     },
@@ -16264,7 +16264,7 @@ async def pty_ws(ws: WebSocket) -> None:
         await ws.send_text(
             "\r\n\x1b[31mChat unavailable: the embedded terminal requires a "
             "POSIX PTY, which native Windows Python doesn't provide.\x1b[0m\r\n"
-            "\x1b[33mInstall Wayne inside WSL2 to use the dashboard's /chat "
+            "\x1b[33mInstall Work4You inside WSL2 to use the dashboard's /chat "
             "tab — the rest of the dashboard works here.\x1b[0m\r\n"
         )
         await ws.close(code=1011)
@@ -17861,7 +17861,7 @@ def start_server(
                 "    (hash with: python -c \"from "
                 "plugins.dashboard_auth.basic import hash_password; "
                 "print(hash_password('your-password'))\")\n"
-                "  • OAuth: run `wayne dashboard register` (Nous Portal) or "
+                "  • OAuth: run `work4you dashboard register` (Nous Portal) or "
                 "install a DashboardAuthProvider plugin.\n"
                 "There is no unauthenticated public-bind option — to keep it "
                 "local, bind 127.0.0.1 and tunnel in (SSH / Tailscale)."
@@ -17959,7 +17959,7 @@ def start_server(
 
             _write_dashboard_ready_file(actual_port)
             print(f"WAYNE_DASHBOARD_READY port={actual_port}", flush=True)
-            print(f"  Wayne Web UI → http://{host}:{actual_port}")
+            print(f"  Work4You Web UI → http://{host}:{actual_port}")
             _maybe_open_browser(host, actual_port, open_browser, initial_profile)
 
             # Collapse the peer-hangup teardown flood (#50005). When the Desktop

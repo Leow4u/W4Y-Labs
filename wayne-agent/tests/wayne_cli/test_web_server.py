@@ -3424,7 +3424,7 @@ class TestNewEndpoints:
         assert resp.status_code == 200
         assert resp.json()["command"] == "coder setup"
 
-    def test_profile_setup_command_uses_wayne_for_default_profile(self):
+    def test_profile_setup_command_uses_work4you_for_default_profile(self):
         from wayne_constants import get_wayne_home
 
         get_wayne_home().mkdir(parents=True, exist_ok=True)
@@ -3432,7 +3432,7 @@ class TestNewEndpoints:
         resp = self.client.get("/api/profiles/default/setup-command")
 
         assert resp.status_code == 200
-        assert resp.json()["command"] == "wayne setup"
+        assert resp.json()["command"] == "work4you setup"
 
     def test_profiles_create_creates_wrapper_alias_when_safe(self, monkeypatch, tmp_path):
         import wayne_cli.profiles as profiles_mod

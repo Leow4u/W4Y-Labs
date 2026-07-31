@@ -76,4 +76,4 @@ class TestModelSwitchSkewGuard:
         assert msg is not None
         assert "abc1234567" in msg
         assert "def4567890" in msg
-        assert "wayne gateway restart" in msg
+        assert "work4you gateway restart" in msg

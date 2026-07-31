@@ -699,7 +699,7 @@ describe('createGatewayEventHandler', () => {
     onEvent({
       payload: {
         message:
-          'agent init failed: No LLM provider configured. Run `wayne model` to select a provider, or run `wayne setup` for first-time configuration.'
+          'agent init failed: No LLM provider configured. Run `work4you model` to select a provider, or run `work4you setup` for first-time configuration.'
       },
       type: 'error'
     } as any)
