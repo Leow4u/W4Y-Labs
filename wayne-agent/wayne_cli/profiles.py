@@ -1454,7 +1454,7 @@ def delete_profile(name: str, yes: bool = False) -> Path:
     if canon == "default":
         raise ValueError(
             "Cannot delete the default profile (~/.wayne).\n"
-            "To remove everything, use: wayne uninstall"
+            "To remove everything, use: work4you uninstall"
         )
 
     profile_dir = get_profile_dir(canon)
@@ -1794,7 +1794,7 @@ def set_active_profile(name: str) -> None:
     if canon != "default" and not profile_exists(canon):
         raise FileNotFoundError(
             f"Profile '{canon}' does not exist. "
-            f"Create it with: wayne profile create {canon}"
+            f"Create it with: work4you profile create {canon}"
         )
 
     path = _get_active_profile_path()
@@ -2003,7 +2003,7 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
     if not inferred_name:
         raise ValueError(
             "Cannot determine profile name from archive. "
-            "Specify it explicitly: wayne profile import <archive> --name <name>"
+            "Specify it explicitly: work4you profile import <archive> --name <name>"
         )
     if archive_root is None:
         raise ValueError(
@@ -2018,7 +2018,7 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
     if canon == "default":
         raise ValueError(
             "Cannot import as 'default' — that is the built-in root profile (~/.wayne). "
-            "Specify a different name: wayne profile import <archive> --name <name>"
+            "Specify a different name: work4you profile import <archive> --name <name>"
         )
 
     profile_dir = get_profile_dir(canon)
@@ -2184,7 +2184,7 @@ def resolve_profile_env(profile_name: str) -> str:
     if canon != "default" and not profile_dir.is_dir():
         raise FileNotFoundError(
             f"Profile '{canon}' does not exist. "
-            f"Create it with: wayne profile create {canon}"
+            f"Create it with: work4you profile create {canon}"
         )
 
     return str(profile_dir)

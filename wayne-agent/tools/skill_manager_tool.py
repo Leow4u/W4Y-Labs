@@ -269,7 +269,7 @@ def _pinned_guard(name: str) -> Optional[str]:
             return (
                 f"Skill '{name}' is pinned and cannot be deleted by "
                 f"skill_manage. Ask the user to run "
-                f"`wayne curator unpin {name}` if they want to delete it. "
+                f"`work4you curator unpin {name}` if they want to delete it. "
                 f"Patches and edits are allowed on pinned skills; only "
                 f"deletion is blocked."
             )
@@ -312,7 +312,7 @@ def _background_review_write_guard(
                     f"Refusing background curator {action} for pinned skill "
                     f"'{name}': pinned skills are off-limits to autonomous "
                     "maintenance. Ask the user to run "
-                    f"`wayne curator unpin {name}` if they want it changed."
+                    f"`work4you curator unpin {name}` if they want it changed."
                 ),
             }
     except Exception:
@@ -670,7 +670,7 @@ def _skill_not_found_error(name: str, suffix: str = "") -> str:
             base += (
                 f" A skill by that name exists in profile "
                 f"'{other_profile}' ({other_path}). To edit a skill in "
-                f"another profile, switch profiles (`wayne -p "
+                f"another profile, switch profiles (`work4you -p "
                 f"{other_profile}`) or operate via explicit file tools "
                 f"with ``cross_profile=True``."
             )
@@ -678,7 +678,7 @@ def _skill_not_found_error(name: str, suffix: str = "") -> str:
             names = ", ".join(f"'{p}'" for p, _ in others)
             base += (
                 f" Skills by that name exist in other profiles: {names}. "
-                f"Switch profiles (`wayne -p <name>`) to edit there, or "
+                f"Switch profiles (`work4you -p <name>`) to edit there, or "
                 f"operate via explicit file tools with ``cross_profile=True``."
             )
     else:
@@ -1433,7 +1433,7 @@ SKILL_MANAGE_SCHEMA = {
         "Good skills: trigger conditions, numbered steps with exact commands, "
         "pitfalls section, verification steps. Use skill_view() to see format examples.\n\n"
         "Pinned skills are protected from deletion only — skill_manage(action='delete') "
-        "will refuse with a message pointing the user to `wayne curator unpin <name>`. "
+        "will refuse with a message pointing the user to `work4you curator unpin <name>`. "
         "Patches and edits go through on pinned skills so you can still improve them as "
         "pitfalls come up; pin only guards against irrecoverable loss."
     ),

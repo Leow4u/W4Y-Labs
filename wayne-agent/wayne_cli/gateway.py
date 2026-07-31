@@ -1087,7 +1087,7 @@ def _wait_for_systemd_service_restart(
 
     print(
         f"⚠ {scope_label} service did not become active within {int(timeout)}s.\n"
-        f"  Check status: {'sudo ' if system else ''}wayne gateway status\n"
+        f"  Check status: {'sudo ' if system else ''}work4you gateway status\n"
         f"  Check logs:   journalctl {'--user ' if not system else ''}-u {svc} -l --since '2 min ago'"
     )
     return False
@@ -1129,7 +1129,7 @@ def _print_systemd_start_limit_wait(system: bool = False) -> None:
     print(f"⏳ {scope_label} service is temporarily rate-limited by systemd.")
     print("  systemd is refusing another immediate start after repeated exits.")
     print(
-        f"  Wait for the start-limit window to expire, then run: {'sudo ' if system else ''}wayne gateway restart{scope_flag}"
+        f"  Wait for the start-limit window to expire, then run: {'sudo ' if system else ''}work4you gateway restart{scope_flag}"
     )
     print(f"  Or clear the failed state manually: {systemctl_prefix}reset-failed {svc}")
     print(f"  Check logs: {journal_prefix}-u {svc} -l --since '5 min ago'")
@@ -1340,13 +1340,13 @@ def _print_gateway_process_mismatch(snapshot: GatewayRuntimeSnapshot) -> None:
         )
         print(f"  PID(s): {_format_gateway_pids(snapshot.gateway_pids, limit=None)}")
         print("  Auto-start at login and auto-restart on crash are NOT available.")
-        print("  Stop it with: wayne gateway stop")
+        print("  Stop it with: work4you gateway stop")
     else:
         print(
             "⚠ Gateway process is running for this profile, but the service is not active"
         )
         print(f"  PID(s): {_format_gateway_pids(snapshot.gateway_pids, limit=None)}")
-        print("  This is usually a manual foreground/tmux/nohup run, so `wayne gateway`")
+        print("  This is usually a manual foreground/tmux/nohup run, so `work4you gateway`")
         print("  can refuse to start another copy until this process stops.")
 
 
@@ -1663,7 +1663,7 @@ def _windows_gateway_should_absorb_console_controls() -> bool:
 # =============================================================================
 
 _SERVICE_BASE = "wayne-gateway"
-SERVICE_DESCRIPTION = "Wayne Agent Gateway - Messaging Platform Integration"
+SERVICE_DESCRIPTION = "Work4You Gateway - Messaging Platform Integration"
 
 
 def _profile_suffix() -> str:
@@ -1953,7 +1953,7 @@ def _raise_user_systemd_unavailable(
         "\n"
         "  Alternative: run the gateway in the foreground (stays up until\n"
         "  you exit / close the terminal):\n"
-        "    wayne gateway run"
+        "    work4you gateway run"
     )
     raise UserSystemdUnavailableError(msg)
 
@@ -2092,7 +2092,7 @@ def print_legacy_unit_warning() -> None:
     print_info("  These run alongside the current wayne-gateway service and")
     print_info("  cause SIGTERM flap loops — both try to use the same bot token.")
     print_info("  Remove them with:")
-    print_info("    wayne gateway migrate-legacy")
+    print_info("    work4you gateway migrate-legacy")
 
 
 def remove_legacy_wayne_units(
@@ -2135,7 +2135,7 @@ def remove_legacy_wayne_units(
         return 0, [p for _, p, _ in legacy]
 
     if interactive and not prompt_yes_no("Remove these legacy units?", True):
-        print("Skipped. Run again with: wayne gateway migrate-legacy")
+        print("Skipped. Run again with: work4you gateway migrate-legacy")
         return 0, [p for _, p, _ in legacy]
 
     removed = 0
@@ -2164,7 +2164,7 @@ def remove_legacy_wayne_units(
         if os.geteuid() != 0:  # windows-footgun: ok — Linux systemd removal path, guarded by `if system == "Linux"` / systemd-only branch
             print()
             print_warning("System-scope legacy units require root to remove.")
-            print_info("  Re-run with: sudo wayne gateway migrate-legacy")
+            print_info("  Re-run with: sudo work4you gateway migrate-legacy")
             for _, path in system_units:
                 remaining.append(path)
         else:
@@ -2211,8 +2211,8 @@ def print_systemd_scope_conflict_warning() -> None:
         "  Default gateway commands target the user service unless you pass --system."
     )
     print_info("  Keep one of these:")
-    print_info("    wayne gateway uninstall")
-    print_info("    sudo wayne gateway uninstall --system")
+    print_info("    work4you gateway uninstall")
+    print_info("    sudo work4you gateway uninstall --system")
 
 
 def _require_root_for_system_service(action: str) -> None:
@@ -2324,7 +2324,7 @@ def install_linux_gateway_from_setup(force: bool = False, enable_on_startup: boo
             # direct caller — we do NOT print a self-elevation recipe.
             print_warning(
                 "  System service install requires root. Re-run setup from a "
-                "root shell, or install a user service instead: wayne gateway install"
+                "root shell, or install a user service instead: work4you gateway install"
             )
             return scope, False
 
@@ -2934,7 +2934,7 @@ def refresh_systemd_unit_if_needed(system: bool = False) -> bool:
     unit_path.write_text(new_unit, encoding="utf-8")
     _run_systemctl(["daemon-reload"], system=system, check=True, timeout=30)
     print(
-        f"↻ Updated gateway {_service_scope_label(system)} service definition to match the current Wayne install"
+        f"↻ Updated gateway {_service_scope_label(system)} service definition to match the current Work4You install"
     )
     return True
 
@@ -3040,9 +3040,9 @@ def _print_system_scope_remediation(action: str) -> None:
     else:
         print_info(f"         sudo systemctl {action} {svc}")
     print_info("    2. Switch to a per-user service (recommended for personal use):")
-    print_info("         sudo wayne gateway uninstall --system")
-    print_info("         wayne gateway install")
-    print_info("         wayne gateway start")
+    print_info("         sudo work4you gateway uninstall --system")
+    print_info("         work4you gateway install")
+    print_info("         work4you gateway start")
 
 
 def _get_restart_drain_timeout() -> float:
@@ -3116,10 +3116,10 @@ def systemd_install(
     print()
     print("Next steps:")
     print(
-        f"  {'sudo ' if system else ''}wayne gateway start{scope_flag}              # Start the service"
+        f"  {'sudo ' if system else ''}work4you gateway start{scope_flag}              # Start the service"
     )
     print(
-        f"  {'sudo ' if system else ''}wayne gateway status{scope_flag}             # Check status"
+        f"  {'sudo ' if system else ''}work4you gateway status{scope_flag}             # Check status"
     )
     print(
         f"  {'journalctl' if system else 'journalctl --user'} -u {get_service_name()} -f  # View logs"
@@ -3161,7 +3161,7 @@ def _require_service_installed(action: str, system: bool = False) -> None:
     if not unit_path.exists():
         scope_flag = " --system" if system else ""
         print(f"✗ Gateway service is not installed")
-        print(f"  Run: {'sudo ' if system else ''}wayne gateway install{scope_flag}")
+        print(f"  Run: {'sudo ' if system else ''}work4you gateway install{scope_flag}")
         sys.exit(1)
 
 
@@ -3202,7 +3202,7 @@ def systemd_stop(system: bool = False):
         label = _service_scope_label(system)
         print(
             f"Gateway {label} service is still stopping after 90s; "
-            "check `wayne gateway status` or logs for final shutdown state."
+            "check `work4you gateway status` or logs for final shutdown state."
         )
         return
     print(f"✓ {_service_scope_label(system).capitalize()} service stopped")
@@ -3271,7 +3271,7 @@ def systemd_restart(system: bool = False):
             label = _service_scope_label(system)
             print(
                 f"Gateway {label} service is still restarting after 90s; "
-                "check `wayne gateway status` or logs for final state."
+                "check `work4you gateway status` or logs for final state."
             )
             return
         _wait_for_systemd_service_restart(system=system, previous_pid=pid)
@@ -3301,7 +3301,7 @@ def systemd_restart(system: bool = False):
         label = _service_scope_label(system)
         print(
             f"Gateway {label} service is still restarting after 90s; "
-            "check `wayne gateway status` or logs for final state."
+            "check `work4you gateway status` or logs for final state."
         )
         return
     _wait_for_systemd_service_restart(system=system, previous_pid=pid)
@@ -3314,7 +3314,7 @@ def systemd_status(deep: bool = False, system: bool = False, full: bool = False)
 
     if not unit_path.exists():
         print("✗ Gateway service is not installed")
-        print(f"  Run: {'sudo ' if system else ''}wayne gateway install{scope_flag}")
+        print(f"  Run: {'sudo ' if system else ''}work4you gateway install{scope_flag}")
         return
 
     _sync_wayne_home_from_systemd_unit(system=system)
@@ -3330,7 +3330,7 @@ def systemd_status(deep: bool = False, system: bool = False, full: bool = False)
     if not systemd_unit_is_current(system=system):
         print("⚠ Installed gateway service definition is outdated")
         print(
-            f"  Run: {'sudo ' if system else ''}wayne gateway restart{scope_flag}  # auto-refreshes the unit"
+            f"  Run: {'sudo ' if system else ''}work4you gateway restart{scope_flag}  # auto-refreshes the unit"
         )
         print()
 
@@ -3363,7 +3363,7 @@ def systemd_status(deep: bool = False, system: bool = False, full: bool = False)
         print(
             f"✗ {_service_scope_label(system).capitalize()} gateway service is stopped"
         )
-        print(f"  Run: {'sudo ' if system else ''}wayne gateway start{scope_flag}")
+        print(f"  Run: {'sudo ' if system else ''}work4you gateway start{scope_flag}")
 
     configured_user = _read_systemd_user_from_unit(unit_path) if system else None
     if configured_user:
@@ -3386,7 +3386,7 @@ def systemd_status(deep: bool = False, system: bool = False, full: bool = False)
     elif _systemd_unit_is_start_limited(unit_props):
         print("  ⏳ Restart pending: systemd is temporarily rate-limiting starts")
         print(
-            f"  Run after the start-limit window expires: {'sudo ' if system else ''}wayne gateway restart{scope_flag}"
+            f"  Run after the start-limit window expires: {'sudo ' if system else ''}work4you gateway restart{scope_flag}"
         )
         print(
             f"  Or clear it manually: systemctl {'--user ' if not system else ''}reset-failed {get_service_name()}"
@@ -3396,7 +3396,7 @@ def systemd_status(deep: bool = False, system: bool = False, full: bool = False)
     ):
         print("  ⚠ Planned restart is stuck in systemd failed state (exit 75)")
         print(
-            f"  Run: systemctl {'--user ' if not system else ''}reset-failed {get_service_name()} && {'sudo ' if system else ''}wayne gateway start{scope_flag}"
+            f"  Run: systemctl {'--user ' if not system else ''}reset-failed {get_service_name()} && {'sudo ' if system else ''}work4you gateway start{scope_flag}"
         )
     elif active_state == "failed" and result_code:
         print(f"  ⚠ Systemd unit result: {result_code}")
@@ -3780,11 +3780,11 @@ def _launchd_fallback_to_detached(reason: str, *, exit_on_failure: bool = True) 
         print("✓ Started gateway as a background process instead")
         print("  It will NOT auto-start at login or auto-restart on crash.")
         print(f"  Logs: {_dhh()}/logs/gateway.log")
-        print("  Stop it with: wayne gateway stop")
+        print("  Stop it with: work4you gateway stop")
         return True
     print_error("Failed to start the gateway as a background process.")
     print(
-        f"  Try manually: nohup wayne gateway run --replace "
+        f"  Try manually: nohup work4you gateway run --replace "
         f"> {_dhh()}/logs/gateway.log 2>&1 &"
     )
     if exit_on_failure:
@@ -4036,7 +4036,7 @@ def refresh_launchd_plist_if_needed() -> bool:
             _launchd_reload_log_path(),
         )
     print(
-        "↻ Updated gateway launchd service definition to match the current Wayne install"
+        "↻ Updated gateway launchd service definition to match the current Work4You install"
     )
     return True
 
@@ -4076,7 +4076,7 @@ def launchd_install(force: bool = False):
     _clear_launchd_unsupported_marker()
     print()
     print("Next steps:")
-    print("  wayne gateway status             # Check status")
+    print("  work4you gateway status             # Check status")
     from wayne_constants import display_wayne_home as _dhh
 
     print(f"  tail -f {_dhh()}/logs/gateway.log  # View logs")
@@ -4354,10 +4354,10 @@ def launchd_status(deep: bool = False):
     # ── Report ──
     print(f"Launchd plist: {plist_path}")
     if launchd_plist_is_current():
-        print("✓ Service definition matches the current Wayne install")
+        print("✓ Service definition matches the current Work4You install")
     else:
-        print("⚠ Service definition is stale relative to the current Wayne install")
-        print("  Run: wayne gateway start")
+        print("⚠ Service definition is stale relative to the current Work4You install")
+        print("  Run: work4you gateway start")
 
     if service_listed:
         if launchd_pid is not None:
@@ -4370,10 +4370,10 @@ def launchd_status(deep: bool = False):
             print("  launchd cannot manage the gateway on this macOS version.")
             if fallback_pid:
                 print(f"✓ Detached fallback process is running (PID {fallback_pid})")
-                print("  Cron jobs will fire. Stop with: wayne gateway stop")
+                print("  Cron jobs will fire. Stop with: work4you gateway stop")
             else:
                 print("✗ No fallback process is running")
-                print("  Run: wayne gateway start")
+                print("  Run: work4you gateway start")
             print("  ⚠ Auto-start at login and auto-restart on crash are NOT available.")
         else:
             print("✓ Gateway service is registered with launchd")
@@ -4383,7 +4383,7 @@ def launchd_status(deep: bool = False):
     else:
         print("✗ Gateway service is not loaded")
         print("  Service definition exists locally but launchd has not loaded it.")
-        print("  Run: wayne gateway start")
+        print("  Run: work4you gateway start")
         if fallback_pid:
             print(f"  Note: a detached gateway process is running (PID {fallback_pid})")
 
@@ -4507,7 +4507,7 @@ def _guard_named_profile_under_multiplexer(force: bool = False) -> None:
     )
     print("  Manage the multiplexer instead (from the default profile):")
     print()
-    print("    wayne gateway restart")
+    print("    work4you gateway restart")
     print()
     print("  Pass --force to start a separate profile gateway anyway (not")
     print("  recommended while the multiplexer is running).")
@@ -4545,7 +4545,7 @@ def _guard_supervised_gateway_conflict(force: bool = False) -> None:
         "  instead:"
     )
     print()
-    print("    wayne gateway restart")
+    print("    work4you gateway restart")
     print()
     print(
         "  Pass --force to start a foreground gateway anyway (not recommended\n"
@@ -4580,9 +4580,9 @@ def _guard_existing_gateway_process_conflict(replace: bool = False) -> None:
     print_error(
         f"Another gateway instance is already running (PID {pid})."
     )
-    print("  Use 'wayne gateway restart' to replace it,")
-    print("  or 'wayne gateway stop' first.")
-    print("  Or use 'wayne gateway run --replace' to auto-replace.")
+    print("  Use 'work4you gateway restart' to replace it,")
+    print("  or 'work4you gateway stop' first.")
+    print("  Or use 'work4you gateway run --replace' to auto-replace.")
     sys.exit(1)
 
 
@@ -4596,12 +4596,12 @@ def _guard_official_docker_root_gateway() -> None:
         return
 
     print_error(
-        "Refusing to run the Wayne gateway as root inside the official Docker image."
+        "Refusing to run the Work4You gateway as root inside the official Docker image."
     )
     print(
         "  The image entrypoint normally drops privileges to the 'wayne' user. "
         "If you override entrypoint in Docker Compose, include "
-        "/opt/wayne/docker/entrypoint.sh before the Wayne command."
+        "/opt/wayne/docker/entrypoint.sh before the Work4You command."
     )
     print(
         "  Running the gateway as root can leave root-owned files in "
@@ -4688,7 +4688,7 @@ def run_gateway(verbose: int = 0, quiet: bool = False, replace: bool = False, fo
     from gateway.run import start_gateway
 
     print("┌─────────────────────────────────────────────────────────┐")
-    print("│           ⚕ Wayne Gateway Starting...                 │")
+    print("│           ⚕ Work4You Gateway Starting...              │")
     print("├─────────────────────────────────────────────────────────┤")
     print("│  Messaging platforms + cron scheduler                    │")
     print("│  Press Ctrl+C to stop                                   │")
@@ -4844,7 +4844,7 @@ _PLATFORMS = [
                 "name": "MATTERMOST_HOME_CHANNEL",
                 "prompt": "Home channel ID (for cron/notification delivery, or empty to set later with /set-home)",
                 "password": False,
-                "help": "Channel ID where Wayne delivers cron results and notifications.",
+                "help": "Channel ID where Work4You delivers cron results and notifications.",
             },
             {
                 "name": "MATTERMOST_REPLY_MODE",
@@ -4883,9 +4883,9 @@ _PLATFORMS = [
             "2. Complete the BlueBubbles setup wizard — sign in with your Apple ID",
             "3. In BlueBubbles Settings → API, note the Server URL and password",
             "4. The server URL is typically http://<your-mac-ip>:1234",
-            "5. Wayne connects via the BlueBubbles REST API and receives",
+            "5. Work4You connects via the BlueBubbles REST API and receives",
             "   incoming messages via a local webhook",
-            "6. To authorize users, use DM pairing: wayne pairing generate bluebubbles",
+            "6. To authorize users, use DM pairing: work4you pairing generate bluebubbles",
             "   Share the code — the user sends it via iMessage to get approved",
         ],
         "vars": [
@@ -4964,7 +4964,7 @@ _PLATFORMS = [
             "1. Download the Yuanbao app from https://yuanbao.tencent.com/",
             "2. In the app, go to PAI → My Bot and create a new bot",
             "3. After the bot is created, copy the App ID and App Secret",
-            "4. Enter them below and Wayne will connect automatically over WebSocket",
+            "4. Enter them below and Work4You will connect automatically over WebSocket",
         ],
         "vars": [
             {
@@ -5291,7 +5291,7 @@ def _setup_standard_platform(platform: dict):
                 else:
                     access_choices = [
                         "Enable open access (anyone can message the bot)",
-                        "Use DM pairing (unknown users request access, you approve with 'wayne pairing approve')",
+                        "Use DM pairing (unknown users request access, you approve with 'work4you pairing approve')",
                         "Skip for now (bot will deny all users until configured)",
                     ]
                     default_access_idx = 1
@@ -5313,13 +5313,13 @@ def _setup_standard_platform(platform: dict):
                         "  DM pairing mode — users will receive a code to request access."
                     )
                     print_info(
-                        "  Approve with: wayne pairing approve <platform> <code>"
+                        "  Approve with: work4you pairing approve <platform> <code>"
                     )
                 elif is_email:
                     print_success("  Unknown email senders will be ignored.")
                 else:
                     print_info(
-                        "  Skipped — configure later with 'wayne gateway setup'"
+                        "  Skipped — configure later with 'work4you gateway setup'"
                     )
             continue
 
@@ -5436,10 +5436,10 @@ def _setup_weixin():
     print()
     print(color("  ─── 💬 Weixin / WeChat Setup ───", Colors.CYAN))
     print()
-    print_info("  1. Wayne will open Tencent iLink QR login in this terminal.")
+    print_info("  1. Work4You will open Tencent iLink QR login in this terminal.")
     print_info("  2. Use WeChat to scan and confirm the QR code.")
     print_info(
-        "  3. Wayne will store the returned account_id/token in ~/.wayne/.env."
+        "  3. Work4You will store the returned account_id/token in ~/.wayne/.env."
     )
     print_info(
         "  4. This adapter supports native text, image, video, and document delivery."
@@ -5462,7 +5462,7 @@ def _setup_weixin():
 
     if not check_weixin_requirements():
         print_error("  Missing dependencies: Weixin needs aiohttp and cryptography.")
-        print_info("  Install them, then rerun `wayne gateway setup`.")
+        print_info("  Install them, then rerun `work4you gateway setup`.")
         return
 
     print()
@@ -5516,7 +5516,7 @@ def _setup_weixin():
         save_env_value("WEIXIN_ALLOWED_USERS", "")
         print_success("  DM pairing enabled.")
         print_info(
-            "  Unknown DM users can request access and you approve them with `wayne pairing approve`."
+            "  Unknown DM users can request access and you approve them with `work4you pairing approve`."
         )
     elif access_idx == 1:
         save_env_value("WEIXIN_DM_POLICY", "open")
@@ -5691,7 +5691,7 @@ def _setup_qqbot():
             save_env_value("QQ_ALLOWED_USERS", "")
         print_success("  DM pairing enabled.")
         print_info(
-            "  Unknown users can request access; approve with `wayne pairing approve`."
+            "  Unknown users can request access; approve with `work4you pairing approve`."
         )
     elif access_idx == 1:
         save_env_value("QQ_ALLOW_ALL_USERS", "true")
@@ -5758,7 +5758,7 @@ def _setup_signal():
         print_info("    Docker: bbernhard/signal-cli-rest-api")
         print()
         print_info("  After installing, link your account and start the daemon:")
-        print_info('    signal-cli link -n "WayneAgent"')
+        print_info('    signal-cli link -n "Work4You"')
         print_info("    signal-cli --account +YOURNUMBER daemon --http 127.0.0.1:8080")
         print()
 
@@ -6080,7 +6080,7 @@ def gateway_setup():
                         gateway_windows.restart()
                     else:
                         stop_profile_gateway()
-                        print_info("Start manually: wayne gateway")
+                        print_info("Start manually: work4you gateway")
                 except UserSystemdUnavailableError as e:
                     print_error("  Restart failed — user systemd not reachable:")
                     for line in str(e).splitlines():
@@ -6164,20 +6164,20 @@ def gateway_setup():
                                 print_error(f"  Start failed: {e}")
                     except subprocess.CalledProcessError as e:
                         print_error(f"  Install failed: {e}")
-                        print_info("  You can try manually: wayne gateway install")
+                        print_info("  You can try manually: work4you gateway install")
                 else:
                     print_info("  Skipped start and auto-start setup.")
-                    print_info("  You can install later: wayne gateway install")
+                    print_info("  You can install later: work4you gateway install")
                     if supports_systemd_services():
                         print_info(
-                            "  Or as a boot-time service: sudo wayne gateway install --system"
+                            "  Or as a boot-time service: sudo work4you gateway install --system"
                         )
-                    print_info("  Or run in foreground:  wayne gateway run")
+                    print_info("  Or run in foreground:  work4you gateway run")
             elif is_wsl():
                 print_info("  WSL detected but systemd is not running.")
-                print_info("  Run in foreground: wayne gateway run")
+                print_info("  Run in foreground: work4you gateway run")
                 print_info(
-                    "  For persistence:   tmux new -s wayne 'wayne gateway run'"
+                    "  For persistence:   tmux new -s wayne 'work4you gateway run'"
                 )
                 print_info(
                     "  To enable systemd: add systemd=true to /etc/wsl.conf, then 'wsl --shutdown'"
@@ -6186,16 +6186,16 @@ def gateway_setup():
                 from wayne_constants import display_wayne_home as _dhh
 
                 print_info("  Termux does not use systemd/launchd services.")
-                print_info("  Run in foreground: wayne gateway run")
+                print_info("  Run in foreground: work4you gateway run")
                 print_info(
-                    f"  Or start it manually in the background (best effort): nohup wayne gateway run >{_dhh()}/logs/gateway.log 2>&1 &"
+                    f"  Or start it manually in the background (best effort): nohup work4you gateway run >{_dhh()}/logs/gateway.log 2>&1 &"
                 )
             else:
                 print_info("  Service install not supported on this platform.")
-                print_info("  Run in foreground: wayne gateway run")
+                print_info("  Run in foreground: work4you gateway run")
     else:
         print()
-        print_info("No platforms configured. Run 'wayne gateway setup' when ready.")
+        print_info("No platforms configured. Run 'work4you gateway setup' when ready.")
 
     print()
 
@@ -6471,7 +6471,7 @@ def _gateway_command_inner(args):
         run_as_user = getattr(args, "run_as_user", None)
         if is_termux():
             print("Gateway service installation is not supported on Termux.")
-            print("Run manually: wayne gateway")
+            print("Run manually: work4you gateway")
             sys.exit(1)
         if supports_systemd_services():
             if is_wsl():
@@ -6479,10 +6479,10 @@ def _gateway_command_inner(args):
                     "WSL detected — systemd services may not survive WSL restarts."
                 )
                 print_info(
-                    "  Consider running in foreground instead: wayne gateway run"
+                    "  Consider running in foreground instead: work4you gateway run"
                 )
                 print_info(
-                    "  Or use tmux/screen for persistence: tmux new -s wayne 'wayne gateway run'"
+                    "  Or use tmux/screen for persistence: tmux new -s wayne 'work4you gateway run'"
                 )
                 print()
             # Honor CLI flags (--start-now / --no-start-now, --start-on-login /
@@ -6532,13 +6532,13 @@ def _gateway_command_inner(args):
             print("or run the gateway in foreground mode:")
             print()
             print(
-                "  wayne gateway run                              # direct foreground"
+                "  work4you gateway run                              # direct foreground"
             )
             print(
-                "  tmux new -s wayne 'wayne gateway run'         # persistent via tmux"
+                "  tmux new -s wayne 'work4you gateway run'         # persistent via tmux"
             )
             print(
-                "  nohup wayne gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
+                "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
             )
             sys.exit(1)
         elif is_container():
@@ -6549,9 +6549,9 @@ def _gateway_command_inner(args):
             if detect_service_manager() == "s6":
                 print("Per-profile gateways are auto-registered when you create a profile.")
                 print()
-                print("  wayne profile create <name>     # creates the s6 service slot")
-                print("  wayne -p <name> gateway start   # bring it up via s6")
-                print("  wayne status                    # see currently-supervised gateways")
+                print("  work4you profile create <name>     # creates the s6 service slot")
+                print("  work4you -p <name> gateway start   # bring it up via s6")
+                print("  work4you status                    # see currently-supervised gateways")
                 return
             # Fallback for pre-s6 containers or other container runtimes
             # we haven't taught about supervision (Podman without our
@@ -6567,11 +6567,11 @@ def _gateway_command_inner(args):
             )
             print("  docker restart <container>                # manual restart")
             print()
-            print("To run the gateway: wayne gateway run")
+            print("To run the gateway: work4you gateway run")
             sys.exit(0)
         else:
             print("Service installation not supported on this platform.")
-            print("Run manually: wayne gateway run")
+            print("Run manually: work4you gateway run")
             sys.exit(1)
 
     elif subcmd == "uninstall":
@@ -6583,7 +6583,7 @@ def _gateway_command_inner(args):
             print(
                 "Gateway service uninstall is not supported on Termux because there is no managed service to remove."
             )
-            print("Stop manual runs with: wayne gateway stop")
+            print("Stop manual runs with: work4you gateway stop")
             sys.exit(1)
         if supports_systemd_services():
             systemd_uninstall(system=system)
@@ -6598,8 +6598,8 @@ def _gateway_command_inner(args):
             if detect_service_manager() == "s6":
                 print("Per-profile gateways are auto-unregistered when you delete the profile.")
                 print()
-                print("  wayne profile delete <name>     # tears down the s6 service slot")
-                print("  wayne -p <name> gateway stop    # stop without deleting the profile")
+                print("  work4you profile delete <name>     # tears down the s6 service slot")
+                print("  work4you -p <name> gateway stop    # stop without deleting the profile")
                 return
             print("Service uninstall is not applicable inside a Docker container.")
             print("To stop the gateway, stop or remove the container:")
@@ -6636,7 +6636,7 @@ def _gateway_command_inner(args):
             print(
                 "Gateway service start is not supported on Termux because there is no system service manager."
             )
-            print("Run manually: wayne gateway")
+            print("Run manually: work4you gateway")
             sys.exit(1)
         if supports_systemd_services():
             systemd_start(system=system)
@@ -6651,13 +6651,13 @@ def _gateway_command_inner(args):
             print("Run the gateway in foreground mode instead:")
             print()
             print(
-                "  wayne gateway run                              # direct foreground"
+                "  work4you gateway run                              # direct foreground"
             )
             print(
-                "  tmux new -s wayne 'wayne gateway run'         # persistent via tmux"
+                "  tmux new -s wayne 'work4you gateway run'         # persistent via tmux"
             )
             print(
-                "  nohup wayne gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
+                "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
             )
             print()
             print(
@@ -6676,7 +6676,7 @@ def _gateway_command_inner(args):
             print("  docker start <container>     # start a stopped container")
             print("  docker restart <container>   # restart a running container")
             print()
-            print("Or run the gateway directly: wayne gateway run")
+            print("Or run the gateway directly: work4you gateway run")
             sys.exit(0)
         else:
             print("Not supported on this platform.")
@@ -6689,7 +6689,7 @@ def _gateway_command_inner(args):
             print_error(
                 "Refusing to stop the gateway from inside the gateway process.\n"
                 "This command was blocked to prevent restart loops.\n"
-                "Use `wayne gateway stop` from a shell outside the running gateway."
+                "Use `work4you gateway stop` from a shell outside the running gateway."
             )
             sys.exit(1)
 
@@ -6782,7 +6782,7 @@ def _gateway_command_inner(args):
             print_error(
                 "Refusing to restart the gateway from inside the gateway process.\n"
                 "This command was blocked to prevent restart loops.\n"
-                "Use `wayne gateway restart` from a shell outside the running gateway."
+                "Use `work4you gateway restart` from a shell outside the running gateway."
             )
             sys.exit(1)
 
@@ -6911,7 +6911,7 @@ def _gateway_command_inner(args):
                     print(f"  Run:  sudo loginctl enable-linger {_username}")
                     print()
                     print("  Then restart the gateway:")
-                    print("    wayne gateway restart")
+                    print("    work4you gateway restart")
                     return
 
             if service_configured:
@@ -6920,7 +6920,7 @@ def _gateway_command_inner(args):
                 print(
                     "  The service definition exists, but the service manager did not recover it."
                 )
-                print("  Fix the service, then retry: wayne gateway start")
+                print("  Fix the service, then retry: work4you gateway start")
                 sys.exit(1)
 
             # Manual restart: stop only this profile's gateway
@@ -6987,11 +6987,11 @@ def _gateway_command_inner(args):
                     print(
                         "To install as a Windows Scheduled Task (auto-start on login):"
                     )
-                    print("  wayne gateway install")
+                    print("  work4you gateway install")
                 else:
                     print("To install as a service:")
-                    print("  wayne gateway install")
-                    print("  sudo wayne gateway install --system")
+                    print("  work4you gateway install")
+                    print("  sudo work4you gateway install --system")
             else:
                 print("✗ Gateway is not running")
                 runtime_lines = _runtime_health_lines()
@@ -7002,26 +7002,26 @@ def _gateway_command_inner(args):
                         print(f"  {line}")
                 print()
                 print("To start:")
-                print("  wayne gateway run      # Run in foreground")
+                print("  work4you gateway run      # Run in foreground")
                 if is_termux():
                     print(
-                        "  nohup wayne gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # Best-effort background start"
+                        "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # Best-effort background start"
                     )
                 elif is_wsl():
                     print(
-                        "  tmux new -s wayne 'wayne gateway run'         # persistent via tmux"
+                        "  tmux new -s wayne 'work4you gateway run'         # persistent via tmux"
                     )
                     print(
-                        "  nohup wayne gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
+                        "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
                     )
                 elif is_windows():
                     print(
-                        "  wayne gateway install  # Install as Windows Scheduled Task (auto-start on login)"
+                        "  work4you gateway install  # Install as Windows Scheduled Task (auto-start on login)"
                     )
                 else:
-                    print("  wayne gateway install  # Install as user service")
+                    print("  work4you gateway install  # Install as user service")
                     print(
-                        "  sudo wayne gateway install --system  # Install as boot-time system service"
+                        "  sudo work4you gateway install --system  # Install as boot-time system service"
                     )
 
         # Show other profiles' gateway status for multi-profile awareness

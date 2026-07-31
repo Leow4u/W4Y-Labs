@@ -716,7 +716,7 @@ class TestRunDebug:
         run_debug(args)
 
         out = capsys.readouterr().out
-        assert "wayne debug" in out
+        assert "work4you debug" in out
         assert "share" in out
         assert "delete" in out
 
@@ -1054,7 +1054,7 @@ class TestRunDebugSweepsOnInvocation:
 
         # Default subcommand still printed help
         out = capsys.readouterr().out
-        assert "Usage: wayne debug" in out
+        assert "Usage: work4you debug" in out
 
 
 class TestRunDebugDelete:

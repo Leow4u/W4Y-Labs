@@ -443,7 +443,7 @@ def test_supervised_gateway_stdout_reaches_docker_logs(
     # The banner ⚕ symbol is the load-bearing assertion — it's unique
     # to gateway startup stdout output and won't appear in stderr
     # (Python logging) or s6 boot messages.
-    assert "⚕" in combined or "Wayne Gateway Starting" in combined, (
+    assert "⚕" in combined or "Work4You Gateway Starting" in combined, (
         "Supervised gateway's stdout banner did not reach docker logs. "
         "This means the `1` action directive in _render_log_run isn't "
         "forwarding stdout to /init. "
@@ -458,7 +458,7 @@ def test_supervised_gateway_stdout_reaches_docker_logs(
     file_contents = docker_exec_sh(
         container_name, "cat /opt/data/logs/gateways/default/current",
     ).stdout
-    assert "⚕" in file_contents or "Wayne Gateway Starting" in file_contents, (
+    assert "⚕" in file_contents or "Work4You Gateway Starting" in file_contents, (
         "Banner also missing from rotated log file — the file "
         "destination may have been dropped by the new s6-log script. "
         f"File contents:\n{file_contents}"

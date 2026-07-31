@@ -3,44 +3,44 @@
 Wayne CLI - Main entry point.
 
 Usage:
-    wayne                     # Interactive chat (default)
-    wayne chat                # Interactive chat
-    wayne gateway             # Run gateway in foreground
-    wayne gateway start       # Start gateway as service
-    wayne gateway stop        # Stop gateway service
-    wayne gateway status      # Show gateway status
-    wayne gateway install     # Install gateway service
-    wayne gateway uninstall   # Uninstall gateway service
-    wayne setup               # Interactive setup wizard
-    wayne logout              # Clear stored authentication
-    wayne status              # Show status of all components
-    wayne cron                # Manage cron jobs
-    wayne cron list           # List cron jobs
-    wayne cron status         # Check if cron scheduler is running
-    wayne doctor              # Check configuration and dependencies
-    wayne honcho setup                    # Configure Honcho AI memory integration
-    wayne honcho status                   # Show Honcho config and connection status
-    wayne honcho sessions                 # List directory → session name mappings
-    wayne honcho map <name>               # Map current directory to a session name
-    wayne honcho peer                     # Show peer names and dialectic settings
-    wayne honcho peer --user NAME         # Set user peer name
-    wayne honcho peer --ai NAME           # Set AI peer name
-    wayne honcho peer --reasoning LEVEL   # Set dialectic reasoning level
-    wayne honcho mode                     # Show current memory mode
-    wayne honcho mode [hybrid|honcho|local]  # Set memory mode
-    wayne honcho tokens                   # Show token budget settings
-    wayne honcho tokens --context N       # Set session.context() token cap
-    wayne honcho tokens --dialectic N     # Set dialectic result char cap
-    wayne honcho identity                 # Show AI peer identity representation
-    wayne honcho identity <file>          # Seed AI peer identity from a file (SOUL.md etc.)
-    wayne honcho migrate                  # Step-by-step migration guide: OpenClaw native → Wayne + Honcho
-    wayne version             Show version
-    wayne update              Update to latest version
-    wayne uninstall           Uninstall Wayne Agent
-    wayne acp                 Run as an ACP server for editor integration
-    wayne sessions browse     Interactive session picker with search
+    work4you                     # Interactive chat (default)
+    work4you chat                # Interactive chat
+    work4you gateway             # Run gateway in foreground
+    work4you gateway start       # Start gateway as service
+    work4you gateway stop        # Stop gateway service
+    work4you gateway status      # Show gateway status
+    work4you gateway install     # Install gateway service
+    work4you gateway uninstall   # Uninstall gateway service
+    work4you setup               # Interactive setup wizard
+    work4you logout              # Clear stored authentication
+    work4you status              # Show status of all components
+    work4you cron                # Manage cron jobs
+    work4you cron list           # List cron jobs
+    work4you cron status         # Check if cron scheduler is running
+    work4you doctor              # Check configuration and dependencies
+    work4you honcho setup                    # Configure Honcho AI memory integration
+    work4you honcho status                   # Show Honcho config and connection status
+    work4you honcho sessions                 # List directory → session name mappings
+    work4you honcho map <name>               # Map current directory to a session name
+    work4you honcho peer                     # Show peer names and dialectic settings
+    work4you honcho peer --user NAME         # Set user peer name
+    work4you honcho peer --ai NAME           # Set AI peer name
+    work4you honcho peer --reasoning LEVEL   # Set dialectic reasoning level
+    work4you honcho mode                     # Show current memory mode
+    work4you honcho mode [hybrid|honcho|local]  # Set memory mode
+    work4you honcho tokens                   # Show token budget settings
+    work4you honcho tokens --context N       # Set session.context() token cap
+    work4you honcho tokens --dialectic N     # Set dialectic result char cap
+    work4you honcho identity                 # Show AI peer identity representation
+    work4you honcho identity <file>          # Seed AI peer identity from a file (SOUL.md etc.)
+    work4you honcho migrate                  # Step-by-step migration guide: OpenClaw native → Work4You + Honcho
+    work4you version             Show version
+    work4you update              Update to latest version
+    work4you uninstall           Uninstall Work4You
+    work4you acp                 Run as an ACP server for editor integration
+    work4you sessions browse     Interactive session picker with search
 
-    wayne claw migrate --dry-run  # Preview migration without changes
+    work4you claw migrate --dry-run  # Preview migration without changes
 """
 
 # IMPORTANT: wayne_bootstrap must be the very first import — it sets up
@@ -49,12 +49,12 @@ Usage:
 #
 # Guarded against ModuleNotFoundError because ``wayne_bootstrap`` is a
 # top-level module registered via pyproject.toml's ``py-modules`` list.
-# When the user upgrades code via ``git pull`` (or ``wayne update``
+# When the user upgrades code via ``git pull`` (or ``work4you update``
 # crashes between ``git reset --hard`` and ``uv pip install -e .``), the
 # new code references ``wayne_bootstrap`` but the editable install's
 # ``.pth`` file still points at the old set of top-level modules.  Without
 # this guard, wayne crashes on import and the user can't run
-# ``wayne update`` to recover.  Missing the bootstrap means UTF-8 stdio
+# ``work4you update`` to recover.  Missing the bootstrap means UTF-8 stdio
 # setup is skipped on Windows — degraded, not broken.  POSIX is unaffected.
 try:
     import wayne_bootstrap  # noqa: F401
@@ -72,7 +72,7 @@ def _set_process_title() -> None:
     Purely cosmetic — non-fatal on any platform.
 
     Strategy (try in order):
-      1. ``setproctitle`` (opt-in dep — installed via ``wayne tools`` or
+      1. ``setproctitle`` (opt-in dep — installed via ``work4you tools`` or
          ``pip install setproctitle``, or bundled in a future release).
       2. ctypes ``prctl(PR_SET_NAME)`` (Linux only, 15-char limit).
       3. ctypes ``pthread_setname_np`` (macOS only, kernel thread name —
@@ -173,7 +173,7 @@ def _suppress_mouse_residue_early() -> None:
     if not _wants_tui_early():
         return
     try:
-        # Skip when stdout is redirected (`wayne --tui … >log`, CI capture):
+        # Skip when stdout is redirected (`work4you --tui … >log`, CI capture):
         # the bytes can't reach the terminal anyway and would just pollute
         # the log with raw CSI.
         if not os.isatty(1):
@@ -309,13 +309,13 @@ from wayne_cli.subcommands.claw import build_claw_parser
 def _require_tty(command_name: str) -> None:
     """Exit with a clear error if stdin is not a terminal.
 
-    Interactive TUI commands (wayne tools, wayne setup, wayne model) use
+    Interactive TUI commands (work4you tools, work4you setup, work4you model) use
     curses or input() prompts that spin at 100% CPU when stdin is a pipe.
     This guard prevents accidental non-interactive invocation.
     """
     if not sys.stdin.isatty():
         print(
-            f"Error: 'wayne {command_name}' requires an interactive terminal.\n"
+            f"Error: 'work4you {command_name}' requires an interactive terminal.\n"
             f"It cannot be run through a pipe or non-interactive subprocess.\n"
             f"Run it directly in your terminal instead.",
             file=sys.stderr,
@@ -345,7 +345,7 @@ def _apply_profile_override() -> None:
     profile_index = None
 
     def _inside_mcp_add_args(index: int) -> bool:
-        """True once argv reaches `wayne mcp add ... --args <command argv>`.
+        """True once argv reaches `work4you mcp add ... --args <command argv>`.
 
         ``mcp add --args`` is command-argv passthrough. Flags after that point
         belong to the child MCP command (for example Docker MCP Toolkit's
@@ -359,7 +359,7 @@ def _apply_profile_override() -> None:
         return True
 
     def _resolve_sudo_user_profile_env(name: str) -> str | None:
-        """Resolve `sudo wayne -p <name>` against the invoking user's home.
+        """Resolve `sudo work4you -p <name>` against the invoking user's home.
 
         `_apply_profile_override()` runs before argparse, so `--run-as-user`
         is not available yet. For sudo invocations, the best available signal
@@ -390,7 +390,7 @@ def _apply_profile_override() -> None:
         return None
 
     # 1. Check for explicit -p / --profile flag. Historically this worked even
-    # after the subcommand (`wayne chat -p coder`), so keep scanning broadly.
+    # after the subcommand (`work4you chat -p coder`), so keep scanning broadly.
     # The exception is command-argv passthrough regions such as `mcp add --args`.
     value_flags = {
         "-z", "--oneshot",
@@ -449,7 +449,7 @@ def _apply_profile_override() -> None:
     # /opt/data/profiles/coder).  If WAYNE_HOME points to the wayne root
     # instead (e.g. systemd hardcodes WAYNE_HOME=/root/.wayne), we must
     # still read active_profile — the user may have switched profiles via
-    # `wayne profile use` and the gateway should honour that choice.
+    # `work4you profile use` and the gateway should honour that choice.
     # See issue #22502.
     wayne_home_env = os.environ.get("WAYNE_HOME", "")
     if profile_name is None and wayne_home_env:
@@ -462,7 +462,7 @@ def _apply_profile_override() -> None:
     # run-script as WAYNE_S6_SUPERVISED_CHILD=1) must NOT follow the sticky
     # active_profile. Each supervised slot has a fixed profile identity: named
     # slots pass ``-p <name>`` explicitly (handled in step 1 above), and the
-    # reserved ``gateway-default`` slot runs bare ``wayne gateway run`` to mean
+    # reserved ``gateway-default`` slot runs bare ``work4you gateway run`` to mean
     # "the root WAYNE_HOME profile". If the reserved default child read
     # active_profile here, switching the active profile (e.g. via the dashboard)
     # would silently redirect the default gateway into that profile — yielding a
@@ -693,7 +693,7 @@ def _read_git_revision_fingerprint(repo_root: Path) -> str | None:
                 return f"git:{ref}:{packed_sha}"
             # Ref name is known but unresolved — still stable across launches,
             # and the version/release fallback in the caller will invalidate
-            # after `wayne update`.
+            # after `work4you update`.
             return f"git:{ref}:unresolved"
         return f"git:HEAD:{head}"
     except OSError:
@@ -1234,14 +1234,14 @@ def _exec_in_container(container_info: dict, cli_args: list):
                     f'    commands = [{{ command = "{runtime}"; options = [ "NOPASSWD" ]; }}];\n'
                     f"  }}];\n"
                     f"\n"
-                    f"Or run: sudo wayne {' '.join(cli_args)}",
+                    f"Or run: sudo work4you {' '.join(cli_args)}",
                     file=sys.stderr,
                 )
                 sys.exit(1)
         else:
             print(
                 f"Error: container '{container_name}' not found via {backend}.\n"
-                f"The container may be running under root. Try: sudo wayne {' '.join(cli_args)}",
+                f"The container may be running under root. Try: sudo work4you {' '.join(cli_args)}",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -1365,9 +1365,9 @@ def _print_tui_exit_summary(
 
     print()
     print("Resume this session with:")
-    print(f"  wayne --tui --resume {target}")
+    print(f"  work4you --tui --resume {target}")
     if title:
-        print(f'  wayne --tui -c "{title}"')
+        print(f'  work4you --tui -c "{title}"')
     print()
     print(f"Session:        {target}")
     if title:
@@ -1663,7 +1663,7 @@ def _restore_tui_workspace(tui_dir: Path) -> bool:
     """Try to restore a missing ``ui-tui/`` from git, returning True on success.
 
     On Windows an antivirus / NTFS filter driver can leave tracked ``ui-tui/``
-    files deleted in the working tree after ``wayne update`` (HEAD stays
+    files deleted in the working tree after ``work4you update`` (HEAD stays
     intact; the files just vanish — see issue #49145). Those files are tracked,
     so ``git restore`` puts them back deterministically. Best-effort: returns
     False (rather than raising) when git is unavailable, this isn't a checkout,
@@ -1704,14 +1704,14 @@ def _ensure_tui_workspace(tui_dir: Path) -> None:
         return
 
     print(
-        "Error: the TUI workspace is missing from this Wayne checkout.\n"
+        "Error: the TUI workspace is missing from this Work4You checkout.\n"
         f"Expected directory: {tui_dir}\n"
-        "This usually means `wayne update` left tracked ui-tui files deleted.\n"
+        "This usually means `work4you update` left tracked ui-tui files deleted.\n"
         "Recovery:\n"
-        "  1. From the Wayne checkout, run `git restore -- ui-tui`\n"
+        "  1. From the Work4You checkout, run `git restore -- ui-tui`\n"
         "  2. Run `npm install --silent --no-fund --no-audit --progress=false`\n"
-        "  3. Retry `wayne --tui`\n"
-        "If the checkout is still inconsistent, run `wayne update --force`.",
+        "  3. Retry `work4you --tui`\n"
+        "If the checkout is still inconsistent, run `work4you update --force`.",
         file=sys.stderr,
     )
     sys.exit(1)
@@ -2101,7 +2101,7 @@ def _launch_tui(
     env["NODE_OPTIONS"] = " ".join(_tokens)
     # WAYNE_TUI_RESUME is an internal hand-off from the Python wrapper to the
     # Ink app.  Because we start from os.environ.copy(), an exported/stale value
-    # in the user's shell would otherwise make a plain `wayne --tui` try to
+    # in the user's shell would otherwise make a plain `work4you --tui` try to
     # resume a non-existent session and leave the UI at "error: session not
     # found" with no live session.  Only forward a resume id that argparse
     # resolved for this invocation; direct `node ui-tui/dist/entry.js` users can
@@ -2131,7 +2131,7 @@ def _launch_tui(
             except Exception:
                 pass
 
-    # Exit code 42 = TUI requested an update. Relaunch as `wayne update` so
+    # Exit code 42 = TUI requested an update. Relaunch as `work4you update` so
     # the user sees update output directly and gets the new version.
     # preserve_inherited=False ensures --tui and other flags are NOT carried
     # into the update subcommand.
@@ -2150,9 +2150,9 @@ def _pin_kanban_board_env() -> None:
     """Pin the active kanban board into ``WAYNE_KANBAN_BOARD`` for the chat session.
 
     Without this, in-process tools (``kanban_*``) and shelled-out CLI calls
-    (``wayne kanban …``) resolve the board on different paths: the env-pin if
+    (``work4you kanban …``) resolve the board on different paths: the env-pin if
     set, otherwise the global ``<root>/kanban/current`` file. A concurrent
-    ``wayne kanban boards switch`` from another session can flip the file
+    ``work4you kanban boards switch`` from another session can flip the file
     mid-turn, so the same chat sees its tool calls hit board A while its shell
     calls hit board B (#20074). Pinning at chat boot mirrors what the
     dispatcher already does for spawned workers.
@@ -2226,7 +2226,7 @@ def cmd_chat(args):
                 args.resume = resolved
             else:
                 print(f"No session found matching '{continue_val}'.")
-                print("Use 'wayne sessions list' to see available sessions.")
+                print("Use 'work4you sessions list' to see available sessions.")
                 sys.exit(1)
         else:
             # -c with no argument — continue the most recent session
@@ -2443,7 +2443,7 @@ def cmd_whatsapp(args):
     current_mode = get_env_value("WHATSAPP_MODE") or ""
     if not current_mode:
         print()
-        print("How will you use WhatsApp with Wayne?")
+        print("How will you use WhatsApp with Work4You?")
         print()
         print("  1. Separate bot number (recommended)")
         print("     People message the bot's number directly — cleanest experience.")
@@ -2493,7 +2493,7 @@ def cmd_whatsapp(args):
     # We intentionally don't write WHATSAPP_ENABLED=true here.  If the user
     # aborts the wizard later (Ctrl+C, failed npm install, missed QR scan),
     # we'd otherwise leave .env claiming WhatsApp is ready when the bridge
-    # has no creds.json.  Every subsequent `wayne gateway` then paid a 30s
+    # has no creds.json.  Every subsequent `work4you gateway` then paid a 30s
     # bridge-bootstrap timeout and queued WhatsApp for indefinite retries.
     # Now: aborted setup leaves WHATSAPP_ENABLED unset → gateway skips it.
     # Re-runs that already have WHATSAPP_ENABLED=true (from a prior
@@ -2600,7 +2600,7 @@ def cmd_whatsapp(args):
             if (get_env_value("WHATSAPP_ENABLED") or "").lower() != "true":
                 save_env_value("WHATSAPP_ENABLED", "true")
             print("\n✓ WhatsApp is configured and paired!")
-            print("  Start the gateway with: wayne gateway")
+            print("  Start the gateway with: work4you gateway")
             return
 
     # ── Step 6: QR code pairing ──────────────────────────────────────────
@@ -2636,30 +2636,30 @@ def cmd_whatsapp(args):
     if (session_dir / "creds.json").exists():
         # Only enable WhatsApp now that pairing actually succeeded.  If the
         # user Ctrl+C'd at any earlier step, WHATSAPP_ENABLED stays unset
-        # and `wayne gateway` skips it cleanly instead of paying a 30s
+        # and `work4you gateway` skips it cleanly instead of paying a 30s
         # bridge timeout + queueing the platform for indefinite retries.
         save_env_value("WHATSAPP_ENABLED", "true")
         print("✓ WhatsApp paired successfully!")
         print()
         if wa_mode == "bot":
             print("  Next steps:")
-            print("    1. Start the gateway:  wayne gateway")
+            print("    1. Start the gateway:  work4you gateway")
             print("    2. Send a message to the bot's WhatsApp number")
             print("    3. The agent will reply automatically")
             print()
-            print("  Tip: Agent responses are prefixed with '⚕ Wayne Agent'")
+            print("  Tip: Agent responses are prefixed with '⚕ Work4You'")
         else:
             print("  Next steps:")
-            print("    1. Start the gateway:  wayne gateway")
+            print("    1. Start the gateway:  work4you gateway")
             print("    2. Open WhatsApp → Message Yourself")
             print("    3. Type a message — the agent will reply")
             print()
-            print("  Tip: Agent responses are prefixed with '⚕ Wayne Agent'")
+            print("  Tip: Agent responses are prefixed with '⚕ Work4You'")
             print("  so you can tell them apart from your own messages.")
         print()
-        print("  Or install as a service: wayne gateway install")
+        print("  Or install as a service: work4you gateway install")
     else:
-        print("⚠ Pairing may not have completed. Run 'wayne whatsapp' to try again.")
+        print("⚠ Pairing may not have completed. Run 'work4you whatsapp' to try again.")
 
 
 def cmd_whatsapp_cloud(args):
@@ -2671,7 +2671,7 @@ def cmd_whatsapp_cloud(args):
     common setup mistakes (e.g. pasting a phone number into the Phone
     Number ID field).
 
-    Distinct from ``wayne whatsapp`` (the Baileys bridge wizard) — the
+    Distinct from ``work4you whatsapp`` (the Baileys bridge wizard) — the
     two adapters are complementary, not alternatives. See
     ``wayne_cli/setup_whatsapp_cloud.py``.
     """
@@ -2695,7 +2695,7 @@ def cmd_postinstall(args):
 
     stamp_install_method("pip")
 
-    print("⚕ Wayne post-install bootstrap")
+    print("⚕ Work4You post-install bootstrap")
     print()
 
     for dep in ("node", "browser", "ripgrep", "ffmpeg"):
@@ -2740,7 +2740,7 @@ def _is_profile_api_key_provider(provider_id: str) -> bool:
 def select_provider_and_model(args=None):
     """Core provider selection + model picking logic.
 
-    Shared by ``cmd_model`` (``wayne model``) and the setup wizard
+    Shared by ``cmd_model`` (``work4you model``) and the setup wizard
     (``setup_model_provider`` in setup.py).  Handles the full flow:
     provider picker, credential prompting, model selection, and config
     persistence.
@@ -2933,8 +2933,8 @@ def select_provider_and_model(args=None):
             active = active_def.id
         else:
             warning = (
-                f"Unknown provider '{effective_provider}'. Check 'wayne model' for "
-                "available providers, or run 'wayne doctor' to diagnose config "
+                f"Unknown provider '{effective_provider}'. Check 'work4you model' for "
+                "available providers, or run 'work4you doctor' to diagnose config "
                 "issues."
             )
             print(f"Warning: {warning} Falling back to auto provider detection.")
@@ -3189,9 +3189,9 @@ def _clear_stale_openai_base_url():
 # its own provider+model pair in config.yaml under `auxiliary.<task>`.
 #
 # The UI lives behind "Configure auxiliary models..." at the bottom of the
-# `wayne model` provider picker. It does NOT re-run credential setup — it
+# `work4you model` provider picker. It does NOT re-run credential setup — it
 # only routes already-authenticated providers to specific aux tasks. Users
-# configure new providers through the normal `wayne model` flow first.
+# configure new providers through the normal `work4you model` flow first.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # (task_key, display_name, short_description)
@@ -3332,7 +3332,7 @@ def _aux_config_menu() -> None:
         print()
         print("  Side tasks (vision, compression, web extraction, etc.) default")
         print('  to your main chat model.  "auto" means "use my main model" —')
-        print("  Wayne only falls back to a lightweight backend (OpenRouter,")
+        print("  Work4You only falls back to a lightweight backend (OpenRouter,")
         print("  Nous Portal) if the main model is unavailable.  Override a")
         print("  task below if you want it pinned to a specific provider/model.")
         print()
@@ -3381,7 +3381,7 @@ def _aux_select_for_task(task: str) -> None:
     Uses ``list_authenticated_providers()`` to only show providers the user
     has already configured. This avoids re-running OAuth/credential flows
     inside the aux picker — users set up new providers through the normal
-    ``wayne model`` flow, then route aux tasks to them here.
+    ``work4you model`` flow, then route aux tasks to them here.
     """
     from wayne_cli.config import load_config
     from wayne_cli.model_switch import list_authenticated_providers
@@ -3629,7 +3629,7 @@ def _prompt_custom_api_mode_selection(base_url: str, current_api_mode: str = "")
         (
             "",
             "Auto-detect",
-            "Use Wayne URL heuristics; best for standard OpenAI-compatible endpoints.",
+            "Use Work4You URL heuristics; best for standard OpenAI-compatible endpoints.",
         ),
         (
             "chat_completions",
@@ -3856,7 +3856,7 @@ def _remove_custom_provider(config):
 # downstream call sites read `wayne_cli.main._PROVIDER_MODELS` directly,
 # so the symbol needs to be reachable as a module attribute. But importing
 # the catalog eagerly costs ~55ms on every `wayne` invocation — including
-# fast paths like `wayne --version` and slash-command dispatch that never
+# fast paths like `work4you --version` and slash-command dispatch that never
 # touch the catalog. PEP 562 module-level __getattr__ defers the import
 # until first attribute access, so the cost is only paid by callers that
 # actually look up the catalog. Termux already defers via the same
@@ -3975,7 +3975,7 @@ def _prompt_reasoning_effort_selection(efforts, current_effort=""):
 
 
 def _prompt_api_key(pconfig, existing_key: str, provider_id: str = "") -> tuple:
-    """Shared API-key entry point for ``wayne setup`` / ``wayne model``.
+    """Shared API-key entry point for ``work4you setup`` / ``work4you model``.
 
     Handles both first-time entry and the already-configured case.  When a key
     is already present, offers [K]eep / [R]eplace / [C]lear so the user can
@@ -4048,7 +4048,7 @@ def _prompt_api_key(pconfig, existing_key: str, provider_id: str = "") -> tuple:
     if choice.startswith("c"):
         save_env_value(key_env, "")
         print(
-            f"  API key cleared.  Re-run `wayne setup` to configure {pconfig.name} again."
+            f"  API key cleared.  Re-run `work4you setup` to configure {pconfig.name} again."
         )
         return "", True
 
@@ -4113,7 +4113,7 @@ def _run_anthropic_oauth_flow(save_env_value):
             from wayne_constants import display_wayne_home as _dhh_fn
 
             print(
-                f"    Wayne will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
+                f"    Work4You will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
             )
             return True
         return False
@@ -4162,7 +4162,7 @@ def _run_anthropic_oauth_flow(save_env_value):
         print("    1. Install Claude Code:  npm install -g @anthropic-ai/claude-code")
         print("    2. Run:                  claude setup-token")
         print("    3. Follow the browser prompts to authorize")
-        print("    4. Re-run:               wayne model")
+        print("    4. Re-run:               work4you model")
         print()
         print("  Or paste an existing setup-token now (sk-ant-oat-...):")
         print()
@@ -4228,7 +4228,7 @@ def cmd_webhook(args):
 def cmd_slack(args):
     """Slack integration helpers.
 
-    Dispatches ``wayne slack <subcommand>``. Currently supports:
+    Dispatches ``work4you slack <subcommand>``. Currently supports:
       manifest — print or write a Slack app manifest with every gateway
                  command registered as a first-class slash.
     """
@@ -4236,13 +4236,13 @@ def cmd_slack(args):
     if sub in {None, ""}:
         # No subcommand — print usage hint.
         print(
-            "usage: wayne slack <subcommand>\n"
+            "usage: work4you slack <subcommand>\n"
             "\n"
             "subcommands:\n"
             "  manifest   Generate a Slack app manifest with every gateway\n"
             "             command registered as a native slash\n"
             "\n"
-            "Run `wayne slack manifest -h` for details.",
+            "Run `work4you slack manifest -h` for details.",
             file=sys.stderr,
         )
         return 1
@@ -4285,7 +4285,7 @@ def cmd_doctor(args):
 
 
 def cmd_security(args):
-    """Dispatch `wayne security <subcmd>`."""
+    """Dispatch `work4you security <subcmd>`."""
     sub = getattr(args, "security_command", None)
     if sub in ("audit", None):
         from wayne_cli.security_audit import cmd_security_audit
@@ -4445,7 +4445,7 @@ def _clear_bytecode_cache(root: Path) -> int:
 
 # Critical files that every ``wayne`` invocation imports at startup. If any
 # of these fail to parse after a pull, the CLI is bricked — the user can't
-# even run ``wayne update`` again to roll forward. The post-pull syntax
+# even run ``work4you update`` again to roll forward. The post-pull syntax
 # guard validates these and auto-rolls-back on failure.
 _UPDATE_CRITICAL_FILES = (
     "wayne_cli/main.py",
@@ -4522,7 +4522,7 @@ def _gateway_prompt(prompt_text: str, default: str = "", timeout: float = 300.0)
     Writes a prompt marker file so the gateway can forward the question to the
     user, then polls for a response file.  Falls back to *default* on timeout.
 
-    Used by ``wayne update --gateway`` so interactive prompts (stash restore,
+    Used by ``work4you update --gateway`` so interactive prompts (stash restore,
     config migration) are forwarded to the messenger instead of being silently
     skipped.
     """
@@ -4776,7 +4776,7 @@ def _run_npm_install_deterministic(
     falls back to ``npm install`` only if ``npm ci`` fails (e.g. lockfile out of
     sync on a WIP checkout).  Without this, ``npm install`` on npm ≥ 10 silently
     rewrites committed lockfiles (stripping ``"peer": true`` etc.), which leaves
-    the working tree dirty and causes the next ``wayne update`` to stash the
+    the working tree dirty and causes the next ``work4you update`` to stash the
     lockfile — repeatedly.
     """
     # unicode-animations' postinstall animates to /dev/tty (bypasses
@@ -4820,7 +4820,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     Args:
         web_dir: Path to the dashboard frontend source directory.
         fatal: If True, print error guidance and return False on failure
-               instead of a soft warning (used by ``wayne web``).
+               instead of a soft warning (used by ``work4you web``).
 
     Returns True if the build succeeded or was skipped (no package.json).
     """
@@ -4887,7 +4887,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     if r1.returncode != 0:
         _say(
             f"  {'✗' if fatal else '⚠'} Web UI npm install failed"
-            + ("" if fatal else " (wayne web will not be available)")
+            + ("" if fatal else " (work4you dashboard will not be available)")
         )
         _relay(r1)
         if fatal:
@@ -4929,7 +4929,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
 
         _say(
             f"  {'✗' if fatal else '⚠'} Web UI build failed"
-            + ("" if fatal else " (wayne web will not be available)")
+            + ("" if fatal else " (work4you dashboard will not be available)")
         )
         _relay(r2)
         if fatal:
@@ -4952,9 +4952,9 @@ def _desktop_dist_exists(desktop_dir: Path) -> bool:
 # SHA-256 content hash of the source tree so that:
 #   - ``git checkout`` / ``git pull`` that touch mtimes but not content
 #     don't trigger a rebuild
-#   - ``wayne update`` can unconditionally call ``wayne desktop --build-only``
+#   - ``work4you update`` can unconditionally call ``work4you desktop --build-only``
 #     and it will skip if nothing actually changed
-#   - ``wayne desktop`` (interactive launch) skips the build when the
+#   - ``work4you desktop`` (interactive launch) skips the build when the
 #     stamp matches, making repeated launches fast
 #
 # Stamp file: $WAYNE_HOME/desktop-build-stamp.json
@@ -5036,7 +5036,7 @@ def _desktop_build_needed(desktop_dir: Path, project_root: Path, *, source_mode:
 
     Compares the current content hash against the saved stamp. Also returns
     True if the expected build artifact doesn't exist (e.g. first run after
-    ``wayne update`` that pulled new source but hasn't built yet).
+    ``work4you update`` that pulled new source but hasn't built yet).
     """
     # If there's no build output at all, we definitely need to build
     if source_mode:
@@ -5429,7 +5429,7 @@ def _force_adhoc_macos_signing(env: dict, *, source_mode: bool) -> bool:
     """Stop electron-builder grabbing a random keychain identity on self-update.
 
     The desktop self-updater rebuilds *and re-signs the .app on the end user's
-    machine* (``wayne desktop --build-only`` → electron-builder ``--dir``).
+    machine* (``work4you desktop --build-only`` → electron-builder ``--dir``).
     With ``CSC_IDENTITY_AUTO_DISCOVERY`` on (its default), electron-builder
     signs the ``type=distribution``, hardened-runtime bundle with whatever it
     finds in that user's keychain — typically a personal "Apple Development"
@@ -5500,7 +5500,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sandbox = packaged_executable.parent / "chrome-sandbox"
     if not sandbox.exists():
-        print(f"✗ Wayne Desktop is missing Electron's Linux sandbox helper: {sandbox}")
+        print(f"✗ Work4You Desktop is missing Electron's Linux sandbox helper: {sandbox}")
         return False
 
     # Reject symlinks — chown/chmod must not follow an attacker-controlled
@@ -5520,7 +5520,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sudo = shutil.which("sudo")
     if not sudo:
-        print("✗ Wayne Desktop requires sudo to configure Electron's Linux sandbox helper.")
+        print("✗ Work4You Desktop requires sudo to configure Electron's Linux sandbox helper.")
         return False
 
     print("→ Configuring Electron Linux sandbox helper (sudo required)...")
@@ -5598,7 +5598,7 @@ def cmd_gui(args: argparse.Namespace):
     # Desktop launch options from config.yaml (`desktop.electron_flags`,
     # `desktop.disable_gpu`). The GPU policy is bridged to the env var the
     # Electron app already reads; an explicit env var still wins over config so
-    # `WAYNE_DESKTOP_DISABLE_GPU=... wayne desktop` keeps working.
+    # `WAYNE_DESKTOP_DISABLE_GPU=... work4you desktop` keeps working.
     config_electron_flags, config_disable_gpu = _desktop_launch_options()
     if config_disable_gpu != "auto" and "WAYNE_DESKTOP_DISABLE_GPU" not in os.environ:
         env["WAYNE_DESKTOP_DISABLE_GPU"] = config_disable_gpu
@@ -5613,7 +5613,7 @@ def cmd_gui(args: argparse.Namespace):
         npm = find_node_executable("npm")
         if not npm:
             print("Desktop GUI requires Node.js/npm, but npm was not found on PATH.")
-            print("Install Node.js, then run:  wayne gui")
+            print("Install Node.js, then run:  work4you gui")
             sys.exit(1)
     else:
         npm = None
@@ -5731,9 +5731,9 @@ def cmd_gui(args: argparse.Namespace):
                 print(f"  Run manually:  cd apps/desktop && npm run {build_script}")
                 if sys.platform == "win32":
                     print("  If this says \"Access is denied\" on Wayne.exe, close any")
-                    print("  running Wayne desktop window and retry.")
+                    print("  running Work4You desktop window and retry.")
                 print("  If the log shows Electron download retries, rebuild via a mirror:")
-                print("    ELECTRON_MIRROR=<mirror-base-url> wayne desktop --force-build")
+                print("    ELECTRON_MIRROR=<mirror-base-url> work4you desktop --force-build")
                 sys.exit(build_result.returncode or 1)
             packaged_executable = _desktop_packaged_executable(desktop_dir)
             if not source_mode:
@@ -5766,7 +5766,7 @@ def cmd_gui(args: argparse.Namespace):
         return
 
     if source_mode:
-        print("→ Launching Wayne Desktop from source build...")
+        print("→ Launching Work4You Desktop from source build...")
         launch_result = subprocess.run([npm, "exec", "--", "electron", "."], cwd=desktop_dir, env=env, check=False)
         sys.exit(launch_result.returncode)
 
@@ -5784,7 +5784,7 @@ def cmd_gui(args: argparse.Namespace):
             sys.exit(1)
 
     launch_command.extend(config_electron_flags)
-    print(f"→ Launching packaged Wayne Desktop: {' '.join(launch_command)}")
+    print(f"→ Launching packaged Work4You Desktop: {' '.join(launch_command)}")
     launch_result = subprocess.run(launch_command, cwd=desktop_dir, env=env, check=False)
     sys.exit(launch_result.returncode)
 
@@ -5793,10 +5793,10 @@ def _find_stale_dashboard_pids(
     *,
     exclude_pids: set[int] | None = None,
 ) -> list[int]:
-    """Return PIDs of ``wayne dashboard`` processes other than ourselves.
+    """Return PIDs of ``work4you dashboard`` processes other than ourselves.
 
-    ``wayne dashboard`` is a long-lived server process commonly started and
-    forgotten.  When ``wayne update`` replaces files on disk, the running
+    ``work4you dashboard`` is a long-lived server process commonly started and
+    forgotten.  When ``work4you update`` replaces files on disk, the running
     process keeps the old Python backend in memory while the JS bundle on
     disk is updated, causing a silent frontend/backend mismatch (e.g. new
     auth headers the old backend doesn't recognise → every API call 401s).
@@ -5909,7 +5909,7 @@ def _find_stale_dashboard_pids(
 
 
 def _print_curator_first_run_notice() -> None:
-    """Print a short heads-up about the skill curator after `wayne update`.
+    """Print a short heads-up about the skill curator after `work4you update`.
 
     Only fires when the curator is enabled AND has no recorded run yet, which
     is exactly the window where the gateway ticker used to fire Curator
@@ -5942,8 +5942,8 @@ def _print_curator_first_run_notice() -> None:
         f"~{days}d after installation; only agent-created skills are in "
         f"scope and nothing is ever auto-deleted (archive is recoverable)."
     )
-    print("  Preview now:  wayne curator run --dry-run")
-    print("  Pause it:     wayne curator pause")
+    print("  Preview now:  work4you curator run --dry-run")
+    print("  Pause it:     work4you curator pause")
     print(
         "  Docs:         https://hermes-agent.nousresearch.com/docs/user-guide/features/curator"
     )
@@ -5954,11 +5954,11 @@ def _print_curator_recent_run_notice() -> None:
 
     The curator runs in the background (gateway tick + CLI session start),
     so users learn about skill consolidations only by stumbling into a
-    rename. ``wayne update`` is a high-attention surface — surface the
+    rename. ``work4you update`` is a high-attention surface — surface the
     most recent run's rename map here, once.
 
     Show-once: state stamps ``last_run_summary_shown_at`` after printing.
-    Subsequent ``wayne update`` invocations skip the block until a newer
+    Subsequent ``work4you update`` invocations skip the block until a newer
     curator run lands. Silent when the curator has never run, when the
     most recent summary has already been shown, or when the summary has
     no rename information to display (no archives).
@@ -6004,7 +6004,7 @@ def _print_curator_recent_run_notice() -> None:
         print(f"  {line}")
     print(
         "  (This message shows once per curator run. "
-        "View anytime: wayne curator status)"
+        "View anytime: work4you curator status)"
     )
 
     # Stamp shown so we don't repeat on the next update.
@@ -6038,10 +6038,10 @@ def _format_time_ago(iso_ts: str) -> str:
 def _kill_stale_dashboard_processes(
     reason: str = "the running backend no longer matches the updated frontend",
 ) -> None:
-    """Kill running ``wayne dashboard`` processes.
+    """Kill running ``work4you dashboard`` processes.
 
-    Called at the end of ``wayne update`` (default ``reason``) and also
-    from ``wayne dashboard --stop`` (which overrides ``reason``).  The
+    Called at the end of ``work4you update`` (default ``reason``) and also
+    from ``work4you dashboard --stop`` (which overrides ``reason``).  The
     dashboard has no service manager, so after a code update the running
     process is guaranteed to be serving stale Python against a
     freshly-updated JS bundle.  Leaving it alive produces silent
@@ -6151,7 +6151,7 @@ def _kill_stale_dashboard_processes(
 
     if killed:
         print("  Restart the dashboard when you're ready:")
-        print("    wayne dashboard --port <port>")
+        print("    work4you dashboard --port <port>")
 
 
 # Back-compat alias: some tests and any external callers may import the old
@@ -6300,7 +6300,7 @@ def _restore_stashed_changes(
         print(
             "  Restoring them may reapply local customizations onto the updated codebase."
         )
-        print("  Review the result afterward if Wayne behaves unexpectedly.")
+        print("  Review the result afterward if Work4You behaves unexpectedly.")
         print("Restore local changes now? [Y/n]")
         if input_fn is not None:
             response = input_fn("Restore local changes now? [Y/n]", "y")
@@ -6364,7 +6364,7 @@ def _restore_stashed_changes(
     stash_selector = _resolve_stash_selector(git_cmd, cwd, stash_ref)
     if stash_selector is None:
         print(
-            "⚠ Local changes were restored, but Wayne couldn't find the stash entry to drop."
+            "⚠ Local changes were restored, but Work4You couldn't find the stash entry to drop."
         )
         print(
             "  The stash was left in place. You can remove it manually after checking the result."
@@ -6379,7 +6379,7 @@ def _restore_stashed_changes(
         )
         if drop.returncode != 0:
             print(
-                "⚠ Local changes were restored, but Wayne couldn't drop the saved stash entry."
+                "⚠ Local changes were restored, but Work4You couldn't drop the saved stash entry."
             )
             if drop.stdout.strip():
                 print(drop.stdout.strip())
@@ -6391,7 +6391,7 @@ def _restore_stashed_changes(
             _print_stash_cleanup_guidance(stash_ref, stash_selector)
 
     print("⚠ Local changes were restored on top of the updated codebase.")
-    print("  Review `git diff` / `git status` if Wayne behaves unexpectedly.")
+    print("  Review `git diff` / `git status` if Work4You behaves unexpectedly.")
     return True
 
 
@@ -6418,7 +6418,7 @@ def _discard_stashed_changes(
     if stash_selector is None:
         print(
             "⚠ Configured to discard local changes on non-interactive update, "
-            "but Wayne couldn't find the stash entry to drop."
+            "but Work4You couldn't find the stash entry to drop."
         )
         _print_stash_cleanup_guidance(stash_ref)
         return False
@@ -6431,7 +6431,7 @@ def _discard_stashed_changes(
     )
     if drop.returncode != 0:
         print(
-            "⚠ Configured to discard local changes, but Wayne couldn't drop "
+            "⚠ Configured to discard local changes, but Work4You couldn't drop "
             "the saved stash entry."
         )
         if drop.stderr.strip():
@@ -6444,7 +6444,7 @@ def _discard_stashed_changes(
 
 
 # =========================================================================
-# Fork detection and upstream management for `wayne update`
+# Fork detection and upstream management for `work4you update`
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
@@ -6584,7 +6584,7 @@ def _invalidate_update_cache():
     reports a stale "commits behind" count after a successful update.
 
     The git repo is shared across profiles — when one profile runs
-    ``wayne update``, every profile is now current.
+    ``work4you update``, every profile is now current.
     """
     homes = []
     # Default profile home (Docker-aware — uses /opt/data in Docker)
@@ -6636,7 +6636,7 @@ def _load_installable_optional_extras(group: str = "all") -> list[str]:
     return referenced
 
 
-# Install-scoped breadcrumb dropped right before ``wayne update`` mutates the
+# Install-scoped breadcrumb dropped right before ``work4you update`` mutates the
 # venv and cleared only after the dependency install verifies clean.  If a user
 # kills the update mid-install (Ctrl-C, terminal close, WSL OOM), the marker
 # survives and the next ``wayne`` launch finishes the install instead of
@@ -6668,7 +6668,7 @@ def _clear_update_incomplete_marker() -> None:
 
 
 def _recover_from_interrupted_install() -> None:
-    """Finish a dependency install that a prior ``wayne update`` left half-done.
+    """Finish a dependency install that a prior ``work4you update`` left half-done.
 
     Triggered on launch when ``.update-incomplete`` is present — meaning the
     code was pulled but the dep install was killed before it verified clean.
@@ -6688,7 +6688,7 @@ def _recover_from_interrupted_install() -> None:
 
     Output: everything — our status lines AND the streamed pip/uv install
     (which inherits fd 1) — is routed to stderr.  Launches whose stdout is a
-    protocol stream (``wayne acp`` speaks JSON-RPC on stdout) must never get
+    protocol stream (``work4you acp`` speaks JSON-RPC on stdout) must never get
     install noise on stdout.
     """
     if not _update_marker_path().exists():
@@ -6750,12 +6750,12 @@ def _recover_from_interrupted_install() -> None:
                             continue
                         if _anc_norm in _shim_set:
                             print(
-                                "✗ Wayne is running from the binary that "
+                                "✗ Work4You is running from the binary that "
                                 "needs to be replaced — the auto-recovery "
                                 "cannot overwrite a running executable."
                             )
                             print(
-                                "  Restart Wayne from a different terminal, "
+                                "  Restart Work4You from a different terminal, "
                                 "then run the manual recovery command below:"
                             )
                             print(f'    cd /d "{PROJECT_ROOT}"')
@@ -6785,7 +6785,7 @@ def _recover_from_interrupted_install() -> None:
         sys.stdout = sys.stderr
 
         print(
-            "⚠ A previous `wayne update` was interrupted mid-install — "
+            "⚠ A previous `work4you update` was interrupted mid-install — "
             "finishing dependency installation now..."
         )
 
@@ -6856,7 +6856,7 @@ def _run_install_with_heartbeat(
 
     Some resolvers/build backends (especially when compiling Rust/C extensions)
     can stay quiet for minutes. Emit a simple elapsed-time heartbeat so users
-    know ``wayne update`` is still progressing even if pip/uv itself is silent.
+    know ``work4you update`` is still progressing even if pip/uv itself is silent.
     """
     done = threading.Event()
     start = _time.time()
@@ -6923,14 +6923,14 @@ def _detect_concurrent_wayne_instances(
     Windows blocks DELETE/REPLACE on a running .exe — and even RENAME on the
     same .exe when another process opened it without ``FILE_SHARE_DELETE``.
     The Wayne Desktop Electron app spawns ``wayne.EXE`` as a backend child,
-    so during ``wayne update`` the user-invoked process and the desktop's
+    so during ``work4you update`` the user-invoked process and the desktop's
     child both hold the same file. The quarantine rename then fails with
     ``[WinError 32]`` and uv inherits the lock.
 
     This helper enumerates processes whose ``exe`` matches one of the venv's
     shims (``wayne.exe`` / ``wayne-gateway.exe``) and returns ``(pid,
     process_name)`` pairs. The caller's own PID and its entire ancestor
-    chain are excluded so the running ``wayne update`` invocation never
+    chain are excluded so the running ``work4you update`` invocation never
     reports itself — this matters on Windows where the setuptools .exe
     launcher (``wayne.exe``) is a separate process from the Python
     interpreter it loads (``python.exe``).
@@ -6961,7 +6961,7 @@ def _detect_concurrent_wayne_instances(
     # setuptools-generated wayne.exe launcher is a separate native process
     # that spawns python.exe (the interpreter that runs our code).
     # os.getpid() returns the Python PID, but the launcher (which holds the
-    # file lock) is the parent. Without excluding it, every ``wayne update``
+    # file lock) is the parent. Without excluding it, every ``work4you update``
     # reports its own launcher as a concurrent instance — a false positive
     # (issues #29341, #34795).
     #
@@ -7044,8 +7044,8 @@ def _format_concurrent_instances_message(
     lines.append(f"  Updating now would fail to overwrite {shim} because")
     lines.append("  Windows blocks REPLACE on a running executable.")
     lines.append("")
-    lines.append("  Close Wayne Desktop, exit any open `wayne` REPLs, and")
-    lines.append("  stop the gateway (`wayne gateway stop`) before retrying.")
+    lines.append("  Close Work4You Desktop, exit any open `work4you` REPLs, and")
+    lines.append("  stop the gateway (`work4you gateway stop`) before retrying.")
     lines.append("")
     if matches:
         pid_args = " ".join(f"/PID {pid}" for pid, _ in matches)
@@ -7053,7 +7053,7 @@ def _format_concurrent_instances_message(
         lines.append("  stale, terminate them directly, then retry the update:")
         lines.append(f"      taskkill {pid_args} /F")
         lines.append("")
-    lines.append("  Override with `wayne update --force` if you've already")
+    lines.append("  Override with `work4you update --force` if you've already")
     lines.append("  confirmed those processes will not write to the venv.")
     return "\n".join(lines)
 
@@ -7066,7 +7066,7 @@ def _quarantine_running_wayne_exe(
     Windows allows RENAMING a mapped/running executable (the kernel tracks the
     file by handle, not path), but blocks DELETE/REPLACE while it's loaded. uv
     needs to overwrite the entry-point shims during ``pip install -e .``;
-    when ``wayne update`` runs, ``wayne.exe`` IS the live process, and uv
+    when ``work4you update`` runs, ``wayne.exe`` IS the live process, and uv
     fails with ``Access is denied. (os error 5)``.
 
     We rename live shims to ``wayne.exe.old.<unix-ms>`` first. uv then writes
@@ -7154,8 +7154,8 @@ def _quarantine_running_wayne_exe(
             f"another process is holding it open)."
         )
         print(
-            "    Close Wayne Desktop, exit other `wayne` REPLs, stop the "
-            "gateway, or pause AV scanning, then re-run `wayne update`."
+            "    Close Work4You Desktop, exit other `work4you` REPLs, stop the "
+            "gateway, or pause AV scanning, then re-run `work4you update`."
         )
 
     return moved
@@ -7268,7 +7268,7 @@ def _refresh_active_lazy_features() -> None:
 
     When pyproject.toml's ``[all]`` extra was slimmed down (May 2026), most
     optional backends moved to ``tools/lazy_deps.py`` and only install on
-    first use. ``wayne update`` runs ``uv pip install -e .[all]`` which
+    first use. ``work4you update`` runs ``uv pip install -e .[all]`` which
     leaves those packages untouched — so if we bump a pin in
     :data:`LAZY_DEPS` (CVE response, transitive bug fix), users who already
     activated the backend keep the stale version forever.
@@ -7328,7 +7328,7 @@ def _refresh_active_lazy_features() -> None:
                 reason = reason[:200] + "..."
             print(f"  ⚠ {feature} failed to refresh: {reason}")
         print("  Backends keep their previously-installed version; rerun")
-        print("  `wayne update` once the upstream issue is resolved.")
+        print("  `work4you update` once the upstream issue is resolved.")
 
 
 def _install_python_dependencies_with_optional_fallback(
@@ -7389,7 +7389,7 @@ def _install_python_dependencies_with_optional_fallback(
     # partial installs where a newly added base dep (e.g. ``pathspec``)
     # silently fails to land on top of a half-stale venv, and the only
     # symptom is a downstream subprocess crashing with ModuleNotFoundError
-    # hours later inside ``wayne update``'s desktop-rebuild or skill-sync
+    # hours later inside ``work4you update``'s desktop-rebuild or skill-sync
     # stage. Reinstall with --reinstall to force resolution if anything is
     # missing, then re-verify so the failure surfaces here instead of
     # downstream.
@@ -7427,7 +7427,7 @@ def _verify_console_scripts_installed(
 
     On Windows, ``uv pip install -e .`` can register ``wayne.exe`` in the
     wheel RECORD while the file never lands on disk — typically when the live
-    ``wayne.exe`` shim is locked during ``wayne update``, or when uv/distlib
+    ``wayne.exe`` shim is locked during ``work4you update``, or when uv/distlib
     skips a launcher write. The symptom is ``wayne-agent.exe`` and
     ``wayne-acp.exe`` present but ``wayne.exe`` missing, so ``wayne`` drops
     off PATH even though the install reported success (issue #52931).
@@ -7472,8 +7472,8 @@ def _verify_console_scripts_installed(
     except subprocess.CalledProcessError as e:
         logger.warning("console script verification: repair install failed: %s", e)
         print(
-            "  ⚠ Entry point repair failed; try `wayne update --force` after "
-            "closing other wayne processes."
+            "  ⚠ Entry point repair failed; try `work4you update --force` after "
+            "closing other Work4You processes."
         )
         return
 
@@ -7565,7 +7565,7 @@ def _verify_core_dependencies_installed(
         return
 
     # Run the check inside the venv Python — sys.executable here may be the
-    # outer Python that drove ``wayne update``, not the venv we just wrote
+    # outer Python that drove ``work4you update``, not the venv we just wrote
     # to. The uv install_cmd_prefix encodes which environment we targeted
     # (either ``[uv, pip]`` with VIRTUAL_ENV in env, or
     # ``[sys.executable, -m, pip]`` for the in-process Python); resolve the
@@ -7623,7 +7623,7 @@ def _verify_core_dependencies_installed(
         )
     except subprocess.CalledProcessError as e:
         logger.warning("dep verification: repair install failed: %s", e)
-        print("  ⚠ Repair install failed; check `wayne update` output above.")
+        print("  ⚠ Repair install failed; check `work4you update` output above.")
         return
 
     still_missing = _missing_deps()
@@ -7656,7 +7656,7 @@ def _verify_core_dependencies_installed(
         logger.warning("dep verification: per-package repair failed: %s", e)
         print(
             f"  ⚠ Could not install: {', '.join(still_missing)}. "
-            "Run `wayne update --force` after closing other wayne processes."
+            "Run `work4you update --force` after closing other Work4You processes."
         )
         return
 
@@ -7664,7 +7664,7 @@ def _verify_core_dependencies_installed(
     if final_missing:
         print(
             f"  ⚠ Still missing after repair: {', '.join(final_missing)}. "
-            "Run `wayne update --force` after closing other wayne processes."
+            "Run `work4you update --force` after closing other Work4You processes."
         )
     else:
         print("  ✓ All declared core dependencies now installed")
@@ -7792,7 +7792,7 @@ def _update_node_dependencies() -> None:
     # With a single workspace lockfile the root install would cover ALL
     # workspaces — but apps/desktop pulls in Electron as a devDependency,
     # and its postinstall downloads a ~200MB binary.  Most users don't
-    # need desktop during `wayne update`, so we install root-only first
+    # need desktop during `work4you update`, so we install root-only first
     # then add just the workspaces the CLI/TUI/web build actually requires.
     # Desktop deps are installed on demand by the desktop launcher
     # (see _desktop_build_needed).
@@ -7805,7 +7805,7 @@ def _update_node_dependencies() -> None:
     # NOTE: capture_output=False here is deliberate (#18840) — optional
     # postinstall scripts (e.g. @askjo/camofox-browser's browser-binary fetch)
     # print download progress, and capturing it makes a long download look
-    # hung. The chatty npm-deprecation noise during `wayne update` comes from
+    # hung. The chatty npm-deprecation noise during `work4you update` comes from
     # the *desktop* build, not this step; that one is captured to update.log.
     root_args = [*extra_args, "--workspaces=false"]
     root_result = _run_npm_install_deterministic(
@@ -7842,7 +7842,7 @@ def _update_node_dependencies() -> None:
 
 
 class _UpdateOutputStream:
-    """Stream wrapper used during ``wayne update`` to survive terminal loss.
+    """Stream wrapper used during ``work4you update`` to survive terminal loss.
 
     Wraps the process's original stdout/stderr so that:
 
@@ -7855,7 +7855,7 @@ class _UpdateOutputStream:
       stops.
 
     Combined with ``SIGHUP -> SIG_IGN`` installed by
-    ``_install_hangup_protection``, this makes ``wayne update`` safe to
+    ``_install_hangup_protection``, this makes ``work4you update`` safe to
     run in a plain SSH session that might disconnect mid-install.
     """
 
@@ -7917,7 +7917,7 @@ class _UpdateOutputStream:
 def _install_hangup_protection(gateway_mode: bool = False):
     """Protect ``cmd_update`` from SIGHUP and broken terminal pipes.
 
-    Users commonly run ``wayne update`` in an SSH session or a terminal
+    Users commonly run ``work4you update`` in an SSH session or a terminal
     that may close mid-install.  Without protection, ``SIGHUP`` from the
     terminal kills the Python process during ``pip install`` and leaves
     the venv half-installed; the documented workaround ("use screen /
@@ -7936,7 +7936,7 @@ def _install_hangup_protection(gateway_mode: bool = False):
     **intentionally left alone** — those are legitimate cancellation
     signals the user or OS sent on purpose.
 
-    In gateway mode (``wayne update --gateway``) the update is already
+    In gateway mode (``work4you update --gateway``) the update is already
     spawned detached from a terminal, so this function is a no-op.
 
     Returns a dict that ``cmd_update`` can pass to
@@ -7998,7 +7998,7 @@ def _install_hangup_protection(gateway_mode: bool = False):
 def _log_only_write(text: str) -> None:
     """Write ``text`` to ``~/.wayne/logs/update.log`` only, never the terminal.
 
-    During ``wayne update`` ``sys.stdout`` is an ``_UpdateOutputStream`` that
+    During ``work4you update`` ``sys.stdout`` is an ``_UpdateOutputStream`` that
     mirrors to both the terminal and ``update.log``. Loud, low-signal
     subprocess output (npm installs, the Electron/vite build, the cua-driver
     installer's "Next steps" wall) should be captured and tucked into the log
@@ -8073,7 +8073,7 @@ def _resolve_update_branch(args) -> str:
 
 
 def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
-    """``wayne update --check`` — disabled in the W4Y fork.
+    """``work4you update --check`` — disabled in the W4Y fork.
 
     Upstream Hermes fetched upstream/origin (or asked PyPI) here to report
     how many commits behind the install was. Prints the disabled notice and
@@ -8088,7 +8088,7 @@ def _ensure_fhs_path_guard() -> None:
 
     Mirrors the post-symlink probe added to ``scripts/install.sh`` so that
     existing FHS-layout root installs on RHEL/CentOS/Rocky/Alma 8+ get
-    repaired on ``wayne update`` without requiring a reinstall.  The
+    repaired on ``work4you update`` without requiring a reinstall.  The
     installer's assumption that ``/usr/local/bin`` is on PATH for every
     standard shell breaks on those distros in non-login interactive shells
     (su, sudo -s, tmux panes, some web terminals): /etc/bashrc doesn't
@@ -8139,7 +8139,7 @@ def _ensure_fhs_path_guard() -> None:
 
     path_line = 'export PATH="/usr/local/bin:$PATH"'
     path_comment = (
-        "# Wayne Agent — ensure /usr/local/bin is on PATH " "(RHEL non-login shells)"
+        "# Work4You — ensure /usr/local/bin is on PATH " "(RHEL non-login shells)"
     )
     wrote_any = False
     for candidate in (".bashrc", ".bash_profile"):
@@ -8177,7 +8177,7 @@ def _run_pre_update_backup(args) -> None:
 
     Gated on ``updates.pre_update_backup`` in config (default false).  Off
     by default because the zip can add minutes to every update on large
-    WAYNE_HOME directories.  The ``--backup`` flag on ``wayne update``
+    WAYNE_HOME directories.  The ``--backup`` flag on ``work4you update``
     opts in for a single run; ``--no-backup`` forces it off when config
     has it enabled.  Never raises — a backup failure should not block the
     update itself.
@@ -8267,7 +8267,7 @@ def _run_pre_update_backup(args) -> None:
         display_path = str(out_path)
 
     print(f"  Saved:    {display_path} ({size_str}, {elapsed:.1f}s)")
-    print(f"  Restore:  wayne import {out_path}")
+    print(f"  Restore:  work4you import {out_path}")
     print(f"  Disable:  omit --backup (backups are off by default)")
     print(f"            set updates.pre_update_backup: false in config.yaml")
     print()
@@ -8333,11 +8333,11 @@ def _venv_core_imports_healthy() -> tuple[bool, str]:
     """Probe the project venv for the core imports the backend needs to boot.
 
     Runs a tiny import check inside the venv interpreter (NOT this process —
-    ``wayne update`` may be driven by a different Python). Catches the
+    ``work4you update`` may be driven by a different Python). Catches the
     half-updated-venv state: git checkout current but a dependency sync that
     failed or was killed partway (e.g. Windows access-denied on a loaded
     .pyd), leaving imports like ``fastapi``'s new transitive deps missing.
-    Without this probe, ``wayne update`` on a current checkout prints
+    Without this probe, ``work4you update`` on a current checkout prints
     "Already up to date!" and returns without ever re-syncing dependencies —
     the user's install stays broken no matter how many times they update
     (ryanc's incident, July 2026).
@@ -8416,7 +8416,7 @@ def _detect_venv_python_processes(
     backend and respawns it within seconds — so the caller should refuse and
     tell the user to close the app instead. Returns ``(pid, name, cmdline)``
     tuples; empty off-Windows / without psutil / when nothing matches. The
-    calling process and its ancestors are always excluded (a CLI ``wayne
+    calling process and its ancestors are always excluded (a CLI ``work4you
     update`` itself runs from the venv python). Never raises.
     """
     if not _is_windows():
@@ -8489,13 +8489,13 @@ def _detect_venv_python_processes(
 def _format_venv_python_holders_message(matches: list[tuple[int, str, str]]) -> str:
     """Explain which venv processes block the update and how to clear them."""
     lines = [
-        "✗ Other Wayne processes are running from this install's venv:",
+        "✗ Other Work4You processes are running from this install's venv:",
     ]
     for pid, name, cmdline in matches[:6]:
         hint = ""
         low = cmdline.lower()
         if "serve" in low or "dashboard" in low:
-            hint = "  ← Wayne Desktop backend (close the desktop app)"
+            hint = "  ← Work4You Desktop backend (close the desktop app)"
         elif "gateway" in low:
             hint = "  ← gateway"
         lines.append(f"  PID {pid}  {name}  {cmdline}{hint}")
@@ -8509,10 +8509,10 @@ def _format_venv_python_holders_message(matches: list[tuple[int, str, str]]) -> 
         "  dependency update would fail partway and leave a broken install."
     )
     lines.append(
-        "  Close the Wayne desktop app / other Wayne terminals, then re-run:"
+        "  Close the Work4You desktop app / other Work4You terminals, then re-run:"
     )
-    lines.append("    wayne update")
-    lines.append("  (or use `wayne update --force-venv` to proceed anyway at your own risk)")
+    lines.append("    work4you update")
+    lines.append("  (or use `work4you update --force-venv` to proceed anyway at your own risk)")
     return "\n".join(lines)
 
 
@@ -8590,7 +8590,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
         mapped_pids.append(int(pid))
         _write_update_planned_stop_marker(Path(proc.path), int(pid))
 
-    print("→ Stopping Windows gateway process(es) before updating Wayne...")
+    print("→ Stopping Windows gateway process(es) before updating Work4You...")
     try:
         drain_timeout = max(float(_get_restart_drain_timeout()), 1.0)
     except Exception:
@@ -8637,7 +8637,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
         if respawnable < len(unmapped_pids):
             # Some had no recoverable command line (psutil missing, access
             # denied, already gone): those still need a manual restart.
-            print("    Restart manually after update: wayne gateway run")
+            print("    Restart manually after update: work4you gateway run")
 
     return {
         "resume_needed": True,
@@ -8656,7 +8656,7 @@ def _cold_start_windows_gateway_after_update() -> None:
     is installed, signalling the user wants a gateway. Unlike the relaunch
     paths — which watch an old PID and respawn once it exits — this is a direct
     fresh spawn via the same windowless ``pythonw`` + breakaway path that
-    ``wayne gateway start`` uses (``gateway_windows._spawn_detached``).
+    ``work4you gateway start`` uses (``gateway_windows._spawn_detached``).
 
     Best-effort and idempotent: re-checks that nothing is running first so a
     concurrent start (e.g. the autostart entry firing) can't produce a
@@ -8763,7 +8763,7 @@ def _discard_lockfile_churn(git_cmd, repo_root):
 
     npm rewrites lockfiles non-deterministically at install/build time. On a
     managed install those diffs are never intentional, so we discard them so
-    ``wayne update`` sees a clean tree instead of autostashing every run.
+    ``work4you update`` sees a clean tree instead of autostashing every run.
     Best-effort; only ever touches files named ``package-lock.json``.
     """
     try:
@@ -8801,11 +8801,11 @@ def _discard_lockfile_churn(git_cmd, repo_root):
         pass
 
 
-# Self-update is disabled in the W4Y fork. Upstream Hermes' `wayne update`
+# Self-update is disabled in the W4Y fork. Upstream Hermes' `work4you update`
 # pulled and applied code from github.com/NousResearch/hermes-agent (git
 # pull / GitHub ZIP archive / the upstream PyPI package) — in this fork that
 # would overwrite Wayne with upstream Nous code. The command stays registered
-# so scripts, the /update slash command, and docs referencing `wayne update`
+# so scripts, the /update slash command, and docs referencing `work4you update`
 # get a clear answer instead of an argparse error, but every fetch/apply
 # entry point below just prints this message and returns (exit 0).
 SELF_UPDATE_DISABLED_MESSAGE = (
@@ -8815,7 +8815,7 @@ SELF_UPDATE_DISABLED_MESSAGE = (
 
 
 def cmd_update(args):
-    """`wayne update` — disabled in the W4Y fork.
+    """`work4you update` — disabled in the W4Y fork.
 
     Prints the disabled notice and exits 0. All flags (--check, --branch,
     --gateway, --yes, ...) are accepted for compatibility and ignored.
@@ -8871,7 +8871,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             logger.debug("Could not read updates.non_interactive_local_changes: %s", exc)
             discard_local_changes = False
 
-    print("⚕ Updating Wayne Agent...")
+    print("⚕ Updating Work4You...")
     print()
 
     # On Windows, abort early if another wayne.exe is holding the venv shim
@@ -9165,7 +9165,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     print("✓ Dependencies repaired!")
                 else:
                     print(f"⚠ Venv still unhealthy after repair: {detail_after}")
-                    print("  Close all Wayne windows/gateways and re-run: wayne update")
+                    print("  Close all Work4You windows/gateways and re-run: work4you update")
             else:
                 print("✓ Already up to date!")
             _resume_windows_gateways_after_update(_windows_gateway_resume)
@@ -9195,7 +9195,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # Capture the pre-pull SHA so we can auto-roll-back if the new code
         # has a syntax error in a critical-path file (PR #28452 incident:
         # orphan merge-conflict markers in wayne_cli/config.py bricked
-        # every user who ran ``wayne update`` for the 7 minutes between
+        # every user who ran ``work4you update`` for the 7 minutes between
         # the bad commit and the fix landing).
         pre_pull_sha = _capture_head_sha(git_cmd, PROJECT_ROOT)
         try:
@@ -9256,7 +9256,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     )
                     if rollback_result.returncode == 0:
                         print("  ✓ Rollback complete — your install is unchanged.")
-                        print("  Try ``wayne update`` again later once a fix lands.")
+                        print("  Try ``work4you update`` again later once a fix lands.")
                     else:
                         print("  ✗ Rollback failed. Recover manually with:")
                         print(f"    cd {PROJECT_ROOT} && git reset --hard {pre_pull_sha}")
@@ -9386,12 +9386,12 @@ def _cmd_update_impl(args, gateway_mode: bool):
         _build_web_ui(PROJECT_ROOT / "web")
 
         # Rebuild the desktop app if the source tree changed since the last
-        # build.  ``wayne desktop --build-only`` uses the content-hash stamp
+        # build.  ``work4you desktop --build-only`` uses the content-hash stamp
         # internally, so this is effectively a no-op when nothing changed.
         # Only bother if the user has a desktop app installed (indicated by
         # an existing packaged executable or desktop dist); people who have
-        # never run ``wayne desktop`` shouldn't be forced into a full
-        # Electron build by ``wayne update``.
+        # never run ``work4you desktop`` shouldn't be forced into a full
+        # Electron build by ``work4you update``.
         desktop_dir = PROJECT_ROOT / "apps" / "desktop"
         has_desktop_app = _desktop_packaged_executable(desktop_dir) is not None or _desktop_dist_exists(desktop_dir)
         from wayne_constants import find_node_executable
@@ -9409,7 +9409,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             if build_result.returncode != 0:
                 build_result = _run_logged_subprocess(_desktop_build_cmd, cwd=PROJECT_ROOT)
             if build_result.returncode != 0:
-                print("  ⚠ Desktop build failed (non-fatal; run `wayne desktop` to retry)")
+                print("  ⚠ Desktop build failed (non-fatal; run `work4you desktop` to retry)")
                 tail = "\n".join((build_result.stdout or "").strip().splitlines()[-15:])
                 if tail:
                     print(tail)
@@ -9465,7 +9465,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             if result.get("user_modified"):
                 print(f"  ~ {len(result['user_modified'])} user-modified (kept)")
                 print(
-                    "    → see them: wayne skills list-modified  "
+                    "    → see them: work4you skills list-modified  "
                     "(diff/reset to resume updates)"
                 )
             if result.get("cleaned"):
@@ -9577,7 +9577,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 print("  ✓ Config format updated (no new settings to configure)")
             except Exception as _mig_err:
                 print(f"  ⚠️  Config format update failed: {_mig_err}")
-                print("     Run 'wayne config migrate' to retry.")
+                print("     Run 'work4you config migrate' to retry.")
         elif needs_migration:
             print()
             # Show WHAT changed, not just a count, so the user can make an
@@ -9655,10 +9655,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     print()
                     print("✓ Configuration updated!")
                 if (gateway_mode or assume_yes or response == "auto") and missing_env:
-                    print("  ℹ API keys require manual entry: wayne config migrate")
+                    print("  ℹ API keys require manual entry: work4you config migrate")
             else:
                 print()
-                print("Skipped. Run 'wayne config migrate' later to configure.")
+                print("Skipped. Run 'work4you config migrate' later to configure.")
         else:
             print("  ✓ Configuration is up to date")
 
@@ -9698,7 +9698,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # Most-recent curator run notice — show-once per run. Surfaces the
         # rename map (`old-name → umbrella`) on the high-attention update
         # surface so users learn about consolidations without having to
-        # check `wayne curator status`. Self-stamps after printing so it
+        # check `work4you curator status`. Self-stamps after printing so it
         # never repeats for the same run.
         try:
             _print_curator_recent_run_notice()
@@ -9715,7 +9715,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # Refresh the cua-driver binary used by the Computer Use toolset.
         # The upstream installer is gated on supported platforms and on the
         # binary already being on PATH, so this is a no-op for users who
-        # don't have it. Tying the refresh to ``wayne update`` gives users a
+        # don't have it. Tying the refresh to ``work4you update`` gives users a
         # predictable cadence (matches when they pull new agent code) without
         # adding startup latency or a per-launch GitHub API call.
         try:
@@ -9729,7 +9729,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             logger.debug("cua-driver refresh failed: %s", e)
 
         # Write exit code *before* the gateway restart attempt.
-        # When running as ``wayne update --gateway`` (spawned by the gateway's
+        # When running as ``work4you update --gateway`` (spawned by the gateway's
         # /update command), this process lives inside the gateway's systemd
         # cgroup.  A graceful SIGUSR1 restart keeps the drain loop alive long
         # enough for the exit-code marker to be written below, but the
@@ -10135,7 +10135,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                                     f"  ⚠ {svc_name} is a system service and restarting it needs root.\n"
                                     f"    Restart it manually to load the new version:\n"
                                     f"      sudo systemctl restart {svc_name}\n"
-                                    f"    To let `wayne update` restart it automatically, allow\n"
+                                    f"    To let `work4you update` restart it automatically, allow\n"
                                     f"    passwordless sudo for systemctl, or run updates with sudo."
                                 )
                                 continue
@@ -10154,7 +10154,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                             # the RestartSec backoff and leave the unit
                             # dead.  Clearing the failed state first makes
                             # the restart idempotent.  Mirrors the recovery
-                            # path in `wayne gateway restart`
+                            # path in `work4you gateway restart`
                             # (`systemd_restart()`) as of PR #20949.
                             subprocess.run(
                                 _manage_cmd + ["reset-failed", svc_name],
@@ -10230,7 +10230,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                         print(
                             f"  ⚠ systemctl timed out during the {scope}-scope "
                             f"gateway restart ({exc.cmd if exc.cmd else 'unknown command'}). "
-                            f"Check the gateway with: wayne gateway status"
+                            f"Check the gateway with: work4you gateway status"
                         )
 
             # --- Launchd services (macOS) ---
@@ -10335,10 +10335,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 unmapped_count = len(killed_pids) - len(relaunched_profiles)
                 if unmapped_count:
                     print(f"  → Stopped {unmapped_count} manual gateway process(es)")
-                    print("    Restart manually: wayne gateway run")
+                    print("    Restart manually: work4you gateway run")
                     if unmapped_count > 1:
                         print(
-                            "    (or: wayne -p <profile> gateway run  for each profile)"
+                            "    (or: work4you -p <profile> gateway run  for each profile)"
                         )
 
             if not restarted_services and not killed_pids:
@@ -10396,7 +10396,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # When both wayne.service (from a pre-rename install) and the
         # current wayne-gateway.service are enabled, they SIGTERM-fight
         # for the same bot token (see PR #11909). Flagging here means
-        # every `wayne update` surfaces the issue until the user migrates.
+        # every `work4you update` surfaces the issue until the user migrates.
         try:
             from wayne_cli.gateway import (
                 has_legacy_wayne_units,
@@ -10406,7 +10406,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 
             if supports_systemd_services() and has_legacy_wayne_units():
                 print()
-                print("⚠ Legacy Wayne gateway unit(s) detected:")
+                print("⚠ Legacy Work4You gateway unit(s) detected:")
                 for name, path, is_sys in _find_legacy_wayne_units():
                     scope = "system" if is_sys else "user"
                     print(f"    {path}  ({scope} scope)")
@@ -10415,7 +10415,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 print("  wayne-gateway.service for the bot token and cause SIGTERM")
                 print("  flap loops. Remove them with:")
                 print()
-                print("    wayne gateway migrate-legacy")
+                print("    work4you gateway migrate-legacy")
                 print()
                 print("  (add `sudo` if any are in system scope)")
         except Exception as e:
@@ -10430,7 +10430,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 
         print()
         print("Tip: You can now select a provider and model:")
-        print("  wayne model              # Select provider and model")
+        print("  work4you model              # Select provider and model")
 
     except subprocess.CalledProcessError as e:
         if sys.platform == "win32":
@@ -10446,7 +10446,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 def _coalesce_session_name_args(argv: list) -> list:
     """Join unquoted multi-word session names after -c/--continue and -r/--resume.
 
-    When a user types ``wayne -c Pokemon Agent Dev`` without quoting the
+    When a user types ``work4you -c Pokemon Agent Dev`` without quoting the
     session name, argparse sees three separate tokens.  This function merges
     them into a single argument so argparse receives
     ``['-c', 'Pokemon Agent Dev']`` instead.
@@ -10542,7 +10542,7 @@ def cmd_profile(args):
     action = getattr(args, "profile_action", None)
 
     if action is None:
-        # Bare `wayne profile` — show current profile status
+        # Bare `work4you profile` — show current profile status
         profile_name = get_active_profile_name()
         dhh = display_wayne_home()
         print(f"\nActive profile: {profile_name}")
@@ -10562,7 +10562,7 @@ def cmd_profile(args):
                 print(f"Skills:         {p.skill_count} installed")
                 if p.alias_path:
                     alias_display = p.alias_name or p.name
-                    print(f"Alias:          {alias_display} → wayne -p {p.name}")
+                    print(f"Alias:          {alias_display} → work4you -p {p.name}")
                 break
         print()
         return
@@ -10689,9 +10689,9 @@ def cmd_profile(args):
                 if collision:
                     print(f"\n⚠ Cannot create alias '{name}' — {collision}")
                     print(
-                        f"  Choose a custom alias:  wayne profile alias {name} --name <custom>"
+                        f"  Choose a custom alias:  work4you profile alias {name} --name <custom>"
                     )
-                    print(f"  Or access via flag:     wayne -p {name} chat")
+                    print(f"  Or access via flag:     work4you -p {name} chat")
                 else:
                     wrapper_path = create_wrapper_script(name)
                     if wrapper_path:
@@ -10878,11 +10878,11 @@ def cmd_profile(args):
             print(f"Distribution: {dist_name}@{dist_version or '?'}")
             if dist_source:
                 print(f"Installed from: {dist_source}")
-            print(f"  (run `wayne profile info {name}` for full manifest)")
+            print(f"  (run `work4you profile info {name}` for full manifest)")
         if alias_name:
             is_windows = sys.platform == "win32"
             wrapper = _get_wrapper_dir() / (f"{alias_name}.bat" if is_windows else alias_name)
-            print(f"Alias:   {alias_name} → wayne -p {name}  ({wrapper})")
+            print(f"Alias:   {alias_name} → work4you -p {name}  ({wrapper})")
         print()
 
     elif action == "alias":
@@ -11011,9 +11011,9 @@ def cmd_profile(args):
             if plan.has_cron:
                 print(
                     "  Cron jobs were included but are NOT scheduled automatically.\n"
-                    f"  Review them with:  wayne -p {plan.manifest.name} cron list"
+                    f"  Review them with:  work4you -p {plan.manifest.name} cron list"
                 )
-            print(f"\n  Use with:      wayne -p {plan.manifest.name} chat")
+            print(f"\n  Use with:      work4you -p {plan.manifest.name} chat")
         except (DistributionError, ValueError) as e:
             print(f"Error: {e}")
             sys.exit(1)
@@ -11033,7 +11033,7 @@ def cmd_profile(args):
             if current is None:
                 print(
                     f"Error: Profile '{canon}' is not a distribution (no distribution.yaml). "
-                    "Only profiles installed via `wayne profile install` can be updated."
+                    "Only profiles installed via `work4you profile install` can be updated."
                 )
                 sys.exit(1)
 
@@ -11059,7 +11059,7 @@ def cmd_profile(args):
             if plan.has_cron:
                 print(
                     "  Cron files were refreshed.  Review with:  "
-                    f"wayne -p {plan.manifest.name} cron list"
+                    f"work4you -p {plan.manifest.name} cron list"
                 )
         except (DistributionError, ValueError) as e:
             print(f"Error: {e}")
@@ -11088,7 +11088,7 @@ def cmd_profile(args):
         if data.get("license"):
             print(f"License:      {data['license']}")
         if data.get("wayne_requires"):
-            print(f"Requires:     Wayne {data['wayne_requires']}")
+            print(f"Requires:     Work4You {data['wayne_requires']}")
         if data.get("source"):
             print(f"Source:       {data['source']}")
         if data.get("installed_at"):
@@ -11117,7 +11117,7 @@ def _render_distribution_plan(plan) -> None:
     if mf.author:
         print(f"  Author:   {mf.author}")
     if mf.wayne_requires:
-        print(f"  Requires: Wayne {mf.wayne_requires}")
+        print(f"  Requires: Work4You {mf.wayne_requires}")
     print(f"  Source:   {plan.provenance}")
     print(f"  Target:   {plan.target_dir}")
     if plan.existing:
@@ -11170,19 +11170,19 @@ def _render_distribution_plan(plan) -> None:
 
 
 def _report_dashboard_status() -> int:
-    """Print ``wayne dashboard`` PIDs and return the count.
+    """Print ``work4you dashboard`` PIDs and return the count.
 
     Uses the same detection logic as ``_find_stale_dashboard_pids`` (the
-    current process is excluded, but since ``wayne dashboard --status``
+    current process is excluded, but since ``work4you dashboard --status``
     runs in a short-lived CLI process that never matches the pattern,
     the exclusion is irrelevant here).
     """
     pids = _find_stale_dashboard_pids()
     if not pids:
-        print("No wayne dashboard processes running.")
+        print("No work4you dashboard processes running.")
         return 0
 
-    print(f"{len(pids)} wayne dashboard process(es) running:")
+    print(f"{len(pids)} work4you dashboard process(es) running:")
     for pid in pids:
         # Best-effort: show the full cmdline so users can tell profiles apart.
         cmdline = ""
@@ -11230,7 +11230,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     ``DashboardAuthProvider`` is registered. Rather than greet an interactive
     operator with that hard error, prompt them to set up the bundled
     username/password provider on the spot — or point them at
-    ``wayne dashboard register`` for OAuth.
+    ``work4you dashboard register`` for OAuth.
 
     No-ops (so the existing fail-closed ``SystemExit`` remains the backstop)
     when:
@@ -11271,7 +11271,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     print()
     print("  How do you want to authenticate the dashboard?")
     print("    [1] Username & password (quickest; for a trusted LAN / VPN)")
-    print("    [2] OAuth via Nous Portal (run `wayne dashboard register`)")
+    print("    [2] OAuth via Nous Portal (run `work4you dashboard register`)")
     print("    [3] Cancel")
     print()
 
@@ -11286,7 +11286,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
         print(
             "  Run this on the host where the dashboard lives, then start "
             "the dashboard again:\n"
-            "    wayne dashboard register\n"
+            "    work4you dashboard register\n"
             "  It provisions a Nous Portal OAuth client and writes "
             "WAYNE_DASHBOARD_OAUTH_CLIENT_ID into ~/.wayne/.env for you.\n"
             "  Docs: https://hermes-agent.nousresearch.com/docs/"
@@ -11373,9 +11373,9 @@ def cmd_dashboard(args):
     if getattr(args, "stop", False):
         pids = _find_stale_dashboard_pids()
         if not pids:
-            print("No wayne dashboard processes running.")
+            print("No work4you dashboard processes running.")
             sys.exit(0)
-        # Reuse the same SIGTERM-grace-SIGKILL path used after `wayne update`.
+        # Reuse the same SIGTERM-grace-SIGKILL path used after `work4you update`.
         _kill_stale_dashboard_processes(reason="requested via --stop")
         # _kill_stale_dashboard_processes prints outcomes itself.  Exit 0 if
         # we killed at least one, 1 if they were all unkillable.
@@ -11682,7 +11682,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
 
 
 # Top-level flags that take a value. Needed by ``_first_positional_argv``
-# so that in ``wayne -m gpt5 chat``, ``gpt5`` is correctly skipped as a
+# so that in ``work4you -m gpt5 chat``, ``gpt5`` is correctly skipped as a
 # flag value rather than misclassified as a subcommand. Kept in sync with
 # the top-level flags declared in ``wayne_cli/_parser.py``.
 #
@@ -11711,7 +11711,7 @@ def _first_positional_argv() -> str | None:
 
     Used by ``main()`` to decide whether plugin discovery has to run at
     argparse-setup time. Handles common invocations like
-    ``wayne -m gpt5 --provider openai chat "msg"`` by skipping the
+    ``work4you -m gpt5 --provider openai chat "msg"`` by skipping the
     values attached to known top-level flags.
 
     Does NOT fully simulate argparse — unknown ``--foo=bar`` / ``--foo
@@ -11750,7 +11750,7 @@ def _plugin_cli_discovery_needed() -> bool:
     """
     first = _first_positional_argv()
     if first is None:
-        # Bare ``wayne`` or only flags → defaults to ``chat``.
+        # Bare ``work4you`` or only flags → defaults to ``chat``.
         return False
     if first in _BUILTIN_SUBCOMMANDS:
         return False
@@ -11948,7 +11948,7 @@ def _try_termux_fast_cli_launch() -> bool:
 def _try_termux_fast_tui_launch() -> bool:
     """Launch obvious Termux TUI invocations before building every subparser.
 
-    `wayne --tui` is the hot path on phones. The full parser setup imports
+    `work4you --tui` is the hot path on phones. The full parser setup imports
     command modules for model, fallback, migrate, kanban, bundles, plugins,
     etc. even though the TUI immediately execs Node. On Termux only, parse the
     lightweight top-level/chat parser and hand off to ``cmd_chat`` when the
@@ -12154,22 +12154,22 @@ def main():
         pass
 
     # Sweep stale ``wayne.exe.old.*`` quarantine files left by previous
-    # ``wayne update`` runs on Windows. Silent no-op on non-Windows or when
+    # ``work4you update`` runs on Windows. Silent no-op on non-Windows or when
     # there's nothing to clean. See ``_quarantine_running_wayne_exe``.
     try:
         _cleanup_quarantined_exes()
     except Exception:
         pass
 
-    # Self-heal a venv left half-built by an interrupted ``wayne update``
+    # Self-heal a venv left half-built by an interrupted ``work4you update``
     # (Ctrl-C, terminal close, WSL OOM mid-install). Skip when the user is
     # *running* update — that flow writes and clears its own marker, and we
     # don't want a recovery install racing the real one. Never raises.
     #
     # The substring match is deliberately loose: argv isn't parsed yet at this
     # point, and the failure modes are asymmetric. Over-matching (e.g.
-    # ``wayne skills install update``) merely defers recovery one launch;
-    # under-matching (missing ``wayne -p work update``) would race a recovery
+    # ``work4you skills install update``) merely defers recovery one launch;
+    # under-matching (missing ``work4you -p work update``) would race a recovery
     # install against the real one. Loose wins.
     try:
         if "update" not in sys.argv[1:]:
@@ -12230,7 +12230,7 @@ def main():
     )
     fallback_subparsers.add_parser(
         "add",
-        help="Pick a provider + model (same picker as `wayne model`) and append to the chain",
+        help="Pick a provider + model (same picker as `work4you model`) and append to the chain",
     )
     fallback_subparsers.add_parser(
         "remove",
@@ -12359,7 +12359,7 @@ def main():
         description=(
             "Configure the official Meta WhatsApp Business Cloud API "
             "adapter (Business account required, public webhook URL "
-            "required). Distinct from `wayne whatsapp` which sets up "
+            "required). Distinct from `work4you whatsapp` which sets up "
             "the Baileys bridge for personal accounts."
         ),
     )
@@ -12469,7 +12469,7 @@ def main():
         "checkpoints",
         help="Inspect / prune / clear ~/.wayne/checkpoints/",
         description="Manage the filesystem checkpoint store — the shadow git "
-        "repo wayne uses to snapshot working directories before "
+        "repo Work4You uses to snapshot working directories before "
         "write_file/patch/terminal calls. Lets you see how much "
         "space checkpoints occupy, force a prune, or wipe the base.",
     )
@@ -12528,7 +12528,7 @@ def main():
     # own argparse tree.  No hardcoded plugin commands in main.py.
     #
     # Skipped when the invocation is already targeting a known built-in
-    # subcommand — ``wayne --help``, ``wayne version``, ``wayne logs``,
+    # subcommand — ``work4you --help``, ``work4you version``, ``work4you logs``,
     # etc.  This avoids eagerly importing every bundled plugin module
     # (google.cloud.pubsub_v1, aiohttp, grpc, PIL …) which costs
     # 500-650ms on typical installs.
@@ -12597,7 +12597,7 @@ def main():
         description=(
             "Petdex (https://github.com/crafter-station/petdex) is a public "
             "gallery of animated sprite pets for coding agents. Install one "
-            "and Wayne shows it reacting to agent activity across the CLI, "
+            "and Work4You shows it reacting to agent activity across the CLI, "
             "TUI, and desktop app."
         ),
     )
@@ -12649,13 +12649,13 @@ def main():
             "Install or check the cua-driver binary used by the\n"
             "`computer_use` toolset. Supported on macOS, Windows, and\n"
             "Linux.\n\n"
-            "Use `wayne computer-use install` to fetch and run the\n"
+            "Use `work4you computer-use install` to fetch and run the\n"
             "upstream cua-driver installer. This is equivalent to the\n"
-            "post-setup hook that `wayne tools` runs when you first\n"
+            "post-setup hook that `work4you tools` runs when you first\n"
             "enable the Computer Use toolset, and is a stable target\n"
             "for re-running the install if it didn't fire (e.g. when\n"
             "toggling the toolset on a returning-user setup).\n\n"
-            "Use `wayne computer-use doctor` to run cua-driver's\n"
+            "Use `work4you computer-use doctor` to run cua-driver's\n"
             "`health_report` MCP tool and surface its check matrix\n"
             "(TCC, bundle identity, version, platform support, ...)\n"
             "in human-readable form."
@@ -12722,7 +12722,7 @@ def main():
         description=(
             "Computer Use drives the Mac through cua-driver, whose TCC grants\n"
             "attach to cua-driver's own identity (com.trycua.driver) — not the\n"
-            "terminal or the Wayne app. `status` reports the driver's grant\n"
+            "terminal or the Work4You app. `status` reports the driver's grant\n"
             "state; `grant` launches CuaDriver via LaunchServices so the macOS\n"
             "permission dialog is attributed to the process that does the work."
         ),
@@ -12780,17 +12780,17 @@ def main():
                     if st and st.get("update_available"):
                         latest = st.get("latest_version") or "?"
                         print(f"  ⬆ Update available: cua-driver {latest}.")
-                        print("    Run: wayne computer-use install --upgrade")
+                        print("    Run: work4you computer-use install --upgrade")
                     elif st:
                         print("  ✓ Up to date.")
                     else:
                         # Older driver (no check-update verb) or offline.
-                        print("  Refresh to latest: wayne computer-use install --upgrade")
+                        print("  Refresh to latest: work4you computer-use install --upgrade")
                 except Exception:
-                    print("  Refresh to latest: wayne computer-use install --upgrade")
+                    print("  Refresh to latest: work4you computer-use install --upgrade")
                 return
             print("cua-driver: not installed")
-            print("  Run: wayne computer-use install")
+            print("  Run: work4you computer-use install")
             return
         if action == "doctor":
             from tools.computer_use.doctor import run_doctor
@@ -12816,7 +12816,7 @@ def main():
                     print(f"Computer Use is not supported on {st['platform']}.")
                     sys.exit(1)
                 if not st["installed"]:
-                    print("cua-driver: not installed. Run: wayne computer-use install")
+                    print("cua-driver: not installed. Run: work4you computer-use install")
                     sys.exit(1)
                 glyph = lambda v: "✅" if v is True else ("❌" if v is False else "•")  # noqa: E731
                 print(f"cua-driver: {st['version'] or 'installed'} ({st['platform']})")
@@ -12824,7 +12824,7 @@ def main():
                     print(f"  {glyph(st['accessibility'])} Accessibility")
                     print(f"  {glyph(st['screen_recording'])} Screen Recording")
                     if not st["ready"]:
-                        print("  Grant: wayne computer-use permissions grant")
+                        print("  Grant: work4you computer-use permissions grant")
                 else:  # no TCC model — readiness is driver health
                     print(f"  {glyph(st['ready'])} driver health (no permission toggles on {st['platform']})")
                 for c in st["checks"]:
@@ -13127,7 +13127,7 @@ def main():
                 print("Cancelled.")
                 return
 
-            # Launch wayne --resume <id> by replacing the current process
+            # Launch work4you --resume <id> by replacing the current process
             print(f"Resuming session: {selected_id}")
             from wayne_cli.relaunch import relaunch
 
@@ -13249,7 +13249,7 @@ def main():
     #
     # The canonical name is "desktop"; "gui" is kept as a deprecated alias
     # for one release. The Wayne-Setup.exe success screen tells users to
-    # run `wayne desktop` from a terminal, so the canonical name needs
+    # run `work4you desktop` from a terminal, so the canonical name needs
     # to be the one that appears in --help (argparse promotes the primary
     # name; aliases stay hidden).
     # =========================================================================
@@ -13272,7 +13272,7 @@ def main():
     # =========================================================================
     # Pre-process argv so unquoted multi-word session names after -c / -r
     # are merged into a single token before argparse sees them.
-    # e.g. ``wayne -c Pokemon Agent Dev`` → ``wayne -c 'Pokemon Agent Dev'``
+    # e.g. ``work4you -c Pokemon Agent Dev`` → ``work4you -c 'Pokemon Agent Dev'``
     # ── Container-aware routing ────────────────────────────────────────
     # When NixOS container mode is active, route ALL subcommands into
     # the managed container.  This MUST run before parse_args() so that
@@ -13297,7 +13297,7 @@ def main():
     #
     # Fix: when argv contains a token matching a known subcommand, set
     # subparsers.required=True to force deterministic routing.  If that
-    # fails (e.g. 'wayne -c model' where 'model' is consumed as the
+    # fails (e.g. 'work4you -c model' where 'model' is consumed as the
     # session name for --continue), fall back to the default behaviour.
     import io as _io
 
@@ -13337,7 +13337,7 @@ def main():
 
     # Discover Python plugins and register shell hooks once, before any
     # command that can fire lifecycle hooks.  Both are idempotent; gated
-    # so introspection/management commands (wayne hooks list, cron
+    # so introspection/management commands (work4you hooks list, cron
     # list, gateway status, mcp add, ...) don't pay discovery cost or
     # trigger consent prompts for hooks the user is still inspecting.
     _prepare_agent_startup(args)

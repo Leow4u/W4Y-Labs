@@ -698,7 +698,7 @@ def sync_skills(quiet: bool = False) -> dict:
                         print(
                             f"  ⚠ {skill_name}: bundled version shipped but you "
                             f"already have a local skill by this name — yours "
-                            f"was kept. Run `wayne skills reset {skill_name}` "
+                            f"was kept. Run `work4you skills reset {skill_name}` "
                             f"to replace it with the bundled version."
                         )
                 else:
@@ -912,7 +912,7 @@ def reset_bundled_skill(name: str, restore: bool = False) -> dict:
             "action": "not_in_manifest",
             "message": (
                 f"'{name}' is not a tracked bundled skill. Nothing to reset. "
-                f"(Hub-installed skills use `wayne skills uninstall`.)"
+                f"(Hub-installed skills use `work4you skills uninstall`.)"
             ),
             "synced": None,
         }
@@ -966,7 +966,7 @@ def reset_bundled_skill(name: str, restore: bool = False) -> dict:
     else:
         action = "manifest_cleared"
         message = (
-            f"Cleared manifest entry for '{name}'. Future `wayne update` runs "
+            f"Cleared manifest entry for '{name}'. Future `work4you update` runs "
             f"will re-baseline against your current copy and accept upstream changes."
         )
 
@@ -1068,7 +1068,7 @@ def diff_bundled_skill(name: str) -> dict:
             "diffs": [],
             "message": (
                 f"'{name}' is not a tracked bundled skill (no stock version to "
-                f"diff against). Hub-installed skills use `wayne skills inspect`."
+                f"diff against). Hub-installed skills use `work4you skills inspect`."
             ),
         }
     dest = _compute_relative_dest(bundled_src, bundled_dir)
@@ -1177,7 +1177,7 @@ def set_bundled_skills_opt_out(enabled: bool) -> dict:
                 marker.unlink()
             changed = existed
             message = (
-                "Opted back in. The next `wayne update` (or `wayne skills "
+                "Opted back in. The next `work4you update` (or `work4you skills "
                 "opt-in --sync`) will re-seed bundled skills."
                 if changed
                 else "Not opted out — no marker to remove."

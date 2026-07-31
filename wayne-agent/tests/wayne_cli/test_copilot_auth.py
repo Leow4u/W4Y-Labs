@@ -114,7 +114,7 @@ class TestRequestHeaders:
         from wayne_cli.copilot_auth import copilot_request_headers
         headers = copilot_request_headers()
         assert headers["Openai-Intent"] == "conversation-edits"
-        assert headers["User-Agent"] == "WayneAgent/1.0"
+        assert headers["User-Agent"] == "Work4You/1.0"
         assert "Editor-Version" in headers
 
     def test_agent_turn_sets_initiator(self):

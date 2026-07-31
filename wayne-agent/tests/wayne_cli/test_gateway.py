@@ -93,7 +93,7 @@ def test_run_gateway_refuses_root_in_official_docker(monkeypatch, tmp_path, caps
 
     assert exc_info.value.code == 1
     out = capsys.readouterr().out
-    assert "Refusing to run the Wayne gateway as root" in out
+    assert "Refusing to run the Work4You gateway as root" in out
     assert "/opt/wayne/docker/entrypoint.sh" in out
 
 
@@ -149,7 +149,7 @@ def test_run_gateway_refuses_when_service_supervising(monkeypatch, capsys):
     assert calls == []  # dispatcher never started
     out = capsys.readouterr().out
     assert "already running under systemd (user)" in out
-    assert "wayne gateway restart" in out
+    assert "work4you gateway restart" in out
     assert "--force" in out
 
 
@@ -233,7 +233,7 @@ def test_run_gateway_refuses_existing_process_before_importing_gateway_run(monke
     assert calls == []
     out = capsys.readouterr().out
     assert "Another gateway instance is already running (PID 17907)" in out
-    assert "wayne gateway run --replace" in out
+    assert "work4you gateway run --replace" in out
 
 
 def test_run_gateway_replace_skips_existing_process_preflight(monkeypatch):
@@ -717,7 +717,7 @@ def test_conflicting_systemd_units_warning(monkeypatch, tmp_path, capsys):
 
     out = capsys.readouterr().out
     assert "Both user and system gateway services are installed" in out
-    assert "wayne gateway uninstall" in out
+    assert "work4you gateway uninstall" in out
     assert "--system" in out
 
 

@@ -299,7 +299,7 @@ def run_backup(args) -> None:
     wayne_root = get_default_wayne_root()
 
     if not wayne_root.is_dir():
-        print(f"Error: Wayne home directory not found at {wayne_root}")
+        print(f"Error: Work4You home directory not found at {wayne_root}")
         sys.exit(1)
 
     # Determine output path
@@ -466,7 +466,7 @@ def run_backup(args) -> None:
         if len(errors) > 10:
             print(f"  ... and {len(errors) - 10} more")
 
-    print(f"\nRestore with: wayne import {out_path.name}")
+    print(f"\nRestore with: work4you import {out_path.name}")
 
 
 # ---------------------------------------------------------------------------
@@ -493,7 +493,7 @@ def _validate_backup_zip(zf: zipfile.ZipFile) -> tuple[bool, str]:
 
     if not found:
         return False, (
-            "zip does not appear to be a Wayne backup "
+            "zip does not appear to be a Work4You backup "
             "(no config.yaml, .env, or state databases found)"
         )
 
@@ -561,7 +561,7 @@ def run_import(args) -> None:
 
         if (has_config or has_env) and not args.force:
             print()
-            print("Warning: Target directory already has Wayne configuration.")
+            print("Warning: Target directory already has Work4You configuration.")
             print("Importing will overwrite existing files with backup contents.")
             print()
             try:
@@ -727,21 +727,21 @@ def run_import(args) -> None:
                 # wayne_cli.profiles might not be available (fresh install)
                 if any(profiles_dir.iterdir()):
                     print(f"\n  Profiles detected but aliases could not be created.")
-                    print(f"  Run: wayne profile list  (after installing wayne)")
+                    print(f"  Run: work4you profile list  (after installing work4you)")
 
         # Guidance
         print()
         if not (wayne_root / "wayne-agent").is_dir():
             print("Note: The wayne-agent codebase was not included in the backup.")
-            print("  If this is a fresh install, run: wayne update")
+            print("  If this is a fresh install, run: work4you update")
 
         if restored_profiles:
             gw_profiles = [n for n, _ in restored_profiles]
             print("\nTo re-enable gateway services for profiles:")
             for pname in gw_profiles:
-                print(f"  wayne -p {pname} gateway install")
+                print(f"  work4you -p {pname} gateway install")
 
-        print("Done. Your Wayne configuration has been restored.")
+        print("Done. Your Work4You configuration has been restored.")
 
 
 # ---------------------------------------------------------------------------

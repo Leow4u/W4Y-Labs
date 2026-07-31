@@ -122,7 +122,7 @@ def _enable_disable(name: str, *, enable: bool) -> None:
     save_config(cfg)
     print(color(
         f"  ✓ '{name}' {'enabled' if enable else 'disabled'}. "
-        "Start a new Wayne session for changes to take effect.",
+        "Start a new Work4You session for changes to take effect.",
         Colors.GREEN,
     ))
 
@@ -246,7 +246,7 @@ def _print_rows_text(rows: List[_Row]) -> None:
         print(f"  {_format_row(row)}")
     print()
     print(color(
-        "  Install: wayne mcp install <name>    Picker: wayne mcp",
+        "  Install: work4you mcp install <name>    Picker: work4you mcp",
         Colors.DIM,
     ))
 
@@ -258,7 +258,7 @@ def _print_rows_text(rows: List[_Row]) -> None:
         print()
         for name, _, msg in future:
             print(color(
-                f"  ⚠ '{name}' requires a newer Wayne — run `wayne update` "
+                f"  ⚠ '{name}' requires a newer Work4You — run `work4you update` "
                 "to install this entry.",
                 Colors.YELLOW,
             ))
@@ -310,7 +310,7 @@ def install_by_name(identifier: str) -> int:
     if entry is None:
         print(color(
             f"  ✗ '{identifier}' is not in the catalog. "
-            "Run `wayne mcp catalog` to see available entries.",
+            "Run `work4you mcp catalog` to see available entries.",
             Colors.RED,
         ))
         return 1

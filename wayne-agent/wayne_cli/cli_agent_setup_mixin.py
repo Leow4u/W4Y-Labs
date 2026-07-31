@@ -104,11 +104,11 @@ class CLIAgentSetupMixin:
                 )
             else:
                 print("\n⚠️  Provider resolver returned an empty API key. "
-                      "Set OPENROUTER_API_KEY or run: wayne setup")
+                      "Set OPENROUTER_API_KEY or run: work4you setup")
                 return False
         if not isinstance(base_url, str) or not base_url:
             print("\n⚠️  Provider resolver returned an empty base URL. "
-                  "Check your provider config or run: wayne setup")
+                  "Check your provider config or run: work4you setup")
             return False
 
         credentials_changed = api_key != self.api_key or base_url != self.base_url
@@ -262,12 +262,12 @@ class CLIAgentSetupMixin:
                 if _quiet_mode:
                     print(f"Session not found: {self.session_id}", file=sys.stderr)
                     print(
-                        "Use a session ID from a previous CLI run (wayne sessions list).",
+                        "Use a session ID from a previous CLI run (work4you sessions list).",
                         file=sys.stderr,
                     )
                 else:
                     _cprint(f"\033[1;31mSession not found: {self.session_id}{_RST}")
-                    _cprint(f"{_DIM}Use a session ID from a previous CLI run (wayne sessions list).{_RST}")
+                    _cprint(f"{_DIM}Use a session ID from a previous CLI run (work4you sessions list).{_RST}")
                 return False
             # If the requested session is the (empty) head of a compression
             # chain, walk to the descendant that actually holds the messages.
@@ -463,7 +463,7 @@ class CLIAgentSetupMixin:
             )
             self._console_print(
                 "[dim]Use a session ID from a previous CLI run "
-                "(wayne sessions list).[/]"
+                "(work4you sessions list).[/]"
             )
             return False
 

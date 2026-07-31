@@ -23,7 +23,7 @@ def test_format_managed_message_homebrew(monkeypatch):
     message = format_managed_message("update Wayne Agent")
 
     assert "managed by Homebrew" in message
-    assert "brew upgrade wayne-agent" in message
+    assert "Use your Homebrew formula" in message
 
 
 def test_recommended_update_command_defaults_to_wayne_update(monkeypatch):
@@ -36,7 +36,7 @@ def test_recommended_update_command_defaults_to_wayne_update(monkeypatch):
     # detect_install_method().
     with patch("wayne_cli.config.get_managed_update_command", return_value=None), \
          patch("wayne_cli.config.detect_install_method", return_value="git"):
-        assert recommended_update_command() == "wayne update"
+        assert recommended_update_command() == "work4you update"
 
 
 def test_cmd_update_disabled_even_on_managed_installs(monkeypatch, capsys):

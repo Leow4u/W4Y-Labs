@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 # Visible in the written files so reviewers know the content was sanitized.
 # Kept short; the trailing newline guarantees the banner sits on its own line.
 _REDACTION_BANNER = (
-    "[wayne debug share: log content redacted at collection time. "
+    "[work4you debug share: log content redacted at collection time. "
     "run with --no-redact to disable]\n"
 )
 
@@ -689,7 +689,7 @@ def build_debug_share(
 
     if redact:
         logger.info(
-            "wayne debug share: applied force-mode redaction to log snapshots before writing"
+            "work4you debug share: applied force-mode redaction to log snapshots before writing"
         )
 
     report = bundle["report"]
@@ -770,7 +770,7 @@ def run_debug_share(args):
         result = build_debug_share(log_lines=log_lines, redact=redact)
     except RuntimeError as exc:
         print(f"\nFailed to write debug bundle: {exc}", file=sys.stderr)
-        print("\nRun `wayne debug share --local` to print the report instead.\n")
+        print("\nRun `work4you debug share --local` to print the report instead.\n")
         sys.exit(1)
 
     # Print results
@@ -814,7 +814,7 @@ def _run_debug_share_envelope(*, log_lines: int, redact: bool) -> None:
     except OSError as exc:
         print(
             f"\nFailed to write debug bundle: {exc}\n"
-            "Run `wayne debug share --local` to print the report instead.\n",
+            "Run `work4you debug share --local` to print the report instead.\n",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -827,8 +827,8 @@ def run_debug_delete(args):
     """Delete one or more paste URLs uploaded by /debug."""
     urls = getattr(args, "urls", [])
     if not urls:
-        print("Usage: wayne debug delete <url> [<url> ...]")
-        print("  Deletes paste.rs pastes uploaded by 'wayne debug share'.")
+        print("Usage: work4you debug delete <url> [<url> ...]")
+        print("  Deletes paste.rs pastes uploaded by 'work4you debug share'.")
         return
 
     for url in urls:
@@ -863,12 +863,12 @@ def run_debug(args):
         run_debug_delete(args)
     else:
         # Default: show help
-        print("Usage: wayne debug <command>")
+        print("Usage: work4you debug <command>")
         print()
         print("Commands:")
         print("  share    Write a debug report bundle to local files")
         print("           (remote upload is disabled in the W4Y fork)")
-        print("  delete   Delete a paste uploaded by a pre-fork 'wayne debug share'")
+        print("  delete   Delete a paste uploaded by a pre-fork 'work4you debug share'")
         print()
         print("Options (share):")
         print("  --lines N    Number of log lines to include (default: 200)")

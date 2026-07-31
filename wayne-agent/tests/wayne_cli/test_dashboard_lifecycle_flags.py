@@ -36,7 +36,7 @@ class TestDashboardStatus:
             cmd_dashboard(_ns(status=True))
         assert exc.value.code == 0
         out = capsys.readouterr().out
-        assert "No wayne dashboard processes running" in out
+        assert "No work4you dashboard processes running" in out
 
     def test_status_with_processes(self, capsys):
         with patch("wayne_cli.main._find_stale_dashboard_pids",
@@ -46,7 +46,7 @@ class TestDashboardStatus:
         # Status is informational — always exits 0.
         assert exc.value.code == 0
         out = capsys.readouterr().out
-        assert "2 wayne dashboard process(es) running" in out
+        assert "2 work4you dashboard process(es) running" in out
         assert "PID 12345" in out
         assert "PID 12346" in out
 
@@ -76,7 +76,7 @@ class TestDashboardStop:
             cmd_dashboard(_ns(stop=True))
         assert exc.value.code == 0
         out = capsys.readouterr().out
-        assert "No wayne dashboard processes running" in out
+        assert "No work4you dashboard processes running" in out
 
     def test_stop_kills_and_exits_zero_when_all_killed(self, capsys):
         """After the kill, if the second scan returns empty we exit 0."""

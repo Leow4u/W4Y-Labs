@@ -2820,7 +2820,7 @@ def _handle_auth_error_and_retry(
     return json.dumps({
         "error": (
             f"MCP server '{server_name}' requires re-authentication. "
-            f"Run `wayne mcp login {server_name}` (or delete the tokens "
+            f"Run `work4you mcp login {server_name}` (or delete the tokens "
             f"file under ~/.wayne/mcp-tokens/ and restart). Do NOT retry "
             f"this tool — ask the user to re-authenticate."
         ),

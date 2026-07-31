@@ -18,7 +18,7 @@ try:
     import wayne_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     # Graceful fallback when wayne_bootstrap isn't registered in the venv
-    # yet — happens during partial ``wayne update`` where git-reset landed
+    # yet — happens during partial ``work4you update`` where git-reset landed
     # new code but ``uv pip install -e .`` didn't finish.  Missing bootstrap
     # means UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
     pass
@@ -368,7 +368,7 @@ def load_cli_config() -> Dict[str, Any]:
     Environment variables take precedence over config file values.
     Returns default values if no config file exists.
 
-    If WAYNE_IGNORE_USER_CONFIG=1 is set (via ``wayne chat --ignore-user-config``),
+    If WAYNE_IGNORE_USER_CONFIG=1 is set (via ``work4you chat --ignore-user-config``),
     the user config at ``~/.wayne/config.yaml`` is skipped entirely and only the
     built-in defaults plus the project-level ``cli-config.yaml`` (if any) are used.
     Credentials in ``.env`` are still loaded — this flag only suppresses
@@ -436,10 +436,10 @@ def load_cli_config() -> Dict[str, Any]:
                 "teacher": "You are a patient teacher. Explain concepts clearly with examples.",
                 "kawaii": "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ",
                 "catgirl": "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!",
-                "pirate": "Arrr! Ye be talkin' to Captain Wayne, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
+                "pirate": "Arrr! Ye be talkin' to the most tech-savvy buccaneer ever to sail the digital seas! Speak like a proper pirate, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!",
                 "shakespeare": "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?",
                 "surfer": "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga!",
-                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. They call me Wayne - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
+                "noir": "The rain hammered against the terminal like regrets on a guilty conscience. I'm the one they call when things go wrong - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?",
                 "uwu": "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<",
                 "philosopher": "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself.",
                 "hype": "YOOO LET'S GOOOO!!! I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS!",
@@ -572,7 +572,7 @@ def load_cli_config() -> Dict[str, Any]:
     # wayne_cli.config._load_config_impl (which has its own managed merge), so
     # without this the entire interactive CLI/TUI surface — skin, display prefs,
     # etc. read from CLI_CONFIG — would silently ignore managed scope while
-    # `wayne config`/`doctor`/guards (which use load_config) honor it. The
+    # `work4you config`/`doctor`/guards (which use load_config) honor it. The
     # shared helper mirrors _load_config_impl (env-only expansion, root-model
     # normalization, leaf-merge) and is fail-open.
     from wayne_cli import managed_scope
@@ -590,7 +590,7 @@ def load_cli_config() -> Dict[str, Any]:
     
     # CWD resolution for CLI/TUI. The gateway has its own config bridge in
     # gateway/run.py but may lazily import cli.py (triggering this code).
-    # Local backend: always os.getcwd(). Use `cd /dir && wayne` to control it.
+    # Local backend: always os.getcwd(). Use `cd /dir && work4you` to control it.
     # Non-local with placeholder: pop so terminal_tool uses its per-backend default.
     # Non-local with explicit path: keep as-is.
     _CWD_PLACEHOLDERS = (".", "auto", "cwd")
@@ -785,7 +785,7 @@ try:
         """Defer ``AsyncHttpxClientWrapper.__del__`` neutering until import.
 
         Saves ~166ms on cold CLI start where openai is never used (e.g.
-        ``wayne --help`` paths inside the chat command flow).  See
+        ``work4you --help`` paths inside the chat command flow).  See
         ``agent.auxiliary_client.neuter_async_httpx_del`` for full rationale
         on why ``__del__`` must be a no-op.
         """
@@ -1333,7 +1333,7 @@ def _resolve_worktree_base(repo_root: str) -> tuple:
     """Resolve the freshest base ref to branch a new worktree from.
 
     The standalone clone's ``HEAD`` can lag the remote by hundreds of commits
-    (the ``~/.wayne/wayne-agent`` clone is updated only by ``wayne update``,
+    (the ``~/.wayne/wayne-agent`` clone is updated only by ``work4you update``,
     not on every session). Branching a worktree from that stale ``HEAD`` roots
     every new branch on an old base — so the PR diff GitHub computes against
     current ``main`` balloons with unrelated changes, and the agent has to
@@ -1420,7 +1420,7 @@ def _setup_worktree(repo_root: str = None, sync_base: bool = True) -> Optional[D
     repo_root = repo_root or _git_repo_root()
     if not repo_root:
         print("\033[31m✗ --worktree requires being inside a git repository.\033[0m")
-        print("  cd into your project repo first, then run wayne -w")
+        print("  cd into your project repo first, then run work4you -w")
         return None
 
     short_id = uuid.uuid4().hex[:8]
@@ -1627,7 +1627,7 @@ def _worktree_is_dirty(worktree_path: str, timeout: int = 10) -> bool:
 def _worktree_lock_is_live(repo_root: str, worktree_path: str, timeout: int = 10):
     """Classify a worktree's git lock as live, dead, or absent.
 
-    ``wayne -w`` locks each worktree with reason ``wayne pid=<pid>`` so a
+    ``work4you -w`` locks each worktree with reason ``wayne pid=<pid>`` so a
     concurrent wayne process' startup prune leaves an in-use worktree alone.
     But a *crashed* session leaves the lock behind forever, and
     ``git worktree remove --force`` (single ``-f``) refuses to remove a locked
@@ -1671,7 +1671,7 @@ def _worktree_lock_is_live(repo_root: str, worktree_path: str, timeout: int = 10
             if not m:
                 # Locked by something we don't recognize as a wayne session
                 # (or lock reason unavailable). Treat as dead — a foreign lock
-                # on a wayne -w worktree is almost certainly a leftover, and
+                # on a work4you -w worktree is almost certainly a leftover, and
                 # the age/dirty/unpushed gates already ran before we got here.
                 return "dead"
             pid = int(m.group(1))
@@ -1836,7 +1836,7 @@ def _prune_stale_worktrees(repo_root: str, max_age_hours: int = 24) -> None:
     - 24h–72h: remove if no unpushed commits.
     - Over 72h: force remove regardless (nothing should sit this long).
 
-    Lock handling (orthogonal to age): ``wayne -w`` locks each worktree with
+    Lock handling (orthogonal to age): ``work4you -w`` locks each worktree with
     reason ``wayne pid=<pid>`` so a concurrent wayne process leaves an in-use
     worktree alone. A *live*-locked worktree is skipped at any age; a
     *dead*-locked one (owning pid gone — a crashed session) is unlocked first
@@ -1941,7 +1941,7 @@ def _prune_stale_worktrees(repo_root: str, max_age_hours: int = 24) -> None:
 def _prune_orphaned_branches(repo_root: str) -> None:
     """Delete local ``wayne/wayne-*`` and ``pr-*`` branches with no worktree.
 
-    These are auto-generated by ``wayne -w`` sessions and PR review
+    These are auto-generated by ``work4you -w`` sessions and PR review
     workflows respectively.  Once their worktree is gone they serve no
     purpose and just accumulate.
     """
@@ -3854,7 +3854,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         self.checkpoint_max_file_size_mb = cp_cfg.get("max_file_size_mb", 10)
         self.pass_session_id = pass_session_id
         # --ignore-rules: honor either the constructor flag or the env var set
-        # by `wayne chat --ignore-rules` in wayne_cli/main.py. When true we
+        # by `work4you chat --ignore-rules` in wayne_cli/main.py. When true we
         # pass skip_context_files=True and skip_memory=True to AIAgent so
         # AGENTS.md/SOUL.md/.cursorrules and persistent memory are not loaded.
         self.ignore_rules = ignore_rules or os.environ.get("WAYNE_IGNORE_RULES") == "1"
@@ -3951,7 +3951,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     "this conversation will [bold]NOT be saved[/bold] to disk and "
                     "cannot be resumed later. Searching past sessions is also disabled.\n"
                     f"  Reason: {e}\n"
-                    "  Fix the state.db store (e.g. `wayne update` to rebuild the venv) to restore persistence."
+                    "  Fix the state.db store (e.g. `work4you update` to rebuild the venv) to restore persistence."
                 )
             except Exception:
                 # Never let the warning path itself break startup.
@@ -4758,7 +4758,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
     def _pet_resolve_config(self) -> None:
         """(Re)resolve the active pet from config — picks up live enable/disable/
 
-        switch made via ``/pet`` or ``wayne pets`` without a restart, mirroring
+        switch made via ``/pet`` or ``work4you pets`` without a restart, mirroring
         the TUI's steady poll. Cheap and fail-open: any problem disables the pet.
         """
         try:
@@ -5075,7 +5075,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 parts.append("⚠ YOLO")
             return self._trim_status_bar_text(" │ ".join(parts), width)
         except Exception:
-            return f"⚕ {self.model if getattr(self, 'model', None) else 'Wayne'}"
+            return f"⚕ {self.model if getattr(self, 'model', None) else 'Work4You'}"
 
     def _get_status_bar_fragments(self):
         if not self._status_bar_visible or getattr(self, '_model_picker_state', None):
@@ -6064,9 +6064,9 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         """Show a startup banner if any unacked security advisories match.
 
         Renders a single bold-red box on stderr (so piped stdout remains
-        clean) listing the worst hit and pointing at ``wayne doctor``.
+        clean) listing the worst hit and pointing at ``work4you doctor``.
         Banner-cache rate-limits this to once per 24h per advisory; full
-        remediation lives behind ``wayne doctor`` so the banner stays
+        remediation lives behind ``work4you doctor`` so the banner stays
         small.
         """
         try:
@@ -6134,7 +6134,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 f"this is likely too low for agent use with tools.[/]"
             )
             self._console_print(
-                f"[dim]   Wayne needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens. Tool schemas + system prompt use a large fixed prefix.[/]"
+                f"[dim]   Work4You needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens. Tool schemas + system prompt use a large fixed prefix.[/]"
             )
             base_url = getattr(self, "base_url", "") or ""
             if "11434" in base_url or "ollama" in base_url.lower():
@@ -6158,7 +6158,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             self._console_print()
             self._console_print(
                 "[bold yellow]⚠  Nous Research Wayne 3 & 4 models are NOT agentic and are not "
-                "designed for use with Wayne Agent.[/]"
+                "designed for use with Work4You.[/]"
             )
             self._console_print(
                 "[dim]   They lack tool-calling capabilities required for agent workflows. "
@@ -6413,7 +6413,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     if len(item["tools"]) > 2:
                         tools_str += f", +{len(item['tools'])-2} more"
                     self._console_print(f"   [dim]• {item['name']}[/] [dim italic]({', '.join(item['missing_vars'])})[/]")
-                self._console_print("[dim]   Run 'wayne setup' to configure[/]")
+                self._console_print("[dim]   Run 'work4you setup' to configure[/]")
         except Exception:
             pass  # Don't crash on import errors
     
@@ -6498,7 +6498,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         is_running = bool(getattr(self, "_agent_running", False))
 
         lines = [
-            "Wayne CLI Status",
+            "Work4You CLI Status",
             "",
             f"Session ID: {self.session_id}",
             f"Path: {display_wayne_home()}",
@@ -6580,7 +6580,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     f"    [bold {_accent_hex()}]{('/' + name):<22}[/] [dim]-[/] {_escape(desc)}"
                 )
 
-        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with Wayne!{_RST}")
+        _cprint(f"\n  {_DIM}Tip: Just type your message to chat with Work4You!{_RST}")
         _cprint(f"  {_DIM}Multi-line: Alt+Enter for a new line{_RST}")
         _cprint(f"  {_DIM}Draft editor: Ctrl+G (Alt+G in VSCode/Cursor){_RST}")
         if _is_termux_environment():
@@ -6835,7 +6835,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 )
                 continue
 
-            _cli_visible_print(f"\n  [Wayne #{visible_index}]{_ts_suffix(msg)}")
+            _cli_visible_print(f"\n  [Work4You #{visible_index}]{_ts_suffix(msg)}")
             tool_calls = msg.get("tool_calls") or []
             if content_text:
                 preview = content_text[:preview_limit]
@@ -6875,7 +6875,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         Starting the CLI and immediately quitting (or rotating with /new,
         /clear) used to leave an empty untitled row behind that clutters
-        ``/resume`` and ``wayne sessions list``. Delegates the
+        ``/resume`` and ``work4you sessions list``. Delegates the
         check-and-delete to ``SessionDB.delete_session_if_empty``, which
         only removes rows with no messages, no title, and no child
         sessions. Ported from google-gemini/gemini-cli#27770.
@@ -6928,7 +6928,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             except Exception:
                 pass
             # Don't let immediately-rotated empty sessions pile up in
-            # /resume and `wayne sessions list` (gemini-cli#27770 port).
+            # /resume and `work4you sessions list` (gemini-cli#27770 port).
             self._discard_session_if_empty(old_session_id)
 
         self.session_start = datetime.now()
@@ -7063,7 +7063,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         The snapshot is a convenience export for sharing or off-line inspection;
         every message is already persisted incrementally to the SQLite session
-        DB, so the live session remains resumable via ``wayne --resume <id>``
+        DB, so the live session remains resumable via ``work4you --resume <id>``
         regardless of whether the user ever runs ``/save``.
         """
         if not self.conversation_history:
@@ -7089,7 +7089,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 }, f, indent=2, ensure_ascii=False)
             print(f"(^_^)v Conversation snapshot saved to: {path}")
             if self.session_id:
-                print(f"       Resume the live session with: wayne --resume {self.session_id}")
+                print(f"       Resume the live session with: work4you --resume {self.session_id}")
         except Exception as e:
             print(f"(x_x) Failed to save: {e}")
     
@@ -7640,7 +7640,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             return True
 
         choices = [
-            ("once", "Switch anyway", "Use this model for the current Wayne session."),
+            ("once", "Switch anyway", "Use this model for the current Work4You session."),
             ("cancel", "Cancel", "Keep the current model."),
         ]
         raw = self._prompt_text_input_modal(
@@ -7827,7 +7827,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 return
             provider_data = providers[selected]
             # Use the curated model list from list_authenticated_providers()
-            # (same lists as `wayne model` and gateway pickers).
+            # (same lists as `work4you model` and gateway pickers).
             # Only fall back to the live provider catalog when the curated
             # list is empty (e.g. user-defined endpoints with no curated list).
             model_list = provider_data.get("models", [])
@@ -8617,7 +8617,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             self._handle_browser_command(cmd_original)
         elif canonical == "plugins":
             try:
-                # Discover from disk (bundled + user), matching `wayne plugins
+                # Discover from disk (bundled + user), matching `work4you plugins
                 # list` — so installed-but-not-enabled plugins are visible here
                 # too. The plugin manager only knows about *loaded* plugins, so
                 # using it alone made freshly-installed, not-yet-enabled plugins
@@ -8636,16 +8636,16 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 # `/plugins` is a quick glance — default to user-installed
                 # plugins (what the user actually added). Bundled provider/
                 # platform plugins are summarized on one line; the full
-                # catalog lives behind `wayne plugins list`.
+                # catalog lives behind `work4you plugins list`.
                 user_entries = [e for e in entries if e[3] != "bundled"]
                 bundled_count = len(entries) - len(user_entries)
 
                 if not user_entries:
                     print("No user plugins installed.")
-                    print("  Install one: wayne plugins install owner/repo")
+                    print("  Install one: work4you plugins install owner/repo")
                     print(f"  Or drop a plugin directory into {display_wayne_home()}/plugins/")
                     if bundled_count:
-                        print(f"  ({bundled_count} bundled plugins available — see: wayne plugins list)")
+                        print(f"  ({bundled_count} bundled plugins available — see: work4you plugins list)")
                 else:
                     # Loaded-plugin details (tools/hooks/commands counts, errors)
                     # keyed by name, when available.
@@ -8675,8 +8675,8 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                         error = f" — {info['error']}" if info.get("error") else ""
                         print(f"  {glyph} {name}{ver}{label}{detail}{error}")
                     if bundled_count:
-                        print(f"  (+{bundled_count} bundled — see: wayne plugins list)")
-                    print("  Enable/disable: wayne plugins enable/disable <name>")
+                        print(f"  (+{bundled_count} bundled — see: work4you plugins list)")
+                    print("  Enable/disable: work4you plugins enable/disable <name>")
             except Exception as e:
                 print(f"Plugin system error: {e}")
         elif canonical == "rollback":
@@ -9591,7 +9591,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if not view.logged_in:
             print()
             _cprint(f"  💳 {_d('Not logged into Nous Portal.')}")
-            print("  Run `wayne portal` to log in, then /credits.")
+            print("  Run `work4you portal` to log in, then /credits.")
             return
 
         print()
@@ -9680,7 +9680,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 _cprint(f"  💳 {_d(_msg)}")
             else:
                 _cprint(f"  💳 {_d('Not logged into Nous Portal.')}")
-                print("  Run `wayne portal` to log in, then /billing.")
+                print("  Run `work4you portal` to log in, then /billing.")
             return
 
         # Any sub-arg is intentionally ignored — always open the menu.
@@ -10044,7 +10044,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         )
         _cprint(f"  {_d(_scope_msg)}")
         if not getattr(self, "_app", None):
-            print("  Run `wayne portal` and approve terminal billing, then retry.")
+            print("  Run `work4you portal` and approve terminal billing, then retry.")
             return
         confirm_choices = [
             ("yes", "Re-authorize now", "open the portal to grant billing access"),
@@ -12704,9 +12704,9 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             profile_flag = (
                 "" if _active_profile in ("default", "custom") else f" -p {_active_profile}"
             )
-            print(f"  wayne --resume {self.session_id}{profile_flag}")
+            print(f"  work4you --resume {self.session_id}{profile_flag}")
             if session_title:
-                print(f"  wayne -c \"{session_title}\"{profile_flag}")
+                print(f"  work4you -c \"{session_title}\"{profile_flag}")
             print()
             print(f"Session:        {self.session_id}")
             if session_title:
@@ -14353,7 +14353,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 else f"  {other_num_prefix}. Other (type your answer)"
             )
             preview_lines.extend(_wrap_panel_text(other_label, 60, subsequent_indent="    "))
-            box_width = _panel_box_width("Wayne needs your input", preview_lines)
+            box_width = _panel_box_width("Work4You needs your input", preview_lines)
             inner_text_width = max(8, box_width - 2)
 
             # Pre-wrap choices + Other option — these are mandatory.
@@ -14448,8 +14448,8 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             lines = []
             # Box top border
             lines.append(('class:clarify-border', '╭─ '))
-            lines.append(('class:clarify-title', 'Wayne needs your input'))
-            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("Wayne needs your input") - 3)) + '╮\n'))
+            lines.append(('class:clarify-title', 'Work4You needs your input'))
+            lines.append(('class:clarify-border', ' ' + ('─' * max(0, box_width - len("Work4You needs your input") - 3)) + '╮\n'))
             if not use_compact_chrome:
                 _append_blank_panel_line(lines, 'class:clarify-border', box_width)
 
@@ -15284,7 +15284,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print(
                 "Error: stdin (fd 0) is not available.\n"
                 "This can happen with certain Python installations (e.g. uv-managed cPython on macOS).\n"
-                "Try reinstalling Python via pyenv or Homebrew, then re-run: wayne setup"
+                "Try reinstalling Python via pyenv or Homebrew, then re-run: work4you setup"
             )
             _run_cleanup()
             self._print_exit_summary()
@@ -15353,7 +15353,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     f"\nError: stdin is not usable ({_stdin_err}).\n"
                     "This can happen with certain Python installations (e.g. uv-managed cPython on macOS)\n"
                     "where kqueue cannot register fd 0.\n"
-                    "Try reinstalling Python via pyenv or Homebrew, then re-run: wayne setup"
+                    "Try reinstalling Python via pyenv or Homebrew, then re-run: work4you setup"
                 )
             else:
                 raise
@@ -15408,7 +15408,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 except (Exception, KeyboardInterrupt) as e:
                     logger.debug("Could not close session in DB: %s", e)
                 # Started-and-immediately-quit sessions never gained content;
-                # drop the empty row so /resume and `wayne sessions list`
+                # drop the empty row so /resume and `work4you sessions list`
                 # stay clean (gemini-cli#27770 port). No-op for resumed or
                 # titled sessions and anything with messages or children.
                 if not getattr(self, '_delete_session_on_exit', False):
@@ -15581,7 +15581,7 @@ def main(
     ignore_rules: bool = False,
 ):
     """
-    Wayne Agent CLI - Interactive AI Assistant
+    Work4You CLI - Interactive AI Assistant
     
     Args:
         query: Single query to execute (then exit). Alias: -q
@@ -15632,7 +15632,7 @@ def main(
     if gateway:
         import asyncio
         from gateway.run import start_gateway
-        print("Starting Wayne Gateway (messaging platforms)...")
+        print("Starting Work4You Gateway (messaging platforms)...")
         asyncio.run(start_gateway())
         return
 
@@ -15732,7 +15732,7 @@ def main(
                 logger.warning(
                     "Unknown skill(s) requested, skipping: %s. "
                     "Continuing with: %s. "
-                    "List available skills with `wayne skills list`.",
+                    "List available skills with `work4you skills list`.",
                     missing_display,
                     ", ".join(loaded_skills),
                 )
@@ -16038,7 +16038,7 @@ def main(
                 # Exit with error code if credentials or agent init fails
                 sys.exit(1)
             else:
-                # Single-query mode (`wayne chat -q "…"`): skip the welcome
+                # Single-query mode (`work4you chat -q "…"`): skip the welcome
                 # banner. Building the banner takes ~420 ms on cold start —
                 # ~200 ms of that is the version-update check, the rest is
                 # toolset / skill enumeration and Rich panel rendering. None

@@ -205,7 +205,7 @@ class TestSkillManageCrossProfileErrorUX:
         assert "default" in err
         assert "coder" in err
         # Switch-profiles hint
-        assert "wayne -p" in err
+        assert "work4you -p" in err
 
     def test_genuinely_missing_skill_keeps_helpful_hint(
         self, fake_wayne, monkeypatch
@@ -250,9 +250,9 @@ class TestSystemPromptActiveProfile:
         # explicit user direction.
         from pathlib import Path
         src = Path("agent/system_prompt.py").read_text()
-        assert "Active Wayne profile" in src
+        assert "Active Work4You profile" in src
         assert "cross_profile=True" in src
         assert "~/.wayne/profiles/" in src
         # Both branches present (default and named profile).
-        assert "Active Wayne profile: default" in src
-        assert "Active Wayne profile: {active_profile}" in src
+        assert "Active Work4You profile: default" in src
+        assert "Active Work4You profile: {active_profile}" in src

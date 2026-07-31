@@ -570,7 +570,7 @@ class GatewayNotRegisteredError(S6Error):
         self.profile = profile
         super().__init__(
             f"no such gateway {profile!r}: register it with "
-            f"`wayne profile create {profile}` first, or pass "
+            f"`work4you profile create {profile}` first, or pass "
             "an existing profile name via `-p <name>`",
             service=f"gateway-{profile}",
         )

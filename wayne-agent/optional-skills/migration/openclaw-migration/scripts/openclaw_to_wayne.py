@@ -2913,9 +2913,9 @@ class Migrator:
         ])
 
         if has_cron_config_archive:
-            notes.append("- Run `wayne cron` to recreate scheduled tasks (see archive/cron-config.json)")
+            notes.append("- Run `work4you cron` to recreate scheduled tasks (see archive/cron-config.json)")
         elif has_cron_store_archive:
-            notes.append("- Run `wayne cron` to recreate scheduled tasks (see archived cron-store)")
+            notes.append("- Run `work4you cron` to recreate scheduled tasks (see archived cron-store)")
 
         # Check if skills were imported
         has_skills = any(i.kind == "skills" and i.status == "migrated" for i in self.items)

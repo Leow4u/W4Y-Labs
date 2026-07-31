@@ -177,7 +177,7 @@ class TestLoadConfigParseFailure:
             # stderr also got a user-visible message (with the ⚠️ marker so it
             # stands out at wayne startup before logging is configured)
             captured = capsys.readouterr()
-            assert "wayne config:" in captured.err
+            assert "work4you config:" in captured.err
             assert str(tmp_path / "config.yaml") in captured.err
 
     def test_dedup_on_repeated_load_same_file(self, tmp_path, capsys):
@@ -189,7 +189,7 @@ class TestLoadConfigParseFailure:
 
             load_config()
             first = capsys.readouterr().err
-            assert "wayne config:" in first
+            assert "work4you config:" in first
 
             load_config()
             second = capsys.readouterr().err
@@ -210,7 +210,7 @@ class TestLoadConfigParseFailure:
             (tmp_path / "config.yaml").write_text("\tstill broken differently:\n")
             load_config()
             after_edit = capsys.readouterr().err
-            assert "wayne config:" in after_edit, "edited file should re-warn"
+            assert "work4you config:" in after_edit, "edited file should re-warn"
 
     def test_corrupt_config_is_backed_up(self, tmp_path, capsys):
         """A broken config.yaml is snapshotted to a timestamped .bak so the

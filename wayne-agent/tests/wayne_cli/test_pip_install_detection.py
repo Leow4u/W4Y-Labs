@@ -31,12 +31,10 @@ def test_managed_install_takes_precedence(tmp_path):
 
 
 def test_recommended_update_command_pip():
-    """Pip installs recommend pip install --upgrade."""
+    """Pip installs route through the built-in updater — the fork is not on
+    PyPI, so ``pip install --upgrade wayne-agent`` would pull upstream."""
     from wayne_cli.config import recommended_update_command_for_method
-    cmd = recommended_update_command_for_method("pip")
-    assert "pip install" in cmd or "uv pip install" in cmd
-    assert "--upgrade" in cmd
-    assert "wayne-agent" in cmd
+    assert recommended_update_command_for_method("pip") == "work4you update"
 
 
 def test_stamp_file_takes_precedence(tmp_path):
@@ -168,8 +166,12 @@ def test_container_pip_install_without_stamp_is_pip(tmp_path):
 
 
 def test_recommended_update_command_docker():
+    """Docker installs rebuild the locally-built image — never ``docker pull``
+    of the upstream Docker Hub image."""
     from wayne_cli.config import recommended_update_command_for_method
-    assert "docker pull" in recommended_update_command_for_method("docker")
+    cmd = recommended_update_command_for_method("docker")
+    assert "docker compose build" in cmd
+    assert "docker pull" not in cmd
 
 
 def test_banner_warns_on_pip_install(tmp_path):

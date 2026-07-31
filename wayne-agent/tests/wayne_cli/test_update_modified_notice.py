@@ -21,7 +21,7 @@ import wayne_cli.main as main_mod
 
 
 _COUNT_RE = re.compile(r"user-modified \(kept\)")
-_HINT_RE = re.compile(r"wayne skills list-modified")
+_HINT_RE = re.compile(r"work4you skills list-modified")
 
 
 def _source_lines() -> list[str]:
@@ -48,6 +48,6 @@ def test_every_user_modified_notice_points_at_list_modified():
         assert _HINT_RE.search(window), (
             "a 'user-modified (kept)' notice near line "
             f"{idx + 1} of main.py does not point users at "
-            "`wayne skills list-modified` within the following lines — the "
+            "`work4you skills list-modified` within the following lines — the "
             "update paths have drifted apart again:\n" + window
         )
