@@ -42,7 +42,7 @@ def test_show_status_termux_gateway_section_skips_systemctl(monkeypatch, capsys,
 
     output = capsys.readouterr().out
     assert "Manager:      Termux / manual process" in output
-    assert "Start with:   wayne gateway" in output
+    assert "Start with:   work4you gateway" in output
     assert "systemd (user)" not in output
 
 
@@ -78,7 +78,7 @@ def test_show_status_reports_nous_auth_error(monkeypatch, capsys, tmp_path):
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
     output = capsys.readouterr().out
-    assert "Nous Portal   ✗ not logged in (run: wayne portal)" in output
+    assert "Nous Portal   ✗ not logged in (run: work4you portal)" in output
     assert "Error:      Refresh session has been revoked" in output
     assert "Access exp:" in output
     assert "Key exp:" in output
@@ -268,7 +268,7 @@ class TestShowStatusXaiOAuth:
         status_mod.show_status(SimpleNamespace(all=False, deep=False))
         out = capsys.readouterr().out
 
-        assert "not logged in (run: wayne auth add xai-oauth)" in out
+        assert "not logged in (run: work4you auth add xai-oauth)" in out
 
     def test_not_logged_in_shows_error(self, monkeypatch, capsys, tmp_path):
         import wayne_cli.auth as auth_mod
@@ -351,4 +351,4 @@ class TestShowStatusXaiOAuth:
         out = capsys.readouterr().out
 
         assert "xAI OAuth" in out
-        assert "not logged in (run: wayne auth add xai-oauth)" in out
+        assert "not logged in (run: work4you auth add xai-oauth)" in out

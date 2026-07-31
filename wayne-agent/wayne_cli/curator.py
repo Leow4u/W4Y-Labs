@@ -217,17 +217,17 @@ def _cmd_run(args) -> int:
                 f"reactivated={auto.get('reactivated', 0)}"
             )
     if not synchronous:
-        print("llm pass running in background — check `wayne curator status` later")
+        print("llm pass running in background — check `work4you curator status` later")
     if dry:
         if synchronous:
             print(
                 "dry-run: no changes applied. Read the report with "
-                "`wayne curator status` and run `wayne curator run` (no flag) to apply."
+                "`work4you curator status` and run `work4you curator run` (no flag) to apply."
             )
         else:
             print(
                 "dry-run: no changes applied. When the report lands, read it with "
-                "`wayne curator status` and run `wayne curator run` (no flag) to apply."
+                "`work4you curator status` and run `work4you curator run` (no flag) to apply."
             )
     return 0
 
@@ -289,7 +289,7 @@ def _cmd_archive(args) -> int:
     if skill_usage.get_record(args.skill).get("pinned"):
         print(
             f"curator: '{args.skill}' is pinned — unpin first with "
-            f"`wayne curator unpin {args.skill}`"
+            f"`work4you curator unpin {args.skill}`"
         )
         return 1
     ok, msg = skill_usage.archive_skill(args.skill)
@@ -424,7 +424,7 @@ def _cmd_rollback(args) -> int:
         if not rows:
             print(
                 "curator: no snapshots exist yet. Take one with "
-                "`wayne curator backup` or wait for the next curator run."
+                "`work4you curator backup` or wait for the next curator run."
             )
         else:
             print(
@@ -605,7 +605,7 @@ def register_cli(parent: argparse.ArgumentParser) -> None:
 
 def cli_main(argv=None) -> int:
     """Standalone entry (also usable by wayne_cli.main fallthrough)."""
-    parser = argparse.ArgumentParser(prog="wayne curator")
+    parser = argparse.ArgumentParser(prog="work4you curator")
     register_cli(parser)
     args = parser.parse_args(argv)
     fn = getattr(args, "func", None)

@@ -443,22 +443,22 @@ HARDLINE_PATTERNS_COMPILED = [
 
 _POLICY_FILE_WRITE_PATTERNS = [
     (rf'\btee\b.*["\']?(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
-     "overwrite Wayne config/env via tee"),
+     "overwrite Work4You config/env via tee"),
     (rf'>>?\s*["\']?(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
-     "overwrite Wayne config/env via redirection"),
+     "overwrite Work4You config/env via redirection"),
     (rf'\b(cp|mv|install)\b.*\s["\']?(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})["\']?{_COMMAND_TAIL}',
-     "copy/move file over Wayne config/env"),
+     "copy/move file over Work4You config/env"),
     (rf'\bsed\s+-[^\s]*i.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
-     "in-place edit of Wayne config/env"),
+     "in-place edit of Work4You config/env"),
     (rf'\bsed\s+--in-place\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
-     "in-place edit of Wayne config/env (long flag)"),
+     "in-place edit of Work4You config/env (long flag)"),
     (rf'\b(?:perl|ruby)\b.*(?:^|\s)-[^\s]*i\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})',
-     "in-place edit of Wayne config/env (perl/ruby)"),
+     "in-place edit of Work4You config/env (perl/ruby)"),
     # CLI mutators that write the same files without looking like a shell
     # redirect. Allow global flags between the binary and `config`
     # (`wayne -p coder config set …`).
     (r'\bwayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*config\s+(?:set|edit|migrate)\b',
-     "wayne config set/edit/migrate (mutates security policy)"),
+     "work4you config set/edit/migrate (mutates security policy)"),
     (r'\bhermes\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*config\s+(?:set|edit|migrate)\b',
      "hermes config set/edit/migrate (mutates security policy)"),
 ]
@@ -661,8 +661,8 @@ DANGEROUS_PATTERNS = [
     # terminates all running agents mid-work.  Allow global flags between
     # `wayne` and `gateway` (e.g. `wayne -p ade gateway restart`) so a
     # profile flag can't slip the agent past the guard.
-    (r'\bwayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*gateway\s+(stop|restart)\b', "stop/restart wayne gateway (kills running agents)"),
-    (r'\bwayne\s+update\b', "wayne update (restarts gateway, kills running agents)"),
+    (r'\bwayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*gateway\s+(stop|restart)\b', "stop/restart work4you gateway (kills running agents)"),
+    (r'\bwayne\s+update\b', "work4you update (restarts gateway, kills running agents)"),
     # Docker container lifecycle — any user with docker.sock mounted (a common
     # Docker Compose pattern) gives the agent the ability to restart/stop/kill
     # containers without approval.  These are agent-initiated lifecycle operations
@@ -687,7 +687,7 @@ DANGEROUS_PATTERNS = [
     # the `wayne gateway stop|restart` pattern above by driving launchd
     # directly against the service label (commonly `ai.wayne.gateway`).
     # Catch the operations that stop, restart, or unload it.
-    (r'\blaunchctl\s+(stop|kickstart|bootout|unload|kill|disable|remove)\b.*\b(wayne|ai\.wayne)\b', "stop/restart wayne launchd service (kills running agents)"),
+    (r'\blaunchctl\s+(stop|kickstart|bootout|unload|kill|disable|remove)\b.*\b(wayne|ai\.wayne)\b', "stop/restart work4you launchd service (kills running agents)"),
     # File copy/move/edit into sensitive system paths (/etc/ and macOS
     # /private/etc/ mirror).
     (rf'\b(cp|mv|install)\b.*\s{_SYSTEM_CONFIG_PATH}', "copy/move file into system config path"),
@@ -719,8 +719,8 @@ DANGEROUS_PATTERNS = [
     # .env). sed -i bypasses the redirection/tee patterns above because it
     # mutates the file directly. Pairs the file_tools write_file/patch deny so
     # the terminal side is not an open door. See #14639.
-    (rf'\bsed\s+-[^\s]*i.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})', "in-place edit of Wayne config/env"),
-    (rf'\bsed\s+--in-place\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})', "in-place edit of Wayne config/env (long flag)"),
+    (rf'\bsed\s+-[^\s]*i.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})', "in-place edit of Work4You config/env"),
+    (rf'\bsed\s+--in-place\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})', "in-place edit of Work4You config/env (long flag)"),
     # perl -i and ruby -i perform the same in-place mutation as sed -i but are
     # not caught by the -e/-c script-execution pattern above (which targets code
     # evaluation, not file mutation). Pairs the sed -i coverage from #14639.
@@ -729,7 +729,7 @@ DANGEROUS_PATTERNS = [
     # backup suffix (`perl -i.bak`). Match any flag token containing `i`
     # anywhere in the args, not just the first token — `perl -e '...'` (code
     # eval, no -i) does not trip because it has no `-...i` flag token.
-    (rf'\b(?:perl|ruby)\b.*(?:^|\s)-[^\s]*i\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})', "in-place edit of Wayne config/env (perl/ruby)"),
+    (rf'\b(?:perl|ruby)\b.*(?:^|\s)-[^\s]*i\b.*(?:{_WAYNE_CONFIG_PATH}|{_WAYNE_ENV_PATH})', "in-place edit of Work4You config/env (perl/ruby)"),
     # Script execution via heredoc — bypasses the -e/-c flag patterns above.
     # `python3 << 'EOF'` feeds arbitrary code via stdin without -c/-e flags.
     (r'\b(python[23]?|perl|ruby|node)\s+<<', "script execution via heredoc"),

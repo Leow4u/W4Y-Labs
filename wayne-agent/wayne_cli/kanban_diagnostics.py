@@ -418,7 +418,7 @@ def _rule_triage_aux_unavailable(task, events, runs, now, cfg) -> list[Diagnosti
         primary_desc = "specifier"
         detail_path = (
             "Auto-decompose is off, so triage tasks need "
-            "`wayne kanban specify`, which uses auxiliary.triage_specifier."
+            "`work4you kanban specify`, which uses auxiliary.triage_specifier."
         )
 
     # The primary slot is usable when either: it was explicitly configured by
@@ -434,7 +434,7 @@ def _rule_triage_aux_unavailable(task, events, runs, now, cfg) -> list[Diagnosti
             label=f"Configure {primary_slot}",
             payload={
                 "command": (
-                    f"wayne config set {primary_slot}.provider auto"
+                    f"work4you config set {primary_slot}.provider auto"
                 )
             },
             suggested=True,
@@ -446,15 +446,15 @@ def _rule_triage_aux_unavailable(task, events, runs, now, cfg) -> list[Diagnosti
             label=f"Or configure fallback {fallback_slot}",
             payload={
                 "command": (
-                    f"wayne config set {fallback_slot}.provider auto"
+                    f"work4you config set {fallback_slot}.provider auto"
                 )
             },
         ))
     if not auto_decompose:
         actions.append(DiagnosticAction(
             kind="cli_hint",
-            label=f"Specify manually: wayne kanban specify {task_id}",
-            payload={"command": f"wayne kanban specify {task_id}"},
+            label=f"Specify manually: work4you kanban specify {task_id}",
+            payload={"command": f"work4you kanban specify {task_id}"},
         ))
 
     return [Diagnostic(
@@ -569,14 +569,14 @@ def _rule_repeated_failures(task, events, runs, now, cfg) -> list[Diagnostic]:
         # Spawn is failing specifically — profile setup issue.
         actions.append(DiagnosticAction(
             kind="cli_hint",
-            label=f"Verify profile: wayne -p {assignee} doctor",
-            payload={"command": f"wayne -p {assignee} doctor"},
+            label=f"Verify profile: work4you -p {assignee} doctor",
+            payload={"command": f"work4you -p {assignee} doctor"},
             suggested=True,
         ))
         actions.append(DiagnosticAction(
             kind="cli_hint",
-            label=f"Fix profile auth: wayne -p {assignee} auth",
-            payload={"command": f"wayne -p {assignee} auth"},
+            label=f"Fix profile auth: work4you -p {assignee} auth",
+            payload={"command": f"work4you -p {assignee} auth"},
         ))
     elif most_recent_outcome in {"timed_out", "crashed"}:
         # Worker got off the ground but died. Logs are the right place
@@ -585,8 +585,8 @@ def _rule_repeated_failures(task, events, runs, now, cfg) -> list[Diagnostic]:
         if task_id:
             actions.append(DiagnosticAction(
                 kind="cli_hint",
-                label=f"Check logs: wayne kanban log {task_id}",
-                payload={"command": f"wayne kanban log {task_id}"},
+                label=f"Check logs: work4you kanban log {task_id}",
+                payload={"command": f"work4you kanban log {task_id}"},
                 suggested=True,
             ))
     actions.extend(_generic_recovery_actions(
@@ -687,8 +687,8 @@ def _rule_repeated_crashes(task, events, runs, now, cfg) -> list[Diagnostic]:
     if task_id:
         actions.append(DiagnosticAction(
             kind="cli_hint",
-            label=f"Check logs: wayne kanban log {task_id}",
-            payload={"command": f"wayne kanban log {task_id}"},
+            label=f"Check logs: work4you kanban log {task_id}",
+            payload={"command": f"work4you kanban log {task_id}"},
             suggested=True,
         ))
     running = _task_field(task, "status") == "running"
@@ -825,8 +825,8 @@ def _rule_block_unblock_cycling(task, events, runs, now, cfg) -> list[Diagnostic
     if task_id:
         actions.append(DiagnosticAction(
             kind="cli_hint",
-            label=f"Check block reasons: wayne kanban events {task_id}",
-            payload={"command": f"wayne kanban events {task_id}"},
+            label=f"Check block reasons: work4you kanban events {task_id}",
+            payload={"command": f"work4you kanban events {task_id}"},
             suggested=True,
         ))
     return [Diagnostic(
@@ -946,7 +946,7 @@ def _rule_stranded_in_ready(task, events, runs, now, cfg) -> list[Diagnostic]:
         DiagnosticAction(
             kind="cli_hint",
             label="Check dispatcher status",
-            payload={"command": "wayne kanban diagnostics"},
+            payload={"command": "work4you kanban diagnostics"},
         ),
     ]
 

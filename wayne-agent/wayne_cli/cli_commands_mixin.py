@@ -62,7 +62,7 @@ class CLICommandsMixin:
         mgr = self.agent._checkpoint_mgr
         if not mgr.enabled:
             print("  Checkpoints are not enabled.")
-            print("  Enable with: wayne --checkpoints")
+            print("  Enable with: work4you --checkpoints")
             print("  Or in config.yaml: checkpoints: { enabled: true }")
             return
 
@@ -420,7 +420,7 @@ class CLICommandsMixin:
         if _remainder:
             _cprint(f"  {_DIM}Now type your prompt (or use --image in single-query mode): {_remainder}{_RST}")
         elif _is_termux_environment():
-            _cprint(f"  {_DIM}Tip: type your next message, or run wayne chat -q --image {_termux_example_image_path(image_path.name)} \"What do you see?\"{_RST}")
+            _cprint(f"  {_DIM}Tip: type your next message, or run work4you chat -q --image {_termux_example_image_path(image_path.name)} \"What do you see?\"{_RST}")
 
     def _handle_tools_command(self, cmd: str):
         """Handle /tools [list|disable|enable] slash commands.
@@ -662,7 +662,7 @@ class CLICommandsMixin:
             self._session_db.fail_handoff(self.session_id, "timed out waiting for gateway")
         except Exception:
             pass
-        _cprint("  Timed out waiting for the gateway. Is `wayne gateway` running?")
+        _cprint("  Timed out waiting for the gateway. Is `work4you gateway` running?")
         _cprint("  Your CLI session is intact.")
         return True
 
@@ -696,7 +696,7 @@ class CLICommandsMixin:
                 # #34584.
                 self._pending_resume_sessions = self._list_recent_sessions(limit=10)
                 return
-            _cprint("  Tip:   Use /history or `wayne sessions list` to find sessions.")
+            _cprint("  Tip:   Use /history or `work4you sessions list` to find sessions.")
             return
 
         # Any explicit /resume <target> supersedes a previously-armed bare
@@ -726,7 +726,7 @@ class CLICommandsMixin:
         session_meta = self._session_db.get_session(target_id)
         if not session_meta:
             _cprint(f"  Session not found: {target}")
-            _cprint("  Use /history or `wayne sessions list` to see available sessions.")
+            _cprint("  Use /history or `work4you sessions list` to see available sessions.")
             return
 
         # If the target is the empty head of a compression chain, redirect to
@@ -1697,11 +1697,11 @@ class CLICommandsMixin:
                     try:
                         from wayne_cli.skin_engine import get_active_skin
                         _skin = get_active_skin()
-                        label = _skin.get_branding("response_label", "⚕ Wayne")
+                        label = _skin.get_branding("response_label", "⚕ Work4You")
                         _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
                         _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
                     except Exception:
-                        label = "⚕ Wayne"
+                        label = "⚕ Work4You"
                         _resp_color = "#CD7F32"
                         _resp_text = "#FFF8DC"
 
@@ -1767,7 +1767,7 @@ class CLICommandsMixin:
         if not bundles:
             _cprint("  No skill bundles installed.")
             _cprint(
-                f"  {_DIM}Create one with: wayne bundles create "
+                f"  {_DIM}Create one with: work4you bundles create "
                 f"<name> --skill <s1> --skill <s2>{_RST}"
             )
             _cprint(f"  {_DIM}Directory: {_bundles_dir()}{_RST}")
@@ -1785,7 +1785,7 @@ class CLICommandsMixin:
                 ChatConsole().print(f"        [dim]· {_escape(s)}[/]")
         _cprint(
             f"\n  {_DIM}Invoke a bundle with /<slug>. "
-            f"Manage with `wayne bundles`.{_RST}"
+            f"Manage with `work4you bundles`.{_RST}"
         )
 
     def _handle_browser_command(self, cmd: str):
@@ -2115,7 +2115,7 @@ class CLICommandsMixin:
         _cprint(
             f"  {_DIM}After each turn, a judge model checks if the goal is done"
             f"{' against the contract above' if state.has_contract() else ''}. "
-            f"Wayne keeps working until it is, you pause/clear it, or the budget is "
+            f"Work4You keeps working until it is, you pause/clear it, or the budget is "
             f"exhausted. Use /goal status, /goal show, /goal pause, /goal resume, /goal clear.{_RST}"
         )
         # Kick the loop off immediately so the user doesn't have to send a
@@ -2579,11 +2579,11 @@ class CLICommandsMixin:
         self.busy_input_mode = arg
         if save_config_value("display.busy_input_mode", arg):
             if arg == "queue":
-                behavior = "Enter will queue follow-up input while Wayne is busy."
+                behavior = "Enter will queue follow-up input while Work4You is busy."
             elif arg == "steer":
                 behavior = "Enter will steer your message into the current run (after the next tool call)."
             else:
-                behavior = "Enter will interrupt the current run while Wayne is busy."
+                behavior = "Enter will interrupt the current run while Work4You is busy."
             _cprint(f"  {_ACCENT}✓ Busy input mode set to '{arg}' (saved to config){_RST}")
             _cprint(f"  {_DIM}{behavior}{_RST}")
         else:
@@ -2675,7 +2675,7 @@ class CLICommandsMixin:
         from wayne_cli.config import is_managed, format_managed_message
 
         if is_managed():
-            print(f"  ✗ {format_managed_message('update Wayne Agent')}")
+            print(f"  ✗ {format_managed_message('update Work4You')}")
             return False
 
         # Use the prompt_toolkit-native modal so the confirmation panel
@@ -2683,12 +2683,12 @@ class CLICommandsMixin:
         # with the prompt_toolkit event loop (same pattern as
         # _confirm_destructive_slash).
         choices = [
-            ("once", "Update Now", "exit the current session and update Wayne Agent"),
+            ("once", "Update Now", "exit the current session and update Work4You"),
             ("cancel", "Cancel", "keep the current session"),
         ]
         raw = self._prompt_text_input_modal(
-            title="⚕  Update Wayne Agent",
-            detail="This will exit the current session and run `wayne update`.",
+            title="⚕  Update Work4You",
+            detail="This will exit the current session and run `work4you update`.",
             choices=choices,
         )
         if raw is None:

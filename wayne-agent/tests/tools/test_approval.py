@@ -534,7 +534,7 @@ class TestWayneConfigWriteProtection:
         # bypassing the redirection/tee patterns.
         dangerous, key, desc = detect_dangerous_command("sed -i 's/manual/off/' ~/.wayne/config.yaml")
         assert dangerous is True
-        assert "wayne config" in desc.lower() or "in-place" in desc.lower()
+        assert "work4you config" in desc.lower() or "in-place" in desc.lower()
 
     def test_sed_in_place_long_flag(self):
         dangerous, key, desc = detect_dangerous_command("sed --in-place 's/manual/off/' ~/.wayne/config.yaml")
@@ -546,7 +546,7 @@ class TestWayneConfigWriteProtection:
             f"sed -i 's/manual/off/' {config_path}"
         )
         assert dangerous is True
-        assert "wayne config" in desc.lower() or "in-place" in desc.lower()
+        assert "work4you config" in desc.lower() or "in-place" in desc.lower()
 
     def test_sed_in_place_absolute_wayne_home_env(self):
         env_path = get_wayne_home() / ".env"
@@ -554,7 +554,7 @@ class TestWayneConfigWriteProtection:
             f"sed -i 's/API_KEY=.*/API_KEY=x/' {env_path}"
         )
         assert dangerous is True
-        assert "wayne config" in desc.lower() or "in-place" in desc.lower()
+        assert "work4you config" in desc.lower() or "in-place" in desc.lower()
 
     def test_custom_wayne_home(self):
         dangerous, key, desc = detect_dangerous_command("echo x | tee $WAYNE_HOME/config.yaml")

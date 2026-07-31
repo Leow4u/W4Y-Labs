@@ -106,5 +106,5 @@ def test_setup_hint_uses_gateway_service_command(monkeypatch: pytest.MonkeyPatch
 
     assert rc == 0
     out = capsys.readouterr().out
-    assert "Start the gateway:  wayne gateway start" in out
+    assert "Start the gateway:  work4you gateway start" in out
     assert "--platform photon" not in out

@@ -293,7 +293,7 @@ def test_dispatch_renders_gateway_not_registered_friendly(
     assert excinfo.value.code == 1
     out = capsys.readouterr().out
     assert "no such gateway 'typo'" in out
-    assert "wayne profile create typo" in out
+    assert "work4you profile create typo" in out
     # And critically: no traceback prefix.
     assert "Traceback" not in out
 

@@ -194,4 +194,4 @@ class TestDispatcherBranch:
         result = json.loads(text_to_speech_tool(text="Hello"))
         assert result["success"] is False
         assert "kittentts" in result["error"].lower()
-        assert "wayne setup tts" in result["error"].lower()
+        assert "work4you setup tts" in result["error"].lower()

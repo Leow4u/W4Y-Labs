@@ -91,9 +91,9 @@ def _warn_if_gateway_not_running() -> None:
         return
 
     print(color("  ⚠  Gateway is not running — jobs won't fire automatically.", Colors.YELLOW))
-    print(color("     Start it with: wayne gateway install", Colors.DIM))
-    print(color("                    sudo wayne gateway install --system  # Linux servers", Colors.DIM))
-    print(color("     Check status:  wayne cron status", Colors.DIM))
+    print(color("     Start it with: work4you gateway install", Colors.DIM))
+    print(color("                    sudo work4you gateway install --system  # Linux servers", Colors.DIM))
+    print(color("     Check status:  work4you cron status", Colors.DIM))
 
 
 def cron_list(show_all: bool = False):
@@ -104,7 +104,7 @@ def cron_list(show_all: bool = False):
 
     if not jobs:
         print(color("No scheduled jobs.", Colors.DIM))
-        print(color("Create one with 'wayne cron create ...' or the /cron command in chat.", Colors.DIM))
+        print(color("Create one with 'work4you cron create ...' or the /cron command in chat.", Colors.DIM))
         return
 
     print()
@@ -248,7 +248,7 @@ def cron_status():
                 Colors.YELLOW,
             ))
             print(f"  PID: {', '.join(map(str, pids))}")
-            print("  Cron jobs may NOT be firing. Restart: wayne gateway restart")
+            print("  Cron jobs may NOT be firing. Restart: work4you gateway restart")
         elif hb_age is not None and ok_age is not None and ok_age > STALE_AFTER:
             # Loop is alive (fresh heartbeat) but no tick has SUCCEEDED in a
             # long time → ticks are failing every iteration.
@@ -268,9 +268,9 @@ def cron_status():
         print(color("✗ Gateway is not running — cron jobs will NOT fire", Colors.RED))
         print()
         print("  To enable automatic execution:")
-        print("    wayne gateway install    # Install as a user service")
-        print("    sudo wayne gateway install --system  # Linux servers: boot-time system service")
-        print("    wayne gateway            # Or run in foreground")
+        print("    work4you gateway install    # Install as a user service")
+        print("    sudo work4you gateway install --system  # Linux servers: boot-time system service")
+        print("    work4you gateway            # Or run in foreground")
 
     print()
 
@@ -452,5 +452,5 @@ def cron_command(args):
         return _job_action("remove", args.job_id, "Removed")
 
     print(f"Unknown cron command: {subcmd}")
-    print("Usage: wayne cron [list|create|edit|pause|resume|run|remove|status|tick]")
+    print("Usage: work4you cron [list|create|edit|pause|resume|run|remove|status|tick]")
     sys.exit(1)

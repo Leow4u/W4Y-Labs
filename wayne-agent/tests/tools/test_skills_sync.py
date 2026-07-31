@@ -717,7 +717,7 @@ class TestSyncSkills:
 
         captured = capsys.readouterr().out
         assert "new-skill" in captured
-        assert "wayne skills reset new-skill" in captured
+        assert "work4you skills reset new-skill" in captured
 
     def test_purges_backfilled_optional_demotion_leftovers(self, tmp_path):
         """Demoted kit→optional leftovers must leave the Skills face, not become hub."""

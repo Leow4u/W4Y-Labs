@@ -361,7 +361,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         active_profile = "default"
     if active_profile == "default":
         stable_parts.append(
-            "Active Wayne profile: default. Other profiles (if any) live "
+            "Active Work4You profile: default. Other profiles (if any) live "
             "under ~/.wayne/profiles/<name>/. Each profile has its own "
             "skills/, plugins/, cron/, and memories/ that affect a different "
             "session than this one. Do not modify another profile's "
@@ -370,7 +370,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         )
     else:
         stable_parts.append(
-            f"Active Wayne profile: {active_profile}. This session reads "
+            f"Active Work4You profile: {active_profile}. This session reads "
             f"and writes ~/.wayne/profiles/{active_profile}/. The default "
             f"profile's data lives at ~/.wayne/skills/, ~/.wayne/plugins/, "
             f"~/.wayne/cron/, ~/.wayne/memories/ — those belong to a "

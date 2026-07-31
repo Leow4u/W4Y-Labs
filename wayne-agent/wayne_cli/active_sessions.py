@@ -72,7 +72,7 @@ def resolve_max_concurrent_sessions(config: Any) -> Optional[int]:
 
 def active_session_limit_message(active_count: int, max_sessions: int) -> str:
     return (
-        f"Wayne is at the active session limit ({active_count}/{max_sessions}). "
+        f"Work4You is at the active session limit ({active_count}/{max_sessions}). "
         "Try again when another session finishes."
     )
 

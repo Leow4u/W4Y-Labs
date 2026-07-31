@@ -181,19 +181,19 @@ def is_interactive_stdin() -> bool:
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     """Print guidance for headless/non-interactive setup flows."""
     print()
-    print(color("⚕ Wayne Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ Work4You Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
     print_info("The interactive wizard cannot be used here.")
     print()
-    print_info("Configure Wayne using environment variables or config commands:")
-    print_info("  wayne config set model.provider custom")
-    print_info("  wayne config set model.base_url http://localhost:8080/v1")
-    print_info("  wayne config set model.default your-model-name")
+    print_info("Configure Work4You using environment variables or config commands:")
+    print_info("  work4you config set model.provider custom")
+    print_info("  work4you config set model.base_url http://localhost:8080/v1")
+    print_info("  work4you config set model.default your-model-name")
     print()
     print_info("Or set OPENROUTER_API_KEY / OPENAI_API_KEY in your environment.")
-    print_info("Run 'wayne setup' in an interactive terminal to use the full wizard.")
+    print_info("Run 'work4you setup' in an interactive terminal to use the full wizard.")
     print()
 
 
@@ -388,7 +388,7 @@ def _prompt_api_key(var: dict):
         save_env_value(var["name"], value)
         print_success("  ✓ Saved")
     else:
-        print_warning("  Skipped (configure later with 'wayne setup')")
+        print_warning("  Skipped (configure later with 'work4you setup')")
 
 
 def _print_setup_summary(config: dict, wayne_home):
@@ -411,7 +411,7 @@ def _print_setup_summary(config: dict, wayne_home):
     if _vision_backends:
         tool_status.append(("Vision (image analysis)", True, None))
     else:
-        tool_status.append(("Vision (image analysis)", False, "run 'wayne setup' to configure"))
+        tool_status.append(("Vision (image analysis)", False, "run 'work4you setup' to configure"))
 
 
     # Web tools (Exa, Parallel, Firecrawl, or Tavily)
@@ -533,7 +533,7 @@ def _print_setup_summary(config: dict, wayne_home):
         if neutts_ok:
             tool_status.append(("Text-to-Speech (NeuTTS local)", True, None))
         else:
-            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'wayne setup tts'"))
+            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'work4you setup tts'"))
     elif tts_provider == "kittentts":
         try:
             kittentts_ok = importlib.util.find_spec("kittentts") is not None
@@ -542,7 +542,7 @@ def _print_setup_summary(config: dict, wayne_home):
         if kittentts_ok:
             tool_status.append(("Text-to-Speech (KittenTTS local)", True, None))
         else:
-            tool_status.append(("Text-to-Speech (KittenTTS — not installed)", False, "run 'wayne setup tts'"))
+            tool_status.append(("Text-to-Speech (KittenTTS — not installed)", False, "run 'work4you setup tts'"))
     else:
         tool_status.append(("Text-to-Speech (Edge TTS)", True, None))
 
@@ -552,7 +552,7 @@ def _print_setup_summary(config: dict, wayne_home):
         if subscription_features.modal.direct_override:
             tool_status.append(("Modal Execution (direct Modal)", True, None))
         else:
-            tool_status.append(("Modal Execution", False, "run 'wayne setup terminal'"))
+            tool_status.append(("Modal Execution", False, "run 'work4you setup terminal'"))
     elif managed_nous_tools_enabled() and subscription_features.nous_auth_present:
         tool_status.append(("Modal Execution (optional via Nous subscription)", True, None))
 
@@ -604,7 +604,7 @@ def _print_setup_summary(config: dict, wayne_home):
     disabled_tools = [(name, var) for name, avail, var in tool_status if not avail]
     if disabled_tools:
         print_warning(
-            "Some tools are disabled. Run 'wayne setup tools' to configure them,"
+            "Some tools are disabled. Run 'work4you setup tools' to configure them,"
         )
         from wayne_constants import display_wayne_home as _dhh
         print_warning(f"or edit {_dhh()}/.env directly to add the missing API keys.")
@@ -644,17 +644,17 @@ def _print_setup_summary(config: dict, wayne_home):
     print()
     print(color("📝 To edit your configuration:", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('wayne setup', Colors.GREEN)}          Re-run the full wizard")
-    print(f"   {color('wayne setup model', Colors.GREEN)}    Change model/provider")
-    print(f"   {color('wayne setup terminal', Colors.GREEN)} Change terminal backend")
-    print(f"   {color('wayne setup gateway', Colors.GREEN)}  Configure messaging")
-    print(f"   {color('wayne setup tools', Colors.GREEN)}    Configure tool providers")
+    print(f"   {color('work4you setup', Colors.GREEN)}          Re-run the full wizard")
+    print(f"   {color('work4you setup model', Colors.GREEN)}    Change model/provider")
+    print(f"   {color('work4you setup terminal', Colors.GREEN)} Change terminal backend")
+    print(f"   {color('work4you setup gateway', Colors.GREEN)}  Configure messaging")
+    print(f"   {color('work4you setup tools', Colors.GREEN)}    Configure tool providers")
     print()
-    print(f"   {color('wayne config', Colors.GREEN)}         View current settings")
+    print(f"   {color('work4you config', Colors.GREEN)}         View current settings")
     print(
-        f"   {color('wayne config edit', Colors.GREEN)}    Open config in your editor"
+        f"   {color('work4you config edit', Colors.GREEN)}    Open config in your editor"
     )
-    print(f"   {color('wayne config set <key> <value>', Colors.GREEN)}")
+    print(f"   {color('work4you config set <key> <value>', Colors.GREEN)}")
     print("                          Set a specific value")
     print()
     print("   Or edit the files directly:")
@@ -667,8 +667,8 @@ def _print_setup_summary(config: dict, wayne_home):
     print(color("🚀 Ready to go!", Colors.CYAN, Colors.BOLD))
     print()
     print(f"   {color('wayne', Colors.GREEN)}              Start chatting")
-    print(f"   {color('wayne gateway', Colors.GREEN)}      Start messaging gateway")
-    print(f"   {color('wayne doctor', Colors.GREEN)}       Check for issues")
+    print(f"   {color('work4you gateway', Colors.GREEN)}      Start messaging gateway")
+    print(f"   {color('work4you doctor', Colors.GREEN)}       Check for issues")
     print()
 
 
@@ -753,7 +753,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     except Exception as exc:
         logger.debug("select_provider_and_model error during setup: %s", exc)
         print_warning(f"Provider setup encountered an error: {exc}")
-        print_info("You can try again later with: wayne model")
+        print_info("You can try again later with: work4you model")
 
     # Re-sync the wizard's config dict from what cmd_model saved to disk.
     # This is critical: cmd_model writes to disk via its own load/save cycle,
@@ -1072,7 +1072,7 @@ def _setup_tts_provider(config: dict):
                     from wayne_constants import display_wayne_home as _dhh
                     print_warning(
                         "No xAI API key provided for TTS. Configure XAI_API_KEY "
-                        f"via wayne setup model or {_dhh()}/.env to use xAI TTS. "
+                        f"via work4you setup model or {_dhh()}/.env to use xAI TTS. "
                         "Falling back to Edge TTS."
                     )
                     selected = "edge"
@@ -1169,7 +1169,7 @@ def setup_terminal_backend(config: dict):
     """Configure the terminal execution backend."""
     import platform as _platform
     print_header("Terminal Backend")
-    print_info("Choose where Wayne runs shell commands and code.")
+    print_info("Choose where Work4You runs shell commands and code.")
     print_info("This affects tool execution, file access, and isolation.")
     print_info(f"   Guide: {_DOCS_BASE}/user-guide/configuration#terminal-backend-configuration")
     print()
@@ -1493,7 +1493,7 @@ def _apply_default_agent_settings(config: dict):
     print_info("  Tool progress: all")
     print_info("  Compression threshold: 0.50")
     print_info("  Session reset: never (use /reset or compression)")
-    print_info("  Run `wayne setup agent` later to customize.")
+    print_info("  Run `work4you setup agent` later to customize.")
 
 
 def setup_agent_settings(config: dict):
@@ -1815,7 +1815,7 @@ def _setup_telegram():
         print_info("⚠️  No allowlist set - anyone who finds your bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Wayne delivers cron job results,")
+    print_info("📬 Home Channel: where Work4You delivers cron job results,")
     print_info("   cross-platform messages, and notifications.")
     print_info("   For Telegram DMs, this is your user ID (same as above).")
 
@@ -1853,7 +1853,7 @@ def _setup_bluebubbles():
         if not prompt_yes_no("Reconfigure BlueBubbles?", False):
             return
 
-    print_info("Connects Wayne to iMessage via BlueBubbles — a free, open-source")
+    print_info("Connects Work4You to iMessage via BlueBubbles — a free, open-source")
     print_info("macOS server that bridges iMessage to any device.")
     print_info("   Requires a Mac running BlueBubbles Server v1.0.0+")
     print_info("   Download: https://bluebubbles.app/")
@@ -1958,8 +1958,8 @@ def _setup_webhooks():
     print_info("   Route configuration guide:")
     print_info("   https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes")
     print()
-    print_info("   Open config in your editor:  wayne config edit")
-    print_info("   Open config in your editor:  wayne config edit")
+    print_info("   Open config in your editor:  work4you config edit")
+    print_info("   Open config in your editor:  work4you config edit")
 
 
 def setup_gateway(config: dict):
@@ -1967,7 +1967,7 @@ def setup_gateway(config: dict):
     from wayne_cli.gateway import _all_platforms, _platform_status, _configure_platform
 
     print_header("Messaging Platforms")
-    print_info("Connect to messaging platforms to chat with Wayne from anywhere.")
+    print_info("Connect to messaging platforms to chat with Work4You from anywhere.")
     print_info("Toggle with Space, confirm with Enter.")
     print()
 
@@ -1985,7 +1985,7 @@ def setup_gateway(config: dict):
     selected = prompt_checklist("Select platforms to configure:", items, pre_selected)
 
     if not selected:
-        print_info("No platforms selected. Run 'wayne setup gateway' later to configure.")
+        print_info("No platforms selected. Run 'work4you setup gateway' later to configure.")
         return
 
     for idx in selected:
@@ -2038,7 +2038,7 @@ def setup_gateway(config: dict):
             print_info("   Set one later with /set-home in your chat, or:")
             for plat in missing_home:
                 print_info(
-                    f"     wayne config set {plat.upper()}_HOME_CHANNEL <channel_id>"
+                    f"     work4you config set {plat.upper()}_HOME_CHANNEL <channel_id>"
                 )
 
         # Offer to install the gateway as a system service
@@ -2175,24 +2175,24 @@ def setup_gateway(config: dict):
                             print_error(f"  Start failed: {e}")
                 except Exception as e:
                     print_error(f"  Install failed: {e}")
-                    print_info("  You can try manually: wayne gateway install")
+                    print_info("  You can try manually: work4you gateway install")
             else:
-                print_info("  You can install later: wayne gateway install")
+                print_info("  You can install later: work4you gateway install")
                 if supports_systemd and os.geteuid() == 0:  # windows-footgun: ok — guarded by supports_systemd (Linux only)
-                    print_info("  Or as a boot-time service: wayne gateway install --system")
-                print_info("  Or run in foreground:  wayne gateway")
+                    print_info("  Or as a boot-time service: work4you gateway install --system")
+                print_info("  Or run in foreground:  work4you gateway")
         else:
             from wayne_constants import is_container
             if is_container():
                 print_info("Start the gateway to bring your bots online:")
-                print_info("   wayne gateway run          # Run as container main process")
+                print_info("   work4you gateway run          # Run as container main process")
                 print_info("")
                 print_info("For automatic restarts, use a Docker restart policy:")
                 print_info("   docker run --restart unless-stopped ...")
                 print_info("   docker restart <container>  # Manual restart")
             else:
                 print_info("Start the gateway to bring your bots online:")
-                print_info("   wayne gateway              # Run in foreground")
+                print_info("   work4you gateway              # Run in foreground")
 
         print_info("━" * 50)
 
@@ -2406,11 +2406,11 @@ def _load_openclaw_migration_module():
 # Config values may have different semantics between OpenClaw and Wayne.
 # Instruction/context files (.md) can contain incompatible setup procedures.
 _HIGH_IMPACT_KIND_KEYWORDS = {
-    "gateway": "⚠ Gateway/messaging — this will configure Wayne to use your OpenClaw messaging channels",
-    "telegram": "⚠ Telegram — this will point Wayne at your OpenClaw Telegram bot",
-    "slack": "⚠ Slack — this will point Wayne at your OpenClaw Slack workspace",
-    "discord": "⚠ Discord — this will point Wayne at your OpenClaw Discord bot",
-    "whatsapp": "⚠ WhatsApp — this will point Wayne at your OpenClaw WhatsApp connection",
+    "gateway": "⚠ Gateway/messaging — this will configure Work4You to use your OpenClaw messaging channels",
+    "telegram": "⚠ Telegram — this will point Work4You at your OpenClaw Telegram bot",
+    "slack": "⚠ Slack — this will point Work4You at your OpenClaw Slack workspace",
+    "discord": "⚠ Discord — this will point Work4You at your OpenClaw Discord bot",
+    "whatsapp": "⚠ WhatsApp — this will point Work4You at your OpenClaw WhatsApp connection",
     "config": "⚠ Config values — OpenClaw settings may not map 1:1 to Wayne equivalents",
     "soul": "⚠ Instruction file — may contain OpenClaw-specific setup/restart procedures",
     "memory": "⚠ Memory/context file — may reference OpenClaw-specific infrastructure",
@@ -2505,7 +2505,7 @@ def _offer_openclaw_migration(wayne_home: Path) -> bool:
 
     if not prompt_yes_no("Would you like to see what can be imported?", default=True):
         print_info(
-            "Skipping migration. You can run it later with: wayne claw migrate --dry-run"
+            "Skipping migration. You can run it later with: work4you claw migrate --dry-run"
         )
         return False
 
@@ -2563,7 +2563,7 @@ def _offer_openclaw_migration(wayne_home: Path) -> bool:
     # ── Phase 2: Confirm and execute ──
     if not prompt_yes_no("Proceed with migration?", default=False):
         print_info(
-            "Migration cancelled. You can run it later with: wayne claw migrate"
+            "Migration cancelled. You can run it later with: work4you claw migrate"
         )
         print_info(
             "Use --dry-run to preview again, or --preset minimal for a lighter import."
@@ -2601,7 +2601,7 @@ def _offer_openclaw_migration(wayne_home: Path) -> bool:
     if migrated:
         print_success(f"Imported {migrated} item(s) from OpenClaw.")
     if conflicts:
-        print_info(f"Skipped {conflicts} item(s) that already exist in Wayne (use wayne claw migrate --overwrite to force).")
+        print_info(f"Skipped {conflicts} item(s) that already exist in Work4You (use work4you claw migrate --overwrite to force).")
     if skipped:
         print_info(f"Skipped {skipped} item(s) (not found or unchanged).")
     if errors:
@@ -2687,13 +2687,13 @@ def _run_portal_one_shot(config: dict) -> None:
         # Treat all of these as a graceful cancel/abort for the portal flow.
         print()
         print_info("  Setup cancelled.")
-        print_info("  You can retry later with `wayne portal`.")
+        print_info("  You can retry later with `work4you portal`.")
         return
     except Exception as exc:
         logger.debug("_model_flow_nous error during `wayne portal`: %s", exc)
         print()
         print_error(f"  Nous Portal setup encountered an error: {exc}")
-        print_info("  You can retry later with `wayne portal`.")
+        print_info("  You can retry later with `work4you portal`.")
         return
 
     # Re-sync the in-memory config from disk — _model_flow_nous (and the
@@ -2709,7 +2709,7 @@ def _run_portal_one_shot(config: dict) -> None:
 
     print()
     print_success("Portal setup complete.")
-    print_info("  Run `wayne portal info` to inspect routing.")
+    print_info("  Run `work4you portal info` to inspect routing.")
     print_info("  Run `wayne` to start chatting.")
 
 
@@ -2865,7 +2865,7 @@ def run_setup_wizard(args):
         print_info("Running the full wizard — each prompt shows your current value.")
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
-        print_info("Tip: jump straight to a section with 'wayne setup model|terminal|")
+        print_info("Tip: jump straight to a section with 'work4you setup model|terminal|")
         print_info("     gateway|tools|agent', or fill only missing items with --quick.")
         # Fall through to the "Full Setup — run all sections" block below.
         # --reconfigure is now the default on existing installs; the flag
@@ -2909,7 +2909,7 @@ def run_setup_wizard(args):
     print_info(f"Data folder:  {wayne_home}")
     print_info(f"Install dir:  {PROJECT_ROOT}")
     print()
-    print_info("You can edit these files directly or use 'wayne config edit'")
+    print_info("You can edit these files directly or use 'work4you config edit'")
 
     if migration_ran:
         print()
@@ -2978,7 +2978,7 @@ def _run_first_time_quick_setup(config: dict, wayne_home, is_existing: bool):
     except Exception as exc:
         logger.debug("_model_flow_nous error during quick setup: %s", exc)
         print_warning(f"Nous Portal setup encountered an error: {exc}")
-        print_info("You can try again later with: wayne model")
+        print_info("You can try again later with: work4you model")
 
     # Re-sync the wizard's config dict from disk — _model_flow_nous (and the
     # underlying login/model save) write via their own load/save cycle, and the
@@ -3001,7 +3001,7 @@ def _run_first_time_quick_setup(config: dict, wayne_home, is_existing: bool):
         "Connect a messaging platform? (Telegram, Discord, etc.)",
         [
             "Set up messaging now (recommended)",
-            "Skip — set up later with 'wayne setup gateway'",
+            "Skip — set up later with 'work4you setup gateway'",
         ],
         0,
     )
@@ -3013,9 +3013,9 @@ def _run_first_time_quick_setup(config: dict, wayne_home, is_existing: bool):
     print()
     print_success("Setup complete! You're ready to go.")
     print()
-    print_info("  Configure all settings:    wayne setup")
+    print_info("  Configure all settings:    work4you setup")
     if gateway_choice != 0:
-        print_info("  Connect Telegram/Discord:  wayne setup gateway")
+        print_info("  Connect Telegram/Discord:  work4you setup gateway")
     print()
 
     _print_setup_summary(config, wayne_home)
@@ -3156,11 +3156,11 @@ def _run_blank_slate_setup(config: dict, wayne_home, is_existing: bool):
         print()
         print_success("Blank Slate setup complete — minimal agent ready.")
         print_info("Enable anything later, on demand:")
-        print_info("  Enable tools:        wayne tools")
-        print_info("  Seed skills:         wayne skills opt-in --sync")
-        print_info("  Add MCP servers:     wayne mcp add")
-        print_info("  Enable plugins:      wayne plugins")
-        print_info("  Tune agent settings: wayne setup agent")
+        print_info("  Enable tools:        work4you tools")
+        print_info("  Seed skills:         work4you skills opt-in --sync")
+        print_info("  Add MCP servers:     work4you mcp add")
+        print_info("  Enable plugins:      work4you plugins")
+        print_info("  Tune agent settings: work4you setup agent")
         print()
         _print_setup_summary(config, wayne_home)
         return
@@ -3192,8 +3192,8 @@ def _blank_slate_walkthrough(config: dict, wayne_home):
         else:
             set_bundled_skills_opt_out(True)
             print_info("No skills seeded. A .no-bundled-skills marker keeps future")
-            print_info("`wayne update` runs from re-injecting them. Opt back in any")
-            print_info("time with `wayne skills opt-in --sync`.")
+            print_info("`work4you update` runs from re-injecting them. Opt back in any")
+            print_info("time with `work4you skills opt-in --sync`.")
     except Exception as exc:
         logger.debug("blank-slate skill handling error: %s", exc)
         print_warning(f"Skill setup step encountered an error: {exc}")
@@ -3216,23 +3216,23 @@ def _blank_slate_walkthrough(config: dict, wayne_home):
             logger.debug("blank-slate tools_command error: %s", exc)
             print_warning(f"Tool selector encountered an error: {exc}")
     else:
-        print_info("Keeping the minimal toolset. Add tools later with `wayne tools`.")
+        print_info("Keeping the minimal toolset. Add tools later with `work4you tools`.")
 
     # ── Built-in plugins (off unless chosen) ──
     print()
     print_header("Plugins")
     if prompt_yes_no("Review and enable built-in plugins now?", default=False):
-        print_info("Manage plugins with `wayne plugins list` / `wayne plugins install`.")
+        print_info("Manage plugins with `work4you plugins list` / `work4you plugins install`.")
     else:
-        print_info("No plugins enabled. Add later with `wayne plugins`.")
+        print_info("No plugins enabled. Add later with `work4you plugins`.")
 
     # ── MCP servers (off unless chosen) ──
     print()
     print_header("MCP Servers")
     if prompt_yes_no("Add an MCP server now?", default=False):
-        print_info("Add servers with `wayne mcp add <name> --url ... | --command ...`.")
+        print_info("Add servers with `work4you mcp add <name> --url ... | --command ...`.")
     else:
-        print_info("No MCP servers configured. Add later with `wayne mcp add`.")
+        print_info("No MCP servers configured. Add later with `work4you mcp add`.")
 
     # ── Optional messaging gateway ──
     print()
@@ -3243,10 +3243,10 @@ def _blank_slate_walkthrough(config: dict, wayne_home):
 
     print()
     print_success("Blank Slate setup complete — minimal agent ready.")
-    print_info("  Enable more tools:   wayne tools")
-    print_info("  Seed skills:         wayne skills opt-in --sync")
-    print_info("  Add MCP servers:     wayne mcp add")
-    print_info("  Tune agent settings: wayne setup agent")
+    print_info("  Enable more tools:   work4you tools")
+    print_info("  Seed skills:         work4you skills opt-in --sync")
+    print_info("  Add MCP servers:     work4you mcp add")
+    print_info("  Tune agent settings: work4you setup agent")
     print()
 
     _print_setup_summary(config, wayne_home)
@@ -3283,7 +3283,7 @@ def _run_quick_setup(config: dict, wayne_home):
     if not has_anything_missing:
         print_success("Everything is configured! Nothing to do.")
         print()
-        print_info("Run 'wayne setup' and choose 'Full Setup' to reconfigure,")
+        print_info("Run 'work4you setup' and choose 'Full Setup' to reconfigure,")
         print_info("or pick a specific section from the menu.")
         return
 
@@ -3346,7 +3346,7 @@ def _run_quick_setup(config: dict, wayne_home):
         print()
         print_header("Messaging Platforms")
         print_info("Connect Wayne to messaging apps to chat from anywhere.")
-        print_info("You can configure these later with 'wayne setup gateway'.")
+        print_info("You can configure these later with 'work4you setup gateway'.")
 
         # Group by platform (preserving order)
         platform_order = []
