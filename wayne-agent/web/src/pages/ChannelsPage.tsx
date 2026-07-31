@@ -229,7 +229,7 @@ export default function ChannelsPage() {
   const [platforms, setPlatforms] = useState<MessagingPlatform[]>([]);
   const [envPath, setEnvPath] = useState("~/.wayne/.env");
   const [gatewayStartCommand, setGatewayStartCommand] = useState(
-    "wayne gateway start",
+    "work4you gateway start",
   );
   const [loading, setLoading] = useState(true);
   // Channel scope: "global" = default install (the tenant's main agent) ×
@@ -296,7 +296,7 @@ export default function ChannelsPage() {
         };
         setPlatforms(r.platforms);
         setEnvPath(r.env_path || "~/.wayne/.env");
-        setGatewayStartCommand(r.gateway_start_command || "wayne gateway start");
+        setGatewayStartCommand(r.gateway_start_command || "work4you gateway start");
       })
       .catch((e) => showToast(c.loadError.replace("{error}", String(e)), "error"));
   }, [showToast, profileParam, c]);

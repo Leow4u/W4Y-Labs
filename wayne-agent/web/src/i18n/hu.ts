@@ -1036,7 +1036,7 @@ export const hu: Translations = {
     enableRuntime: "Engedélyezés",
     forceReinstall: "Kényszerített újratelepítés (a meglévő mappa előbb törlődik)",
     headline:
-      "Work4You-bővítmények felfedezése, telepítése, engedélyezése és frissítése (a `wayne plugins` paritás).",
+      "Work4You-bővítmények felfedezése, telepítése, engedélyezése és frissítése (a `work4you plugins` paritás).",
     identifierLabel: "Git URL vagy owner/repo",
     inactive: "inaktív",
     installBtn: "Telepítés",
@@ -1453,7 +1453,7 @@ export const hu: Translations = {
       highest_tier: "Legmagasabb szint",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Legutóbbi",
-      latest_hint_empty: "futtasd többet a Waynet",
+      latest_hint_empty: "futtasd többet a Work4You-t",
       none_yet: "Még semmi",
     },
     state: {
@@ -1726,7 +1726,7 @@ export const hu: Translations = {
     urlTitle: "Összekötő hozzáadása URL alapján",
     addBtn: "Hozzáadás",
     importBtn: "Importálás",
-    createWithWayne: "Létrehozás Work4You-nel",
+    createWithWayne: "Létrehozás Work4You-val",
     namePh: "Név",
     commandPh: "Parancs (pl. npx)",
     argsPh: "Argumentumok (szóközzel elválasztva)",

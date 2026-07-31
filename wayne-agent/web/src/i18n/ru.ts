@@ -1036,7 +1036,7 @@ export const ru: Translations = {
     enableRuntime: "Включить",
     forceReinstall: "Принудительная переустановка (сначала удалить существующую папку)",
     headline:
-      "Поиск, установка, включение и обновление плагинов Work4You (аналог `wayne plugins`).",
+      "Поиск, установка, включение и обновление плагинов Work4You (аналог `work4you plugins`).",
     identifierLabel: "Git URL или owner/repo",
     inactive: "неактивно",
     installBtn: "Установить",

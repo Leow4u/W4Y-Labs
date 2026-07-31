@@ -63,7 +63,7 @@ export class GatewayClient extends JsonRpcGatewayClient {
     const authParam = token ? (["token", token] as const) : await buildWsAuthParam();
     if (!authParam[1]) {
       throw new Error(
-        "Session token not available — page must be served by the Wayne dashboard server",
+        "Session token not available — page must be served by the Work4You dashboard server",
       );
     }
 

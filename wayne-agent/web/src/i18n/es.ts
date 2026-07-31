@@ -1037,7 +1037,7 @@ export const es: Translations = {
     enableRuntime: "Habilitar",
     forceReinstall: "Forzar reinstalación (eliminar carpeta existente primero)",
     headline:
-      "Descubre, instala, habilita y actualiza complementos de Work4You (equivalente a `wayne plugins`).",
+      "Descubre, instala, habilita y actualiza complementos de Work4You (equivalente a `work4you plugins`).",
     identifierLabel: "URL de Git u owner/repo",
     inactive: "inactivo",
     installBtn: "Instalar",

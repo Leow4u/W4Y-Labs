@@ -192,7 +192,7 @@ export const en: Translations = {
     stopped: "Stopped",
     updateWayne: "Update Work4You",
     updateWayneConfirmMessage:
-      "This runs wayne update and restarts the gateway when it finishes. Active sessions keep their prompt cache until then.",
+      "This runs work4you update and restarts the gateway when it finishes. Active sessions keep their prompt cache until then.",
     updateWayneConfirmNow: "Update now",
     updateWayneConfirmTitle: "Update Work4You?",
     updatingWayne: "Updating Work4You…",
@@ -1088,7 +1088,7 @@ export const en: Translations = {
     enableRuntime: "Enable",
     forceReinstall: "Force reinstall (delete existing folder first)",
     headline:
-      "Discover, install, enable, and update Work4You plugins (`wayne plugins` parity).",
+      "Discover, install, enable, and update Work4You plugins (`work4you plugins` parity).",
     identifierLabel: "Git URL or owner/repo",
     inactive: "inactive",
     installBtn: "Install",

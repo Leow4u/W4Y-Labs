@@ -179,7 +179,7 @@ export const tr: Translations = {
     starting: "Başlatılıyor",
     startedInBackground: "Arka planda başlatıldı — ilerleme için günlüklere bakın",
     stopped: "Durduruldu",
-    updateWayne: "Work4You'i Güncelle",
+    updateWayne: "Work4You'yu Güncelle",
     updatingWayne: "Work4You güncelleniyor…",
     waitingForOutput: "Çıktı bekleniyor…",
   },
@@ -1036,7 +1036,7 @@ export const tr: Translations = {
     enableRuntime: "Etkinleştir",
     forceReinstall: "Yeniden yüklemeyi zorla (önce mevcut klasörü sil)",
     headline:
-      "Work4You eklentilerini keşfedin, yükleyin, etkinleştirin ve güncelleyin (`wayne plugins` ile eşdeğer).",
+      "Work4You eklentilerini keşfedin, yükleyin, etkinleştirin ve güncelleyin (`work4you plugins` ile eşdeğer).",
     identifierLabel: "Git URL veya owner/repo",
     inactive: "pasif",
     installBtn: "Yükle",
