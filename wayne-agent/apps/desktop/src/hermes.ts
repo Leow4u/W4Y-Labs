@@ -178,10 +178,10 @@ export type {
 export class HermesGateway extends JsonRpcGatewayClient {
   constructor() {
     super({
-      closedErrorMessage: 'Hermes gateway connection closed',
-      connectErrorMessage: 'Could not connect to Hermes gateway',
+      closedErrorMessage: 'Work4You gateway connection closed',
+      connectErrorMessage: 'Could not connect to Work4You gateway',
       createRequestId: nextId => nextId,
-      notConnectedErrorMessage: 'Hermes gateway is not connected',
+      notConnectedErrorMessage: 'Work4You gateway is not connected',
       requestTimeoutMs: DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS
     })
   }

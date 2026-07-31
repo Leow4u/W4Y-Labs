@@ -473,10 +473,10 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
     showReasoning:
       "Show the model's chain-of-thought when it shares it. Does not affect working status, timers, or tool progress."
   },
-  timezone: 'Used when Hermes needs local time context. Blank uses the system timezone.',
+  timezone: 'Used when Work4You needs local time context. Blank uses the system timezone.',
   agent: {
     imageInputMode: 'How attached images are sent to the model.',
-    maxTurns: 'Upper bound for tool-calling turns before Hermes stops a run.',
+    maxTurns: 'Upper bound for tool-calling turns before Work4You stops a run.',
     apiMaxRetries: 'How many times to retry a failed model API call.',
     serviceTier: 'Optional provider service tier (OpenAI / Anthropic). Leave none for default.',
     toolUseEnforcement: 'How strictly the model must use tools when a turn expects them (auto / force / off).'
@@ -495,14 +495,14 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   codeExecution: {
     mode: 'How strictly code execution is scoped to the current project.'
   },
-  fileReadMaxChars: 'Maximum characters Hermes can read from one file request.',
+  fileReadMaxChars: 'Maximum characters Work4You can read from one file request.',
   toolOutput: {
     maxBytes: 'Max bytes of a single tool/terminal result kept in context.',
     maxLines: 'Max lines kept from a long tool result.',
     maxLineLength: 'Max characters per line before truncation.'
   },
   approvals: {
-    mode: 'How Hermes handles commands that need explicit approval.',
+    mode: 'How Work4You handles commands that need explicit approval.',
     timeout: 'Seconds to wait for your reply before an approval prompt expires.',
     mcpReloadConfirm: 'Ask for confirmation before reloading MCP connectors mid-session.'
   },
