@@ -20,6 +20,7 @@ def temp_pyproject(tmp_path, monkeypatch):
         version = "0.0.0"
 
         [project.scripts]
+        work4you = "wayne_cli.main:main"
         wayne = "wayne_cli.main:main"
         wayne-agent = "run_agent:main"
         wayne-acp = "acp_adapter.entry:main"
@@ -41,7 +42,7 @@ def fake_scripts_dir(tmp_path):
 
 class TestVerifyConsoleScriptsInstalled:
     def test_no_action_when_all_shims_present(self, temp_pyproject, fake_scripts_dir):
-        for name in ("wayne", "wayne-agent", "wayne-acp"):
+        for name in ("work4you", "wayne", "wayne-agent", "wayne-acp"):
             (fake_scripts_dir / f"{name}.exe").write_bytes(b"fake")
 
         with patch("wayne_cli.main._is_windows", return_value=True), \
@@ -85,7 +86,7 @@ class TestVerifyConsoleScriptsInstalled:
         from wayne_cli.main import _load_console_script_names
 
         names = _load_console_script_names()
-        assert names == ["wayne", "wayne-agent", "wayne-acp"]
+        assert names == ["work4you", "wayne", "wayne-agent", "wayne-acp"]
 
     def test_primary_install_success_still_verifies_scripts(self):
         import wayne_cli.main as main_mod
@@ -112,5 +113,5 @@ class TestVerifyConsoleScriptsInstalled:
         with patch("wayne_cli.main._is_windows", return_value=True):
             names = {path.name for path in main_mod._wayne_exe_shims(fake_scripts_dir)}
 
-        assert {"wayne.exe", "wayne-agent.exe", "wayne-acp.exe"} <= names
+        assert {"work4you.exe", "wayne.exe", "wayne-agent.exe", "wayne-acp.exe"} <= names
         assert "wayne-gateway.exe" in names

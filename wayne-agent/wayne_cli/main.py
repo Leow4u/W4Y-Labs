@@ -230,7 +230,7 @@ def _print_fast_version_info() -> None:
     from wayne_cli import __release_date__, __version__
 
     project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
-    print(f"Wayne Agent v{__version__} ({__release_date__})")
+    print(f"Work4You v{__version__} ({__release_date__})")
     print(f"Project: {project_root}")
     print(f"Python: {sys.version.split()[0]}")
 
@@ -239,7 +239,7 @@ def _print_fast_version_info() -> None:
 
 
 def _try_termux_ultrafast_version() -> bool:
-    """Handle ``wayne --version`` before config/logging imports on Termux."""
+    """Handle ``work4you --version`` before config/logging imports on Termux."""
     if os.environ.get("WAYNE_TERMUX_DISABLE_FAST_CLI") == "1":
         return False
     if not _is_termux_startup_environment_fast():
@@ -2269,7 +2269,7 @@ def cmd_chat(args):
             for _ref in _retired_xai_refs:
                 sys.stderr.write(f"  \033[33m⚠\033[0m {format_issue(_ref)}\n")
             sys.stderr.write(f"  \033[2mMigration guide: {MIGRATION_GUIDE_URL}\033[0m\n")
-            sys.stderr.write("  \033[2mRun 'wayne doctor' for details.\033[0m\n\n")
+            sys.stderr.write("  \033[2mRun 'work4you doctor' for details.\033[0m\n\n")
     except Exception:
         pass
 
@@ -2277,10 +2277,10 @@ def cmd_chat(args):
     if not _has_any_provider_configured():
         print()
         print(
-            "It looks like Wayne isn't configured yet -- no API keys or providers found."
+            "It looks like Work4You isn't configured yet -- no API keys or providers found."
         )
         print()
-        print("  Run:  wayne setup")
+        print("  Run:  work4you setup")
         print()
 
         from wayne_cli.setup import (
@@ -2302,7 +2302,7 @@ def cmd_chat(args):
             cmd_setup(args)
             return
         print()
-        print("You can run 'wayne setup' at any time to configure.")
+        print("You can run 'work4you setup' at any time to configure.")
         sys.exit(1)
 
     # Start update check in background (runs while other init happens).

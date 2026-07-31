@@ -1,5 +1,5 @@
 """
-Top-level argparse construction for the wayne CLI.
+Top-level argparse construction for the work4you CLI.
 
 Lives in its own module so other modules (e.g. ``relaunch.py``) can
 introspect the parser to discover which flags exist without running the
@@ -39,46 +39,46 @@ def _inherited_flag(parser, *args, **kwargs):
 
 _EPILOGUE = """
 Examples:
-    wayne                        Start interactive chat
-    wayne chat -q "Hello"        Single query mode
-    wayne --tui                  Launch the modern TUI (or set display.interface: tui)
-    wayne --cli                  Force the classic REPL (overrides display.interface: tui)
-    wayne -c                     Resume the most recent session
-    wayne -c "my project"        Resume a session by name (latest in lineage)
-    wayne --resume <session_id>  Resume a specific session by ID
-    wayne setup                  Run setup wizard
-    wayne logout                 Clear stored authentication
-    wayne auth add <provider>    Add a pooled credential
-    wayne auth list              List pooled credentials
-    wayne auth remove <p> <t>    Remove pooled credential by index, id, or label
-    wayne auth reset <provider>  Clear exhaustion status for a provider
-    wayne model                  Select default model
-    wayne fallback [list]        Show fallback provider chain
-    wayne fallback add           Add a fallback provider (same picker as `wayne model`)
-    wayne fallback remove        Remove a fallback provider from the chain
-    wayne config                 View configuration
-    wayne config edit            Edit config in $EDITOR
-    wayne config set model gpt-4 Set a config value
-    wayne gateway                Run messaging gateway
-    wayne -s wayne-agent-dev,github-auth
-    wayne -w                     Start in isolated git worktree
-    wayne gateway install        Install gateway background service
-    wayne sessions list          List past sessions
-    wayne sessions browse        Interactive session picker
-    wayne sessions rename ID T   Rename/title a session
-    wayne logs                   View agent.log (last 50 lines)
-    wayne logs -f                Follow agent.log in real time
-    wayne logs errors            View errors.log
-    wayne logs --since 1h        Lines from the last hour
-    wayne debug share             Write debug report to local files
-    wayne console                Open the safe Wayne command console
-    wayne update                 Update to latest version
-    wayne dashboard              Start web UI dashboard (port 9119)
-    wayne dashboard --stop       Stop running dashboard processes
-    wayne dashboard --status     List running dashboard processes
+    work4you                        Start interactive chat
+    work4you chat -q "Hello"        Single query mode
+    work4you --tui                  Launch the modern TUI (or set display.interface: tui)
+    work4you --cli                  Force the classic REPL (overrides display.interface: tui)
+    work4you -c                     Resume the most recent session
+    work4you -c "my project"        Resume a session by name (latest in lineage)
+    work4you --resume <session_id>  Resume a specific session by ID
+    work4you setup                  Run setup wizard
+    work4you logout                 Clear stored authentication
+    work4you auth add <provider>    Add a pooled credential
+    work4you auth list              List pooled credentials
+    work4you auth remove <p> <t>    Remove pooled credential by index, id, or label
+    work4you auth reset <provider>  Clear exhaustion status for a provider
+    work4you model                  Select default model
+    work4you fallback [list]        Show fallback provider chain
+    work4you fallback add           Add a fallback provider (same picker as `work4you model`)
+    work4you fallback remove        Remove a fallback provider from the chain
+    work4you config                 View configuration
+    work4you config edit            Edit config in $EDITOR
+    work4you config set model gpt-4 Set a config value
+    work4you gateway                Run messaging gateway
+    work4you -s code-wiki,github-auth
+    work4you -w                     Start in isolated git worktree
+    work4you gateway install        Install gateway background service
+    work4you sessions list          List past sessions
+    work4you sessions browse        Interactive session picker
+    work4you sessions rename ID T   Rename/title a session
+    work4you logs                   View agent.log (last 50 lines)
+    work4you logs -f                Follow agent.log in real time
+    work4you logs errors            View errors.log
+    work4you logs --since 1h        Lines from the last hour
+    work4you debug share            Write debug report to local files
+    work4you console                Open the safe Work4You command console
+    work4you update                 Update to latest version
+    work4you dashboard              Start web UI dashboard (port 9119)
+    work4you dashboard --stop       Stop running dashboard processes
+    work4you dashboard --status     List running dashboard processes
 
 For more help on a command:
-    wayne <command> --help
+    work4you <command> --help
 """
 
 
@@ -90,8 +90,8 @@ def build_top_level_parser():
     other subparsers via ``subparsers.add_parser(...)``.
     """
     parser = argparse.ArgumentParser(
-        prog="wayne",
-        description="Wayne Agent - AI assistant with tool-calling capabilities",
+        prog="work4you",
+        description="Work4You - AI assistant with tool-calling capabilities",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_EPILOGUE,
     )
@@ -115,7 +115,7 @@ def build_top_level_parser():
     # --model / --provider are accepted at the top level so they can pair
     # with -z without needing the `chat` subcommand.  If neither -z nor a
     # subcommand consumes them, they fall through harmlessly as None.
-    # Mirrors `wayne chat --model ... --provider ...` semantics.
+    # Mirrors `work4you chat --model ... --provider ...` semantics.
     _inherited_flag(
         parser,
         "-m",
@@ -133,7 +133,7 @@ def build_top_level_parser():
         help=(
             "Provider override for this invocation (e.g. openrouter, anthropic). "
             "Applies to -z/--oneshot and --tui. The persistent provider lives in config.yaml "
-            "under model.provider — use `wayne setup` or edit the file to change it."
+            "under model.provider — use `work4you setup` or edit the file to change it."
         ),
     )
     parser.add_argument(
@@ -252,7 +252,7 @@ def build_top_level_parser():
     chat_parser = subparsers.add_parser(
         "chat",
         help="Interactive chat with the agent",
-        description="Start an interactive chat session with Wayne Agent",
+        description="Start an interactive chat session with Work4You",
     )
     chat_parser.add_argument(
         "-q", "--query", help="Single query (non-interactive mode)"
@@ -379,7 +379,7 @@ def build_top_level_parser():
         "--safe-mode",
         action="store_true",
         default=argparse.SUPPRESS,
-        help="Troubleshooting mode: disable ALL customizations — user config, AGENTS.md/memory injection, plugins, and MCP servers (implies --ignore-user-config and --ignore-rules). Use to isolate whether a problem comes from your setup or from Wayne itself.",
+        help="Troubleshooting mode: disable ALL customizations — user config, AGENTS.md/memory injection, plugins, and MCP servers (implies --ignore-user-config and --ignore-rules). Use to isolate whether a problem comes from your setup or from Work4You itself.",
     )
     chat_parser.add_argument(
         "--source",
