@@ -1,4 +1,4 @@
-# Catálogo de mensagens estáticas do Wayne -- Português
+# Catálogo de mensagens estáticas do Work4You -- Português
 # See locales/en.yaml for the source of truth; keep keys in sync.
 
 approval:
@@ -99,8 +99,8 @@ gateway:
     upload_failed:         "✗ Falha ao carregar relatório de depuração: {error}"
     header:                "**Relatório de depuração carregado:**"
     auto_delete:           "⏱ Os pastes serão eliminados automaticamente em 6 horas."
-    full_logs_hint:        "Para enviar logs completos, usa `wayne debug share` a partir da CLI."
-    share_hint:            "Partilha estes links com a equipa do Wayne para obter suporte."
+    full_logs_hint:        "Para enviar logs completos, usa `work4you debug share` a partir da CLI."
+    share_hint:            "Partilha estes links com a equipa do Work4You para obter suporte."
 
   deny:
     stale:                 "❌ Comando negado (a aprovação tinha expirado)."
@@ -137,7 +137,7 @@ gateway:
     set:                   "⊙ Objetivo definido (orçamento de {budget} turnos): {goal}\nVou continuar a trabalhar até o objetivo estar concluído, pausares/limpares ou o orçamento esgotar.\nControlos: /goal status · /goal pause · /goal resume · /goal clear"
 
   help:
-    header:                "📖 **Comandos do Wayne**\n"
+    header:                "📖 **Comandos do Work4You**\n"
     skill_header:          "\n⚡ **Comandos de skill** ({count} ativos):"
     more_use_commands:     "\n... e mais {count}. Usa `/commands` para a lista paginada completa."
 
@@ -148,7 +148,7 @@ gateway:
   kanban:
     error_prefix:          "⚠ erro do kanban: {error}"
     subscribed_suffix:     "(subscrito — receberás uma notificação quando {task_id} terminar ou bloquear)"
-    truncated_suffix:      "… (truncado; usa `wayne kanban …` no teu terminal para a saída completa)"
+    truncated_suffix:      "… (truncado; usa `work4you kanban …` no teu terminal para a saída completa)"
     no_output:             "(sem saída)"
     wake:
       completed:           "completed"
@@ -225,7 +225,7 @@ gateway:
 
   restart:
     in_progress:           "⏳ O reinício do gateway já está em curso..."
-    restarting:            "♻ A reiniciar o gateway. Se não fores notificado em 60 segundos, reinicia a partir da consola com `wayne gateway restart`."
+    restarting:            "♻ A reiniciar o gateway. Se não fores notificado em 60 segundos, reinicia a partir da consola com `work4you gateway restart`."
 
   resume:
     db_unavailable:        "Base de dados de sessões indisponível."
@@ -233,7 +233,7 @@ gateway:
 Use quotes around titles with spaces, for example: `/resume \"Project A Plan\"`."
     matrix_no_named_sessions: "No named sessions found for this Matrix room.
 Use `/title My Session` to name the current room session, `/resume --all` to list all Matrix sessions, or `/resume --cross-room <session name>` to explicitly cross room boundaries."
-    matrix_blocked_no_origin: "⚠️ Matrix /resume blocked: this named session has no recorded room origin, so Wayne will not resume it inside the current room by default. Use `/resume --cross-room {name}` if you intentionally want to cross room boundaries."
+    matrix_blocked_no_origin: "⚠️ Matrix /resume blocked: this named session has no recorded room origin, so Work4You will not resume it inside the current room by default. Use `/resume --cross-room {name}` if you intentionally want to cross room boundaries."
     matrix_blocked_other_room: "⚠️ Matrix /resume blocked: that session belongs to a different Matrix room ({room}). Use `/resume --cross-room {name}` if you intentionally want to resume it here."
     matrix_cross_room_success: "⚠️ Cross-room resume: resumed **{title}** inside Matrix room **{room}**.
 Future messages in this room will use that transcript until `/reset` or another `/resume`.{msg_part}"
@@ -269,7 +269,7 @@ Future messages in this room will use that transcript until `/reset` or another 
     success:               "✅ Canal principal definido como **{name}** (ID: {chat_id}).\nAs tarefas cron e mensagens entre plataformas serão entregues aqui."
 
   status:
-    header:                "📊 **Estado do Wayne Gateway**"
+    header:                "📊 **Estado do Work4You Gateway**"
     matrix_scope_header:   "**Matrix scope:**"
     matrix_scope_room:     "  room: {room}"
     matrix_scope_room_id:  "  room_id: {room_id}"
@@ -314,7 +314,7 @@ Future messages in this room will use that transcript until `/reset` or another 
     topics_user_disallowed:  "Os topics do Telegram estão ativados, mas os utilizadores não podem criá-los.\n\nAbre @BotFather → escolhe o teu bot → Bot Settings → Threads Settings, depois desativa 'Disallow users to create new threads'.\n\nDepois envia /topic novamente."
     enable_failed:           "Falha ao ativar o modo topic do Telegram: {error}"
     bound_status:            "Este topic está associado a:\nSessão: {label}\nID: {session_id}\n\nUsa /new para substituir este topic por uma sessão nova.\nPara trabalho paralelo, abre All Messages e envia uma mensagem aí para criar outro topic."
-    thread_ready:            "Os topics multi-sessão do Telegram estão ativados.\n\nEste topic será usado como uma sessão independente do Wayne. Usa /new para substituir a sessão atual deste topic. Para trabalho paralelo, abre All Messages e envia uma mensagem aí para criar outro topic."
+    thread_ready:            "Os topics multi-sessão do Telegram estão ativados.\n\nEste topic será usado como uma sessão independente do Work4You. Usa /new para substituir a sessão atual deste topic. Para trabalho paralelo, abre All Messages e envia uma mensagem aí para criar outro topic."
     untitled_session:        "Sessão sem título"
 
   undo:
@@ -323,11 +323,11 @@ Future messages in this room will use that transcript until `/reset` or another 
     invalid_count:         "Contagem inválida \"{arg}\" — usa /undo ou /undo N."
 
   update:
-    platform_not_messaging:  "✗ /update só está disponível em plataformas de mensagens. Executa `wayne update` a partir do terminal."
+    platform_not_messaging:  "✗ /update só está disponível em plataformas de mensagens. Executa `work4you update` a partir do terminal."
     not_git_repo:            "✗ Não é um repositório git — não é possível atualizar."
-    wayne_cmd_not_found:    "✗ Não foi possível localizar o comando `wayne`. O Wayne está em execução, mas o comando de atualização não conseguiu encontrar o executável no PATH nem através do interpretador Python atual. Tenta executar `wayne update` manualmente no teu terminal."
+    wayne_cmd_not_found:    "✗ Não foi possível localizar o comando `work4you`. O Work4You está em execução, mas o comando de atualização não conseguiu encontrar o executável no PATH nem através do interpretador Python atual. Tenta executar `work4you update` manualmente no teu terminal."
     start_failed:            "✗ Falha ao iniciar a atualização: {error}"
-    starting:                "⚕ A iniciar a atualização do Wayne… Vou transmitir o progresso aqui."
+    starting:                "⚕ A iniciar a atualização do Work4You… Vou transmitir o progresso aqui."
 
   usage:
     rate_limits:              "⏱️ **Limites de taxa:** {state}"
