@@ -12153,6 +12153,20 @@ def main():
     except Exception:
         pass
 
+    # One-time brand migration of the data home (~/.wayne → ~/.work4you).
+    # Must run before anything touches the home; on success the process
+    # re-execs the same argv so module-level home captures resolve the new
+    # root from a clean slate.
+    try:
+        from wayne_cli.home_migration import maybe_migrate_home
+
+        if maybe_migrate_home():
+            from wayne_cli.relaunch import relaunch
+
+            relaunch(sys.argv[1:], preserve_inherited=False)
+    except Exception:
+        pass
+
     # Sweep stale ``wayne.exe.old.*`` quarantine files left by previous
     # ``work4you update`` runs on Windows. Silent no-op on non-Windows or when
     # there's nothing to clean. See ``_quarantine_running_wayne_exe``.

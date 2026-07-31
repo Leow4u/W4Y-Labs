@@ -77,12 +77,25 @@ def get_wayne_home_override() -> str | None:
 
 
 def _get_platform_default_wayne_home() -> Path:
-    """Return the platform-native default Wayne home path."""
+    """Return the platform-native default home path.
+
+    Brand migration: prefer the new work4you root when it exists; fall back
+    to a still-unmigrated legacy wayne root; fresh installs get the new
+    name. The one-time data migration (wayne_cli.home_migration) moves
+    legacy data at boot and re-execs, after which this resolves to the
+    new root everywhere.
+    """
     if sys.platform == "win32":
         local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
         base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
-        return base / "wayne"
-    return Path.home() / ".wayne"
+        new_root, legacy_root = base / "work4you", base / "wayne"
+    else:
+        new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+    if new_root.is_dir():
+        return new_root
+    if legacy_root.is_dir():
+        return legacy_root
+    return new_root
 
 
 def get_wayne_home() -> Path:
