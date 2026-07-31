@@ -154,6 +154,11 @@ def _load_dotenv_with_fallback(path: Path, *, override: bool) -> None:
     # typically come from copy-pasting keys from PDFs or rich-text editors
     # that substitute Unicode lookalike glyphs (e.g. ʋ U+028B for v).
     _sanitize_loaded_credentials()
+    # A .env may define WORK4YOU_* spellings (brand migration); mirror them
+    # onto the legacy WAYNE_* names internal readers still use.
+    from wayne_constants import apply_work4you_env_aliases
+
+    apply_work4you_env_aliases()
 
 
 def _sanitize_env_file_if_needed(path: Path) -> None:
