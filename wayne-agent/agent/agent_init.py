@@ -82,7 +82,7 @@ def _build_codex_gpt55_autoraise_notice(autoraise: Dict[str, float]) -> str:
         f"ℹ Codex gpt-5.5 caps context at 272K, so auto-compaction was raised "
         f"to {to_pct}% (from {from_pct}%) to use more of the window before "
         f"summarizing.\n"
-        f"  Opt back out: wayne config set compression.codex_gpt55_autoraise false"
+        f"  Opt back out: work4you config set compression.codex_gpt55_autoraise false"
     )
 
 
@@ -936,13 +936,13 @@ def init_agent(
                         raise RuntimeError(
                             f"Provider '{_explicit}' is set in config.yaml but no API key "
                             f"was found. Set the {_env_hint} environment "
-                            f"variable, or switch to a different provider with `wayne model`."
+                            f"variable, or switch to a different provider with `work4you model`."
                         )
                 if not getattr(agent, "_fallback_activated", False):
                     # No provider configured — reject with a clear message.
                     raise RuntimeError(
-                        "No LLM provider configured. Run `wayne model` to "
-                        "select a provider, or run `wayne setup` for first-time "
+                        "No LLM provider configured. Run `work4you model` to "
+                        "select a provider, or run `work4you setup` for first-time "
                         "configuration."
                     )
         

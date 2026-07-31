@@ -205,33 +205,33 @@ def format_nous_portal_entitlement_message(
 
     if account_info is None:
         return (
-            f"Wayne could not verify your Nous Portal entitlement, so {capability} "
-            f"is unavailable. Run `wayne model` to refresh your login, or check "
+            f"Work4You could not verify your Nous Portal entitlement, so {capability} "
+            f"is unavailable. Run `work4you model` to refresh your login, or check "
             f"billing at {billing_url}."
         )
 
     if not account_info.logged_in:
         if account_info.inference_credential_present:
             return (
-                f"Nous inference credentials are configured, but Wayne cannot verify "
+                f"Nous inference credentials are configured, but Work4You cannot verify "
                 f"your Nous Portal paid access for {capability}. Log in with "
-                f"`wayne model` to enable Portal-managed features. Billing and "
+                f"`work4you model` to enable Portal-managed features. Billing and "
                 f"credits are managed at {billing_url}."
             )
         return (
-            f"Log in to Nous Portal to use {capability}: run `wayne model`. "
+            f"Log in to Nous Portal to use {capability}: run `work4you model`. "
             f"Billing and credits are managed at {billing_url}."
         )
 
     if account_info.paid_service_access is None:
         detail = (
-            f"Wayne could not verify your Nous Portal paid access, so {capability} "
+            f"Work4You could not verify your Nous Portal paid access, so {capability} "
             f"is unavailable."
         )
         if account_info.error:
             detail += f" Account lookup failed: {account_info.error}."
         if include_refresh_hint:
-            detail += " Run `wayne model` to refresh your session."
+            detail += " Run `work4you model` to refresh your session."
         detail += f" Check billing at {billing_url}."
         return detail
 
@@ -239,15 +239,15 @@ def format_nous_portal_entitlement_message(
     reason = access.reason if access else None
     if reason == "account_missing":
         return (
-            f"Wayne could not find a Nous Portal account or organisation for this "
-            f"login, so {capability} is unavailable. Run `wayne model` to "
+            f"Work4You could not find a Nous Portal account or organisation for this "
+            f"login, so {capability} is unavailable. Run `work4you model` to "
             f"authenticate again; if the problem persists, contact Nous support."
         )
 
     if reason == "no_usable_credits" or account_info.paid_service_access is False:
         message = _no_paid_access_message(account_info, capability, billing_url)
         if include_refresh_hint and not account_info.fresh:
-            message += " If you recently bought credits, run `wayne model` to refresh Wayne."
+            message += " If you recently bought credits, run `work4you model` to refresh Work4You."
         return message
 
     return (

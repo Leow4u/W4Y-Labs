@@ -609,7 +609,7 @@ def _check_sensitive_path(filepath: str, task_id: str = "default") -> str | None
     wayne_config = _get_wayne_config_resolved()
     if wayne_config and (resolved == wayne_config or normalized == wayne_config):
         return (
-            f"Refusing to write to Wayne config file: {filepath}\n"
+            f"Refusing to write to Work4You config file: {filepath}\n"
             "Agent cannot modify security-sensitive configuration. "
             "Change settings in the Work4You Settings UI, or edit "
             "~/.wayne/config.yaml yourself outside the agent."
@@ -1959,7 +1959,7 @@ WRITE_FILE_SCHEMA = {
             "content": {"type": "string", "description": "Complete content to write to the file"},
             "cross_profile": {
                 "type": "boolean",
-                "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Wayne profile's skills/plugins/cron/memories — by default these writes are blocked with a warning because they affect a different profile than the one this session is running under.",
+                "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Work4You profile's skills/plugins/cron/memories — by default these writes are blocked with a warning because they affect a different profile than the one this session is running under.",
                 "default": False,
             },
         },
@@ -2010,7 +2010,7 @@ PATCH_SCHEMA = {
             },
             "cross_profile": {
                 "type": "boolean",
-                "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Wayne profile's skills/plugins/cron/memories.",
+                "description": "Opt out of the cross-profile soft guard. Defaults to false. Set true ONLY after explicit user direction to edit another Work4You profile's skills/plugins/cron/memories.",
                 "default": False,
             },
         },

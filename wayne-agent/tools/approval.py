@@ -491,7 +491,7 @@ def _policy_file_block_result(description: str) -> dict:
         "policy_file": True,
         "message": (
             f"BLOCKED (policy file): {description}. "
-            "The agent cannot modify Work4You / Wayne security settings or "
+            "The agent cannot modify Work4You security settings or "
             "credentials (config.yaml, .env) — not even with YOLO or "
             "approvals.mode=off. Change these in Settings, or edit the file "
             "yourself outside the agent."

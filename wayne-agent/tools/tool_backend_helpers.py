@@ -63,7 +63,7 @@ def nous_tool_gateway_unavailable_message(
     except Exception:
         pass
     return (
-        f"{capability} is unavailable. Run `wayne model` to refresh your "
+        f"{capability} is unavailable. Run `work4you model` to refresh your "
         "Nous Portal login and billing status."
     )
 
