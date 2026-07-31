@@ -4,7 +4,7 @@ const fs = require('node:fs')
 // backend announces HERMES_DASHBOARD_READY. Accept either so the desktop spawn
 // works against both the headless backend and old/dashboard runtimes.
 // Hermes announces HERMES_*; Wayne/Work4You announces WAYNE_*. Accept all.
-const _READY_RE = /^(?:HERMES|WAYNE)_(?:BACKEND|DASHBOARD)_READY port=(\d+)/m
+const _READY_RE = /^(?:HERMES|WAYNE|WORK4YOU)_(?:BACKEND|DASHBOARD)_READY port=(\d+)/m
 
 // The announcement clock starts the instant the backend process is spawned —
 // before uvicorn binds its socket. On a cold install the child must first
