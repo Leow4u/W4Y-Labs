@@ -310,6 +310,10 @@ all = [
 ]
 
 [project.scripts]
+work4you = "wayne_cli.main:main"
+# `wayne` is a silent legacy alias: self-referencing machinery (update
+# relaunch, service units, desktop engine spawn) still execs it. Removed in
+# the final migration phase once services/installs regenerate.
 wayne = "wayne_cli.main:main"
 wayne-agent = "run_agent:main"
 wayne-acp = "acp_adapter.entry:main"

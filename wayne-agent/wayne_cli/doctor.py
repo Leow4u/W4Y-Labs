@@ -1183,15 +1183,12 @@ def run_doctor(args):
         else:
             check_info(f"{_DHH}/SOUL.md exists but is empty — edit it to customize personality")
     else:
-        check_warn(f"{_DHH}/SOUL.md not found", "(create it to give Wayne a custom personality)")
+        check_warn(f"{_DHH}/SOUL.md not found", "(create it to give the assistant a custom personality)")
         if should_fix:
+            from wayne_cli.default_soul import DOCTOR_SCAFFOLD_SOUL_MD
+
             soul_path.parent.mkdir(parents=True, exist_ok=True)
-            soul_path.write_text(
-                "# Wayne Agent Persona\n\n"
-                "<!-- Edit this file to customize how Wayne communicates. -->\n\n"
-                "You are Wayne, a helpful AI assistant.\n",
-                encoding="utf-8",
-            )
+            soul_path.write_text(DOCTOR_SCAFFOLD_SOUL_MD, encoding="utf-8")
             check_ok(f"Created {_DHH}/SOUL.md with basic template")
             fixed_count += 1
     

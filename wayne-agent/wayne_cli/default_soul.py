@@ -24,9 +24,31 @@ _WAYNE_NOUS_DEFAULT_SOUL = (
 # Work4You no longer seeds this file as product identity.
 DEFAULT_SOUL_MD = _WAYNE_NOUS_DEFAULT_SOUL
 
-# Legacy SOUL.md boilerplate that older installers seeded (comment-only scaffolds).
+# Scaffold `doctor --fix` seeds when SOUL.md is missing: heading + comment only,
+# no persona text, so it must stay detected as product-seeded (zero user intent).
+DOCTOR_SCAFFOLD_SOUL_MD = (
+    "# Persona\n"
+    "\n"
+    "<!--\n"
+    "Edit this file to customize how the assistant communicates.\n"
+    "It is loaded fresh each message -- no restart needed.\n"
+    "Delete the contents (or this file) to use the default personality.\n"
+    "-->\n"
+)
+
+# Legacy SOUL.md boilerplate that older installers/doctor runs seeded.
 # Safe to ignore/remove — zero user intent.
 _LEGACY_TEMPLATE_SOULS = (
+    DOCTOR_SCAFFOLD_SOUL_MD,
+    # Old `doctor --fix` seed: carried actual persona text ("You are Wayne"),
+    # but it was installer-written, so existing installs must be neutralized.
+    (
+        "# Wayne Agent Persona\n"
+        "\n"
+        "<!-- Edit this file to customize how Wayne communicates. -->\n"
+        "\n"
+        "You are Wayne, a helpful AI assistant.\n"
+    ),
     (
         "# Wayne Agent Persona\n"
         "\n"
