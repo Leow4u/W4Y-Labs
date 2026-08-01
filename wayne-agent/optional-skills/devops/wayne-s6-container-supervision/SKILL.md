@@ -70,8 +70,8 @@ If you're just running the Wayne Agent and want to use Docker, see `website/docs
 | `docker/s6-rc.d/main-wayne/run` | No-op `sleep infinity` — slot exists so the s6-rc user bundle is valid; main wayne runs as the CMD, not as a supervised service. |
 | `docker/s6-rc.d/dashboard/run` | Conditional service — `exec sleep infinity` unless `WAYNE_DASHBOARD` is truthy. |
 | `docker/entrypoint.sh` | Back-compat shim that `exec`s the stage2 hook. External scripts that hard-coded the old entrypoint path still work. |
-| `wayne_cli/service_manager.py` | `S6ServiceManager`: `register_profile_gateway`, `unregister_profile_gateway`, `start/stop/restart/is_running`, `list_profile_gateways`. |
-| `wayne_cli/container_boot.py` | `reconcile_profile_gateways()` — walks persistent profiles, regenerates s6 slots, emits `container-boot.log`. |
+| `work4you_cli/service_manager.py` | `S6ServiceManager`: `register_profile_gateway`, `unregister_profile_gateway`, `start/stop/restart/is_running`, `list_profile_gateways`. |
+| `work4you_cli/container_boot.py` | `reconcile_profile_gateways()` — walks persistent profiles, regenerates s6 slots, emits `container-boot.log`. |
 | `wayne_cli/gateway.py::_dispatch_via_service_manager_if_s6` | Intercepts `wayne gateway start/stop/restart` and routes to s6 when running in a container. |
 
 ## Why Architecture B (CMD as main program, not s6-supervised)
@@ -130,13 +130,13 @@ docker exec <c> tail -n 50 /opt/data/logs/container-boot.log
 
 ### Change the per-profile gateway run command
 
-Edit `S6ServiceManager._render_run_script` in `wayne_cli/service_manager.py`. The function is also called by `wayne_cli/container_boot.py::_register_service` during boot reconciliation, so it's the single source of truth. Update the corresponding assertion in `tests/wayne_cli/test_service_manager.py::test_s6_register_creates_service_dir_and_triggers_scan`.
+Edit `S6ServiceManager._render_run_script` in `work4you_cli/service_manager.py`. The function is also called by `work4you_cli/container_boot.py::_register_service` during boot reconciliation, so it's the single source of truth. Update the corresponding assertion in `tests/work4you_cli/test_service_manager.py::test_s6_register_creates_service_dir_and_triggers_scan`.
 
 ### Run the docker test harness
 
 ```sh
-docker build -t wayne-agent-harness:latest .
-WAYNE_TEST_IMAGE=wayne-agent-harness:latest scripts/run_tests.sh tests/docker/ -v
+docker build -t work4you-agent-harness:latest .
+WAYNE_TEST_IMAGE=work4you-agent-harness:latest scripts/run_tests.sh tests/docker/ -v
 # Expect 19 passed, 0 xfailed against the s6 image
 ```
 
