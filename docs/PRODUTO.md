@@ -86,7 +86,7 @@ decisão de produto aqui é só: **Studio fora; Subagentes = caminho correcto**.
 - A plataforma / runtime por baixo é Work4You; tecnicamente é o stack Hermes (fork interno).
 - **Wayne Agent** = nome **interno** do orquestrador. Nunca marca de produto.
 - Regra de construção: se a capacidade já existe no Hermes (canal, cron, memória, `delegate_task`, conectores, skills), o trabalho é **UI + copy + polish** — não uma camada nova de plataforma.
-- **Profiles** no motor (= `WAYNE_HOME` isolado) podem existir como mecanismo interno / multi-instância. **Não** são o produto “criar agentes” nem justificação para reabrir Studio.
+- **Profiles** no motor (= `WORK4YOU_HOME` isolado) podem existir como mecanismo interno / multi-instância. **Não** são o produto “criar agentes” nem justificação para reabrir Studio.
 
 ### Guardrail anti-complexidade
 
@@ -172,7 +172,7 @@ Utilizador pede no chat
         │
         ├── Fórmula Work4You  →  image / video / research / vision / files / terminal
         ├── Conectores        →  OAuth (Composio) + BYO (ex. Firecrawl)
-        └── Skills            →  método / playbook (learned ou <projeto>/.wayne/skills)
+        └── Skills            →  método / playbook (learned ou <projeto>/.work4you/skills)
 ```
 
 ### Regras de classificação
@@ -199,7 +199,7 @@ Face do produto (estilo Cursor): **Skills | Conectores**. Sem Browse Hub / Tools
 
 | Entrada | Destino |
 |---------|---------|
-| **Skills** | Receitas: learned (`~/.wayne/skills`) + ficheiros do projeto (`<cwd>/.wayne/skills/**/SKILL.md`). Kit bundled = fórmula (não listado com toggle). |
+| **Skills** | Receitas: learned (`~/.work4you/skills`) + ficheiros do projeto (`<cwd>/.work4you/skills/**/SKILL.md`; o scan aceita também o legado `.wayne/skills`). Kit bundled = fórmula (não listado com toggle). |
 | **Conectores** | Única porta para contas e BYO (Gmail, GitHub, Notion, Firecrawl…). Featured + catálogo. |
 | **Browse Hub** | **Fora da face.** Loja Hermes não compete com Conectores nem com o kit. |
 | **Tools / MCP** | Fora da face. Toolsets / MCP = motor / plumbing sob Conectores. |

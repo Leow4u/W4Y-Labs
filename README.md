@@ -27,7 +27,7 @@ W4Y Labs/
 ├── platform/       UX proprietária da W4Y (7 módulos) + cola de orquestração  [em construção]
 └── wayne-agent/    Wayne Agent — o runtime de agentes (fork do Hermes Agent, MIT)
     ├── agent/          loop de conversação, context engine, memória, adapters de modelo
-    ├── wayne_cli/      CLI (`wayne`), config, auth, dashboard
+    ├── work4you_cli/   CLI (`work4you`; `wayne` segue como alias), config, auth, dashboard
     ├── gateway/        gateway multi-plataforma (Telegram, Discord, Slack, WhatsApp...)
     ├── tools/          ferramentas + backends de execução (local/Docker/SSH/Modal/Daytona)
     ├── skills/         skills com loop de aprendizado (padrão agentskills.io)
@@ -54,14 +54,15 @@ W4Y Labs/
 ```bash
 cd wayne-agent
 # requisitos: Python 3.11–3.13, uv, Node 22+
-uv sync                 # instala o runtime
-uv run wayne            # CLI interativa
-uv run wayne gateway    # gateway (Telegram, Discord, Slack, WhatsApp...)
-uv run wayne doctor     # diagnóstico
+uv sync                    # instala o runtime
+uv run work4you            # CLI interativa (`wayne` segue como alias)
+uv run work4you gateway    # gateway (Telegram, Discord, Slack, WhatsApp...)
+uv run work4you doctor     # diagnóstico
 ```
 
-Modelos via **OpenRouter** (`OPENROUTER_API_KEY`), estado em `~/.wayne`
-(Windows: `%LOCALAPPDATA%\wayne`), configuração via `wayne config` /
+Modelos via **OpenRouter** (`OPENROUTER_API_KEY`), estado em `~/.work4you`
+(Windows: `%LOCALAPPDATA%\work4you`; dados de instalações antigas em `~/.wayne` /
+`%LOCALAPPDATA%\wayne` são migrados no primeiro arranque), configuração via `work4you config` /
 `cli-config.yaml`.
 
 ## Créditos

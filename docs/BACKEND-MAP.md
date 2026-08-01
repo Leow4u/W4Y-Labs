@@ -27,11 +27,11 @@
 
 | Contrato | Onde | Verificado |
 |---|---|---|
-| Projeto = LINHA que possui N pastas; membership = prefixo mais longo por SEGMENTOS (aceita `/` e `\`) | `wayne_cli/projects_db.py` (`project_for_path`), `tui_gateway/project_tree.py` (`_FolderIndex`) | ✅ |
+| Projeto = LINHA que possui N pastas; membership = prefixo mais longo por SEGMENTOS (aceita `/` e `\`) | `work4you_cli/projects_db.py` (`project_for_path`), `tui_gateway/project_tree.py` (`_FolderIndex`) | ✅ |
 | `projects_db` é agnóstico de filesystem — caminho Windows numa linha funciona em host Linux (fix `_WIN_ABS_RE` em `_normalize_path`) | `projects_db.py:142` | ✅ |
 | cwd da sessão vai no `session.create` e é **IGNORADO no resume** — a pasta se decide ao iniciar | `web/src/hooks/useChatSession.ts:250` (contrato documentado) | ✅ |
 | `session.info` carrega `cwd` — o servidor é a autoridade; quando o cwd muda, o servidor **anuncia** (`_emit`) | `tui_gateway/server.py` ~3252 (payload), :3818 (precedente do emit) | ✅ |
-| "default" NÃO é agente — é a instalação (*"default (pre-profile) WAYNE_HOME"*); perfis são lista PLANA, sem hierarquia | `wayne_cli/profiles.py:260`, `:604` (`ProfileInfo` sem campo de projeto) | ✅ |
+| "default" NÃO é agente — é a instalação (*"default (pre-profile) WAYNE_HOME"* — grafia interna do código; a interface pública do env é `WORK4YOU_HOME`); perfis são lista PLANA, sem hierarquia | `work4you_cli/profiles.py:260`, `:604` (`ProfileInfo` sem campo de projeto) | ✅ |
 | ⛔ NÃO vincular agente a projeto — eixos ortogonais; o cruzamento nativo é a TAREFA do kanban (`project_id` + assignee) | `profiles.py:604`, `kanban_db.py:1111` | ✅ |
 | Scanner de skills: `Finding{pattern_id, severity, category, file, line, match, description}`; endpoint serializa tudo MENOS `match` e `pattern_id`; `scanned_at` também fica de fora | `tools/skills_guard.py:70-90`, `web_server.py:11562-11573` | ✅ |
 | Política de instalação: **4 tiers** — builtin (tudo), trusted (bloqueia dangerous), community (bloqueia caution+dangerous), agent-created (dangerous → **ask**). Trusted = openai, anthropics, huggingface, NVIDIA | `skills_guard.py:51-61` (`INSTALL_POLICY`), `TRUSTED_REPOS` | ✅ |
@@ -39,7 +39,7 @@
 | Install do dashboard roda `skills install --yes` SEM `--force` → `policy: "block"` do scan é previsão verdadeira | `web_server.py:11142`, `skills_hub.py:655` | ✅ |
 | `_heal_dead_cwd` sonda o disco e REESCREVE `session["cwd"]`; pasta Windows em host Linux só sobrevive porque `dirname` POSIX quebra na 1ª volta — **sorte, não projeto; não "melhorar" esse loop** | `server.py:1428-1465` | ✅ |
 | `COPY` do Docker MESCLA `web_dist` (não substitui) — sem `rm -rf` antes, bundles acumulam (82 no fly193) e enganam grep | `platform/wayne-fly/Dockerfile.ui` e `.projects` (já corrigidos) | ✅ |
-| Gateway aparece no `ps` como `wayne gateway run` (NÃO "tui_gateway"); traceback `gateway-default.tmp` no boot é benigno | diagnóstico fly189 | ✅ |
+| Gateway aparece no `ps` como `wayne gateway run` (NÃO "tui_gateway"; grafia legada da imagem actual — com o CLI rebrandado passa a `work4you gateway run`); traceback `gateway-default.tmp` no boot é benigno | diagnóstico fly189 | ✅ |
 
 ## Segurança / multi-tenant — o que foi verificado (16/07)
 
@@ -47,7 +47,7 @@
 |---|---|---|
 | Auth do dashboard = **UM `_SESSION_TOKEN` por processo**, comparado com `hmac.compare_digest`. Autentica o DASHBOARD, não o USUÁRIO — não há auth por-usuário dentro de um tenant | `web_server.py:314` (`_has_valid_session_token`), `dashboard_auth.py` | ✅ |
 | A camada de auth **NÃO conhece tenant** — só `_connector_tenant_id` (conectores). Tenant não é parâmetro de request | `web_server.py:2062` | ✅ |
-| Isolamento entre tenants = **1 app Fly por tenant** (`wayne-w4y` = "tenant W4Y"), processo próprio, token próprio, WAYNE_HOME próprio → **isolamento FÍSICO** | `platform/wayne-fly/fly.wayne-w4y.toml:1` | ✅ |
+| Isolamento entre tenants = **1 app Fly por tenant** (`wayne-w4y` = "tenant W4Y"; nome legado, migração de infra pendente), processo próprio, token próprio, WORK4YOU_HOME próprio → **isolamento FÍSICO** | `platform/wayne-fly/fly.wayne-w4y.toml:1` | ✅ |
 | **Recalibração:** a alegação de "cross-tenant crítico / falsificação de sessão" pressupõe multi-tenant de PROCESSO COMPARTILHADO (um app, N tenants por param). Nossa topologia é 1 app por tenant → a versão "crítica" cross-tenant **não se sustenta hoje**. O limite REAL é: sem auth por-usuário DENTRO de um tenant | análise 16/07 | ⚠️ parcial |
 | **NÃO verificado:** posse de sessão INTRA-tenant (um usuário do mesmo tenant acessa sessão de outro?); modo gated/OAuth (`auth_required=True`) na prática. Precisa de UMA revisão de segurança com alvo — não repo-wide | — | ❌ |
 
@@ -55,7 +55,7 @@
 ## Knowledge/RAG — auditoria 19/07 (agente Explore, file:line verificados)
 
 - **NÃO existe primitivo de "base de conhecimento" de documentos** (upload→chunk→embed→retrieve
-  estilo Dify/Stack AI). O CORE (agent/, tools/, wayne_cli/) tem ZERO embeddings neurais e ZERO
+  estilo Dify/Stack AI). O CORE (agent/, tools/, work4you_cli/) tem ZERO embeddings neurais e ZERO
   vector DB — todo vetor/semântica vive nos plugins de memória opt-in.
 - **Memória curada nativa** (MEMORY.md+USER.md por profile): snapshot CONGELADO injetado no system
   prompt (budget em chars ~800 tokens; `tools/memory_tool.py:55-1129`, `agent/system_prompt.py:428`)
@@ -211,7 +211,11 @@ toolkit (a API só tem catalog/status/connect/attach/DELETE account) — então 
 - **Entrega**: Dockerfile.projects agora COPIA `tools/approval.py` + `tools/mcp_tool.py`.
 - **GOTCHA install.ps1**: `WAYNE_SOURCE_ZIP_URL` NÃO aceita `file:///` ("scheme not supported") —
   refresh in-place usa a URL https do bucket. Após refresh manual, atualizar TAMBÉM o marcador
-  `%LOCALAPPDATA%\wayne\engine-source.json` (senão o chip oferece o mesmo update de novo).
+  `%LOCALAPPDATA%\wayne\engine-version.json` (senão o chip oferece o mesmo update de novo;
+  nome verificado em `apps/desktop/electron/w4y-wayne-resolve.cjs` — o doc dizia
+  `engine-source.json`, ficheiro que não existe em código nenhum).
+  Nota: este é o root de CÓDIGO, que fica no caminho legado por agora — a migração de home
+  para `%LOCALAPPDATA%\work4you` move só os DADOS.
 - UI: `components/chat/ConnectorsPicker.tsx` (some quando 0 contas ACTIVE — tela não promete;
   logos via catalog + LogoTile). i18n `connectorsLabel/connectorsSession` ×16.
 
@@ -263,7 +267,7 @@ na prática. Antes de re-ligar, medir TTFB directo × proxy com um modelo **pago
 tenant. Gotcha do flip: com `base_url` fora da openrouter.ai, o runtime prefere
 `OPENAI_API_KEY` antes de `OPENROUTER_API_KEY` (`cli.py:3841`).
 
-**Gotchas de empacotamento do motor.** `wayne update` **não funciona** em
+**Gotchas de empacotamento do motor.** `work4you update` **não funciona** em
 instalação por ZIP (update = re-correr o estágio `repository`), e
 `-IncludeDesktop` é incompatível com ZIP. `WAYNE_SOURCE_ZIP_URL` **não aceita
 `file:///`** ("scheme not supported") — o refresh in-place usa a URL https do
