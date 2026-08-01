@@ -22,6 +22,8 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List
 
+from work4you_constants import display_wayne_home
+
 
 def hooks_command(args) -> None:
     """Entry point for ``wayne hooks`` — dispatches to the requested action."""
@@ -55,7 +57,7 @@ def _cmd_list(_args) -> None:
     specs = shell_hooks.iter_configured_hooks(load_config())
 
     if not specs:
-        print("No shell hooks configured in ~/.wayne/config.yaml.")
+        print(f"No shell hooks configured in {display_wayne_home()}/config.yaml.")
         print("See `work4you hooks --help` or")
         print("    website/docs/user-guide/features/hooks.md")
         print("for the config schema and worked examples.")

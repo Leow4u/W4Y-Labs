@@ -376,7 +376,7 @@ def _resolve_secret(cfg_section: dict) -> bytes:
             "dashboard-auth-basic: no 'secret' configured; generating a "
             "random per-process signing key. Sessions will not survive a "
             "restart or span multiple workers. Set dashboard.basic_auth."
-            "secret (or WAYNE_DASHBOARD_BASIC_AUTH_SECRET) for stable "
+            "secret (or WORK4YOU_DASHBOARD_BASIC_AUTH_SECRET) for stable "
             "sessions."
         )
         return secrets.token_bytes(32)
@@ -420,7 +420,7 @@ def register(ctx) -> None:
     if not username:
         LAST_SKIP_REASON = (
             "dashboard.basic_auth.username is not set (and "
-            "WAYNE_DASHBOARD_BASIC_AUTH_USERNAME is empty). Set a username "
+            "WORK4YOU_DASHBOARD_BASIC_AUTH_USERNAME is empty). Set a username "
             "and a password (or password_hash) under dashboard.basic_auth in "
             "config.yaml to enable username/password dashboard login, or use "
             "the OAuth provider, or pass --insecure to skip the auth gate."

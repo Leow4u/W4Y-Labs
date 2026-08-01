@@ -3971,11 +3971,13 @@ class DiscordAdapter(BasePlatformAdapter):
         async def slash_insights(interaction: discord.Interaction, days: int = 7):
             await self._run_simple_slash(interaction, f"/insights {days}")
 
+        from work4you_constants import display_wayne_home as _display_home
+
         @tree.command(name="reload-mcp", description="Reload MCP servers from config")
         async def slash_reload_mcp(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/reload-mcp")
 
-        @tree.command(name="reload-skills", description="Re-scan ~/.wayne/skills/ for new or removed skills")
+        @tree.command(name="reload-skills", description=f"Re-scan {_display_home()}/skills/ for new or removed skills")
         async def slash_reload_skills(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/reload-skills")
 

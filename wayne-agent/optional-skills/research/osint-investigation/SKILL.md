@@ -115,7 +115,7 @@ python3 SKILL_DIR/scripts/fetch_ofac_sdn.py --out data/ofac_sdn.csv
 
 # ICIJ Offshore Leaks — downloads ~70 MB bulk CSV on first use,
 # then searches it locally. Cached for 30 days under
-# $WAYNE_OSINT_CACHE/icij/ (default: ~/.cache/wayne-osint/icij/).
+# $WAYNE_OSINT_CACHE/icij/ (default: ~/.cache/work4you-osint/icij/).
 python3 SKILL_DIR/scripts/fetch_icij_offshore.py --entity "EXAMPLE CORP" \
     --out data/icij.csv
 ```

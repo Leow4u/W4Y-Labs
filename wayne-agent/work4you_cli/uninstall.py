@@ -372,7 +372,12 @@ def remove_path_from_windows_registry(wayne_home: Path) -> list[str]:
 
 
 def remove_wayne_env_vars_windows() -> list[str]:
-    """Delete WAYNE_HOME and WAYNE_GIT_BASH_PATH from User-scope env vars."""
+    """Delete the Work4You User-scope env vars, both spellings.
+
+    The installer/first-boot migration may have written either the current
+    ``WORK4YOU_*`` names or the pre-rename ``WAYNE_*`` ones (or both, on a
+    migrated machine), so sweep all four.
+    """
     try:
         import winreg
     except ImportError:
@@ -382,7 +387,12 @@ def remove_wayne_env_vars_windows() -> list[str]:
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0,
                             winreg.KEY_READ | winreg.KEY_WRITE) as key:
-            for name in ("WAYNE_HOME", "WAYNE_GIT_BASH_PATH"):
+            for name in (
+                "WORK4YOU_HOME",
+                "WORK4YOU_GIT_BASH_PATH",
+                "WAYNE_HOME",
+                "WAYNE_GIT_BASH_PATH",
+            ):
                 try:
                     winreg.QueryValueEx(key, name)
                 except FileNotFoundError:
@@ -752,7 +762,7 @@ def _perform_uninstall(
         else:
             log_info("No Work4You-owned PATH entries in User environment")
 
-        log_info("Removing WAYNE_HOME / WAYNE_GIT_BASH_PATH User env vars...")
+        log_info("Removing Work4You User environment variables...")
         removed_env = remove_wayne_env_vars_windows()
         if removed_env:
             for name in removed_env:

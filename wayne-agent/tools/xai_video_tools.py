@@ -50,7 +50,7 @@ def _provider_not_configured_error() -> str:
         "success": False,
         "error": (
             "xAI video edit/extend tools require `video_gen.provider` to be "
-            "configured as `xai` via `wayne tools` -> Video Generation."
+            "configured as `xai` via `work4you tools` -> Video Generation."
         ),
         "error_type": "provider_not_configured",
         "provider": "xai",

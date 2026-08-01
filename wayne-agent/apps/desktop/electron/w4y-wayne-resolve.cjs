@@ -67,8 +67,13 @@ function wayneRootCandidates(opts = {}) {
   if (process.env.W4Y_DEV_SOURCE_ROOT) {
     list.push(path.resolve(process.env.W4Y_DEV_SOURCE_ROOT));
   }
-  if (process.env.WAYNE_DESKTOP_ROOT) {
-    list.push(path.resolve(process.env.WAYNE_DESKTOP_ROOT));
+  // Public env interface is WORK4YOU_*. Electron main is Node, so it cannot
+  // use the Python-side WORK4YOU_*→WAYNE_* bridge — accept both spellings
+  // here, new name first.
+  const desktopRoot =
+    process.env.WORK4YOU_DESKTOP_ROOT || process.env.WAYNE_DESKTOP_ROOT;
+  if (desktopRoot) {
+    list.push(path.resolve(desktopRoot));
   }
   // Monorepo: apps/desktop/electron → ../../.. = wayne-agent
   list.push(path.resolve(__dirname, "../../.."));

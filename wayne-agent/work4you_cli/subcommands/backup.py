@@ -16,15 +16,15 @@ def build_backup_parser(subparsers, *, cmd_backup: Callable) -> None:
     # =========================================================================
     backup_parser = subparsers.add_parser(
         "backup",
-        help="Back up Wayne home directory to a zip file",
-        description="Create a zip archive of your entire Wayne configuration, "
-        "skills, sessions, and data (excludes the wayne-agent codebase). "
+        help="Back up the Work4You home directory to a zip file",
+        description="Create a zip archive of your entire Work4You configuration, "
+        "skills, sessions, and data (excludes the engine codebase). "
         "Use --quick for a fast snapshot of just critical state files.",
     )
     backup_parser.add_argument(
         "-o",
         "--output",
-        help="Output path for the zip file (default: ~/wayne-backup-<timestamp>.zip)",
+        help="Output path for the zip file (default: ~/work4you-backup-<timestamp>.zip)",
     )
     backup_parser.add_argument(
         "-q",

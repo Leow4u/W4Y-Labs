@@ -24,6 +24,7 @@ import argparse
 import os
 import subprocess
 
+from work4you_constants import display_wayne_home
 from work4you_cli.config import clear_model_endpoint_credentials
 
 
@@ -1743,7 +1744,7 @@ def _model_flow_copilot_acp(config, current_model=""):
     except Exception as exc:
         print(f"  ⚠ {exc}")
         print(
-            "  Set WAYNE_COPILOT_ACP_COMMAND or COPILOT_CLI_PATH if Copilot CLI is installed elsewhere."
+            "  Set WORK4YOU_COPILOT_ACP_COMMAND or COPILOT_CLI_PATH if Copilot CLI is installed elsewhere."
         )
         return
 
@@ -2339,7 +2340,7 @@ def _model_flow_vertex(config, current_model=""):
         print("  Vertex credentials: Application Default Credentials (ADC)")
         print("    Vertex uses OAuth2, not a static API key. Either:")
         print("      • run 'gcloud auth application-default login', or")
-        print("      • set VERTEX_CREDENTIALS_PATH in ~/.wayne/.env to a service account JSON")
+        print(f"      • set VERTEX_CREDENTIALS_PATH in {display_wayne_home()}/.env to a service account JSON")
     print()
 
     cfg = load_config()

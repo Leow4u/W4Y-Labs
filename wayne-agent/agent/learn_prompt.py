@@ -64,7 +64,7 @@ Body section order (omit a section only if it genuinely has no content):
    do, and the key dependency stance (e.g. "stdlib only").
 2. "## When to Use" — bullet list of concrete trigger phrases.
 3. "## Prerequisites" — exact env vars, install steps, credentials.
-4. "## How to Run" — the canonical invocation, framed through Wayne tools.
+4. "## How to Run" — the canonical invocation, framed through Work4You tools.
 5. "## Quick Reference" — a flat command/endpoint list, no narration.
 6. "## Procedure" — numbered steps with copy-paste-exact commands.
 7. "## Pitfalls" — known limits, rate limits, things that look broken but aren't.

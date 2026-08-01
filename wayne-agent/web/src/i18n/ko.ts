@@ -1052,8 +1052,8 @@ export const ko: Translations = {
     providersHint:
       "memory.provider (비어 있으면 = 내장)와 context.engine을 config.yaml에 기록합니다. 다음 세션부터 적용됩니다.",
     refreshDashboard: "대시보드 확장 재스캔",
-    removeConfirm: "~/.wayne/plugins/에서 이 플러그인을 제거하시겠습니까?",
-    removeHint: "~/.wayne/plugins 아래에 사용자가 설치한 플러그인만 제거할 수 있습니다.",
+    removeConfirm: "{home}/plugins/에서 이 플러그인을 제거하시겠습니까?",
+    removeHint: "{home}/plugins 아래에 사용자가 설치한 플러그인만 제거할 수 있습니다.",
     rescanHeading: "SPA 플러그인 레지스트리",
     rescanHint: "디스크에 파일을 추가한 후 재스캔하여 대시보드 사이드바가 새 매니페스트를 인식하도록 합니다.",
     runtimeHeading: "게이트웨이 런타임 (YAML 플러그인)",
@@ -1075,7 +1075,7 @@ export const ko: Translations = {
     all: "전체",
     categories: "카테고리",
     filters: "필터",
-    noSkills: "스킬을 찾을 수 없습니다. 스킬은 ~/.wayne/skills/ 에서 로드됩니다",
+    noSkills: "스킬을 찾을 수 없습니다. 스킬은 {home}/skills/ 에서 로드됩니다",
     noSkillsMatch: "검색이나 필터와 일치하는 스킬이 없습니다.",
     install: "설치",
     installed: "설치됨",
@@ -1135,7 +1135,7 @@ export const ko: Translations = {
     "polymarket": { name: "예측 시장", desc: "Polymarket 예측 시장의 실시간 확률과 데이터를 조회합니다." },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "필터",
     sections: "섹션",
     exportConfig: "설정을 JSON으로 내보내기",

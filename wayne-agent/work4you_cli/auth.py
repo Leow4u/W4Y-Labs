@@ -44,7 +44,7 @@ from urllib.parse import parse_qs, urlencode, urlparse
 import httpx
 
 from work4you_cli.config import get_wayne_home, get_config_path, read_raw_config
-from work4you_constants import OPENROUTER_BASE_URL, secure_parent_dir
+from work4you_constants import OPENROUTER_BASE_URL, display_wayne_home, secure_parent_dir
 from agent.credential_persistence import sanitize_borrowed_credential_payload
 from utils import atomic_replace, atomic_yaml_write, env_float, is_truthy_value
 
@@ -1773,7 +1773,7 @@ def resolve_provider(
     raise AuthError(
         "No inference provider configured. Run 'work4you model' to choose a "
         "provider and model, or set an API key (OPENROUTER_API_KEY, "
-        "OPENAI_API_KEY, etc.) in ~/.wayne/.env.",
+        f"OPENAI_API_KEY, etc.) in {display_wayne_home()}/.env.",
         code="no_provider_configured",
     )
 
@@ -2325,7 +2325,12 @@ def resolve_qwen_runtime_credentials(
             code="qwen_access_token_missing",
         )
 
-    base_url = os.getenv("WAYNE_QWEN_BASE_URL", "").strip().rstrip("/") or DEFAULT_QWEN_BASE_URL
+    # Public env interface is WORK4YOU_*; the legacy WAYNE_* spelling stays
+    # readable for installs whose .env predates the rename.
+    base_url = (
+        os.getenv("WORK4YOU_QWEN_BASE_URL", "").strip()
+        or os.getenv("WAYNE_QWEN_BASE_URL", "").strip()
+    ).rstrip("/") or DEFAULT_QWEN_BASE_URL
     return {
         "provider": "qwen-oauth",
         "base_url": base_url,
@@ -2387,6 +2392,10 @@ def _spotify_client_id(
 
     candidates = (
         explicit,
+        # Public spelling first; the legacy WAYNE_* name stays readable for
+        # .env files written before the rename (the env bridge only mirrors
+        # WORK4YOU_*→WAYNE_*, never the other way round).
+        get_env_value("WORK4YOU_SPOTIFY_CLIENT_ID"),
         get_env_value("WAYNE_SPOTIFY_CLIENT_ID"),
         get_env_value("SPOTIFY_CLIENT_ID"),
         state.get("client_id") if isinstance(state, dict) else None,
@@ -2396,7 +2405,7 @@ def _spotify_client_id(
         if cleaned:
             return cleaned
     raise AuthError(
-        "Spotify client_id is required. Set WAYNE_SPOTIFY_CLIENT_ID or pass --client-id.",
+        "Spotify client_id is required. Set WORK4YOU_SPOTIFY_CLIENT_ID or pass --client-id.",
         provider="spotify",
         code="spotify_client_id_missing",
     )
@@ -2410,6 +2419,7 @@ def _spotify_redirect_uri(
 
     candidates = (
         explicit,
+        get_env_value("WORK4YOU_SPOTIFY_REDIRECT_URI"),
         get_env_value("WAYNE_SPOTIFY_REDIRECT_URI"),
         get_env_value("SPOTIFY_REDIRECT_URI"),
         state.get("redirect_uri") if isinstance(state, dict) else None,
@@ -2879,14 +2889,14 @@ def _spotify_interactive_setup(redirect_uri_hint: str) -> str:
         raise SystemExit("Spotify setup cancelled: empty Client ID.")
 
     # Persist so subsequent `wayne auth spotify` runs skip the wizard.
-    save_env_value("WAYNE_SPOTIFY_CLIENT_ID", raw)
+    save_env_value("WORK4YOU_SPOTIFY_CLIENT_ID", raw)
     # Only persist the redirect URI if it's non-default, to avoid pinning
     # users to a value the default might later change to.
     if redirect_uri_hint and redirect_uri_hint != DEFAULT_SPOTIFY_REDIRECT_URI:
-        save_env_value("WAYNE_SPOTIFY_REDIRECT_URI", redirect_uri_hint)
+        save_env_value("WORK4YOU_SPOTIFY_REDIRECT_URI", redirect_uri_hint)
 
     print()
-    print("Saved WAYNE_SPOTIFY_CLIENT_ID to ~/.wayne/.env")
+    print(f"Saved WORK4YOU_SPOTIFY_CLIENT_ID to {display_wayne_home()}/.env")
     print()
     return raw
 
@@ -5030,8 +5040,8 @@ def _refresh_access_token(
         description = (
             "Nous Portal detected refresh-token reuse and revoked this session.\n"
             "This usually means an external process (monitoring script, "
-            "custom self-heal hook, or another Wayne install sharing "
-            "~/.wayne/auth.json) called POST /api/oauth/token with Wayne's "
+            "custom self-heal hook, or another Work4You install sharing "
+            f"{display_wayne_home()}/auth.json) called POST /api/oauth/token with Work4You's "
             "refresh token without persisting the rotated token back.\n"
             "Nous refresh tokens are single-use — only Work4You may call the "
             "refresh endpoint. For health checks, use `work4you auth status` "
@@ -6293,7 +6303,7 @@ def resolve_external_process_provider_credentials(provider_id: str) -> Dict[str,
     if not resolved_command and not base_url.startswith("acp+tcp://"):
         raise AuthError(
             f"Could not find the Copilot CLI command '{command}'. "
-            "Install GitHub Copilot CLI or set WAYNE_COPILOT_ACP_COMMAND/COPILOT_CLI_PATH.",
+            "Install GitHub Copilot CLI or set WORK4YOU_COPILOT_ACP_COMMAND/COPILOT_CLI_PATH.",
             provider=provider_id,
             code="missing_copilot_cli",
         )

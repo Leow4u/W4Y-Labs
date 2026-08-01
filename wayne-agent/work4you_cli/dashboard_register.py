@@ -191,11 +191,11 @@ def _print_post_register_hint(
     _cid = client_id
     print()
     print(f"  Wrote to {env_path}:")
-    print("    WAYNE_DASHBOARD_OAUTH_CLIENT_ID=" + str(_cid))
+    print("    WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID=" + str(_cid))
     if wrote_portal_url:
-        print("    WAYNE_DASHBOARD_PORTAL_URL=" + str(portal_base_url))
+        print("    WORK4YOU_DASHBOARD_PORTAL_URL=" + str(portal_base_url))
     if public_url:
-        print("    WAYNE_DASHBOARD_PUBLIC_URL=" + str(public_url))
+        print("    WORK4YOU_DASHBOARD_PUBLIC_URL=" + str(public_url))
     print()
     print(
         "  Heads up — Nous login only *engages* on a non-loopback bind. A plain\n"
@@ -268,8 +268,10 @@ def cmd_dashboard_register(args) -> None:
     # already exists in .env); a portal merely inferred from the stored login
     # keeps the older, more conservative write-only-if-absent behaviour so we
     # don't clutter .env for the common production case.
-    portal_override = getattr(args, "portal_url", None) or os.environ.get(
-        "WAYNE_DASHBOARD_PORTAL_URL"
+    portal_override = (
+        getattr(args, "portal_url", None)
+        or os.environ.get("WORK4YOU_DASHBOARD_PORTAL_URL")
+        or os.environ.get("WAYNE_DASHBOARD_PORTAL_URL")
     )
     custom_portal_supplied = bool(
         isinstance(portal_override, str) and portal_override.strip()
@@ -284,7 +286,11 @@ def cmd_dashboard_register(args) -> None:
     # new dashboard; client id present = the stable key of the row to modify.
     existing_client_id = None
     try:
-        existing_client_id = get_env_value("WAYNE_DASHBOARD_OAUTH_CLIENT_ID")
+        # Public spelling first; a client_id stamped in before the rename
+        # (or by the NAS orchestrator) still lives under the legacy name.
+        existing_client_id = get_env_value(
+            "WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID"
+        ) or get_env_value("WAYNE_DASHBOARD_OAUTH_CLIENT_ID")
     except Exception:
         existing_client_id = None
     if isinstance(existing_client_id, str):
@@ -333,10 +339,10 @@ def cmd_dashboard_register(args) -> None:
 
     # 3. Write env vars idempotently. Always set the client_id.
     try:
-        save_env_value("WAYNE_DASHBOARD_OAUTH_CLIENT_ID", client_id)
+        save_env_value("WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID", client_id)
     except Exception as exc:
-        print(f"✗ Failed to write WAYNE_DASHBOARD_OAUTH_CLIENT_ID to .env: {exc}")
-        print(f"  Set it manually:  WAYNE_DASHBOARD_OAUTH_CLIENT_ID={client_id}")
+        print(f"✗ Failed to write WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID to .env: {exc}")
+        print(f"  Set it manually:  WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID={client_id}")
         sys.exit(1)
 
     # Persist the portal URL. Two cases:
@@ -355,7 +361,9 @@ def cmd_dashboard_register(args) -> None:
     default_portal = "https://portal.nousresearch.com"
     existing_portal = None
     try:
-        existing_portal = get_env_value("WAYNE_DASHBOARD_PORTAL_URL")
+        existing_portal = get_env_value(
+            "WORK4YOU_DASHBOARD_PORTAL_URL"
+        ) or get_env_value("WAYNE_DASHBOARD_PORTAL_URL")
     except Exception:
         existing_portal = None
 
@@ -368,7 +376,7 @@ def cmd_dashboard_register(args) -> None:
 
     if should_write_portal:
         try:
-            save_env_value("WAYNE_DASHBOARD_PORTAL_URL", portal_base_url)
+            save_env_value("WORK4YOU_DASHBOARD_PORTAL_URL", portal_base_url)
             wrote_portal_url = True
         except Exception:
             # Non-fatal: the client_id is the load-bearing value.

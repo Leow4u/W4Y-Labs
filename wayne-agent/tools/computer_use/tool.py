@@ -155,7 +155,7 @@ def _get_backend() -> ComputerUseBackend:
             elif backend_name == "noop":  # pragma: no cover
                 _backend = _NoopBackend()
             else:
-                raise RuntimeError(f"Unknown WAYNE_COMPUTER_USE_BACKEND={backend_name!r}")
+                raise RuntimeError(f"Unknown WORK4YOU_COMPUTER_USE_BACKEND={backend_name!r}")
             try:
                 _backend.start()
             except Exception:

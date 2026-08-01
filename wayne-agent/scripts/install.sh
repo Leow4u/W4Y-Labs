@@ -68,6 +68,10 @@ LEGACY_HOME_ADOPTED=false
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
+# WORK4YOU_INSTALL_DIR is the canonical spelling; WAYNE_INSTALL_DIR is still
+# read for people whose install scripts predate the rename. This runs before
+# Python, so the WORK4YOU_*→WAYNE_* bridge cannot cover it.
+WAYNE_INSTALL_DIR="${WORK4YOU_INSTALL_DIR:-${WAYNE_INSTALL_DIR:-}}"
 if [ -n "${WAYNE_INSTALL_DIR:-}" ]; then
     INSTALL_DIR="$WAYNE_INSTALL_DIR"
     INSTALL_DIR_EXPLICIT=true
@@ -476,7 +480,7 @@ resolve_engine_dir() {
 # A pre-rebrand checkout (wayne-agent/, /usr/local/lib/wayne-agent) is reused
 # in place — see resolve_engine_dir().
 #
-# Always no-op when the user set --dir or $WAYNE_INSTALL_DIR.
+# Always no-op when the user set --dir or $WORK4YOU_INSTALL_DIR.
 resolve_install_layout() {
     if [ "$LEGACY_HOME_ADOPTED" = true ]; then
         log_info "Existing Work4You data home detected at $WAYNE_HOME (pre-rebrand layout)"

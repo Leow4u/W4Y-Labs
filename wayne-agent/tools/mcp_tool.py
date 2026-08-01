@@ -2817,11 +2817,13 @@ def _handle_auth_error_and_retry(
     # needs_reauth error. Bumps the circuit breaker so the model stops
     # retrying the tool.
     _bump_server_error(server_name)
+    from work4you_constants import display_wayne_home as _display_home
+
     return json.dumps({
         "error": (
             f"MCP server '{server_name}' requires re-authentication. "
             f"Run `work4you mcp login {server_name}` (or delete the tokens "
-            f"file under ~/.wayne/mcp-tokens/ and restart). Do NOT retry "
+            f"file under {_display_home()}/mcp-tokens/ and restart). Do NOT retry "
             f"this tool — ask the user to re-authenticate."
         ),
         "needs_reauth": True,

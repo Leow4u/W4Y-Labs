@@ -73,7 +73,7 @@ def register_credential_file(
     # Reject absolute paths — they bypass the WAYNE_HOME sandbox entirely.
     if os.path.isabs(relative_path):
         logger.warning(
-            "credential_files: rejected absolute path %r (must be relative to WAYNE_HOME)",
+            "credential_files: rejected absolute path %r (must be relative to the Work4You home)",
             relative_path,
         )
         return False

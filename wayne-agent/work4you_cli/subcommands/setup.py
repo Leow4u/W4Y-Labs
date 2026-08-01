@@ -17,8 +17,8 @@ def build_setup_parser(subparsers, *, cmd_setup: Callable) -> None:
     setup_parser = subparsers.add_parser(
         "setup",
         help="Interactive setup wizard",
-        description="Configure Wayne Agent with an interactive wizard. "
-        "Run a specific section: wayne setup model|tts|terminal|gateway|tools|agent",
+        description="Configure Work4You with an interactive wizard. "
+        "Run a specific section: work4you setup model|tts|terminal|gateway|tools|agent",
     )
     setup_parser.add_argument(
         "section",
@@ -40,7 +40,7 @@ def build_setup_parser(subparsers, *, cmd_setup: Callable) -> None:
         action="store_true",
         help="(Default on existing installs.) Re-run the full wizard, "
         "showing current values as defaults. Kept for backwards "
-        "compatibility — a bare 'wayne setup' now does this.",
+        "compatibility — a bare 'work4you setup' now does this.",
     )
     setup_parser.add_argument(
         "--quick",

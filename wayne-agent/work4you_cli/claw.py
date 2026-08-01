@@ -19,7 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 from work4you_cli.config import get_wayne_home, get_config_path, load_config, save_config
-from work4you_constants import get_optional_skills_dir
+from work4you_constants import display_wayne_home, get_optional_skills_dir
 from work4you_cli.setup import (
     Colors,
     color,
@@ -480,7 +480,7 @@ def _cmd_migrate(args):
             f"Plan has {preview_conflicts} conflict(s). Refusing to apply."
         )
         print_info(
-            "Each conflict is an item whose target already exists in ~/.wayne/. "
+            f"Each conflict is an item whose target already exists in {display_wayne_home()}/. "
             "Re-run with --overwrite to replace conflicting targets (item-level "
             "backups are written to the migration report directory)."
         )

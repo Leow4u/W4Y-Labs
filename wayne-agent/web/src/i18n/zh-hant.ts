@@ -1051,8 +1051,8 @@ export const zhHant: Translations = {
     providersHint:
       "會寫入 config.yaml：memory.provider（留空為內建）與 context.engine。下一個工作階段生效。",
     refreshDashboard: "重新掃描儀表板擴充功能",
-    removeConfirm: "從 ~/.wayne/plugins/ 移除此外掛？",
-    removeHint: "僅可移除位於 ~/.wayne/plugins 下使用者安裝的外掛。",
+    removeConfirm: "從 {home}/plugins/ 移除此外掛？",
+    removeHint: "僅可移除位於 {home}/plugins 下使用者安裝的外掛。",
     rescanHeading: "SPA 外掛註冊表",
     rescanHint: "在磁碟新增檔案後重新掃描，使儀表板側邊欄載入新的 manifest。",
     runtimeHeading: "閘道執行階段（YAML 外掛）",
@@ -1074,7 +1074,7 @@ export const zhHant: Translations = {
     all: "全部",
     categories: "分類",
     filters: "篩選",
-    noSkills: "找不到技能。技能由 ~/.wayne/skills/ 載入",
+    noSkills: "找不到技能。技能由 {home}/skills/ 載入",
     noSkillsMatch: "沒有符合搜尋或篩選條件的技能。",
     install: "安裝",
     installed: "已安裝",
@@ -1134,7 +1134,7 @@ export const zhHant: Translations = {
     "polymarket": { name: "預測市場", desc: "查詢 Polymarket 預測市場的即時賠率與資料。" },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "篩選",
     sections: "分類",
     exportConfig: "匯出設定為 JSON",

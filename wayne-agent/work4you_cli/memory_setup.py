@@ -12,7 +12,7 @@ import sys
 import shlex
 from pathlib import Path
 
-from work4you_constants import get_wayne_home
+from work4you_constants import display_wayne_home, get_wayne_home
 from work4you_cli.secret_prompt import masked_secret_prompt
 
 _CANCELLED = -1
@@ -259,7 +259,7 @@ def cmd_setup(args) -> None:
 
     if not providers:
         print("\n  No memory provider plugins detected.")
-        print("  Install a plugin to ~/.wayne/plugins/ and try again.\n")
+        print(f"  Install a plugin to {display_wayne_home()}/plugins/ and try again.\n")
         return
 
     # Build picker items
@@ -488,7 +488,7 @@ def cmd_status(args) -> None:
                         print(line)
         else:
             print(f"\n  Plugin:    NOT installed ✗")
-            print(f"  Install the '{provider_name}' memory plugin to ~/.wayne/plugins/")
+            print(f"  Install the '{provider_name}' memory plugin to {display_wayne_home()}/plugins/")
 
     if providers:
         print(f"\n  Installed plugins:")

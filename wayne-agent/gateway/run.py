@@ -6478,7 +6478,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             _effective_max_iter = int(os.getenv("WAYNE_MAX_ITERATIONS", "90"))
             logger.info(
                 "Agent budget: max_iterations=%d (agent.max_turns from config.yaml, "
-                "or WAYNE_MAX_ITERATIONS from .env, or default 90)",
+                "or WORK4YOU_MAX_ITERATIONS from .env, or default 90)",
                 _effective_max_iter,
             )
         except Exception:
@@ -6498,7 +6498,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                 )
             else:
                 logger.warning(
-                    "Secret redaction: DISABLED (WAYNE_REDACT_SECRETS=%s). "
+                    "Secret redaction: DISABLED (WORK4YOU_REDACT_SECRETS=%s). "
                     "API keys and tokens may appear verbatim in chat output, "
                     "session JSONs, and logs. Set security.redact_secrets: true "
                     "in config.yaml to re-enable.",
@@ -19700,7 +19700,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
         else:
             wayne_home = str(get_wayne_home())
             logger.error(
-                "Another gateway instance is already running (PID %d, WAYNE_HOME=%s). "
+                "Another gateway instance is already running (PID %d, home=%s). "
                 "Use 'work4you gateway restart' to replace it, or 'work4you gateway stop' first.",
                 existing_pid, wayne_home,
             )

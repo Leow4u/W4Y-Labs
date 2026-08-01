@@ -16,8 +16,8 @@ def build_uninstall_parser(subparsers, *, cmd_uninstall: Callable) -> None:
     # =========================================================================
     uninstall_parser = subparsers.add_parser(
         "uninstall",
-        help="Uninstall Wayne Agent",
-        description="Remove Wayne Agent from your system. Can keep configs/data for reinstall.",
+        help="Uninstall Work4You",
+        description="Remove Work4You from your system. Can keep configs/data for reinstall.",
     )
     uninstall_parser.add_argument(
         "--full",

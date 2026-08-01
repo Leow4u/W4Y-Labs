@@ -25,11 +25,24 @@ try:
 except (ModuleNotFoundError, ImportError):
 
     def get_wayne_home() -> Path:
-        """Return the Wayne home directory (default: ~/.wayne).
+        """Return the Work4You home directory (default: ``~/.work4you``).
 
-        Mirrors ``work4you_constants.get_wayne_home()``."""
-        val = os.environ.get("WAYNE_HOME", "").strip()
-        return Path(val) if val else Path.home() / ".wayne"
+        Mirrors ``work4you_constants.get_wayne_home()``, including the
+        brand migration: the default root moved from ``~/.wayne`` to
+        ``~/.work4you``, and an install that has not been migrated yet
+        still keeps its data under the legacy name."""
+        val = (
+            os.environ.get("WAYNE_HOME", "").strip()
+            or os.environ.get("WORK4YOU_HOME", "").strip()
+        )
+        if val:
+            return Path(val)
+        new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+        if new_root.is_dir():
+            return new_root
+        if legacy_root.is_dir():
+            return legacy_root
+        return new_root
 
     def display_wayne_home() -> str:
         """Return a user-friendly ``~/``-shortened display string.

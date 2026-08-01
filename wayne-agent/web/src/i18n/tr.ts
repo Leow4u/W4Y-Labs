@@ -1053,8 +1053,8 @@ export const tr: Translations = {
     providersHint:
       "config.yaml'a memory.provider (boş = yerleşik) ve context.engine yazar. Bir sonraki oturumda etkili olur.",
     refreshDashboard: "Pano uzantılarını yeniden tara",
-    removeConfirm: "Bu eklenti ~/.wayne/plugins/ içinden kaldırılsın mı?",
-    removeHint: "Yalnızca ~/.wayne/plugins altındaki kullanıcı tarafından yüklenmiş eklentiler kaldırılabilir.",
+    removeConfirm: "Bu eklenti {home}/plugins/ içinden kaldırılsın mı?",
+    removeHint: "Yalnızca {home}/plugins altındaki kullanıcı tarafından yüklenmiş eklentiler kaldırılabilir.",
     rescanHeading: "SPA eklenti kayıt defteri",
     rescanHint: "Diske dosya ekledikten sonra yeniden tarayın, böylece pano kenar çubuğu yeni manifestleri algılar.",
     runtimeHeading: "Ağ geçidi çalışma zamanı (YAML eklentileri)",
@@ -1076,7 +1076,7 @@ export const tr: Translations = {
     all: "Tümü",
     categories: "Kategoriler",
     filters: "Filtreler",
-    noSkills: "Yetenek bulunamadı. Yetenekler ~/.wayne/skills/ adresinden yüklenir",
+    noSkills: "Yetenek bulunamadı. Yetenekler {home}/skills/ adresinden yüklenir",
     noSkillsMatch: "Aramanız veya filtrenizle eşleşen yetenek yok.",
     install: "Yükle",
     installed: "Yüklendi",
@@ -1136,7 +1136,7 @@ export const tr: Translations = {
     "polymarket": { name: "Tahmin Piyasaları", desc: "Polymarket tahmin piyasalarından gerçek zamanlı oranları ve verileri sorgular." },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "Filtreler",
     sections: "Bölümler",
     exportConfig: "Yapılandırmayı JSON olarak dışa aktar",

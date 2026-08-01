@@ -14,10 +14,10 @@ metadata:
 
 # Telephony — Numbers, Calls, and Texts without Core Tool Changes
 
-This optional skill gives Wayne practical phone capabilities while keeping telephony out of the core tool list.
+This optional skill gives Work4You practical phone capabilities while keeping telephony out of the core tool list.
 
 It ships with a helper script, `scripts/telephony.py`, that can:
-- save provider credentials into `${WAYNE_HOME:-~/.wayne}/.env`
+- save provider credentials into `${WAYNE_HOME:-~/.work4you}/.env`
 - search for and buy a Twilio phone number
 - remember that owned number for later sessions
 - send SMS / MMS from the owned number
@@ -36,7 +36,7 @@ This skill is meant to cover the practical phone tasks users actually want:
 - preserving that number and related IDs between sessions
 - future-friendly telephony identity for inbound SMS polling and other automations
 
-It does **not** turn Wayne into a real-time inbound phone gateway. Inbound SMS is handled by polling the Twilio REST API. That is enough for many workflows, including notifications and some one-time-code retrieval, without adding core webhook infrastructure.
+It does **not** turn Work4You into a real-time inbound phone gateway. Inbound SMS is handled by polling the Twilio REST API. That is enough for many workflows, including notifications and some one-time-code retrieval, without adding core webhook infrastructure.
 
 ## Safety rules — mandatory
 
@@ -44,7 +44,7 @@ It does **not** turn Wayne into a real-time inbound phone gateway. Inbound SMS i
 2. Never dial emergency numbers.
 3. Never use telephony for harassment, spam, impersonation, or anything illegal.
 4. Treat third-party phone numbers as sensitive operational data:
-   - do not save them to Wayne memory
+   - do not save them to Work4You memory
    - do not include them in skill docs, summaries, or follow-up notes unless the user explicitly wants that
 5. It is fine to persist the **agent-owned Twilio number** because that is part of the user's configuration.
 6. VoIP numbers are **not guaranteed** to work for all third-party 2FA flows. Use with caution and set user expectations clearly.
@@ -53,7 +53,7 @@ It does **not** turn Wayne into a real-time inbound phone gateway. Inbound SMS i
 
 Use this logic instead of hardcoded provider routing:
 
-### 1) "I want Wayne to own a real phone number"
+### 1) "I want Work4You to own a real phone number"
 Use **Twilio**.
 
 Why:
@@ -98,13 +98,13 @@ Use **Twilio direct call** with a public audio URL.
 
 Why:
 - easiest way to play a custom MP3
-- pairs well with Wayne `text_to_speech` plus a public file host or tunnel
+- pairs well with Work4You `text_to_speech` plus a public file host or tunnel
 
 ## Files and persistent state
 
 The skill persists telephony state in two places:
 
-### `${WAYNE_HOME:-~/.wayne}/.env`
+### `${WAYNE_HOME:-~/.work4you}/.env`
 Used for long-lived provider credentials and owned-number IDs, for example:
 - `TWILIO_ACCOUNT_SID`
 - `TWILIO_AUTH_TOKEN`
@@ -115,7 +115,7 @@ Used for long-lived provider credentials and owned-number IDs, for example:
 - `VAPI_PHONE_NUMBER_ID`
 - `PHONE_PROVIDER` (AI call provider: bland or vapi)
 
-### `~/.wayne/telephony_state.json`
+### `~/.work4you/telephony_state.json`
 Used for skill-only state that should survive across sessions, for example:
 - remembered default Twilio number / SID
 - remembered Vapi phone number ID
@@ -130,7 +130,7 @@ This means:
 After installing this skill, locate the script like this:
 
 ```bash
-SCRIPT="$(find ~/.wayne/skills -path '*/telephony/scripts/telephony.py' -print -quit)"
+SCRIPT="$(find ~/.work4you/skills -path '*/telephony/scripts/telephony.py' -print -quit)"
 ```
 
 If `SCRIPT` is empty, the skill is not installed yet.
@@ -151,7 +151,7 @@ work4you skills install official/productivity/telephony
 Sign up at:
 - https://www.twilio.com/try-twilio
 
-Then save credentials into Wayne:
+Then save credentials into Work4You:
 
 ```bash
 python3 "$SCRIPT" save-twilio ACXXXXXXXXXXXXXXXXXXXXXXXXXXXX your_auth_token_here
@@ -241,7 +241,7 @@ python3 "$SCRIPT" save-twilio AC... auth_token_here
 python3 "$SCRIPT" twilio-search --country US --area-code 702 --limit 10
 ```
 
-3. Buy it and save it into `${WAYNE_HOME:-~/.wayne}/.env` + state:
+3. Buy it and save it into `${WAYNE_HOME:-~/.work4you}/.env` + state:
 ```bash
 python3 "$SCRIPT" twilio-buy "+17025551234" --save-env
 ```
@@ -283,15 +283,15 @@ This is the main answer to “how do I access messages the number receives next 
 ### D. Make a direct Twilio call with built-in TTS
 
 ```bash
-python3 "$SCRIPT" twilio-call "+15551230000" --message "Hello! This is Wayne calling with your status update." --voice Polly.Joanna
+python3 "$SCRIPT" twilio-call "+15551230000" --message "Hello! This is Work4You calling with your status update." --voice Polly.Joanna
 ```
 
 ### E. Call with a prerecorded / custom voice message
 
-This is the main path for reusing Wayne's existing `text_to_speech` support.
+This is the main path for reusing Work4You's existing `text_to_speech` support.
 
 Use this when:
-- you want the call to use Wayne's configured TTS voice rather than Twilio `<Say>`
+- you want the call to use Work4You's configured TTS voice rather than Twilio `<Say>`
 - you want a one-way voice delivery (briefing, alert, joke, reminder, status update)
 - you do **not** need a live conversational phone call
 
@@ -301,14 +301,14 @@ Generate or host audio separately, then:
 python3 "$SCRIPT" twilio-call "+155****0000" --audio-url "https://example.com/briefing.mp3"
 ```
 
-Recommended Wayne TTS -> Twilio Play workflow:
+Recommended Work4You TTS -> Twilio Play workflow:
 
-1. Generate the audio with Wayne `text_to_speech`.
+1. Generate the audio with Work4You `text_to_speech`.
 2. Make the resulting MP3 publicly reachable.
 3. Place the Twilio call with `--audio-url`.
 
 Example agent flow:
-- Ask Wayne to create the message audio with `text_to_speech`
+- Ask Work4You to create the message audio with `text_to_speech`
 - If needed, expose the file with a temporary static host / tunnel / object storage URL
 - Use `twilio-call --audio-url ...` to deliver it by phone
 
@@ -318,9 +318,9 @@ Good hosting options for the MP3:
 - any existing HTTPS URL the phone provider can fetch directly
 
 Important note:
-- Wayne TTS is great for prerecorded outbound messages
+- Work4You TTS is great for prerecorded outbound messages
 - Bland/Vapi are better for **live conversational AI calls** because they handle the real-time telephony audio stack themselves
-- Wayne STT/TTS alone is not being used here as a full duplex phone conversation engine; that would require a much heavier streaming/webhook integration than this skill is trying to introduce
+- Work4You STT/TTS alone is not being used here as a full duplex phone conversation engine; that would require a much heavier streaming/webhook integration than this skill is trying to introduce
 
 ### F. Navigate a phone tree / IVR with Twilio direct calling
 
@@ -378,7 +378,7 @@ When the user asks for a call or text:
 4. Confirm with the user before dialing or texting.
 5. Use the correct command.
 6. Poll for results if needed.
-7. Summarize the outcome without persisting third-party numbers to Wayne memory.
+7. Summarize the outcome without persisting third-party numbers to Work4You memory.
 
 ## What this skill still does not do
 
@@ -395,7 +395,7 @@ Those would require more infrastructure than a pure optional skill.
 - `twilio-inbox` polls the REST API; it is not instant push delivery.
 - Vapi outbound calling still depends on having a valid imported number.
 - Bland is easiest, but not always the best-sounding.
-- Do not store arbitrary third-party phone numbers in Wayne memory.
+- Do not store arbitrary third-party phone numbers in Work4You memory.
 
 ## Verification checklist
 
@@ -403,7 +403,7 @@ After setup, you should be able to do all of the following with just this skill:
 
 1. `diagnose` shows provider readiness and remembered state
 2. search and buy a Twilio number
-3. persist that number to `${WAYNE_HOME:-~/.wayne}/.env`
+3. persist that number to `${WAYNE_HOME:-~/.work4you}/.env`
 4. send an SMS from the owned number
 5. poll inbound texts for the owned number later
 6. place a direct Twilio call

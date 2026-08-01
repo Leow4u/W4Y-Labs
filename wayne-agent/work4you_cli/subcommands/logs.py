@@ -17,23 +17,23 @@ def build_logs_parser(subparsers, *, cmd_logs: Callable) -> None:
     # =========================================================================
     logs_parser = subparsers.add_parser(
         "logs",
-        help="View and filter Wayne log files",
+        help="View and filter Work4You log files",
         description="View, tail, and filter agent.log / errors.log / gateway.log / gui.log / desktop.log",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
-    wayne logs                    Show last 50 lines of agent.log
-    wayne logs -f                 Follow agent.log in real time
-    wayne logs errors             Show last 50 lines of errors.log
-    wayne logs gateway -n 100     Show last 100 lines of gateway.log
-    wayne logs gui -f             Follow gui.log in real time
-    wayne logs desktop -f         Follow desktop.log (Electron app boot/backend)
-    wayne logs --level WARNING    Only show WARNING and above
-    wayne logs --session abc123   Filter by session ID
-    wayne logs --component tools  Only show tool-related lines
-    wayne logs --since 1h         Lines from the last hour
-    wayne logs --since 30m -f     Follow, starting from 30 min ago
-    wayne logs list               List available log files with sizes
+    work4you logs                    Show last 50 lines of agent.log
+    work4you logs -f                 Follow agent.log in real time
+    work4you logs errors             Show last 50 lines of errors.log
+    work4you logs gateway -n 100     Show last 100 lines of gateway.log
+    work4you logs gui -f             Follow gui.log in real time
+    work4you logs desktop -f         Follow desktop.log (Electron app boot/backend)
+    work4you logs --level WARNING    Only show WARNING and above
+    work4you logs --session abc123   Filter by session ID
+    work4you logs --component tools  Only show tool-related lines
+    work4you logs --since 1h         Lines from the last hour
+    work4you logs --since 30m -f     Follow, starting from 30 min ago
+    work4you logs list               List available log files with sizes
 """,
     )
     logs_parser.add_argument(

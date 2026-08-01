@@ -508,7 +508,7 @@ def managed_scope_check() -> None:
         f"pinned by {managed_dir}"
     )
     if os.environ.get("WAYNE_MANAGED_DIR", "").strip():
-        check_info(f"managed dir set via WAYNE_MANAGED_DIR={managed_dir}")
+        check_info(f"managed dir set via WORK4YOU_MANAGED_DIR={managed_dir}")
 
 
 def run_doctor(args):
@@ -545,7 +545,7 @@ def run_doctor(args):
         else:
             print(color(
                 f"  ✗ Failed to persist ack for {ack_target}. "
-                f"Check ~/.wayne/config.yaml is writable.",
+                f"Check {_DHH}/config.yaml is writable.",
                 Colors.RED,
             ))
             sys.exit(1)
@@ -899,7 +899,7 @@ def run_doctor(args):
                     if not configured:
                         _fail_and_issue(
                             f"model.provider '{runtime_provider}' is set but no API key is configured",
-                            "(check ~/.wayne/.env or run 'work4you setup')",
+                            f"(check {_DHH}/.env or run 'work4you setup')",
                             (
                                 f"No credentials found for provider '{runtime_provider}'. "
                                 f"Run 'work4you setup' or set the provider's API key in {_DHH}/.env, "
@@ -1019,7 +1019,20 @@ def run_doctor(args):
             # Legacy root-level key counts too.
             if cfg_max_turns is None:
                 cfg_max_turns = raw_config.get("max_turns")
-            env_ghost = load_env().get("WAYNE_MAX_ITERATIONS")
+            # A .env written before the rename holds WAYNE_MAX_ITERATIONS;
+            # a current one holds WORK4YOU_MAX_ITERATIONS. Report (and fix)
+            # whichever spelling is actually on disk so the user can find the
+            # line we are talking about.
+            _env_on_disk = load_env()
+            ghost_key = next(
+                (
+                    k
+                    for k in ("WORK4YOU_MAX_ITERATIONS", "WAYNE_MAX_ITERATIONS")
+                    if _env_on_disk.get(k) is not None
+                ),
+                "WORK4YOU_MAX_ITERATIONS",
+            )
+            env_ghost = _env_on_disk.get(ghost_key)
             drift = (
                 cfg_max_turns is not None
                 and env_ghost is not None
@@ -1027,26 +1040,26 @@ def run_doctor(args):
             )
             if drift:
                 check_warn(
-                    f"WAYNE_MAX_ITERATIONS={env_ghost} in .env shadows "
+                    f"{ghost_key}={env_ghost} in .env shadows "
                     f"agent.max_turns={cfg_max_turns} in config.yaml",
                     "(stale ghost from an earlier `work4you setup` run)",
                 )
                 if should_fix:
-                    if remove_env_value("WAYNE_MAX_ITERATIONS"):
+                    if remove_env_value(ghost_key):
                         check_ok(
-                            "Removed stale WAYNE_MAX_ITERATIONS from .env "
+                            f"Removed stale {ghost_key} from .env "
                             f"(config.yaml agent.max_turns={cfg_max_turns} is now authoritative)"
                         )
                         fixed_count += 1
                     else:
-                        check_warn("Could not remove WAYNE_MAX_ITERATIONS from .env")
+                        check_warn(f"Could not remove {ghost_key} from .env")
                         manual_issues.append(
-                            "Manually delete the WAYNE_MAX_ITERATIONS line from "
+                            f"Manually delete the {ghost_key} line from "
                             f"{_DHH}/.env — config.yaml agent.max_turns is authoritative."
                         )
                 else:
                     issues.append(
-                        "Stale WAYNE_MAX_ITERATIONS in .env shadows config.yaml — "
+                        f"Stale {ghost_key} in .env shadows config.yaml — "
                         "run 'work4you doctor --fix'"
                     )
         except Exception:

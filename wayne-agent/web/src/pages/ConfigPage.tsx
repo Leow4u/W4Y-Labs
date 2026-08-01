@@ -51,6 +51,7 @@ import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
 import { Input } from "@nous-research/ui/ui/components/input";
 import { Badge } from "@nous-research/ui/ui/components/badge";
 import { useI18n } from "@/i18n";
+import { useHomePath, withHome } from "@/lib/home-path";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
 
@@ -120,6 +121,8 @@ export default function ConfigPage() {
   const [yamlLoading, setYamlLoading] = useState(false);
   const [yamlSaving, setYamlSaving] = useState(false);
   const [configPath, setConfigPath] = useState<string | null>(null);
+  // Fallback path shown before /api/status answers — resolved, not spelled out.
+  const home = useHomePath();
   const [activeCategory, setActiveCategory] = useState<string>("");
   const [confirmReset, setConfirmReset] = useState(false);
   const { toast, showToast } = useToast();
@@ -343,7 +346,7 @@ export default function ConfigPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "wayne-config.json";
+    a.download = "work4you-config.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -457,7 +460,7 @@ export default function ConfigPage() {
         <div className="flex min-w-0 items-center gap-2 sm:flex-1">
           <Settings2 className="h-4 w-4 shrink-0 text-muted-foreground" />
           <code className="min-w-0 flex-1 break-words text-xs text-muted-foreground bg-muted/50 px-2 py-0.5">
-            {configPath ?? t.config.configPath}
+            {configPath ?? withHome(t.config.configPath, home)}
           </code>
         </div>
         )}

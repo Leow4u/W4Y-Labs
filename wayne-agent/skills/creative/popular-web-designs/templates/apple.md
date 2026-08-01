@@ -1,7 +1,7 @@
 # Design System: Apple
 
 
-> **Wayne Agent — Implementation Notes**
+> **Work4You — Implementation Notes**
 >
 > The original site uses proprietary fonts. For self-contained HTML output, use these CDN substitutes:
 > - **Primary:** `system-ui` | **Mono:** `SF Mono (system)`

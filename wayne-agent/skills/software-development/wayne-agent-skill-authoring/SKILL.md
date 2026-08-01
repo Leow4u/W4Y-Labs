@@ -47,7 +47,7 @@ version: 1.1.0
 author: Work4You
 license: MIT
 metadata:
-  wayne:
+  work4you:
     tags: [short, descriptive, tags]
     related_skills: [other-skill, another-skill]
 ---

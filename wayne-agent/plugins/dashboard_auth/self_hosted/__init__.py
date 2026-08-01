@@ -823,7 +823,7 @@ def register(ctx) -> None:
         LAST_SKIP_REASON = (
             "Self-hosted OIDC dashboard auth is not configured. Set both an "
             "issuer and a client_id — either as env vars "
-            "(WAYNE_DASHBOARD_OIDC_ISSUER + WAYNE_DASHBOARD_OIDC_CLIENT_ID) "
+            "(WORK4YOU_DASHBOARD_OIDC_ISSUER + WORK4YOU_DASHBOARD_OIDC_CLIENT_ID) "
             "or under dashboard.oauth.self_hosted.{issuer,client_id} in "
             "config.yaml — or pass --insecure to skip the OAuth gate "
             "entirely. (issuer set: %s; client_id set: %s)"

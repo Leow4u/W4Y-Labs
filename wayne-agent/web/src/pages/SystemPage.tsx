@@ -1274,7 +1274,7 @@ export default function SystemPage() {
                   id="import-path"
                   value={importPath}
                   onChange={(e) => setImportPath(e.target.value)}
-                  placeholder="$WAYNE_HOME/backups/wayne-backup.zip"
+                  placeholder="$WORK4YOU_HOME/backups/backup.zip"
                 />
               </div>
               <Button

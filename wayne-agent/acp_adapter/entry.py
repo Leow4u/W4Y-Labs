@@ -35,6 +35,7 @@ import logging
 import sys
 from pathlib import Path
 from work4you_constants import get_wayne_home
+from work4you_constants import display_wayne_home as _display_home
 
 
 # Methods clients send as periodic liveness probes. They are not part of the
@@ -132,7 +133,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument(
         "--setup-browser",
         action="store_true",
-        help="Install agent-browser + Playwright Chromium into ~/.wayne/node/ "
+        help=f"Install agent-browser + Playwright Chromium into {_display_home()}/node/ "
              "for browser tool support. Idempotent.",
     )
     parser.add_argument(

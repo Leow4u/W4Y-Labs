@@ -637,8 +637,10 @@ def interactive_setup() -> None:
             save_env_value("IRC_ALLOWED_USERS", "")
             print_info("No nicks allowed — the bot will ignore all messages until you add nicks.")
 
+    from work4you_constants import display_wayne_home as _display_home
+
     print()
-    print_success("IRC configuration saved to ~/.wayne/.env")
+    print_success(f"IRC configuration saved to {_display_home()}/.env")
     print_info("Restart the gateway for changes to take effect: wayne gateway restart")
 
 

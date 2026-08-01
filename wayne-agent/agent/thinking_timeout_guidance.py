@@ -117,6 +117,8 @@ def build_thinking_timeout_guidance(
             prose (e.g. ``"Nemotron 3 Ultra"``).  Falls back to the
             slug if not provided.
     """
+    from work4you_constants import display_wayne_home
+
     label = model_label or model
     return (
         "\n\nThe model's thinking phase exceeded the upstream proxy's "
@@ -125,8 +127,8 @@ def build_thinking_timeout_guidance(
         "gateways (NVIDIA NIM, OpenAI, Anthropic, DeepSeek). Workarounds "
         "in priority order:\n"
         f"1. Set `providers.{provider}.models.{model}.stale_timeout_seconds: 900` "
-        "in `~/.wayne/config.yaml` to extend the per-call timeout. "
-        "(Wayne's built-in floor is 600s for known reasoning models — "
+        f"in `{display_wayne_home()}/config.yaml` to extend the per-call timeout. "
+        "(Work4You's built-in floor is 600s for known reasoning models — "
         "if you still see this after raising, the upstream cap is even "
         "shorter.)\n"
         "2. Lower `reasoning_budget` or set `reasoning_effort: medium` on this "

@@ -2529,6 +2529,16 @@ def build_anthropic_kwargs(
         for block in system:
             if isinstance(block, dict) and block.get("type") == "text":
                 text = block.get("text", "")
+                # Brand-migration note: the prompt now says "Work4You" where it
+                # used to say "Wayne Agent". Both spellings are stripped so the
+                # sanitizer keeps working across mixed-version prompt text.
+                # Only the *branded* forms are rewritten — the lowercase
+                # ``work4you`` CLI verb is left alone, otherwise the model would
+                # tell users to run ``claude-code config set …``.
+                text = text.replace("Work4You Agent", "Claude Code")
+                text = text.replace("Work4You agent", "Claude Code")
+                text = text.replace("Work4You", "Claude Code")
+                text = text.replace("work4you-agent", "claude-code")
                 text = text.replace("Wayne Agent", "Claude Code")
                 text = text.replace("Wayne agent", "Claude Code")
                 text = text.replace("wayne-agent", "claude-code")

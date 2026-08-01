@@ -239,7 +239,7 @@ def register(ctx) -> None:
     secret = os.environ.get("WAYNE_DASHBOARD_DRAIN_SECRET", "").strip()
     if not secret:
         LAST_SKIP_REASON = (
-            "WAYNE_DASHBOARD_DRAIN_SECRET is not set. Set a per-agent "
+            "WORK4YOU_DASHBOARD_DRAIN_SECRET is not set. Set a per-agent "
             ">=256-bit secret (e.g. `python -c \"import secrets; "
             "print(secrets.token_urlsafe(32))\"`) to enable NAS-driven drain "
             "coordination; leave it unset to disable the drain endpoint."
@@ -257,7 +257,7 @@ def register(ctx) -> None:
     reason = assess_secret_strength(secret, min_chars=min_chars)
     if reason is not None:
         LAST_SKIP_REASON = (
-            f"WAYNE_DASHBOARD_DRAIN_SECRET rejected — {reason}. "
+            f"WORK4YOU_DASHBOARD_DRAIN_SECRET rejected — {reason}. "
             "The drain endpoint stays disabled (fail-closed)."
         )
         logger.warning("dashboard-auth-drain: %s", LAST_SKIP_REASON)

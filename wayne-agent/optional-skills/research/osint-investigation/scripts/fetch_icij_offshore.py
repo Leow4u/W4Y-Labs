@@ -9,7 +9,7 @@ bulk download:
 
 ~70 MB, ~6 CSVs inside (nodes-entities, nodes-officers, nodes-intermediaries,
 nodes-addresses, relationships, ...). We cache it under
-$WAYNE_OSINT_CACHE/icij/ (default: ~/.cache/wayne-osint/icij/) and search
+$WORK4YOU_OSINT_CACHE/icij/ (default: ~/.cache/work4you-osint/icij/) and search
 locally so the agent doesn't re-download for every query.
 
 Output CSV columns match the original `fetch_icij_offshore.py` contract.
@@ -45,7 +45,9 @@ COLUMNS = [
 
 
 def _cache_dir() -> Path:
-    base = os.environ.get("WAYNE_OSINT_CACHE")
+    base = os.environ.get("WORK4YOU_OSINT_CACHE") or os.environ.get(
+        "WAYNE_OSINT_CACHE"
+    )
     if base:
         return Path(base) / "icij"
     return Path.home() / ".cache" / "wayne-osint" / "icij"
@@ -207,7 +209,7 @@ def main() -> int:
         "--cache-dir",
         type=Path,
         default=None,
-        help="Override cache directory (default: $WAYNE_OSINT_CACHE/icij or ~/.cache/wayne-osint/icij)",
+        help="Override cache directory (default: $WORK4YOU_OSINT_CACHE/icij or ~/.cache/work4you-osint/icij)",
     )
     p.add_argument(
         "--force-refresh",

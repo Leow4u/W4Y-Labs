@@ -394,4 +394,4 @@ def list_logs() -> None:
             found = True
 
     if not found:
-        print("  (no log files yet — run 'wayne chat' to generate logs)")
+        print("  (no log files yet — run 'work4you chat' to generate logs)")

@@ -91,7 +91,11 @@ def _auth_json_path() -> Path:
         from work4you_constants import get_wayne_home
         return Path(get_wayne_home()) / "auth.json"
     except Exception:
-        return Path(os.path.expanduser("~/.wayne")) / "auth.json"
+        # Migration-aware fallback: the default root moved to ~/.work4you.
+        legacy = Path.home() / ".wayne"
+        new = Path.home() / ".work4you"
+        base = legacy if (legacy.is_dir() and not new.is_dir()) else new
+        return base / "auth.json"
 
 
 def _load_auth() -> Dict[str, Any]:

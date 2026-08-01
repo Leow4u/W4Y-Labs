@@ -27,6 +27,7 @@ from typing import Any, Optional
 from work4you_cli import kanban_db as kb
 from work4you_cli import kanban_swarm as ks
 from work4you_cli.profiles import get_active_profile_name
+from work4you_constants import display_wayne_home
 
 
 # ---------------------------------------------------------------------------
@@ -218,7 +219,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         help=(
             "Board slug to operate on. Defaults to the current board "
             "(set via `work4you kanban boards switch <slug>` or the "
-            "WAYNE_KANBAN_BOARD env var). Use `wayne kanban boards list` "
+            "WORK4YOU_KANBAN_BOARD env var). Use `work4you kanban boards list` "
             "to see all boards."
         ),
     )
@@ -392,7 +393,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     # --- list ---
     p_list = sub.add_parser("list", aliases=["ls"], help="List tasks")
     p_list.add_argument("--mine", action="store_true",
-                        help="Filter by $WAYNE_PROFILE as assignee")
+                        help="Filter by $WORK4YOU_PROFILE as assignee")
     p_list.add_argument("--assignee", default=None)
     p_list.add_argument("--status", default=None,
                         choices=sorted(kb.VALID_STATUSES))
@@ -518,7 +519,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     p_comment.add_argument("task_id")
     p_comment.add_argument("text", nargs="+", help="Comment body")
     p_comment.add_argument("--author", default=None,
-                           help="Author name (default: $WAYNE_PROFILE or 'user')")
+                           help="Author name (default: $WORK4YOU_PROFILE or 'user')")
     p_comment.add_argument("--max-len", type=int, default=None,
                            help="Trim the stored comment body to this many characters")
 
@@ -765,7 +766,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     p_asg = sub.add_parser(
         "assignees",
         help="List known profiles + per-profile task counts "
-             "(union of ~/.wayne/profiles/ and current assignees on the board)",
+             f"(union of {display_wayne_home()}/profiles/ and current assignees on the board)",
     )
     p_asg.add_argument("--json", action="store_true")
 
@@ -805,7 +806,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         "--author",
         default=None,
         help="Author name recorded on the audit comment "
-             "(default: $WAYNE_PROFILE or 'specifier')",
+             "(default: $WORK4YOU_PROFILE or 'specifier')",
     )
     p_specify.add_argument(
         "--json",
@@ -842,7 +843,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
         "--author",
         default=None,
         help="Author name recorded on the audit comment "
-             "(default: $WAYNE_PROFILE or 'decomposer')",
+             "(default: $WORK4YOU_PROFILE or 'decomposer')",
     )
     p_decompose.add_argument(
         "--json",
@@ -1254,7 +1255,7 @@ def _cmd_init(args: argparse.Namespace) -> int:
         for name in profiles:
             print(f"  {name}")
     else:
-        print("No profiles found under ~/.wayne/profiles/.")
+        print(f"No profiles found under {display_wayne_home()}/profiles/.")
         print("Create one with `work4you -p <name> setup` before assigning tasks.")
     print()
     print("Next step: start the gateway so ready tasks actually get picked up.")

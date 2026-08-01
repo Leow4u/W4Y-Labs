@@ -1053,8 +1053,8 @@ export const hu: Translations = {
     providersHint:
       "A memory.provider (üres = beépített) és a context.engine értékét írja a config.yaml fájlba. A következő munkamenetben lép életbe.",
     refreshDashboard: "Vezérlőpult-bővítmények újraolvasása",
-    removeConfirm: "Eltávolítja ezt a bővítményt a ~/.wayne/plugins/ mappából?",
-    removeHint: "Csak a felhasználó által a ~/.wayne/plugins alá telepített bővítmények távolíthatók el.",
+    removeConfirm: "Eltávolítja ezt a bővítményt a {home}/plugins/ mappából?",
+    removeHint: "Csak a felhasználó által a {home}/plugins alá telepített bővítmények távolíthatók el.",
     rescanHeading: "SPA-bővítményregiszter",
     rescanHint: "Olvassa újra a fájlokat a lemezen történő hozzáadás után, hogy az oldalsáv felvegye az új manifesteket.",
     runtimeHeading: "Átjáró-futási idő (YAML-bővítmények)",
@@ -1076,7 +1076,7 @@ export const hu: Translations = {
     all: "Összes",
     categories: "Kategóriák",
     filters: "Szűrők",
-    noSkills: "Nem található készség. A készségek a ~/.wayne/skills/ mappából töltődnek be",
+    noSkills: "Nem található készség. A készségek a {home}/skills/ mappából töltődnek be",
     noSkillsMatch: "Nincs a keresésnek vagy szűrőnek megfelelő készség.",
     install: "Telepítés",
     installed: "Telepítve",
@@ -1136,7 +1136,7 @@ export const hu: Translations = {
     "polymarket": { name: "Predikciós piacok", desc: "Valós idejű esélyek és adatok lekérdezése a Polymarket predikciós piacairól." },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "Szűrők",
     sections: "Szakaszok",
     exportConfig: "Konfiguráció exportálása JSON-ba",

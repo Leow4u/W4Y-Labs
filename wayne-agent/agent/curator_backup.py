@@ -48,7 +48,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from work4you_constants import get_wayne_home
+from work4you_constants import display_wayne_home, get_wayne_home
 from agent.skill_utils import is_excluded_skill_path
 
 logger = logging.getLogger(__name__)
@@ -226,7 +226,7 @@ def snapshot_skills(reason: str = "manual", *, protect_ids: Optional[Set[str]] =
 
     skills = _skills_dir()
     if not skills.exists():
-        logger.debug("No ~/.wayne/skills/ directory — nothing to back up")
+        logger.debug("No %s/skills/ directory — nothing to back up", display_wayne_home())
         return None
 
     backups = _backups_dir()

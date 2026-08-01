@@ -1053,8 +1053,8 @@ export const it: Translations = {
     providersHint:
       "Scrive memory.provider (vuoto = integrato) e context.engine in config.yaml. Effetto dalla prossima sessione.",
     refreshDashboard: "Riscansiona estensioni dashboard",
-    removeConfirm: "Rimuovere questo plugin da ~/.wayne/plugins/?",
-    removeHint: "Solo i plugin installati dall'utente in ~/.wayne/plugins possono essere rimossi.",
+    removeConfirm: "Rimuovere questo plugin da {home}/plugins/?",
+    removeHint: "Solo i plugin installati dall'utente in {home}/plugins possono essere rimossi.",
     rescanHeading: "Registro plugin SPA",
     rescanHint: "Riscansiona dopo aver aggiunto file su disco affinché la barra laterale rilevi i nuovi manifest.",
     runtimeHeading: "Runtime gateway (plugin YAML)",
@@ -1076,7 +1076,7 @@ export const it: Translations = {
     all: "Tutti",
     categories: "Categorie",
     filters: "Filtri",
-    noSkills: "Nessuna competenza trovata. Le competenze vengono caricate da ~/.wayne/skills/",
+    noSkills: "Nessuna competenza trovata. Le competenze vengono caricate da {home}/skills/",
     noSkillsMatch: "Nessuna competenza corrisponde alla ricerca o al filtro.",
     install: "Installa",
     installed: "Installata",
@@ -1136,7 +1136,7 @@ export const it: Translations = {
     "polymarket": { name: "Mercati predittivi", desc: "Consulta quote e dati in tempo reale dai mercati predittivi di Polymarket." },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "Filtri",
     sections: "Sezioni",
     exportConfig: "Esporta configurazione come JSON",

@@ -155,7 +155,7 @@ def run_oneshot(
     env_model_early = os.getenv("WAYNE_INFERENCE_MODEL", "").strip()
     if provider and not ((model or "").strip() or env_model_early):
         sys.stderr.write(
-            "work4you -z: --provider requires --model (or WAYNE_INFERENCE_MODEL). "
+            "work4you -z: --provider requires --model (or WORK4YOU_INFERENCE_MODEL). "
             "Pass both explicitly, or neither to use your configured defaults.\n"
         )
         return 2

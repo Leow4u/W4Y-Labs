@@ -370,7 +370,7 @@ def _handle_show(args: dict, **kw) -> str:
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
-            "task_id is required (or set WAYNE_KANBAN_TASK in the env)"
+            "task_id is required (or set WORK4YOU_KANBAN_TASK in the env)"
         )
     board = args.get("board")
     try:
@@ -506,7 +506,7 @@ def _handle_complete(args: dict, **kw) -> str:
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
-            "task_id is required (or set WAYNE_KANBAN_TASK in the env)"
+            "task_id is required (or set WORK4YOU_KANBAN_TASK in the env)"
         )
     ownership_err = _enforce_worker_task_ownership(tid)
     if ownership_err:
@@ -670,7 +670,7 @@ def _handle_block(args: dict, **kw) -> str:
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
-            "task_id is required (or set WAYNE_KANBAN_TASK in the env)"
+            "task_id is required (or set WORK4YOU_KANBAN_TASK in the env)"
         )
     ownership_err = _enforce_worker_task_ownership(tid)
     if ownership_err:
@@ -756,7 +756,7 @@ def _handle_heartbeat(args: dict, **kw) -> str:
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
-            "task_id is required (or set WAYNE_KANBAN_TASK in the env)"
+            "task_id is required (or set WORK4YOU_KANBAN_TASK in the env)"
         )
     ownership_err = _enforce_worker_task_ownership(tid)
     if ownership_err:
@@ -1104,14 +1104,14 @@ def _handle_link(args: dict, **kw) -> str:
 # ---------------------------------------------------------------------------
 
 _DESC_TASK_ID_DEFAULT = (
-    "Task id. If omitted, defaults to WAYNE_KANBAN_TASK from the env "
+    "Task id. If omitted, defaults to WORK4YOU_KANBAN_TASK from the env "
     "(the task the dispatcher spawned you to work on)."
 )
 
 _DESC_BOARD = (
     "Kanban board slug to target. When omitted, the call resolves the "
-    "active board the usual way: WAYNE_KANBAN_DB env → "
-    "WAYNE_KANBAN_BOARD env → the 'current' symlink under the kanban "
+    "active board the usual way: WORK4YOU_KANBAN_DB env → "
+    "WORK4YOU_KANBAN_BOARD env → the 'current' symlink under the kanban "
     "home → 'default'. Pass an explicit slug only when the caller (e.g. "
     "a Telegram routing layer) needs to override the env-pinned active "
     "board for this one call."
@@ -1436,7 +1436,7 @@ KANBAN_CREATE_SCHEMA = {
                 "type": "string",
                 "description": (
                     "Optional namespace for multi-project isolation. "
-                    "Defaults to WAYNE_TENANT env if set."
+                    "Defaults to WORK4YOU_TENANT env if set."
                 ),
             },
             "priority": {

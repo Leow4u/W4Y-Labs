@@ -227,7 +227,7 @@ export default function ChannelsPage() {
   const { t } = useI18n();
   const c = t.channels;
   const [platforms, setPlatforms] = useState<MessagingPlatform[]>([]);
-  const [envPath, setEnvPath] = useState("~/.wayne/.env");
+  const [envPath, setEnvPath] = useState("~/.work4you/.env");
   const [gatewayStartCommand, setGatewayStartCommand] = useState(
     "work4you gateway start",
   );
@@ -295,7 +295,7 @@ export default function ChannelsPage() {
           gateway_start_command?: string;
         };
         setPlatforms(r.platforms);
-        setEnvPath(r.env_path || "~/.wayne/.env");
+        setEnvPath(r.env_path || "~/.work4you/.env");
         setGatewayStartCommand(r.gateway_start_command || "work4you gateway start");
       })
       .catch((e) => showToast(c.loadError.replace("{error}", String(e)), "error"));

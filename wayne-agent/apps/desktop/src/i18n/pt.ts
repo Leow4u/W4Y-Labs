@@ -199,7 +199,7 @@ export const pt = defineLocale({
     emptyProductSkillsTitle: 'Estende a Work4You com Skills',
     emptyProductSkillsDesc:
       'Skills agrupam métodos que o agente pode seguir — receitas aprendidas, SKILL.md do projeto e playbooks. O kit nativo fica no chat; contas ficam em Conectores.',
-    projectSkillHint: 'Vem da pasta .wayne/skills deste projeto — edita o ficheiro no repo para alterar.',
+    projectSkillHint: 'Vem da pasta .work4you/skills deste projeto — edita o ficheiro no repo para alterar.',
     hubSkillManageHint: 'Instalada antes pelo hub de skills. Capacidades nativas ficam no chat; contas ficam em Conectores.',
     provenance: {
       agent: 'Aprendida',

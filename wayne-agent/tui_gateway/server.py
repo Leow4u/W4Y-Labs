@@ -2558,7 +2558,7 @@ def _load_enabled_toolsets() -> list[str] | None:
             ignored = [name for name in explicit if name not in {"all", "*"}]
             if ignored:
                 print(
-                    "[tui] WAYNE_TUI_TOOLSETS=all enables every toolset; "
+                    "[tui] WORK4YOU_TUI_TOOLSETS=all enables every toolset; "
                     f"ignoring additional entries: {', '.join(ignored)}",
                     file=sys.stderr,
                     flush=True,
@@ -2602,13 +2602,13 @@ def _load_enabled_toolsets() -> list[str] | None:
 
         if unknown:
             print(
-                f"[tui] ignoring unknown WAYNE_TUI_TOOLSETS entries: {', '.join(unknown)}",
+                f"[tui] ignoring unknown WORK4YOU_TUI_TOOLSETS entries: {', '.join(unknown)}",
                 file=sys.stderr,
                 flush=True,
             )
         if disabled:
             print(
-                "[tui] ignoring disabled MCP servers in WAYNE_TUI_TOOLSETS "
+                "[tui] ignoring disabled MCP servers in WORK4YOU_TUI_TOOLSETS "
                 "(set enabled: true in config.yaml to use): "
                 f"{', '.join(disabled)}",
                 file=sys.stderr,
@@ -2619,7 +2619,7 @@ def _load_enabled_toolsets() -> list[str] | None:
             return valid
 
         fallback_notice = (
-            "[tui] no valid WAYNE_TUI_TOOLSETS entries; using configured CLI toolsets"
+            "[tui] no valid WORK4YOU_TUI_TOOLSETS entries; using configured CLI toolsets"
         )
 
     try:
@@ -2649,7 +2649,7 @@ def _load_enabled_toolsets() -> list[str] | None:
     except Exception:
         if fallback_notice is not None:
             print(
-                "[tui] no valid WAYNE_TUI_TOOLSETS entries and configured CLI toolsets could not be loaded; enabling all toolsets",
+                "[tui] no valid WORK4YOU_TUI_TOOLSETS entries and configured CLI toolsets could not be loaded; enabling all toolsets",
                 file=sys.stderr,
                 flush=True,
             )

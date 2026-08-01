@@ -122,7 +122,7 @@ def _install_plugin_debug_handler(force: bool = False) -> None:
     logger.propagate = True
     _DEBUG_HANDLER_INSTALLED = True
     logger.debug(
-        "WAYNE_PLUGINS_DEBUG=1 — verbose plugin discovery logging enabled"
+        "WORK4YOU_PLUGINS_DEBUG=1 — verbose plugin discovery logging enabled"
     )
 
 
@@ -1241,7 +1241,7 @@ class PluginManager:
         # no third-party code (hooks, tools, platforms) loads. Mark as
         # discovered so callers see a clean empty registry, not a retry loop.
         if env_var_enabled("WAYNE_SAFE_MODE"):
-            logger.info("WAYNE_SAFE_MODE=1 — plugin discovery skipped")
+            logger.info("WORK4YOU_SAFE_MODE=1 — plugin discovery skipped")
             self._discovered = True
             return
         if force:
@@ -1317,7 +1317,7 @@ class PluginManager:
             manifests.extend(project_manifests)
         else:
             logger.debug(
-                "Project plugins disabled (set WAYNE_ENABLE_PROJECT_PLUGINS=1 to enable)"
+                "Project plugins disabled (set WORK4YOU_ENABLE_PROJECT_PLUGINS=1 to enable)"
             )
 
         # 4. Pip / entry-point plugins

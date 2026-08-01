@@ -521,7 +521,14 @@ def _find_bash() -> str:
             or "/bin/sh"
         )
 
-    custom = os.environ.get("WAYNE_GIT_BASH_PATH")
+    # WORK4YOU_GIT_BASH_PATH is the documented (user-facing) name; the legacy
+    # WAYNE_GIT_BASH_PATH is still honoured because the pre-rebrand Windows
+    # installer wrote it as a User-scope env var.  The new name wins so a user
+    # following the error message can override a stale installer value.
+    custom = (
+        os.environ.get("WORK4YOU_GIT_BASH_PATH")
+        or os.environ.get("WAYNE_GIT_BASH_PATH")
+    )
     if custom and os.path.isfile(custom):
         return custom
 
@@ -561,9 +568,9 @@ def _find_bash() -> str:
         return found
 
     raise RuntimeError(
-        "Git Bash not found. Wayne Agent requires Git for Windows on Windows.\n"
+        "Git Bash not found. Work4You requires Git for Windows on Windows.\n"
         "Install it from: https://git-scm.com/download/win\n"
-        "Or set WAYNE_GIT_BASH_PATH to your bash.exe location."
+        "Or set WORK4YOU_GIT_BASH_PATH to your bash.exe location."
     )
 
 

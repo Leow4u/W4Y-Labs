@@ -20,6 +20,7 @@ import { useI18n } from "@/i18n";
 import { PluginSlot } from "@/plugins";
 import { cn } from "@/lib/utils";
 import { usePageHeader } from "@/contexts/usePageHeader";
+import { useHomePath, withHome } from "@/lib/home-path";
 
 /** Select value for built-in memory (`config` uses empty string). Never use `""` — UI Select maps empty value to an empty label. */
 const MEMORY_PROVIDER_BUILTIN = "__wayne_memory_builtin__";
@@ -40,6 +41,8 @@ export default function PluginsPage() {
   const { toast, showToast } = useToast();
   const { t } = useI18n();
   const { setAfterTitle } = usePageHeader();
+  // Hints name the plugins directory — resolve the real path, never spell it out.
+  const home = useHomePath();
 
   const loadHub = useCallback(() => {
     return api
@@ -284,7 +287,7 @@ export default function PluginsPage() {
             </p>
 
             <p className="text-xs tracking-[0.06em] text-text-tertiary">
-              {t.pluginsPage.removeHint}
+              {withHome(t.pluginsPage.removeHint, home)}
             </p>
           </CardContent>
         </Card>
@@ -394,6 +397,8 @@ function PluginRowCard(props: PluginRowCardProps) {
   const tabPath = dm?.tab && !dm.tab.hidden ? dm.tab.override ?? dm.tab.path : null;
 
   const busy = rowBusy === row.name;
+  // Same resolved home as the page above (cached after the first fetch).
+  const home = useHomePath();
   const [confirmRemove, setConfirmRemove] = useState(false);
 
   const badgeTone =
@@ -570,7 +575,7 @@ function PluginRowCard(props: PluginRowCardProps) {
             showToast(`${row.name} removed`, "success");
           });
         }}
-        title={t.pluginsPage.removeConfirm}
+        title={withHome(t.pluginsPage.removeConfirm, home)}
         description={`This will remove the "${row.name}" plugin from your agent.`}
         destructive
         confirmLabel={t.common.delete}

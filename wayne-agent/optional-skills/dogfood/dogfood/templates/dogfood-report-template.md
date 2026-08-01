@@ -3,7 +3,7 @@
 **Target:** {target_url}
 **Date:** {date}
 **Scope:** {scope_description}
-**Tester:** Wayne Agent (automated exploratory QA)
+**Tester:** Work4You (automated exploratory QA)
 
 ---
 

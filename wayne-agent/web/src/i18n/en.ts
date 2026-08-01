@@ -1105,8 +1105,8 @@ export const en: Translations = {
     providersHint:
       "Writes memory.provider (empty = built-in) and context.engine to config.yaml. Takes effect next session.",
     refreshDashboard: "Rescan dashboard extensions",
-    removeConfirm: "Remove this plugin from ~/.wayne/plugins/?",
-    removeHint: "Only user-installed plugins under ~/.wayne/plugins can be removed.",
+    removeConfirm: "Remove this plugin from {home}/plugins/?",
+    removeHint: "Only user-installed plugins under {home}/plugins can be removed.",
     rescanHeading: "SPA plugin registry",
     rescanHint: "Rescan after adding files on disk so the dashboard sidebar picks up new manifests.",
     runtimeHeading: "Gateway runtime (YAML plugins)",
@@ -1128,7 +1128,7 @@ export const en: Translations = {
     all: "All",
     categories: "Categories",
     filters: "Filters",
-    noSkills: "No skills found. Skills are loaded from ~/.wayne/skills/",
+    noSkills: "No skills found. Skills are loaded from {home}/skills/",
     noSkillsMatch: "No skills match your search or filter.",
     install: "Install",
     installed: "Installed",
@@ -1192,7 +1192,7 @@ export const en: Translations = {
     "polymarket": { name: "Prediction Markets", desc: "Query real-time odds and data from Polymarket prediction markets." },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "Filters",
     sections: "Sections",
     exportConfig: "Export config as JSON",

@@ -769,7 +769,7 @@ def _get_provider(stt_config: dict) -> str:
                 return "local"
             logger.warning(
                 "STT provider 'local' configured but unavailable "
-                "(install faster-whisper or set WAYNE_LOCAL_STT_COMMAND)"
+                "(install faster-whisper or set WORK4YOU_LOCAL_STT_COMMAND)"
             )
             return "none"
 
@@ -1443,7 +1443,7 @@ def _transcribe_xai(file_path: str, model_name: str) -> Dict[str, Any]:
         return {
             "success": False,
             "transcript": "",
-            "error": "No xAI credentials found. Configure xAI OAuth in `wayne model` or set XAI_API_KEY",
+            "error": "No xAI credentials found. Configure xAI OAuth in `work4you model` or set XAI_API_KEY",
         }
 
     stt_config = _load_stt_config()

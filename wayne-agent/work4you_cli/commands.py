@@ -21,6 +21,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from utils import is_truthy_value
+from work4you_constants import display_wayne_home
 
 logger = logging.getLogger(__name__)
 
@@ -214,7 +215,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True),
     CommandDef("reload-mcp", "Reload MCP servers from config", "Tools & Skills",
                aliases=("reload_mcp",)),
-    CommandDef("reload-skills", "Re-scan ~/.wayne/skills/ for newly installed or removed skills",
+    CommandDef("reload-skills", f"Re-scan {display_wayne_home()}/skills/ for newly installed or removed skills",
                "Tools & Skills", aliases=("reload_skills",)),
     CommandDef("browser", "Connect browser tools to your live Chromium-family browser via CDP", "Tools & Skills",
                cli_only=True, args_hint="[connect|disconnect|status]",

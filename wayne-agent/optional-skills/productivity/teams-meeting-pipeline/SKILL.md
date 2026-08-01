@@ -6,7 +6,7 @@ author: Wayne Agent + Teknium
 license: MIT
 prerequisites:
   env_vars: [MSGRAPH_TENANT_ID, MSGRAPH_CLIENT_ID, MSGRAPH_CLIENT_SECRET]
-  commands: [wayne]
+  commands: [work4you]
 metadata:
   wayne:
     tags: [Teams, Microsoft Graph, Meetings, Productivity, Operations]
@@ -39,7 +39,7 @@ Multilingual trigger examples (not exhaustive):
 
 ## Prerequisites
 
-Before using the pipeline, verify these are set in `${WAYNE_HOME:-~/.wayne}/.env`:
+Before using the pipeline, verify these are set in `${WAYNE_HOME:-~/.work4you}/.env`:
 
 ```bash
 MSGRAPH_TENANT_ID=...

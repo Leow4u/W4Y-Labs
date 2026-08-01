@@ -11,6 +11,8 @@ from __future__ import annotations
 import argparse
 from typing import Callable
 
+from work4you_constants import display_wayne_home
+
 from work4you_cli.subcommands._shared import add_accept_hooks_flag
 
 
@@ -79,7 +81,7 @@ def build_gateway_parser(
             "Inside the s6-overlay Docker image, normally `gateway run` is "
             "automatically redirected to the supervised s6 service (so the "
             "gateway gets auto-restart on crash, plus a supervised dashboard "
-            "if WAYNE_DASHBOARD is set). Pass --no-supervise to opt out and "
+            "if WORK4YOU_DASHBOARD is set). Pass --no-supervise to opt out and "
             "get the historical pre-s6 foreground behavior: the gateway is "
             "the container's main process and the container exits with the "
             "gateway's exit code. No effect outside an s6 container."
@@ -252,7 +254,7 @@ def build_gateway_parser(
             "Authenticates as your Nous Portal account (the connector derives the "
             "authoritative tenant from it), mints this gateway's per-gateway secret "
             "and per-tenant delivery key, and writes GATEWAY_RELAY_ID / "
-            "GATEWAY_RELAY_SECRET / GATEWAY_RELAY_DELIVERY_KEY into ~/.wayne/.env. "
+            f"GATEWAY_RELAY_SECRET / GATEWAY_RELAY_DELIVERY_KEY into {display_wayne_home()}/.env. "
             "Requires being logged in (wayne setup). Not available in managed installs."
         ),
     )
@@ -291,7 +293,7 @@ def build_gateway_parser(
             "Phase 5 §5.2 wake URL: a reachable URL the connector pokes "
             "(payload-free GET) to wake this gateway when buffered work arrives "
             "while it's idle/suspended, so it reconnects and drains. Persisted as "
-            "GATEWAY_RELAY_WAKE_URL in ~/.wayne/.env and forwarded at provision. "
+            f"GATEWAY_RELAY_WAKE_URL in {display_wayne_home()}/.env and forwarded at provision. "
             "Optional — without it the gateway still drains whenever it next "
             "reconnects on its own."
         ),
