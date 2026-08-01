@@ -159,6 +159,7 @@ def _arrange_startup_fallback(monkeypatch, tmp_path, running_pids):
     monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
     monkeypatch.setattr(gateway_windows, "get_task_name", lambda: "Wayne_Gateway_alice")
     monkeypatch.setattr(gateway_windows, "_write_task_script", lambda: script_path)
+    monkeypatch.setattr(gateway_windows, "_remove_legacy_windows_service_artifacts", lambda: None)
     monkeypatch.setattr(
         gateway_windows,
         "_install_scheduled_task",
@@ -394,6 +395,7 @@ def test_install_scheduled_task_success_start_now_uses_direct_spawn_not_task_run
     monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
     monkeypatch.setattr(gateway_windows, "get_task_name", lambda: "Wayne_Gateway_alice")
     monkeypatch.setattr(gateway_windows, "_write_task_script", lambda: script_path)
+    monkeypatch.setattr(gateway_windows, "_remove_legacy_windows_service_artifacts", lambda: None)
     monkeypatch.setattr(
         gateway_windows,
         "_install_scheduled_task",
@@ -424,6 +426,7 @@ def test_install_scheduled_task_success_does_not_auto_start(monkeypatch, tmp_pat
     monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
     monkeypatch.setattr(gateway_windows, "get_task_name", lambda: "Wayne_Gateway_alice")
     monkeypatch.setattr(gateway_windows, "_write_task_script", lambda: script_path)
+    monkeypatch.setattr(gateway_windows, "_remove_legacy_windows_service_artifacts", lambda: None)
     monkeypatch.setattr(
         gateway_windows,
         "_install_scheduled_task",
@@ -453,6 +456,7 @@ def test_install_access_denied_launches_elevated_install_before_startup_fallback
     monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
     monkeypatch.setattr(gateway_windows, "get_task_name", lambda: "Wayne_Gateway_alice")
     monkeypatch.setattr(gateway_windows, "_write_task_script", lambda: script_path)
+    monkeypatch.setattr(gateway_windows, "_remove_legacy_windows_service_artifacts", lambda: None)
     monkeypatch.setattr(
         gateway_windows,
         "_install_scheduled_task",
@@ -477,7 +481,7 @@ def test_install_access_denied_launches_elevated_install_before_startup_fallback
     out = capsys.readouterr().out
     assert "administrator approval" in out
     assert "UAC is Windows' admin approval prompt" in out
-    assert "Launched elevated Wayne gateway install prompt" in out
+    assert "Launched elevated Work4You gateway install prompt" in out
 
 
 def test_install_prompts_start_choices_before_uac(monkeypatch, tmp_path, capsys):
@@ -489,6 +493,7 @@ def test_install_prompts_start_choices_before_uac(monkeypatch, tmp_path, capsys)
     monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
     monkeypatch.setattr(gateway_windows, "get_task_name", lambda: "Wayne_Gateway_alice")
     monkeypatch.setattr(gateway_windows, "_write_task_script", lambda: script_path)
+    monkeypatch.setattr(gateway_windows, "_remove_legacy_windows_service_artifacts", lambda: None)
     monkeypatch.setattr(
         gateway_windows,
         "_install_scheduled_task",
@@ -594,6 +599,7 @@ def test_install_access_denied_declined_elevation_uses_startup_fallback(monkeypa
     monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
     monkeypatch.setattr(gateway_windows, "get_task_name", lambda: "Wayne_Gateway_alice")
     monkeypatch.setattr(gateway_windows, "_write_task_script", lambda: script_path)
+    monkeypatch.setattr(gateway_windows, "_remove_legacy_windows_service_artifacts", lambda: None)
     monkeypatch.setattr(
         gateway_windows,
         "_install_scheduled_task",
@@ -652,7 +658,72 @@ def test_uninstall_access_denied_prompts_before_elevating(monkeypatch, tmp_path,
     out = capsys.readouterr().out
     assert "uninstall needs administrator approval" in out
     assert "UAC is Windows' admin approval prompt" in out
-    assert "Launched elevated Wayne gateway uninstall prompt" in out
+    assert "Launched elevated Work4You gateway uninstall prompt" in out
+
+
+def test_remove_legacy_artifacts_deletes_task_and_derived_launchers(monkeypatch, tmp_path, capsys):
+    """Rebrand migration: the pre-rename Wayne_Gateway task and its derived
+    wrapper/startup launchers are removed when installing the new task."""
+    calls = []
+    home = tmp_path / "wayne-home"
+    (home / "gateway-service").mkdir(parents=True)
+    legacy_cmd = home / "gateway-service" / "Wayne_Gateway.cmd"
+    legacy_vbs = home / "gateway-service" / "Wayne_Gateway.vbs"
+    legacy_cmd.write_text("old", encoding="utf-8")
+    legacy_vbs.write_text("old", encoding="utf-8")
+    startup = tmp_path / "Startup"
+    startup.mkdir()
+    legacy_startup = startup / "Wayne_Gateway.vbs"
+    legacy_startup.write_text("old", encoding="utf-8")
+
+    import wayne_cli.config as wayne_config
+
+    monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
+    monkeypatch.setattr(gateway_windows, "_legacy_task_name", lambda: "Wayne_Gateway")
+    monkeypatch.setattr(gateway_windows, "_startup_dir", lambda: startup)
+    monkeypatch.setattr(wayne_config, "get_wayne_home", lambda: home)
+    monkeypatch.setattr(
+        gateway_windows,
+        "_exec_schtasks",
+        lambda args: calls.append(tuple(args)) or (0, "", ""),
+    )
+
+    gateway_windows._remove_legacy_windows_service_artifacts()
+
+    assert ("/Query", "/TN", "Wayne_Gateway") in calls
+    assert ("/Delete", "/F", "/TN", "Wayne_Gateway") in calls
+    assert not legacy_cmd.exists()
+    assert not legacy_vbs.exists()
+    assert not legacy_startup.exists()
+    out = capsys.readouterr().out
+    assert "Removed legacy Scheduled Task 'Wayne_Gateway'" in out
+
+
+def test_remove_legacy_artifacts_silent_when_task_absent(monkeypatch, tmp_path, capsys):
+    """No legacy task, no legacy files: migration is a silent no-op (no
+    /Delete call, no output) so every fresh install stays clean."""
+    calls = []
+    home = tmp_path / "wayne-home"
+    (home / "gateway-service").mkdir(parents=True)
+    startup = tmp_path / "Startup"
+    startup.mkdir()
+
+    import wayne_cli.config as wayne_config
+
+    monkeypatch.setattr(gateway_windows, "_assert_windows", lambda: None)
+    monkeypatch.setattr(gateway_windows, "_legacy_task_name", lambda: "Wayne_Gateway")
+    monkeypatch.setattr(gateway_windows, "_startup_dir", lambda: startup)
+    monkeypatch.setattr(wayne_config, "get_wayne_home", lambda: home)
+    monkeypatch.setattr(
+        gateway_windows,
+        "_exec_schtasks",
+        lambda args: calls.append(tuple(args)) or (1, "", "ERRO: tarefa inexistente."),
+    )
+
+    gateway_windows._remove_legacy_windows_service_artifacts()
+
+    assert calls == [("/Query", "/TN", "Wayne_Gateway")]
+    assert capsys.readouterr().out == ""
 
 
 def test_uninstall_access_denied_declined_keeps_task_and_cleans_files(monkeypatch, tmp_path, capsys):

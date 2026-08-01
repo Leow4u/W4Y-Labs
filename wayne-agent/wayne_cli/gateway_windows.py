@@ -55,7 +55,10 @@ _FALLBACK_PATTERNS = re.compile(
 )
 _ACCESS_DENIED_PATTERN = re.compile(r"(access is denied|acceso denegado)", re.IGNORECASE)
 
-_TASK_NAME_DEFAULT = "Wayne_Gateway"
+_TASK_NAME_DEFAULT = "Work4You_Gateway"
+# Pre-rebrand Scheduled Task base name — removed on install of the new task
+# (same profile suffix only; see _legacy_task_name / _remove_legacy_task).
+_LEGACY_TASK_NAME_DEFAULT = "Wayne_Gateway"
 _TASK_DESCRIPTION = "Work4You Gateway - Messaging Platform Integration"
 _TASK_LOGON_DELAY = "PT30S"
 _TASK_RESTART_INTERVAL = "PT1M"
@@ -285,8 +288,8 @@ def _launch_elevated_uninstall() -> bool:
 def get_task_name() -> str:
     """Scheduled Task name, scoped per profile.
 
-    Default profile: ``Wayne_Gateway``
-    Named profile X: ``Wayne_Gateway_<X>``
+    Default profile: ``Work4You_Gateway``
+    Named profile X: ``Work4You_Gateway_<X>``
     """
     _assert_windows()
     # Local import to avoid circular module initialization during wayne_cli boot.
@@ -296,6 +299,21 @@ def get_task_name() -> str:
     if not suffix:
         return _TASK_NAME_DEFAULT
     return f"{_TASK_NAME_DEFAULT}_{suffix}"
+
+
+def _legacy_task_name() -> str:
+    """Pre-rebrand Scheduled Task name for the SAME profile suffix.
+
+    ``Wayne_Gateway`` / ``Wayne_Gateway_<X>``. Enumerated per-install (never
+    a wildcard) so other profiles' tasks are never touched.
+    """
+    _assert_windows()
+    from wayne_cli.gateway import _profile_suffix
+
+    suffix = _profile_suffix()
+    if not suffix:
+        return _LEGACY_TASK_NAME_DEFAULT
+    return f"{_LEGACY_TASK_NAME_DEFAULT}_{suffix}"
 
 
 def _sanitize_filename(value: str) -> str:
@@ -684,6 +702,60 @@ def _install_scheduled_task(task_name: str, script_path: Path) -> tuple[bool, st
 
 
 
+def _remove_legacy_windows_service_artifacts() -> None:
+    """Migrate away the pre-rebrand ``Wayne_Gateway[_X]`` install artifacts.
+
+    Called when installing the new ``Work4You_Gateway[_X]`` task so old and
+    new never coexist (two ONLOGON tasks would race for the same bot token).
+    Removes, for the SAME profile suffix only:
+
+    * the legacy Scheduled Task (``schtasks /Delete /F``, silent when absent)
+    * the derived wrapper scripts in ``gateway-service/`` (``.cmd``/``.vbs``)
+    * the derived Startup-folder fallback launchers (``.vbs``/``.cmd``)
+
+    Best-effort: any failure is non-fatal — the new install proceeds and the
+    leftover is reported so the user can remove it manually.
+    """
+    legacy_task = _legacy_task_name()
+
+    # Query first: /Query returns 0 only when the task exists. This keeps
+    # the common case (no legacy task) silent AND avoids parsing localized
+    # schtasks error text ("cannot find" is English-only).
+    query_code, _q_out, _q_err = _exec_schtasks(["/Query", "/TN", legacy_task])
+    if query_code == 0:
+        code, out, err = _exec_schtasks(["/Delete", "/F", "/TN", legacy_task])
+        if code == 0:
+            print(f"✓ Removed legacy Scheduled Task {legacy_task!r}")
+        else:
+            detail = (err or out or "").strip()
+            # Access denied on locked-down boxes, etc. — surface, don't fail.
+            print(
+                f"⚠ Could not remove legacy Scheduled Task {legacy_task!r}: "
+                f"{detail.splitlines()[0] if detail else f'code {code}'}"
+            )
+
+    from wayne_cli.config import get_wayne_home
+
+    legacy_base = _sanitize_filename(legacy_task)
+    legacy_paths = [
+        Path(get_wayne_home()) / "gateway-service" / f"{legacy_base}.cmd",
+        Path(get_wayne_home()) / "gateway-service" / f"{legacy_base}.vbs",
+    ]
+    try:
+        startup = _startup_dir()
+        legacy_paths.extend([startup / f"{legacy_base}.vbs", startup / f"{legacy_base}.cmd"])
+    except RuntimeError:
+        pass  # Startup folder unresolvable — nothing to clean there.
+    for path in legacy_paths:
+        try:
+            path.unlink()
+            print(f"✓ Removed legacy launcher: {path}")
+        except FileNotFoundError:
+            pass
+        except OSError as e:
+            print(f"⚠ Could not remove legacy launcher {path}: {e}")
+
+
 def _install_startup_entry(script_path: Path) -> Path:
     """Write the Startup-folder fallback launcher. Returns its path."""
     entry = get_startup_entry_path()
@@ -1053,6 +1125,10 @@ def install(
 
     task_name = get_task_name()
     script_path = _write_task_script()
+
+    # Migrate the pre-rebrand Wayne_Gateway[_X] task + derived launchers
+    # (same profile suffix only) before installing the new task name.
+    _remove_legacy_windows_service_artifacts()
 
     # On machines where the current user's scheduled-task ACL is locked down,
     # schtasks /Create or /Change can sit for the timeout before returning

@@ -1142,8 +1142,10 @@ kanban task.
   assigned profiles. Runs **inside the gateway** by default via
   `kanban.dispatch_in_gateway: true`.
 - **Plugin assets:** `plugins/kanban/dashboard/` (web UI) +
-  `plugins/kanban/systemd/` (`wayne-kanban-dispatcher.service` for
-  standalone dispatcher deployment).
+  `plugins/kanban/systemd/` (`work4you-kanban-dispatcher.service` for
+  standalone dispatcher deployment; pre-rebrand installs used
+  `wayne-kanban-dispatcher.service` — disable+remove it before enabling
+  the new unit, see the unit header).
 
 Isolation model:
 - **Board** is the hard boundary — workers are spawned with

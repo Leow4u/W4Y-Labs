@@ -1,8 +1,9 @@
 """Gateway lifecycle guard for cron job creation (#30719).
 
 An agent running inside a gateway can schedule a cron job that calls
-``wayne gateway restart`` (or ``launchctl kickstart ai.wayne.gateway``
-or ``systemctl restart wayne-gateway``).  When the cron fires, the
+``work4you gateway restart`` (or ``launchctl kickstart
+ai.work4you.gateway`` or ``systemctl restart work4you-gateway`` — legacy
+``wayne`` spellings included).  When the cron fires, the
 gateway dies, the supervisor (launchd KeepAlive / systemd Restart=)
 revives it, auto-resume picks up the offending session, and the resumed
 turn re-runs the same logic — a SIGTERM-respawn loop every ~10 seconds
@@ -15,8 +16,9 @@ direct shell-level gateway-lifecycle command.  It is enforced at
 tool (which calls ``create_job`` directly, bypassing the CLI layer).
 
 The pattern is intentionally command-shaped: it anchors on a concrete
-command identifier (``wayne gateway``, ``launchctl ... wayne-gateway``,
-``systemctl ... wayne-gateway``, ``pkill`` against the gateway) so it
+command identifier (``work4you|wayne gateway``, ``launchctl ...
+work4you|wayne-gateway``, ``systemctl ... work4you|wayne-gateway``,
+``pkill`` against the gateway) so it
 cannot fire on prose.  A cron ``prompt`` is fed to a future LLM, not a
 shell, so an over-broad substring match on English ("Kong API gateway
 autoscaling and restart behavior") would produce a high false-positive
@@ -45,24 +47,27 @@ class GatewayLifecycleBlocked(ValueError):
 # Shell-level command shapes that target the gateway lifecycle. Each branch
 # is anchored on a concrete command identifier so a match can only fire on
 # actual shell-command-shaped strings, not on prose.
+# Both brand generations are matched (work4you is current; wayne commands,
+# units, and launchd labels still exist during the rebrand upgrade window).
 _GATEWAY_LIFECYCLE_PATTERN = re.compile(
     r"(?i)"
-    # Branch A: `wayne gateway restart|stop` — the canonical foot-gun.
-    # `start` is intentionally excluded: starting a gateway from inside a
-    # gateway is benign (a no-op or "already running" error), and a
+    # Branch A: `work4you|wayne gateway restart|stop` — the canonical
+    # foot-gun. `start` is intentionally excluded: starting a gateway from
+    # inside a gateway is benign (a no-op or "already running" error), and a
     # legitimate cron job might start a sibling profile's gateway.
-    r"(?:wayne\s+gateway\s+(?:restart|stop))"
-    # Branch B: launchctl ops on a wayne-gateway label. macOS launchd
-    # labels look like `ai.wayne.gateway` / `wayne-gateway`. Requiring the
-    # gateway identifier prevents blocking unrelated wayne services (e.g.
-    # `launchctl unload ai.wayne.update-checker.plist`).
-    r"|(?:launchctl\s+(?:kickstart|unload|load|stop|restart)\b[^\n]*\bwayne[.\-]?gateway)"
-    # Branch C: systemctl ops on a wayne-gateway unit.
-    r"|(?:systemctl\s+(?:-\S+\s+)*(?:restart|stop|start)\b[^\n]*\bwayne[.\-]?gateway)"
-    # Branch D: pkill / kill targeting the wayne gateway process. Both
-    # token orders because real reproductions show both.
-    r"|(?:p?kill\b[^\n]*\bwayne\b[^\n]*\bgateway)"
-    r"|(?:p?kill\b[^\n]*\bgateway\b[^\n]*\bwayne)"
+    r"(?:(?:work4you|wayne)\s+gateway\s+(?:restart|stop))"
+    # Branch B: launchctl ops on a gateway label. macOS launchd labels look
+    # like `ai.work4you.gateway` / `work4you-gateway` (legacy: `ai.wayne.
+    # gateway` / `wayne-gateway`). Requiring the gateway identifier prevents
+    # blocking unrelated services (e.g. `launchctl unload
+    # ai.wayne.update-checker.plist`).
+    r"|(?:launchctl\s+(?:kickstart|unload|load|stop|restart)\b[^\n]*\b(?:work4you|wayne)[.\-]?gateway)"
+    # Branch C: systemctl ops on a work4you-gateway / wayne-gateway unit.
+    r"|(?:systemctl\s+(?:-\S+\s+)*(?:restart|stop|start)\b[^\n]*\b(?:work4you|wayne)[.\-]?gateway)"
+    # Branch D: pkill / kill targeting the gateway process. Both token
+    # orders because real reproductions show both.
+    r"|(?:p?kill\b[^\n]*\b(?:work4you|wayne)\b[^\n]*\bgateway)"
+    r"|(?:p?kill\b[^\n]*\bgateway\b[^\n]*\b(?:work4you|wayne)\b)"
 )
 
 
@@ -136,6 +141,6 @@ def check_gateway_lifecycle(
             "Blocked: cron job contains a gateway lifecycle command "
             "(restart/stop/kill). This is blocked to prevent agent-driven "
             "SIGTERM-respawn loops under launchd/systemd supervision "
-            "(#30719). Run `wayne gateway restart` from a shell outside "
+            "(#30719). Run `work4you gateway restart` from a shell outside "
             "the running gateway instead."
         )

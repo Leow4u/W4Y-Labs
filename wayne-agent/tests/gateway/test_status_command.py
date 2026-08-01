@@ -427,7 +427,7 @@ async def test_first_run_slack_home_channel_onboarding_uses_parent_command(monke
     assert result == "ok"
     runner.adapters[Platform.SLACK].send.assert_awaited_once()
     onboarding = runner.adapters[Platform.SLACK].send.await_args.args[1]
-    assert "/wayne sethome" in onboarding
+    assert "/work4you sethome" in onboarding
     assert "Type /sethome" not in onboarding
 
 

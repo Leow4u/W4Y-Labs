@@ -6068,13 +6068,13 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
 
                 service_name = get_service_name()
             except Exception:
-                service_name = "wayne-gateway"
+                service_name = "work4you-gateway"
 
             current_pid = os.getpid()
 
             # Detect whether the gateway unit is registered as a system or
             # user service.  Daemon-style deployments are typically system
-            # units (e.g. /etc/systemd/system/wayne-gateway.service), while
+            # units (e.g. /etc/systemd/system/work4you-gateway.service), while
             # `wayne setup` under a non-root account may register a user
             # unit.  Hard-coding ``--user`` broke system-unit deployments:
             # systemctl returned an empty MainPID, the PID-equality check
@@ -10958,11 +10958,12 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
             platform_name = source.platform.value
             env_key = _home_target_env_var(platform_name)
             if not os.getenv(env_key):
-                # Slack dispatches all Wayne commands through a single
-                # parent slash command `/wayne`; bare `/sethome` is not
-                # registered and would fail with "app did not respond".
+                # Slack routes low-frequency commands through the parent
+                # slash command `/work4you` (legacy spelling `/wayne` is
+                # also accepted); bare `/sethome` is not registered and
+                # would fail with "app did not respond".
                 sethome_cmd = (
-                    "/wayne sethome"
+                    "/work4you sethome"
                     if source.platform == Platform.SLACK
                     else "/sethome"
                 )

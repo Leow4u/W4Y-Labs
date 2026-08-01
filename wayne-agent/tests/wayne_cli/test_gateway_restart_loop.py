@@ -29,8 +29,10 @@ class TestGatewayLifecyclePattern:
         "wayne gateway restart",
         "wayne gateway stop",
         "wayne  gateway  restart",         # double spaces
-        "Hermez Gateway Restart".lower().replace("z", "s"),  # case handled
+        "work4you gateway restart",        # current brand spelling
+        "work4you gateway stop",
         "WAYNE GATEWAY RESTART",           # uppercase
+        "WORK4YOU GATEWAY RESTART",        # uppercase, current brand
     ])
     def test_wayne_gateway_commands(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
@@ -39,9 +41,13 @@ class TestGatewayLifecyclePattern:
         "launchctl kickstart gui/501/ai.wayne.gateway",
         "launchctl unload ~/Library/LaunchAgents/ai.wayne.gateway.plist",
         "launchctl stop ai.wayne.gateway",
+        "launchctl kickstart gui/501/ai.work4you.gateway",
+        "launchctl stop ai.work4you.gateway",
         "systemctl restart wayne-gateway",
         "systemctl stop wayne-gateway.service",
         "systemctl start wayne-gateway",
+        "systemctl restart work4you-gateway",
+        "systemctl stop work4you-gateway.service",
     ])
     def test_service_manager_commands(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
@@ -50,6 +56,8 @@ class TestGatewayLifecyclePattern:
         "kill wayne gateway process",
         "pkill -f wayne.*gateway",
         "pkill -f gateway.*wayne",          # inverse token order
+        "pkill -f work4you.*gateway",
+        "pkill -f gateway.*work4you",
     ])
     def test_kill_commands(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"

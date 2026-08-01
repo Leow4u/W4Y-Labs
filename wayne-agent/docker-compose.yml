@@ -1,11 +1,16 @@
 #
-# docker-compose.yml for Wayne Agent
+# docker-compose.yml for Work4You
 #
 # Usage:
 #   WAYNE_UID=$(id -u) WAYNE_GID=$(id -g) docker compose up -d
 #
+# A shell inside the running container:
+#   docker exec -it work4you bash
+#
 # Set WAYNE_UID / WAYNE_GID to the host user that owns ~/.wayne so
 # files created inside the container stay readable/writable on the host.
+# (WAYNE_UID/WAYNE_GID keep their names for now — the environment-variable
+# rename ships in a later migration phase with its own dual-read bridge.)
 # The s6-overlay stage2 hook remaps the internal `wayne` user to these
 # values via usermod/groupmod; each supervised service then drops to that
 # user via `s6-setuidgid`.
@@ -29,8 +34,8 @@
 services:
   gateway:
     build: .
-    image: wayne-agent
-    container_name: wayne
+    image: work4you-agent
+    container_name: work4you
     restart: unless-stopped
     network_mode: host
     volumes:
@@ -61,8 +66,8 @@ services:
     command: ["gateway", "run"]
 
   dashboard:
-    image: wayne-agent
-    container_name: wayne-dashboard
+    image: work4you-agent
+    container_name: work4you-dashboard
     restart: unless-stopped
     network_mode: host
     depends_on:

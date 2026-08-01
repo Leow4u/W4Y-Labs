@@ -652,13 +652,18 @@ def _live_system_guard(request, monkeypatch):
         monkeypatch.setattr(_os, "killpg", _guarded_killpg)
 
     # ── Subprocess command-string inspection (whole-line) ──────────
+    # Both brand generations: work4you-gateway is the current service name,
+    # wayne-gateway/wayne.service still exist on developer machines during
+    # the rebrand window. Keep both blocked.
     _WAYNE_TOKENS = (
+        "work4you-gateway",
         "wayne-gateway",
         "wayne.service",
         "wayne_cli.main gateway",
         "wayne_cli/main.py gateway",
         "gateway/run.py",
         "wayne gateway",
+        "work4you gateway",
     )
     _MUTATING_VERBS = (
         "restart", "start", "stop", "kill", "reload",
@@ -717,6 +722,7 @@ def _live_system_guard(request, monkeypatch):
                 # whose cmdline contains "python -m wayne_cli.main".
                 if (
                     "wayne" in low
+                    or "work4you" in low
                     or "gateway" in low
                     or ("python" in low and "-f" in tokens)
                 ):
