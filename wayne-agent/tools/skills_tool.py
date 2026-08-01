@@ -69,7 +69,7 @@ Usage:
 import json
 import logging
 
-from wayne_constants import get_wayne_home, display_wayne_home
+from work4you_constants import get_wayne_home, display_wayne_home
 import os
 import re
 from enum import Enum
@@ -77,7 +77,7 @@ from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import Dict, Any, List, Optional, Set, Tuple
 
 from tools.registry import registry, tool_error
-from wayne_cli.config import cfg_get
+from work4you_cli.config import cfg_get
 from utils import env_var_enabled
 from agent.skill_utils import (
     EXCLUDED_SKILL_DIRS as _EXCLUDED_SKILL_DIRS,
@@ -585,7 +585,7 @@ def _is_skill_disabled(name: str, platform: str = None) -> bool:
     3. ``WAYNE_SESSION_PLATFORM`` from gateway session context
     """
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         config = load_config()
         skills_cfg = config.get("skills", {})
         resolved_platform = platform or os.getenv("WAYNE_PLATFORM") or _get_session_platform()
@@ -781,7 +781,7 @@ def _serve_plugin_skill(
     session_id: str | None = None,
 ) -> str:
     """Read a plugin-provided skill, apply guards, return JSON."""
-    from wayne_cli.plugins import _get_disabled_plugins, get_plugin_manager
+    from work4you_cli.plugins import _get_disabled_plugins, get_plugin_manager
 
     if namespace in _get_disabled_plugins():
         return json.dumps(
@@ -919,7 +919,7 @@ def skill_view(
         # Bare names fall through to the existing flat-tree scan below.
         if ":" in name:
             from agent.skill_utils import is_valid_namespace, parse_qualified_name
-            from wayne_cli.plugins import discover_plugins, get_plugin_manager
+            from work4you_cli.plugins import discover_plugins, get_plugin_manager
 
             namespace, bare = parse_qualified_name(name)
             if not is_valid_namespace(namespace):

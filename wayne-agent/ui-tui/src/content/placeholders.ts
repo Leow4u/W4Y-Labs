@@ -16,7 +16,7 @@ export const PLACEHOLDERS = [
 // Inside the browser dashboard (WAYNE_TUI_DASHBOARD=1) the composer drops the
 // rotating "Try …" tips for a single calm "type a message" line, localized to
 // the tenant language. The language is bridged from the dashboard PTY launcher
-// via WAYNE_TUI_LANG (see wayne_cli/web_server._resolve_chat_argv); the TUI is
+// via WAYNE_TUI_LANG (see work4you_cli/web_server._resolve_chat_argv); the TUI is
 // Node and can't call our Python i18n. Falls back to English.
 // Curadoria do Chat (2026-07). Standalone terminal keeps PLACEHOLDERS above.
 

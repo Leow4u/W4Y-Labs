@@ -364,7 +364,7 @@ class TestBuildSessionContextPrompt:
         )
         ctx = build_session_context(source, config)
 
-        with patch("wayne_constants.display_wayne_home", return_value="~/.wayne/profiles/coder"):
+        with patch("work4you_constants.display_wayne_home", return_value="~/.wayne/profiles/coder"):
             prompt = build_session_context_prompt(ctx)
 
         assert "~/.wayne/profiles/coder/cron/output/" in prompt
@@ -595,8 +595,8 @@ class TestSessionStoreRewriteTranscript:
 
     @pytest.fixture()
     def store(self, tmp_path, monkeypatch):
-        import wayne_state
-        monkeypatch.setattr(wayne_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        import work4you_state
+        monkeypatch.setattr(work4you_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         config = GatewayConfig()
         s = SessionStore(sessions_dir=tmp_path, config=config)
         return s
@@ -639,16 +639,16 @@ class TestLoadTranscriptDBOnly:
     """After spec 002, load_transcript reads only from state.db."""
 
     def test_db_only_returns_empty_for_nonexistent(self, tmp_path, monkeypatch):
-        import wayne_state
-        monkeypatch.setattr(wayne_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        import work4you_state
+        monkeypatch.setattr(work4you_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         config = GatewayConfig()
         store = SessionStore(sessions_dir=tmp_path, config=config)
         result = store.load_transcript("nonexistent")
         assert result == []
 
     def test_db_only_returns_messages(self, tmp_path, monkeypatch):
-        import wayne_state
-        monkeypatch.setattr(wayne_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+        import work4you_state
+        monkeypatch.setattr(work4you_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
         config = GatewayConfig()
         store = SessionStore(sessions_dir=tmp_path, config=config)
         sid = "db_only_session"
@@ -666,7 +666,7 @@ class TestSessionStoreSwitchSession:
     """Regression coverage for gateway /resume session switching semantics."""
 
     def test_switch_session_reopens_target_session_in_db(self, tmp_path):
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
 
         config = GatewayConfig()
         with patch("gateway.session.SessionStore._ensure_loaded"):
@@ -1408,7 +1408,7 @@ class TestRewriteTranscriptPreservesReasoning:
     """rewrite_transcript must not drop reasoning fields from SQLite."""
 
     def test_reasoning_survives_rewrite(self, tmp_path):
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
 
         db = SessionDB(db_path=tmp_path / "test.db")
         session_id = "reasoning-test"
@@ -1450,7 +1450,7 @@ class TestRewriteTranscriptPreservesReasoning:
         assert after[0].get("codex_reasoning_items") == [{"id": "r1", "type": "reasoning"}]
 
     def test_db_rewrite_is_atomic_on_insert_failure(self, tmp_path, monkeypatch):
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
 
         db = SessionDB(db_path=tmp_path / "test.db")
         session_id = "atomic-rewrite-test"

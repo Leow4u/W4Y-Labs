@@ -1,4 +1,4 @@
-import type { RunExternalProcess } from '@wayne/ink'
+import type { RunExternalProcess } from '@work4you/ink'
 
 import type { SetupStatusResponse } from '../gatewayTypes.js'
 import type { LaunchResult } from '../lib/externalCli.js'

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 try:
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 except ImportError:
     import os as _os
     def get_wayne_home() -> Path:  # type: ignore[misc]
@@ -585,7 +585,7 @@ def scan_sessions(
     at the end.
     """
     try:
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
     except Exception as exc:
         return {"sessions": [], "aggregate": {}, "error": f"Could not import SessionDB: {exc}", "scan_meta": {"mode": "failed", "sessions_total": 0, "sessions_rescanned": 0, "sessions_reused": 0}}
 

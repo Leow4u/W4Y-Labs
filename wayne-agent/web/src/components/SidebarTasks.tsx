@@ -299,7 +299,7 @@ export function SidebarTasks({
   const [editingProject, setEditingProject] = useState<string | null>(null);
 
   // ── Projects = first-class ROWS that own folder paths (the Hermes model,
-  // wayne_cli/projects_db). A cloud project's folder lives under projects/; a
+  // work4you_cli/projects_db). A cloud project's folder lives under projects/; a
   // Local (desktop) project's folder lives on the user's machine. Same object,
   // one list, one history — the folder decides where the agent runs, so there
   // is nothing else to pick.
@@ -970,7 +970,7 @@ export function SidebarTasks({
   // ── Grouping by project — the Hermes rule, verbatim: a session belongs to a
   // project when its cwd IS one of the project's folders or sits under it, and
   // the DEEPEST matching folder wins (nested projects resolve to the innermost).
-  // Ported from wayne_cli/projects_db.project_for_path + project_tree._FolderIndex.
+  // Ported from work4you_cli/projects_db.project_for_path + project_tree._FolderIndex.
   //
   // This is deliberately blind to WHERE the folder lives. `/opt/data/projects/x`
   // (cloud) and `C:\DEV\Dute` (the user's machine) group identically, because a

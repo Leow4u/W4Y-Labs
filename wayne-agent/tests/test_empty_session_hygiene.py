@@ -9,7 +9,7 @@ no messages, no title, and no child sessions.
 
 import pytest
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 @pytest.fixture()

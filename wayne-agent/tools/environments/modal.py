@@ -14,7 +14,7 @@ import threading
 from pathlib import Path
 from typing import Any, Optional
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from tools.environments.base import (
     BaseEnvironment,
     _ThreadedProcessHandle,

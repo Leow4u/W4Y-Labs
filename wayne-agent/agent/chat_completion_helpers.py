@@ -25,8 +25,8 @@ import uuid
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
-from wayne_cli.timeouts import get_provider_request_timeout, get_provider_stale_timeout
-from wayne_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
+from work4you_cli.timeouts import get_provider_request_timeout, get_provider_stale_timeout
+from work4you_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
 from agent.error_classifier import FailoverReason
 from agent.gemini_native_adapter import is_native_gemini_base_url
 from agent.model_metadata import is_local_endpoint
@@ -1154,7 +1154,7 @@ def _fallback_entry_unavailable_without_network(agent, fb: dict) -> Optional[str
     if fb_provider != "nous":
         return None
     try:
-        from wayne_cli.auth import get_provider_auth_state
+        from work4you_cli.auth import get_provider_auth_state
 
         state = get_provider_auth_state("nous") or {}
     except Exception as exc:
@@ -1271,7 +1271,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         fb_api_key_hint = (fb.get("api_key") or "").strip() or None
         if not fb_api_key_hint:
             # key_env and api_key_env are both documented aliases (see
-            # _normalize_custom_provider_entry in wayne_cli/config.py).
+            # _normalize_custom_provider_entry in work4you_cli/config.py).
             fb_key_env = (fb.get("key_env") or fb.get("api_key_env") or "").strip()
             if fb_key_env:
                 fb_api_key_hint = os.getenv(fb_key_env, "").strip() or None
@@ -1291,7 +1291,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
             unavailable.add(fb_key)
             return agent._try_activate_fallback(reason)  # try next in chain
         try:
-            from wayne_cli.model_normalize import normalize_model_for_provider
+            from work4you_cli.model_normalize import normalize_model_for_provider
 
             fb_model = normalize_model_for_provider(fb_model, fb_provider)
         except Exception as _norm_err:

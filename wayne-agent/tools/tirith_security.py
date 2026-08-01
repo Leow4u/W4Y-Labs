@@ -34,7 +34,7 @@ import threading
 import time
 import urllib.request
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ def _load_security_config() -> dict:
         "tirith_fail_open": True,
     }
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         cfg = load_config().get("security", {}) or {}
     except Exception:
         cfg = {}

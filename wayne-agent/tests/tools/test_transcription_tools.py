@@ -753,7 +753,7 @@ class TestLoadSttConfig:
 
     def test_real_load_returns_dict(self):
         """_load_stt_config should always return a dict, even on import error."""
-        with patch.dict("sys.modules", {"wayne_cli": None, "wayne_cli.config": None}):
+        with patch.dict("sys.modules", {"work4you_cli": None, "work4you_cli.config": None}):
             from tools.transcription_tools import _load_stt_config
             result = _load_stt_config()
         assert isinstance(result, dict)

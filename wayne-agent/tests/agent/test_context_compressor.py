@@ -10,7 +10,7 @@ from agent.context_compressor import (
     SUMMARY_PREFIX,
     COMPRESSED_SUMMARY_METADATA_KEY,
 )
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 @pytest.fixture()

@@ -20,13 +20,13 @@ import pytest
 
 @pytest.fixture
 def fresh_constants(monkeypatch, tmp_path):
-    """Import wayne_constants fresh and reset the one-shot warn flag."""
+    """Import work4you_constants fresh and reset the one-shot warn flag."""
     import importlib
-    import wayne_constants
-    importlib.reload(wayne_constants)
+    import work4you_constants
+    importlib.reload(work4you_constants)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.delenv("WAYNE_HOME", raising=False)
-    return wayne_constants
+    return work4you_constants
 
 
 class TestGetWayneHomeProfileWarning:

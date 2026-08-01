@@ -7,9 +7,9 @@
  * the top-level `await Promise.all([...])` in src/entry.tsx — the user
  * sees only 141 bytes of ANSI reset sequences and a blank screen forever.
  *
- * Root cause: re-exporting `ink-text-input` from `@wayne/ink`'s
+ * Root cause: re-exporting `ink-text-input` from `@work4you/ink`'s
  * entry-exports drags the upstream `ink` package into the bundle. That
- * `ink` graph and our in-tree `@wayne/ink` graph reference each other
+ * `ink` graph and our in-tree `@work4you/ink` graph reference each other
  * via React/`ink-text-input`, producing the circular async cycle that
  * `__esm` cannot resolve.
  *
@@ -84,14 +84,14 @@ describe('TUI bundle (issue #31227)', () => {
 
   it('does not bundle the upstream ink package or ink-text-input', () => {
     // Pulling either of these in re-creates the circular async chain
-    // that #31227 was about. The in-tree fork at @wayne/ink replaces
+    // that #31227 was about. The in-tree fork at @work4you/ink replaces
     // all of `ink`; nothing in ui-tui imports `TextInput` from
-    // `@wayne/ink` so the re-export is unused dead weight.
+    // `@work4you/ink` so the re-export is unused dead weight.
     expect(bundleSrc.includes('node_modules/ink/build/index.js')).toBe(false)
     expect(bundleSrc.includes('node_modules/ink-text-input/build/index.js')).toBe(false)
   })
 
-  it('has the @wayne/ink entry-exports module compiled to sync init', () => {
+  it('has the @work4you/ink entry-exports module compiled to sync init', () => {
     // Sanity check that the alias swap to packages/wayne-ink/src/entry-exports.ts
     // is still active and producing the expected synchronous init shape.
     expect(bundleSrc).toMatch(/var init_entry_exports = __esm\(\{\s*"packages\/wayne-ink\/src\/entry-exports\.ts"\(\)/)

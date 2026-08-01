@@ -39,7 +39,7 @@ def _make_event(text):
 
 def _fake_switch_result():
     """Build a successful ModelSwitchResult that bypasses real provider resolution."""
-    from wayne_cli.model_switch import ModelSwitchResult
+    from work4you_cli.model_switch import ModelSwitchResult
 
     return ModelSwitchResult(
         success=True,
@@ -69,12 +69,12 @@ def _setup_isolated_home(tmp_path, monkeypatch, model_yaml_value):
     monkeypatch.setattr(gateway_run, "_wayne_home", wayne_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "wayne_cli.model_switch.switch_model",
+        "work4you_cli.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
     # save_config writes to ``get_wayne_home() / config.yaml`` — point it here.
-    monkeypatch.setattr("wayne_constants.get_wayne_home", lambda: wayne_home)
-    monkeypatch.setattr("wayne_cli.config.get_wayne_home", lambda: wayne_home)
+    monkeypatch.setattr("work4you_constants.get_wayne_home", lambda: wayne_home)
+    monkeypatch.setattr("work4you_cli.config.get_wayne_home", lambda: wayne_home)
     return cfg_path
 
 
@@ -120,11 +120,11 @@ async def test_model_global_persists_when_config_has_missing_model(tmp_path, mon
     monkeypatch.setattr(gateway_run, "_wayne_home", wayne_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "wayne_cli.model_switch.switch_model",
+        "work4you_cli.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
-    monkeypatch.setattr("wayne_constants.get_wayne_home", lambda: wayne_home)
-    monkeypatch.setattr("wayne_cli.config.get_wayne_home", lambda: wayne_home)
+    monkeypatch.setattr("work4you_constants.get_wayne_home", lambda: wayne_home)
+    monkeypatch.setattr("work4you_cli.config.get_wayne_home", lambda: wayne_home)
 
     result = await _make_runner()._handle_model_command(
         _make_event("/model gpt-5.5 --global")

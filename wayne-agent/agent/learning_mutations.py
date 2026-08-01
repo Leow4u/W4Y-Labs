@@ -28,7 +28,7 @@ def parse_node_kind(node_id: str) -> str:
 
 
 def _memories_dir() -> Path:
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     return get_wayne_home() / "memories"
 

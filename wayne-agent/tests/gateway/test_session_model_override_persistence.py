@@ -53,9 +53,9 @@ def store_factory(tmp_path, monkeypatch):
     def _raise():
         raise RuntimeError("SQLite disabled in test")
 
-    import wayne_state
+    import work4you_state
 
-    monkeypatch.setattr(wayne_state, "SessionDB", _raise)
+    monkeypatch.setattr(work4you_state, "SessionDB", _raise)
 
     def _make() -> SessionStore:
         store = SessionStore(sessions_dir=tmp_path, config=GatewayConfig())

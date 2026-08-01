@@ -71,7 +71,7 @@ async def _send_discord(
 def _discord_entry():
     """Return the live Discord PlatformEntry, importing lazily so plugin
     discovery is forced exactly once and patches survive across tests."""
-    from wayne_cli.plugins import discover_plugins
+    from work4you_cli.plugins import discover_plugins
     from gateway.platform_registry import platform_registry
     discover_plugins()
     return platform_registry.get("discord")
@@ -118,7 +118,7 @@ class _patch_discord_sender:
 def _slack_entry():
     """Return the live Slack PlatformEntry, importing lazily so plugin
     discovery is forced exactly once and patches survive across tests."""
-    from wayne_cli.plugins import discover_plugins
+    from work4you_cli.plugins import discover_plugins
     from gateway.platform_registry import platform_registry
     discover_plugins()
     return platform_registry.get("slack")
@@ -887,7 +887,7 @@ class TestSendToPlatformChunking:
         padlock. All Matrix sends now route through _send_matrix_via_adapter,
         which encrypts via the mautrix adapter (live gateway session when
         available, encryption-aware ephemeral adapter otherwise)."""
-        from wayne_cli.plugins import discover_plugins
+        from work4you_cli.plugins import discover_plugins
         from gateway.platform_registry import platform_registry
         discover_plugins()
         helper = AsyncMock(return_value={"success": True, "platform": "matrix", "chat_id": "!room:ex.com", "message_id": "$txt"})
@@ -1113,7 +1113,7 @@ class TestSendToPlatformWhatsapp:
         """WhatsApp delivery routes through the plugin's registry
         standalone_sender_fn (was tools.send_message_tool._send_whatsapp
         before the #41112 plugin migration)."""
-        from wayne_cli.plugins import discover_plugins
+        from work4you_cli.plugins import discover_plugins
         from gateway.platform_registry import platform_registry
         discover_plugins()
         chat_id = "test-user@lid"

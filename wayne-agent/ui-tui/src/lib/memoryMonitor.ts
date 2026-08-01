@@ -53,7 +53,7 @@ function resolveThresholds(criticalBytes?: number, highBytes?: number) {
   return { critical, high }
 }
 
-// Deferred @wayne/ink import: loading `@wayne/ink` at module top-level
+// Deferred @work4you/ink import: loading `@work4you/ink` at module top-level
 // pulls the full ~414KB Ink bundle (React, renderer, components, hooks) onto
 // the critical path before the Python gateway can even be spawned. That
 // serialised roughly 150ms of Node work in front of gw.start() on every
@@ -73,7 +73,7 @@ async function _ensureEvictInkCaches(): Promise<(level: 'all' | 'half') => unkno
     return _evictInkCaches
   }
 
-  _evictInkCachesPromise ??= import('@wayne/ink')
+  _evictInkCachesPromise ??= import('@work4you/ink')
     .then(mod => {
       _evictInkCaches = mod.evictInkCaches as (level: 'all' | 'half') => unknown
 
@@ -157,7 +157,7 @@ export function startMemoryMonitor({
 
     // Prune Ink content caches before dump/exit — half on 'high' (recoverable),
     // full on 'critical' (post-dump RSS reduction, keeps user running).
-    // Deferred import keeps `@wayne/ink` off the cold-start critical path;
+    // Deferred import keeps `@work4you/ink` off the cold-start critical path;
     // by the time a tick fires 10s after launch the app has already loaded
     // the same module, so this resolves instantly from the ESM cache.
     try {

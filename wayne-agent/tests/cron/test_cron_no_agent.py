@@ -29,8 +29,8 @@ def wayne_env(tmp_path, monkeypatch):
 
     # Reload modules that cache get_wayne_home() at import time.
     import importlib
-    import wayne_constants
-    importlib.reload(wayne_constants)
+    import work4you_constants
+    importlib.reload(work4you_constants)
     import cron.jobs
     importlib.reload(cron.jobs)
     import cron.scheduler

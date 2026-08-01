@@ -1,10 +1,10 @@
 {
-  "name": "wayne-tui",
+  "name": "work4you-tui",
   "version": "0.0.1",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run build --prefix packages/wayne-ink && tsx --watch src/entry.tsx",
+    "dev": "npm run build --prefix packages/work4you-ink && tsx --watch src/entry.tsx",
     "start": "tsx src/entry.tsx",
     "build": "node scripts/build.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.json",
@@ -16,7 +16,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@wayne/ink": "file:./packages/wayne-ink",
+    "@work4you/ink": "file:./packages/work4you-ink",
     "@nanostores/react": "^1.1.0",
     "ink": "^6.8.0",
     "ink-text-input": "^6.0.0",

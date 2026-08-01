@@ -306,6 +306,6 @@ class TestProfileBuildSeenFlag:
 
 class TestProfileBuildConfigDefault:
     def test_default_config_carries_ask(self):
-        from wayne_cli.config import DEFAULT_CONFIG
+        from work4you_cli.config import DEFAULT_CONFIG
 
         assert DEFAULT_CONFIG["onboarding"]["profile_build"] == "ask"

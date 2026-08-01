@@ -58,7 +58,7 @@ def main():
     os.environ["WAYNE_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from wayne_cli import kanban_db as kb
+    from work4you_cli import kanban_db as kb
 
     kb.init_db()
 

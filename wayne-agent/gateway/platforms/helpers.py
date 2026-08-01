@@ -227,7 +227,7 @@ class ThreadParticipationTracker:
         }
 
     def _state_path(self) -> Path:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         return get_wayne_home() / f"{self._platform}_threads.json"
 
     def _load(self) -> list[str]:

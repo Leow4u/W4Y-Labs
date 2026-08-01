@@ -112,9 +112,9 @@ class TestGatewayRunnerRegistration:
         # Stub out heavy dependencies if not already present
         stubs = [
             "dotenv",
-            "wayne_cli.env_loader",
-            "wayne_cli.config",
-            "wayne_constants",
+            "work4you_cli.env_loader",
+            "work4you_cli.config",
+            "work4you_constants",
         ]
         _orig = {}
         for mod in stubs:

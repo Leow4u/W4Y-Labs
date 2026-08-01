@@ -1,13 +1,13 @@
 """Tests for /compress --preview/--dry-run/--aggressive flags and the
 /compact alias (PR #3243 salvage).
 
-Covers the pure helpers in ``wayne_cli.partial_compress`` plus alias
+Covers the pure helpers in ``work4you_cli.partial_compress`` plus alias
 resolution in the command registry. The CLI and gateway surfaces both
 route through these helpers, so the flag semantics are pinned here once.
 """
 
-from wayne_cli.commands import COMMANDS, resolve_command
-from wayne_cli.partial_compress import (
+from work4you_cli.commands import COMMANDS, resolve_command
+from work4you_cli.partial_compress import (
     DEFAULT_KEEP_LAST,
     extract_compress_flags,
     parse_partial_compress_args,

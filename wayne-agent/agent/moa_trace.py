@@ -29,7 +29,7 @@ import time
 from pathlib import Path
 from typing import Any, Optional
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +42,7 @@ def _traces_enabled_and_dir() -> Optional[Path]:
     ``moa.trace_dir`` overrides the default ``<wayne_home>/moa-traces/``.
     """
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         moa_cfg = (load_config() or {}).get("moa") or {}
     except Exception:  # pragma: no cover - defensive: never break a turn over tracing

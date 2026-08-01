@@ -164,10 +164,10 @@ def test_run_job_releases_cwd_lock_when_body_raises(tmp_path):
 
     with patch("cron.scheduler._wayne_home", tmp_path), \
          patch("cron.scheduler._resolve_origin", return_value=None), \
-         patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-         patch("wayne_cli.env_loader.reset_secret_source_cache"), \
+         patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+         patch("work4you_cli.env_loader.reset_secret_source_cache"), \
          patch.object(sched.logger, "info", side_effect=_raise_on_workdir_log), \
-         patch("wayne_state.SessionDB", return_value=MagicMock()):
+         patch("work4you_state.SessionDB", return_value=MagicMock()):
         # run_job catches its own body exceptions and returns (False, ...);
         # it must not propagate, and it must release the lock either way.
         success, _out, _final, _err = sched.run_job(job)

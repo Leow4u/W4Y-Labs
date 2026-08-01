@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from wayne_cli.profiles import _get_default_wayne_home
+from work4you_cli.profiles import _get_default_wayne_home
 
 import pytest
 
@@ -448,35 +448,35 @@ class TestResolveActiveHost:
     def test_profile_name_derives_host(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("WAYNE_HONCHO_HOST", None)
-            with patch("wayne_cli.profiles.get_active_profile_name", return_value="coder"):
+            with patch("work4you_cli.profiles.get_active_profile_name", return_value="coder"):
                 assert resolve_active_host() == "wayne_coder"
 
     def test_default_profile_returns_wayne(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("WAYNE_HONCHO_HOST", None)
-            with patch("wayne_cli.profiles.get_active_profile_name", return_value="default"):
+            with patch("work4you_cli.profiles.get_active_profile_name", return_value="default"):
                 assert resolve_active_host() == "wayne"
 
     def test_custom_profile_returns_wayne(self):
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("WAYNE_HONCHO_HOST", None)
-            with patch("wayne_cli.profiles.get_active_profile_name", return_value="custom"):
+            with patch("work4you_cli.profiles.get_active_profile_name", return_value="custom"):
                 assert resolve_active_host() == "wayne"
 
     def test_profiles_import_failure_falls_back(self):
         import sys
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("WAYNE_HONCHO_HOST", None)
-            # Temporarily remove wayne_cli.profiles to simulate import failure
-            saved = sys.modules.get("wayne_cli.profiles")
-            sys.modules["wayne_cli.profiles"] = None  # type: ignore
+            # Temporarily remove work4you_cli.profiles to simulate import failure
+            saved = sys.modules.get("work4you_cli.profiles")
+            sys.modules["work4you_cli.profiles"] = None  # type: ignore
             try:
                 assert resolve_active_host() == "wayne"
             finally:
                 if saved is not None:
-                    sys.modules["wayne_cli.profiles"] = saved
+                    sys.modules["work4you_cli.profiles"] = saved
                 else:
-                    sys.modules.pop("wayne_cli.profiles", None)
+                    sys.modules.pop("work4you_cli.profiles", None)
 
 
 class TestProfileScopedConfig:
@@ -644,7 +644,7 @@ class TestGetHonchoClient:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={"honcho": {"timeout": 88}}):
+             patch("work4you_cli.config.load_config", return_value={"honcho": {"timeout": 88}}):
             client = get_honcho_client(cfg)
 
         assert client is fake_honcho
@@ -666,7 +666,7 @@ class TestGetHonchoClient:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={}):
+             patch("work4you_cli.config.load_config", return_value={}):
             client = get_honcho_client(cfg)
 
         assert client is fake_honcho
@@ -686,7 +686,7 @@ class TestGetHonchoClient:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={"honcho": {"request_timeout": "77.5"}}):
+             patch("work4you_cli.config.load_config", return_value={"honcho": {"request_timeout": "77.5"}}):
             client = get_honcho_client(cfg)
 
         assert client is fake_honcho
@@ -943,7 +943,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={}):
+             patch("work4you_cli.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -967,7 +967,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={}):
+             patch("work4you_cli.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -991,7 +991,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={}):
+             patch("work4you_cli.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1016,7 +1016,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={}):
+             patch("work4you_cli.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1059,7 +1059,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={}):
+             patch("work4you_cli.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1083,7 +1083,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("wayne_cli.config.load_config", return_value={}):
+             patch("work4you_cli.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()

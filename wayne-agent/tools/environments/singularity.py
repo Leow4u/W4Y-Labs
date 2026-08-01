@@ -14,7 +14,7 @@ import uuid
 from pathlib import Path
 from typing import Optional
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from tools.environments.base import (
     BaseEnvironment,
     _load_json_store,

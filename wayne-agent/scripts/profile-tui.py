@@ -9,7 +9,7 @@ Defaults: picks the session with the most messages, holds PageUp for 8s at
 
 The --tui build must exist (run `npm run build` in ui-tui first). This script
 launches `node dist/entry.js` directly with WAYNE_TUI_RESUME set so it
-bypasses the wayne_cli wrapper — we want repeatable timing, not the CLI's
+bypasses the work4you_cli wrapper — we want repeatable timing, not the CLI's
 session-picker flow.
 
 Environment overrides:
@@ -38,7 +38,7 @@ from typing import Any
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 try:
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 except ImportError:
     def get_wayne_home() -> Path:  # type: ignore[misc]
         val = (os.environ.get("WAYNE_HOME") or "").strip()

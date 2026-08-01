@@ -69,7 +69,7 @@ def _load_plugin_config() -> Dict[str, Any]:
     early docs/issues, so accept it as a compatibility fallback.
     """
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         config = load_config()
         memory_config = config.get("memory", {})
@@ -164,7 +164,7 @@ def _run_brv(args: List[str], timeout: int = _QUERY_TIMEOUT,
 
 def _get_brv_cwd() -> Path:
     """Profile-scoped working directory for the brv context tree."""
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
     return get_wayne_home() / "byterover"
 
 

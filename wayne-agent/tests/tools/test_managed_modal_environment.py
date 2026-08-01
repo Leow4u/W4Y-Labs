@@ -32,25 +32,25 @@ def _restore_tool_and_agent_modules():
     original_modules = {
         name: module
         for name, module in sys.modules.items()
-        if name in {"tools", "agent", "wayne_cli"}
+        if name in {"tools", "agent", "work4you_cli"}
         or name.startswith("tools.")
         or name.startswith("agent.")
-        or name.startswith("wayne_cli.")
+        or name.startswith("work4you_cli.")
     }
     try:
         yield
     finally:
-        _reset_modules(("tools", "agent", "wayne_cli"))
+        _reset_modules(("tools", "agent", "work4you_cli"))
         sys.modules.update(original_modules)
 
 
 def _install_fake_tools_package(*, credential_mounts=None):
-    _reset_modules(("tools", "agent", "wayne_cli"))
+    _reset_modules(("tools", "agent", "work4you_cli"))
 
-    wayne_cli = types.ModuleType("wayne_cli")
-    wayne_cli.__path__ = []  # type: ignore[attr-defined]
-    sys.modules["wayne_cli"] = wayne_cli
-    sys.modules["wayne_cli.config"] = types.SimpleNamespace(
+    work4you_cli = types.ModuleType("work4you_cli")
+    work4you_cli.__path__ = []  # type: ignore[attr-defined]
+    sys.modules["work4you_cli"] = work4you_cli
+    sys.modules["work4you_cli.config"] = types.SimpleNamespace(
         get_wayne_home=lambda: Path(tempfile.gettempdir()) / "wayne-home",
     )
 

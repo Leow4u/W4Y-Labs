@@ -40,11 +40,11 @@ class TestHandleDebugCommand:
         runner = _make_runner()
         event = _make_event()
 
-        with patch("wayne_cli.debug._sweep_expired_pastes", return_value=(0, 0)) as mock_sweep, \
-             patch("wayne_cli.debug._capture_dump", return_value="dump"), \
-             patch("wayne_cli.debug.collect_debug_report", return_value="report"), \
-             patch("wayne_cli.debug.upload_to_pastebin", return_value=_LOCAL_REPORT_PATH), \
-             patch("wayne_cli.debug._schedule_auto_delete"):
+        with patch("work4you_cli.debug._sweep_expired_pastes", return_value=(0, 0)) as mock_sweep, \
+             patch("work4you_cli.debug._capture_dump", return_value="dump"), \
+             patch("work4you_cli.debug.collect_debug_report", return_value="report"), \
+             patch("work4you_cli.debug.upload_to_pastebin", return_value=_LOCAL_REPORT_PATH), \
+             patch("work4you_cli.debug._schedule_auto_delete"):
             result = await runner._handle_debug_command(event)
 
         mock_sweep.assert_called_once()
@@ -55,11 +55,11 @@ class TestHandleDebugCommand:
         runner = _make_runner()
         event = _make_event()
 
-        with patch("wayne_cli.debug._sweep_expired_pastes", side_effect=RuntimeError("offline")), \
-             patch("wayne_cli.debug._capture_dump", return_value="dump"), \
-             patch("wayne_cli.debug.collect_debug_report", return_value="report"), \
-             patch("wayne_cli.debug.upload_to_pastebin", return_value=_LOCAL_REPORT_PATH), \
-             patch("wayne_cli.debug._schedule_auto_delete"):
+        with patch("work4you_cli.debug._sweep_expired_pastes", side_effect=RuntimeError("offline")), \
+             patch("work4you_cli.debug._capture_dump", return_value="dump"), \
+             patch("work4you_cli.debug.collect_debug_report", return_value="report"), \
+             patch("work4you_cli.debug.upload_to_pastebin", return_value=_LOCAL_REPORT_PATH), \
+             patch("work4you_cli.debug._schedule_auto_delete"):
             result = await runner._handle_debug_command(event)
 
         assert _LOCAL_REPORT_PATH in result
@@ -71,11 +71,11 @@ class TestHandleDebugCommand:
         runner = _make_runner()
         event = _make_event()
 
-        with patch("wayne_cli.debug._sweep_expired_pastes", return_value=(0, 0)), \
-             patch("wayne_cli.debug._capture_dump", return_value="dump"), \
-             patch("wayne_cli.debug.collect_debug_report", return_value="report body"), \
+        with patch("work4you_cli.debug._sweep_expired_pastes", return_value=(0, 0)), \
+             patch("work4you_cli.debug._capture_dump", return_value="dump"), \
+             patch("work4you_cli.debug.collect_debug_report", return_value="report body"), \
              patch(
-                 "wayne_cli.debug.urllib.request.urlopen",
+                 "work4you_cli.debug.urllib.request.urlopen",
                  side_effect=AssertionError("network egress attempted"),
              ) as urlopen:
             result = await runner._handle_debug_command(event)

@@ -19,7 +19,7 @@ from pathlib import Path
 
 import pytest
 
-from wayne_constants import (
+from work4you_constants import (
     get_wayne_home,
     reset_wayne_home_override,
     set_wayne_home_override,

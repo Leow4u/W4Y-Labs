@@ -106,7 +106,7 @@ def _build_subprocess_env() -> dict[str, str]:
     env = wayne_subprocess_env(inherit_credentials=True)
     home = _resolve_home_dir()
     env["HOME"] = home
-    from wayne_constants import apply_subprocess_home_env
+    from work4you_constants import apply_subprocess_home_env
     apply_subprocess_home_env(env)
     return env
 

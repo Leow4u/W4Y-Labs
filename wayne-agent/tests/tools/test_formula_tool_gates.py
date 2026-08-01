@@ -84,7 +84,7 @@ class TestImageGenGateFollowsAvailableActiveProvider:
         image_gen_registry.register_provider(_P("openrouter", True))
 
         with patch(
-            "wayne_cli.plugins._ensure_plugins_discovered", return_value=None
+            "work4you_cli.plugins._ensure_plugins_discovered", return_value=None
         ):
             assert check_image_generation_requirements() is True
             active = image_gen_registry.get_active_provider()

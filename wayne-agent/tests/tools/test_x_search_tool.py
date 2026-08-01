@@ -38,7 +38,7 @@ class _FakeResponse:
 
 def test_x_search_posts_responses_request(monkeypatch):
     from tools.x_search_tool import x_search_tool
-    from wayne_cli import __version__
+    from work4you_cli import __version__
 
     captured = {}
 

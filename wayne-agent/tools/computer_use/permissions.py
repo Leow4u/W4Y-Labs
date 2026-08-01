@@ -39,7 +39,7 @@ def _driver_cmd(override: Optional[str]) -> str:
     if override:
         return override
     try:
-        from wayne_cli.tools_config import _cua_driver_cmd
+        from work4you_cli.tools_config import _cua_driver_cmd
 
         return _cua_driver_cmd()
     except Exception:

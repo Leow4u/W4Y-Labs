@@ -4,8 +4,8 @@ from __future__ import annotations
 
 
 def test_wayne_client_tag_includes_current_version():
-    """The client tag must reflect wayne_cli.__version__ verbatim."""
-    from wayne_cli import __version__
+    """The client tag must reflect work4you_cli.__version__ verbatim."""
+    from work4you_cli import __version__
     from agent.portal_tags import wayne_client_tag
 
     assert wayne_client_tag() == f"client=wayne-client-v{__version__}"

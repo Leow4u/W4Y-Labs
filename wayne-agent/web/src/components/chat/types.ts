@@ -101,7 +101,7 @@ function toolCallFromHistory(tc: {
 /**
  * `SessionMessage.content` is typed `string | null`, but the backend can
  * legitimately persist a multimodal parts array (from `/image`/`/paste`) —
- * see `wayne_state.py:_decode_content`. Coercing non-string content to
+ * see `work4you_state.py:_decode_content`. Coercing non-string content to
  * `null` here (rather than passing it through) avoids a real crash in
  * `Markdown`'s `.split("\n")` on a non-string. Image rendering is a known
  * gap, deliberately out of scope for v1 — this just fails safe instead of

@@ -16,7 +16,7 @@ from datetime import datetime
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Any
 
-from wayne_cli.config import get_wayne_home
+from work4you_cli.config import get_wayne_home
 
 logger = logging.getLogger(__name__)
 

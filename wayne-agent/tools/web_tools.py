@@ -115,7 +115,7 @@ def _env_value(name: str) -> str:
     auto-detect cascade and ``check_web_api_key()`` blind to it. See #34290.
     """
     try:
-        from wayne_cli.config import get_env_value
+        from work4you_cli.config import get_env_value
 
         val = get_env_value(name)
     except Exception:
@@ -131,7 +131,7 @@ def _has_env(name: str) -> bool:
 def _load_web_config() -> dict:
     """Load the ``web:`` section from ~/.wayne/config.yaml."""
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         return load_config().get("web", {})
     except (ImportError, Exception):
         return {}
@@ -496,7 +496,7 @@ def _store_full_text(url: str, content: str) -> Optional[str]:
     try:
         import hashlib
         from urllib.parse import urlparse
-        from wayne_constants import get_wayne_dir
+        from work4you_constants import get_wayne_dir
 
         cache_dir = get_wayne_dir("cache/web", "web_cache")
         cache_dir.mkdir(parents=True, exist_ok=True)
@@ -613,7 +613,7 @@ def _ensure_web_plugins_loaded() -> None:
     invocations.
     """
     try:
-        from wayne_cli.plugins import _ensure_plugins_discovered
+        from work4you_cli.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
     except Exception as exc:  # noqa: BLE001

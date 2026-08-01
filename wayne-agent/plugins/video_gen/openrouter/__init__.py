@@ -107,7 +107,7 @@ _MODELS: List[Dict[str, Any]] = [
 
 def _load_video_gen_section() -> Dict[str, Any]:
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         cfg = load_config()
         section = cfg.get("video_gen") if isinstance(cfg, dict) else None
@@ -196,7 +196,7 @@ class OpenRouterVideoGenProvider(VideoGenProvider):
         return "OpenRouter"
 
     def _resolve_runtime(self) -> Dict[str, Any]:
-        from wayne_cli.runtime_provider import resolve_runtime_provider
+        from work4you_cli.runtime_provider import resolve_runtime_provider
 
         return resolve_runtime_provider(requested="openrouter")
 

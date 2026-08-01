@@ -652,7 +652,7 @@ class TestCheckWebApiKey:
             return "fresh-token"
 
         monkeypatch.setattr(
-            "wayne_cli.auth.resolve_nous_access_token",
+            "work4you_cli.auth.resolve_nous_access_token",
             _record_refresh,
         )
 

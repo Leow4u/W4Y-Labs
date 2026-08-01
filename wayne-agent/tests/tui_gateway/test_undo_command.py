@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 @pytest.fixture()
@@ -37,8 +37,8 @@ def server(wayne_home):
     with patch.dict(
         "sys.modules",
         {
-            "wayne_cli.env_loader": MagicMock(),
-            "wayne_cli.banner": MagicMock(),
+            "work4you_cli.env_loader": MagicMock(),
+            "work4you_cli.banner": MagicMock(),
         },
     ):
         mod = importlib.import_module("tui_gateway.server")

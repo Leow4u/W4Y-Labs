@@ -49,7 +49,7 @@ class TestManifest:
 class TestDiscovery:
     def test_plugin_is_discovered_as_standalone_opt_in(self, tmp_path, monkeypatch):
         """Scanner should find the plugin but NOT load it by default."""
-        from wayne_cli import plugins as plugins_mod
+        from work4you_cli import plugins as plugins_mod
 
         # Isolated WAYNE_HOME so we don't read the developer's config.yaml.
         home = tmp_path / ".wayne"
@@ -133,15 +133,15 @@ class TestRuntimeGate:
         ):
             monkeypatch.delenv(k, raising=False)
 
-        # Drop any cached import of wayne_cli.config.
-        sys.modules.pop("wayne_cli.config", None)
+        # Drop any cached import of work4you_cli.config.
+        sys.modules.pop("work4you_cli.config", None)
 
         langfuse_plugin = self._fresh_plugin()
         for _ in range(20):
             langfuse_plugin._get_langfuse()
 
-        assert "wayne_cli.config" not in sys.modules, (
-            "langfuse plugin imported wayne_cli.config — regression toward "
+        assert "work4you_cli.config" not in sys.modules, (
+            "langfuse plugin imported work4you_cli.config — regression toward "
             "the rejected per-hook load_config() design"
         )
 

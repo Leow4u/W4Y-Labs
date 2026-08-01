@@ -10,7 +10,7 @@ This is a library module (not an agent tool). It provides:
   - HubLockFile: Track provenance of installed hub skills
   - Hub state directory management (quarantine, audit log, taps, index cache)
 
-Used by wayne_cli/skills_hub.py for CLI commands and the /skills slash command.
+Used by work4you_cli/skills_hub.py for CLI commands and the /skills slash command.
 """
 
 import hashlib
@@ -25,8 +25,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from wayne_constants import get_wayne_home
-from wayne_cli._subprocess_compat import windows_hide_flags
+from work4you_constants import get_wayne_home
+from work4you_cli._subprocess_compat import windows_hide_flags
 from agent.skill_utils import get_skill_metadata_namespace, is_excluded_skill_path
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import urljoin, urlparse, urlunparse
@@ -3046,7 +3046,7 @@ class OptionalSkillSource(SkillSource):
     OFFICIAL_REPO = "NousResearch/hermes-agent"
 
     def __init__(self):
-        from wayne_constants import get_optional_skills_dir
+        from work4you_constants import get_optional_skills_dir
 
         self._optional_dir = get_optional_skills_dir(
             Path(__file__).parent.parent / "optional-skills"

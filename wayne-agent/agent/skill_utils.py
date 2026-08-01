@@ -12,7 +12,7 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from wayne_constants import get_config_path, get_skills_dir, is_termux
+from work4you_constants import get_config_path, get_skills_dir, is_termux
 
 logger = logging.getLogger(__name__)
 
@@ -247,7 +247,7 @@ def _detect_environment(env: str) -> bool:
                 result = False
     elif env == "docker":
         try:
-            from wayne_constants import is_container
+            from work4you_constants import is_container
 
             result = is_container()
         except Exception:
@@ -318,7 +318,7 @@ def _raw_config_cache_clear() -> None:
 def _load_raw_config() -> Dict[str, Any]:
     """Read config.yaml with a shared mtime+size keyed cache.
 
-    This module intentionally avoids importing ``wayne_cli.config`` on the
+    This module intentionally avoids importing ``work4you_cli.config`` on the
     skill prompt/build path. A tiny local cache gives the same repeated-read
     win without pulling the heavier CLI config stack into startup.
     """
@@ -462,7 +462,7 @@ def get_external_skills_dirs() -> List[Path]:
     if not isinstance(raw_dirs, list):
         return []
 
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     wayne_home = get_wayne_home()
     local_skills = get_skills_dir().resolve()
@@ -510,7 +510,7 @@ def get_project_skills_dir() -> Optional[Path]:
     """
     candidates: List[str] = []
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         cfg_terminal = load_config().get("terminal") or {}
         raw_cfg = str(cfg_terminal.get("cwd") or "").strip()
@@ -537,12 +537,16 @@ def get_project_skills_dir() -> Optional[Path]:
             continue
         if not base.is_absolute() or not base.is_dir():
             continue
-        project_skills = (base / ".wayne" / "skills").resolve()
-        if project_skills in seen or project_skills == local_skills:
-            continue
-        seen.add(project_skills)
-        if project_skills.is_dir():
-            return project_skills
+        # Brand migration: .work4you/ is the convention going forward, but
+        # users' existing repos carry .wayne/ folders we can't rewrite —
+        # dual-scan forever, new name first.
+        for dot_dir in (".work4you", ".wayne"):
+            project_skills = (base / dot_dir / "skills").resolve()
+            if project_skills in seen or project_skills == local_skills:
+                continue
+            seen.add(project_skills)
+            if project_skills.is_dir():
+                return project_skills
     return None
 
 

@@ -538,10 +538,10 @@ def validate_config(config) -> bool:
 def interactive_setup() -> None:
     """Interactive `wayne gateway setup` flow for the IRC platform.
 
-    Lazy-imports ``wayne_cli.setup`` helpers so the plugin stays importable
+    Lazy-imports ``work4you_cli.setup`` helpers so the plugin stays importable
     in non-CLI contexts (gateway runtime, tests).
     """
-    from wayne_cli.setup import (
+    from work4you_cli.setup import (
         prompt,
         prompt_yes_no,
         save_env_value,

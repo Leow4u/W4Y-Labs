@@ -6,7 +6,7 @@ requires = ["setuptools>=77.0,<83"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "wayne-agent"
+name = "work4you-agent"
 version = "0.18.0"
 description = "The self-improving AI agent — creates skills from experience, improves them during use, and runs anywhere"
 readme = "README.md"
@@ -51,7 +51,7 @@ dependencies = [
   "tenacity==9.1.4",
   "pyyaml==6.0.3",
   # Knowledge base (K1): PDF text extraction. Imported lazily by
-  # wayne_cli/knowledge.py — older venvs without it degrade to a clear
+  # work4you_cli/knowledge.py — older venvs without it degrade to a clear
   # unsupported_format refusal instead of crashing.
   "pypdf==6.1.3",
   "ruamel.yaml==0.18.17",
@@ -72,7 +72,7 @@ dependencies = [
   # try/except-ImportError fallbacks silently degrade: Hindsight's
   # ``_meets_minimum_version`` disables update_mode='append' (#40503),
   # tools/lazy_deps.py treats every version constraint as satisfied, and
-  # wayne_cli/main.py drops to naive requirement parsing. Pure-Python
+  # work4you_cli/main.py drops to naive requirement parsing. Pure-Python
   # py3-none-any wheel, no compiled extensions — safe to ship everywhere.
   # Pinned to the version already resolved in uv.lock (no resolution churn).
   "packaging==26.0",
@@ -136,7 +136,7 @@ dependencies = [
   # processes), pinning ``agent.log`` at the 5 MiB threshold and spamming
   # stderr on every emit (see #44873). ``concurrent-log-handler`` wraps the
   # rename in a cross-process file lock (via ``portalocker``: pywin32 on
-  # Windows) so only one process rotates at a time. ``wayne_logging.py``
+  # Windows) so only one process rotates at a time. ``work4you_logging.py``
   # aliases it ONLY on Windows — POSIX renames an open file fine, so stdlib
   # already works there and managed-mode perms depend on its exact lifecycle.
   # Hence the ``sys_platform == 'win32'`` marker: the dep (and its portalocker
@@ -235,23 +235,23 @@ azure-identity = ["azure-identity==1.25.3"]
 termux = [
   # Baseline Android / Termux path for reliable fresh installs.
   "python-telegram-bot[webhooks]==22.6",
-  "wayne-agent[cron]",
-  "wayne-agent[cli]",
-  "wayne-agent[pty]",
-  "wayne-agent[mcp]",
-  "wayne-agent[honcho]",
-  "wayne-agent[acp]",
+  "work4you-agent[cron]",
+  "work4you-agent[cli]",
+  "work4you-agent[pty]",
+  "work4you-agent[mcp]",
+  "work4you-agent[honcho]",
+  "work4you-agent[acp]",
 ]
 termux-all = [
   # Best-effort "install all" profile for Termux. Same policy as [all]:
   # only includes extras that aren't covered by `tools/lazy_deps.py`.
   # Backends like telegram/slack/dingtalk/feishu/honcho lazy-install at
   # first use, so they're no longer eager-installed here.
-  "wayne-agent[termux]",
-  "wayne-agent[google]",
-  "wayne-agent[homeassistant]",
-  "wayne-agent[sms]",
-  "wayne-agent[web]",
+  "work4you-agent[termux]",
+  "work4you-agent[google]",
+  "work4you-agent[homeassistant]",
+  "work4you-agent[sms]",
+  "work4you-agent[web]",
 ]
 dingtalk = ["dingtalk-stream==0.24.3", "alibabacloud-dingtalk==2.2.42", "qrcode==7.4.2"]
 feishu = ["lark-oapi==1.5.3", "qrcode==7.4.2"]
@@ -297,24 +297,24 @@ all = [
   # [all], `uv sync --locked` on Windows tried to build it from sdist
   # and failed on `make`. Lazy-install routes that build to first use,
   # where the user is expected to have a toolchain available.
-  "wayne-agent[cron]",
-  "wayne-agent[cli]",
-  "wayne-agent[pty]",
-  "wayne-agent[mcp]",
-  "wayne-agent[homeassistant]",
-  "wayne-agent[sms]",
-  "wayne-agent[acp]",
-  "wayne-agent[google]",
-  "wayne-agent[web]",
-  "wayne-agent[youtube]",
+  "work4you-agent[cron]",
+  "work4you-agent[cli]",
+  "work4you-agent[pty]",
+  "work4you-agent[mcp]",
+  "work4you-agent[homeassistant]",
+  "work4you-agent[sms]",
+  "work4you-agent[acp]",
+  "work4you-agent[google]",
+  "work4you-agent[web]",
+  "work4you-agent[youtube]",
 ]
 
 [project.scripts]
-work4you = "wayne_cli.main:main"
+work4you = "work4you_cli.main:main"
 # `wayne` is a silent legacy alias: self-referencing machinery (update
 # relaunch, service units, desktop engine spawn) still execs it. Removed in
 # the final migration phase once services/installs regenerate.
-wayne = "wayne_cli.main:main"
+wayne = "work4you_cli.main:main"
 wayne-agent = "run_agent:main"
 work4you-acp = "acp_adapter.entry:main"
 # `wayne-acp` stays: editors (Zed, etc.) have the old binary name configured
@@ -322,7 +322,7 @@ work4you-acp = "acp_adapter.entry:main"
 wayne-acp = "acp_adapter.entry:main"
 
 [tool.setuptools]
-py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "wayne_bootstrap", "wayne_constants", "wayne_state", "wayne_time", "wayne_logging", "utils", "mcp_serve"]
+py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "work4you_bootstrap", "work4you_constants", "work4you_state", "work4you_time", "work4you_logging", "wayne_bootstrap", "wayne_constants", "wayne_state", "wayne_time", "wayne_logging", "utils", "mcp_serve"]
 
 [tool.setuptools.data-files]
 # i18n catalogs. locales/ is a bare data directory (no __init__.py), so it is
@@ -336,7 +336,7 @@ locales = ["locales/*.yaml"]
 # case as locales: data-files ships it in the wheel, `graft optional-mcps` in
 # MANIFEST.in ships it in the sdist. Without this, `wayne mcp catalog` and the
 # dashboard catalog screen come up empty on packaged installs even though the
-# manifests exist in the repo (wayne_cli/mcp_catalog.py:_catalog_root resolves
+# manifests exist in the repo (work4you_cli/mcp_catalog.py:_catalog_root resolves
 # the packaged dir; list_catalog() returns [] when it's missing).
 #
 # data-files flattens every glob match into its single target dir, so each
@@ -348,13 +348,13 @@ locales = ["locales/*.yaml"]
 "optional-mcps/n8n" = ["optional-mcps/n8n/manifest.yaml"]
 
 [tool.setuptools.package-data]
-wayne_cli = ["web_dist/**/*", "tui_dist/**/*", "scripts/install.sh", "scripts/install.ps1"]
+work4you_cli = ["web_dist/**/*", "tui_dist/**/*", "scripts/install.sh", "scripts/install.ps1"]
 gateway = ["assets/**/*"]
 plugins = [
   "*/dashboard/manifest.json",
   "*/dashboard/dist/*",
   "*/dashboard/dist/**/*",
-  # Plugin discovery (wayne_cli/plugins.py) reads a plugin.yaml/plugin.yml
+  # Plugin discovery (work4you_cli/plugins.py) reads a plugin.yaml/plugin.yml
   # manifest from each bundled plugin directory to register it. Wheels only
   # carry files declared here, so without this glob the wheel ships every
   # plugin's Python code but none of its manifests — the scan finds zero
@@ -366,7 +366,7 @@ plugins = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["agent", "agent.*", "tools", "tools.*", "wayne_cli", "wayne_cli.*", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "cron.*", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*"]
+include = ["agent", "agent.*", "tools", "tools.*", "work4you_cli", "work4you_cli.*", "wayne_cli", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "cron.*", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

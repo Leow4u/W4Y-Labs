@@ -153,7 +153,7 @@ def test_verify_on_stop_default_path_through_load_config(tmp_path, clear_verify_
     # cannot exercise.
     clear_verify_env.setenv("WAYNE_HOME", str(tmp_path / ".wayne"))
 
-    from wayne_cli.config import load_config
+    from work4you_cli.config import load_config
 
     merged = load_config()
     assert merged["agent"]["verify_on_stop"] == "auto"

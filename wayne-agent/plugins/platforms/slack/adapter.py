@@ -980,7 +980,7 @@ class SlackAdapter(BasePlatformAdapter):
         bot_tokens = [t.strip() for t in raw_token.split(",") if t.strip()]
 
         # Also load tokens from OAuth token file
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         tokens_file = get_wayne_home() / "slack_tokens.json"
         if tokens_file.exists():
@@ -1147,7 +1147,7 @@ class SlackAdapter(BasePlatformAdapter):
             # routes the command event through the socket regardless of the
             # manifest's request URL, but it will not deliver an event for
             # a slash command the manifest doesn't declare.
-            from wayne_cli.commands import slack_native_slashes
+            from work4you_cli.commands import slack_native_slashes
             import re as _re
 
             _slash_names = [name for name, _d, _h in slack_native_slashes()]
@@ -1196,7 +1196,7 @@ class SlackAdapter(BasePlatformAdapter):
             # down the gateway: any exception inside the plugin handler is
             # caught and logged, and slack_bolt still sees a clean ack.
             try:
-                from wayne_cli.plugins import get_plugin_manager
+                from work4you_cli.plugins import get_plugin_manager
                 _plugin_handlers = get_plugin_manager().get_slack_action_handlers()
             except Exception as e:  # pragma: no cover - defensive
                 logger.warning(
@@ -2630,7 +2630,7 @@ class SlackAdapter(BasePlatformAdapter):
         # so casual messages like "!nice work" pass through unchanged.
         if original_text.startswith("!"):
             try:
-                from wayne_cli.commands import is_gateway_known_command
+                from work4you_cli.commands import is_gateway_known_command
 
                 first_token = original_text[1:].split(maxsplit=1)[0]
                 # Strip "@suffix" the same way get_command() does, so
@@ -3926,7 +3926,7 @@ class SlackAdapter(BasePlatformAdapter):
             # pre-rebrand workspace manifests — both dispatch identically.
             # Empty slash_name falls into this branch for backward compat
             # with any caller that didn't populate command["command"].
-            from wayne_cli.commands import slack_subcommand_map
+            from work4you_cli.commands import slack_subcommand_map
 
             subcommand_map = slack_subcommand_map()
             subcommand_map["compact"] = "/compress"
@@ -4291,7 +4291,7 @@ class SlackAdapter(BasePlatformAdapter):
 # the per-platform core touchpoints (the ``Platform.SLACK`` elif in
 # ``gateway/run.py``, the ``slack_cfg`` YAML→env block in ``gateway/config.py``,
 # the ``_setup_slack`` wizard + ``_PLATFORMS["slack"]`` static dict in
-# ``wayne_cli/{setup,gateway}.py``, and the ``_send_slack`` dispatch in
+# ``work4you_cli/{setup,gateway}.py``, and the ``_send_slack`` dispatch in
 # ``tools/send_message_tool.py``).
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -4374,11 +4374,11 @@ def interactive_setup() -> None:
     Mirrors Discord's ``interactive_setup`` shape: lazy-imports CLI helpers so
     the plugin's import surface stays small, generates and writes the Slack app
     manifest, prompts for the bot + app tokens, captures an allowlist, and
-    offers to set a home channel. Replaces ``wayne_cli/setup.py::_setup_slack``.
+    offers to set a home channel. Replaces ``work4you_cli/setup.py::_setup_slack``.
     """
     from pathlib import Path
-    from wayne_cli.config import get_env_value, save_env_value
-    from wayne_cli.cli_output import (
+    from work4you_cli.config import get_env_value, save_env_value
+    from work4you_cli.cli_output import (
         prompt,
         prompt_yes_no,
         print_header,
@@ -4391,8 +4391,8 @@ def interactive_setup() -> None:
         """Generate the Slack manifest, write it under WAYNE_HOME, and print
         paste-into-Slack instructions. Failures are non-fatal."""
         try:
-            from wayne_cli.slack_cli import _build_full_manifest
-            from wayne_constants import get_wayne_home
+            from work4you_cli.slack_cli import _build_full_manifest
+            from work4you_constants import get_wayne_home
             import json as _json
 
             manifest = _build_full_manifest(
@@ -4524,12 +4524,12 @@ def _apply_yaml_config(yaml_cfg: dict, slack_cfg: dict) -> dict | None:
 def _is_connected(config) -> bool:
     """Slack is considered connected when SLACK_BOT_TOKEN is set.
 
-    Looks up via ``wayne_cli.gateway.get_env_value`` at call time (not via the
+    Looks up via ``work4you_cli.gateway.get_env_value`` at call time (not via the
     plugin's own bound import) so tests that patch ``gateway_mod.get_env_value``
     can suppress ambient ``SLACK_BOT_TOKEN`` env vars. Matches what the legacy
     ``Platform.SLACK`` connected-check did before this migration.
     """
-    import wayne_cli.gateway as gateway_mod
+    import work4you_cli.gateway as gateway_mod
 
     return bool((gateway_mod.get_env_value("SLACK_BOT_TOKEN") or "").strip())
 
@@ -4549,8 +4549,8 @@ def register(ctx) -> None:
         is_connected=_is_connected,
         required_env=["SLACK_BOT_TOKEN", "SLACK_APP_TOKEN"],
         install_hint="pip install -e '.[slack]'",
-        # Interactive setup wizard — replaces wayne_cli/setup.py::_setup_slack
-        # and the static _PLATFORMS["slack"] dict in wayne_cli/gateway.py.
+        # Interactive setup wizard — replaces work4you_cli/setup.py::_setup_slack
+        # and the static _PLATFORMS["slack"] dict in work4you_cli/gateway.py.
         setup_fn=interactive_setup,
         # YAML→env config bridge — owns the translation of config.yaml slack:
         # keys (require_mention, strict_mention, allow_bots,

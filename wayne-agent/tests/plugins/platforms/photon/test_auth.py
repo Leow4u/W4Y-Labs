@@ -130,7 +130,7 @@ def test_store_user_numbers_round_trip(tmp_wayne_home: Path) -> None:
 def test_load_user_numbers_falls_back_to_home_channel(
     tmp_wayne_home: Path,
 ) -> None:
-    from wayne_cli.config import save_env_value
+    from work4you_cli.config import save_env_value
 
     save_env_value("PHOTON_HOME_CHANNEL", "+15551234567")
 

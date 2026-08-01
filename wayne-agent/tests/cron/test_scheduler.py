@@ -68,7 +68,7 @@ class TestPerJobToolsetMcpMerge:
         # it is the path taken and its result is returned.
         job = {"enabled_toolsets": None}
         sentinel = ["web", "finnhub"]
-        with patch("wayne_cli.tools_config._get_platform_tools",
+        with patch("work4you_cli.tools_config._get_platform_tools",
                    return_value=set(sentinel)) as m_platform:
             result = _resolve_cron_enabled_toolsets(job, self.CFG)
         m_platform.assert_called_once()
@@ -967,11 +967,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "test-key",
                      "base_url": "https://example.invalid/v1",
@@ -1014,11 +1014,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "test-key",
                      "base_url": "https://example.invalid/v1",
@@ -1058,11 +1058,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "test-key",
                      "base_url": "https://example.invalid/v1",
@@ -1099,11 +1099,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "test-key",
                      "base_url": "https://example.invalid/v1",
@@ -1137,11 +1137,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1175,11 +1175,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1218,11 +1218,11 @@ class TestRunJobSessionPersistence:
         base = [
             patch("cron.scheduler._wayne_home", tmp_path),
             patch("cron.scheduler._resolve_origin", return_value=None),
-            patch("wayne_cli.env_loader.load_wayne_dotenv"),
-            patch("wayne_cli.env_loader.reset_secret_source_cache"),
-            patch("wayne_state.SessionDB", return_value=fake_db),
+            patch("work4you_cli.env_loader.load_wayne_dotenv"),
+            patch("work4you_cli.env_loader.reset_secret_source_cache"),
+            patch("work4you_state.SessionDB", return_value=fake_db),
             patch(
-                "wayne_cli.runtime_provider.resolve_runtime_provider",
+                "work4you_cli.runtime_provider.resolve_runtime_provider",
                 return_value={
                     "api_key": "test-key",
                     "base_url": "https://example.invalid/v1",
@@ -1320,7 +1320,7 @@ class TestRunJobSessionPersistence:
         }
         # Even if the user has ``wayne tools`` configured to enable web+file
         # for cron, the per-job override wins.
-        extra = [patch("wayne_cli.tools_config._get_platform_tools", return_value={"web", "file"})]
+        extra = [patch("work4you_cli.tools_config._get_platform_tools", return_value={"web", "file"})]
         with self._run_job_patches(tmp_path, extra=extra) as (_fake_db, mock_agent_cls):
             run_job(job)
 
@@ -1342,11 +1342,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1419,11 +1419,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1459,11 +1459,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1502,11 +1502,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1596,9 +1596,9 @@ class TestRunJobSessionPersistence:
                 return {"final_response": "ok"}
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1647,11 +1647,11 @@ class TestRunJobSessionPersistence:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache", _record_reset), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv", _record_load), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache", _record_reset), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv", _record_load), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1709,9 +1709,9 @@ class TestRunJobSessionPersistence:
                 return {"final_response": "ok"}
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -1766,9 +1766,9 @@ class TestRunJobConfigLogging:
         # (>30s wall clock) under load. See PR #33661 follow-up.
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value={"provider": "openrouter", "api_key": "x",
                                  "base_url": "https://example.invalid",
                                  "api_mode": "chat_completions"}), \
@@ -1801,9 +1801,9 @@ class TestRunJobConfigLogging:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value={"provider": "openrouter", "api_key": "x",
                                  "base_url": "https://example.invalid",
                                  "api_mode": "chat_completions"}), \
@@ -1840,10 +1840,10 @@ class TestRunJobConfigEnvVarExpansion:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -1874,10 +1874,10 @@ class TestRunJobConfigEnvVarExpansion:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("tools.mcp_tool.discover_mcp_tools", return_value=[]), \
              patch("run_agent.AIAgent") as mock_agent_cls:
@@ -1905,10 +1905,10 @@ class TestRunJobConfigEnvVarExpansion:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -1942,8 +1942,8 @@ class TestRunJobConfigEnvVarExpansion:
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("dotenv.load_dotenv"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -1965,10 +1965,10 @@ class TestRunJobConfigEnvVarExpansion:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2010,10 +2010,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2035,10 +2035,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2068,10 +2068,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2092,10 +2092,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             success, _, _, error = run_job(job)
@@ -2122,10 +2122,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2149,10 +2149,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2167,7 +2167,7 @@ class TestRunJobModelResolution:
     def test_config_model_alias_key_resolves(self, tmp_path, monkeypatch):
         """A ``model: {model: ...}`` alias key resolves like the CLI sibling.
 
-        ``wayne_cli/oneshot.py``, ``fallback_cmd.py`` and ``prompt_size.py``
+        ``work4you_cli/oneshot.py``, ``fallback_cmd.py`` and ``prompt_size.py``
         all accept ``model.model`` as an alias for ``model.default``. The cron
         resolver mirrors that so a config that works in the CLI also works in
         cron.
@@ -2180,10 +2180,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2205,10 +2205,10 @@ class TestRunJobModelResolution:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
-             patch("wayne_cli.runtime_provider.resolve_runtime_provider",
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.runtime_provider.resolve_runtime_provider",
                    return_value=self._RUNTIME), \
              patch("run_agent.AIAgent") as mock_agent_cls:
             mock_agent = MagicMock()
@@ -2248,11 +2248,11 @@ class TestRunJobSkillBacked:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -2309,11 +2309,11 @@ class TestRunJobSkillBacked:
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
              patch("tools.credential_files._resolve_wayne_home", return_value=tmp_path), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -2348,11 +2348,11 @@ class TestRunJobSkillBacked:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -2395,11 +2395,11 @@ class TestRunJobSkillBacked:
 
         with patch("cron.scheduler._wayne_home", tmp_path), \
              patch("cron.scheduler._resolve_origin", return_value=None), \
-             patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-             patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-             patch("wayne_state.SessionDB", return_value=fake_db), \
+             patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+             patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+             patch("work4you_state.SessionDB", return_value=fake_db), \
              patch(
-                 "wayne_cli.runtime_provider.resolve_runtime_provider",
+                 "work4you_cli.runtime_provider.resolve_runtime_provider",
                  return_value={
                      "api_key": "***",
                      "base_url": "https://example.invalid/v1",
@@ -2729,7 +2729,7 @@ class TestRunJobWakeGate:
             "requested_provider": None,
         }
         with patch(
-            "wayne_cli.runtime_provider.resolve_runtime_provider",
+            "work4you_cli.runtime_provider.resolve_runtime_provider",
             return_value=fake_runtime,
         ):
             yield

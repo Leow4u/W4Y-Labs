@@ -183,7 +183,7 @@ providers:
     monkeypatch.delenv("WAYNE_API_CALL_STALE_TIMEOUT", raising=False)
 
     import importlib
-    from wayne_cli import timeouts as to_mod
+    from work4you_cli import timeouts as to_mod
     importlib.reload(to_mod)
 
     agent = _make_agent(tmp_path)

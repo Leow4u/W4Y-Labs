@@ -1,14 +1,14 @@
 """Tests for the Slack plugin's interactive_setup wizard.
 
 These cover the home-channel save logic that previously lived in
-``wayne_cli/setup.py::_setup_slack`` before the Slack adapter migrated to a
+``work4you_cli/setup.py::_setup_slack`` before the Slack adapter migrated to a
 bundled plugin (#41112). ``interactive_setup`` lazy-imports its CLI helpers
-from ``wayne_cli.config`` (get_env_value / save_env_value) and
-``wayne_cli.cli_output`` (prompt / prompt_yes_no / print_*), so we patch those
+from ``work4you_cli.config`` (get_env_value / save_env_value) and
+``work4you_cli.cli_output`` (prompt / prompt_yes_no / print_*), so we patch those
 source modules.
 """
-import wayne_cli.config as config_mod
-import wayne_cli.cli_output as cli_output_mod
+import work4you_cli.config as config_mod
+import work4you_cli.cli_output as cli_output_mod
 from plugins.platforms.slack.adapter import interactive_setup
 
 
@@ -21,8 +21,8 @@ def _patch_setup_io(monkeypatch, prompts, saved):
     monkeypatch.setattr(cli_output_mod, "prompt_yes_no", lambda *_a, **_kw: False)
     for name in ("print_header", "print_info", "print_success", "print_warning"):
         monkeypatch.setattr(cli_output_mod, name, lambda *_a, **_kw: None)
-    # Manifest writing reaches out to wayne_cli.slack_cli + filesystem; stub it.
-    import wayne_cli.slack_cli as slack_cli_mod
+    # Manifest writing reaches out to work4you_cli.slack_cli + filesystem; stub it.
+    import work4you_cli.slack_cli as slack_cli_mod
     monkeypatch.setattr(slack_cli_mod, "_build_full_manifest", lambda **_kw: {"display_information": {}})
 
 

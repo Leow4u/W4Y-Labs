@@ -416,10 +416,10 @@ class TestSetupWizardDeploymentShape:
 
         # Bypass config.yaml + connection test side effects.
         monkeypatch.setattr(
-            "wayne_cli.config.load_config", lambda: {"memory": {}}, raising=False,
+            "work4you_cli.config.load_config", lambda: {"memory": {}}, raising=False,
         )
         monkeypatch.setattr(
-            "wayne_cli.config.save_config", lambda c: None, raising=False,
+            "work4you_cli.config.save_config", lambda c: None, raising=False,
         )
 
         class _FakeClientCfg:

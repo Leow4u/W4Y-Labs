@@ -26,9 +26,9 @@ def wayne_home(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.setenv("WAYNE_HOME", str(home))
     # Clear any cached wayne_home computation
-    import wayne_constants
-    if hasattr(wayne_constants, "_wayne_home_cache"):
-        wayne_constants._wayne_home_cache = None
+    import work4you_constants
+    if hasattr(work4you_constants, "_wayne_home_cache"):
+        work4you_constants._wayne_home_cache = None
     return home
 
 
@@ -50,7 +50,7 @@ def test_save_conversation_writes_under_wayne_home(wayne_home, tmp_path, monkeyp
     monkeypatch.chdir(work)
 
     # Import fresh to pick up the WAYNE_HOME fixture
-    for mod in [m for m in sys.modules if m.startswith("cli") or m == "wayne_constants"]:
+    for mod in [m for m in sys.modules if m.startswith("cli") or m == "work4you_constants"]:
         sys.modules.pop(mod, None)
 
     import cli  # noqa: F401  (module under test)
@@ -88,7 +88,7 @@ def test_save_conversation_writes_under_wayne_home(wayne_home, tmp_path, monkeyp
 
 
 def test_save_conversation_empty_history_does_nothing(wayne_home, capsys):
-    for mod in [m for m in sys.modules if m.startswith("cli") or m == "wayne_constants"]:
+    for mod in [m for m in sys.modules if m.startswith("cli") or m == "work4you_constants"]:
         sys.modules.pop(mod, None)
     import cli
 

@@ -13,12 +13,12 @@ Usage::
     wayne-acp
 """
 
-# IMPORTANT: wayne_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See wayne_bootstrap.py for full rationale.
+# IMPORTANT: work4you_bootstrap must be the very first import — UTF-8 stdio
+# on Windows.  No-op on POSIX.  See work4you_bootstrap.py for full rationale.
 try:
-    import wayne_bootstrap  # noqa: F401
+    import work4you_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    # Graceful fallback when wayne_bootstrap isn't registered in the venv
+    # Graceful fallback when work4you_bootstrap isn't registered in the venv
     # yet — happens during partial ``wayne update`` where git-reset landed
     # new code but ``uv pip install -e .`` didn't finish.  Missing bootstrap
     # means UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
@@ -27,14 +27,14 @@ else:
     # Stop a ``utils/``/``proxy/``/``ui/`` package in the launch directory from
     # shadowing Wayne's own modules — ``wayne acp`` can be started from any
     # cwd, including a project that has same-named packages on its path.
-    wayne_bootstrap.harden_import_path()
+    work4you_bootstrap.harden_import_path()
 
 import argparse
 import asyncio
 import logging
 import sys
 from pathlib import Path
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 
 # Methods clients send as periodic liveness probes. They are not part of the
@@ -100,7 +100,7 @@ def _setup_logging() -> None:
 
 def _load_env() -> None:
     """Load .env from WAYNE_HOME (default ``~/.wayne``)."""
-    from wayne_cli.env_loader import load_wayne_dotenv
+    from work4you_cli.env_loader import load_wayne_dotenv
 
     wayne_home = get_wayne_home()
     loaded = load_wayne_dotenv(wayne_home=wayne_home)
@@ -147,7 +147,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def _print_version() -> None:
-    from wayne_cli import __version__ as wayne_version
+    from work4you_cli import __version__ as wayne_version
 
     print(wayne_version)
 
@@ -160,7 +160,7 @@ def _run_check() -> None:
 
 
 def _run_setup() -> None:
-    from wayne_cli.main import main as wayne_main
+    from work4you_cli.main import main as wayne_main
 
     old_argv = sys.argv[:]
     try:
@@ -194,7 +194,7 @@ def _run_setup_browser(assume_yes: bool = False) -> int:
 
     Returns 0 on success, 1 on failure.
     """
-    from wayne_cli.dep_ensure import ensure_dependency
+    from work4you_cli.dep_ensure import ensure_dependency
 
     try:
         node_ok = ensure_dependency("node", interactive=not assume_yes)

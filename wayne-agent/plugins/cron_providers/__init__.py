@@ -69,7 +69,7 @@ def _register_synthetic_package(name: str, search_locations: List[str]) -> None:
 def _get_user_plugins_dir() -> Optional[Path]:
     """Return ``$WAYNE_HOME/plugins/`` or None if unavailable."""
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         d = get_wayne_home() / "plugins"
         return d if d.is_dir() else None
     except Exception:

@@ -43,7 +43,7 @@ from typing import Any, Callable, Dict, List, Optional
 
 import yaml
 
-from wayne_cli.config import get_wayne_home
+from work4you_cli.config import get_wayne_home
 
 
 HOOKS_DIR = get_wayne_home() / "hooks"

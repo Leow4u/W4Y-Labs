@@ -20,12 +20,12 @@ Usage:
     response = agent.run_conversation("Tell me about the latest Python updates")
 """
 
-# IMPORTANT: wayne_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See wayne_bootstrap.py for full rationale.
+# IMPORTANT: work4you_bootstrap must be the very first import — UTF-8 stdio
+# on Windows.  No-op on POSIX.  See work4you_bootstrap.py for full rationale.
 try:
-    import wayne_bootstrap  # noqa: F401
+    import work4you_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    # Graceful fallback when wayne_bootstrap isn't registered in the venv
+    # Graceful fallback when work4you_bootstrap isn't registered in the venv
     # yet — happens during partial ``wayne update`` where git-reset landed
     # new code but ``uv pip install -e .`` didn't finish.  Missing bootstrap
     # means UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
@@ -62,7 +62,7 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 
 def _launch_cwd_for_session(source: str) -> Optional[str]:
@@ -116,8 +116,8 @@ from agent.process_bootstrap import (
 from agent.iteration_budget import IterationBudget
 
 
-from wayne_cli.env_loader import load_wayne_dotenv
-from wayne_cli.timeouts import (
+from work4you_cli.env_loader import load_wayne_dotenv
+from work4you_cli.timeouts import (
     get_provider_request_timeout,
     get_provider_stale_timeout,
 )
@@ -281,7 +281,7 @@ _QWEN_CODE_VERSION = "0.14.1"
 
 def _routermint_headers() -> dict:
     """Return the User-Agent RouterMint needs to avoid Cloudflare 1010 blocks."""
-    from wayne_cli import __version__ as _WAYNE_VERSION
+    from work4you_cli import __version__ as _WAYNE_VERSION
 
     return {
         "User-Agent": f"WayneAgent/{_WAYNE_VERSION}",
@@ -589,7 +589,7 @@ class AIAgent:
         if self._session_db is not None:
             return self._session_db
         try:
-            from wayne_state import SessionDB
+            from work4you_state import SessionDB
 
             self._session_db = SessionDB()
             return self._session_db
@@ -770,7 +770,7 @@ class AIAgent:
             return
         try:
             from agent.model_metadata import MINIMUM_CONTEXT_LENGTH
-            from wayne_cli.models import ensure_lmstudio_model_loaded
+            from work4you_cli.models import ensure_lmstudio_model_loaded
             if config_context_length is None:
                 config_context_length = getattr(self, "_config_context_length", None)
             target_ctx = max(config_context_length or 0, MINIMUM_CONTEXT_LENGTH)
@@ -1373,7 +1373,7 @@ class AIAgent:
             return False
         if normalized_provider == "copilot":
             try:
-                from wayne_cli.models import _should_use_copilot_responses_api
+                from work4you_cli.models import _should_use_copilot_responses_api
                 return _should_use_copilot_responses_api(model)
             except Exception:
                 # Fall back to the generic GPT-5 rule if Copilot-specific
@@ -2432,11 +2432,11 @@ class AIAgent:
         reason: Optional[str] = None,
     ) -> None:
         # Lazy module import (not from-import) so tests that
-        # ``monkeypatch.setattr("wayne_cli.plugins.has_hook", ...)`` still
+        # ``monkeypatch.setattr("work4you_cli.plugins.has_hook", ...)`` still
         # take effect on this call site. After first call the import is a
         # ``sys.modules`` dict lookup, so retries don't repay any real cost.
         try:
-            from wayne_cli import plugins as _plugins
+            from work4you_cli import plugins as _plugins
 
             if not _plugins.has_hook("api_request_error"):
                 return
@@ -2827,7 +2827,7 @@ class AIAgent:
             # Read from the persisted config.yaml so gateway and CLI share
             # the same setting.  Import lazily to avoid a startup-time cycle.
             try:
-                from wayne_cli.config import load_config as _load_config
+                from work4you_cli.config import load_config as _load_config
                 _cfg = _load_config() or {}
             except Exception:
                 _cfg = {}
@@ -2924,7 +2924,7 @@ class AIAgent:
             # Read from the persisted config.yaml so gateway and CLI share
             # the same setting.  Import lazily to avoid a startup-time cycle.
             try:
-                from wayne_cli.config import load_config as _load_config
+                from work4you_cli.config import load_config as _load_config
                 _cfg = _load_config() or {}
             except Exception:
                 _cfg = {}
@@ -3283,7 +3283,7 @@ class AIAgent:
             return cached
         enabled = True
         try:
-            from wayne_cli.config import load_config as _load_config
+            from work4you_cli.config import load_config as _load_config
             _cfg = _load_config() or {}
             _display = _cfg.get("display") if isinstance(_cfg, dict) else None
             if isinstance(_display, dict) and "credits_notices" in _display:
@@ -4100,7 +4100,7 @@ class AIAgent:
         return any(_contains_image(item) for item in candidates)
 
     def _copilot_headers_for_request(self, *, is_vision: bool) -> dict:
-        from wayne_cli.copilot_auth import copilot_request_headers
+        from work4you_cli.copilot_auth import copilot_request_headers
 
         return copilot_request_headers(is_agent_turn=True, is_vision=is_vision)
 
@@ -4196,13 +4196,13 @@ class AIAgent:
         # MUST only fire when the agent really is on singleton tokens.
         try:
             if self.provider == "openai-codex":
-                from wayne_cli.auth import resolve_codex_runtime_credentials
+                from work4you_cli.auth import resolve_codex_runtime_credentials
 
                 singleton_now = resolve_codex_runtime_credentials(
                     refresh_if_expiring=False,
                 )
             else:
-                from wayne_cli.auth import resolve_xai_oauth_runtime_credentials
+                from work4you_cli.auth import resolve_xai_oauth_runtime_credentials
 
                 singleton_now = resolve_xai_oauth_runtime_credentials(
                     refresh_if_expiring=False,
@@ -4224,11 +4224,11 @@ class AIAgent:
 
         try:
             if self.provider == "openai-codex":
-                from wayne_cli.auth import resolve_codex_runtime_credentials
+                from work4you_cli.auth import resolve_codex_runtime_credentials
 
                 creds = resolve_codex_runtime_credentials(force_refresh=force)
             else:
-                from wayne_cli.auth import resolve_xai_oauth_runtime_credentials
+                from work4you_cli.auth import resolve_xai_oauth_runtime_credentials
 
                 creds = resolve_xai_oauth_runtime_credentials(force_refresh=force)
         except Exception as exc:
@@ -4261,7 +4261,7 @@ class AIAgent:
             return False
 
         try:
-            from wayne_cli.auth import resolve_nous_runtime_credentials
+            from work4you_cli.auth import resolve_nous_runtime_credentials
 
             creds = resolve_nous_runtime_credentials(
                 timeout_seconds=env_float("WAYNE_NOUS_TIMEOUT_SECONDS", 15),
@@ -4339,7 +4339,7 @@ class AIAgent:
             return False
 
         try:
-            from wayne_cli.copilot_auth import resolve_copilot_token
+            from work4you_cli.copilot_auth import resolve_copilot_token
 
             new_token, token_source = resolve_copilot_token()
         except Exception as exc:
@@ -4426,7 +4426,7 @@ class AIAgent:
         elif base_url_host_matches(base_url, "api.routermint.com"):
             self._client_kwargs["default_headers"] = _routermint_headers()
         elif base_url_host_matches(base_url, "githubcopilot.com"):
-            from wayne_cli.models import copilot_default_headers
+            from work4you_cli.models import copilot_default_headers
 
             self._client_kwargs["default_headers"] = copilot_default_headers()
         elif base_url_host_matches(base_url, "api.kimi.com"):
@@ -4464,7 +4464,7 @@ class AIAgent:
         # SECURITY: values may carry credentials — never log them.
         if self.api_mode not in ("anthropic_messages", "bedrock_converse"):
             try:
-                from wayne_cli.config import (
+                from work4you_cli.config import (
                     apply_custom_provider_extra_headers_to_client_kwargs,
                 )
 
@@ -4924,7 +4924,7 @@ class AIAgent:
         misclassified as non-vision and have their images stripped.
         """
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
             from agent.image_routing import _lookup_supports_vision
             cfg = load_config()
             provider = (getattr(self, "provider", "") or "").strip()
@@ -5354,7 +5354,7 @@ class AIAgent:
             or base_url_host_matches(self._base_url_lower, "githubcopilot.com")
         ):
             try:
-                from wayne_cli.models import github_model_reasoning_efforts
+                from work4you_cli.models import github_model_reasoning_efforts
 
                 return bool(github_model_reasoning_efforts(self.model))
             except Exception:
@@ -5407,7 +5407,7 @@ class AIAgent:
             if opts or (_time.monotonic() - ts) < 60:
                 return opts
         try:
-            from wayne_cli.models import lmstudio_model_reasoning_options
+            from work4you_cli.models import lmstudio_model_reasoning_options
             opts = lmstudio_model_reasoning_options(
                 self.model, self.base_url, getattr(self, "api_key", ""),
             )
@@ -5432,7 +5432,7 @@ class AIAgent:
     def _github_models_reasoning_extra_body(self) -> dict | None:
         """Format reasoning payload for GitHub Models/OpenAI-compatible routes."""
         try:
-            from wayne_cli.models import github_model_reasoning_efforts
+            from work4you_cli.models import github_model_reasoning_efforts
         except Exception:
             return None
 

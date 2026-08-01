@@ -160,7 +160,7 @@ class WebSearchProvider(abc.ABC):
     def get_setup_schema(self) -> Dict[str, Any]:
         """Return provider metadata for the ``wayne tools`` picker.
 
-        Used by ``wayne_cli/tools_config.py`` to inject this provider as a
+        Used by ``work4you_cli/tools_config.py`` to inject this provider as a
         row in the Web Search / Web Extract picker. Shape::
 
             {

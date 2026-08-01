@@ -70,7 +70,7 @@ async def test_direct_model_switch_offloads_to_thread(tmp_path, monkeypatch):
     gateway event loop (#20525)."""
     import asyncio
 
-    from wayne_cli.model_switch import ModelSwitchResult
+    from work4you_cli.model_switch import ModelSwitchResult
 
     wayne_home = tmp_path / ".wayne"
     wayne_home.mkdir()
@@ -90,7 +90,7 @@ async def test_direct_model_switch_offloads_to_thread(tmp_path, monkeypatch):
     def _fake_switch(**kwargs):
         return ModelSwitchResult(success=False, error_message="nope")
 
-    monkeypatch.setattr("wayne_cli.model_switch.switch_model", _fake_switch)
+    monkeypatch.setattr("work4you_cli.model_switch.switch_model", _fake_switch)
 
     offloaded = []
     real_to_thread = asyncio.to_thread

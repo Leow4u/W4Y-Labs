@@ -28,7 +28,7 @@
 // already returns its own column Box, so its single-child case was never
 // affected.
 
-import { Box } from '@wayne/ink'
+import { Box } from '@work4you/ink'
 import { memo, useRef } from 'react'
 
 import type { Theme } from '../theme.js'

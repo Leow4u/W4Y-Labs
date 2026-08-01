@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Awaitable, Callable
 
 from agent.model_metadata import estimate_tokens_rough
-from wayne_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
+from work4you_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
 
 _QUOTED_REFERENCE_VALUE = r'(?:`[^`\n]+`|"[^"\n]+"|\'[^\'\n]+\')'
 REFERENCE_PATTERN = re.compile(
@@ -362,7 +362,7 @@ def _resolve_path(cwd: Path, target: str, *, allowed_root: Path | None = None) -
 
 
 def _ensure_reference_path_allowed(path: Path) -> None:
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
     home = Path(os.path.expanduser("~")).resolve()
     wayne_home = get_wayne_home().resolve()
 

@@ -1,5 +1,5 @@
-import type { InputEvent, Key } from '@wayne/ink'
-import * as Ink from '@wayne/ink'
+import type { InputEvent, Key } from '@work4you/ink'
+import * as Ink from '@work4you/ink'
 import { type MutableRefObject, useEffect, useMemo, useRef, useState } from 'react'
 
 import { setInputSelection } from '../app/inputSelectionStore.js'

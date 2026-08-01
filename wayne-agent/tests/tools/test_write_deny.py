@@ -35,7 +35,7 @@ class TestWriteDenyExactPaths:
         # ``~/.wayne``) must be write-denied. The hermetic test conftest
         # points WAYNE_HOME at a tempdir — resolve via get_wayne_home()
         # to match the denylist.
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         path = str(get_wayne_home() / ".env")
         assert _is_write_denied(path) is True
 
@@ -58,7 +58,7 @@ class TestWriteDenyExactPaths:
         monkeypatch.setenv("WAYNE_HOME", str(profile_home))
 
         # Sanity check: WAYNE_HOME does point to the profile dir, not the root.
-        from wayne_constants import get_wayne_home, get_default_wayne_root
+        from work4you_constants import get_wayne_home, get_default_wayne_root
         assert get_wayne_home() == profile_home
         assert get_default_wayne_root() == root
 
@@ -121,13 +121,13 @@ class TestWriteAllowed:
         assert _is_write_denied("/home/user/project/main.py") is False
 
     def test_wayne_control_files_requested_writable(self):
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         home = get_wayne_home()
         for name in ["auth.json", "webhook_subscriptions.json"]:
             assert _is_write_denied(str(home / name)) is False, f"{name} should be writable"
 
     def test_wayne_config_yaml_write_denied(self):
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         assert _is_write_denied(str(get_wayne_home() / "config.yaml")) is True

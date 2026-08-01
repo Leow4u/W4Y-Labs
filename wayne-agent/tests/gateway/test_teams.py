@@ -376,13 +376,13 @@ class TestTeamsPluginRegistration:
 class TestTeamsInteractiveSetup:
     def test_interactive_setup_persists_credentials(self, tmp_path, monkeypatch):
         """Regression for #19173: interactive_setup must import prompt helpers
-        from wayne_cli.cli_output (not wayne_cli.config) and persist
+        from work4you_cli.cli_output (not work4you_cli.config) and persist
         credentials to .env without crashing.
         """
         wayne_home = tmp_path / "wayne"
         monkeypatch.setenv("WAYNE_HOME", str(wayne_home))
 
-        import wayne_cli.cli_output as cli_output_mod
+        import work4you_cli.cli_output as cli_output_mod
 
         answers = iter(["client-id", "client-secret", "tenant-id", "aad-1, aad-2"])
         monkeypatch.setattr(cli_output_mod, "prompt", lambda *_a, **_kw: next(answers))

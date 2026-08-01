@@ -1,4 +1,4 @@
-import { AlternateScreen, Box, NoSelect, ScrollBox, Text } from '@wayne/ink'
+import { AlternateScreen, Box, NoSelect, ScrollBox, Text } from '@work4you/ink'
 import { useStore } from '@nanostores/react'
 import { Fragment, memo, useEffect, useMemo, useRef } from 'react'
 

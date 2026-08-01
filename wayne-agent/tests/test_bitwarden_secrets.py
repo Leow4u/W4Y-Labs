@@ -45,9 +45,9 @@ def wayne_home(tmp_path, monkeypatch):
     home.mkdir()
     monkeypatch.setenv("WAYNE_HOME", str(home))
     # Some modules cache get_wayne_home; clear if needed.
-    import wayne_constants
-    if hasattr(wayne_constants, "_WAYNE_HOME_CACHE"):
-        wayne_constants._WAYNE_HOME_CACHE = None  # type: ignore[attr-defined]
+    import work4you_constants
+    if hasattr(work4you_constants, "_WAYNE_HOME_CACHE"):
+        work4you_constants._WAYNE_HOME_CACHE = None  # type: ignore[attr-defined]
     return home
 
 
@@ -616,7 +616,7 @@ def test_env_loader_skips_when_disabled(tmp_path, monkeypatch):
     monkeypatch.setenv("WAYNE_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    from wayne_cli.env_loader import _apply_external_secret_sources
+    from work4you_cli.env_loader import _apply_external_secret_sources
     # Should be a no-op (returns None).
     assert _apply_external_secret_sources(home) is None
 
@@ -654,7 +654,7 @@ def test_env_loader_calls_bsm_when_enabled(tmp_path, monkeypatch):
         fake_apply,
     )
 
-    from wayne_cli.env_loader import _apply_external_secret_sources
+    from work4you_cli.env_loader import _apply_external_secret_sources
     _apply_external_secret_sources(home)
 
     assert called["n"] == 1

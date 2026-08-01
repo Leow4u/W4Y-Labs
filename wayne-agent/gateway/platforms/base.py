@@ -492,7 +492,7 @@ sys.path.insert(0, str(_Path(__file__).resolve().parents[2]))
 
 from gateway.config import Platform, PlatformConfig
 from gateway.session import SessionSource, build_session_key
-from wayne_constants import get_default_wayne_root, get_wayne_dir, get_wayne_home
+from work4you_constants import get_default_wayne_root, get_wayne_dir, get_wayne_home
 
 
 GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE = (
@@ -605,7 +605,7 @@ def get_inbound_media_max_bytes() -> int:
     unreadable — falls back to the default.
     """
     try:
-        from wayne_cli.config import load_config as _load_config
+        from work4you_cli.config import load_config as _load_config
         cfg = _load_config()
     except Exception:
         return DEFAULT_INBOUND_MEDIA_MAX_BYTES
@@ -3003,7 +3003,7 @@ class BasePlatformAdapter(ABC):
         auto-deletion.  Non-fatal if config is unreadable.
         """
         try:
-            from wayne_cli.config import load_config as _load_config
+            from work4you_cli.config import load_config as _load_config
         except Exception:
             return 0
         try:
@@ -4631,7 +4631,7 @@ class BasePlatformAdapter(ABC):
             # session lifecycle and its cleanup races with the running task
             # (see PR #4926).
             cmd = event.get_command()
-            from wayne_cli.commands import should_bypass_active_session
+            from work4you_cli.commands import should_bypass_active_session
 
             if should_bypass_active_session(cmd):
                 # /stop, /new, /reset must cancel the in-flight adapter task

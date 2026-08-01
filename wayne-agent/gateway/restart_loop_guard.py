@@ -34,7 +34,7 @@ import logging
 import time
 from typing import List, Optional
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 logger = logging.getLogger("gateway.run")
 

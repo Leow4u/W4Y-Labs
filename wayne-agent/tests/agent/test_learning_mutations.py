@@ -9,7 +9,7 @@ from __future__ import annotations
 import pytest
 
 from agent import learning_mutations as lm
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 _SKILL = """---
 name: my-skill

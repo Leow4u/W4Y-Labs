@@ -17,13 +17,13 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
 
-from wayne_constants import (
+from work4you_constants import (
     get_wayne_home,
     get_wayne_home_override,
     reset_wayne_home_override,
     set_wayne_home_override,
 )
-from wayne_cli.env_loader import load_wayne_dotenv
+from work4you_cli.env_loader import load_wayne_dotenv
 from utils import is_truthy_value
 from tools.environments.local import wayne_subprocess_env
 from agent.replay_cleanup import sanitize_replay_history
@@ -117,7 +117,7 @@ def _thread_panic_hook(args):
 threading.excepthook = _thread_panic_hook
 
 try:
-    from wayne_cli.banner import prefetch_update_check
+    from work4you_cli.banner import prefetch_update_check
 
     prefetch_update_check()
 except Exception:
@@ -296,7 +296,7 @@ class _SlashWorker:
             argv += ["--model", model]
 
         self._closed = False
-        from wayne_cli._subprocess_compat import windows_hide_flags
+        from work4you_cli._subprocess_compat import windows_hide_flags
 
         # start_new_session=True detaches the slash worker into its own
         # process group / session. Without this, the worker inherits the
@@ -404,7 +404,7 @@ def _load_busy_input_mode() -> str:
 def _notify_session_boundary(event_type: str, session_id: str | None) -> None:
     """Fire session lifecycle hooks with CLI parity."""
     try:
-        from wayne_cli.plugins import invoke_hook as _invoke_hook
+        from work4you_cli.plugins import invoke_hook as _invoke_hook
 
         _invoke_hook(event_type, session_id=session_id, platform="tui")
     except Exception:
@@ -418,7 +418,7 @@ def _claim_active_session_slot(
     surface: str = "tui",
 ) -> tuple[Any, str | None]:
     try:
-        from wayne_cli.active_sessions import try_acquire_active_session
+        from work4you_cli.active_sessions import try_acquire_active_session
 
         return try_acquire_active_session(
             session_id=session_key,
@@ -455,7 +455,7 @@ def _transfer_active_session_slot(
     if lease is None:
         return True
     try:
-        from wayne_cli.active_sessions import transfer_active_session
+        from work4you_cli.active_sessions import transfer_active_session
 
         if transfer_active_session(
             lease,
@@ -551,7 +551,7 @@ def _finalize_session(session: dict | None, end_reason: str = "tui_close") -> No
     # the user Ctrl‑C's mid‑turn.
     if agent is not None:
         try:
-            from wayne_cli.plugins import invoke_hook
+            from work4you_cli.plugins import invoke_hook
 
             invoke_hook(
                 "on_session_end",
@@ -804,7 +804,7 @@ def _reap_idle_sessions() -> None:
 # mid-build / live-transport one. 0/null disables.
 def _max_live_sessions() -> int:
     try:
-        from wayne_cli.active_sessions import coerce_max_concurrent_sessions
+        from work4you_cli.active_sessions import coerce_max_concurrent_sessions
 
         cfg = _load_cfg() or {}
         raw = cfg.get("max_live_sessions")
@@ -885,7 +885,7 @@ _start_idle_reaper()
 def _get_db():
     global _db, _db_error
     if _db is None:
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
 
         try:
             _db = SessionDB()
@@ -919,7 +919,7 @@ def _profile_home(profile: str | None) -> Path | None:
     if not name:
         return None
     try:
-        from wayne_cli import profiles as profiles_mod
+        from work4you_cli import profiles as profiles_mod
 
         home = Path(profiles_mod.get_profile_dir(name))
     except Exception:
@@ -1219,7 +1219,7 @@ def _start_agent_build(sid: str, session: dict) -> None:
             if profile_home:
                 home_token = set_wayne_home_override(profile_home)
                 try:
-                    from wayne_state import SessionDB
+                    from work4you_state import SessionDB
 
                     session_db = SessionDB(db_path=Path(profile_home) / "state.db")
                 except Exception:
@@ -1553,7 +1553,7 @@ def _ensure_session_db_row(session: dict) -> None:
     # unified list mis-tags it, and resume 404s ("session not found").
     profile_home = session.get("profile_home")
     if profile_home:
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
 
         try:
             db = SessionDB(db_path=Path(profile_home) / "state.db")
@@ -1598,7 +1598,7 @@ def _ensure_session_db_row(session: dict) -> None:
     # start (matches _runtime_model_config's normalization).
     if str(model_config.get("provider") or "").strip().lower() == "custom":
         try:
-            from wayne_cli.runtime_provider import canonical_custom_identity
+            from work4you_cli.runtime_provider import canonical_custom_identity
 
             healed = canonical_custom_identity(
                 base_url=model_config.get("base_url") or None
@@ -1679,7 +1679,7 @@ def _session_db(session: dict):
     db, close_db = None, False
     profile_home = session.get("profile_home")
     if profile_home:
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
 
         try:
             db, close_db = SessionDB(db_path=Path(profile_home) / "state.db"), True
@@ -1822,12 +1822,12 @@ def _apply_managed(cfg: dict) -> dict:
     """Overlay administrator-pinned managed-scope values on a config dict.
 
     The TUI/desktop backend builds config independently of
-    wayne_cli.config.load_config, so without this a managed skin / reasoning_effort
+    work4you_cli.config.load_config, so without this a managed skin / reasoning_effort
     / service_tier / provider_routing would be silently ignored here. Read-side
     only — the raw user config is what gets cached and saved. Fail-open.
     """
     try:
-        from wayne_cli import managed_scope
+        from work4you_cli import managed_scope
 
         return managed_scope.apply_managed_overlay(cfg if isinstance(cfg, dict) else {})
     except Exception:
@@ -2021,7 +2021,7 @@ def local_exec(session_key: str, tool: str, args: dict | None = None,
 
 def resolve_skin() -> dict:
     try:
-        from wayne_cli.skin_engine import init_skin_from_config, get_active_skin
+        from work4you_cli.skin_engine import init_skin_from_config, get_active_skin
 
         init_skin_from_config(_load_cfg())
         skin = get_active_skin()
@@ -2092,7 +2092,7 @@ def _resolve_startup_runtime() -> tuple[str, str | None]:
         return model, None
 
     try:
-        from wayne_cli.models import detect_static_provider_for_model
+        from work4you_cli.models import detect_static_provider_for_model
 
         cfg = _load_cfg().get("model") or {}
         current_provider = (
@@ -2174,7 +2174,7 @@ def _stored_session_runtime_overrides(row: dict | None) -> dict:
     if provider.strip().lower() == "custom":
         healed = None
         try:
-            from wayne_cli.runtime_provider import canonical_custom_identity
+            from work4you_cli.runtime_provider import canonical_custom_identity
 
             healed = canonical_custom_identity(base_url=base_url or None)
         except Exception:
@@ -2231,7 +2231,7 @@ def _runtime_model_config(agent, existing: dict | None = None) -> dict:
             # bare "custom" with no base_url was persisted verbatim and routed
             # to OpenRouter with no key on the next resume).
             try:
-                from wayne_cli.runtime_provider import (
+                from work4you_cli.runtime_provider import (
                     canonical_custom_identity,
                 )
 
@@ -2433,7 +2433,7 @@ def _display_mouse_tracking(display: dict) -> str:
 
 
 def _load_reasoning_config() -> dict | None:
-    from wayne_constants import parse_reasoning_effort
+    from work4you_constants import parse_reasoning_effort
 
     # Pass the raw value through — ``or ""`` would coerce a YAML boolean
     # False (``reasoning_effort: false``/``off``/``no``) to "", silently
@@ -2543,7 +2543,7 @@ def _load_enabled_toolsets() -> list[str] | None:
 
         if unresolved:
             try:
-                from wayne_cli.plugins import discover_plugins
+                from work4you_cli.plugins import discover_plugins
 
                 discover_plugins()
                 plugin_valid = [name for name in unresolved if validate_toolset(name)]
@@ -2571,8 +2571,8 @@ def _load_enabled_toolsets() -> list[str] | None:
         mcp_names: set[str] = set()
         mcp_disabled: set[str] = set()
         try:
-            from wayne_cli.config import read_raw_config
-            from wayne_cli.tools_config import _parse_enabled_flag
+            from work4you_cli.config import read_raw_config
+            from work4you_cli.tools_config import _parse_enabled_flag
 
             raw_cfg = read_raw_config()
             mcp_servers = (
@@ -2623,8 +2623,8 @@ def _load_enabled_toolsets() -> list[str] | None:
         )
 
     try:
-        from wayne_cli.config import load_config
-        from wayne_cli.tools_config import _get_platform_tools
+        from work4you_cli.config import load_config
+        from work4you_cli.tools_config import _get_platform_tools
 
         cfg = cfg if cfg is not None else load_config()
 
@@ -2719,12 +2719,12 @@ def _apply_model_switch(
     pin_session_override: bool = True,
     parsed_flags: tuple[str, str, bool, bool, bool] | None = None,
 ) -> dict:
-    from wayne_cli.model_switch import (
+    from work4you_cli.model_switch import (
         parse_model_flags,
         resolve_persist_behavior,
         switch_model,
     )
-    from wayne_cli.runtime_provider import resolve_runtime_provider
+    from work4you_cli.runtime_provider import resolve_runtime_provider
 
     if parsed_flags is None:
         parsed_flags = parse_model_flags(raw_input)
@@ -2770,7 +2770,7 @@ def _apply_model_switch(
     user_provs = None
     custom_provs = None
     try:
-        from wayne_cli.config import get_compatible_custom_providers, load_config
+        from work4you_cli.config import get_compatible_custom_providers, load_config
 
         cfg = load_config()
         user_provs = cfg.get("providers")
@@ -2794,7 +2794,7 @@ def _apply_model_switch(
 
     if agent:
         try:
-            from wayne_cli.context_switch_guard import merge_preflight_compression_warning
+            from work4you_cli.context_switch_guard import merge_preflight_compression_warning
 
             _cfg_ctx = None
             if isinstance(cfg, dict):
@@ -2813,7 +2813,7 @@ def _apply_model_switch(
 
     if not confirm_expensive_model:
         try:
-            from wayne_cli.model_cost_guard import expensive_model_warning
+            from work4you_cli.model_cost_guard import expensive_model_warning
 
             warning = expensive_model_warning(
                 result.new_model,
@@ -3200,7 +3200,7 @@ def _probe_config_health(cfg: dict) -> str:
 
 def _current_profile_name() -> str:
     try:
-        from wayne_cli.profiles import get_active_profile_name
+        from work4you_cli.profiles import get_active_profile_name
 
         return get_active_profile_name() or "default"
     except Exception:
@@ -3282,7 +3282,7 @@ def _session_info(agent, session: dict | None = None) -> dict:
         "profile_name": _current_profile_name(),
     }
     try:
-        from wayne_cli import __version__, __release_date__
+        from work4you_cli import __version__, __release_date__
 
         info["version"] = __version__
         info["release_date"] = __release_date__
@@ -3299,7 +3299,7 @@ def _session_info(agent, session: dict | None = None) -> dict:
     except Exception:
         pass
     try:
-        from wayne_cli.banner import get_available_skills
+        from work4you_cli.banner import get_available_skills
 
         info["skills"] = get_available_skills()
     except Exception:
@@ -3315,8 +3315,8 @@ def _session_info(agent, session: dict | None = None) -> dict:
     except Exception:
         pass
     try:
-        from wayne_cli.banner import get_update_result
-        from wayne_cli.config import recommended_update_command
+        from work4you_cli.banner import get_update_result
+        from work4you_cli.config import recommended_update_command
 
         info["update_behind"] = get_update_result(timeout=0.5)
         info["update_command"] = recommended_update_command()
@@ -3860,7 +3860,7 @@ def _wire_callbacks(sid: str):
                 "skipped": True,
                 "message": "skipped",
             }
-        from wayne_cli.config import save_env_value_secure
+        from work4you_cli.config import save_env_value_secure
 
         return {
             **save_env_value_secure(env_var, val),
@@ -3889,7 +3889,7 @@ def _available_personalities(cfg: dict | None = None) -> dict:
         return (load_cli_config().get("agent") or {}).get("personalities", {}) or {}
     except Exception:
         try:
-            from wayne_cli.config import load_config as _load_full_cfg
+            from work4you_cli.config import load_config as _load_full_cfg
 
             return (_load_full_cfg().get("agent") or {}).get("personalities", {}) or {}
         except Exception:
@@ -4006,7 +4006,7 @@ def _load_fallback_model():
     order, with legacy ``fallback_model`` entries merged in afterwards
     (deduped on provider/model/base_url).
     """
-    from wayne_cli.fallback_config import get_fallback_chain
+    from work4you_cli.fallback_config import get_fallback_chain
 
     return get_fallback_chain(_load_cfg())
 
@@ -4304,12 +4304,12 @@ def _resolve_runtime_with_fallback(
     """Resolve runtime provider with init-time fallback on auth failure.
 
     Mirrors the fallback pattern in ``cron/scheduler.py`` and
-    ``wayne_cli/cli_agent_setup_mixin.py``: when the primary provider
+    ``work4you_cli/cli_agent_setup_mixin.py``: when the primary provider
     raises ``AuthError``, walk the configured ``fallback_providers`` /
     ``fallback_model`` chain before giving up.
     """
-    from wayne_cli.auth import AuthError
-    from wayne_cli.runtime_provider import resolve_runtime_provider
+    from work4you_cli.auth import AuthError
+    from work4you_cli.runtime_provider import resolve_runtime_provider
 
     kwargs = resolve_kwargs or {}
     try:
@@ -4358,10 +4358,10 @@ def _make_agent(
     # dead server can't freeze the shell.  The agent snapshots its tool list
     # once here and never re-reads it, so briefly wait for in-flight discovery
     # to land before building — bounded, so a slow/dead server still can't
-    # block. Dashboard /api/ws uses wayne_cli.mcp_startup; TUI stdio keeps
+    # block. Dashboard /api/ws uses work4you_cli.mcp_startup; TUI stdio keeps
     # its existing tui_gateway.entry-owned thread.
     try:
-        from wayne_cli.mcp_startup import wait_for_mcp_discovery
+        from work4you_cli.mcp_startup import wait_for_mcp_discovery
 
         wait_for_mcp_discovery()
     except Exception:
@@ -4425,7 +4425,7 @@ def _make_agent(
             # the entry identity from the persisted base_url, falling back to
             # the configured provider when the override carries no base_url
             # (the recurring Desktop/TUI regression vector).
-            from wayne_cli.runtime_provider import canonical_custom_identity
+            from work4you_cli.runtime_provider import canonical_custom_identity
 
             recovered = canonical_custom_identity(base_url=override_base_url or None)
             if recovered:
@@ -5067,7 +5067,7 @@ def _(rid, params: dict) -> dict:
     create_reasoning_override = None
     if effort := str(params.get("reasoning_effort") or "").strip():
         try:
-            from wayne_constants import parse_reasoning_effort
+            from work4you_constants import parse_reasoning_effort
 
             create_reasoning_override = parse_reasoning_effort(effort)
         except Exception:
@@ -5419,7 +5419,7 @@ def _(rid, params: dict) -> dict:
     # In a profile scope, the agent OWNS a long-lived db handle bound to that
     # profile (do NOT auto-close it here). Otherwise reuse the shared launch db.
     if profile_home is not None:
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
 
         db = SessionDB(db_path=profile_home / "state.db")
     else:
@@ -6467,7 +6467,7 @@ def _pet_config_scale() -> float:
     from agent.pet import constants
 
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         cfg = load_config()
         display = cfg.get("display", {}) if isinstance(cfg.get("display"), dict) else {}
@@ -6525,7 +6525,7 @@ def _pet_active_selection():
     from agent.pet import constants, store
 
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         cfg = load_config()
         display = cfg.get("display", {}) if isinstance(cfg.get("display"), dict) else {}
@@ -6627,7 +6627,7 @@ def _(rid, params: dict) -> dict:
         from agent.pet.render import PetRenderer
 
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
 
             cfg = load_config()
             display = cfg.get("display", {}) if isinstance(cfg.get("display"), dict) else {}
@@ -6734,7 +6734,7 @@ def _(rid, params: dict) -> dict:
         from agent.pet import store
 
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
 
             cfg = load_config()
             display = cfg.get("display", {}) if isinstance(cfg.get("display"), dict) else {}
@@ -6799,7 +6799,7 @@ def _(rid, params: dict) -> dict:
         # error — an empty payload makes the desktop think nothing is installed.
         try:
             from agent.pet import store
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
 
             cfg = load_config()
             display = cfg.get("display", {}) if isinstance(cfg.get("display"), dict) else {}
@@ -6840,7 +6840,7 @@ def _(rid, params: dict) -> dict:
     try:
         from agent.pet import store
         from agent.pet.manifest import ManifestError
-        from wayne_cli.pets import _set_active
+        from work4you_cli.pets import _set_active
 
         try:
             pet = store.install_pet(slug)
@@ -6867,7 +6867,7 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 4004, "missing slug")
     try:
         from agent.pet import store
-        from wayne_cli.pets import _clear_active_if
+        from work4you_cli.pets import _clear_active_if
 
         removed = store.remove_pet(slug)
 
@@ -6936,7 +6936,7 @@ def _(rid, params: dict) -> dict:
         # in config so surfaces don't point at the old (now-missing) directory.
         if new_slug != slug:
             try:
-                from wayne_cli.pets import _rename_active_if
+                from work4you_cli.pets import _rename_active_if
 
                 _rename_active_if(slug, new_slug)
             except Exception as exc:  # noqa: BLE001 - rename already succeeded
@@ -6988,7 +6988,7 @@ def _(rid, params: dict) -> dict:
 def _(rid, params: dict) -> dict:
     """Turn the pet off from the desktop picker (``display.pet.enabled=false``)."""
     try:
-        from wayne_cli.pets import _set_enabled
+        from work4you_cli.pets import _set_enabled
 
         _set_enabled(False)
         return _ok(rid, {"ok": True})
@@ -7007,7 +7007,7 @@ def _(rid, params: dict) -> dict:
     terminal surfaces on their next read.
     """
     try:
-        from wayne_cli.pets import set_pet_scale
+        from work4you_cli.pets import set_pet_scale
 
         scale, err = set_pet_scale(params.get("scale"))
         if err:
@@ -7020,7 +7020,7 @@ def _(rid, params: dict) -> dict:
 
 def _pet_gen_root():
     """Profile-scoped staging dir for in-progress generation drafts."""
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     root = get_wayne_home() / "cache" / "pet-gen"
     root.mkdir(parents=True, exist_ok=True)
@@ -7434,7 +7434,7 @@ def _(rid, params: dict) -> dict:
     """
     try:
         from agent.openrouter_credits import fetch_openrouter_credits_state
-        from wayne_cli.runtime_provider import resolve_runtime_provider
+        from work4you_cli.runtime_provider import resolve_runtime_provider
 
         runtime = resolve_runtime_provider(
             requested="openrouter", explicit_base_url=None, explicit_api_key=None
@@ -7467,12 +7467,12 @@ def _(rid, params: dict) -> dict:
 # Ink side can branch on the typed billing error code (insufficient_scope,
 # rate_limited, no_payment_method, …) to render the right affordance instead of
 # landing in a generic catch. The data-building lives in the shared core
-# (agent/billing_view.py + wayne_cli/nous_billing.py) — same as /credits.
+# (agent/billing_view.py + work4you_cli/nous_billing.py) — same as /credits.
 
 
 def _serialize_billing_error(exc) -> dict:
     """Map a BillingError into the result.error envelope the TUI branches on."""
-    from wayne_cli.nous_billing import (
+    from work4you_cli.nous_billing import (
         BillingRateLimited,
         BillingScopeRequired,
     )
@@ -7571,7 +7571,7 @@ def _(rid, params: dict) -> dict:
     supplied, the server-side core mints a fresh one and returns it so the TUI can
     reuse it on retry of the SAME purchase.
     """
-    from wayne_cli.nous_billing import BillingError, post_charge
+    from work4you_cli.nous_billing import BillingError, post_charge
     from agent.billing_view import new_idempotency_key
 
     amount = params.get("amount_usd")
@@ -7595,7 +7595,7 @@ def _(rid, params: dict) -> dict:
 
     The poll. Caller drives the 2s/5-min cadence; this is a single status read.
     """
-    from wayne_cli.nous_billing import BillingError, get_charge_status
+    from work4you_cli.nous_billing import BillingError, get_charge_status
 
     charge_id = params.get("charge_id")
     if not charge_id:
@@ -7624,7 +7624,7 @@ def _(rid, params: dict) -> dict:
 
     params: {enabled: bool, threshold: number, top_up_amount: number}.
     """
-    from wayne_cli.nous_billing import BillingError, patch_auto_top_up
+    from work4you_cli.nous_billing import BillingError, patch_auto_top_up
 
     try:
         enabled = bool(params.get("enabled"))
@@ -7656,7 +7656,7 @@ def _(rid, params: dict) -> dict:
     """
     sid = params.get("session_id") or ""
     try:
-        from wayne_cli.auth import step_up_nous_billing_scope
+        from work4you_cli.auth import step_up_nous_billing_scope
 
         def _on_verification(url: str, code: str) -> None:
             _emit(
@@ -7679,7 +7679,7 @@ def _(rid, params: dict) -> dict:
     if err:
         return err
 
-    from wayne_constants import display_wayne_home
+    from work4you_constants import display_wayne_home
 
     key = session.get("session_key") or params.get("session_id") or ""
     agent = session.get("agent")
@@ -8127,7 +8127,7 @@ def _(rid, params: dict) -> dict:
 
 
 def _spawn_trees_root():
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     root = get_wayne_home() / "spawn-trees"
     root.mkdir(parents=True, exist_ok=True)
@@ -8347,7 +8347,7 @@ def _(rid, params: dict) -> dict:
     try:
         profile_home = session.get("profile_home")
         if profile_home:
-            from wayne_cli.budget import budget_refusal_message, check_budget
+            from work4you_cli.budget import budget_refusal_message, check_budget
 
             state = check_budget(profile_home)
             if not state.get("allowed", True):
@@ -8773,7 +8773,7 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                         _read_main_model,
                         _read_main_provider,
                     )
-                    from wayne_cli.config import load_config as _tui_load_config
+                    from work4you_cli.config import load_config as _tui_load_config
 
                     _cfg = _tui_load_config()
                     _mode = decide_image_input_mode(
@@ -8957,7 +8957,7 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
             # outcome. Mirrors gateway/run._post_turn_goal_continuation.
             if status == "complete" and isinstance(raw, str) and raw.strip():
                 try:
-                    from wayne_cli.goals import GoalManager
+                    from work4you_cli.goals import GoalManager
 
                     sid_key = session.get("session_key") or ""
                     if sid_key:
@@ -8972,7 +8972,7 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                         )
                         if goal_mgr.is_active():
                             try:
-                                from wayne_cli.goals import gather_background_processes as _gather_bg
+                                from work4you_cli.goals import gather_background_processes as _gather_bg
                                 _bg_procs = _gather_bg()
                             except Exception:
                                 _bg_procs = None
@@ -9058,14 +9058,14 @@ def _run_prompt_submit(rid, sid: str, session: dict, text: Any) -> None:
                 and _voice_tts_enabled()
             ):
                 try:
-                    from wayne_cli.voice import speak_text
+                    from work4you_cli.voice import speak_text
 
                     spoken = raw
                     threading.Thread(
                         target=speak_text, args=(spoken,), daemon=True
                     ).start()
                 except ImportError:
-                    logger.warning("voice TTS skipped: wayne_cli.voice unavailable")
+                    logger.warning("voice TTS skipped: work4you_cli.voice unavailable")
                 except Exception as e:
                     logger.warning("voice TTS dispatch failed: %s", e)
         except Exception as e:
@@ -9173,7 +9173,7 @@ def _(rid, params: dict) -> dict:
     if err:
         return err
     try:
-        from wayne_cli.clipboard import has_clipboard_image, save_clipboard_image
+        from work4you_cli.clipboard import has_clipboard_image, save_clipboard_image
     except Exception as e:
         return _err(rid, 5027, f"clipboard unavailable: {e}")
 
@@ -9483,7 +9483,7 @@ def _(rid, params: dict) -> dict:
             "-f", str(first_page), "-l", str(last_page),
             str(pdf_path), str(out_prefix),
         ]
-        from wayne_cli._subprocess_compat import windows_hide_flags
+        from work4you_cli._subprocess_compat import windows_hide_flags
 
         try:
             res = subprocess.run(
@@ -10023,7 +10023,7 @@ def _ensure_local_folder_project(cwd: str) -> None:
     """
     try:
         from tui_gateway.project_tree import base_name
-        from wayne_cli import projects_db as pdb
+        from work4you_cli import projects_db as pdb
 
         with pdb.connect_closing() as conn:
             if pdb.project_for_path(conn, cwd, include_archived=True):
@@ -10314,7 +10314,7 @@ def _(rid, params: dict) -> dict:
                         4009,
                         "session busy — /interrupt the current turn before switching models",
                     )
-                from wayne_cli.model_switch import parse_model_flags
+                from work4you_cli.model_switch import parse_model_flags
 
                 parsed_flags = parse_model_flags(value)
                 _model_input, explicit_provider, _persist_global, _force_refresh, _is_session = parsed_flags
@@ -10382,7 +10382,7 @@ def _(rid, params: dict) -> dict:
 
         overrides = None
         if nv == "fast":
-            from wayne_cli.models import resolve_fast_mode_overrides
+            from work4you_cli.models import resolve_fast_mode_overrides
 
             target_model = (
                 getattr(agent, "model", None) if agent is not None else _resolve_model()
@@ -10556,7 +10556,7 @@ def _(rid, params: dict) -> dict:
 
     if key == "reasoning":
         try:
-            from wayne_constants import parse_reasoning_effort
+            from work4you_constants import parse_reasoning_effort
 
             arg = str(value or "").strip().lower()
             if arg in {"show", "on"}:
@@ -10856,7 +10856,7 @@ class _NoProject(Exception):
 
 
 def _projects_payload(conn) -> dict:
-    from wayne_cli import projects_db as pdb
+    from work4you_cli import projects_db as pdb
 
     return {
         "projects": [p.to_dict() for p in pdb.list_projects(conn, include_archived=True)],
@@ -10876,7 +10876,7 @@ def _projects_method(name: str):
         @method(name)
         def handler(rid, params: dict) -> dict:
             try:
-                from wayne_cli import projects_db as pdb
+                from work4you_cli import projects_db as pdb
 
                 with pdb.connect_closing() as conn:
                     return fn(rid, params, pdb, conn)
@@ -11005,7 +11005,7 @@ def _is_repo_junk(root: str) -> bool:
     if not root:
         return True
 
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     real = os.path.realpath(root)
     home = os.path.realpath(os.path.expanduser("~"))
@@ -11061,7 +11061,7 @@ def _discover_repos_payload(db, *, conn=None, backfill: bool = True) -> list[dic
     # Filesystem-scanned roots from the cache (may have zero sessions). Reuse the
     # caller's projects.db connection when given, else open a short-lived one.
     try:
-        from wayne_cli import projects_db as pdb
+        from work4you_cli import projects_db as pdb
 
         def _read(c) -> None:
             for entry in pdb.list_discovered_repos(c):
@@ -11105,7 +11105,7 @@ def _(rid, params: dict) -> dict:
     the merged repo list. The native crawl runs on the desktop (local fs); this
     caches the result so later reads are instant instead of re-walking disk."""
     try:
-        from wayne_cli import projects_db as pdb
+        from work4you_cli import projects_db as pdb
 
         pairs: list[tuple[str, str | None]] = []
         for item in params.get("repos") or []:
@@ -11187,7 +11187,7 @@ def _project_tree_inputs(
     # skips the discovery warm-up below).
     git_probe.warm_roots(s["cwd"] for s in sessions if s.get("cwd"))
 
-    from wayne_cli import projects_db as pdb
+    from work4you_cli import projects_db as pdb
 
     with pdb.connect_closing() as conn:
         projects = [p.to_dict() for p in pdb.list_projects(conn)]
@@ -11277,7 +11277,7 @@ def _(rid, params: dict) -> dict:
     key = params.get("key", "")
     if key == "provider":
         try:
-            from wayne_cli.models import list_available_providers, normalize_provider
+            from work4you_cli.models import list_available_providers, normalize_provider
 
             model = _resolve_model()
             parts = model.split("/", 1)
@@ -11294,7 +11294,7 @@ def _(rid, params: dict) -> dict:
         except Exception as e:
             return _err(rid, 5013, str(e))
     if key == "profile":
-        from wayne_constants import display_wayne_home
+        from work4you_constants import display_wayne_home
 
         return _ok(rid, {"home": str(_wayne_home), "display": display_wayne_home()})
     if key == "project":
@@ -11429,7 +11429,7 @@ def _(rid, params: dict) -> dict:
 @method("setup.status")
 def _(rid, params: dict) -> dict:
     try:
-        from wayne_cli.main import _has_any_provider_configured
+        from work4you_cli.main import _has_any_provider_configured
 
         return _ok(rid, {"provider_configured": bool(_has_any_provider_configured())})
     except Exception as e:
@@ -11448,9 +11448,9 @@ def _(rid, params: dict) -> dict:
     surface onboarding before the user submits a doomed prompt.
     """
     try:
-        from wayne_cli.runtime_provider import resolve_runtime_provider
-        from wayne_cli.auth import has_usable_secret
-        from wayne_cli.main import _has_any_provider_configured
+        from work4you_cli.runtime_provider import resolve_runtime_provider
+        from work4you_cli.auth import has_usable_secret
+        from work4you_cli.main import _has_any_provider_configured
 
         requested = str(params.get("provider") or "").strip() or None
         runtime = resolve_runtime_provider(requested=requested)
@@ -11585,7 +11585,7 @@ def _(rid, params: dict) -> dict:
         user_confirm = bool(params.get("confirm", False))
         if not user_confirm:
             try:
-                from wayne_cli.config import load_config as _load_config
+                from work4you_cli.config import load_config as _load_config
 
                 _cfg = _load_config()
                 _approvals = _cfg.get("approvals") if isinstance(_cfg, dict) else None
@@ -11663,7 +11663,7 @@ def _(rid, params: dict) -> dict:
 @method("reload.env")
 def _(rid, params: dict) -> dict:
     """Re-read ``~/.wayne/.env`` into the gateway process via
-    ``wayne_cli.config.reload_env``, matching classic CLI's ``/reload``
+    ``work4you_cli.config.reload_env``, matching classic CLI's ``/reload``
     handler.  Newly added API keys take effect on the next agent call
     without restarting the TUI.
 
@@ -11673,7 +11673,7 @@ def _(rid, params: dict) -> dict:
     should follow with ``/new``.
     """
     try:
-        from wayne_cli.config import reload_env
+        from work4you_cli.config import reload_env
 
         count = reload_env()
         return _ok(rid, {"updated": int(count)})
@@ -11728,7 +11728,7 @@ _WORKER_BLOCKED_COMMANDS: frozenset[str] = frozenset({"snapshot", "snap"})
 def _(rid, params: dict) -> dict:
     """Registry-backed slash metadata for the TUI — categorized, no aliases."""
     try:
-        from wayne_cli.commands import (
+        from work4you_cli.commands import (
             COMMAND_REGISTRY,
             SUBCOMMANDS,
             _build_description,
@@ -11841,7 +11841,7 @@ def _cli_exec_blocked(argv: list[str]) -> str | None:
 
 @method("cli.exec")
 def _(rid, params: dict) -> dict:
-    """Run `python -m wayne_cli.main` with argv; capture stdout/stderr (non-interactive only)."""
+    """Run `python -m work4you_cli.main` with argv; capture stdout/stderr (non-interactive only)."""
     argv = params.get("argv", [])
     if not isinstance(argv, list) or not all(isinstance(x, str) for x in argv):
         return _err(rid, 4003, "argv must be list[str]")
@@ -11850,12 +11850,12 @@ def _(rid, params: dict) -> dict:
         return _ok(rid, {"blocked": True, "hint": hint, "code": -1, "output": ""})
     try:
         r = subprocess.run(
-            [sys.executable, "-m", "wayne_cli.main", *argv],
+            [sys.executable, "-m", "work4you_cli.main", *argv],
             capture_output=True,
             text=True,
             timeout=min(int(params.get("timeout", 240)), 600),
             cwd=os.getcwd(),
-            # cli.exec runs `python -m wayne_cli.main` (can drive the agent) →
+            # cli.exec runs `python -m work4you_cli.main` (can drive the agent) →
             # needs provider credentials. Tier-1 secrets still stripped (#29157).
             env=wayne_subprocess_env(inherit_credentials=True),
             stdin=subprocess.DEVNULL,
@@ -11874,7 +11874,7 @@ def _(rid, params: dict) -> dict:
 @method("command.resolve")
 def _(rid, params: dict) -> dict:
     try:
-        from wayne_cli.commands import resolve_command
+        from work4you_cli.commands import resolve_command
 
         r = resolve_command(params.get("name", ""))
         if r:
@@ -11893,7 +11893,7 @@ def _(rid, params: dict) -> dict:
 
 def _resolve_name(name: str) -> str:
     try:
-        from wayne_cli.commands import resolve_command
+        from work4you_cli.commands import resolve_command
 
         r = resolve_command(name)
         return r.name if r else name
@@ -11946,7 +11946,7 @@ def _(rid, params: dict) -> dict:
             return _ok(rid, {"type": "alias", "target": qc.get("target", "")})
 
     try:
-        from wayne_cli.plugins import (
+        from work4you_cli.plugins import (
             get_plugin_command_handler,
             resolve_plugin_command_result,
         )
@@ -12005,7 +12005,7 @@ def _(rid, params: dict) -> dict:
         # for the rest of the session, pick it from the model picker (MoA
         # presets surface as a virtual "Mixture of Agents" provider).
         try:
-            from wayne_cli.moa_config import moa_usage, normalize_moa_config
+            from work4you_cli.moa_config import moa_usage, normalize_moa_config
 
             if not arg:
                 return _err(rid, 4004, moa_usage())
@@ -12117,7 +12117,7 @@ def _(rid, params: dict) -> dict:
         if not session:
             return _err(rid, 4001, "no active session")
         try:
-            from wayne_cli.goals import GoalManager
+            from work4you_cli.goals import GoalManager
         except Exception as exc:
             return _err(rid, 5030, f"goals unavailable: {exc}")
 
@@ -12381,7 +12381,7 @@ def _list_repo_files(root: str) -> list[str]:
             return cached[1]
 
     files: list[str] = []
-    from wayne_cli._subprocess_compat import windows_hide_flags
+    from work4you_cli._subprocess_compat import windows_hide_flags
 
     _creationflags = windows_hide_flags()
     try:
@@ -12742,7 +12742,7 @@ def _(rid, params: dict) -> dict:
         return _ok(rid, {"items": []})
 
     try:
-        from wayne_cli.commands import SlashCommandCompleter
+        from work4you_cli.commands import SlashCommandCompleter
         from prompt_toolkit.document import Document
         from prompt_toolkit.formatted_text import to_plain_text
 
@@ -12817,7 +12817,7 @@ def _(rid, params: dict) -> dict:
 @method("model.options")
 def _(rid, params: dict) -> dict:
     try:
-        from wayne_cli.inventory import build_models_payload, load_picker_context
+        from work4you_cli.inventory import build_models_payload, load_picker_context
 
         session = _sessions.get(params.get("session_id", ""))
         agent = session.get("agent") if session else None
@@ -12866,9 +12866,9 @@ def _(rid, params: dict) -> dict:
     model.options entries) on success.
     """
     try:
-        from wayne_cli.auth import PROVIDER_REGISTRY
-        from wayne_cli.config import is_managed, save_env_value
-        from wayne_cli.inventory import build_models_payload, load_picker_context
+        from work4you_cli.auth import PROVIDER_REGISTRY
+        from work4you_cli.config import is_managed, save_env_value
+        from work4you_cli.inventory import build_models_payload, load_picker_context
 
         slug = (params.get("slug") or "").strip()
         api_key = (params.get("api_key") or "").strip()
@@ -12946,8 +12946,8 @@ def _(rid, params: dict) -> dict:
     Returns success status and the provider's slug.
     """
     try:
-        from wayne_cli.auth import PROVIDER_REGISTRY, clear_provider_auth
-        from wayne_cli.config import remove_env_value
+        from work4you_cli.auth import PROVIDER_REGISTRY, clear_provider_auth
+        from work4you_cli.config import remove_env_value
 
         slug = (params.get("slug") or "").strip()
         if not slug:
@@ -13135,7 +13135,7 @@ def _(rid, params: dict) -> dict:
     resolve_plugin_command_result = None
     if _cmd_base:
         try:
-            from wayne_cli.plugins import (
+            from work4you_cli.plugins import (
                 get_plugin_command_handler,
                 resolve_plugin_command_result,
             )
@@ -13293,7 +13293,7 @@ def _(rid, params: dict) -> dict:
             # Disabling the mode must tear the continuous loop down; the
             # loop holds the microphone and would otherwise keep running.
             try:
-                from wayne_cli.voice import stop_continuous
+                from work4you_cli.voice import stop_continuous
 
                 stop_continuous()
             except ImportError:
@@ -13359,7 +13359,7 @@ def _(rid, params: dict) -> dict:
                 global _voice_event_sid
                 _voice_event_sid = params.get("session_id") or _voice_event_sid
 
-            from wayne_cli.voice import start_continuous
+            from work4you_cli.voice import start_continuous
 
             # Shape-safe lookups: malformed ``voice:`` YAML (bool/scalar/list)
             # must not crash /voice with a 5025 — fall back to VAD defaults.
@@ -13400,7 +13400,7 @@ def _(rid, params: dict) -> dict:
         with _voice_sid_lock:
             _voice_event_sid = params.get("session_id") or _voice_event_sid
 
-        from wayne_cli.voice import stop_continuous
+        from work4you_cli.voice import stop_continuous
 
         stop_continuous(force_transcribe=True)
         return _ok(rid, {"status": "stopped"})
@@ -13418,7 +13418,7 @@ def _(rid, params: dict) -> dict:
     if not text:
         return _err(rid, 4020, "text required")
     try:
-        from wayne_cli.voice import speak_text
+        from work4you_cli.voice import speak_text
 
         threading.Thread(target=speak_text, args=(text,), daemon=True).start()
         return _ok(rid, {"status": "speaking"})
@@ -13584,7 +13584,7 @@ def _resolve_browser_cdp_url() -> str:
     if env_url:
         return env_url
     try:
-        from wayne_cli.config import read_raw_config
+        from work4you_cli.config import read_raw_config
 
         cfg = read_raw_config()
         browser_cfg = cfg.get("browser", {}) if isinstance(cfg, dict) else {}
@@ -13643,7 +13643,7 @@ def _normalize_cdp_url(parsed) -> str:
 
 
 def _failure_messages(url: str, port: int, system: str) -> list[str]:
-    from wayne_cli.browser_connect import manual_chrome_debug_command
+    from work4you_cli.browser_connect import manual_chrome_debug_command
 
     command = manual_chrome_debug_command(port, system)
     hint = (
@@ -13681,7 +13681,7 @@ def _(rid, params: dict) -> dict:
 def _browser_connect(rid, params: dict) -> dict:
     import platform
 
-    from wayne_cli.browser_connect import DEFAULT_BROWSER_CDP_URL
+    from work4you_cli.browser_connect import DEFAULT_BROWSER_CDP_URL
     from tools.browser_tool import cleanup_all_browsers
     from urllib.parse import urlparse
 
@@ -13740,7 +13740,7 @@ def _browser_connect(rid, params: dict) -> dict:
             ok = any(_http_ok(p, timeout=2.0) for p in probes)
 
             if not ok and _is_default_local_cdp(parsed):
-                from wayne_cli.browser_connect import launch_chrome_debug
+                from work4you_cli.browser_connect import launch_chrome_debug
 
                 announce(
                     "Chromium-family browser isn't running with remote debugging — attempting to launch..."
@@ -13808,7 +13808,7 @@ def _browser_disconnect(rid) -> dict:
 @method("plugins.list")
 def _(rid, params: dict) -> dict:
     try:
-        from wayne_cli.plugins import get_plugin_manager
+        from work4you_cli.plugins import get_plugin_manager
 
         return _ok(
             rid,
@@ -13949,8 +13949,8 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 4018, "names required")
 
     try:
-        from wayne_cli.config import load_config, save_config
-        from wayne_cli.tools_config import (
+        from work4you_cli.config import load_config, save_config
+        from work4you_cli.tools_config import (
             CONFIGURABLE_TOOLSETS,
             _apply_mcp_change,
             _apply_toolset_change,
@@ -14149,7 +14149,7 @@ def _(rid, params: dict) -> dict:
     action, query = params.get("action", "list"), params.get("query", "")
     try:
         if action == "list":
-            from wayne_cli.banner import get_available_skills
+            from work4you_cli.banner import get_available_skills
 
             return _ok(rid, {"skills": get_available_skills()})
         if action == "search":
@@ -14177,7 +14177,7 @@ def _(rid, params: dict) -> dict:
                 },
             )
         if action == "install":
-            from wayne_cli.skills_hub import do_install
+            from work4you_cli.skills_hub import do_install
 
             class _Q:
                 def print(self, *a, **k):
@@ -14186,7 +14186,7 @@ def _(rid, params: dict) -> dict:
             do_install(query, skip_confirm=True, console=_Q())
             return _ok(rid, {"installed": True, "name": query})
         if action == "browse":
-            from wayne_cli.skills_hub import browse_skills
+            from work4you_cli.skills_hub import browse_skills
 
             pg = int(params.get("page", 0) or 0) or (
                 int(query) if query.isdigit() else 1
@@ -14195,7 +14195,7 @@ def _(rid, params: dict) -> dict:
                 rid, browse_skills(page=pg, page_size=int(params.get("page_size", 20)))
             )
         if action == "inspect":
-            from wayne_cli.skills_hub import inspect_skill
+            from work4you_cli.skills_hub import inspect_skill
 
             return _ok(rid, {"info": inspect_skill(query) or {}})
         return _err(rid, 4017, f"unknown skills action: {action}")
@@ -14244,7 +14244,7 @@ def _(rid, params: dict) -> dict:
     """
     action = params.get("action", "list")
     try:
-        from wayne_cli.plugins_cmd import (
+        from work4you_cli.plugins_cmd import (
             _discover_all_plugins,
             _get_disabled_set,
             _get_enabled_set,
@@ -14282,7 +14282,7 @@ def _(rid, params: dict) -> dict:
             )
 
         if action == "toggle":
-            from wayne_cli.plugins_cmd import dashboard_set_agent_plugin_enabled
+            from work4you_cli.plugins_cmd import dashboard_set_agent_plugin_enabled
 
             name = (params.get("name") or "").strip()
             if not name:

@@ -76,7 +76,7 @@ class TestIsWriteDenied:
     )
     def test_oauth_mcp_tokens_and_pairing_denied(self, path):
         """PKCE creds, mcp-tokens, and pairing entries must be write-denied."""
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         wayne_home = get_wayne_home()
         full_path = str(wayne_home / path)
         assert _is_write_denied(full_path) is True
@@ -86,12 +86,12 @@ class TestIsWriteDenied:
         ["auth.json", "webhook_subscriptions.json"],
     )
     def test_wayne_control_files_requested_writable(self, path):
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         assert _is_write_denied(str(get_wayne_home() / path)) is False
 
     def test_wayne_config_yaml_write_denied(self):
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         assert _is_write_denied(str(get_wayne_home() / "config.yaml")) is True
 
@@ -103,7 +103,7 @@ class TestIsWriteDenied:
     )
     def test_oauth_traversal_denied(self, path):
         """Path traversal attempts to protected OAuth files must be blocked."""
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         wayne_home = get_wayne_home()
         full_path = str(wayne_home / path)
         assert _is_write_denied(full_path) is True

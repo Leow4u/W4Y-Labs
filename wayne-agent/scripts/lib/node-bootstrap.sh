@@ -261,7 +261,7 @@ _nb_managed_node_needs_heal() {
 
 # Redownload the pinned nodejs.org tarball when a managed tree exists but
 # node/npm/npx fail a --version probe. No-op when the tree is healthy or
-# absent. Used by wayne_constants.find_wayne_node_executable() and safe
+# absent. Used by work4you_constants.find_wayne_node_executable() and safe
 # to call from install reruns.
 heal_managed_node() {
     [ -d "$WAYNE_HOME/node" ] || return 1

@@ -33,7 +33,7 @@ def wayne_home(tmp_path, monkeypatch):
     monkeypatch.setenv("WAYNE_HOME", str(home))
 
     # Bust the goal module's DB cache so it re-resolves WAYNE_HOME each test.
-    from wayne_cli import goals
+    from work4you_cli import goals
     goals._DB_CACHE.clear()
     yield home
     goals._DB_CACHE.clear()
@@ -42,7 +42,7 @@ def wayne_home(tmp_path, monkeypatch):
 def _make_cli_with_goal(session_id: str, goal_text: str = "build a thing"):
     """Build a minimal WayneCLI stub with an active goal wired in."""
     from cli import WayneCLI
-    from wayne_cli.goals import GoalManager
+    from work4you_cli.goals import GoalManager
 
     cli = WayneCLI.__new__(WayneCLI)
     # State the hook + helpers touch directly.
@@ -80,7 +80,7 @@ class TestInterruptAutoPause:
 
         # Judge MUST NOT run on an interrupted turn. If it does, we've
         # regressed — fail loudly instead of silently querying a mock.
-        with patch("wayne_cli.goals.judge_goal") as judge_mock:
+        with patch("work4you_cli.goals.judge_goal") as judge_mock:
             judge_mock.side_effect = AssertionError(
                 "judge_goal called on an interrupted turn"
             )
@@ -105,7 +105,7 @@ class TestInterruptAutoPause:
         cli.conversation_history = [
             {"role": "assistant", "content": "partial"},
         ]
-        with patch("wayne_cli.goals.judge_goal"):
+        with patch("work4you_cli.goals.judge_goal"):
             cli._maybe_continue_goal_after_turn()
         assert mgr.state.status == "paused"
 
@@ -124,7 +124,7 @@ class TestEmptyResponseSkip:
             {"role": "assistant", "content": "   \n\n   "},
         ]
 
-        with patch("wayne_cli.goals.judge_goal") as judge_mock:
+        with patch("work4you_cli.goals.judge_goal") as judge_mock:
             judge_mock.side_effect = AssertionError(
                 "judge_goal called on an empty response"
             )
@@ -143,7 +143,7 @@ class TestEmptyResponseSkip:
             {"role": "user", "content": "go"},
         ]
 
-        with patch("wayne_cli.goals.judge_goal") as judge_mock:
+        with patch("work4you_cli.goals.judge_goal") as judge_mock:
             judge_mock.side_effect = AssertionError(
                 "judge_goal called without an assistant response"
             )
@@ -168,7 +168,7 @@ class TestHealthyTurnStillRuns:
 
         # Force the judge to say "continue" without touching the network.
         with patch(
-            "wayne_cli.goals.judge_goal",
+            "work4you_cli.goals.judge_goal",
             return_value=("continue", "needs more steps", False, None),
         ):
             cli._maybe_continue_goal_after_turn()
@@ -188,7 +188,7 @@ class TestHealthyTurnStillRuns:
         ]
 
         with patch(
-            "wayne_cli.goals.judge_goal",
+            "work4you_cli.goals.judge_goal",
             return_value=("done", "goal satisfied", False, None),
         ):
             cli._maybe_continue_goal_after_turn()

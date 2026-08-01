@@ -35,14 +35,14 @@ from typing import List, Optional
 
 # Add parent directory to path for imports BEFORE repo-level imports.
 # Without this, standalone invocations (e.g. after `wayne update` reloads
-# the module) fail with ModuleNotFoundError for wayne_time et al.
+# the module) fail with ModuleNotFoundError for work4you_time et al.
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from wayne_constants import get_wayne_home
-from wayne_cli._subprocess_compat import windows_hide_flags
-from wayne_cli.config import load_config, _expand_env_vars
-from wayne_cli.fallback_config import get_fallback_chain
-from wayne_time import now as _wayne_now
+from work4you_constants import get_wayne_home
+from work4you_cli._subprocess_compat import windows_hide_flags
+from work4you_cli.config import load_config, _expand_env_vars
+from work4you_cli.fallback_config import get_fallback_chain
+from work4you_time import now as _wayne_now
 
 logger = logging.getLogger(__name__)
 
@@ -154,10 +154,10 @@ def _merge_mcp_into_per_job_toolsets(per_job: list[str], cfg: dict) -> list[str]
     result = [t for t in per_job if t != "no_mcp"]
     if "no_mcp" in per_job:
         return result
-    # lazy import: avoid heavy wayne_cli import at cron module load (matches
+    # lazy import: avoid heavy work4you_cli import at cron module load (matches
     # _resolve_cron_enabled_toolsets' fallback) and share one MCP-membership
     # computation with the gateway/CLI platform resolver.
-    from wayne_cli.tools_config import enabled_mcp_server_names
+    from work4you_cli.tools_config import enabled_mcp_server_names
     enabled_mcp = enabled_mcp_server_names(cfg)
     if set(result) & enabled_mcp:
         return result
@@ -190,7 +190,7 @@ def _resolve_cron_enabled_toolsets(job: dict, cfg: dict) -> list[str] | None:
     if per_job:
         return _merge_mcp_into_per_job_toolsets(list(per_job), cfg or {})
     try:
-        from wayne_cli.tools_config import _get_platform_tools  # lazy: avoid heavy import at cron module load
+        from work4you_cli.tools_config import _get_platform_tools  # lazy: avoid heavy import at cron module load
         return sorted(_get_platform_tools(cfg or {}, "cron"))
     except Exception as exc:
         logger.warning(
@@ -829,7 +829,7 @@ def _plugin_cron_env_var(platform_name: str) -> str:
     support without editing this module.
     """
     try:
-        from wayne_cli.plugins import discover_plugins
+        from work4you_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
         from gateway.platform_registry import platform_registry
         entry = platform_registry.get(platform_name.lower())
@@ -913,7 +913,7 @@ def _iter_home_target_platforms():
     for name in _HOME_TARGET_ENV_VARS:
         yield name
     try:
-        from wayne_cli.plugins import discover_plugins
+        from work4you_cli.plugins import discover_plugins
         discover_plugins()  # idempotent
         from gateway.platform_registry import platform_registry
         for entry in platform_registry.plugin_entries():
@@ -2298,8 +2298,8 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     # are exempt; meter trouble fails open (the capped key is the hard stop).
     if not job.get("no_agent"):
         try:
-            from wayne_constants import get_wayne_home
-            from wayne_cli.budget import budget_refusal_message, check_budget
+            from work4you_constants import get_wayne_home
+            from work4you_cli.budget import budget_refusal_message, check_budget
 
             _budget_state = check_budget(get_wayne_home())
             if not _budget_state.get("allowed", True):
@@ -2426,7 +2426,7 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     # and discoverable via session_search (same pattern as gateway/run.py).
     _session_db = None
     try:
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
         _session_db = SessionDB()
     except Exception as e:
         logger.debug("Job '%s': SQLite session store not available: %s", job.get("id", "?"), e)
@@ -2592,7 +2592,7 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
         # is set (mirrors startup), and the Bitwarden value-cache keeps the
         # forced re-pull off the network. load_wayne_dotenv also handles the
         # utf-8/latin-1 encoding fallback internally.
-        from wayne_cli.env_loader import (
+        from work4you_cli.env_loader import (
             load_wayne_dotenv,
             reset_secret_source_cache,
         )
@@ -2629,7 +2629,7 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
                 # builds its own dict, so overlay managed values via the shared
                 # helper (fail-open, no-op when no managed scope).
                 try:
-                    from wayne_cli import managed_scope
+                    from work4you_cli import managed_scope
                     _cfg = managed_scope.apply_managed_overlay(_cfg)
                 except Exception:
                     pass
@@ -2664,7 +2664,7 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
 
         # Apply IPv4 preference if configured.
         try:
-            from wayne_constants import apply_ipv4_preference
+            from work4you_constants import apply_ipv4_preference
             _net_cfg = _cfg.get("network", {})
             if isinstance(_net_cfg, dict) and _net_cfg.get("force_ipv4"):
                 apply_ipv4_preference(force=True)
@@ -2673,7 +2673,7 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
 
         # Reasoning config from config.yaml (raw value — a YAML boolean False
         # means thinking disabled, see parse_reasoning_effort)
-        from wayne_constants import parse_reasoning_effort
+        from work4you_constants import parse_reasoning_effort
         reasoning_config = parse_reasoning_effort(
             _cfg.get("agent", {}).get("reasoning_effort", "")
         )
@@ -2708,11 +2708,11 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
         # Provider routing
         pr = _cfg.get("provider_routing") or {}
 
-        from wayne_cli.runtime_provider import (
+        from work4you_cli.runtime_provider import (
             resolve_runtime_provider,
             format_runtime_provider_error,
         )
-        from wayne_cli.auth import AuthError
+        from work4you_cli.auth import AuthError
 
         # F8 runtime backstop: never resolve a stored provider/base_url pair that
         # would ship a named provider's stored credential to an off-host endpoint

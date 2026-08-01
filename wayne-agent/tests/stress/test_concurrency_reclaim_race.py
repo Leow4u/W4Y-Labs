@@ -42,7 +42,7 @@ def worker_loop(worker_id: int, wayne_home: str, result_file: str) -> None:
     os.environ["WAYNE_HOME"] = wayne_home
     os.environ["HOME"] = wayne_home
     sys.path.insert(0, WT)
-    from wayne_cli import kanban_db as kb
+    from work4you_cli import kanban_db as kb
 
     events = []
     start = time.monotonic()
@@ -99,7 +99,7 @@ def reclaimer_loop(wayne_home: str, result_file: str) -> None:
     os.environ["WAYNE_HOME"] = wayne_home
     os.environ["HOME"] = wayne_home
     sys.path.insert(0, WT)
-    from wayne_cli import kanban_db as kb
+    from work4you_cli import kanban_db as kb
 
     events = []
     start = time.monotonic()
@@ -125,7 +125,7 @@ def main():
     os.environ["WAYNE_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from wayne_cli import kanban_db as kb
+    from work4you_cli import kanban_db as kb
 
     kb.init_db()
     conn = kb.connect()

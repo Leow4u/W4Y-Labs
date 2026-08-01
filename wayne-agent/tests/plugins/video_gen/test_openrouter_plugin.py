@@ -43,7 +43,7 @@ def test_openrouter_unavailable_without_key(monkeypatch):
 
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     monkeypatch.setattr(
-        "wayne_cli.runtime_provider.resolve_runtime_provider",
+        "work4you_cli.runtime_provider.resolve_runtime_provider",
         lambda requested=None: {"api_key": "", "base_url": ""},
     )
     assert OpenRouterVideoGenProvider().is_available() is False
@@ -53,7 +53,7 @@ def test_openrouter_generate_requires_key(monkeypatch):
     from plugins.video_gen.openrouter import OpenRouterVideoGenProvider
 
     monkeypatch.setattr(
-        "wayne_cli.runtime_provider.resolve_runtime_provider",
+        "work4you_cli.runtime_provider.resolve_runtime_provider",
         lambda requested=None: {"api_key": "", "base_url": ""},
     )
     result = OpenRouterVideoGenProvider().generate("a happy dog")
@@ -68,7 +68,7 @@ def test_openrouter_submit_poll_download(monkeypatch, tmp_path):
 
     monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
     monkeypatch.setattr(
-        "wayne_cli.runtime_provider.resolve_runtime_provider",
+        "work4you_cli.runtime_provider.resolve_runtime_provider",
         lambda requested=None: {
             "api_key": "sk-or-test",
             "base_url": "https://openrouter.ai/api/v1",
@@ -151,7 +151,7 @@ def test_openrouter_image_to_video_payload(monkeypatch, tmp_path):
 
     monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
     monkeypatch.setattr(
-        "wayne_cli.runtime_provider.resolve_runtime_provider",
+        "work4you_cli.runtime_provider.resolve_runtime_provider",
         lambda requested=None: {
             "api_key": "sk-or-test",
             "base_url": "https://openrouter.ai/api/v1",

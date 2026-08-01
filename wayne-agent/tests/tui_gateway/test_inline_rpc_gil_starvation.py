@@ -35,10 +35,10 @@ def _restore_stdout():
 @pytest.fixture()
 def server():
     with patch.dict("sys.modules", {
-        "wayne_constants": MagicMock(get_wayne_home=MagicMock(return_value="/tmp/wayne_test")),
-        "wayne_cli.env_loader": MagicMock(),
-        "wayne_cli.banner": MagicMock(),
-        "wayne_state": MagicMock(),
+        "work4you_constants": MagicMock(get_wayne_home=MagicMock(return_value="/tmp/wayne_test")),
+        "work4you_cli.env_loader": MagicMock(),
+        "work4you_cli.banner": MagicMock(),
+        "work4you_state": MagicMock(),
     }):
         import importlib
         mod = importlib.import_module("tui_gateway.server")

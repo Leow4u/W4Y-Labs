@@ -19,8 +19,8 @@ from pathlib import Path
 
 import yaml
 
-import wayne_cli.plugins as plugins_mod
-from wayne_cli.plugins import PluginManager, VALID_HOOKS
+import work4you_cli.plugins as plugins_mod
+from work4you_cli.plugins import PluginManager, VALID_HOOKS
 
 
 def _make_enabled_plugin(wayne_home: Path, name: str, register_body: str) -> Path:
