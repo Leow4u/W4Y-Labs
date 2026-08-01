@@ -18,11 +18,11 @@ from gateway.status import (
 
 
 ACCEPT = [
-    "pythonw.exe -m wayne_cli.main gateway run",
-    r"C:\Users\me\wayne\venv\Scripts\pythonw.exe -m wayne_cli.main gateway run",
-    "python -m wayne_cli.main --profile work gateway run",
-    "python -m wayne_cli.main gateway run --replace",
-    "python -m wayne_cli/main.py gateway run",
+    "pythonw.exe -m work4you_cli.main gateway run",
+    r"C:\Users\me\wayne\venv\Scripts\pythonw.exe -m work4you_cli.main gateway run",
+    "python -m work4you_cli.main --profile work gateway run",
+    "python -m work4you_cli.main gateway run --replace",
+    "python -m work4you_cli/main.py gateway run",
     "python gateway/run.py",
     "wayne-gateway.exe",
     "wayne gateway",          # bare `wayne gateway` defaults to run
@@ -30,23 +30,23 @@ ACCEPT = [
     # profile selector AFTER the `gateway` token (argv is profile-position
     # agnostic — _apply_profile_override strips --profile/-p anywhere)
     "wayne gateway --profile work run",
-    "python -m wayne_cli.main gateway -p work run",
+    "python -m work4you_cli.main gateway -p work run",
     "wayne gateway --profile=work run",
     # a profile literally NAMED "gateway"
     "wayne -p gateway gateway run",
-    "python -m wayne_cli.main --profile gateway gateway run",
+    "python -m work4you_cli.main --profile gateway gateway run",
     # quoted Windows paths with spaces (shlex-aware tokenization)
     r'"C:\Program Files\Wayne\wayne-gateway.exe"',
     r'"C:\Program Files\Wayne\gateway\run.py" run',
-    r'"C:\Program Files\Py\pythonw.exe" -m wayne_cli.main gateway run',
+    r'"C:\Program Files\Py\pythonw.exe" -m work4you_cli.main gateway run',
 ]
 
 REJECT = [
     "python -m tui_gateway",                              # unrelated module
-    "python -m wayne_cli.main gateway status",           # other subcommand
-    "python -m wayne_cli.main gateway restart",
-    "python -m wayne_cli.main gateway stop",
-    "python -m wayne_cli.main --profile x dashboard",    # non-gateway subcommand
+    "python -m work4you_cli.main gateway status",           # other subcommand
+    "python -m work4you_cli.main gateway restart",
+    "python -m work4you_cli.main gateway stop",
+    "python -m work4you_cli.main --profile x dashboard",    # non-gateway subcommand
     "some random python -m mygateway thing",
     "",
     None,
@@ -64,6 +64,6 @@ def test_rejects_non_gateway_run(cmd):
 
 
 def test_runtime_matcher_accepts_no_supervisor_restart_process():
-    assert matches("python -m wayne_cli.main gateway restart") is False
-    assert matches_runtime("python -m wayne_cli.main gateway restart") is True
-    assert matches_runtime("python -m wayne_cli.main gateway status") is False
+    assert matches("python -m work4you_cli.main gateway restart") is False
+    assert matches_runtime("python -m work4you_cli.main gateway restart") is True
+    assert matches_runtime("python -m work4you_cli.main gateway status") is False

@@ -21,7 +21,7 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 def _build_agent_with_db(db: SessionDB, session_id: str, platform: str = "telegram"):
@@ -74,7 +74,7 @@ class TestGoalMigratesOnRotation:
         # Set a persistent goal on the parent via the real persistence path.
         with patch.dict(os.environ, {"WAYNE_HOME": str(tmp_path / ".wayne")}):
             (tmp_path / ".wayne").mkdir(exist_ok=True)
-            import wayne_cli.goals as goals
+            import work4you_cli.goals as goals
             goals._DB_CACHE.clear()
             # Point the goal DB at the same state.db the agent uses.
             with patch.object(goals, "_get_session_db", return_value=db):

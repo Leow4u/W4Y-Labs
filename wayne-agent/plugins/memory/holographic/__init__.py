@@ -26,7 +26,7 @@ from agent.memory_provider import MemoryProvider
 from tools.registry import tool_error
 from .store import MemoryStore
 from .retrieval import FactRetriever
-from wayne_cli.config import cfg_get
+from work4you_cli.config import cfg_get
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +95,7 @@ FACT_FEEDBACK_SCHEMA = {
 # ---------------------------------------------------------------------------
 
 def _load_plugin_config() -> dict:
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
     config_path = get_wayne_home() / "config.yaml"
     if not config_path.exists():
         return {}
@@ -146,7 +146,7 @@ class HolographicMemoryProvider(MemoryProvider):
             pass
 
     def get_config_schema(self):
-        from wayne_constants import display_wayne_home
+        from work4you_constants import display_wayne_home
         _default_db = f"{display_wayne_home()}/memory_store.db"
         return [
             {"key": "db_path", "description": "SQLite database path", "default": _default_db},
@@ -156,7 +156,7 @@ class HolographicMemoryProvider(MemoryProvider):
         ]
 
     def initialize(self, session_id: str, **kwargs) -> None:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         _wayne_home = str(get_wayne_home())
         _default_db = _wayne_home + "/memory_store.db"
         db_path = self._config.get("db_path", _default_db)

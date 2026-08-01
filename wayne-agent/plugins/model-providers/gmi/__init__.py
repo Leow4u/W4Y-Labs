@@ -1,6 +1,6 @@
 """GMI Cloud provider profile."""
 
-from wayne_cli import __version__ as _WAYNE_VERSION
+from work4you_cli import __version__ as _WAYNE_VERSION
 from providers import register_provider
 from providers.base import ProviderProfile
 

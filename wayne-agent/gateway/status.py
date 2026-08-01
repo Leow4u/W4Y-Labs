@@ -20,7 +20,7 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from typing import Any, Optional
 from utils import atomic_json_write
 
@@ -89,7 +89,7 @@ def terminate_pid(pid: int, *, force: bool = False) -> None:
         # CREATE_NO_WINDOW: terminate_pid runs from the windowless pythonw.exe
         # gateway/desktop backend, so a bare taskkill spawn would flash a
         # conhost window on every force-kill.
-        from wayne_cli._subprocess_compat import windows_hide_flags
+        from work4you_cli._subprocess_compat import windows_hide_flags
 
         try:
             result = subprocess.run(
@@ -207,7 +207,7 @@ def _gateway_command_subcommand(command: str | None) -> str | None:
 
     Lifecycle decisions (is the gateway up? did restart relaunch it?) must not
     fire on loose substring matches.  The previous ``"... gateway" in cmdline``
-    test also matched ``wayne_cli.main gateway status`` and even unrelated
+    test also matched ``work4you_cli.main gateway status`` and even unrelated
     processes like ``python -m tui_gateway`` -- which made ``restart()`` race
     against a still-draining old process and ``status``/``start`` report false
     positives.  This requires the actual ``gateway`` subcommand followed by
@@ -252,8 +252,8 @@ def _gateway_command_subcommand(command: str | None) -> str | None:
 
     joined = " ".join(tokens)
     has_gateway_entry = (
-        "wayne_cli.main" in joined
-        or "wayne_cli/main.py" in joined
+        "work4you_cli.main" in joined
+        or "work4you_cli/main.py" in joined
         or any(
             t.rsplit("/", 1)[-1] in ("work4you", "work4you.exe", "wayne", "wayne.exe")
             for t in tokens
@@ -343,7 +343,7 @@ def _profile_name_for_home(profile_home: Path) -> Optional[str]:
 def _command_line_belongs_to_profile(command: str, profile_home: Path) -> bool:
     """Return True when a gateway command line belongs to ``profile_home``.
 
-    Mirrors ``wayne_cli.gateway._matches_current_profile`` so the dashboard's
+    Mirrors ``work4you_cli.gateway._matches_current_profile`` so the dashboard's
     cross-profile liveness fallback scopes a live PID to the *right* profile.
     In a per-profile container, one profile's stale ``gateway_state.json`` can
     record a PID that the OS has since recycled onto a DIFFERENT profile's live

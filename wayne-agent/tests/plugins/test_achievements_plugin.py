@@ -51,16 +51,16 @@ def plugin_api(tmp_path, monkeypatch):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     # Stash monkeypatch so ``_install_fake_session_db`` can use it to
-    # swap ``sys.modules['wayne_state']`` with auto-restoration. Without
+    # swap ``sys.modules['work4you_state']`` with auto-restoration. Without
     # this, a raw ``sys.modules[...] = fake`` assignment would leak the
     # fake into later tests in the same xdist worker — breaking every
-    # test that does ``from wayne_state import SessionDB``.
+    # test that does ``from work4you_state import SessionDB``.
     module._test_monkeypatch = monkeypatch
     yield module
 
 
 class _FakeSessionDB:
-    """Stand-in for wayne_state.SessionDB that records scan calls."""
+    """Stand-in for work4you_state.SessionDB that records scan calls."""
 
     def __init__(self, session_count: int, scan_delay: float = 0):
         self.session_count = session_count
@@ -119,12 +119,12 @@ def _install_fake_session_db(plugin_api, fake_db):
     """Inject a fake SessionDB so ``scan_sessions`` finds it via its local import.
 
     Uses the monkeypatch stashed on ``plugin_api`` by the fixture, so the
-    ``sys.modules['wayne_state']`` swap is auto-restored at test teardown
+    ``sys.modules['work4you_state']`` swap is auto-restored at test teardown
     and cannot leak into unrelated tests in the same xdist worker.
     """
-    fake_module = type(sys)("wayne_state")
+    fake_module = type(sys)("work4you_state")
     fake_module.SessionDB = lambda: fake_db
-    plugin_api._test_monkeypatch.setitem(sys.modules, "wayne_state", fake_module)
+    plugin_api._test_monkeypatch.setitem(sys.modules, "work4you_state", fake_module)
 
 
 def test_scan_sessions_default_scans_all_history_not_first_200(plugin_api):

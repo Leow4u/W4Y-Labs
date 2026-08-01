@@ -127,7 +127,7 @@ class BrowserProvider(abc.ABC):
     def get_setup_schema(self) -> Dict[str, Any]:
         """Return provider metadata for the ``wayne tools`` picker.
 
-        Used by :mod:`wayne_cli.tools_config` to inject this provider as a
+        Used by :mod:`work4you_cli.tools_config` to inject this provider as a
         row in the Browser Automation picker. Shape mirrors the existing
         hardcoded entries in ``TOOL_CATEGORIES["browser"]``::
 

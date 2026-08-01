@@ -1,4 +1,4 @@
-from wayne_state import AsyncSessionDB
+from work4you_state import AsyncSessionDB
 """Tests for gateway /usage command — agent cache lookup and output fields."""
 
 import threading

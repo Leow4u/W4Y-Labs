@@ -1189,7 +1189,7 @@ class QQAdapter(BasePlatformAdapter):
         Writes via ``tmp + rename`` so a partial write can't fool the reader.
         """
         try:
-            from wayne_constants import get_wayne_home
+            from work4you_constants import get_wayne_home
             home = get_wayne_home()
             response_path = home / ".update_response"
             tmp = response_path.with_suffix(".tmp")

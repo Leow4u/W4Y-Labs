@@ -31,8 +31,8 @@ from agent.billing_view import (
     parse_money,
     validate_charge_amount,
 )
-import wayne_cli.nous_billing as nb
-from wayne_cli.nous_billing import (
+import work4you_cli.nous_billing as nb
+from work4you_cli.nous_billing import (
     BillingAuthError,
     BillingError,
     BillingRateLimited,

@@ -443,7 +443,7 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         except Exception:
             pass
 
-    from wayne_time import now as _wayne_now
+    from work4you_time import now as _wayne_now
     now = _wayne_now()
     # Date-only (not minute-precision) so the system prompt is byte-stable
     # for the full day.  Minute-precision changes invalidate prefix-cache KV

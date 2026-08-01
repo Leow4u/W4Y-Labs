@@ -160,8 +160,8 @@ function circularDistance(a: number, b: number): number {
   return Math.min(distance, 1 - distance)
 }
 
-// Mirrors @wayne/ink's colorize.ts. Keep local: app code compiles from
-// ui-tui/src, while @wayne/ink is bundled separately from packages/.
+// Mirrors @work4you/ink's colorize.ts. Keep local: app code compiles from
+// ui-tui/src, while @work4you/ink is bundled separately from packages/.
 function richEightBitColorNumber(red: number, green: number, blue: number): number {
   const [, saturation, lightness] = rgbToHsl(red, green, blue)
 

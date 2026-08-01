@@ -42,9 +42,9 @@ import contextvars as _ctxvars
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from wayne_constants import get_wayne_home, display_wayne_home
+from work4you_constants import get_wayne_home, display_wayne_home
 from utils import atomic_replace, is_truthy_value
-from wayne_cli.config import cfg_get
+from work4you_cli.config import cfg_get
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +108,7 @@ def _guard_agent_created_enabled() -> bool:
     on via `wayne config set skills.guard_agent_created true`.
     """
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         cfg = load_config()
         return is_truthy_value(
             cfg_get(cfg, "skills", "guard_agent_created"),
@@ -597,7 +597,7 @@ def _find_skill_in_other_profiles(name: str) -> List[Tuple[str, Path]]:
     """
     matches: List[Tuple[str, Path]] = []
     try:
-        from wayne_constants import get_default_wayne_root
+        from work4you_constants import get_default_wayne_root
         from agent.skill_utils import is_excluded_skill_path
     except Exception:
         return matches

@@ -86,9 +86,9 @@ class TestConfigFilePermissions(unittest.TestCase):
 
     def test_save_config_sets_0600(self):
         config_path = Path(self.tmpdir) / "config.yaml"
-        with patch("wayne_cli.config.get_config_path", return_value=config_path), \
-             patch("wayne_cli.config.ensure_wayne_home"):
-            from wayne_cli.config import save_config
+        with patch("work4you_cli.config.get_config_path", return_value=config_path), \
+             patch("work4you_cli.config.ensure_wayne_home"):
+            from work4you_cli.config import save_config
             save_config({"model": "test/model"})
 
             file_mode = stat.S_IMODE(os.stat(config_path).st_mode)
@@ -96,9 +96,9 @@ class TestConfigFilePermissions(unittest.TestCase):
 
     def test_save_env_value_sets_0600(self):
         env_path = Path(self.tmpdir) / ".env"
-        with patch("wayne_cli.config.get_env_path", return_value=env_path), \
-             patch("wayne_cli.config.ensure_wayne_home"):
-            from wayne_cli.config import save_env_value
+        with patch("work4you_cli.config.get_env_path", return_value=env_path), \
+             patch("work4you_cli.config.ensure_wayne_home"):
+            from work4you_cli.config import save_env_value
             save_env_value("TEST_KEY", "test_value")
 
             file_mode = stat.S_IMODE(os.stat(env_path).st_mode)
@@ -106,8 +106,8 @@ class TestConfigFilePermissions(unittest.TestCase):
 
     def test_ensure_wayne_home_sets_0700(self):
         home = Path(self.tmpdir) / ".wayne"
-        with patch("wayne_cli.config.get_wayne_home", return_value=home):
-            from wayne_cli.config import ensure_wayne_home
+        with patch("work4you_cli.config.get_wayne_home", return_value=home):
+            from work4you_cli.config import ensure_wayne_home
             ensure_wayne_home()
 
             home_mode = stat.S_IMODE(os.stat(home).st_mode)

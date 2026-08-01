@@ -15,8 +15,8 @@ import { appendFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import type { FrameEvent } from '@wayne/ink'
-import { scrollFastPathStats } from '@wayne/ink'
+import type { FrameEvent } from '@work4you/ink'
+import { scrollFastPathStats } from '@work4you/ink'
 import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from 'react'
 
 const ENABLED = /^(?:1|true|yes|on)$/i.test((process.env.WAYNE_DEV_PERF ?? '').trim())

@@ -1,4 +1,4 @@
-"""Tests for wayne_constants module."""
+"""Tests for work4you_constants module."""
 
 import os
 from pathlib import Path
@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-import wayne_constants
-from wayne_constants import (
+import work4you_constants
+from work4you_constants import (
     VALID_REASONING_EFFORTS,
     agent_browser_runnable,
     find_wayne_node_executable,
@@ -35,7 +35,7 @@ class TestGetDefaultWayneRoot:
         monkeypatch.delenv("WAYNE_HOME", raising=False)
         monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.delenv("LOCALAPPDATA", raising=False)
-        monkeypatch.setattr(wayne_constants.sys, "platform", "linux")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "linux")
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
         assert get_default_wayne_root() == tmp_path / ".work4you"
@@ -47,7 +47,7 @@ class TestGetDefaultWayneRoot:
         monkeypatch.delenv("WAYNE_HOME", raising=False)
         monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.delenv("LOCALAPPDATA", raising=False)
-        monkeypatch.setattr(wayne_constants.sys, "platform", "linux")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "linux")
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
         (tmp_path / ".wayne").mkdir()
 
@@ -103,7 +103,7 @@ class TestGetDefaultWayneRoot:
         monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "Home")
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
 
         assert get_default_wayne_root() == local_appdata / "work4you"
 
@@ -114,7 +114,7 @@ class TestGetDefaultWayneRoot:
         monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.delenv("LOCALAPPDATA", raising=False)
         monkeypatch.setattr(Path, "home", lambda: home)
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
 
         assert get_default_wayne_root() == home / "AppData" / "Local" / "work4you"
 
@@ -130,8 +130,8 @@ class TestGetWayneHome:
         monkeypatch.delenv("WORK4YOU_HOME", raising=False)
         monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "Home")
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
-        monkeypatch.setattr(wayne_constants, "_profile_fallback_warned", False)
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants, "_profile_fallback_warned", False)
 
         assert get_wayne_home() == local_appdata / "work4you"
 
@@ -146,7 +146,7 @@ class TestWayneManagedNode:
         bin_dir = node_dir / "bin"
         node_dir.mkdir(parents=True)
         bin_dir.mkdir()
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
         monkeypatch.setenv("WAYNE_HOME", str(home))
 
         assert iter_wayne_node_dirs() == [node_dir, bin_dir]
@@ -157,9 +157,9 @@ class TestWayneManagedNode:
         node_dir.mkdir(parents=True)
         npm_cmd = node_dir / "npm.cmd"
         npm_cmd.write_text("@echo off\n")
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
         monkeypatch.setenv("WAYNE_HOME", str(home))
-        monkeypatch.setattr(wayne_constants, "node_tool_runnable", lambda path: True)
+        monkeypatch.setattr(work4you_constants, "node_tool_runnable", lambda path: True)
 
         assert find_wayne_node_executable("npm") == str(npm_cmd)
 
@@ -172,7 +172,7 @@ class TestWayneManagedNode:
         extensionless.write_text("#!/usr/bin/env node\n")
         powershell.write_text("Write-Output npm\n")
         npm_cmd.write_text("@echo off\n")
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
         monkeypatch.setenv("PATH", str(bin_dir))
 
         assert find_node_executable_on_path("npm") == str(npm_cmd)
@@ -186,7 +186,7 @@ class TestWayneManagedNode:
         npm_cmd = bin_dir / "npm.cmd"
         extensionless.write_text("#!/usr/bin/env node\n")
         npm_cmd.write_text("@echo off\n")
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
         monkeypatch.setenv("WAYNE_HOME", str(home))
         monkeypatch.setenv("PATH", str(bin_dir))
 
@@ -201,13 +201,13 @@ class TestWayneManagedNode:
         bin_dir.mkdir()
         path_npm = bin_dir / "npm.cmd"
         path_npm.write_text("@echo off\n")
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
         monkeypatch.setenv("WAYNE_HOME", str(home))
         monkeypatch.setenv("PATH", str(bin_dir))
-        monkeypatch.setattr(wayne_constants, "_managed_node_heal_attempted", False)
-        monkeypatch.setattr(wayne_constants, "heal_wayne_managed_node", lambda: False)
+        monkeypatch.setattr(work4you_constants, "_managed_node_heal_attempted", False)
+        monkeypatch.setattr(work4you_constants, "heal_wayne_managed_node", lambda: False)
         monkeypatch.setattr(
-            wayne_constants,
+            work4you_constants,
             "node_tool_runnable",
             lambda path: False,
         )
@@ -222,7 +222,7 @@ class TestWayneManagedNode:
         bin_dir = node_dir / "bin"
         node_dir.mkdir(parents=True)
         bin_dir.mkdir()
-        monkeypatch.setattr(wayne_constants.sys, "platform", "win32")
+        monkeypatch.setattr(work4you_constants.sys, "platform", "win32")
         monkeypatch.setenv("WAYNE_HOME", str(home))
 
         env = with_wayne_node_path({"PATH": "system-node"})
@@ -269,7 +269,7 @@ class TestNodeToolRunnable:
 
         monkeypatch.setenv("WAYNE_HOME", str(profile_home))
         monkeypatch.setenv("PATH", str(system_bin))
-        monkeypatch.setattr(wayne_constants, "_managed_node_heal_attempted", False)
+        monkeypatch.setattr(work4you_constants, "_managed_node_heal_attempted", False)
 
         def _heal():
             heal_called["value"] = True
@@ -277,7 +277,7 @@ class TestNodeToolRunnable:
             broken_npm.chmod(0o755)
             return True
 
-        monkeypatch.setattr(wayne_constants, "heal_wayne_managed_node", _heal)
+        monkeypatch.setattr(work4you_constants, "heal_wayne_managed_node", _heal)
 
         resolved = find_node_executable("npm")
         assert heal_called["value"] is True
@@ -297,14 +297,14 @@ class TestNodeToolRunnable:
 
         monkeypatch.setenv("WAYNE_HOME", str(profile_home))
         monkeypatch.setenv("PATH", str(system_bin))
-        monkeypatch.setattr(wayne_constants, "_managed_node_heal_attempted", False)
+        monkeypatch.setattr(work4you_constants, "_managed_node_heal_attempted", False)
 
         def _heal():
             broken_npm.write_text(healed_npm.read_text())
             broken_npm.chmod(0o755)
             return True
 
-        monkeypatch.setattr(wayne_constants, "heal_wayne_managed_node", _heal)
+        monkeypatch.setattr(work4you_constants, "heal_wayne_managed_node", _heal)
 
         assert find_wayne_node_executable("npm") == str(healed_npm)
         assert find_node_executable("npm") == str(healed_npm)
@@ -322,8 +322,8 @@ class TestNodeToolRunnable:
 
         monkeypatch.setenv("WAYNE_HOME", str(profile_home))
         monkeypatch.setenv("PATH", str(system_bin))
-        monkeypatch.setattr(wayne_constants, "_managed_node_heal_attempted", False)
-        monkeypatch.setattr(wayne_constants, "heal_wayne_managed_node", lambda: False)
+        monkeypatch.setattr(work4you_constants, "_managed_node_heal_attempted", False)
+        monkeypatch.setattr(work4you_constants, "heal_wayne_managed_node", lambda: False)
 
         assert find_node_executable("npm") is None
 
@@ -348,7 +348,7 @@ class TestIsContainer:
 
     def _reset_cache(self, monkeypatch):
         """Reset the cached detection result before each test."""
-        monkeypatch.setattr(wayne_constants, "_container_detected", None)
+        monkeypatch.setattr(work4you_constants, "_container_detected", None)
 
     def test_detects_dockerenv(self, monkeypatch, tmp_path):
         """/.dockerenv triggers container detection."""
@@ -440,7 +440,7 @@ class TestIsContainer:
 
     def test_caches_result(self, monkeypatch):
         """Second call uses cached value without re-probing."""
-        monkeypatch.setattr(wayne_constants, "_container_detected", True)
+        monkeypatch.setattr(work4you_constants, "_container_detected", True)
         assert is_container() is True
         # Even if we make os.path.exists return False, cached value wins
         monkeypatch.setattr(os.path, "exists", lambda p: False)
@@ -655,7 +655,7 @@ class TestAgentBrowserRunnable:
             captured.append((cmd, kwargs))
             return SimpleNamespace(returncode=0)
 
-        import wayne_cli._subprocess_compat as subprocess_compat
+        import work4you_cli._subprocess_compat as subprocess_compat
         import subprocess as subprocess_mod
 
         monkeypatch.setattr(subprocess_compat, "windows_hide_flags", lambda: 0x08000000)
@@ -674,7 +674,7 @@ class TestAgentBrowserRunnable:
             captured.append((cmd, kwargs))
             return SimpleNamespace(returncode=0)
 
-        import wayne_cli._subprocess_compat as subprocess_compat
+        import work4you_cli._subprocess_compat as subprocess_compat
         import subprocess as subprocess_mod
 
         monkeypatch.setattr(subprocess_compat, "windows_hide_flags", lambda: 0x08000000)
@@ -877,17 +877,17 @@ class TestWork4youEnvBridge:
     def test_alias_mirrors_new_names_onto_legacy(self, monkeypatch):
         monkeypatch.delenv("WAYNE_TIMEZONE", raising=False)
         monkeypatch.setenv("WORK4YOU_TIMEZONE", "America/Sao_Paulo")
-        wayne_constants.apply_work4you_env_aliases()
+        work4you_constants.apply_work4you_env_aliases()
         assert os.environ["WAYNE_TIMEZONE"] == "America/Sao_Paulo"
 
     def test_alias_does_not_clobber_preset_legacy_value(self, monkeypatch):
         monkeypatch.setenv("WAYNE_TIMEZONE", "UTC")
         monkeypatch.setenv("WORK4YOU_TIMEZONE", "America/Sao_Paulo")
-        wayne_constants.apply_work4you_env_aliases()
+        work4you_constants.apply_work4you_env_aliases()
         assert os.environ["WAYNE_TIMEZONE"] == "UTC"
 
     def test_alias_ignores_unrelated_vars(self, monkeypatch):
         monkeypatch.delenv("WAYNE_XYZZY", raising=False)
         monkeypatch.setenv("WORKFORYOU_XYZZY", "nope")
-        wayne_constants.apply_work4you_env_aliases()
+        work4you_constants.apply_work4you_env_aliases()
         assert "WAYNE_XYZZY" not in os.environ

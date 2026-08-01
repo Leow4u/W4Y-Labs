@@ -1,4 +1,4 @@
-import { Box, Text, useInput, useStdout } from '@wayne/ink'
+import { Box, Text, useInput, useStdout } from '@work4you/ink'
 import { useEffect, useMemo, useState } from 'react'
 
 import { providerDisplayNames } from '../domain/providers.js'
@@ -386,7 +386,7 @@ export function ModelPicker({ allowPersistGlobal = true, gw, onCancel, onSelect,
     }
 
     // Persist-global toggle moved to Ctrl+G so 'g' can be typed into the
-    // filter. With Ctrl held, @wayne/ink reports `ch` as the key name ('g'),
+    // filter. With Ctrl held, @work4you/ink reports `ch` as the key name ('g'),
     // not the raw control byte (see input-event.ts: input = ctrl ? name : seq).
     if (allowPersistGlobal && key.ctrl && ch === 'g') {
       setPersistGlobal(v => !v)

@@ -89,7 +89,7 @@ def _resolve_script_path(script_path: str) -> Path:
     ``restart.sh`` would read as a nonexistent relative path and silently
     scan prompt-only content, letting the command through.
     """
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     raw = Path(script_path).expanduser()
     if raw.is_absolute():

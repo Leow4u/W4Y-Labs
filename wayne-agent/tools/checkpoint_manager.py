@@ -57,8 +57,8 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from wayne_constants import get_wayne_home
-from wayne_cli._subprocess_compat import windows_hide_flags
+from work4you_constants import get_wayne_home
+from work4you_cli._subprocess_compat import windows_hide_flags
 from typing import Dict, List, Optional, Set, Tuple
 
 from utils import env_int

@@ -14,8 +14,8 @@ from unittest.mock import MagicMock
 import pytest
 
 import plugins.dashboard_auth.drain as drain_plugin
-from wayne_cli.dashboard_auth import TokenPrincipal, assert_protocol_compliance
-from wayne_cli.dashboard_auth import token_auth
+from work4you_cli.dashboard_auth import TokenPrincipal, assert_protocol_compliance
+from work4you_cli.dashboard_auth import token_auth
 
 
 @pytest.fixture(scope="module")

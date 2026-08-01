@@ -1,4 +1,4 @@
-import { Box, Text, useInput } from '@wayne/ink'
+import { Box, Text, useInput } from '@work4you/ink'
 import { useState } from 'react'
 
 import type { BillingOverlayState } from '../app/interfaces.js'

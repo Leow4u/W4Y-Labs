@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from wayne_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
+from work4you_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +29,7 @@ _INLINE_SHELL_MAX_OUTPUT = 4000
 def load_skills_config() -> dict:
     """Load the ``skills`` section of config.yaml (best-effort)."""
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         cfg = load_config() or {}
         skills_cfg = cfg.get("skills")

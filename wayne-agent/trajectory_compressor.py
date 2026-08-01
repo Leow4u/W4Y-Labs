@@ -45,11 +45,11 @@ from utils import base_url_host_matches, base_url_hostname
 import fire
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
 from rich.console import Console
-from wayne_constants import OPENROUTER_BASE_URL, get_wayne_home
+from work4you_constants import OPENROUTER_BASE_URL, get_wayne_home
 from agent.retry_utils import jittered_backoff
 
 # Load .env from WAYNE_HOME first, then project root as a dev fallback.
-from wayne_cli.env_loader import load_wayne_dotenv
+from work4you_cli.env_loader import load_wayne_dotenv
 
 _wayne_home = get_wayne_home()
 _project_env = Path(__file__).parent / ".env"

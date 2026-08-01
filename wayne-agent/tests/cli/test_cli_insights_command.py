@@ -21,7 +21,7 @@ def _run_show_insights(command: str):
     cli_obj = WayneCLI.__new__(WayneCLI)
     db = MagicMock()
     _InsightsEngineStub.calls = []
-    with patch("wayne_state.SessionDB", return_value=db), \
+    with patch("work4you_state.SessionDB", return_value=db), \
          patch("agent.insights.InsightsEngine", _InsightsEngineStub):
         cli_obj._show_insights(command)
     return _InsightsEngineStub.calls, db

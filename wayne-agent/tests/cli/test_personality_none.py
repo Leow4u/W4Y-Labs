@@ -150,7 +150,7 @@ class TestGatewayPersonalityNone:
         (tmp_path / "config.yaml").write_text(yaml.dump({"agent": {"personalities": {}}}))
 
         with patch("gateway.run._wayne_home", tmp_path), \
-             patch("wayne_constants.display_wayne_home", return_value="~/.wayne/profiles/coder"):
+             patch("work4you_constants.display_wayne_home", return_value="~/.wayne/profiles/coder"):
             event = self._make_event("")
             result = await runner._handle_personality_command(event)
 

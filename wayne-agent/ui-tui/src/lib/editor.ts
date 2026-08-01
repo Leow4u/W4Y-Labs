@@ -3,7 +3,7 @@ import { accessSync, constants, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { delimiter, join } from 'node:path'
 
-import { withInkSuspended } from '@wayne/ink'
+import { withInkSuspended } from '@work4you/ink'
 
 /**
  * Editor fallback chain when neither $VISUAL nor $EDITOR is set. Mirrors

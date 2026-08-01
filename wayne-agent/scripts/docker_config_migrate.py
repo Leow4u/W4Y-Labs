@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
-from wayne_cli.config import (
+from work4you_cli.config import (
     check_config_version,
     get_config_path,
     get_env_path,

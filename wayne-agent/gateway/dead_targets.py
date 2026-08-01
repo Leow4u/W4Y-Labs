@@ -31,7 +31,7 @@ import time
 from pathlib import Path
 from typing import Dict, Optional
 
-from wayne_cli.config import get_wayne_home
+from work4you_cli.config import get_wayne_home
 
 logger = logging.getLogger(__name__)
 

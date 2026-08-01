@@ -308,7 +308,7 @@ class TestConfigMigration:
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
         # Re-import to pick up the new WAYNE_HOME
         import importlib
-        import wayne_cli.config as cfg_mod
+        import work4you_cli.config as cfg_mod
         importlib.reload(cfg_mod)
 
         result = cfg_mod.migrate_config(interactive=False, quiet=True)
@@ -334,7 +334,7 @@ class TestConfigMigration:
 
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
         import importlib
-        import wayne_cli.config as cfg_mod
+        import work4you_cli.config as cfg_mod
         importlib.reload(cfg_mod)
 
         cfg_mod.migrate_config(interactive=False, quiet=True)

@@ -327,7 +327,7 @@ async def test_windows_detached_restart_scrubs_gateway_marker(monkeypatch, tmp_p
     monkeypatch.setenv("_WAYNE_GATEWAY", "1")
     monkeypatch.setenv("VIRTUAL_ENV", str(venv_dir))
 
-    import wayne_cli._subprocess_compat as subprocess_compat
+    import work4you_cli._subprocess_compat as subprocess_compat
 
     monkeypatch.setattr(
         subprocess_compat,
@@ -367,8 +367,8 @@ async def test_windows_detached_restart_uses_pythonw_for_watcher(monkeypatch, tm
     monkeypatch.setattr(gateway_run.os, "getpid", lambda: 321)
     monkeypatch.setenv("VIRTUAL_ENV", str(venv_dir))
 
-    import wayne_cli._subprocess_compat as subprocess_compat
-    import wayne_cli.gateway_windows as gateway_windows
+    import work4you_cli._subprocess_compat as subprocess_compat
+    import work4you_cli.gateway_windows as gateway_windows
 
     monkeypatch.setattr(
         gateway_windows,

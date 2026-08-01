@@ -31,12 +31,12 @@ except ImportError:  # pragma: no cover - non-Windows
     msvcrt = None
 from datetime import datetime, timedelta
 from pathlib import Path
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from typing import Optional, Dict, List, Any, Set, Tuple, Union
 
 logger = logging.getLogger(__name__)
 
-from wayne_time import now as _wayne_now
+from work4you_time import now as _wayne_now
 from utils import atomic_replace
 
 try:
@@ -75,7 +75,7 @@ TICKER_HEARTBEAT_FILE = CRON_DIR / "ticker_heartbeat"
 TICKER_SUCCESS_FILE = CRON_DIR / "ticker_last_success"
 # Default ticker loop interval (seconds). The single source of truth shared by
 # the in-process ticker (cron/scheduler_provider.py) and the staleness
-# threshold in `wayne cron status` (wayne_cli/cron.py), so the two never
+# threshold in `wayne cron status` (work4you_cli/cron.py), so the two never
 # drift apart.
 TICKER_INTERVAL_SECONDS = 60
 
@@ -377,7 +377,7 @@ def parse_schedule(schedule: str) -> Dict[str, Any]:
             #
             # Anchor to the CONFIGURED Wayne timezone, not the server's local
             # timezone. The due-check (`get_due_jobs`) compares `next_run_at`
-            # against `wayne_time.now()`, which uses the configured zone. If a
+            # against `work4you_time.now()`, which uses the configured zone. If a
             # naive "20:07" were interpreted as server-local (e.g. UTC) while
             # now() runs in Asia/Kolkata, the stored instant would land hours
             # off from the user's wall-clock intent — far enough that one-shots
@@ -761,7 +761,7 @@ def _resolve_default_model_snapshot() -> Optional[str]:
     """
     try:
         import yaml
-        from wayne_cli.config import _expand_env_vars
+        from work4you_cli.config import _expand_env_vars
 
         cfg_path = get_wayne_home() / "config.yaml"
         if not cfg_path.exists():
@@ -769,7 +769,7 @@ def _resolve_default_model_snapshot() -> Optional[str]:
         with cfg_path.open(encoding="utf-8") as f:
             cfg = yaml.safe_load(f) or {}
         try:
-            from wayne_cli import managed_scope
+            from work4you_cli import managed_scope
             cfg = managed_scope.apply_managed_overlay(cfg)
         except Exception:
             pass
@@ -822,7 +822,7 @@ def _compute_provider_model_snapshots(
     model_snapshot: Optional[str] = None
     if normalized_provider is None:
         try:
-            from wayne_cli.runtime_provider import resolve_runtime_provider
+            from work4you_cli.runtime_provider import resolve_runtime_provider
 
             runtime_kwargs = {"requested": None}
             if normalized_base_url:
@@ -1754,7 +1754,7 @@ def _get_due_jobs_locked() -> List[Dict[str, Any]]:
 
 
 # Per-run cron output (`cron/output/<job>/<timestamp>.md`) is written once per
-# execution. Unlike the quick-snapshot store (`wayne_cli.backup`, capped at 20)
+# execution. Unlike the quick-snapshot store (`work4you_cli.backup`, capped at 20)
 # it had no retention, so a frequently-scheduled job on a long-running deploy
 # accumulated one file per run forever and could fill the disk (#52383). Keep the
 # most recent N files per job; a non-positive value disables pruning (opt-out).
@@ -1764,7 +1764,7 @@ _CRON_OUTPUT_DEFAULT_KEEP = 50
 def _cron_output_keep() -> int:
     """Resolve the per-job output-file retention cap from config (``cron.output_retention``)."""
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         cfg = load_config() or {}
         cron_cfg = cfg.get("cron", {}) if isinstance(cfg, dict) else {}
         return int(cron_cfg.get("output_retention", _CRON_OUTPUT_DEFAULT_KEEP))
@@ -1775,7 +1775,7 @@ def _cron_output_keep() -> int:
 def _prune_job_output(job_output_dir: Path, keep: int) -> int:
     """Remove the oldest ``*.md`` run-output files beyond *keep*. Returns count deleted.
 
-    Mirrors the quick-snapshot retention in ``wayne_cli.backup._prune_quick_snapshots``:
+    Mirrors the quick-snapshot retention in ``work4you_cli.backup._prune_quick_snapshots``:
     output filenames are timestamp-based (``%Y-%m-%d_%H-%M-%S.md``) so a reverse
     lexical sort orders newest-first, and everything past *keep* is the tail to
     drop. A non-positive *keep* disables pruning. Pruning failures are swallowed

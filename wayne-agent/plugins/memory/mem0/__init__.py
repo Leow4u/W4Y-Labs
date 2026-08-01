@@ -76,7 +76,7 @@ def _load_config() -> dict:
     individual keys.  This avoids a silent failure when the JSON file exists
     but is missing fields like ``api_key`` that the user set in ``.env``.
     """
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     config = {
         "mode": os.environ.get("MEM0_MODE", "platform"),

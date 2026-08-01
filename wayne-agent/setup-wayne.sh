@@ -458,5 +458,5 @@ echo
 if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
     echo ""
     # Run directly with venv Python (no activation needed)
-    "$SCRIPT_DIR/venv/bin/python" -m wayne_cli.main setup
+    "$SCRIPT_DIR/venv/bin/python" -m work4you_cli.main setup
 fi

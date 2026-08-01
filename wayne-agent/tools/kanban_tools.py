@@ -34,9 +34,9 @@ import os
 from typing import Any, Optional
 
 from agent.redact import redact_sensitive_text
-from wayne_cli.goals import judge_goal
+from work4you_cli.goals import judge_goal
 from tools.registry import registry, tool_error
-from wayne_cli.config import cfg_get, load_config
+from work4you_cli.config import cfg_get, load_config
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,7 @@ def _profile_has_kanban_toolset() -> bool:
     # negligible overhead. The check_fn results are further TTL-cached
     # (~30s) by the tool registry.
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         cfg = load_config()
         toolsets = cfg.get("toolsets", [])
         return "kanban" in toolsets
@@ -175,7 +175,7 @@ def _connect(board: Optional[str] = None):
     → ``default``). Per-tool ``board`` lets a Telegram-side agent override
     the env-pinned active board without restarting Wayne.
     """
-    from wayne_cli import kanban_db as kb
+    from work4you_cli import kanban_db as kb
     return kb, kb.connect(board=board)
 
 
@@ -1033,7 +1033,7 @@ def _maybe_auto_subscribe(conn: Any, task_id: str) -> bool:
         )
 
         # Lazy-import to keep the module-level dependency light
-        from wayne_cli import kanban_db as _kb
+        from work4you_cli import kanban_db as _kb
         _kb.add_notify_sub(
             conn, task_id=task_id,
             platform=platform, chat_id=chat_id,

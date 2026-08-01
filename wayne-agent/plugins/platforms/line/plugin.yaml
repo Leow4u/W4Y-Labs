@@ -14,7 +14,7 @@ description: >
 author: Wayne Agent contributors
 # ``requires_env`` and ``optional_env`` entries are surfaced in the
 # ``wayne config`` UI via the platform-plugin env var injector in
-# ``wayne_cli/config.py``.
+# ``work4you_cli/config.py``.
 requires_env:
   - name: LINE_CHANNEL_ACCESS_TOKEN
     description: "LINE channel long-lived access token (LINE Developers Console > Messaging API > Channel access token)"

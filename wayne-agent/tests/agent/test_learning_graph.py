@@ -9,7 +9,7 @@ change-detector.
 from __future__ import annotations
 
 from agent import learning_graph
-from wayne_constants import reset_wayne_home_override, set_wayne_home_override
+from work4you_constants import reset_wayne_home_override, set_wayne_home_override
 
 
 def _node(name: str, category: str, related=None):

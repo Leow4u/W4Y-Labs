@@ -208,7 +208,7 @@ class FetchResult:
 
 def _wayne_bin_dir() -> Path:
     """Where Wayne stores its managed binaries.  Profile-aware."""
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     return get_wayne_home() / "bin"
 
@@ -584,7 +584,7 @@ def _is_valid_env_name(name: str) -> bool:
 
 
 # ---------------------------------------------------------------------------
-# Public entry point — called from wayne_cli.env_loader
+# Public entry point — called from work4you_cli.env_loader
 # ---------------------------------------------------------------------------
 
 

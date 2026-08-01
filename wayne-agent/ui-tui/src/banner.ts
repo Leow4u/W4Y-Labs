@@ -43,7 +43,7 @@ export function parseRichMarkup(markup: string): Line[] {
   return lines
 }
 
-// Compact W4Y monogram — real ANSI-Shadow W (same as wayne_cli/banner.py).
+// Compact W4Y monogram — real ANSI-Shadow W (same as work4you_cli/banner.py).
 const LOGO_ART = [
   '██╗    ██╗██╗  ██╗██╗   ██╗',
   '██║    ██║██║  ██║╚██╗ ██╔╝',

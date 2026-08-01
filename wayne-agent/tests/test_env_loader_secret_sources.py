@@ -1,4 +1,4 @@
-"""Tests for the secret-source tracking in ``wayne_cli.env_loader``.
+"""Tests for the secret-source tracking in ``work4you_cli.env_loader``.
 
 These cover the small public surface that lets `wayne model` / `wayne setup`
 label detected credentials with their origin ("from Bitwarden") so users
@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from wayne_cli import env_loader  # noqa: E402
+from work4you_cli import env_loader  # noqa: E402
 
 
 @pytest.fixture(autouse=True)
@@ -123,7 +123,7 @@ def test_apply_external_secret_sources_noop_when_disabled(tmp_path, monkeypatch)
 
 def test_apply_external_secret_sources_dedupes_within_process(tmp_path, monkeypatch):
     """``load_wayne_dotenv()`` is called at module-import time from several
-    hot modules (cli.py, wayne_cli/main.py, run_agent.py, ...).  The
+    hot modules (cli.py, work4you_cli/main.py, run_agent.py, ...).  The
     Bitwarden status line previously printed once per call — 3-5x per
     startup.  The applied-home guard must short-circuit subsequent calls
     so the heavy work (config re-parse, Bitwarden lookup, status print)
@@ -156,7 +156,7 @@ def test_apply_external_secret_sources_dedupes_within_process(tmp_path, monkeypa
     monkeypatch.setattr(bw_module, "apply_bitwarden_secrets", _fake_apply)
 
     # Five calls in a row, simulating module-import-time invocations from
-    # cli.py, wayne_cli/main.py, run_agent.py, trajectory_compressor.py,
+    # cli.py, work4you_cli/main.py, run_agent.py, trajectory_compressor.py,
     # gateway/run.py.  Only the first should actually call the backend.
     for _ in range(5):
         env_loader._apply_external_secret_sources(tmp_path)

@@ -1,4 +1,4 @@
-"""Tests for wayne_bootstrap — Windows UTF-8 stdio shim.
+"""Tests for work4you_bootstrap — Windows UTF-8 stdio shim.
 
 The bootstrap module is imported at the top of every Wayne entry point
 (wayne, wayne-agent, wayne-acp, gateway, batch_runner, cli.py).  It
@@ -12,7 +12,7 @@ Key invariants covered by these tests:
   3. Idempotent: safe to call multiple times
   4. Respects user opt-out: if the user explicitly sets PYTHONUTF8=0 or
      PYTHONIOENCODING=something-else, we leave those alone
-  5. Load order: every Wayne entry point imports wayne_bootstrap as its
+  5. Load order: every Wayne entry point imports work4you_bootstrap as its
      first non-docstring import (before anything that might do file I/O
      or print to stdout)
 """
@@ -32,14 +32,14 @@ import pytest
 # We need to be able to reset its state between tests, so we import it
 # fresh in each test that manipulates _IS_WINDOWS.
 def _fresh_import():
-    """Return a freshly-imported wayne_bootstrap module.
+    """Return a freshly-imported work4you_bootstrap module.
 
     Drops any cached copy from sys.modules first so module-level code
     runs again and the platform check re-evaluates.
     """
-    sys.modules.pop("wayne_bootstrap", None)
-    import wayne_bootstrap  # noqa: WPS433
-    return wayne_bootstrap
+    sys.modules.pop("work4you_bootstrap", None)
+    import work4you_bootstrap  # noqa: WPS433
+    return work4you_bootstrap
 
 
 class TestWindowsBehavior:
@@ -232,15 +232,15 @@ class TestStdioReconfigureErrorHandling:
 
 
 class TestEntryPointsImportBootstrap:
-    """Every Wayne entry point must import wayne_bootstrap as its
+    """Every Wayne entry point must import work4you_bootstrap as its
     first non-docstring import.  We check this by scanning source files
     rather than invoking the entry points (which would require a full
     agent context)."""
 
     # Entry points that invoke Wayne as a process.  Each one must
-    # import wayne_bootstrap before doing any file I/O or stdout writes.
+    # import work4you_bootstrap before doing any file I/O or stdout writes.
     ENTRY_POINTS = [
-        "wayne_cli/main.py",   # wayne CLI (console_script)
+        "work4you_cli/main.py",   # wayne CLI (console_script)
         "run_agent.py",          # wayne-agent (console_script)
         "acp_adapter/entry.py",  # wayne-acp (console_script)
         "gateway/run.py",        # gateway
@@ -250,7 +250,7 @@ class TestEntryPointsImportBootstrap:
 
     @pytest.mark.parametrize("path", ENTRY_POINTS)
     def test_entry_point_imports_bootstrap(self, path):
-        """The file must contain 'import wayne_bootstrap' and that
+        """The file must contain 'import work4you_bootstrap' and that
         line must appear before the first 'import' of anything else.
 
         We're lenient about the docstring (can be arbitrarily long) and
@@ -261,7 +261,7 @@ class TestEntryPointsImportBootstrap:
         points may guard the import against ``ModuleNotFoundError`` so a
         half-finished ``wayne update`` (git-reset landed new code but
         ``uv pip install -e .`` didn't finish re-registering
-        ``wayne_bootstrap`` as a top-level module) leaves wayne
+        ``work4you_bootstrap`` as a top-level module) leaves wayne
         recoverable instead of crashing on every invocation.  When the
         first top-level node is such a guarded-import block, we peek
         inside it to verify bootstrap is the imported module.
@@ -288,7 +288,7 @@ class TestEntryPointsImportBootstrap:
                 break
             # Accept a guarded-import Try block where the body is a lone
             # Import node — this is the recovery-friendly form that lets
-            # wayne start even when wayne_bootstrap hasn't been
+            # wayne start even when work4you_bootstrap hasn't been
             # re-registered in the venv yet.
             if isinstance(node, ast.Try) and len(node.body) == 1 and isinstance(
                 node.body[0], (ast.Import, ast.ImportFrom)
@@ -305,11 +305,11 @@ class TestEntryPointsImportBootstrap:
         else:  # ImportFrom
             first_import_name = first_import_node.module or ""
 
-        assert first_import_name == "wayne_bootstrap", (
+        assert first_import_name == "work4you_bootstrap", (
             f"{path}: first top-level import is {first_import_name!r}, "
-            f"but it must be 'wayne_bootstrap' so UTF-8 stdio is "
+            f"but it must be 'work4you_bootstrap' so UTF-8 stdio is "
             f"configured before anything else initializes.  Move the "
-            f"'import wayne_bootstrap' line to be the first import."
+            f"'import work4you_bootstrap' line to be the first import."
         )
 
 

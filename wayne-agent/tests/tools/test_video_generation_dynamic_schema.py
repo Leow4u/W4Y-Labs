@@ -105,7 +105,7 @@ class TestDynamicSchemaBuilder:
         _write_cfg(cfg_home, {"video_gen": {"provider": "both"}})
         video_gen_registry.register_provider(_BothModalitiesProvider())
 
-        import wayne_cli.plugins as plugins_module
+        import work4you_cli.plugins as plugins_module
         saved = plugins_module._ensure_plugins_discovered
         plugins_module._ensure_plugins_discovered = lambda *a, **k: None
         try:
@@ -124,7 +124,7 @@ class TestDynamicSchemaBuilder:
         _write_cfg(cfg_home, {"video_gen": {"provider": "img-only"}})
         video_gen_registry.register_provider(_ImageOnlyProvider())
 
-        import wayne_cli.plugins as plugins_module
+        import work4you_cli.plugins as plugins_module
         saved = plugins_module._ensure_plugins_discovered
         plugins_module._ensure_plugins_discovered = lambda *a, **k: None
         try:

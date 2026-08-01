@@ -4,7 +4,7 @@
  * Kept DOM-free so the node-environment vitest harness can cover the
  * resolution logic without loading React or the UI kit.
  *
- * Values mirror wayne_constants.VALID_REASONING_EFFORTS plus `none`
+ * Values mirror work4you_constants.VALID_REASONING_EFFORTS plus `none`
  * (thinking-off). An empty/unset config value means the Wayne default,
  * which is `medium`.
  */

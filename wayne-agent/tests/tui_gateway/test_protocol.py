@@ -22,10 +22,10 @@ def _restore_stdout():
 @pytest.fixture()
 def server():
     with patch.dict("sys.modules", {
-        "wayne_constants": MagicMock(get_wayne_home=MagicMock(return_value="/tmp/wayne_test")),
-        "wayne_cli.env_loader": MagicMock(),
-        "wayne_cli.banner": MagicMock(),
-        "wayne_state": MagicMock(),
+        "work4you_constants": MagicMock(get_wayne_home=MagicMock(return_value="/tmp/wayne_test")),
+        "work4you_cli.env_loader": MagicMock(),
+        "work4you_cli.banner": MagicMock(),
+        "work4you_state": MagicMock(),
     }):
         import importlib
         mod = importlib.import_module("tui_gateway.server")
@@ -935,7 +935,7 @@ def test_sync_session_key_after_compress_reanchors_active_session_lease(
     home = tmp_path / ".wayne"
     monkeypatch.setenv("WAYNE_HOME", str(home))
 
-    from wayne_cli.active_sessions import (
+    from work4you_cli.active_sessions import (
         active_session_registry_snapshot,
         try_acquire_active_session,
     )
@@ -1186,7 +1186,7 @@ def test_make_agent_accepts_list_system_prompt(server, monkeypatch):
     monkeypatch.setitem(sys.modules, "run_agent", types.SimpleNamespace(AIAgent=_Agent))
     monkeypatch.setitem(
         sys.modules,
-        "wayne_cli.runtime_provider",
+        "work4you_cli.runtime_provider",
         types.SimpleNamespace(
             resolve_runtime_provider=lambda **_kwargs: {
                 "provider": "test",
@@ -1282,7 +1282,7 @@ def test_slash_exec_handles_plugin_commands_in_live_gateway(server):
     server._sessions[sid] = {"session_key": sid, "agent": None, "slash_worker": worker}
 
     with patch(
-        "wayne_cli.plugins.get_plugin_command_handler",
+        "work4you_cli.plugins.get_plugin_command_handler",
         lambda name: (lambda arg: f"plugin:{arg}") if name == "plugin-cmd" else None,
     ):
         resp = server.handle_request({
@@ -1312,7 +1312,7 @@ def test_slash_exec_plugin_lookup_failure_falls_back_to_worker(server):
     server._sessions[sid] = {"session_key": sid, "agent": None, "slash_worker": worker}
 
     with patch(
-        "wayne_cli.plugins.get_plugin_command_handler",
+        "work4you_cli.plugins.get_plugin_command_handler",
         side_effect=RuntimeError("discovery boom"),
     ):
         resp = server.handle_request({
@@ -1345,7 +1345,7 @@ def test_slash_exec_plugin_handler_error_returns_output(server):
     server._sessions[sid] = {"session_key": sid, "agent": None, "slash_worker": worker}
 
     with patch(
-        "wayne_cli.plugins.get_plugin_command_handler",
+        "work4you_cli.plugins.get_plugin_command_handler",
         lambda name: handler if name == "plugin-cmd" else None,
     ):
         resp = server.handle_request({
@@ -1624,7 +1624,7 @@ def test_command_dispatch_awaits_async_plugin_handler(server):
         return f"async:{arg}"
 
     with patch(
-        "wayne_cli.plugins.get_plugin_command_handler",
+        "work4you_cli.plugins.get_plugin_command_handler",
         lambda name: _handler if name == "async-cmd" else None,
     ):
         resp = server.handle_request({

@@ -505,7 +505,7 @@ class RetainDBMemoryProvider(MemoryProvider):
         self._user_id = kwargs.get("user_id", "default") or "default"
         self._agent_id = kwargs.get("agent_id", "wayne") or "wayne"
 
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         wayne_home_path = get_wayne_home()
         db_path = wayne_home_path / "retaindb_queue.db"
         self._queue = _WriteQueue(self._client, db_path)

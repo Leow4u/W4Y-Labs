@@ -10,7 +10,7 @@ from typing import Optional
 def _wayne_home_path() -> Path:
     """Resolve the active WAYNE_HOME (profile-aware) without circular imports."""
     try:
-        from wayne_constants import get_wayne_home  # local import to avoid cycles
+        from work4you_constants import get_wayne_home  # local import to avoid cycles
         return get_wayne_home()
     except Exception:
         return Path(os.path.expanduser("~/.wayne"))
@@ -19,7 +19,7 @@ def _wayne_home_path() -> Path:
 def _wayne_root_path() -> Path:
     """Resolve the Wayne root dir (always the parent of any profile, never per-profile)."""
     try:
-        from wayne_constants import get_default_wayne_root  # local import to avoid cycles
+        from work4you_constants import get_default_wayne_root  # local import to avoid cycles
         return get_default_wayne_root()
     except Exception:
         return Path(os.path.expanduser("~/.wayne"))

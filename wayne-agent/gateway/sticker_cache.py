@@ -14,7 +14,7 @@ import tempfile
 import time
 from typing import Optional
 
-from wayne_cli.config import get_wayne_home
+from work4you_cli.config import get_wayne_home
 
 
 CACHE_PATH = get_wayne_home() / "sticker_cache.json"

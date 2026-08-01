@@ -8,7 +8,7 @@ history.
 """
 from __future__ import annotations
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 import copy
 import json
@@ -45,7 +45,7 @@ def _translate_acp_cwd(cwd: str) -> str:
     sessions all agree on the usable workspace. Native Linux/macOS keeps the
     original cwd unchanged.
     """
-    from wayne_constants import is_wsl
+    from work4you_constants import is_wsl
 
     if not is_wsl():
         return cwd
@@ -412,7 +412,7 @@ class SessionManager:
         if self._db_instance is not None:
             return self._db_instance
         try:
-            from wayne_state import SessionDB
+            from work4you_state import SessionDB
             wayne_home = get_wayne_home()
             self._db_instance = SessionDB(db_path=wayne_home / "state.db")
             return self._db_instance
@@ -606,8 +606,8 @@ class SessionManager:
             return self._agent_factory()
 
         from run_agent import AIAgent
-        from wayne_cli.config import load_config
-        from wayne_cli.runtime_provider import resolve_runtime_provider
+        from work4you_cli.config import load_config
+        from work4you_cli.runtime_provider import resolve_runtime_provider
 
         config = load_config()
         model_cfg = config.get("model")

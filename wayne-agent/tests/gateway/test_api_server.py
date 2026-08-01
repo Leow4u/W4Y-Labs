@@ -356,7 +356,7 @@ class TestAdapterInit:
             staticmethod(lambda: {"enabled": True, "effort": "xhigh"}),
         )
         monkeypatch.setattr("gateway.run.GatewayRunner._load_fallback_model", staticmethod(lambda: None))
-        monkeypatch.setattr("wayne_cli.tools_config._get_platform_tools", lambda *_: set())
+        monkeypatch.setattr("work4you_cli.tools_config._get_platform_tools", lambda *_: set())
 
         adapter = APIServerAdapter(PlatformConfig(enabled=True))
         monkeypatch.setattr(adapter, "_ensure_session_db", lambda: None)
@@ -390,7 +390,7 @@ class TestAdapterInit:
         )
         monkeypatch.setattr("gateway.run.GatewayRunner._load_fallback_model", staticmethod(lambda: None))
         monkeypatch.setattr("gateway.run._current_max_iterations", lambda: 200)
-        monkeypatch.setattr("wayne_cli.tools_config._get_platform_tools", lambda *_: set())
+        monkeypatch.setattr("work4you_cli.tools_config._get_platform_tools", lambda *_: set())
 
         adapter = APIServerAdapter(PlatformConfig(enabled=True))
         monkeypatch.setattr(adapter, "_ensure_session_db", lambda: None)
@@ -430,7 +430,7 @@ class TestAdapterInit:
         )
         monkeypatch.setattr("gateway.run.GatewayRunner._load_fallback_model", staticmethod(lambda: None))
         monkeypatch.setattr("gateway.run._current_max_iterations", lambda: 90)
-        monkeypatch.setattr("wayne_cli.tools_config._get_platform_tools", lambda *_: set())
+        monkeypatch.setattr("work4you_cli.tools_config._get_platform_tools", lambda *_: set())
 
         adapter = APIServerAdapter(PlatformConfig(enabled=True))
         monkeypatch.setattr(adapter, "_ensure_session_db", lambda: None)
@@ -468,7 +468,7 @@ class TestAdapterInit:
         )
         monkeypatch.setattr("gateway.run.GatewayRunner._load_fallback_model", staticmethod(lambda: None))
         monkeypatch.setattr("gateway.run._current_max_iterations", lambda: 90)
-        monkeypatch.setattr("wayne_cli.tools_config._get_platform_tools", lambda *_: set())
+        monkeypatch.setattr("work4you_cli.tools_config._get_platform_tools", lambda *_: set())
 
         adapter = APIServerAdapter(PlatformConfig(enabled=True))
         monkeypatch.setattr(adapter, "_ensure_session_db", lambda: None)
@@ -534,22 +534,22 @@ class TestAuth:
 
 class TestConcurrencyCap:
     def test_resolve_defaults_to_10_when_unset(self):
-        with patch("wayne_cli.config.load_config", return_value={}):
+        with patch("work4you_cli.config.load_config", return_value={}):
             assert APIServerAdapter._resolve_max_concurrent_runs() == 10
 
     def test_resolve_reads_config_value(self):
         cfg = {"gateway": {"api_server": {"max_concurrent_runs": 3}}}
-        with patch("wayne_cli.config.load_config", return_value=cfg):
+        with patch("work4you_cli.config.load_config", return_value=cfg):
             assert APIServerAdapter._resolve_max_concurrent_runs() == 3
 
     def test_resolve_clamps_negative_to_zero(self):
         cfg = {"gateway": {"api_server": {"max_concurrent_runs": -5}}}
-        with patch("wayne_cli.config.load_config", return_value=cfg):
+        with patch("work4you_cli.config.load_config", return_value=cfg):
             assert APIServerAdapter._resolve_max_concurrent_runs() == 0
 
     def test_resolve_malformed_falls_back_to_default(self):
         cfg = {"gateway": {"api_server": {"max_concurrent_runs": "not-an-int"}}}
-        with patch("wayne_cli.config.load_config", return_value=cfg):
+        with patch("work4you_cli.config.load_config", return_value=cfg):
             assert APIServerAdapter._resolve_max_concurrent_runs() == 10
 
     def test_under_cap_returns_none(self):
@@ -834,12 +834,12 @@ class TestModelsEndpoint:
 
     def test_resolve_model_name_default_profile(self):
         """Default profile falls back to 'wayne-agent'."""
-        with patch("wayne_cli.profiles.get_active_profile_name", return_value="default"):
+        with patch("work4you_cli.profiles.get_active_profile_name", return_value="default"):
             assert APIServerAdapter._resolve_model_name("") == "wayne-agent"
 
     def test_resolve_model_name_named_profile(self):
         """Named profile uses the profile name as model name."""
-        with patch("wayne_cli.profiles.get_active_profile_name", return_value="lucas"):
+        with patch("work4you_cli.profiles.get_active_profile_name", return_value="lucas"):
             assert APIServerAdapter._resolve_model_name("") == "lucas"
 
     @pytest.mark.asyncio
@@ -969,13 +969,13 @@ class TestToolsetsEndpoint:
             ("web", "Web Tools", "Search and extract"),
         ]
         with patch(
-            "wayne_cli.tools_config._get_effective_configurable_toolsets",
+            "work4you_cli.tools_config._get_effective_configurable_toolsets",
             return_value=fake_toolsets,
         ), patch(
-            "wayne_cli.tools_config._get_platform_tools",
+            "work4you_cli.tools_config._get_platform_tools",
             return_value={"default"},
         ), patch(
-            "wayne_cli.tools_config._toolset_has_keys",
+            "work4you_cli.tools_config._toolset_has_keys",
             return_value=True,
         ), patch(
             "toolsets.resolve_toolset",
@@ -1012,13 +1012,13 @@ class TestToolsetsEndpoint:
             return ["some_tool"]
 
         with patch(
-            "wayne_cli.tools_config._get_effective_configurable_toolsets",
+            "work4you_cli.tools_config._get_effective_configurable_toolsets",
             return_value=fake_toolsets,
         ), patch(
-            "wayne_cli.tools_config._get_platform_tools",
+            "work4you_cli.tools_config._get_platform_tools",
             return_value=set(),
         ), patch(
-            "wayne_cli.tools_config._toolset_has_keys",
+            "work4you_cli.tools_config._toolset_has_keys",
             return_value=False,
         ), patch(
             "toolsets.resolve_toolset",
@@ -1036,10 +1036,10 @@ class TestToolsetsEndpoint:
     @pytest.mark.asyncio
     async def test_toolsets_requires_auth_when_key_configured(self, auth_adapter):
         with patch(
-            "wayne_cli.tools_config._get_effective_configurable_toolsets",
+            "work4you_cli.tools_config._get_effective_configurable_toolsets",
             return_value=[],
         ), patch(
-            "wayne_cli.tools_config._get_platform_tools",
+            "work4you_cli.tools_config._get_platform_tools",
             return_value=set(),
         ):
             app = _create_app(auth_adapter)
@@ -3604,7 +3604,7 @@ class TestSessionIdHeader:
         app = _create_app(auth_adapter)
         async with TestClient(TestServer(app)) as cli:
             with patch.object(auth_adapter, "_run_agent", new_callable=AsyncMock) as mock_run, \
-                 patch("wayne_state.SessionDB", side_effect=Exception("DB unavailable")):
+                 patch("work4you_state.SessionDB", side_effect=Exception("DB unavailable")):
                 mock_run.return_value = (mock_result, {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0})
 
                 resp = await cli.post(
@@ -3832,7 +3832,7 @@ def _patch_create_agent_runtime(monkeypatch, captured: dict, fake_agent_cls):
         "gateway.run.GatewayRunner._load_fallback_model", staticmethod(lambda: None)
     )
     monkeypatch.setattr("gateway.run._current_max_iterations", lambda: 90)
-    monkeypatch.setattr("wayne_cli.tools_config._get_platform_tools", lambda *_: set())
+    monkeypatch.setattr("work4you_cli.tools_config._get_platform_tools", lambda *_: set())
 
 
 class TestModelRoutesParsing:

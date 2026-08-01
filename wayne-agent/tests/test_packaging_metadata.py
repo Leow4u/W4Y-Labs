@@ -41,12 +41,12 @@ def test_every_on_disk_subpackage_is_covered_by_packages_find():
     """Regression test for #34701 (and the bug class behind #34034 / #28149).
 
     ``[tool.setuptools.packages.find]`` ``include`` is hand-maintained. Every
-    top-level package is listed twice — bare (``wayne_cli``) for the package
-    itself and ``wayne_cli.*`` for its subpackages — EXCEPT when someone
-    forgets the wildcard. v0.15.x listed ``wayne_cli`` without ``wayne_cli.*``,
-    so the wheel shipped ``wayne_cli/*.py`` but dropped the ``dashboard_auth``
+    top-level package is listed twice — bare (``work4you_cli``) for the package
+    itself and ``work4you_cli.*`` for its subpackages — EXCEPT when someone
+    forgets the wildcard. v0.15.x listed ``work4you_cli`` without ``work4you_cli.*``,
+    so the wheel shipped ``work4you_cli/*.py`` but dropped the ``dashboard_auth``
     and ``proxy`` subpackages. The dashboard then died on every install with
-    ``ModuleNotFoundError: No module named 'wayne_cli.dashboard_auth'``.
+    ``ModuleNotFoundError: No module named 'work4you_cli.dashboard_auth'``.
 
     This drives setuptools' own discovery against the live tree: every package
     that exists on disk and would be found by a permissive ``<name>.*`` scan
@@ -84,7 +84,7 @@ def test_packaging_declared_as_core_dependency():
 
     ``packaging`` is imported directly on three production paths
     (plugins/memory/hindsight/__init__.py, tools/lazy_deps.py,
-    wayne_cli/main.py) yet was undeclared, so it only reached users
+    work4you_cli/main.py) yet was undeclared, so it only reached users
     transitively. The slim Docker image shipped without it, silently
     disabling Hindsight append-mode and version-constraint checks. It must
     be a declared core dependency so it installs everywhere and the
@@ -120,7 +120,7 @@ def test_manifest_includes_bundled_skills():
 def test_bundled_plugin_manifests_ship_in_both_wheel_and_sdist():
     """Regression test for #34034 / #28149.
 
-    Plugin discovery (wayne_cli/plugins.py) registers each bundled plugin by
+    Plugin discovery (work4you_cli/plugins.py) registers each bundled plugin by
     reading its ``plugin.yaml`` / ``plugin.yml`` manifest. Those manifests are
     data files, not Python modules, so they only reach installed packages when
     declared explicitly:

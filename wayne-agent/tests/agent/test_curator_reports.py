@@ -24,8 +24,8 @@ def curator_env(tmp_path, monkeypatch):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     import importlib
-    import wayne_constants
-    importlib.reload(wayne_constants)
+    import work4you_constants
+    importlib.reload(work4you_constants)
     from agent import curator
     importlib.reload(curator)
     from tools import skill_usage

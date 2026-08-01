@@ -272,7 +272,7 @@ def setup_isolated_home(enabled: bool) -> Path:
         # hand — it never materializes the secret in a local variable in
         # this module, which both avoids a hand-rolled parser bug and keeps
         # static analysis from tainting the transcript records with the key.
-        from wayne_cli.env_loader import load_wayne_dotenv
+        from work4you_cli.env_loader import load_wayne_dotenv
         load_wayne_dotenv(wayne_home=str(Path.home() / ".wayne"))
 
     cfg = {
@@ -344,7 +344,7 @@ def reset_module_state():
     """Drop cached modules so the new WAYNE_HOME takes effect."""
     keys = [k for k in sys.modules.keys()
             if k.startswith(("tools.", "model_tools", "toolsets",
-                             "wayne_cli", "agent.", "run_agent"))]
+                             "work4you_cli", "agent.", "run_agent"))]
     for k in keys:
         del sys.modules[k]
 

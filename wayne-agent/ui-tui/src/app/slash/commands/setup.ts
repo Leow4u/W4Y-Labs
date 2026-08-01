@@ -1,4 +1,4 @@
-import { withInkSuspended } from '@wayne/ink'
+import { withInkSuspended } from '@work4you/ink'
 
 import { launchWayneCommand } from '../../../lib/externalCli.js'
 import { runExternalSetup } from '../../setupHandoff.js'

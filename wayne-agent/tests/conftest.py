@@ -384,7 +384,7 @@ def _hermetic_environment(tmp_path, monkeypatch):
     #    ~/.wayne/plugins/ (which, per step 3, is now empty — but the
     #    singleton might still be cached from a previous test).
     try:
-        import wayne_cli.plugins as _plugins_mod
+        import work4you_cli.plugins as _plugins_mod
         monkeypatch.setattr(_plugins_mod, "_plugin_manager", None)
     except Exception:
         pass
@@ -503,7 +503,7 @@ def _ensure_current_event_loop(request):
 # environment and finds the developer's live ``wayne-gateway`` process
 # via ``psutil`` — sending it SIGTERM mid-test. The shutdown forensics in
 # PR #23285 caught this happening 5+ times in 3 days, every time
-# correlated with a ``tests/wayne_cli/`` pytest run starting up.
+# correlated with a ``tests/work4you_cli/`` pytest run starting up.
 #
 # This fixture makes the leak impossible by intercepting the two
 # primitives that actually do damage:
@@ -659,8 +659,8 @@ def _live_system_guard(request, monkeypatch):
         "work4you-gateway",
         "wayne-gateway",
         "wayne.service",
-        "wayne_cli.main gateway",
-        "wayne_cli/main.py gateway",
+        "work4you_cli.main gateway",
+        "work4you_cli/main.py gateway",
         "gateway/run.py",
         "wayne gateway",
         "work4you gateway",
@@ -719,7 +719,7 @@ def _live_system_guard(request, monkeypatch):
                 low = cmd_str.lower()
                 # pkill -f pattern: catch wayne-themed patterns + a
                 # plain "python" -f which would catch the live gateway
-                # whose cmdline contains "python -m wayne_cli.main".
+                # whose cmdline contains "python -m work4you_cli.main".
                 if (
                     "wayne" in low
                     or "work4you" in low
@@ -747,7 +747,7 @@ def _live_system_guard(request, monkeypatch):
                 "intentional."
             )
         # Block any subprocess that would run `wayne update` (or the
-        # equivalent `python -m wayne_cli.main update`).  These commands
+        # equivalent `python -m work4you_cli.main update`).  These commands
         # run `git fetch origin + git pull` against the REAL checkout,
         # overwriting files like pyproject.toml mid-test-run and corrupting
         # every subsequent subprocess that reads them.  The corruption is
@@ -762,8 +762,8 @@ def _live_system_guard(request, monkeypatch):
             # wayne update / wayne update --gateway / setsid bash -c ... wayne update
             ("wayne" in low and "update" in low.split())
             or
-            # python -m wayne_cli.main update --gateway
-            ("wayne_cli" in low and "update" in low.split())
+            # python -m work4you_cli.main update --gateway
+            ("work4you_cli" in low and "update" in low.split())
             or
             # venv/bin/wayne update  (absolute path variant used in tests)
             (".venv/bin/wayne" in low and "update" in low)

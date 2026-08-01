@@ -555,7 +555,7 @@ install_uv() {
 
     # Wayne owns its own uv at $WAYNE_HOME/bin/uv.  Always install there —
     # no PATH probing, no conda guards, no multi-location resolution chains.
-    # The runtime update path (wayne_cli/managed_uv.py) looks in the same
+    # The runtime update path (work4you_cli/managed_uv.py) looks in the same
     # place, so install.sh and `wayne update` stay in sync.
     local _managed_uv="$WAYNE_HOME/bin/uv"
 
@@ -2259,9 +2259,9 @@ run_setup_wizard() {
     # Run wayne setup using the venv Python directly (no activation needed).
     # Redirect stdin from /dev/tty so interactive prompts work when piped from curl.
     if [ "$USE_VENV" = true ]; then
-        "$INSTALL_DIR/venv/bin/python" -m wayne_cli.main setup < /dev/tty
+        "$INSTALL_DIR/venv/bin/python" -m work4you_cli.main setup < /dev/tty
     else
-        python -m wayne_cli.main setup < /dev/tty
+        python -m work4you_cli.main setup < /dev/tty
     fi
 }
 
@@ -2570,7 +2570,7 @@ postinstall_mode() {
         "$WAYNE_CMD" setup
     else
         log_warn "wayne command not found on PATH"
-        log_info "Try: python -m wayne_cli.main setup"
+        log_info "Try: python -m work4you_cli.main setup"
     fi
 }
 

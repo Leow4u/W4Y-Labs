@@ -96,7 +96,7 @@ from .whatsapp_identity import (
 from utils import atomic_replace
 
 # Session keys/ids flow into filesystem paths downstream (e.g.
-# ``sessions_dir / f"{session_id}.json"`` in wayne_state, request-dump
+# ``sessions_dir / f"{session_id}.json"`` in work4you_state, request-dump
 # filenames in agent_runtime_helpers). Any value that could escape the
 # sessions directory as a path must be rejected at the entry boundary.
 # Rejects: parent traversal (``..``), a path separator anywhere (``/`` or
@@ -317,8 +317,8 @@ def _discord_tools_loaded() -> bool:
     if not (os.environ.get("DISCORD_BOT_TOKEN") or "").strip():
         return False
     try:
-        from wayne_cli.config import load_config
-        from wayne_cli.tools_config import _get_platform_tools
+        from work4you_cli.config import load_config
+        from work4you_cli.tools_config import _get_platform_tools
         cfg = load_config()
         enabled = _get_platform_tools(cfg, "discord", include_default_mcp_servers=False)
         return "discord" in enabled or "discord_admin" in enabled
@@ -545,7 +545,7 @@ def build_session_context_prompt(
     lines.append("")
     lines.append("**Delivery options for scheduled tasks:**")
 
-    from wayne_constants import display_wayne_home
+    from work4you_constants import display_wayne_home
 
     # Origin delivery
     if context.source.platform == Platform.LOCAL:
@@ -930,7 +930,7 @@ class SessionStore:
         # Initialize SQLite session database
         self._db = None
         try:
-            from wayne_state import SessionDB
+            from work4you_state import SessionDB
             self._db = SessionDB()
         except Exception as e:
             print(f"[gateway] Warning: SQLite session store unavailable, falling back to JSONL: {e}")
@@ -1121,7 +1121,7 @@ class SessionStore:
         if source is not None and source.profile:
             return source.profile
         try:
-            from wayne_cli.profiles import get_active_profile_name
+            from work4you_cli.profiles import get_active_profile_name
             return get_active_profile_name() or "default"
         except Exception:
             return None
@@ -1488,7 +1488,7 @@ class SessionStore:
                 # Drop the stale entry and fall through to the recovery path
                 # below.  Leaving db_end_session_id None routes us into
                 # _recover_session_from_db, whose finder
-                # (wayne_state.find_latest_gateway_session_for_peer) selects
+                # (work4you_state.find_latest_gateway_session_for_peer) selects
                 # rows WHERE `ended_at IS NULL OR end_reason = 'agent_close'`
                 # — so it REOPENS gateway-cleanup-ended ('agent_close') rows and
                 # resumes the SAME session_id (transcript preserved), but returns

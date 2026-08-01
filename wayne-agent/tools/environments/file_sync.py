@@ -25,7 +25,7 @@ except ImportError:
 from pathlib import Path
 from typing import Callable
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from tools.environments.base import _file_mtime_key
 
 logger = logging.getLogger(__name__)

@@ -26,7 +26,7 @@ def wayne_home(tmp_path, monkeypatch):
     monkeypatch.setenv("WAYNE_HOME", str(home))
 
     # Bust the goal-module DB cache so it re-resolves WAYNE_HOME.
-    from wayne_cli import goals
+    from work4you_cli import goals
 
     goals._DB_CACHE.clear()
     yield home
@@ -38,8 +38,8 @@ def server(wayne_home):
     with patch.dict(
         "sys.modules",
         {
-            "wayne_cli.env_loader": MagicMock(),
-            "wayne_cli.banner": MagicMock(),
+            "work4you_cli.env_loader": MagicMock(),
+            "work4you_cli.banner": MagicMock(),
         },
     ):
         mod = importlib.import_module("tui_gateway.server")
@@ -114,7 +114,7 @@ def test_goal_set_returns_send_with_notice(server, session):
     assert "20-turn budget" in result["notice"]
 
     # Persisted in SessionDB
-    from wayne_cli.goals import GoalManager
+    from work4you_cli.goals import GoalManager
 
     mgr = GoalManager(session_key)
     assert mgr.state is not None
@@ -129,7 +129,7 @@ def test_goal_pause_after_set(server, session):
     assert r["result"]["type"] == "exec"
     assert "paused" in r["result"]["output"].lower()
 
-    from wayne_cli.goals import GoalManager
+    from work4you_cli.goals import GoalManager
 
     assert GoalManager(session_key).state.status == "paused"
 
@@ -142,7 +142,7 @@ def test_goal_resume_reactivates(server, session):
     assert r["result"]["type"] == "exec"
     assert "resumed" in r["result"]["output"].lower()
 
-    from wayne_cli.goals import GoalManager
+    from work4you_cli.goals import GoalManager
 
     assert GoalManager(session_key).state.status == "active"
 
@@ -154,7 +154,7 @@ def test_goal_clear_removes_active_goal(server, session):
     assert r["result"]["type"] == "exec"
     assert "cleared" in r["result"]["output"].lower()
 
-    from wayne_cli.goals import GoalManager
+    from work4you_cli.goals import GoalManager
 
     # After clear the row is marked status=cleared (kept for audit);
     # ``has_goal()`` / ``is_active()`` return False so the goal loop

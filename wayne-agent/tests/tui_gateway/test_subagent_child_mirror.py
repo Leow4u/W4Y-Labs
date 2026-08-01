@@ -20,12 +20,12 @@ def server():
     with patch.dict(
         "sys.modules",
         {
-            "wayne_constants": MagicMock(
+            "work4you_constants": MagicMock(
                 get_wayne_home=MagicMock(return_value="/tmp/wayne_test_child_mirror")
             ),
-            "wayne_cli.env_loader": MagicMock(),
-            "wayne_cli.banner": MagicMock(),
-            "wayne_state": MagicMock(),
+            "work4you_cli.env_loader": MagicMock(),
+            "work4you_cli.banner": MagicMock(),
+            "work4you_state": MagicMock(),
         },
     ):
         import importlib

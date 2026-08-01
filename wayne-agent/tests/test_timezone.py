@@ -1,5 +1,5 @@
 """
-Tests for timezone support (wayne_time module + integration points).
+Tests for timezone support (work4you_time module + integration points).
 
 Covers:
   - Valid timezone applies correctly
@@ -17,18 +17,18 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
-import wayne_time
+import work4you_time
 
 
 def _reset_wayne_time_cache():
-    """Reset the wayne_time module cache (replacement for removed reset_cache)."""
-    wayne_time._cached_tz = None
-    wayne_time._cached_tz_name = None
-    wayne_time._cache_resolved = False
+    """Reset the work4you_time module cache (replacement for removed reset_cache)."""
+    work4you_time._cached_tz = None
+    work4you_time._cached_tz_name = None
+    work4you_time._cache_resolved = False
 
 
 # =========================================================================
-# wayne_time.now() — core helper
+# work4you_time.now() — core helper
 # =========================================================================
 
 class TestWayneTimeNow:
@@ -44,7 +44,7 @@ class TestWayneTimeNow:
     def test_valid_timezone_applies(self):
         """With a valid IANA timezone, now() returns time in that zone."""
         os.environ["WAYNE_TIMEZONE"] = "Asia/Kolkata"
-        result = wayne_time.now()
+        result = work4you_time.now()
         assert result.tzinfo is not None
         # IST is UTC+5:30
         offset = result.utcoffset()
@@ -53,13 +53,13 @@ class TestWayneTimeNow:
     def test_utc_timezone(self):
         """UTC timezone works."""
         os.environ["WAYNE_TIMEZONE"] = "UTC"
-        result = wayne_time.now()
+        result = work4you_time.now()
         assert result.utcoffset() == timedelta(0)
 
     def test_us_eastern(self):
         """US/Eastern timezone works (DST-aware zone)."""
         os.environ["WAYNE_TIMEZONE"] = "America/New_York"
-        result = wayne_time.now()
+        result = work4you_time.now()
         assert result.tzinfo is not None
         # Offset is -5h or -4h depending on DST
         offset_hours = result.utcoffset().total_seconds() / 3600
@@ -68,8 +68,8 @@ class TestWayneTimeNow:
     def test_invalid_timezone_falls_back(self, caplog):
         """Invalid timezone logs warning and falls back to server-local."""
         os.environ["WAYNE_TIMEZONE"] = "Mars/Olympus_Mons"
-        with caplog.at_level(logging.WARNING, logger="wayne_time"):
-            result = wayne_time.now()
+        with caplog.at_level(logging.WARNING, logger="work4you_time"):
+            result = work4you_time.now()
         assert result.tzinfo is not None  # Still tz-aware (server-local)
         assert "Invalid timezone" in caplog.text
         assert "Mars/Olympus_Mons" in caplog.text
@@ -77,13 +77,13 @@ class TestWayneTimeNow:
     def test_empty_timezone_uses_local(self):
         """No timezone configured → server-local time (still tz-aware)."""
         os.environ.pop("WAYNE_TIMEZONE", None)
-        result = wayne_time.now()
+        result = work4you_time.now()
         assert result.tzinfo is not None
 
     def test_format_unchanged(self):
         """Timestamp formatting matches original strftime pattern."""
         os.environ["WAYNE_TIMEZONE"] = "Asia/Kolkata"
-        result = wayne_time.now()
+        result = work4you_time.now()
         formatted = result.strftime("%A, %B %d, %Y %I:%M %p")
         # Should produce something like "Monday, March 03, 2026 05:30 PM"
         assert len(formatted) > 10
@@ -94,12 +94,12 @@ class TestWayneTimeNow:
         """Changing env var + reset_cache picks up new timezone."""
         os.environ["WAYNE_TIMEZONE"] = "UTC"
         _reset_wayne_time_cache()
-        r1 = wayne_time.now()
+        r1 = work4you_time.now()
         assert r1.utcoffset() == timedelta(0)
 
         os.environ["WAYNE_TIMEZONE"] = "Asia/Kolkata"
         _reset_wayne_time_cache()
-        r2 = wayne_time.now()
+        r2 = work4you_time.now()
         assert r2.utcoffset() == timedelta(hours=5, minutes=30)
 
 
@@ -115,18 +115,18 @@ class TestGetTimezone:
 
     def test_returns_zoneinfo_for_valid(self):
         os.environ["WAYNE_TIMEZONE"] = "Europe/London"
-        tz = wayne_time.get_timezone()
+        tz = work4you_time.get_timezone()
         assert isinstance(tz, ZoneInfo)
         assert str(tz) == "Europe/London"
 
     def test_returns_none_for_empty(self):
         os.environ.pop("WAYNE_TIMEZONE", None)
-        tz = wayne_time.get_timezone()
+        tz = work4you_time.get_timezone()
         assert tz is None
 
     def test_returns_none_for_invalid(self):
         os.environ["WAYNE_TIMEZONE"] = "Not/A/Timezone"
-        tz = wayne_time.get_timezone()
+        tz = work4you_time.get_timezone()
         assert tz is None
 
 

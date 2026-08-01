@@ -80,7 +80,7 @@ from gateway.platforms.base import (
 )
 from gateway.platforms.whatsapp_common import WhatsAppBehaviorMixin
 from gateway import rich_sent_store
-from wayne_constants import get_wayne_dir
+from work4you_constants import get_wayne_dir
 
 logger = logging.getLogger(__name__)
 

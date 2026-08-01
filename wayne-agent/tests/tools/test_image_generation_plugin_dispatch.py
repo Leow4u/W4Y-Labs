@@ -34,7 +34,7 @@ class TestPluginDispatch:
     def test_dispatch_routes_to_codex_provider(self, monkeypatch, tmp_path):
         from tools import image_generation_tool
         from agent import image_gen_registry as registry_module
-        from wayne_cli import plugins as plugins_module
+        from work4you_cli import plugins as plugins_module
 
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
         (tmp_path / "config.yaml").write_text("image_gen:\n  provider: codex\n")
@@ -54,7 +54,7 @@ class TestPluginDispatch:
 
     def test_dispatch_reports_missing_registered_provider(self, monkeypatch, tmp_path):
         from tools import image_generation_tool
-        from wayne_cli import plugins as plugins_module
+        from work4you_cli import plugins as plugins_module
 
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
         (tmp_path / "config.yaml").write_text("image_gen:\n  provider: missing-codex\n")
@@ -71,7 +71,7 @@ class TestPluginDispatch:
 
     def test_dispatch_force_refreshes_plugins_when_provider_initially_missing(self, monkeypatch, tmp_path):
         from tools import image_generation_tool
-        from wayne_cli import plugins as plugins_module
+        from work4you_cli import plugins as plugins_module
         from agent import image_gen_registry as registry_module
 
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
@@ -101,7 +101,7 @@ class TestPluginDispatch:
     def test_dispatch_uses_active_openrouter_without_config(self, monkeypatch, tmp_path):
         """Unset image_gen.provider must still hit OpenRouter — not FAL."""
         from tools import image_generation_tool
-        from wayne_cli import plugins as plugins_module
+        from work4you_cli import plugins as plugins_module
 
         class _OR(ImageGenProvider):
             @property

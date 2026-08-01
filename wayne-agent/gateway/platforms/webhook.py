@@ -353,7 +353,7 @@ class WebhookAdapter(BasePlatformAdapter):
 
     def _reload_dynamic_routes(self) -> None:
         """Reload agent-created subscriptions from disk if the file changed."""
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         wayne_home = get_wayne_home()
         subs_path = wayne_home / _DYNAMIC_ROUTES_FILENAME
         if not subs_path.exists():
@@ -431,7 +431,7 @@ class WebhookAdapter(BasePlatformAdapter):
             # the single-profile gateway (don't 404 a would-be valid route).
             return None
         try:
-            from wayne_cli.profiles import profiles_to_serve
+            from work4you_cli.profiles import profiles_to_serve
             served = {name for name, _ in profiles_to_serve(multiplex=True)}
         except Exception:
             return _PROFILE_REJECTED

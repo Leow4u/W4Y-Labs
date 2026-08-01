@@ -88,7 +88,7 @@ E164_RE = re.compile(r"^\+[1-9]\d{6,14}$")
 def _auth_json_path() -> Path:
     """Resolve ``~/.wayne/auth.json`` honouring the active Wayne profile."""
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         return Path(get_wayne_home()) / "auth.json"
     except Exception:
         return Path(os.path.expanduser("~/.wayne")) / "auth.json"
@@ -252,9 +252,9 @@ def _persist_runtime_env(spectrum_project_id: str, project_secret: str) -> None:
     caller — same CodeQL-clean-flow rationale as the rest of this module.
     """
     try:
-        from wayne_cli.config import save_env_value
+        from work4you_cli.config import save_env_value
     except ImportError:
-        logger.warning("photon: wayne_cli.config unavailable — skipping .env write")
+        logger.warning("photon: work4you_cli.config unavailable — skipping .env write")
         return
     try:
         save_env_value("PHOTON_PROJECT_ID", spectrum_project_id)
@@ -916,7 +916,7 @@ def _configured_operator_phone() -> Optional[str]:
 
 def _get_config_env_value(key: str) -> Optional[str]:
     try:
-        from wayne_cli.config import get_env_value
+        from work4you_cli.config import get_env_value
     except Exception:
         return os.getenv(key)
     return get_env_value(key)

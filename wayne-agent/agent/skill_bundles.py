@@ -50,7 +50,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 logger = logging.getLogger(__name__)
 

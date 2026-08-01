@@ -50,7 +50,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
-from wayne_constants import secure_parent_dir
+from work4you_constants import secure_parent_dir
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +136,7 @@ def _get_token_dir() -> Path:
     Layout: ``WAYNE_HOME/mcp-tokens/``
     """
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         base = Path(get_wayne_home())
     except ImportError:
         base = Path(os.environ.get("WAYNE_HOME", str(Path.home() / ".wayne")))

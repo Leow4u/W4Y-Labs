@@ -91,7 +91,7 @@ def list_providers() -> list[ProviderProfile]:
 def _user_plugins_dir() -> Path | None:
     """Return ``$WAYNE_HOME/plugins/model-providers/`` if it exists."""
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         d = get_wayne_home() / "plugins" / "model-providers"
         return d if d.is_dir() else None

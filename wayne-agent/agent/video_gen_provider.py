@@ -203,7 +203,7 @@ class VideoGenProvider(abc.ABC):
 
 def _videos_cache_dir() -> Path:
     """Return ``$WAYNE_HOME/cache/videos/``, creating parents as needed."""
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     path = get_wayne_home() / "cache" / "videos"
     path.mkdir(parents=True, exist_ok=True)
