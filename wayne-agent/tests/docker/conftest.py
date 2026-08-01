@@ -27,8 +27,13 @@ def _docker_available() -> bool:
     if shutil.which("docker") is None:
         return False
     try:
+        # Docker Desktop on Windows/macOS routinely needs 8-20s to answer
+        # `docker info` (VM round-trip), so a 5s budget silently skipped the
+        # whole suite on developer machines — the failure mode that let a
+        # broken COPY path reach a "verified" state during the rebrand.
+        # Skipping must mean "no Docker", not "Docker was slow".
         r = subprocess.run(
-            ["docker", "info"], capture_output=True, timeout=5,
+            ["docker", "info"], capture_output=True, timeout=60,
         )
         return r.returncode == 0
     except (subprocess.TimeoutExpired, OSError):
