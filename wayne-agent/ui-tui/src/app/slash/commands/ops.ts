@@ -16,6 +16,7 @@ import type {
 import type { PanelSection } from '../../../types.js'
 import { applyDelegationStatus, getDelegationState } from '../../delegationStore.js'
 import { patchOverlayState } from '../../overlayStore.js'
+import { displayHomeDir } from '../../../lib/homeDir.js'
 import { getSpawnHistory, pushDiskSnapshot, setDiffPair, type SpawnSnapshot } from '../../spawnHistoryStore.js'
 import type { SlashCommand } from '../types.js'
 
@@ -127,7 +128,7 @@ export const opsCommands: SlashCommand[] = [
   },
 
   {
-    help: 're-read ~/.wayne/.env into the running gateway (CLI parity)',
+    help: `re-read ${displayHomeDir()}/.env into the running gateway (CLI parity)`,
     name: 'reload',
     run: (_arg, ctx) => {
       ctx.gateway

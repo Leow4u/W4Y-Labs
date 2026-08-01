@@ -2822,7 +2822,7 @@ async def connector_trigger_create(body: ConnectorTriggerCreate, request: Reques
         else:
             warning = (
                 "Trigger created, but event delivery needs a public HTTPS URL "
-                "(WAYNE_PUBLIC_URL / cloud). Localhost cannot receive Composio webhooks."
+                "(WORK4YOU_PUBLIC_URL / cloud). Localhost cannot receive Composio webhooks."
             )
 
         payload: Dict[str, Any] = {
@@ -6253,8 +6253,21 @@ async def get_env_vars(profile: Optional[str] = None):
     channel_keys = _channel_managed_env_keys()
     catalog_meta = _catalog_provider_env_metadata()
 
+    def _legacy_spelling(var_name: str) -> str | None:
+        """Return the pre-rename ``WAYNE_*`` spelling of a ``WORK4YOU_*`` key."""
+        if not var_name.startswith("WORK4YOU_"):
+            return None
+        return "WAYNE_" + var_name[len("WORK4YOU_"):]
+
     def _row(var_name: str, info: dict, *, custom: bool = False) -> dict:
         value = env_on_disk.get(var_name)
+        if not value:
+            # An install whose .env predates the WORK4YOU_* rename still holds
+            # the legacy spelling; the env bridge reads it at runtime, so the
+            # key IS set as far as the user is concerned.
+            legacy = _legacy_spelling(var_name)
+            if legacy:
+                value = env_on_disk.get(legacy)
         cat_meta = catalog_meta.get(var_name) or {}
         # Hand OPTIONAL_ENV_VARS prose wins where present; the catalog fills any
         # gaps (description/url) and always supplies provider grouping hints.
@@ -6311,6 +6324,15 @@ async def get_env_vars(profile: Optional[str] = None):
             var_name in result
             or var_name in channel_keys
             or var_name in W4Y_PLATFORM_MANAGED_ENV
+        ):
+            continue
+        # Legacy WAYNE_* spelling of a key now catalogued as WORK4YOU_*: the
+        # bridge still honours it at runtime and the WORK4YOU_ row above
+        # already reports it as set, so don't surface the retired brand name
+        # as an unrecognised "custom" secret.
+        if (
+            var_name.startswith("WAYNE_")
+            and "WORK4YOU_" + var_name[len("WAYNE_"):] in result
         ):
             continue
         row = _row(var_name, {}, custom=True)
@@ -6454,6 +6476,13 @@ async def remove_env_var(body: EnvVarDelete, profile: Optional[str] = None):
     try:
         with _profile_scope(body.profile or profile):
             removed = remove_env_value(body.key)
+            # GET /api/env reports a WORK4YOU_* row as set when only the
+            # pre-rename WAYNE_* line exists on disk, so clearing that row has
+            # to delete the legacy line too — otherwise the value survives and
+            # the row comes straight back.
+            if body.key.startswith("WORK4YOU_"):
+                legacy = "WAYNE_" + body.key[len("WORK4YOU_"):]
+                removed = remove_env_value(legacy) or removed
         if not removed:
             raise HTTPException(status_code=404, detail=f"{body.key} not found in .env")
         return {"ok": True, "key": body.key}
@@ -17627,11 +17656,13 @@ def _mount_plugin_api_routes():
                 )
                 continue
         if plugin.get("source") == "project":
+            from work4you_constants import display_wayne_home
+
             _log.warning(
                 "Plugin %s: ignoring backend api=%s (project plugins may "
                 "not auto-import Python code; move the plugin to "
-                "~/.wayne/plugins/ if you trust it)",
-                plugin["name"], api_file_name,
+                "%s/plugins/ if you trust it)",
+                plugin["name"], api_file_name, display_wayne_home(),
             )
             continue
         dashboard_dir = Path(plugin["_dir"])

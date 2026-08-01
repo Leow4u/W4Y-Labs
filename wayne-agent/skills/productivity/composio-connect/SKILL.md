@@ -21,7 +21,7 @@ LinkedIn, Slack, etc.), drive OAuth **in this chat** with Composio MCP.
 Do not send them to the Conectores marketplace as the primary path.
 
 Work4You uses Composio as the connector plane for third-party apps. Native
-Wayne toolsets (browser, terminal, file, …) are separate and stay available.
+Work4You toolsets (browser, terminal, file, …) are separate and stay available.
 
 ## When to Use
 

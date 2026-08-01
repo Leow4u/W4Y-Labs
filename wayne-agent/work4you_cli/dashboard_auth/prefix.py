@@ -193,7 +193,7 @@ def resolve_public_url() -> str:
     env_clean = _normalise_public_url(env_raw)
     if env_clean:
         return env_clean
-    _warn_if_malformed("WAYNE_DASHBOARD_PUBLIC_URL env var", env_raw)
+    _warn_if_malformed("WORK4YOU_DASHBOARD_PUBLIC_URL env var", env_raw)
     cfg_raw = str(_load_dashboard_section().get("public_url", ""))
     cfg_clean = _normalise_public_url(cfg_raw)
     if not cfg_clean:

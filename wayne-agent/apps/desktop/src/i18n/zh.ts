@@ -1590,7 +1590,7 @@ export const zh: Translations = {
     emptyProductSkillsTitle: '用 Skills 扩展 Work4You',
     emptyProductSkillsDesc:
       'Skills 打包代理可遵循的方法——已学配方、项目 SKILL.md 与 playbook。内置能力仍在聊天中可用；账号在「连接器」中管理。',
-    projectSkillHint: '来自本项目的 .wayne/skills 文件夹 — 在仓库中编辑文件即可更改。',
+    projectSkillHint: '来自本项目的 .work4you/skills 文件夹 — 在仓库中编辑文件即可更改。',
     hubSkillManageHint: '此前从技能中心安装。内置能力在对话中；账户在连接器。',
     changesApplyNewSessions: '更改将应用于新会话。',
     skillUpdated: '技能已更新',
@@ -3278,7 +3278,7 @@ export const zh: Translations = {
       reject: '拒绝',
       alwaysTitle: '始终允许此命令？',
       alwaysDescription: pattern =>
-        `这会将“${pattern}”模式加入永久允许列表 (~/.wayne/config.yaml)。Work4You 对类似命令将不再询问，包括当前会话和未来会话。`,
+        `这会将“${pattern}”模式加入永久允许列表 (~/.work4you/config.yaml)。Work4You 对类似命令将不再询问，包括当前会话和未来会话。`,
       alwaysAllow: '始终允许'
     },
     clarify: {

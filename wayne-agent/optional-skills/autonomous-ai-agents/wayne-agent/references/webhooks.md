@@ -1,24 +1,24 @@
 # Webhook Subscriptions
 
-Create dynamic webhook subscriptions so external services (GitHub, GitLab, Stripe, CI/CD, IoT sensors, monitoring tools) can trigger Wayne agent runs by POSTing events to a URL.
+Create dynamic webhook subscriptions so external services (GitHub, GitLab, Stripe, CI/CD, IoT sensors, monitoring tools) can trigger Work4You agent runs by POSTing events to a URL.
 
 ## Setup (Required First)
 
 The webhook platform must be enabled before subscriptions can be created. Check with:
 ```bash
-wayne webhook list
+work4you webhook list
 ```
 
 If it says "Webhook platform is not enabled", set it up:
 
 ### Option 1: Setup wizard
 ```bash
-wayne gateway setup
+work4you gateway setup
 ```
 Follow the prompts to enable webhooks, set the port, and set a global HMAC secret.
 
 ### Option 2: Manual config
-Add to `~/.wayne/config.yaml`:
+Add to `~/.work4you/config.yaml`:
 ```yaml
 platforms:
   webhook:
@@ -30,7 +30,7 @@ platforms:
 ```
 
 ### Option 3: Environment variables
-Add to `${WAYNE_HOME:-~/.wayne}/.env`:
+Add to `${WAYNE_HOME:-~/.work4you}/.env`:
 ```bash
 WEBHOOK_ENABLED=true
 WEBHOOK_PORT=8644
@@ -39,9 +39,9 @@ WEBHOOK_SECRET=generate-a-strong-secret-here
 
 After configuration, start (or restart) the gateway:
 ```bash
-wayne gateway run
+work4you gateway run
 # Or if using systemd:
-systemctl --user restart wayne-gateway
+systemctl --user restart work4you-gateway
 ```
 
 Verify it's running:
@@ -51,11 +51,11 @@ curl http://localhost:8644/health
 
 ## Commands
 
-All management is via the `wayne webhook` CLI command:
+All management is via the `work4you webhook` CLI command:
 
 ### Create a subscription
 ```bash
-wayne webhook subscribe <name> \
+work4you webhook subscribe <name> \
   --prompt "Prompt template with {payload.fields}" \
   --events "event1,event2" \
   --description "What this does" \
@@ -69,18 +69,18 @@ Returns the webhook URL and HMAC secret. The user configures their service to PO
 
 ### List subscriptions
 ```bash
-wayne webhook list
+work4you webhook list
 ```
 
 ### Remove a subscription
 ```bash
-wayne webhook remove <name>
+work4you webhook remove <name>
 ```
 
 ### Test a subscription
 ```bash
-wayne webhook test <name>
-wayne webhook test <name> --payload '{"key": "value"}'
+work4you webhook test <name>
+work4you webhook test <name> --payload '{"key": "value"}'
 ```
 
 ## Prompt Templates
@@ -98,7 +98,7 @@ If no prompt is specified, the full JSON payload is dumped into the agent prompt
 
 ### GitHub: new issues
 ```bash
-wayne webhook subscribe github-issues \
+work4you webhook subscribe github-issues \
   --events "issues" \
   --prompt "New GitHub issue #{issue.number}: {issue.title}\n\nAction: {action}\nAuthor: {issue.user.login}\nBody:\n{issue.body}\n\nPlease triage this issue." \
   --deliver telegram \
@@ -113,7 +113,7 @@ Then in GitHub repo Settings → Webhooks → Add webhook:
 
 ### GitHub: PR reviews
 ```bash
-wayne webhook subscribe github-prs \
+work4you webhook subscribe github-prs \
   --events "pull_request" \
   --prompt "PR #{pull_request.number} {action}: {pull_request.title}\nBy: {pull_request.user.login}\nBranch: {pull_request.head.ref}\n\n{pull_request.body}" \
   --skills "github-code-review" \
@@ -122,7 +122,7 @@ wayne webhook subscribe github-prs \
 
 ### Stripe: payment events
 ```bash
-wayne webhook subscribe stripe-payments \
+work4you webhook subscribe stripe-payments \
   --events "payment_intent.succeeded,payment_intent.payment_failed" \
   --prompt "Payment {data.object.status}: {data.object.amount} cents from {data.object.receipt_email}" \
   --deliver telegram \
@@ -131,7 +131,7 @@ wayne webhook subscribe stripe-payments \
 
 ### CI/CD: build notifications
 ```bash
-wayne webhook subscribe ci-builds \
+work4you webhook subscribe ci-builds \
   --events "pipeline" \
   --prompt "Build {object_attributes.status} on {project.name} branch {object_attributes.ref}\nCommit: {commit.message}" \
   --deliver discord \
@@ -140,7 +140,7 @@ wayne webhook subscribe ci-builds \
 
 ### Generic monitoring alert
 ```bash
-wayne webhook subscribe alerts \
+work4you webhook subscribe alerts \
   --prompt "Alert: {alert.name}\nSeverity: {alert.severity}\nMessage: {alert.message}\n\nPlease investigate and suggest remediation." \
   --deliver origin
 ```
@@ -156,7 +156,7 @@ Use this for:
 - Any webhook where an LLM round trip would be wasted effort
 
 ```bash
-wayne webhook subscribe antenna-matches \
+work4you webhook subscribe antenna-matches \
   --deliver telegram \
   --deliver-chat-id "123456789" \
   --deliver-only \
@@ -173,11 +173,11 @@ Requires `--deliver` to be a real target (telegram, discord, slack, github_comme
 - Each subscription gets an auto-generated HMAC-SHA256 secret (or provide your own with `--secret`)
 - The webhook adapter validates signatures on every incoming POST
 - Static routes from config.yaml cannot be overwritten by dynamic subscriptions
-- Subscriptions persist to `~/.wayne/webhook_subscriptions.json`
+- Subscriptions persist to `~/.work4you/webhook_subscriptions.json`
 
 ## How It Works
 
-1. `wayne webhook subscribe` writes to `~/.wayne/webhook_subscriptions.json`
+1. `work4you webhook subscribe` writes to `~/.work4you/webhook_subscriptions.json`
 2. The webhook adapter hot-reloads this file on each incoming request (mtime-gated, negligible overhead)
 3. When a POST arrives matching a route, the adapter formats the prompt and triggers an agent run
 4. The agent's response is delivered to the configured target (Telegram, Discord, GitHub comment, etc.)
@@ -186,9 +186,9 @@ Requires `--deliver` to be a real target (telegram, discord, slack, github_comme
 
 If webhooks aren't working:
 
-1. **Is the gateway running?** Check with `systemctl --user status wayne-gateway` or `ps aux | grep gateway`
+1. **Is the gateway running?** Check with `systemctl --user status work4you-gateway` or `ps aux | grep gateway`
 2. **Is the webhook server listening?** `curl http://localhost:8644/health` should return `{"status": "ok"}`
-3. **Check gateway logs:** `grep webhook ~/.wayne/logs/gateway.log | tail -20`
-4. **Signature mismatch?** Verify the secret in your service matches the one from `wayne webhook list`. GitHub sends `X-Hub-Signature-256`, GitLab sends `X-Gitlab-Token`.
+3. **Check gateway logs:** `grep webhook ~/.work4you/logs/gateway.log | tail -20`
+4. **Signature mismatch?** Verify the secret in your service matches the one from `work4you webhook list`. GitHub sends `X-Hub-Signature-256`, GitLab sends `X-Gitlab-Token`.
 5. **Firewall/NAT?** The webhook URL must be reachable from the service. For local development, use a tunnel (ngrok, cloudflared).
-6. **Wrong event type?** Check `--events` filter matches what the service sends. Use `wayne webhook test <name>` to verify the route works.
+6. **Wrong event type?** Check `--events` filter matches what the service sends. Use `work4you webhook test <name>` to verify the route works.

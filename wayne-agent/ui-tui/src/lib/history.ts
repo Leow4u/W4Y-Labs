@@ -1,9 +1,10 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs'
-import { homedir } from 'node:os'
 import { join } from 'node:path'
 
+import { homeDir } from './homeDir.js'
+
 const MAX = 1000
-const dir = process.env.WAYNE_HOME ?? join(homedir(), '.wayne')
+const dir = homeDir()
 const file = join(dir, '.wayne_history')
 
 let cache: string[] | null = null

@@ -205,7 +205,7 @@ Subcommands:
 
 Categories: temp | test | research | download | chrome-profile | cron-output | other
 
-All operations are scoped to WAYNE_HOME and /tmp/wayne-*.
+All operations are scoped to the Work4You home and /tmp/wayne-*.
 Test files are auto-tracked on write_file / terminal and auto-cleaned at session end.
 """
 
@@ -286,7 +286,7 @@ def _handle_slash(raw_args: str) -> Optional[str]:
         if dg.track(path_arg, category, silent=True):
             return f"Tracked {path_arg} as '{category}'."
         return (
-            f"Not tracked (already present, missing, or outside WAYNE_HOME): "
+            f"Not tracked (already present, missing, or outside the Work4You home): "
             f"{path_arg}"
         )
 

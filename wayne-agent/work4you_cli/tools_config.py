@@ -31,6 +31,7 @@ from work4you_cli.nous_subscription import (
 from work4you_cli.nous_account import format_nous_portal_entitlement_message
 from tools.tool_backend_helpers import fal_key_is_configured, openrouter_key_is_configured
 from utils import base_url_hostname, is_truthy_value
+from work4you_constants import display_wayne_home
 
 logger = logging.getLogger(__name__)
 
@@ -1129,7 +1130,7 @@ def _run_post_setup(post_setup_key: str):
                 return
         _print_info("    Default voice: en_US-lessac-medium (downloaded on first TTS call)")
         _print_info("    Full voice list: https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/VOICES.md")
-        _print_info("    Switch voices by setting tts.piper.voice in ~/.wayne/config.yaml")
+        _print_info(f"    Switch voices by setting tts.piper.voice in {display_wayne_home()}/config.yaml")
 
     elif post_setup_key == "ddgs":
         try:
@@ -3786,7 +3787,7 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
                 print(color("    (none enabled)", Colors.DIM))
         print()
         return
-    print(color("⚕ Wayne Tool Configuration", Colors.CYAN, Colors.BOLD))
+    print(color("⚕ Work4You Tool Configuration", Colors.CYAN, Colors.BOLD))
     print(color("  Enable or disable tools per platform.", Colors.DIM))
     print(color("  Tools that need API keys will be configured when enabled.", Colors.DIM))
     print(color("  Guide: https://hermes-agent.nousresearch.com/docs/user-guide/features/tools", Colors.DIM))

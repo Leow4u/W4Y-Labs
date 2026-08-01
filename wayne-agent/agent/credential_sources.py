@@ -169,6 +169,7 @@ def _remove_env_source(provider: str, removed) -> RemovalResult:
     except OSError:
         pass
     shell_exported = env_in_process and not env_in_dotenv
+    from work4you_constants import display_wayne_home
 
     cleared = remove_env_value(env_var)
     if cleared:
@@ -177,9 +178,9 @@ def _remove_env_source(provider: str, removed) -> RemovalResult:
     if shell_exported:
         result.hints.extend([
             f"Note: {env_var} is still set in your shell environment "
-            f"(not in ~/.wayne/.env).",
+            f"(not in {display_wayne_home()}/.env).",
             "  Unset it there (shell profile, systemd EnvironmentFile, "
-            "launchd plist, etc.) or it will keep being visible to Wayne.",
+            "launchd plist, etc.) or it will keep being visible to Work4You.",
             f"  The pool entry is now suppressed — Work4You will ignore "
             f"{env_var} until you run `work4you auth add {provider}`.",
         ])
@@ -213,7 +214,7 @@ def _remove_wayne_pkce(provider: str, removed) -> RemovalResult:
     if oauth_file.exists():
         try:
             oauth_file.unlink()
-            result.cleaned.append("Cleared Wayne Anthropic OAuth credentials")
+            result.cleaned.append("Cleared Work4You Anthropic OAuth credentials")
         except OSError as exc:
             result.hints.append(f"Could not delete {oauth_file}: {exc}")
     return result
@@ -401,10 +402,12 @@ def _register_all_sources() -> None:
         remove_fn=_remove_claude_code,
         description="~/.claude/.credentials.json",
     ))
+    from work4you_constants import display_wayne_home
+
     register(RemovalStep(
         provider="anthropic", source_id="wayne_pkce",
         remove_fn=_remove_wayne_pkce,
-        description="~/.wayne/.anthropic_oauth.json",
+        description=f"{display_wayne_home()}/.anthropic_oauth.json",
     ))
     register(RemovalStep(
         provider="nous", source_id="device_code",

@@ -26,7 +26,7 @@ self-hosted skill that the user's own agent runs. It is **multi-tenant** (manage
 clients, each isolated), **consent-gated**, and built for **maximum automation with a human
 fallback**. Scope is **US-first**, with EU/UK (GDPR) and global coverage on the roadmap.
 
-The design is **Wayne-native**: a small deterministic Python CLI (`scripts/pdd.py`) owns the state
+The design is **Work4You-native**: a small deterministic Python CLI (`scripts/pdd.py`) owns the state
 (config, dossiers, broker DB, tier planning, ledger, drafts, reports), while the agent does the
 scanning and submitting with native tools (`web_extract`, `browser_*`, email, `cronjob`,
 `delegate_task`). [`SKILL.md`](SKILL.md) is the authoritative reference.
@@ -34,10 +34,10 @@ scanning and submitting with native tools (`web_extract`, `browser_*`, email, `c
 ## Install
 
 ```bash
-wayne skills install official/security/unbroker
+work4you skills install official/security/unbroker
 ```
 
-Then start a new Wayne session and drive it (below). The skill works zero-config; a few optional
+Then start a new Work4You session and drive it (below). The skill works zero-config; a few optional
 env vars unlock more automation (all documented in `SKILL.md` under Prerequisites):
 
 - `BROWSERBASE_API_KEY`: the recommended default browser. A real residential-IP cloud browser that
@@ -52,7 +52,7 @@ env vars unlock more automation (all documented in `SKILL.md` under Prerequisite
 
 ## Usage
 
-Drive it from a Wayne session:
+Drive it from a Work4You session:
 
 > "Use the unbroker skill to remove my data from data brokers. Here is my consent. Run it hands-off
 > and show me the human-task digest at the end."
@@ -140,7 +140,7 @@ python3 tests/skills/test_unbroker_skill.py                        # dependency-
 - **Least-disclosure and honest reporting.** The skill submits only what a broker requires. "Hidden
   from free search" is never reported as "deleted", and residual exposure (public records, paid-tier
   retention) is disclosed.
-- **PII handling.** Dossiers live under the Wayne home directory (`0600`, optionally
+- **PII handling.** Dossiers live under the Work4You home directory (`0600`, optionally
   `age`-encrypted), with opaque ids.
 
 ## Status

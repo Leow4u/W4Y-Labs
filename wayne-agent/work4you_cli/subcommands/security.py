@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+from work4you_constants import display_wayne_home
+
 
 def build_security_parser(subparsers, *, cmd_security: Callable) -> None:
     """Attach the ``security`` subcommand to ``subparsers``."""
@@ -16,9 +18,9 @@ def build_security_parser(subparsers, *, cmd_security: Callable) -> None:
         "security",
         help="Supply-chain audit (OSV.dev) for venv, plugins, and MCP servers",
         description=(
-            "On-demand vulnerability scan against OSV.dev. Covers the Wayne "
+            "On-demand vulnerability scan against OSV.dev. Covers the Work4You "
             "venv (installed PyPI dists), Python deps declared by plugins under "
-            "~/.wayne/plugins/, and pinned npx/uvx MCP servers in config.yaml. "
+            f"{display_wayne_home()}/plugins/, and pinned npx/uvx MCP servers in config.yaml. "
             "Does NOT scan globally-installed packages or editor/browser extensions."
         ),
     )
@@ -46,7 +48,7 @@ def build_security_parser(subparsers, *, cmd_security: Callable) -> None:
     audit_parser.add_argument(
         "--skip-venv",
         action="store_true",
-        help="Skip scanning the Wayne Python venv",
+        help="Skip scanning the Work4You Python venv",
     )
     audit_parser.add_argument(
         "--skip-plugins",

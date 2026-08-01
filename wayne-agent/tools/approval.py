@@ -205,10 +205,16 @@ def _is_gateway_approval_context() -> bool:
 # go stale when WAYNE_HOME is set after this module is imported, e.g. under the
 # hermetic test conftest or any deferred-profile-resolution path).
 _SSH_SENSITIVE_PATH = r'(?:~|\$home|\$\{home\})/\.ssh(?:/|$)'
+# Brand migration: the home dir moved from ~/.wayne to ~/.work4you and the
+# public env var from WAYNE_HOME to WORK4YOU_HOME.  Both spellings have to
+# match — a command naming ~/.work4you/.env targets the very same protected
+# file, and matching only the old name would silently un-gate it.
+_HOME_DOT_DIR = r'(?:\.work4you|\.wayne)'
+_HOME_ENV_VAR = r'(?:\$work4you_home|\$\{work4you_home\}|\$wayne_home|\$\{wayne_home\})'
 _WAYNE_ENV_PATH = (
-    r'(?:~\/\.wayne/|'
-    r'(?:\$home|\$\{home\})/\.wayne/|'
-    r'(?:\$wayne_home|\$\{wayne_home\})/)'
+    rf'(?:~\/{_HOME_DOT_DIR}/|'
+    rf'(?:\$home|\$\{{home\}})/{_HOME_DOT_DIR}/|'
+    rf'{_HOME_ENV_VAR}/)'
     r'\.env\b'
 )
 # ~/.wayne/config.yaml IS the security policy: approvals.mode, yolo, and the
@@ -220,9 +226,9 @@ _WAYNE_ENV_PATH = (
 # theater. Mirrors _WAYNE_ENV_PATH; matches the WAYNE_HOME override form as
 # well as ~/.wayne/.
 _WAYNE_CONFIG_PATH = (
-    r'(?:~\/\.wayne/|'
-    r'(?:\$home|\$\{home\})/\.wayne/|'
-    r'(?:\$wayne_home|\$\{wayne_home\})/)'
+    rf'(?:~\/{_HOME_DOT_DIR}/|'
+    rf'(?:\$home|\$\{{home\}})/{_HOME_DOT_DIR}/|'
+    rf'{_HOME_ENV_VAR}/)'
     r'config\.yaml\b'
 )
 _PROJECT_ENV_PATH = r'(?:(?:/|\.{1,2}/)?(?:[^\s/"\'`]+/)*\.env(?:\.[^/\s"\'`]+)*)'
@@ -2151,7 +2157,7 @@ def check_dangerous_command(command: str, env_type: str,
                 }
         logger.warning(
             "AUTO-APPROVED dangerous command in non-interactive non-gateway context "
-            "(pattern: %s): %s — set WAYNE_INTERACTIVE or WAYNE_GATEWAY_SESSION to require approval.",
+            "(pattern: %s): %s — set WORK4YOU_INTERACTIVE or WORK4YOU_GATEWAY_SESSION to require approval.",
             description, command[:200],
         )
         return {"approved": True, "message": None}

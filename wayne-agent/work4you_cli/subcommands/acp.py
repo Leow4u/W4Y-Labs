@@ -9,21 +9,22 @@ from __future__ import annotations
 from typing import Callable
 
 from work4you_cli.subcommands._shared import add_accept_hooks_flag
+from work4you_constants import display_wayne_home
 
 
 def build_acp_parser(subparsers, *, cmd_acp: Callable) -> None:
     """Attach the ``acp`` subcommand to ``subparsers``."""
     acp_parser = subparsers.add_parser(
         "acp",
-        help="Run Wayne Agent as an ACP (Agent Client Protocol) server",
-        description="Start Wayne Agent in ACP mode for editor integration (VS Code, Zed, JetBrains)",
+        help="Run Work4You as an ACP (Agent Client Protocol) server",
+        description="Start Work4You in ACP mode for editor integration (VS Code, Zed, JetBrains)",
     )
     add_accept_hooks_flag(acp_parser)
     acp_parser.add_argument(
         "--version",
         action="store_true",
         dest="acp_version",
-        help="Print Wayne ACP version and exit",
+        help="Print Work4You ACP version and exit",
     )
     acp_parser.add_argument(
         "--check",
@@ -33,12 +34,12 @@ def build_acp_parser(subparsers, *, cmd_acp: Callable) -> None:
     acp_parser.add_argument(
         "--setup",
         action="store_true",
-        help="Run interactive Wayne provider/model setup for ACP terminal auth",
+        help="Run interactive Work4You provider/model setup for ACP terminal auth",
     )
     acp_parser.add_argument(
         "--setup-browser",
         action="store_true",
-        help="Install agent-browser + Playwright Chromium into ~/.wayne/node/ "
+        help=f"Install agent-browser + Playwright Chromium into {display_wayne_home()}/node/ "
              "for browser tool support (idempotent).",
     )
     acp_parser.add_argument(

@@ -216,7 +216,7 @@ def _get_langfuse() -> Optional[Langfuse]:
         try:
             kwargs["sample_rate"] = float(sample_rate)
         except ValueError:
-            logger.warning("Invalid WAYNE_LANGFUSE_SAMPLE_RATE=%r", sample_rate)
+            logger.warning("Invalid WORK4YOU_LANGFUSE_SAMPLE_RATE=%r", sample_rate)
 
     try:
         _LANGFUSE_CLIENT = Langfuse(**kwargs)

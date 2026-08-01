@@ -1,4 +1,4 @@
-# Wayne Agent CLI Configuration
+# Work4You CLI Configuration
 # Copy this file to cli-config.yaml and customize as needed.
 # This file configures the CLI behavior. Environment variables in .env take precedence.
 
@@ -16,10 +16,10 @@ model:
   # Inference provider selection:
   #   "auto"         - Auto-detect from credentials (default)
   #   "openrouter"   - OpenRouter (requires: OPENROUTER_API_KEY or OPENAI_API_KEY)
-  #   "nous"         - Nous Portal OAuth (requires: wayne auth add nous)
+  #   "nous"         - Nous Portal OAuth (requires: work4you auth add nous)
   #   "nous-api"     - Nous Portal API key (requires: NOUS_API_KEY)
   #   "anthropic"    - Direct Anthropic API (requires: ANTHROPIC_API_KEY)
-  #   "openai-codex" - OpenAI Codex (requires: wayne auth)
+  #   "openai-codex" - OpenAI Codex (requires: work4you auth)
   #   "copilot"      - GitHub Copilot / GitHub Models (requires: GITHUB_TOKEN)
   #   "gemini"      - Use Google AI Studio direct (requires: GOOGLE_API_KEY or GEMINI_API_KEY)
   #   "zai"         - Use z.ai / ZhipuAI GLM models (requires: GLM_API_KEY)
@@ -59,8 +59,8 @@ model:
   # ── Token limits — two settings, easy to confuse ──────────────────────────
   #
   # context_length: TOTAL context window (input + output tokens combined).
-  #   Controls when Wayne compresses history and validates requests.
-  #   Leave unset — Wayne auto-detects the correct value from the provider.
+  #   Controls when Work4You compresses history and validates requests.
+  #   Leave unset — Work4You auto-detects the correct value from the provider.
   #   Set manually only when auto-detection is wrong (e.g. a local server with
   #   a custom num_ctx, or a proxy that doesn't expose /v1/models).
   #
@@ -116,11 +116,11 @@ model:
 # client rebuilds during credential rotation.  For OpenAI-wire chat
 # completions (streaming and non-streaming) the configured value is also
 # used as the per-request ``timeout=`` kwarg so it wins over the legacy
-# WAYNE_API_TIMEOUT env var (which still applies when no config is set).
+# WORK4YOU_API_TIMEOUT env var (which still applies when no config is set).
 # ``stale_timeout_seconds`` controls the non-streaming stale-call detector and
-# wins over the legacy WAYNE_API_CALL_STALE_TIMEOUT env var. Leaving these
-# unset keeps the legacy defaults (WAYNE_API_TIMEOUT=1800s,
-# WAYNE_API_CALL_STALE_TIMEOUT=90s, native Anthropic 900s). The
+# wins over the legacy WORK4YOU_API_CALL_STALE_TIMEOUT env var. Leaving these
+# unset keeps the legacy defaults (WORK4YOU_API_TIMEOUT=1800s,
+# WORK4YOU_API_CALL_STALE_TIMEOUT=90s, native Anthropic 900s). The
 # implicit non-stream stale detector is auto-disabled for local endpoints
 # and can scale upward for very large contexts.
 #
@@ -210,16 +210,16 @@ model:
 # Commands run directly on your machine in the current directory
 # -----------------------------------------------------------------------------
 # Working directory behavior:
-#   - CLI (`wayne` command): Uses "." (current directory where you run wayne)
+#   - CLI (`work4you` command): Uses "." (current directory where you run work4you)
 #   - Gateway/messaging/cron: Uses terminal.cwd here; legacy .env cwd values are deprecated
 terminal:
   backend: "local"
   cwd: "."  # For local backend: "." = current directory. Ignored for remote backends unless a backend documents otherwise.
   timeout: 180
   # HOME policy for tool subprocesses:
-  #   auto    - default: host uses your real HOME; containers use WAYNE_HOME/home
+  #   auto    - default: host uses your real HOME; containers use WORK4YOU_HOME/home
   #   real    - force your real OS-user HOME
-  #   profile - force WAYNE_HOME/home for strict per-profile CLI config isolation
+  #   profile - force WORK4YOU_HOME/home for strict per-profile CLI config isolation
   home_mode: "auto"
   docker_mount_cwd_to_workspace: false  # SECURITY: off by default. Opt in to mount the launch cwd into Docker /workspace.
   lifetime_seconds: 300
@@ -259,7 +259,7 @@ terminal:
 #   # chosen docker_image expects to start as root.
 #   docker_run_as_host_user: true
 #   # Optional: explicitly forward selected env vars into Docker.
-#   # These values come from your current shell first, then ~/.wayne/.env.
+#   # These values come from your current shell first, then ~/.work4you/.env.
 #   # Warning: anything forwarded here is visible to commands run in the container.
 #   docker_forward_env:
 #     - "GITHUB_TOKEN"
@@ -334,7 +334,7 @@ terminal:
 # - Password is cached for the session
 #
 # EMPTY PASSWORDS: Setting sudo_password to an explicit empty string is different
-# from leaving it unset. Wayne will try an empty password via `sudo -S` and
+# from leaving it unset. Work4You will try an empty password via `sudo -S` and
 # will not open the interactive prompt. This is useful for passwordless sudo,
 # Touch ID sudo setups, and environments where prompting is just noise.
 #
@@ -453,7 +453,7 @@ prompt_caching:
 # =============================================================================
 # Auxiliary Models (Advanced — Experimental)
 # =============================================================================
-# Wayne uses lightweight "auxiliary" models for side tasks: image analysis,
+# Work4You uses lightweight "auxiliary" models for side tasks: image analysis,
 # browser screenshot analysis, web page summarization, TTS audio-tag insertion,
 # and context compression.
 #
@@ -473,10 +473,10 @@ prompt_caching:
 # Provider options:
 #   "auto"       - Best available: OpenRouter → Nous Portal → main endpoint (default)
 #   "openrouter" - Force OpenRouter (requires OPENROUTER_API_KEY)
-#   "nous"       - Force Nous Portal (requires: wayne auth add nous)
+#   "nous"       - Force Nous Portal (requires: work4you auth add nous)
 #   "gemini"      - Force Google AI Studio direct (requires: GOOGLE_API_KEY or GEMINI_API_KEY)
 #   "ollama-cloud" - Ollama Cloud (requires: OLLAMA_API_KEY)
-#   "codex"       - Force Codex OAuth (requires: wayne model → Codex).
+#   "codex"       - Force Codex OAuth (requires: work4you model → Codex).
 #                  Uses gpt-5.3-codex which supports vision.
 #   "main"       - Use your custom endpoint (OPENAI_BASE_URL + OPENAI_API_KEY).
 #                  Works with OpenAI API, local models, or any OpenAI-compatible
@@ -583,7 +583,7 @@ session_reset:
 # unlimited concurrent sessions. When the limit is reached, new sessions get a
 # clean error while existing active sessions keep their normal behavior. This
 # top-level key takes precedence over gateway.max_concurrent_sessions. The cap
-# is a best-effort single-host/profile runtime guard; Wayne fails open if the
+# is a best-effort single-host/profile runtime guard; Work4You fails open if the
 # local runtime lease registry cannot be read or locked.
 max_concurrent_sessions: null
 
@@ -597,7 +597,7 @@ group_sessions_per_user: true
 # API Server — per-client model routing
 # ─────────────────────────────────────────────────────────────────────────────
 # Route different API clients to different models/providers on a single
-# Wayne deployment.  Clients choose a backend by sending a specific string
+# Work4You deployment.  Clients choose a backend by sending a specific string
 # as the OpenAI ``model`` field.  Unmapped model values fall back to the
 # global model configured in the ``model:`` section above, and an explicit
 # session /model override always wins over a route.
@@ -655,9 +655,9 @@ skills:
   creation_nudge_interval: 15
 
   # External skill directories — share skills across tools/agents without
-  # copying them into ~/.wayne/skills/.  Each path is expanded (~ and ${VAR})
+  # copying them into ~/.work4you/skills/.  Each path is expanded (~ and ${VAR})
   # and resolved to an absolute path.  External dirs are read-only: skill
-  # creation always writes to ~/.wayne/skills/.  Local skills take precedence
+  # creation always writes to ~/.work4you/skills/.  Local skills take precedence
   # when names collide.
   # external_dirs:
   #   - ~/.agents/skills
@@ -692,7 +692,7 @@ agent:
   # timeouts, 5xx, etc.) before the agent surfaces the failure. Lower this
   # to 1 if you use fallback providers and want fast failover on flaky
   # primaries (default 3). The OpenAI SDK does its own low-level retries
-  # underneath this wrapper — this is the Wayne-level loop.
+  # underneath this wrapper — this is the Work4You-level loop.
   # api_max_retries: 3
 
   # After the agent edits code without fresh passing verification, nudge it to
@@ -700,10 +700,10 @@ agent:
   # coding surfaces (CLI, TUI, desktop) and programmatic callers, and disables
   # it on conversational messaging surfaces (Telegram, Discord, etc.) where the
   # verification summary would reach a human as chat noise. Set true or false to
-  # force it on or off; the WAYNE_VERIFY_ON_STOP env var (1/0) takes precedence.
+  # force it on or off; the WORK4YOU_VERIFY_ON_STOP env var (1/0) takes precedence.
   # verify_on_stop: auto
 
-  # Standing operator instructions for the coding posture (when Wayne is in a
+  # Standing operator instructions for the coding posture (when Work4You is in a
   # code workspace). Appended to the coding brief as an extra system block, so
   # you can pin project-wide workflow rules without editing the shipped brief.
   # Accepts a string or a list of strings. Takes effect next session.
@@ -739,10 +739,10 @@ agent:
     teacher: "You are a patient teacher. Explain concepts clearly with examples."
     kawaii: "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ"
     catgirl: "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!"
-    pirate: "Arrr! Ye be talkin' to Captain Wayne, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!"
+    pirate: "Arrr! Ye be talkin' to Captain Work4You, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!"
     shakespeare: "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?"
     surfer: "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga! 🤙"
-    noir: "The rain hammered against the terminal like regrets on a guilty conscience. They call me Wayne - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?"
+    noir: "The rain hammered against the terminal like regrets on a guilty conscience. They call me Work4You - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?"
     uwu: "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<"
     philosopher: "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself."
     hype: "YOOO LET'S GOOOO!!! 🔥🔥🔥 I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS! 💪😤🚀"
@@ -751,7 +751,7 @@ agent:
 # Toolsets
 # =============================================================================
 # Control which tools the agent has access to.
-# Use `wayne tools` to interactively enable/disable tools per platform.
+# Use `work4you tools` to interactively enable/disable tools per platform.
 
 # =============================================================================
 # Platform Toolsets (per-platform tool configuration)
@@ -827,12 +827,12 @@ platform_toolsets:
 #       rich_messages: false          # Bot API 10.1 rich messages (tables/task lists/details/math); default false for copyable legacy MarkdownV2, set true to opt in
 #       rich_drafts: false            # Experimental rich draft previews during Telegram DM streaming; default false because Telegram Desktop/macOS can visually overlay draft frames
 #       command_menu:
-#         # Telegram allows up to 100 BotCommands; Wayne defaults to 60 so
+#         # Telegram allows up to 100 BotCommands; Work4You defaults to 60 so
 #         # all built-in commands plus common skill commands stay visible
 #         # while remaining under Telegram's payload-size limit. Clamped 1..100.
 #         max_commands: 60
-#         # prepend = user priority first, then Wayne defaults
-#         # append  = Wayne defaults first, then user priority
+#         # prepend = user priority first, then Work4You defaults
+#         # append  = Work4You defaults first, then user priority
 #         # replace = only the list below defines priority
 #         priority_mode: prepend
 #         priority:
@@ -851,8 +851,8 @@ platform_toolsets:
 # ─────────────────────────────────────────────────────────────────────────────
 # Available toolsets (use these names in platform_toolsets or the toolsets list)
 #
-# Run `wayne chat --list-toolsets` to see all toolsets and their tools.
-# Run `wayne chat --list-tools` to see every individual tool with descriptions.
+# Run `work4you chat --list-toolsets` to see all toolsets and their tools.
+# Run `work4you chat --list-tools` to see every individual tool with descriptions.
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # INDIVIDUAL TOOLSETS (compose your own):
@@ -904,9 +904,9 @@ platform_toolsets:
 
 # NOTE: The top-level "toolsets" key is deprecated and ignored.
 # Tool configuration is managed per-platform via platform_toolsets above.
-# Use `wayne tools` to configure interactively, or edit platform_toolsets directly.
+# Use `work4you tools` to configure interactively, or edit platform_toolsets directly.
 #
-# CLI override: wayne chat --toolsets terminal,web,file
+# CLI override: work4you chat --toolsets terminal,web,file
 
 # =============================================================================
 # MCP (Model Context Protocol) Servers
@@ -965,7 +965,7 @@ platform_toolsets:
 # =============================================================================
 # Text-to-Speech
 # =============================================================================
-# TTS defaults to Edge TTS unless changed in ~/.wayne/config.yaml.
+# TTS defaults to Edge TTS unless changed in ~/.work4you/config.yaml.
 # Gemini TTS supports persona/director prompt files, and Gemini 3.1 Flash TTS
 # can use a hidden auxiliary rewrite pass to insert expressive square-bracket
 # audio tags into the TTS script without showing tags in chat.
@@ -976,7 +976,7 @@ platform_toolsets:
 #     model: "gemini-3.1-flash-tts-preview"
 #     voice: "Kore"
 #     audio_tags: false
-#     persona_prompt_file: ""  # e.g. ~/.wayne/tts/radio-host.md
+#     persona_prompt_file: ""  # e.g. ~/.work4you/tts/radio-host.md
 
 # =============================================================================
 # Voice Transcription (Speech-to-Text)
@@ -1022,7 +1022,7 @@ stt:
 # =============================================================================
 # Code Execution Sandbox (Programmatic Tool Calling)
 # =============================================================================
-# The execute_code tool runs Python scripts that call Wayne tools via RPC.
+# The execute_code tool runs Python scripts that call Work4You tools via RPC.
 # Intermediate tool results stay out of the LLM's context window.
 code_execution:
   timeout: 300         # Max seconds per script before kill (default: 300 = 5 min)
@@ -1060,9 +1060,9 @@ delegation:
 #
 # Requires: pip install honcho-ai
 # Config: ~/.honcho/config.json (shared with Claude Code, Cursor, etc.)
-# API key: HONCHO_API_KEY in ~/.wayne/.env or ~/.honcho/config.json
+# API key: HONCHO_API_KEY in ~/.work4you/.env or ~/.honcho/config.json
 #
-# Wayne-specific overrides (optional — most config comes from ~/.honcho/config.json):
+# Work4You-specific overrides (optional — most config comes from ~/.honcho/config.json):
 # honcho: {}
 
 # =============================================================================
@@ -1079,7 +1079,7 @@ display:
   #   new:     Show a tool indicator only when the tool changes (skip repeats)
   #   all:     Show every tool call with a short preview (default)
   #   verbose: Full args, results, and debug logs (same as /verbose)
-  #   log:     Silent in chat; append every tool call to ~/.wayne/logs/tool_calls.log (gateway only)
+  #   log:     Silent in chat; append every tool call to ~/.work4you/logs/tool_calls.log (gateway only)
   # Toggle at runtime with /verbose in the CLI
   tool_progress: all
 
@@ -1131,8 +1131,8 @@ display:
   # terse: "Interrupting current task" and "⏳ Working — 12 min, terminal".
   busy_ack_detail: true
 
-  # What Enter does when Wayne is already busy (CLI and gateway platforms).
-  #   interrupt: Interrupt the current run and redirect Wayne (default)
+  # What Enter does when Work4You is already busy (CLI and gateway platforms).
+  #   interrupt: Interrupt the current run and redirect Work4You (default)
   #   queue:     Queue your message for the next turn
   #   steer:     Inject your message mid-run via /steer, arriving at the agent
   #              after the next tool call — no interrupt, no role violation.
@@ -1183,7 +1183,7 @@ display:
   # response box label, and branding text. Change at runtime with /skin <name>.
   #
   # Built-in skins:
-  #   default        — Classic Wayne gold/kawaii
+  #   default        — Classic Work4You gold/kawaii
   #   ares           — Crimson/bronze war-god theme with spinner wings
   #   mono           — Clean grayscale monochrome
   #   slate          — Cool blue developer-focused
@@ -1193,7 +1193,7 @@ display:
   #   sisyphus       — Earthy stone-and-moss theme
   #   charizard      — Fiery orange dragon theme
   #
-  # Custom skins: drop a YAML file in ~/.wayne/skins/<name>.yaml
+  # Custom skins: drop a YAML file in ~/.work4you/skins/<name>.yaml
   # Schema (all fields optional, missing values inherit from default):
   #
   #   name: my-theme
@@ -1268,8 +1268,8 @@ display:
 #   on_session_finalize, on_session_reset, subagent_stop
 #
 # First-use consent: each (event, command) pair prompts once on a TTY, then
-# is persisted to ~/.wayne/shell-hooks-allowlist.json.  Non-interactive
-# runs (gateway, cron) need --accept-hooks, WAYNE_ACCEPT_HOOKS=1, or the
+# is persisted to ~/.work4you/shell-hooks-allowlist.json.  Non-interactive
+# runs (gateway, cron) need --accept-hooks, WORK4YOU_ACCEPT_HOOKS=1, or the
 # hooks_auto_accept key below.
 #
 # See website/docs/user-guide/features/hooks.md for the full JSON wire
@@ -1278,15 +1278,15 @@ display:
 # hooks:
 #   pre_tool_call:
 #     - matcher: "terminal"
-#       command: "~/.wayne/agent-hooks/block-rm-rf.sh"
+#       command: "~/.work4you/agent-hooks/block-rm-rf.sh"
 #       timeout: 10
 #   post_tool_call:
 #     - matcher: "write_file|patch"
-#       command: "~/.wayne/agent-hooks/auto-format.sh"
+#       command: "~/.work4you/agent-hooks/auto-format.sh"
 #   pre_llm_call:
-#     - command: "~/.wayne/agent-hooks/inject-cwd-context.sh"
+#     - command: "~/.work4you/agent-hooks/inject-cwd-context.sh"
 #   subagent_stop:
-#     - command: "~/.wayne/agent-hooks/log-orchestration.sh"
+#     - command: "~/.work4you/agent-hooks/log-orchestration.sh"
 #
 # hooks_auto_accept: false
 
@@ -1295,15 +1295,15 @@ display:
 # Update Behavior
 # =============================================================================
 updates:
-  # Create a full WAYNE_HOME zip before every `wayne update`.
-  # Backups land in ~/.wayne/backups/ and can be restored with `wayne import`.
+  # Create a full WORK4YOU_HOME zip before every `work4you update`.
+  # Backups land in ~/.work4you/backups/ and can be restored with `work4you import`.
   # Off by default because large homes can add minutes to every update.
   pre_update_backup: false
 
   # Number of pre-update backup zips to retain.
   backup_keep: 5
 
-  # What non-interactive updates do with local source edits in the Wayne repo.
+  # What non-interactive updates do with local source edits in the Work4You repo.
   # Interactive terminal updates always prompt before restoring the autostash.
   #
   #   stash   - auto-stash before pull, then auto-restore after success (default)
@@ -1315,13 +1315,13 @@ updates:
 # =============================================================================
 # Web Dashboard
 # =============================================================================
-# OAuth gate configuration for `wayne dashboard --host <non-loopback>`.
+# OAuth gate configuration for `work4you dashboard --host <non-loopback>`.
 # The bundled Nous Portal plugin reads these on startup; settings here are
 # the canonical surface. Each can be overridden by an environment variable:
 #
-#   dashboard.oauth.client_id   <-  WAYNE_DASHBOARD_OAUTH_CLIENT_ID
-#   dashboard.oauth.portal_url  <-  WAYNE_DASHBOARD_PORTAL_URL
-#   dashboard.public_url        <-  WAYNE_DASHBOARD_PUBLIC_URL
+#   dashboard.oauth.client_id   <-  WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID
+#   dashboard.oauth.portal_url  <-  WORK4YOU_DASHBOARD_PORTAL_URL
+#   dashboard.public_url        <-  WORK4YOU_DASHBOARD_PUBLIC_URL
 #
 # Env wins when set to a non-empty value. This is what Fly.io's platform-
 # secret injection uses to push per-deploy client_ids without needing to
@@ -1329,7 +1329,7 @@ updates:
 # so a provisioned-but-not-populated secret can't shadow a valid entry here.
 #
 # Local dev / on-prem deploys should typically set these via config.yaml
-# (the ~/.wayne/.env file is reserved for API keys and secrets).
+# (the ~/.work4you/.env file is reserved for API keys and secrets).
 #
 # dashboard:
 #   oauth:
@@ -1344,7 +1344,7 @@ updates:
 #   # full proxy header chains).
 #   #
 #   # When set, the value is the complete authority: scheme + host +
-#   # optional path prefix (e.g. "https://example.com/wayne"). The OAuth
+#   # optional path prefix (e.g. "https://example.com/work4you"). The OAuth
 #   # callback URL becomes "<public_url>/auth/callback" — X-Forwarded-Prefix
 #   # is IGNORED on this code path because the operator has explicitly
 #   # declared the public URL and we no longer need to guess.
@@ -1352,7 +1352,7 @@ updates:
 #   # Leave empty to use the existing proxy-header reconstruction (the
 #   # default — works on Fly.io out of the box).
 #   #
-#   #   public_url: "https://example.com/wayne"
+#   #   public_url: "https://example.com/work4you"
 #
 # -----------------------------------------------------------------------------
 # Self-hosted OIDC dashboard auth (generic OpenID Connect — Authentik,
@@ -1360,26 +1360,26 @@ updates:
 # nous block above when gating the dashboard with your own identity provider.
 # Each setting can be overridden by an environment variable:
 #
-#   dashboard.oauth.self_hosted.issuer         <-  WAYNE_DASHBOARD_OIDC_ISSUER
-#   dashboard.oauth.self_hosted.client_id      <-  WAYNE_DASHBOARD_OIDC_CLIENT_ID
-#   dashboard.oauth.self_hosted.scopes         <-  WAYNE_DASHBOARD_OIDC_SCOPES
-#   dashboard.oauth.self_hosted.client_secret  <-  WAYNE_DASHBOARD_OIDC_CLIENT_SECRET
+#   dashboard.oauth.self_hosted.issuer         <-  WORK4YOU_DASHBOARD_OIDC_ISSUER
+#   dashboard.oauth.self_hosted.client_id      <-  WORK4YOU_DASHBOARD_OIDC_CLIENT_ID
+#   dashboard.oauth.self_hosted.scopes         <-  WORK4YOU_DASHBOARD_OIDC_SCOPES
+#   dashboard.oauth.self_hosted.client_secret  <-  WORK4YOU_DASHBOARD_OIDC_CLIENT_SECRET
 #
 # dashboard:
 #   oauth:
 #     provider: self-hosted
 #     self_hosted:
-#       issuer: "https://auth.example.com/application/o/wayne/"  # required
+#       issuer: "https://auth.example.com/application/o/work4you/"  # required
 #       client_id: "wayne-dashboard"                             # required
 #       scopes: "openid profile email"                            # optional
 #
 #       # OPTIONAL — set ONLY if your IDP registered the client as
 #       # *confidential* (Authentik / Keycloak often default to this). When
-#       # set, Wayne authenticates the client at the token endpoint
+#       # set, Work4You authenticates the client at the token endpoint
 #       # (client_secret_basic or client_secret_post, auto-selected from the
 #       # IDP's discovery doc) IN ADDITION to PKCE. Leave unset for a public
 #       # (PKCE-only) client — the common case.
 #       #
-#       # This is a CREDENTIAL: prefer setting WAYNE_DASHBOARD_OIDC_CLIENT_SECRET
-#       # in ~/.wayne/.env over putting it here in config.yaml.
+#       # This is a CREDENTIAL: prefer setting WORK4YOU_DASHBOARD_OIDC_CLIENT_SECRET
+#       # in ~/.work4you/.env over putting it here in config.yaml.
 #       #   client_secret: ""

@@ -3779,12 +3779,14 @@ def _resolve_auto(
         if (_env_base and _cfg_provider
                 and _cfg_provider != "custom"
                 and not _cfg_provider.startswith("custom:")):
+            from work4you_constants import display_wayne_home as _display_home
+
             logger.warning(
                 "OPENAI_BASE_URL is set (%s) but model.provider is '%s'. "
                 "Auxiliary clients may route to the wrong endpoint. "
                 "Run: work4you model to reconfigure, or remove "
-                "OPENAI_BASE_URL from ~/.wayne/.env",
-                _env_base, _cfg_provider,
+                "OPENAI_BASE_URL from %s/.env",
+                _env_base, _cfg_provider, _display_home(),
             )
             _stale_base_url_warned = True
 

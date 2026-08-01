@@ -360,7 +360,9 @@ def _cmd_telemetry(args: argparse.Namespace) -> int:
     except Exception as e:
         print(f"could not save PHOTON_TELEMETRY: {e}", file=sys.stderr)
         return 1
-    print(f"✓ Spectrum telemetry turned {state} (PHOTON_TELEMETRY in ~/.wayne/.env)")
+    from work4you_constants import display_wayne_home as _display_home
+
+    print(f"✓ Spectrum telemetry turned {state} (PHOTON_TELEMETRY in {_display_home()}/.env)")
     print("  Restart the gateway for the sidecar to pick it up:  work4you gateway restart")
     return 0
 

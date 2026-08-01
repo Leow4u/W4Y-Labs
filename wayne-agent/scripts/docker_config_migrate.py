@@ -51,8 +51,13 @@ def _restore_backups(backups: dict[Path, Path]) -> list[Path]:
 
 
 def main() -> int:
-    if env_var_enabled("WAYNE_SKIP_CONFIG_MIGRATION"):
-        print("[config-migrate] WAYNE_SKIP_CONFIG_MIGRATION is set; skipping config migration")
+    if env_var_enabled("WORK4YOU_SKIP_CONFIG_MIGRATION") or env_var_enabled(
+        "WAYNE_SKIP_CONFIG_MIGRATION"
+    ):
+        print(
+            "[config-migrate] WORK4YOU_SKIP_CONFIG_MIGRATION is set; "
+            "skipping config migration"
+        )
         return 0
 
     current_ver, latest_ver = check_config_version()

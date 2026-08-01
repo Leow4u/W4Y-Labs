@@ -3035,7 +3035,7 @@ function resolveHermesBackend(backendArgs) {
     )
     return {
       kind: 'bootstrap-needed',
-      label: `Work4You motor not found. Install or clone wayne-agent under ${expectedRoot}, or set WAYNE_DESKTOP_ROOT.`,
+      label: `Work4You motor not found. Install the engine under ${expectedRoot}, or set WORK4YOU_DESKTOP_ROOT.`,
       command: null,
       args: backendArgs,
       bootstrap: true,

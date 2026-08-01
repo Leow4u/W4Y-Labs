@@ -36,7 +36,7 @@ from work4you_cli.config import (
     load_config,
     normalize_extra_headers,
 )
-from work4you_constants import OPENROUTER_BASE_URL
+from work4you_constants import OPENROUTER_BASE_URL, display_wayne_home
 from utils import base_url_host_matches, base_url_hostname, env_int
 
 
@@ -1333,7 +1333,7 @@ def _resolve_azure_foundry_runtime(
     if not api_key:
         raise AuthError(
             "Azure Foundry requires an API key. Set AZURE_FOUNDRY_API_KEY in "
-            "~/.wayne/.env or run 'work4you model' to configure. To use "
+            f"{display_wayne_home()}/.env or run 'work4you model' to configure. To use "
             "keyless Microsoft Entra ID auth instead, set "
             "model.auth_mode: entra_id in config.yaml (or pick "
             "'Microsoft Entra ID' in 'work4you model')."
@@ -1589,7 +1589,7 @@ def resolve_runtime_provider(
                 "Vertex AI credentials could not be resolved. Vertex uses "
                 "OAuth2 (not a static API key): provide a service-account JSON "
                 "via GOOGLE_APPLICATION_CREDENTIALS (or VERTEX_CREDENTIALS_PATH) "
-                "in ~/.wayne/.env, or run 'gcloud auth application-default "
+                f"in {display_wayne_home()}/.env, or run 'gcloud auth application-default "
                 "login' for ADC. Set the GCP project/region under vertex: in "
                 "config.yaml if they aren't embedded in the credentials. "
                 "Install the extra with: pip install -e '.[vertex]' from the engine directory."

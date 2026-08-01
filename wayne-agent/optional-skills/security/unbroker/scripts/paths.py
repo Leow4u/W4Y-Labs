@@ -10,7 +10,39 @@ from pathlib import Path
 
 
 def wayne_home() -> Path:
-    return Path(os.environ.get("WAYNE_HOME") or (Path.home() / ".wayne"))
+    """Resolve the Work4You home, preferring the engine's own resolver.
+
+    Standalone runs (system python, nix, CI) may not have
+    ``work4you_constants`` importable, so the fallback mirrors its logic:
+    the brand migration moved the default from ``~/.wayne`` to
+    ``~/.work4you``, and an unmigrated install still has the old root.
+    """
+    try:
+        from work4you_constants import get_wayne_home
+
+        return get_wayne_home()
+    except (ModuleNotFoundError, ImportError):
+        pass
+    val = (os.environ.get("WAYNE_HOME") or os.environ.get("WORK4YOU_HOME") or "").strip()
+    if val:
+        return Path(val)
+    new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+    return legacy_root if (legacy_root.is_dir() and not new_root.is_dir()) else new_root
+
+
+def display_wayne_home() -> str:
+    """``~/``-shortened display string for :func:`wayne_home`."""
+    try:
+        from work4you_constants import display_wayne_home as _real
+
+        return _real()
+    except (ModuleNotFoundError, ImportError):
+        pass
+    home = wayne_home()
+    try:
+        return "~/" + str(home.relative_to(Path.home()))
+    except ValueError:
+        return str(home)
 
 
 def data_dir() -> Path:

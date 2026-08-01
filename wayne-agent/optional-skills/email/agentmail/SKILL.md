@@ -35,7 +35,7 @@ AgentMail gives the agent its own identity and inbox.
 - Create an account and generate an API key (starts with `am_`)
 
 ### 2. Configure MCP Server
-Add to `~/.wayne/config.yaml` (paste your actual key — MCP env vars are not expanded from .env):
+Add to `~/.work4you/config.yaml` (paste your actual key — MCP env vars are not expanded from .env):
 ```yaml
 mcp_servers:
   agentmail:
@@ -45,9 +45,9 @@ mcp_servers:
       AGENTMAIL_API_KEY: "am_your_key_here"
 ```
 
-### 3. Restart Wayne
+### 3. Restart Work4You
 ```bash
-wayne
+work4you
 ```
 All 11 AgentMail tools are now available automatically.
 
@@ -100,7 +100,7 @@ All 11 AgentMail tools are now available automatically.
 
 **Agent-to-human outreach:**
 ```
-1. create_inbox (username: "wayne-outreach")
+1. create_inbox (username: "work4you-outreach")
 2. send_message (to: user@example.com, subject: "Hello", text: "...")
 3. list_threads to check for replies
 ```
@@ -115,7 +115,7 @@ All 11 AgentMail tools are now available automatically.
 ## Verification
 After setup, test with:
 ```
-wayne --toolsets mcp -q "Create an AgentMail inbox called test-agent and tell me its email address"
+work4you --toolsets mcp -q "Create an AgentMail inbox called test-agent and tell me its email address"
 ```
 You should see the new inbox address returned.
 

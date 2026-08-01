@@ -28,6 +28,8 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
+from work4you_constants import get_wayne_home
+
 logger = logging.getLogger("wayne.security_audit")
 
 # Sentinel so the audit only runs once per process even if both the CLI and
@@ -168,9 +170,7 @@ def _path_is_mounted(path: Path) -> bool:
 def _container_no_volume_mount(wayne_home: Optional[Path]) -> Optional[str]:
     if not _in_container():
         return None
-    home = wayne_home or Path(
-        os.environ.get("WAYNE_HOME", os.path.expanduser("~/.wayne"))
-    )
+    home = wayne_home or get_wayne_home()
     try:
         if _path_is_mounted(home):
             return None
@@ -180,7 +180,7 @@ def _container_no_volume_mount(wayne_home: Optional[Path]) -> Optional[str]:
         f"Running in a container but the data dir ({home}) is NOT on a "
         "persistent volume mount — sessions, memory, skills, and API keys are "
         "ephemeral and lost on container restart. Mount a host volume over the "
-        "WAYNE_HOME data directory."
+        "Work4You data directory."
     )
 
 

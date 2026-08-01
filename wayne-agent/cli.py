@@ -13008,7 +13008,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             if _redact_raw.lower() not in {"1", "true", "yes", "on"}:
                 self._console_print(
                     "[bold red]⚠  Secret redaction is DISABLED[/] "
-                    f"(WAYNE_REDACT_SECRETS={_redact_raw}). "
+                    f"(WORK4YOU_REDACT_SECRETS={_redact_raw}). "
                     "API keys and tokens may appear verbatim in chat output, "
                     "session JSONs, and logs. Set "
                     "[cyan]security.redact_secrets: true[/] in config.yaml "

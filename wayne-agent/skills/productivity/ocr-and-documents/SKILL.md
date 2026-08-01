@@ -6,7 +6,7 @@ author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  wayne:
+  work4you:
     tags: [PDF, Documents, Research, Arxiv, Text-Extraction, OCR]
     related_skills: [pptx-author, excel-author, doc-coauthoring]
 ---

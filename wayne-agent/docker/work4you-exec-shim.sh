@@ -33,7 +33,8 @@
 # (/opt/work4you/.venv/bin/work4you), so the second hop cannot re-enter this
 # shim regardless of PATH state. No sentinel env var needed.
 #
-# Opt-out: set WAYNE_DOCKER_EXEC_AS_ROOT=1 (1/true/yes, case-insensitive)
+# Opt-out: set WORK4YOU_DOCKER_EXEC_AS_ROOT=1 (1/true/yes, case-insensitive;
+# the legacy WAYNE_DOCKER_EXEC_AS_ROOT spelling is still honoured)
 # to keep running as root. Reserved for diagnostic sessions where the
 # operator deliberately wants root semantics — e.g. inspecting root-only
 # state via the work4you CLI. Default is to drop.
@@ -56,7 +57,7 @@ if [ "$(id -u)" != "0" ]; then
 fi
 
 # Root, with opt-out set? Honor it.
-case "${WAYNE_DOCKER_EXEC_AS_ROOT:-}" in
+case "${WORK4YOU_DOCKER_EXEC_AS_ROOT:-${WAYNE_DOCKER_EXEC_AS_ROOT:-}}" in
     1|true|TRUE|True|yes|YES|Yes)
         exec "$REAL" "$@"
         ;;
@@ -74,7 +75,7 @@ if [ ! -x "$S6_SUID" ]; then
     # Fail loud rather than silently re-execing as root and leaking the
     # bug this shim exists to prevent.
     echo "work4you-shim: $S6_SUID not found; refusing to silently run as root." >&2
-    echo "work4you-shim: re-run with --user work4you or set WAYNE_DOCKER_EXEC_AS_ROOT=1." >&2
+    echo "work4you-shim: re-run with --user work4you or set WORK4YOU_DOCKER_EXEC_AS_ROOT=1." >&2
     exit 126
 fi
 

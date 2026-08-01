@@ -16,19 +16,19 @@ def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
     """Attach the ``mcp`` subcommand to ``subparsers``."""
     mcp_parser = subparsers.add_parser(
         "mcp",
-        help="Manage MCP servers and run Wayne as an MCP server",
+        help="Manage MCP servers and run Work4You as an MCP server",
         description=(
-            "Manage MCP server connections and run Wayne as an MCP server.\n\n"
+            "Manage MCP server connections and run Work4You as an MCP server.\n\n"
             "MCP servers provide additional tools via the Model Context Protocol.\n"
-            "Use 'wayne mcp add' to connect to a new server, or\n"
-            "'wayne mcp serve' to expose Wayne conversations over MCP."
+            "Use 'work4you mcp add' to connect to a new server, or\n"
+            "'work4you mcp serve' to expose Work4You conversations over MCP."
         ),
     )
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_action")
 
     mcp_serve_p = mcp_sub.add_parser(
         "serve",
-        help="Run Wayne as an MCP server (expose conversations to other agents)",
+        help="Run Work4You as an MCP server (expose conversations to other agents)",
     )
     mcp_serve_p.add_argument(
         "-v",
@@ -102,7 +102,7 @@ def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
     # ── Catalog (Nous-approved MCPs shipped with the repo) ─────────────────
     mcp_sub.add_parser(
         "picker",
-        help="Interactive catalog picker (also the default for `wayne mcp`)",
+        help="Interactive catalog picker (also the default for `work4you mcp`)",
     )
     mcp_sub.add_parser(
         "catalog",
@@ -110,7 +110,7 @@ def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
     )
     mcp_install_p = mcp_sub.add_parser(
         "install",
-        help="Install a catalog MCP by name (e.g. `wayne mcp install n8n`)",
+        help="Install a catalog MCP by name (e.g. `work4you mcp install n8n`)",
     )
     mcp_install_p.add_argument(
         "identifier",

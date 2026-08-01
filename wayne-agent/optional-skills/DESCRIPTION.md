@@ -3,13 +3,13 @@
 Official skills maintained by Nous Research that are **not activated by default**.
 
 These skills ship with the wayne-agent repository but are not copied to
-`~/.wayne/skills/` during setup. They are discoverable via the Skills Hub:
+`~/.work4you/skills/` during setup. They are discoverable via the Skills Hub:
 
 ```bash
-wayne skills browse               # browse all skills, official shown first
-wayne skills browse --source official  # browse only official optional skills
-wayne skills search <query>       # finds optional skills labeled "official"
-wayne skills install <identifier> # copies to ~/.wayne/skills/ and activates
+work4you skills browse               # browse all skills, official shown first
+work4you skills browse --source official  # browse only official optional skills
+work4you skills search <query>       # finds optional skills labeled "official"
+work4you skills install <identifier> # copies to ~/.work4you/skills/ and activates
 ```
 
 ## Why optional?

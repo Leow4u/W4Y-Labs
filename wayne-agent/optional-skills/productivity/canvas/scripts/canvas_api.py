@@ -13,8 +13,31 @@ import argparse
 import json
 import os
 import sys
+from pathlib import Path
 
 import requests
+
+
+def _work4you_home() -> Path:
+    """Resolve the Work4You home the same way the engine does.
+
+    Prefers ``work4you_constants``; the stdlib fallback mirrors it, including
+    the brand migration (the default root moved from ``~/.wayne`` to
+    ``~/.work4you``). A hard-coded ``~/.wayne`` would point at an empty
+    directory once a user's data has been migrated.
+    """
+    try:
+        from work4you_constants import get_wayne_home
+
+        return get_wayne_home()
+    except (ModuleNotFoundError, ImportError):
+        pass
+    val = (os.environ.get("WAYNE_HOME") or os.environ.get("WORK4YOU_HOME") or "").strip()
+    if val:
+        return Path(val).expanduser()
+    new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+    return legacy_root if (legacy_root.is_dir() and not new_root.is_dir()) else new_root
+
 
 CANVAS_API_TOKEN = os.environ.get("CANVAS_API_TOKEN", "")
 CANVAS_BASE_URL = os.environ.get("CANVAS_BASE_URL", "").rstrip("/")
@@ -28,9 +51,7 @@ def _check_config():
     if not CANVAS_BASE_URL:
         missing.append("CANVAS_BASE_URL")
     if missing:
-        wayne_env = os.path.join(
-            os.environ.get("WAYNE_HOME", os.path.expanduser("~/.wayne")), ".env"
-        )
+        wayne_env = _work4you_home() / ".env"
         print(
             f"Missing required environment variables: {', '.join(missing)}\n"
             f"Set them in {wayne_env} or export them in your shell.\n"

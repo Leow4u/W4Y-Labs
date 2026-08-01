@@ -12,6 +12,8 @@ from __future__ import annotations
 import argparse
 from typing import Callable
 
+from work4you_constants import display_wayne_home
+
 
 def _add_server_runtime_args(parser) -> None:
     """Attach the runtime flags shared by ``dashboard`` and ``serve``.
@@ -74,12 +76,12 @@ def _add_server_runtime_args(parser) -> None:
     parser.add_argument(
         "--stop",
         action="store_true",
-        help="Stop all running Wayne web server processes and exit",
+        help="Stop all running Work4You web server processes and exit",
     )
     parser.add_argument(
         "--status",
         action="store_true",
-        help="List running Wayne web server processes and exit",
+        help="List running Work4You web server processes and exit",
     )
 
 
@@ -100,7 +102,7 @@ def build_dashboard_parser(
     dashboard_parser = subparsers.add_parser(
         "dashboard",
         help="Start the web UI dashboard",
-        description="Launch the Wayne Agent web dashboard for managing config, API keys, and sessions",
+        description="Launch the Work4You web dashboard for managing config, API keys, and sessions",
     )
     _add_server_runtime_args(dashboard_parser)
     dashboard_parser.add_argument(
@@ -134,9 +136,9 @@ def build_dashboard_parser(
     # =========================================================================
     serve_parser = subparsers.add_parser(
         "serve",
-        help="Start the Wayne backend server (headless; powers the desktop app and remote backends)",
+        help="Start the Work4You backend server (headless; powers the desktop app and remote backends)",
         description=(
-            "Run the Wayne backend server — the JSON-RPC/WebSocket gateway the "
+            "Run the Work4You backend server — the JSON-RPC/WebSocket gateway the "
             "desktop app and remote clients connect to. Headless: it never opens "
             "a browser UI."
         ),
@@ -163,8 +165,8 @@ def build_dashboard_parser(
         description=(
             "Register this install as a self-hosted dashboard with your Nous "
             "Portal account. Creates an OAuth client, writes "
-            "WAYNE_DASHBOARD_OAUTH_CLIENT_ID into ~/.wayne/.env, and prints "
-            "how to engage the login gate. Requires being logged in (wayne setup)."
+            f"WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID into {display_wayne_home()}/.env, and prints "
+            "how to engage the login gate. Requires being logged in (work4you setup)."
         ),
     )
     dashboard_register_parser.add_argument(
@@ -178,7 +180,7 @@ def build_dashboard_parser(
         default=None,
         help=(
             "Optional public HTTPS OAuth redirect URI for the dashboard, e.g. "
-            "https://wayne.example.com/auth/callback. Omit for localhost-only use."
+            "https://work4you.example.com/auth/callback. Omit for localhost-only use."
         ),
     )
     dashboard_register_parser.add_argument(
@@ -188,7 +190,7 @@ def build_dashboard_parser(
         help=(
             "Override the Nous Portal base URL for registration (default: the "
             "portal you logged into). The access token must be valid at this "
-            "portal. Also settable via WAYNE_DASHBOARD_PORTAL_URL. Mainly for "
+            "portal. Also settable via WORK4YOU_DASHBOARD_PORTAL_URL. Mainly for "
             "testing against a staging/preview portal."
         ),
     )

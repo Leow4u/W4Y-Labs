@@ -3,7 +3,30 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any
+
+
+def _work4you_home() -> Path:
+    """Resolve the Work4You home the same way the engine does.
+
+    Prefers ``work4you_constants``; the stdlib fallback mirrors it, including
+    the brand migration (the default root moved from ``~/.wayne`` to
+    ``~/.work4you``). A hard-coded ``~/.wayne`` would point at an empty
+    directory once a user's data has been migrated.
+    """
+    try:
+        from work4you_constants import get_wayne_home
+
+        return get_wayne_home()
+    except (ModuleNotFoundError, ImportError):
+        pass
+    val = (os.environ.get("WAYNE_HOME") or os.environ.get("WORK4YOU_HOME") or "").strip()
+    if val:
+        return Path(val).expanduser()
+    new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+    return legacy_root if (legacy_root.is_dir() and not new_root.is_dir()) else new_root
+
 
 LLM_PROVIDERS: dict[str, dict[str, Any]] = {
     "openai": {
@@ -42,7 +65,7 @@ EMBEDDER_PROVIDERS: dict[str, dict[str, Any]] = {
 VECTOR_PROVIDERS: dict[str, dict[str, Any]] = {
     "qdrant": {
         "label": "Qdrant",
-        "default_config": {"path": os.path.expanduser("~/.wayne/mem0_qdrant")},
+        "default_config": {"path": str(_work4you_home() / "mem0_qdrant")},
         "pip_dep": "qdrant-client",
     },
     "pgvector": {

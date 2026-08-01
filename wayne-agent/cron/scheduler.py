@@ -3308,7 +3308,7 @@ def tick(verbose: bool = True, adapters=None, loop=None, sync: bool = True) -> i
             if _env_par:
                 _max_workers = int(_env_par) or None
         except (ValueError, TypeError):
-            logger.warning("Invalid WAYNE_CRON_MAX_PARALLEL value; defaulting to unbounded")
+            logger.warning("Invalid WORK4YOU_CRON_MAX_PARALLEL value; defaulting to unbounded")
         if _max_workers is None:
             try:
                 _ucfg = load_config() or {}

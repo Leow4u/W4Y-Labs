@@ -17,9 +17,9 @@ English-biased but it is:
 
 Run standalone for debugging::
 
-    WAYNE_MEET_URL=https://meet.google.com/abc-defg-hij \\
-    WAYNE_MEET_OUT_DIR=/tmp/meet-debug \\
-    WAYNE_MEET_HEADED=1 \\
+    WORK4YOU_MEET_URL=https://meet.google.com/abc-defg-hij \\
+    WORK4YOU_MEET_OUT_DIR=/tmp/meet-debug \\
+    WORK4YOU_MEET_HEADED=1 \\
     python -m plugins.google_meet.meet_bot
 
 No meet.google.com URL → exits non-zero. Any URL that doesn't start with
@@ -445,27 +445,38 @@ def _mac_audio_device_index(device_name: str) -> str:
 
 
 def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
-    url = os.environ.get("WAYNE_MEET_URL", "").strip()
-    out_dir_env = os.environ.get("WAYNE_MEET_OUT_DIR", "").strip()
-    headed = os.environ.get("WAYNE_MEET_HEADED", "").lower() in {"1", "true", "yes"}
-    auth_state = os.environ.get("WAYNE_MEET_AUTH_STATE", "").strip()
-    guest_name = os.environ.get("WAYNE_MEET_GUEST_NAME", "Wayne Agent")
-    duration_s = _parse_duration(os.environ.get("WAYNE_MEET_DURATION", ""))
-    # v2: optional realtime mode. Enabled when WAYNE_MEET_MODE=realtime.
-    mode = os.environ.get("WAYNE_MEET_MODE", "transcribe").strip().lower()
-    realtime_model = os.environ.get("WAYNE_MEET_REALTIME_MODEL", "gpt-realtime")
-    realtime_voice = os.environ.get("WAYNE_MEET_REALTIME_VOICE", "alloy")
-    realtime_instructions = os.environ.get("WAYNE_MEET_REALTIME_INSTRUCTIONS", "")
-    realtime_api_key = os.environ.get("WAYNE_MEET_REALTIME_KEY") or os.environ.get("OPENAI_API_KEY", "")
+    # Public env interface is WORK4YOU_*. This module also runs standalone
+    # (see the module docstring), i.e. without the WORK4YOU_*→WAYNE_*
+    # bridge that work4you_constants applies inside the agent, so read
+    # both spellings explicitly — new name first.
+    def _meet_env(suffix: str, default: str = "") -> str:
+        return (
+            os.environ.get("WORK4YOU_MEET_" + suffix)
+            or os.environ.get("WAYNE_MEET_" + suffix)
+            or default
+        )
+
+    url = _meet_env("URL").strip()
+    out_dir_env = _meet_env("OUT_DIR").strip()
+    headed = _meet_env("HEADED").lower() in {"1", "true", "yes"}
+    auth_state = _meet_env("AUTH_STATE").strip()
+    guest_name = _meet_env("GUEST_NAME", "Work4You")
+    duration_s = _parse_duration(_meet_env("DURATION"))
+    # v2: optional realtime mode. Enabled when WORK4YOU_MEET_MODE=realtime.
+    mode = _meet_env("MODE", "transcribe").strip().lower()
+    realtime_model = _meet_env("REALTIME_MODEL", "gpt-realtime")
+    realtime_voice = _meet_env("REALTIME_VOICE", "alloy")
+    realtime_instructions = _meet_env("REALTIME_INSTRUCTIONS")
+    realtime_api_key = _meet_env("REALTIME_KEY") or os.environ.get("OPENAI_API_KEY", "")
 
     if not url or not _is_safe_meet_url(url):
         sys.stderr.write(
-            "google_meet bot: refusing to launch — WAYNE_MEET_URL must be a "
+            "google_meet bot: refusing to launch — WORK4YOU_MEET_URL must be a "
             "meet.google.com URL. got: %r\n" % url
         )
         return 2
     if not out_dir_env:
-        sys.stderr.write("google_meet bot: WAYNE_MEET_OUT_DIR is required\n")
+        sys.stderr.write("google_meet bot: WORK4YOU_MEET_OUT_DIR is required\n")
         return 2
 
     out_dir = Path(out_dir_env)
@@ -497,7 +508,7 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
     }
     if rt["enabled"]:
         if not realtime_api_key:
-            state.set(error="realtime mode requested but no API key in WAYNE_MEET_REALTIME_KEY/OPENAI_API_KEY — falling back to transcribe")
+            state.set(error="realtime mode requested but no API key in WORK4YOU_MEET_REALTIME_KEY/OPENAI_API_KEY — falling back to transcribe")
             rt["enabled"] = False
         else:
             try:

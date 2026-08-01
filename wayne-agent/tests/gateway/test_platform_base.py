@@ -8,7 +8,7 @@ import pytest
 
 from gateway.platforms.base import (
     BasePlatformAdapter,
-    GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE,
+    gateway_secret_capture_unsupported_message,
     MessageEvent,
     cache_audio_from_bytes,
     cache_image_from_bytes,
@@ -74,9 +74,13 @@ class TestInboundMediaSizeCap:
 
 class TestSecretCaptureGuidance:
     def test_gateway_secret_capture_message_points_to_local_setup(self):
-        message = GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE
+        from work4you_constants import display_wayne_home
+
+        message = gateway_secret_capture_unsupported_message()
         assert "local cli" in message.lower()
-        assert "~/.wayne/.env" in message
+        # Resolved home, not a hard-coded spelling — the path is
+        # profile-scoped and moved in the brand migration.
+        assert f"{display_wayne_home()}/.env" in message
 
 
 class TestSafeUrlForLog:

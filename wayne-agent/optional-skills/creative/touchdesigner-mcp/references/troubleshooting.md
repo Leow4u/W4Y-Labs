@@ -133,11 +133,11 @@ n.cook(force=True)
 actual = str(n.width) + 'x' + str(n.height)
 ```
 
-## 5. Wayne Configuration
+## 5. Work4You Configuration
 
 ### Config location
 
-`$WAYNE_HOME/config.yaml` (defaults to `~/.wayne/config.yaml` when `WAYNE_HOME` is unset)
+`$WAYNE_HOME/config.yaml` (defaults to `~/.work4you/config.yaml` when `WAYNE_HOME` is unset)
 
 ### MCP entry format
 
@@ -150,7 +150,7 @@ mcpServers:
 
 ### After config changes
 
-Restart the Wayne session for changes to take effect. The MCP connection is
+Restart the Work4You session for changes to take effect. The MCP connection is
 established at session startup.
 
 ### Verifying MCP tools are available

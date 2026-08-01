@@ -6,7 +6,7 @@ All requests need: `-H "Authorization: token $GITHUB_TOKEN"`
 
 Use the `gh-env.sh` helper to set `$GITHUB_TOKEN`, `$GH_OWNER`, `$GH_REPO` automatically:
 ```bash
-source "${WAYNE_HOME:-$HOME/.wayne}/skills/github/github-auth/scripts/gh-env.sh"
+source "${WAYNE_HOME:-$HOME/.work4you}/skills/github/github-auth/scripts/gh-env.sh"
 ```
 
 ## Repositories

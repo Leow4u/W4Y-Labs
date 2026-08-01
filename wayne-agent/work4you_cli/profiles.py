@@ -32,6 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import List, Optional, Tuple
 
+from work4you_constants import display_default_wayne_root
 from agent.skill_utils import is_excluded_skill_path
 
 _PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
@@ -1014,7 +1015,7 @@ def create_profile(
 
     if canon == "default":
         raise ValueError(
-            "Cannot create a profile named 'default' — it is the built-in profile (~/.wayne)."
+            f"Cannot create a profile named 'default' — it is the built-in profile ({display_default_wayne_root()})."
         )
 
     profile_dir = get_profile_dir(canon)
@@ -1457,7 +1458,7 @@ def delete_profile(name: str, yes: bool = False) -> Path:
 
     if canon == "default":
         raise ValueError(
-            "Cannot delete the default profile (~/.wayne).\n"
+            f"Cannot delete the default profile ({display_default_wayne_root()}).\n"
             "To remove everything, use: work4you uninstall"
         )
 
@@ -2021,7 +2022,7 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
     validate_profile_name(canon)
     if canon == "default":
         raise ValueError(
-            "Cannot import as 'default' — that is the built-in root profile (~/.wayne). "
+            f"Cannot import as 'default' — that is the built-in root profile ({display_default_wayne_root()}). "
             "Specify a different name: work4you profile import <archive> --name <name>"
         )
 

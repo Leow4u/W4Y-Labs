@@ -17,7 +17,7 @@ metadata:
 Browse, install, and select animated "pet" mascots from the public
 [petdex](https://github.com/crafter-station/petdex) gallery. An installed pet
 reacts to agent activity (idle, running a tool, reviewing, error, done) across
-the Wayne CLI, TUI, and desktop app. This skill drives the `work4you pets` CLI
+the Work4You CLI, TUI, and desktop app. This skill drives the `work4you pets` CLI
 and the `display.pet` config — it does not generate sprites.
 
 ## When to Use
@@ -29,7 +29,7 @@ and the `display.pet` config — it does not generate sprites.
 ## Prerequisites
 
 - Network access to `petdex.dev` for the gallery/manifest (read-only, no auth).
-- Pillow (a core Wayne dependency) for sprite decoding — already installed.
+- Pillow (a core Work4You dependency) for sprite decoding — already installed.
 - For full-fidelity terminal rendering: a graphics-capable terminal (kitty,
   Ghostty, WezTerm, iTerm2, or sixel). Otherwise a truecolor Unicode
   half-block fallback is used automatically.
@@ -80,7 +80,7 @@ Under `display.pet` in `config.yaml`:
 
 - A pet only shows once one is installed AND selected (`enabled: true`).
 - Inside a pipe/redirect (no TTY) terminal rendering is disabled by design.
-- The petdex npm CLI installs to `~/.codex/pets`; Wayne uses its own
+- The petdex npm CLI installs to `~/.codex/pets`; Work4You uses its own
   profile-scoped `<WAYNE_HOME>/pets/` instead — install through `work4you pets`.
 
 ## Verification

@@ -145,11 +145,11 @@ def get_wayne_home() -> Path:
             # configured, and (b) root-logger propagation would double-emit
             # on consoles where a StreamHandler is already attached.
             msg = (
-                f"[WAYNE_HOME fallback] WAYNE_HOME is unset but active "
+                f"[Work4You home fallback] WORK4YOU_HOME is unset but active "
                 f"profile is {active!r}. Falling back to {fallback_home}, which "
                 f"is the DEFAULT profile — not {active!r}. Any data this "
                 f"process writes will land in the wrong profile. The "
-                f"subprocess spawner should pass WAYNE_HOME explicitly "
+                f"subprocess spawner should pass the home directory explicitly "
                 f"(see issue #18594)."
             )
             try:
@@ -679,24 +679,41 @@ def _legacy_path_has_content(path: Path) -> bool:
     return True
 
 
+def _display_path(path: Path) -> str:
+    """Render *path* with ``~/`` shorthand when it lives under the user home."""
+    try:
+        return "~/" + str(path.relative_to(Path.home()))
+    except ValueError:
+        return str(path)
+
+
 def display_wayne_home() -> str:
-    """Return a user-friendly display string for the current WAYNE_HOME.
+    """Return a user-friendly display string for the current home directory.
 
     Uses ``~/`` shorthand for readability::
 
-        default:  ``~/.wayne``
-        profile:  ``~/.wayne/profiles/coder``
+        default:  ``~/.work4you``
+        profile:  ``~/.work4you/profiles/coder``
         custom:   ``/opt/wayne-custom``
 
-    Use this in **user-facing** print/log messages instead of hardcoding
-    ``~/.wayne``.  For code that needs a real ``Path``, use
+    Use this in **every** user-facing print/log/help/i18n message instead of
+    hardcoding a spelling.  The literal path is not stable: it is
+    profile-scoped, platform-specific (``%LOCALAPPDATA%\\work4you`` on native
+    Windows) and it *moved* in the brand migration — a hardcoded ``~/.wayne``
+    is now a lie to the user.  For code that needs a real ``Path``, use
     :func:`get_wayne_home` instead.
     """
-    home = get_wayne_home()
-    try:
-        return "~/" + str(home.relative_to(Path.home()))
-    except ValueError:
-        return str(home)
+    return _display_path(get_wayne_home())
+
+
+def display_default_wayne_root() -> str:
+    """Display string for the **root** directory that owns all profiles.
+
+    This is what the ``default`` profile points at, so it is the value to
+    show in messages about the default/built-in profile — ``display_wayne_home()``
+    would render the *active* profile instead.  Same no-hardcoding rule applies.
+    """
+    return _display_path(get_default_wayne_root())
 
 
 def secure_parent_dir(path: Path) -> None:

@@ -70,6 +70,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from work4you_constants import display_default_wayne_root
 from agent.skill_utils import is_excluded_skill_path
 
 
@@ -516,7 +517,7 @@ def plan_install(
     if canon == "default":
         raise DistributionError(
             "Cannot install a distribution as 'default' — that is the built-in "
-            "root profile (~/.wayne).  Pass --name <name> to install under a "
+            f"root profile ({display_default_wayne_root()}).  Pass --name <name> to install under a "
             "new profile."
         )
     manifest.name = canon

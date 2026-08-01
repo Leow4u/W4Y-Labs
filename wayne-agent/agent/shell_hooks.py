@@ -254,7 +254,7 @@ def register_from_config(
             ):
                 logger.warning(
                     "shell hook for %s (%s) not allowlisted — skipped. "
-                    "Use --accept-hooks / WAYNE_ACCEPT_HOOKS=1 / "
+                    "Use --accept-hooks / WORK4YOU_ACCEPT_HOOKS=1 / "
                     "hooks_auto_accept: true, or approve at the TTY "
                     "prompt next run.",
                     spec.event, spec.command,
@@ -656,7 +656,7 @@ def save_allowlist(data: Dict[str, Any]) -> None:
             "Failed to persist shell hook allowlist to %s: %s. "
             "The approval is in-memory for this run, but the next "
             "startup will re-prompt (or skip registration on non-TTY "
-            "runs without --accept-hooks / WAYNE_ACCEPT_HOOKS).",
+            "runs without --accept-hooks / WORK4YOU_ACCEPT_HOOKS).",
             p, exc,
         )
 

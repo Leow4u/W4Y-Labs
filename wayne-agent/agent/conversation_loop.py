@@ -1623,7 +1623,7 @@ def run_conversation(
                     )
                     _refusal_response = (
                         "⚠️  The model declined to respond to this request "
-                        "(safety refusal — not a Wayne/gateway failure).\n\n"
+                        "(safety refusal — not a Work4You/gateway failure).\n\n"
                         f"{_refusal_detail}\n\n"
                         f"{_CONTENT_POLICY_RECOVERY_HINT}"
                     )
@@ -2697,7 +2697,7 @@ def run_conversation(
                     print(f"{agent.log_prefix}   Troubleshooting:")
                     from work4you_constants import display_wayne_home as _dhh_fn
                     _dhh = _dhh_fn()
-                    print(f"{agent.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for Wayne-managed OAuth/setup tokens")
+                    print(f"{agent.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for Work4You-managed OAuth/setup tokens")
                     print(f"{agent.log_prefix}     • Check ANTHROPIC_API_KEY in {_dhh}/.env for API keys or legacy token values")
                     print(f"{agent.log_prefix}     • For API keys: verify at https://platform.claude.com/settings/keys")
                     print(f"{agent.log_prefix}     • For Claude Code: run 'claude /login' to refresh, then retry")
@@ -3217,7 +3217,7 @@ def run_conversation(
                         force=True,
                     )
                     agent._vprint(
-                        f"{agent.log_prefix}      request at ~8K tokens. Wayne' system prompt + tool schemas baseline",
+                        f"{agent.log_prefix}      request at ~8K tokens. Work4You's system prompt + tool schemas baseline",
                         force=True,
                     )
                     agent._vprint(
@@ -3225,7 +3225,7 @@ def run_conversation(
                         force=True,
                     )
                     agent._vprint(
-                        f"{agent.log_prefix}      Use the `copilot` provider with a Copilot subscription token (`wayne",
+                        f"{agent.log_prefix}      Use the `copilot` provider with a Copilot subscription token (`work4you",
                         force=True,
                     )
                     agent._vprint(
@@ -3721,7 +3721,7 @@ def run_conversation(
                     if classified.reason == FailoverReason.content_policy_blocked:
                         _policy_response = (
                             "⚠️  The model provider's safety filter blocked this request "
-                            "(not a Wayne/gateway failure).\n\n"
+                            "(not a Work4You/gateway failure).\n\n"
                             f"Provider message: {_nonretryable_summary}\n\n"
                             f"{_CONTENT_POLICY_RECOVERY_HINT}"
                         )
@@ -3842,6 +3842,7 @@ def run_conversation(
                     from agent.thinking_timeout_guidance import (
                         is_thinking_timeout,
                     )
+                    from work4you_constants import display_wayne_home as _dhh_fn
                     _is_thinking_timeout = is_thinking_timeout(
                         classified,
                         _model,
@@ -3864,8 +3865,8 @@ def run_conversation(
                         agent._vprint(
                             f"{agent.log_prefix}      1. Set "
                             f"`providers.{_provider}.models.{_model}.stale_timeout_seconds: 900` "
-                            f"in `~/.wayne/config.yaml` to extend the per-call "
-                            f"timeout. (Wayne's built-in floor is 600s for "
+                            f"in `{_dhh_fn()}/config.yaml` to extend the per-call "
+                            f"timeout. (Work4You's built-in floor is 600s for "
                             f"known reasoning models — if you still see this "
                             f"after raising, the upstream cap is even shorter.)",
                             force=True,

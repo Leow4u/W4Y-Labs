@@ -24,7 +24,7 @@ from typing import Optional, Dict, Any
 from work4you_cli.nous_subscription import get_nous_subscription_features
 from tools.tool_backend_helpers import managed_nous_tools_enabled
 from utils import base_url_hostname
-from work4you_constants import get_optional_skills_dir
+from work4you_constants import display_wayne_home, get_optional_skills_dir
 
 logger = logging.getLogger(__name__)
 
@@ -976,7 +976,7 @@ def _setup_tts_provider(config: dict):
         print_info("OpenAI TTS will use the managed Nous gateway and bill to your subscription.")
         if get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY"):
             print_warning(
-                "Direct OpenAI credentials are still configured and may take precedence until removed from ~/.wayne/.env."
+                f"Direct OpenAI credentials are still configured and may take precedence until removed from {display_wayne_home()}/.env."
             )
 
     if selected == "neutts":
@@ -1537,7 +1537,7 @@ def setup_agent_settings(config: dict):
     print_info("  new     — Show tool name only when it changes (less noise)")
     print_info("  all     — Show every tool call with a short preview")
     print_info("  verbose — Full args, results, and debug logs")
-    print_info("  log     — Silent in chat; write every tool call to ~/.wayne/logs/tool_calls.log (gateway only)")
+    print_info(f"  log     — Silent in chat; write every tool call to {display_wayne_home()}/logs/tool_calls.log (gateway only)")
 
     current_mode = cfg_get(config, "display", "tool_progress", default="all")
     mode = prompt("Tool progress mode", current_mode)

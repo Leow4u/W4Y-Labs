@@ -1,6 +1,6 @@
 # Usage
 
-This skill is triggered by natural language in Wayne — no slash command or CLI flags.
+This skill is triggered by natural language in Work4You — no slash command or CLI flags.
 
 ## Trigger Phrases
 

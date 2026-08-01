@@ -23,7 +23,7 @@ Content-Type: application/x-www-form-urlencoded
 
 client_id=5c733ab2-1903-400a-891e-7ba20c09e2a3
 scope=openid email personal_agent
-device_name=<your name> - <device>   # e.g. Max - Mac Mini; name from IDENTITY.md (OpenClaw) / ~/.wayne/SOUL.md (Wayne)
+device_name=<your name> - <device>   # e.g. Max - Mac Mini; name from IDENTITY.md (OpenClaw) / ~/.work4you/SOUL.md (Work4You)
 ```
 
 Show `verification_uri_complete` to the user. Poll:

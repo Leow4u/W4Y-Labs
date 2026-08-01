@@ -1394,8 +1394,10 @@ def interactive_setup() -> None:
         save_env_value("TEAMS_ALLOW_ALL_USERS", "true")
         print_warning("⚠️  Open access — anyone who can message the bot can command it.")
 
+    from work4you_constants import display_wayne_home as _display_home
+
     print()
-    print_success("Teams configuration saved to ~/.wayne/.env")
+    print_success(f"Teams configuration saved to {_display_home()}/.env")
     print_info("Install the app in Teams:  teams app install --id <teamsAppId>")
     print_info("Restart the gateway:       wayne gateway restart")
 

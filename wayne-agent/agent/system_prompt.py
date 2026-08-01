@@ -359,10 +359,17 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
         active_profile = _resolve_active_profile_name()
     except Exception:
         active_profile = "default"
+    # Resolved, never spelled out: the home path is platform-specific
+    # (%LOCALAPPDATA%\work4you on native Windows) and moved in the brand
+    # migration, so a literal path here would send the agent — and the user
+    # it quotes it to — to a directory that does not exist.
+    from work4you_constants import display_default_wayne_root, display_wayne_home
+
+    _root = display_default_wayne_root()
     if active_profile == "default":
         stable_parts.append(
             "Active Work4You profile: default. Other profiles (if any) live "
-            "under ~/.wayne/profiles/<name>/. Each profile has its own "
+            f"under {_root}/profiles/<name>/. Each profile has its own "
             "skills/, plugins/, cron/, and memories/ that affect a different "
             "session than this one. Do not modify another profile's "
             "skills/plugins/cron/memories unless the user explicitly directs "
@@ -371,9 +378,9 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     else:
         stable_parts.append(
             f"Active Work4You profile: {active_profile}. This session reads "
-            f"and writes ~/.wayne/profiles/{active_profile}/. The default "
-            f"profile's data lives at ~/.wayne/skills/, ~/.wayne/plugins/, "
-            f"~/.wayne/cron/, ~/.wayne/memories/ — those belong to a "
+            f"and writes {display_wayne_home()}/. The default "
+            f"profile's data lives at {_root}/skills/, {_root}/plugins/, "
+            f"{_root}/cron/, {_root}/memories/ — those belong to a "
             f"different session run from a different shell. Do NOT modify "
             f"another profile's skills/plugins/cron/memories unless the user "
             f"explicitly directs you to. The cross-profile write guard will "

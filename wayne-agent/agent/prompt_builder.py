@@ -12,7 +12,12 @@ import contextvars
 from collections import OrderedDict
 from pathlib import Path
 
-from work4you_constants import get_wayne_home, get_skills_dir, is_wsl
+from work4you_constants import (
+    display_default_wayne_root as _display_default_wayne_root,
+    get_wayne_home,
+    get_skills_dir,
+    is_wsl,
+)
 from typing import Optional
 
 from agent.runtime_cwd import resolve_agent_cwd
@@ -186,7 +191,7 @@ SKILLS_GUIDANCE = (
 KANBAN_GUIDANCE = (
     "# Kanban task execution protocol\n"
     "You have been assigned ONE task from "
-    "the shared board at `~/.wayne/kanban.db`. Your task id is in "
+    f"the shared board at `{_display_default_wayne_root()}/kanban.db`. Your task id is in "
     "`$WAYNE_KANBAN_TASK`; your workspace is `$WAYNE_KANBAN_WORKSPACE`. "
     "The `kanban_*` tools in your schema are your primary coordination surface — "
     "they write directly to the shared SQLite DB and work regardless of terminal "
@@ -600,7 +605,7 @@ def format_steer_marker(steer_text: str) -> str:
 
 STEER_CHANNEL_NOTE = (
     "## Mid-turn user steering\n"
-    "While you work, the user can send an out-of-band message that Wayne "
+    "While you work, the user can send an out-of-band message that Work4You "
     "appends to the end of a tool result, wrapped exactly as:\n"
     f"{STEER_MARKER_OPEN}\n<their message>\n{STEER_MARKER_CLOSE}\n"
     "Text inside that marker is a genuine message from the user delivered "
@@ -838,7 +843,7 @@ PLATFORM_HINTS = {
         "brief and natural."
     ),
     "webui": (
-        "You are in the Wayne WebUI, a browser-based chat interface. "
+        "You are in the Work4You web chat, a browser-based chat interface. "
         "Full Markdown rendering is supported — headings, bold, italic, code "
         "blocks, tables, math (LaTeX), and Mermaid diagrams all render natively. "
         "To display local or remote media/files inline, include "
@@ -1120,7 +1125,7 @@ def build_environment_hints() -> str:
             hints.append(
                 f"Terminal backend: {backend}. Your `terminal`, `read_file`, "
                 f"`write_file`, `patch`, and `search_files` tools all operate "
-                f"inside {description} — NOT on the machine where Wayne "
+                f"inside {description} — NOT on the machine where Work4You "
                 f"itself runs. The backend probe didn't respond at "
                 f"prompt-build time, so the sandbox's current user, $HOME, "
                 f"and working directory are unknown from here. If you need "
@@ -1657,7 +1662,7 @@ def build_skills_system_prompt(
             "for tasks like code review, planning, and testing — load them even for tasks you "
             "already know how to do, because the skill defines how it should be done here.\n"
             "Whenever the user asks you to configure, set up, install, enable, disable, modify, "
-            "or troubleshoot Wayne Agent itself — its CLI, config, models, providers, tools, "
+            "or troubleshoot Work4You itself — its CLI, config, models, providers, tools, "
             "skills, voice, gateway, plugins, or any feature — load the `wayne-agent` skill "
             "first. It has the actual commands (e.g. `work4you config set …`, `work4you tools`, "
             "`work4you setup`) so you don't have to guess or invent workarounds.\n"

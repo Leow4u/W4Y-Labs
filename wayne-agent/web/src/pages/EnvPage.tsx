@@ -50,6 +50,9 @@ const PROVIDER_GROUPS: { prefix: string; name: string; priority: number }[] = [
   // Then alphabetical by display name
   { prefix: "ANTHROPIC_", name: "Anthropic", priority: 1 },
   { prefix: "DASHSCOPE_", name: "DashScope (Qwen)", priority: 2 },
+  // WORK4YOU_* is the public env spelling, WAYNE_* the legacy one the engine
+  // still reads — group both under the same provider heading.
+  { prefix: "WORK4YOU_QWEN_", name: "DashScope (Qwen)", priority: 2 },
   { prefix: "WAYNE_QWEN_", name: "DashScope (Qwen)", priority: 2 },
   { prefix: "DEEPSEEK_", name: "DeepSeek", priority: 3 },
   { prefix: "GOOGLE_", name: "Gemini", priority: 4 },
@@ -637,7 +640,10 @@ export default function EnvPage() {
       };
       for (const cat of categories) {
         const hasEntries = Object.values(vars).some(
-          (info) => info.category === cat && !info.channel_managed,
+          (info) =>
+            info.category === cat &&
+            !info.channel_managed &&
+            !info.platform_managed,
         );
         if (hasEntries) {
           items.push({ id: `section-${cat}`, label: CATEGORY_LABELS[cat] ?? cat });
@@ -853,6 +859,7 @@ export default function EnvPage() {
         ([, info]) =>
           info.category === cat &&
           !info.channel_managed &&
+          !info.platform_managed &&
           (showAdvanced || !info.advanced),
       );
       const setEntries = entries.filter(([, info]) => info.is_set);
@@ -872,7 +879,12 @@ export default function EnvPage() {
     // Sorted alphabetically; an in-flight (just-added, unsaved) row carries the
     // custom category locally so it shows here immediately.
     const customEntries = Object.entries(vars)
-      .filter(([, info]) => info.category === "custom" && !info.channel_managed)
+      .filter(
+        ([, info]) =>
+          info.category === "custom" &&
+          !info.channel_managed &&
+          !info.platform_managed,
+      )
       .sort(([a], [b]) => a.localeCompare(b));
 
     return {
@@ -918,7 +930,7 @@ export default function EnvPage() {
       <div className="flex items-center justify-between">
         <div className="flex flex-col gap-1">
           <p className="text-sm text-muted-foreground">
-            {t.env.description} <code>~/.wayne/.env</code>
+            {t.env.description} <code>~/.work4you/.env</code>
           </p>
           <p className="text-xs text-text-tertiary">
             {t.env.changesNote}

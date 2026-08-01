@@ -265,6 +265,7 @@ from pathlib import Path
 from typing import Optional
 
 
+from work4you_constants import display_default_wayne_root, display_wayne_home
 from work4you_cli.subcommands._shared import add_accept_hooks_flag as _add_accept_hooks_flag
 from work4you_cli.subcommands.cron import build_cron_parser
 from work4you_cli.subcommands.gateway import build_gateway_parser
@@ -1740,12 +1741,20 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
         return path
 
     # Footgun: --dev against a prebuilt bundle that has no source/node_modules.
-    ext_dir = os.environ.get("WAYNE_TUI_DIR")
+    # Name the spelling that is actually set (the public one is
+    # WORK4YOU_TUI_DIR; packaged/nix wrappers may still export the legacy
+    # WAYNE_TUI_DIR) so "unset it" points at a variable that exists.
+    tui_dir_var = (
+        "WORK4YOU_TUI_DIR"
+        if os.environ.get("WORK4YOU_TUI_DIR")
+        else "WAYNE_TUI_DIR"
+    )
+    ext_dir = os.environ.get(tui_dir_var)
     if tui_dev and ext_dir:
         print(
-            f"Error: --dev is incompatible with WAYNE_TUI_DIR={ext_dir}\n"
+            f"Error: --dev is incompatible with {tui_dir_var}={ext_dir}\n"
             f"The prebuilt TUI has no source code to hot-reload.\n"
-            f"Unset WAYNE_TUI_DIR (e.g. `unset WAYNE_TUI_DIR`) to use --dev from a checkout.",
+            f"Unset {tui_dir_var} (e.g. `unset {tui_dir_var}`) to use --dev from a checkout.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -8938,10 +8947,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
             if method == "pip":
                 _cmd_update_pip(args)
                 return
-            print("✗ Not a git repository. Please reinstall:")
-            print(
-                "  curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
-            )
+            # Never point at the upstream installer here: piping it would
+            # replace this Work4You install with upstream Nous code.
+            print("✗ Not a git repository — this install can't self-update.")
+            print("  Reinstall Work4You via the W4Y platform deploy flow.")
             sys.exit(1)
 
     # On Windows, git can fail with "unable to write loose object file: Invalid argument"
@@ -10623,7 +10632,7 @@ def cmd_profile(args):
         try:
             set_active_profile(name)
             if name == "default":
-                print(f"Switched to: default (~/.wayne)")
+                print(f"Switched to: default ({display_default_wayne_root()})")
             else:
                 print(f"Switched to: {name}")
         except (ValueError, FileNotFoundError) as e:
@@ -11301,7 +11310,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
             "the dashboard again:\n"
             "    work4you dashboard register\n"
             "  It provisions a Nous Portal OAuth client and writes "
-            "WAYNE_DASHBOARD_OAUTH_CLIENT_ID into ~/.wayne/.env for you.\n"
+            f"WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID into {display_wayne_home()}/.env for you.\n"
             "  Docs: https://hermes-agent.nousresearch.com/docs/"
             "user-guide/features/web-dashboard#authentication-gated-mode"
         )
@@ -12153,10 +12162,33 @@ def cmd_claw(args):
     claw_command(args)
 
 
+def _warn_if_invoked_by_legacy_name() -> None:
+    """Tell a human typing `wayne` that the command is now `work4you`.
+
+    Only when stderr is a TTY: the same alias is still exec'd by machinery
+    (update relaunch, service units, the desktop engine spawn) whose output
+    lands in logs, and a deprecation line on every supervised restart would
+    be noise nobody can act on. Humans get told, robots don't.
+    """
+    try:
+        invoked = os.path.basename(sys.argv[0] or "").lower()
+        for suffix in (".exe", ".cmd", ".bat"):
+            invoked = invoked[: -len(suffix)] if invoked.endswith(suffix) else invoked
+        if invoked == "wayne" and sys.stderr.isatty():
+            sys.stderr.write(
+                "note: `wayne` is the old name for this command — use "
+                "`work4you` instead. The alias still works for now.\n"
+            )
+    except Exception:
+        pass
+
+
 def main():
-    """Main entry point for wayne CLI."""
-    # Cosmetic: make the process show up as 'wayne' instead of 'python3.11'
-    # in ps/top/htop.  Non-fatal — just a nicer UX.
+    """Main entry point for the work4you CLI."""
+    _warn_if_invoked_by_legacy_name()
+
+    # Cosmetic: make the process show up under the command name instead of
+    # 'python3.11' in ps/top/htop.  Non-fatal — just a nicer UX.
     _set_process_title()
 
     # Force UTF-8 stdio on Windows before anything prints.  No-op elsewhere.
@@ -12278,7 +12310,7 @@ def main():
         help="Manage external secret sources (Bitwarden Secrets Manager)",
         description=(
             "Pull API keys from an external secret manager at process startup "
-            "instead of storing them in ~/.wayne/.env.  Currently supports "
+            f"instead of storing them in {display_wayne_home()}/.env.  Currently supports "
             "Bitwarden Secrets Manager.  See: "
             "https://hermes-agent.nousresearch.com/docs/user-guide/secrets/bitwarden"
         ),
@@ -12494,7 +12526,7 @@ def main():
     # =========================================================================
     checkpoints_parser = subparsers.add_parser(
         "checkpoints",
-        help="Inspect / prune / clear ~/.wayne/checkpoints/",
+        help=f"Inspect / prune / clear {display_wayne_home()}/checkpoints/",
         description="Manage the filesystem checkpoint store — the shadow git "
         "repo Work4You uses to snapshot working directories before "
         "write_file/patch/terminal calls. Lets you see how much "

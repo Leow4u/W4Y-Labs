@@ -213,7 +213,7 @@ def track(path_str: str, category: str, silent: bool = False) -> bool:
         return False
 
     if not is_safe_path(path):
-        _log(f"REJECT: {path} (outside WAYNE_HOME)")
+        _log(f"REJECT: {path} (outside the Work4You home)")
         return False
 
     size = path.stat().st_size if path.is_file() else 0

@@ -36,7 +36,7 @@ class TestGetWayneHomeProfileWarning:
         """Classic mode: no active_profile file → silent, returns ~/.wayne."""
         result = fresh_constants.get_wayne_home()
         assert result == tmp_path / ".wayne"
-        assert "WAYNE_HOME fallback" not in capsys.readouterr().err
+        assert "Work4You home fallback" not in capsys.readouterr().err
 
     def test_default_active_profile_no_warning(
         self, fresh_constants, tmp_path, capsys
@@ -47,7 +47,7 @@ class TestGetWayneHomeProfileWarning:
         (wayne_dir / "active_profile").write_text("default\n")
         result = fresh_constants.get_wayne_home()
         assert result == tmp_path / ".wayne"
-        assert "WAYNE_HOME fallback" not in capsys.readouterr().err
+        assert "Work4You home fallback" not in capsys.readouterr().err
 
     def test_named_profile_unset_home_warns_once(
         self, fresh_constants, tmp_path, capsys
@@ -63,7 +63,7 @@ class TestGetWayneHomeProfileWarning:
         assert result == tmp_path / ".wayne"
         # 2. Stderr got the warning exactly once
         err = capsys.readouterr().err
-        assert err.count("WAYNE_HOME fallback") == 1
+        assert err.count("Work4You home fallback") == 1
         assert "'coder'" in err
         assert "#18594" in err
 
@@ -71,7 +71,7 @@ class TestGetWayneHomeProfileWarning:
         fresh_constants.get_wayne_home()
         fresh_constants.get_wayne_home()
         err2 = capsys.readouterr().err
-        assert "WAYNE_HOME fallback" not in err2
+        assert "Work4You home fallback" not in err2
 
     def test_wayne_home_set_suppresses_warning(
         self, fresh_constants, tmp_path, capsys, monkeypatch
@@ -85,7 +85,7 @@ class TestGetWayneHomeProfileWarning:
         result = fresh_constants.get_wayne_home()
 
         assert result == profile_dir
-        assert "WAYNE_HOME fallback" not in capsys.readouterr().err
+        assert "Work4You home fallback" not in capsys.readouterr().err
 
     def test_unreadable_active_profile_no_crash(
         self, fresh_constants, tmp_path, capsys
@@ -100,7 +100,7 @@ class TestGetWayneHomeProfileWarning:
 
         assert result == tmp_path / ".wayne"
         # Shouldn't crash; shouldn't warn either (can't tell what profile was intended)
-        assert "WAYNE_HOME fallback" not in capsys.readouterr().err
+        assert "Work4You home fallback" not in capsys.readouterr().err
 
     def test_empty_active_profile_no_warning(
         self, fresh_constants, tmp_path, capsys
@@ -113,4 +113,4 @@ class TestGetWayneHomeProfileWarning:
         result = fresh_constants.get_wayne_home()
 
         assert result == tmp_path / ".wayne"
-        assert "WAYNE_HOME fallback" not in capsys.readouterr().err
+        assert "Work4You home fallback" not in capsys.readouterr().err

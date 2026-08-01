@@ -1288,9 +1288,9 @@ class TestEnvWriteDenylist:
         "allowed_key",
         [
             "WAYNE_LANGFUSE_PUBLIC_KEY",
-            "WAYNE_SPOTIFY_CLIENT_ID",
-            "WAYNE_QWEN_BASE_URL",
-            "WAYNE_MAX_ITERATIONS",
+            "WORK4YOU_SPOTIFY_CLIENT_ID",
+            "WORK4YOU_QWEN_BASE_URL",
+            "WORK4YOU_MAX_ITERATIONS",
         ],
     )
     def test_wayne_integration_keys_still_writable(self, allowed_key):

@@ -1,6 +1,6 @@
 ---
 name: wayne-agent
-description: "Configure, extend, or contribute to Wayne Agent."
+description: "Configure, extend, or contribute to Work4You."
 version: 2.3.0
 author: Wayne Agent + Teknium
 license: MIT
@@ -12,33 +12,33 @@ metadata:
     related_skills: [claude-code, codex, opencode]
 ---
 
-# Wayne Agent
+# Work4You
 
-Wayne Agent is an open-source AI agent framework by Nous Research that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Wayne works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
+Work4You is an AI agent that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Work4You works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
 
-What makes Wayne different:
+What makes Work4You different:
 
-- **Self-improving through skills** — Wayne learns from experience by saving reusable procedures as skills. When it solves a complex problem, discovers a workflow, or gets corrected, it can persist that knowledge as a skill document that loads into future sessions. Skills accumulate over time, making the agent better at your specific tasks and environment.
+- **Self-improving through skills** — Work4You learns from experience by saving reusable procedures as skills. When it solves a complex problem, discovers a workflow, or gets corrected, it can persist that knowledge as a skill document that loads into future sessions. Skills accumulate over time, making the agent better at your specific tasks and environment.
 - **Persistent memory across sessions** — remembers who you are, your preferences, environment details, and lessons learned. Pluggable memory backends (built-in, Honcho, Mem0, and more) let you choose how memory works.
 - **Multi-platform gateway** — the same agent runs on Telegram, Discord, Slack, WhatsApp, iMessage, Signal, Matrix, Teams, Email, and a dozen more platforms with full tool access, not just chat.
 - **Many surfaces** — the same agent core drives the CLI, the Ink TUI, a native Electron desktop app, a web dashboard, and an ACP server for IDEs (VS Code / Zed / JetBrains).
 - **Provider-agnostic** — swap models and providers mid-workflow without changing anything else. Credential pools rotate across multiple API keys automatically.
-- **Profiles** — run multiple independent Wayne instances with isolated configs, sessions, skills, and memory.
+- **Profiles** — run multiple independent Work4You instances with isolated configs, sessions, skills, and memory.
 - **Extensible** — plugins, MCP servers, custom tools, webhook triggers, cron scheduling, and the full Python ecosystem.
 
-People use Wayne for software development, research, system administration, data analysis, content creation, home automation, and anything else that benefits from an AI agent with persistent context and full system access.
+People use Work4You for software development, research, system administration, data analysis, content creation, home automation, and anything else that benefits from an AI agent with persistent context and full system access.
 
-**This skill helps you work with Wayne Agent effectively** — setting it up, configuring features, spawning additional agent instances, troubleshooting issues, finding the right commands and settings, and understanding how the system works when you need to extend or contribute to it.
+**This skill helps you work with Work4You effectively** — setting it up, configuring features, spawning additional agent instances, troubleshooting issues, finding the right commands and settings, and understanding how the system works when you need to extend or contribute to it.
 
 **Docs:** https://hermes-agent.nousresearch.com/docs/
 
 ## Scope & Verification
 
-This skill is a concise operating guide, not the complete source of truth for every Wayne feature. If a Wayne feature, command, or setting is not mentioned here, do not treat that absence as evidence that it does not exist. Check the live repository and official docs before giving a negative answer.
+This skill is a concise operating guide, not the complete source of truth for every Work4You feature. If a Work4You feature, command, or setting is not mentioned here, do not treat that absence as evidence that it does not exist. Check the live repository and official docs before giving a negative answer.
 
 Good verification targets:
 
-- CLI commands: `wayne --help`, `wayne <command> --help`, and `wayne_cli/main.py`
+- CLI commands: `work4you --help`, `work4you <command> --help`, and `work4you_cli/main.py`
 - User documentation: https://hermes-agent.nousresearch.com/docs/
 - Source tree: https://github.com/NousResearch/hermes-agent
 
@@ -49,23 +49,23 @@ Good verification targets:
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 
 # Or via PyPI (ships the TUI bundle + shell launcher)
-pip install wayne-agent       # or: uv pip install wayne-agent
+pip install work4you-agent    # or: uv pip install work4you-agent
 
 # Interactive chat (default surface; set display.interface: tui to launch the Ink TUI instead)
-wayne
+work4you
 
 # Single query
-wayne chat -q "What is the capital of France?"
+work4you chat -q "What is the capital of France?"
 
 # Setup wizard  /  pick model+provider  /  health check
-wayne setup
-wayne model
-wayne doctor
+work4you setup
+work4you model
+work4you doctor
 
 # Other surfaces
-wayne desktop                 # launch the native desktop app (alias: wayne gui)
-wayne dashboard               # web admin panel + embedded chat
-wayne proxy                   # OpenAI-compatible local proxy backed by your OAuth provider
+work4you desktop                 # launch the native desktop app (alias: work4you gui)
+work4you dashboard               # web admin panel + embedded chat
+work4you proxy                   # OpenAI-compatible local proxy backed by your OAuth provider
 ```
 
 ---
@@ -75,7 +75,7 @@ wayne proxy                   # OpenAI-compatible local proxy backed by your OAu
 ### Global Flags
 
 ```
-wayne [flags] [command]
+work4you [flags] [command]
 
   --version, -V             Show version
   --resume, -r SESSION      Resume session by ID or title
@@ -92,7 +92,7 @@ No subcommand defaults to `chat`.
 ### Chat
 
 ```
-wayne chat [flags]
+work4you chat [flags]
   -q, --query TEXT          Single query, non-interactive
   -m, --model MODEL         Model (e.g. anthropic/claude-sonnet-4)
   -t, --toolsets LIST       Comma-separated toolsets
@@ -106,103 +106,103 @@ wayne chat [flags]
 ### Configuration
 
 ```
-wayne setup [section]      Interactive wizard (model|terminal|gateway|tools|agent)
-wayne model                Interactive model/provider picker
-wayne config               View current config
-wayne config edit          Open config.yaml in $EDITOR
-wayne config set KEY VAL   Set a config value
-wayne config path          Print config.yaml path
-wayne config env-path      Print .env path
-wayne config check         Check for missing/outdated config
-wayne config migrate       Update config with new options
-wayne doctor [--fix]       Check dependencies and config
-wayne status [--all]       Show component status
+work4you setup [section]      Interactive wizard (model|terminal|gateway|tools|agent)
+work4you model                Interactive model/provider picker
+work4you config               View current config
+work4you config edit          Open config.yaml in $EDITOR
+work4you config set KEY VAL   Set a config value
+work4you config path          Print config.yaml path
+work4you config env-path      Print .env path
+work4you config check         Check for missing/outdated config
+work4you config migrate       Update config with new options
+work4you doctor [--fix]       Check dependencies and config
+work4you status [--all]       Show component status
 ```
 
-Credentials (OAuth + API keys, with pooling) are managed under `wayne auth` — see the Credentials & Pools section below.
+Credentials (OAuth + API keys, with pooling) are managed under `work4you auth` — see the Credentials & Pools section below.
 
 ### Tools & Skills
 
 ```
-wayne tools                Interactive tool enable/disable (curses UI)
-wayne tools list           Show all tools and status
-wayne tools enable NAME    Enable a toolset
-wayne tools disable NAME   Disable a toolset
+work4you tools                Interactive tool enable/disable (curses UI)
+work4you tools list           Show all tools and status
+work4you tools enable NAME    Enable a toolset
+work4you tools disable NAME   Disable a toolset
 
-wayne skills list          List installed skills
-wayne skills search QUERY  Search the skills hub
-wayne skills install ID    Install a skill (ID can be a hub identifier OR a direct https://…/SKILL.md URL; pass --name to override when frontmatter has no name)
-wayne skills inspect ID    Preview without installing
-wayne skills config        Enable/disable skills per platform
-wayne skills check         Check for updates
-wayne skills update        Update outdated skills
-wayne skills uninstall N   Remove a hub skill
-wayne skills publish PATH  Publish to registry
-wayne skills browse        Browse all available skills
-wayne skills tap add REPO  Add a GitHub repo as skill source
+work4you skills list          List installed skills
+work4you skills search QUERY  Search the skills hub
+work4you skills install ID    Install a skill (ID can be a hub identifier OR a direct https://…/SKILL.md URL; pass --name to override when frontmatter has no name)
+work4you skills inspect ID    Preview without installing
+work4you skills config        Enable/disable skills per platform
+work4you skills check         Check for updates
+work4you skills update        Update outdated skills
+work4you skills uninstall N   Remove a hub skill
+work4you skills publish PATH  Publish to registry
+work4you skills browse        Browse all available skills
+work4you skills tap add REPO  Add a GitHub repo as skill source
 ```
 
 ### MCP Servers
 
 ```
-wayne mcp serve            Run Wayne as an MCP server
-wayne mcp add NAME         Add an MCP server (--url or --command)
-wayne mcp remove NAME      Remove an MCP server
-wayne mcp list             List configured servers
-wayne mcp test NAME        Test connection
-wayne mcp configure NAME   Toggle tool selection
+work4you mcp serve            Run Work4You as an MCP server
+work4you mcp add NAME         Add an MCP server (--url or --command)
+work4you mcp remove NAME      Remove an MCP server
+work4you mcp list             List configured servers
+work4you mcp test NAME        Test connection
+work4you mcp configure NAME   Toggle tool selection
 ```
 
 How the built-in MCP client connects servers (stdio/HTTP), auto-discovers
 their tools, and exposes them as first-class tools, plus catalog install
-(`wayne mcp install <name>`): `skill_view(name="wayne-agent", file_path="references/native-mcp.md")`.
+(`work4you mcp install <name>`): `skill_view(name="wayne-agent", file_path="references/native-mcp.md")`.
 
 ### Gateway (Messaging Platforms)
 
 ```
-wayne gateway run          Start gateway foreground
-wayne gateway install      Install as background service
-wayne gateway start/stop   Control the service
-wayne gateway restart      Restart the service
-wayne gateway status       Check status
-wayne gateway setup        Configure platforms
+work4you gateway run          Start gateway foreground
+work4you gateway install      Install as background service
+work4you gateway start/stop   Control the service
+work4you gateway restart      Restart the service
+work4you gateway status       Check status
+work4you gateway setup        Configure platforms
 ```
 
-Supported platforms (20+): Telegram, Discord, Slack, WhatsApp (Baileys bridge + official Business Cloud API), iMessage (Photon — `wayne photon setup`, the BlueBubbles successor with no Mac relay), Signal, Email, SMS, Matrix, Mattermost, Microsoft Teams, LINE, SimpleX, ntfy, Google Chat, Home Assistant, DingTalk, Feishu, WeCom, Weixin (WeChat), Raft (agent network), API Server, Webhooks. Open WebUI connects via the API Server adapter. Most adapters ship under `plugins/platforms/`, so new ones drop in without touching core.
+Supported platforms (20+): Telegram, Discord, Slack, WhatsApp (Baileys bridge + official Business Cloud API), iMessage (Photon — `work4you photon setup`, the BlueBubbles successor with no Mac relay), Signal, Email, SMS, Matrix, Mattermost, Microsoft Teams, LINE, SimpleX, ntfy, Google Chat, Home Assistant, DingTalk, Feishu, WeCom, Weixin (WeChat), Raft (agent network), API Server, Webhooks. Open WebUI connects via the API Server adapter. Most adapters ship under `plugins/platforms/`, so new ones drop in without touching core.
 
 Platform docs: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/
 
 ### Sessions
 
 ```
-wayne sessions list        List recent sessions
-wayne sessions browse      Interactive picker
-wayne sessions export OUT  Export to JSONL
-wayne sessions rename ID T Rename a session
-wayne sessions delete ID   Delete a session
-wayne sessions prune       Clean up old sessions (--older-than N days)
-wayne sessions stats       Session store statistics
+work4you sessions list        List recent sessions
+work4you sessions browse      Interactive picker
+work4you sessions export OUT  Export to JSONL
+work4you sessions rename ID T Rename a session
+work4you sessions delete ID   Delete a session
+work4you sessions prune       Clean up old sessions (--older-than N days)
+work4you sessions stats       Session store statistics
 ```
 
 ### Cron Jobs
 
 ```
-wayne cron list            List jobs (--all for disabled)
-wayne cron create SCHED    Create: '30m', 'every 2h', '0 9 * * *'
-wayne cron edit ID         Edit schedule, prompt, delivery
-wayne cron pause/resume ID Control job state
-wayne cron run ID          Trigger on next tick
-wayne cron remove ID       Delete a job
-wayne cron status          Scheduler status
+work4you cron list            List jobs (--all for disabled)
+work4you cron create SCHED    Create: '30m', 'every 2h', '0 9 * * *'
+work4you cron edit ID         Edit schedule, prompt, delivery
+work4you cron pause/resume ID Control job state
+work4you cron run ID          Trigger on next tick
+work4you cron remove ID       Delete a job
+work4you cron status          Scheduler status
 ```
 
 ### Webhooks
 
 ```
-wayne webhook subscribe N  Create route at /webhooks/<name>
-wayne webhook list         List subscriptions
-wayne webhook remove NAME  Remove a subscription
-wayne webhook test NAME    Send a test POST
+work4you webhook subscribe N  Create route at /webhooks/<name>
+work4you webhook list         List subscriptions
+work4you webhook remove NAME  Remove a subscription
+work4you webhook test NAME    Send a test POST
 ```
 
 Full setup, route config, payload templating, and event-driven agent-run
@@ -211,26 +211,26 @@ patterns: `skill_view(name="wayne-agent", file_path="references/webhooks.md")`.
 ### Profiles
 
 ```
-wayne profile list         List all profiles
-wayne profile create NAME  Create (--clone, --clone-all, --clone-from)
-wayne profile use NAME     Set sticky default
-wayne profile delete NAME  Delete a profile
-wayne profile show NAME    Show details
-wayne profile alias NAME   Manage wrapper scripts
-wayne profile rename A B   Rename a profile
-wayne profile export NAME  Export to tar.gz
-wayne profile import FILE  Import from archive
+work4you profile list         List all profiles
+work4you profile create NAME  Create (--clone, --clone-all, --clone-from)
+work4you profile use NAME     Set sticky default
+work4you profile delete NAME  Delete a profile
+work4you profile show NAME    Show details
+work4you profile alias NAME   Manage wrapper scripts
+work4you profile rename A B   Rename a profile
+work4you profile export NAME  Export to tar.gz
+work4you profile import FILE  Import from archive
 ```
 
 ### Credentials & Pools
 
 ```
-wayne auth                 Interactive credential manager
-wayne auth add [PROVIDER]  Add OAuth or API-key credential
+work4you auth                 Interactive credential manager
+work4you auth add [PROVIDER]  Add OAuth or API-key credential
                             (e.g. nous, openai-codex, qwen-oauth, anthropic)
-wayne auth list [PROVIDER] List pooled credentials
-wayne auth remove P INDEX  Remove by provider + index
-wayne auth reset PROVIDER  Clear exhaustion status
+work4you auth list [PROVIDER] List pooled credentials
+work4you auth remove P INDEX  Remove by provider + index
+work4you auth reset PROVIDER  Clear exhaustion status
 ```
 
 Multiple credentials per provider form a pool that rotates automatically and skips exhausted keys.
@@ -238,25 +238,25 @@ Multiple credentials per provider form a pool that rotates automatically and ski
 ### Other
 
 ```
-wayne insights [--days N]  Usage analytics
-wayne update               Update to latest version
-wayne desktop / gui        Launch the native desktop app
-wayne dashboard            Web admin panel + embedded chat
-wayne proxy                OpenAI-compatible local proxy backed by an OAuth provider
-wayne portal               Quick setup / sign in via Nous Portal
-wayne kanban <verb>        Multi-agent work-queue board (init/create/list/show/assign/…)
-wayne pairing list/approve/revoke  DM authorization
-wayne plugins list/install/remove  Plugin management
-wayne secrets bitwarden …  External secret store (Bitwarden Secrets Manager)
-wayne memory setup/status/off  Memory provider config
-wayne send                 Send a one-off message through a gateway platform
-wayne completion bash|zsh  Shell completions
-wayne acp                  ACP server (IDE integration)
-wayne claw migrate         Migrate from OpenClaw
-wayne uninstall            Uninstall Wayne
+work4you insights [--days N]  Usage analytics
+work4you update               Update to latest version
+work4you desktop / gui        Launch the native desktop app
+work4you dashboard            Web admin panel + embedded chat
+work4you proxy                OpenAI-compatible local proxy backed by an OAuth provider
+work4you portal               Quick setup / sign in via Nous Portal
+work4you kanban <verb>        Multi-agent work-queue board (init/create/list/show/assign/…)
+work4you pairing list/approve/revoke  DM authorization
+work4you plugins list/install/remove  Plugin management
+work4you secrets bitwarden …  External secret store (Bitwarden Secrets Manager)
+work4you memory setup/status/off  Memory provider config
+work4you send                 Send a one-off message through a gateway platform
+work4you completion bash|zsh  Shell completions
+work4you acp                  ACP server (IDE integration)
+work4you claw migrate         Migrate from OpenClaw
+work4you uninstall            Uninstall Work4You
 ```
 
-For the full, authoritative command list run `wayne --help` (and `wayne <command> --help`). Plugin- and provider-supplied subcommands (e.g. `wayne photon setup` for iMessage) only appear once their plugin is installed/active.
+For the full, authoritative command list run `work4you --help` (and `work4you <command> --help`). Plugin- and provider-supplied subcommands (e.g. `work4you photon setup` for iMessage) only appear once their plugin is installed/active.
 
 ---
 
@@ -265,7 +265,7 @@ For the full, authoritative command list run `wayne --help` (and `wayne <command
 Type these during an interactive chat session. New commands land fairly
 often; if something below looks stale, run `/help` in-session for the
 authoritative list or see the [live slash commands reference](https://hermes-agent.nousresearch.com/docs/reference/slash-commands).
-The registry of record is `wayne_cli/commands.py` — every consumer
+The registry of record is `work4you_cli/commands.py` — every consumer
 (autocomplete, Telegram menu, Slack mapping, `/help`) derives from it.
 
 ### Session Control
@@ -278,13 +278,13 @@ The registry of record is `wayne_cli/commands.py` — every consumer
 /compress            Manually compress context
 /stop                Kill background processes
 /rollback [N]        Restore filesystem checkpoint
-/snapshot [sub]      Create or restore state snapshots of Wayne config/state (CLI)
+/snapshot [sub]      Create or restore state snapshots of Work4You config/state (CLI)
 /background <prompt> Run prompt in background
 /queue <prompt>      Queue for next turn
 /steer <prompt>      Inject a message after the next tool call without interrupting
 /agents (/tasks)     Show active agents and running tasks
 /resume [name]       Resume a named session
-/goal [text|sub]     Set a standing goal Wayne works on across turns until achieved
+/goal [text|sub]     Set a standing goal Work4You works on across turns until achieved
                      (subcommands: status, pause, resume, clear)
 /redraw              Force a full UI repaint (CLI)
 ```
@@ -298,7 +298,7 @@ The registry of record is `wayne_cli/commands.py` — every consumer
 /verbose             Cycle: off → new → all → verbose
 /voice [on|off|tts]  Voice mode
 /yolo                Toggle approval bypass
-/busy [sub]          Control what Enter does while Wayne is working (CLI)
+/busy [sub]          Control what Enter does while Work4You is working (CLI)
                      (subcommands: queue, steer, interrupt, status)
 /indicator [style]   Pick the TUI busy-indicator style (CLI)
                      (styles: kaomoji, emoji, unicode, ascii)
@@ -313,7 +313,7 @@ The registry of record is `wayne_cli/commands.py` — every consumer
 /toolsets            List toolsets (CLI)
 /skills              Search/install skills (CLI)
 /skill <name>        Load a skill into session
-/reload-skills       Re-scan ~/.wayne/skills/ for added/removed skills
+/reload-skills       Re-scan ~/.work4you/skills/ for added/removed skills
 /reload              Reload .env variables into the running session (CLI)
 /reload-mcp          Reload MCP servers
 /cron                Manage cron jobs (CLI)
@@ -328,7 +328,7 @@ The registry of record is `wayne_cli/commands.py` — every consumer
 /deny                Deny a pending command (gateway)
 /restart             Restart gateway (gateway)
 /sethome             Set current chat as home channel (gateway)
-/update              Update Wayne to latest (gateway)
+/update              Update Work4You to latest (gateway)
 /topic [sub]         Enable or inspect Telegram DM topic sessions (gateway)
 /platforms (/gateway) Show platform connection status (gateway)
 ```
@@ -367,21 +367,21 @@ The registry of record is `wayne_cli/commands.py` — every consumer
 ## Key Paths & Config
 
 ```
-~/.wayne/config.yaml       Main configuration
-~/.wayne/.env              API keys and secrets (under $WAYNE_HOME if set)
+~/.work4you/config.yaml       Main configuration
+~/.work4you/.env              API keys and secrets (under $WAYNE_HOME if set)
 $WAYNE_HOME/skills/        Installed skills
-~/.wayne/sessions/         Gateway routing index, request dumps, *.jsonl transcripts (and optional per-session JSON snapshots when sessions.write_json_snapshots: true)
-~/.wayne/state.db          Canonical session store (SQLite + FTS5)
-~/.wayne/logs/             Gateway and error logs
-~/.wayne/auth.json         OAuth tokens and credential pools
-~/.wayne/wayne-agent/     Source code (if git-installed)
+~/.work4you/sessions/         Gateway routing index, request dumps, *.jsonl transcripts (and optional per-session JSON snapshots when sessions.write_json_snapshots: true)
+~/.work4you/state.db          Canonical session store (SQLite + FTS5)
+~/.work4you/logs/             Gateway and error logs
+~/.work4you/auth.json         OAuth tokens and credential pools
+~/.work4you/work4you-agent/  Source code (if git-installed)
 ```
 
-Profiles use `~/.wayne/profiles/<name>/` with the same layout.
+Profiles use `~/.work4you/profiles/<name>/` with the same layout.
 
 ### Config Sections
 
-Edit with `wayne config edit` or `wayne config set section.key value`.
+Edit with `work4you config edit` or `work4you config set section.key value`.
 
 | Section | Key options |
 |---------|-------------|
@@ -402,14 +402,14 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 
 ### Providers
 
-20+ providers supported. Set via `wayne model` or `wayne setup`.
+20+ providers supported. Set via `work4you model` or `work4you setup`.
 
 | Provider | Auth | Key env var |
 |----------|------|-------------|
 | OpenRouter | API key | `OPENROUTER_API_KEY` |
 | Anthropic | API key | `ANTHROPIC_API_KEY` |
-| Nous Portal | OAuth | `wayne auth` |
-| OpenAI Codex | OAuth | `wayne auth` |
+| Nous Portal | OAuth | `work4you auth` |
+| OpenAI Codex | OAuth | `work4you auth` |
 | GitHub Copilot | Token | `COPILOT_GITHUB_TOKEN` |
 | Google Gemini | API key | `GOOGLE_API_KEY` or `GEMINI_API_KEY` |
 | DeepSeek | API key | `DEEPSEEK_API_KEY` |
@@ -424,7 +424,7 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 | Kilo Code | API key | `KILOCODE_API_KEY` |
 | OpenCode Zen | API key | `OPENCODE_ZEN_API_KEY` |
 | OpenCode Go | API key | `OPENCODE_GO_API_KEY` |
-| Qwen OAuth | OAuth | `wayne auth add qwen-oauth` |
+| Qwen OAuth | OAuth | `work4you auth add qwen-oauth` |
 | Custom endpoint | Config | `model.base_url` + `model.api_key` in config.yaml |
 | GitHub Copilot ACP | External | `COPILOT_CLI_PATH` or Copilot CLI |
 
@@ -432,7 +432,7 @@ Full provider docs: https://hermes-agent.nousresearch.com/docs/integrations/prov
 
 ### Toolsets
 
-Enable/disable via `wayne tools` (interactive) or `wayne tools enable/disable NAME`.
+Enable/disable via `work4you tools` (interactive) or `work4you tools enable/disable NAME`.
 
 | Toolset | What it provides |
 |---------|-----------------|
@@ -475,12 +475,12 @@ Tool changes take effect on `/reset` (new session). They do NOT apply mid-conver
 
 ## Project Context Files
 
-Wayne injects project-level instructions into the system prompt by reading context files from the working directory. The discovery order is **first match wins** — only one project context source is loaded per session.
+Work4You injects project-level instructions into the system prompt by reading context files from the working directory. The discovery order is **first match wins** — only one project context source is loaded per session.
 
 | File (in priority order) | Discovery | Use when |
 |---|---|---|
-| `.wayne.md` / `WAYNE.md` | Walks parents up to the git root, stops at git root | You want hierarchical project rules (root + per-package overrides) |
-| `AGENTS.md` / `agents.md` | **Cwd only** — subdirectory and parent copies are ignored | You want portable agent instructions that work the same in Wayne, Claude Code, Codex, etc. |
+| `.work4you.md` / `WORK4YOU.md` (legacy `.wayne.md` / `WAYNE.md` still read) | Walks parents up to the git root, stops at git root | You want hierarchical project rules (root + per-package overrides) |
+| `AGENTS.md` / `agents.md` | **Cwd only** — subdirectory and parent copies are ignored | You want portable agent instructions that work the same in Work4You, Claude Code, Codex, etc. |
 | `CLAUDE.md` / `claude.md` | Cwd only | Same as AGENTS.md, Claude-flavored |
 | `.cursorrules` / `.cursor/rules/*.mdc` | Cwd only | Migrating from Cursor |
 
@@ -488,9 +488,9 @@ Wayne injects project-level instructions into the system prompt by reading conte
 
 ### Pick the right one
 
-- **Use `.wayne.md`** when you want Wayne-specific behavior that lives above the cwd (root + subtree), or when you want rules to inherit from a parent directory. The parent walk stops at the git root, so a home-level `.wayne.md` won't leak into every project (a git repo's root is the boundary).
+- **Use `.work4you.md`** when you want Work4You-specific behavior that lives above the cwd (root + subtree), or when you want rules to inherit from a parent directory. The parent walk stops at the git root, so a home-level `.work4you.md` won't leak into every project (a git repo's root is the boundary). Older repos may carry `.wayne.md` / `WAYNE.md`; those are still read, but write new files as `.work4you.md`.
 - **Use `AGENTS.md`** when the same project will also be worked on by other agents (Codex, Claude Code, OpenCode). Those tools all have their own conventions for `AGENTS.md`, and the "cwd only" contract keeps the file portable.
-- **Don't put project rules in `~/.wayne/AGENTS.md`** (or any other home-level location). When Wayne runs with that directory as cwd, the file loads — but only for that one directory. For cross-project context, use `SOUL.md` (in `$WAYNE_HOME`, identity-only) or install a skill via `wayne skills install`.
+- **Don't put project rules in `~/.work4you/AGENTS.md`** (or any other home-level location). When Work4You runs with that directory as cwd, the file loads — but only for that one directory. For cross-project context, use `SOUL.md` (in `$WAYNE_HOME`, identity-only) or install a skill via `work4you skills install`.
 
 ### Size and truncation
 
@@ -502,14 +502,14 @@ All context files pass through the threat-pattern scanner before reaching the sy
 
 ### Disable for one session
 
-`wayne --ignore-rules` skips auto-injection of all project context files (`.wayne.md`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules`) **and** `SOUL.md` identity, plus user config, plugins, and MCP servers. Use it to isolate whether a problem is your setup or Wayne itself.
+`work4you --ignore-rules` skips auto-injection of all project context files (`.work4you.md`, `AGENTS.md`, `CLAUDE.md`, `.cursorrules`) **and** `SOUL.md` identity, plus user config, plugins, and MCP servers. Use it to isolate whether a problem is your setup or Work4You itself.
 
-### Example: a small `.wayne.md`
+### Example: a small `.work4you.md`
 
 ```markdown
 # My Project
 
-Wayne: when working in this repo, follow these rules.
+Work4You: when working in this repo, follow these rules.
 
 ## Build
 - Always run `make test` before declaring a change done.
@@ -520,25 +520,25 @@ Wayne: when working in this repo, follow these rules.
 - No `print()` in production code — use the `logger`.
 ```
 
-That file at `/home/me/projects/myrepo/.wayne.md` is auto-loaded when Wayne runs in any subdirectory of `/home/me/projects/myrepo`, but not when it runs in `/home/me/other-project`.
+That file at `/home/me/projects/myrepo/.work4you.md` is auto-loaded when Work4You runs in any subdirectory of `/home/me/projects/myrepo`, but not when it runs in `/home/me/other-project`.
 
 ## Security & Privacy Toggles
 
-Common "why is Wayne doing X to my output / tool calls / commands?" toggles — and the exact commands to change them. Most of these need a fresh session (`/reset` in chat, or start a new `wayne` invocation) because they're read once at startup.
+Common "why is Work4You doing X to my output / tool calls / commands?" toggles — and the exact commands to change them. Most of these need a fresh session (`/reset` in chat, or start a new `work4you` invocation) because they're read once at startup.
 
 ### Secret redaction in tool output
 
 Secret redaction is **on by default** — tool output (terminal stdout, `read_file`, web content, subagent summaries, etc.) is scanned for strings that look like API keys, tokens, and secrets before it enters the conversation context and logs. Leave it enabled for normal use:
 
 ```bash
-wayne config set security.redact_secrets true       # keep enabled globally
+work4you config set security.redact_secrets true       # keep enabled globally
 ```
 
 **Restart required.** `security.redact_secrets` is snapshotted at import time — toggling it mid-session (e.g. via `export WAYNE_REDACT_SECRETS=false` from a tool call) will NOT take effect for the running process. Tell the user to change it in config from a terminal, then start a new session. This is deliberate — it prevents an LLM from flipping the toggle on itself mid-task.
 
 Disable only when you deliberately need raw credential-like strings for debugging or redactor development:
 ```bash
-wayne config set security.redact_secrets false
+work4you config set security.redact_secrets false
 ```
 
 ### PII redaction in gateway messages
@@ -546,36 +546,36 @@ wayne config set security.redact_secrets false
 Separate from secret redaction. When enabled, the gateway hashes user IDs and strips phone numbers from the session context before it reaches the model:
 
 ```bash
-wayne config set privacy.redact_pii true    # enable
-wayne config set privacy.redact_pii false   # disable (default)
+work4you config set privacy.redact_pii true    # enable
+work4you config set privacy.redact_pii false   # disable (default)
 ```
 
 ### Command approval prompts
 
-By default (`approvals.mode: manual`), Wayne prompts the user before running shell commands flagged as destructive (`rm -rf`, `git reset --hard`, etc.). The modes are:
+By default (`approvals.mode: manual`), Work4You prompts the user before running shell commands flagged as destructive (`rm -rf`, `git reset --hard`, etc.). The modes are:
 
 - `manual` — always prompt (default)
 - `smart` — use an auxiliary LLM to auto-approve low-risk commands, prompt on high-risk
 - `off` — skip all approval prompts (equivalent to `--yolo`)
 
 ```bash
-wayne config set approvals.mode smart       # recommended middle ground
-wayne config set approvals.mode off         # bypass everything (not recommended)
+work4you config set approvals.mode smart       # recommended middle ground
+work4you config set approvals.mode off         # bypass everything (not recommended)
 ```
 
 Per-invocation bypass without changing config:
-- `wayne --yolo …`
+- `work4you --yolo …`
 - `export WAYNE_YOLO_MODE=1`
 
 Note: YOLO / `approvals.mode: off` does NOT turn off secret redaction. They are independent.
 
 ### Shell hooks allowlist
 
-Some shell-hook integrations require explicit allowlisting before they fire. Managed via `~/.wayne/shell-hooks-allowlist.json` — prompted interactively the first time a hook wants to run.
+Some shell-hook integrations require explicit allowlisting before they fire. Managed via `~/.work4you/shell-hooks-allowlist.json` — prompted interactively the first time a hook wants to run.
 
 ### Disabling the web/browser/image-gen tools
 
-To keep the model away from network or media tools entirely, open `wayne tools` and toggle per-platform. Takes effect on next session (`/reset`). See the Tools & Skills section above.
+To keep the model away from network or media tools entirely, open `work4you tools` and toggle per-platform. Takes effect on next session (`/reset`). See the Tools & Skills section above.
 
 ---
 
@@ -615,13 +615,13 @@ Voice commands: `/voice on` (voice-to-voice), `/voice tts` (always voice), `/voi
 
 ---
 
-## Spawning Additional Wayne Instances
+## Spawning Additional Work4You Instances
 
-Run additional Wayne processes as fully independent subprocesses — separate sessions, tools, and environments.
+Run additional Work4You processes as fully independent subprocesses — separate sessions, tools, and environments.
 
 ### When to Use This vs delegate_task
 
-| | `delegate_task` | Spawning `wayne` process |
+| | `delegate_task` | Spawning `work4you` process |
 |-|-----------------|--------------------------|
 | Isolation | Separate conversation, shared process | Fully independent process |
 | Duration | Minutes (bounded by parent loop) | Hours/days |
@@ -632,19 +632,19 @@ Run additional Wayne processes as fully independent subprocesses — separate se
 ### One-Shot Mode
 
 ```
-terminal(command="wayne chat -q 'Research GRPO papers and write summary to ~/research/grpo.md'", timeout=300)
+terminal(command="work4you chat -q 'Research GRPO papers and write summary to ~/research/grpo.md'", timeout=300)
 
 # Background for long tasks:
-terminal(command="wayne chat -q 'Set up CI/CD for ~/myapp'", background=true)
+terminal(command="work4you chat -q 'Set up CI/CD for ~/myapp'", background=true)
 ```
 
 ### Interactive PTY Mode (via tmux)
 
-Wayne uses prompt_toolkit, which requires a real terminal. Use tmux for interactive spawning:
+Work4You uses prompt_toolkit, which requires a real terminal. Use tmux for interactive spawning:
 
 ```
 # Start
-terminal(command="tmux new-session -d -s agent1 -x 120 -y 40 'wayne'", timeout=10)
+terminal(command="tmux new-session -d -s agent1 -x 120 -y 40 'work4you'", timeout=10)
 
 # Wait for startup, then send a message
 terminal(command="sleep 8 && tmux send-keys -t agent1 'Build a FastAPI auth service' Enter", timeout=15)
@@ -663,11 +663,11 @@ terminal(command="tmux send-keys -t agent1 '/exit' Enter && sleep 2 && tmux kill
 
 ```
 # Agent A: backend
-terminal(command="tmux new-session -d -s backend -x 120 -y 40 'wayne -w'", timeout=10)
+terminal(command="tmux new-session -d -s backend -x 120 -y 40 'work4you -w'", timeout=10)
 terminal(command="sleep 8 && tmux send-keys -t backend 'Build REST API for user management' Enter", timeout=15)
 
 # Agent B: frontend
-terminal(command="tmux new-session -d -s frontend -x 120 -y 40 'wayne -w'", timeout=10)
+terminal(command="tmux new-session -d -s frontend -x 120 -y 40 'work4you -w'", timeout=10)
 terminal(command="sleep 8 && tmux send-keys -t frontend 'Build React dashboard for user management' Enter", timeout=15)
 
 # Check progress, relay context between them
@@ -679,10 +679,10 @@ terminal(command="tmux send-keys -t frontend 'Here is the API schema from the ba
 
 ```
 # Resume most recent session
-terminal(command="tmux new-session -d -s resumed 'wayne --continue'", timeout=10)
+terminal(command="tmux new-session -d -s resumed 'work4you --continue'", timeout=10)
 
 # Resume specific session
-terminal(command="tmux new-session -d -s resumed 'wayne --resume 20260225_143052_a1b2c3'", timeout=10)
+terminal(command="tmux new-session -d -s resumed 'work4you --resume 20260225_143052_a1b2c3'", timeout=10)
 ```
 
 ### Tips
@@ -690,7 +690,7 @@ terminal(command="tmux new-session -d -s resumed 'wayne --resume 20260225_143052
 - **Prefer `delegate_task` for quick subtasks** — less overhead than spawning a full process
 - **Use `-w` (worktree mode)** when spawning agents that edit code — prevents git conflicts
 - **Set timeouts** for one-shot mode — complex tasks can take 5-10 minutes
-- **Use `wayne chat -q` for fire-and-forget** — no PTY needed
+- **Use `work4you chat -q` for fire-and-forget** — no PTY needed
 - **Use tmux for interactive sessions** — raw PTY mode has `\r` vs `\n` issues with prompt_toolkit
 - **For scheduled tasks**, use the `cronjob` tool instead of spawning — handles delivery and retry
 
@@ -724,7 +724,7 @@ Config: `delegation.*` in `config.yaml`.
 ### Cron (scheduled jobs)
 
 Durable scheduler — `cron/jobs.py` + `cron/scheduler.py`. Drive it via
-the `cronjob` tool, the `wayne cron` CLI (`list`, `add`, `edit`,
+the `cronjob` tool, the `work4you cron` CLI (`list`, `add`, `edit`,
 `pause`, `resume`, `run`, `remove`), or the `/cron` slash command.
 
 - **Schedules:** duration (`"30m"`, `"2h"`), "every" phrase
@@ -748,7 +748,7 @@ Background maintenance for agent-created skills. Tracks usage, marks
 idle skills stale, archives stale ones, keeps a pre-run tar.gz backup
 so nothing is lost.
 
-- **CLI:** `wayne curator <verb>` — `status`, `run`, `pause`, `resume`,
+- **CLI:** `work4you curator <verb>` — `status`, `run`, `pause`, `resume`,
   `pin`, `unpin`, `archive`, `restore`, `prune`, `backup`, `rollback`.
 - **Slash:** `/curator <subcommand>` mirrors the CLI.
 - **Scope:** only touches skills with `created_by: "agent"` provenance.
@@ -758,9 +758,9 @@ so nothing is lost.
 - **Cost:** the deterministic inactivity/prune sweep runs for free. The
   aux-model "consolidate overlapping skills into umbrellas" pass is
   **off by default** — opt in with `curator.consolidate: true` or
-  `wayne curator run --consolidate`. Routine background curation costs
+  `work4you curator run --consolidate`. Routine background curation costs
   zero tokens.
-- **Telemetry:** sidecar at `~/.wayne/skills/.usage.json` holds
+- **Telemetry:** sidecar at `~/.work4you/skills/.usage.json` holds
   per-skill `use_count`, `view_count`, `patch_count`,
   `last_activity_at`, `state`, `pinned`.
 
@@ -771,7 +771,7 @@ User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/curato
 ### Kanban (multi-agent work queue)
 
 Durable SQLite board for multi-profile / multi-worker collaboration.
-Users drive it via `wayne kanban <verb>`; dispatcher-spawned workers
+Users drive it via `work4you kanban <verb>`; dispatcher-spawned workers
 see a focused `kanban_*` toolset gated by `WAYNE_KANBAN_TASK`, and
 orchestrator profiles can opt into the broader `kanban` toolset. Normal
 sessions still have zero `kanban_*` schema footprint unless configured.
@@ -803,21 +803,21 @@ User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban
 
 Beyond the CLI and gateway, a few things worth knowing about:
 
-- **Desktop app** (`wayne desktop` / `wayne gui`) — native Electron app
+- **Desktop app** (`work4you desktop` / `work4you gui`) — native Electron app
   for macOS/Linux/Windows: streaming chat, session list, drag-and-drop +
   clipboard-paste files, Cmd+K palette, status-bar model picker,
   rebindable shortcuts, native notifications, live subagent watch-windows,
   VS Code Marketplace themes, and per-profile remote-gateway login (OAuth
   or username/password) so a thin local GUI can drive a heavy remote agent.
-- **Web dashboard** (`wayne dashboard`) — full admin panel: configure
+- **Web dashboard** (`work4you dashboard`) — full admin panel: configure
   every messaging channel, the MCP catalog, webhooks/hooks, memory, and a
   complete profile builder (model + skills + MCPs) from the browser, plus
-  an embedded `wayne --tui` chat. Secured behind an OAuth/token gate.
-- **OpenAI-compatible proxy** (`wayne proxy`) — exposes a
+  an embedded `work4you --tui` chat. Secured behind an OAuth/token gate.
+- **OpenAI-compatible proxy** (`work4you proxy`) — exposes a
   `http://localhost:port` OpenAI API backed by whichever OAuth provider
   you're signed into (Claude Pro, ChatGPT Pro, SuperGrok). Point Codex
   CLI, Aider, Cline, Continue, or any script at it — no API key.
-- **Automation Blueprints** — pick a named automation and Wayne asks for
+- **Automation Blueprints** — pick a named automation and Work4You asks for
   what it needs (no cron syntax). One definition renders as a dashboard
   form, a slash command, an agent conversation, and a docs-catalog entry.
 - **`memory` tool batch operations** — pass an `operations` array of
@@ -834,7 +834,7 @@ Beyond the CLI and gateway, a few things worth knowing about:
 
 ## Windows-Specific Quirks
 
-Wayne runs natively on Windows (PowerShell, cmd, Windows Terminal, git-bash
+Work4You runs natively on Windows (PowerShell, cmd, Windows Terminal, git-bash
 mintty, VS Code integrated terminal). Most of it just works, but a handful
 of differences between Win32 and POSIX have bitten us — document new ones
 here as you hit them so the next person (or the next session) doesn't
@@ -852,12 +852,12 @@ To inspect how your terminal reports a keystroke, run
 
 **HTTP 400 "No models provided" on first run** — `config.yaml` was saved with
 a UTF-8 BOM (Notepad does this). Re-save as UTF-8 without BOM;
-`wayne config edit` writes correctly.
+`work4you config edit` writes correctly.
 
 ### `execute_code` / Sandbox
 
 **WinError 10106** from the sandbox child process — it can't create an
-`AF_INET` socket. Root cause is usually Wayne's env scrubber dropping
+`AF_INET` socket. Root cause is usually Work4You's env scrubber dropping
 `SYSTEMROOT`/`WINDIR`/`COMSPEC` (Python's `socket` needs `SYSTEMROOT` to find
 `mswsock.dll`), not a broken Winsock LSP. The `_WINDOWS_ESSENTIAL_ENV_VARS`
 allowlist in `tools/code_execution_tool.py` covers it; if you still hit it,
@@ -866,7 +866,7 @@ echo `os.environ` inside an `execute_code` block to confirm `SYSTEMROOT` is set.
 ### Testing on Windows
 
 `scripts/run_tests.sh` is POSIX-only (expects `.venv/bin/activate`); the
-Wayne-installed `venv/Scripts/` has no pip/pytest (stripped for size).
+Work4You-installed `venv/Scripts/` has no pip/pytest (stripped for size).
 Install pytest into a system Python and run directly with `-n 0`
 (`pyproject.toml`'s `addopts` already sets `-n`):
 
@@ -886,7 +886,7 @@ repo's `.gitattributes` normalizes. Don't let editors auto-convert committed
 POSIX-newline files to CRLF.
 
 **Forward slashes work almost everywhere.** `C:/Users/...` is accepted by
-every Wayne tool and most Windows APIs. Prefer forward slashes in code
+every Work4You tool and most Windows APIs. Prefer forward slashes in code
 and logs — avoids shell-escaping backslashes in bash.
 
 ---
@@ -899,15 +899,15 @@ and logs — avoids shell-escaping backslashes in bash.
 3. In gateway: `/restart`. In CLI: exit and relaunch.
 
 ### Tool not available
-1. `wayne tools` — check if toolset is enabled for your platform
+1. `work4you tools` — check if toolset is enabled for your platform
 2. Some tools need env vars (check `.env`)
 3. `/reset` after enabling tools
 
 ### Model/provider issues
-1. `wayne doctor` — check config and dependencies
-2. `wayne auth` — re-authenticate OAuth providers (or `wayne auth add <provider>`)
+1. `work4you doctor` — check config and dependencies
+2. `work4you auth` — re-authenticate OAuth providers (or `work4you auth add <provider>`)
 3. Check `.env` has the right API key
-4. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `wayne model` → GitHub Copilot.
+4. **Copilot 403**: `gh auth login` tokens do NOT work for Copilot API. You must use the Copilot-specific OAuth device code flow via `work4you model` → GitHub Copilot.
 
 ### Changes not taking effect
 - **Tools/skills:** `/reset` starts a new session with updated toolset
@@ -915,20 +915,20 @@ and logs — avoids shell-escaping backslashes in bash.
 - **Code changes:** Restart the CLI or gateway process
 
 ### Skills not showing
-1. `wayne skills list` — verify installed
-2. `wayne skills config` — check platform enablement
-3. Load explicitly: `/skill name` or `wayne -s name`
+1. `work4you skills list` — verify installed
+2. `work4you skills config` — check platform enablement
+3. Load explicitly: `/skill name` or `work4you -s name`
 
 ### Gateway issues
 Check logs first:
 ```bash
-grep -i "failed to send\|error" ~/.wayne/logs/gateway.log | tail -20
+grep -i "failed to send\|error" ~/.work4you/logs/gateway.log | tail -20
 ```
 
 Common gateway problems:
 - **Gateway dies on SSH logout**: Enable linger: `sudo loginctl enable-linger $USER`
 - **Gateway dies on WSL2 close**: WSL2 requires `systemd=true` in `/etc/wsl.conf` for systemd services to work. Without it, gateway falls back to `nohup` (dies when session closes).
-- **Gateway crash loop**: Reset the failed state: `systemctl --user reset-failed wayne-gateway`
+- **Gateway crash loop**: Reset the failed state: `systemctl --user reset-failed work4you-gateway`
 
 ### Platform-specific issues
 - **Discord bot silent**: Must enable **Message Content Intent** in Bot → Privileged Gateway Intents.
@@ -938,8 +938,8 @@ Common gateway problems:
 ### Auxiliary models not working
 If `auxiliary` tasks (vision, compression, session_search) fail silently, the `auto` provider can't find a backend. Either set `OPENROUTER_API_KEY` or `GOOGLE_API_KEY`, or explicitly configure each auxiliary task's provider:
 ```bash
-wayne config set auxiliary.vision.provider <your_provider>
-wayne config set auxiliary.vision.model <model_name>
+work4you config set auxiliary.vision.provider <your_provider>
+work4you config set auxiliary.vision.model <model_name>
 ```
 
 ---
@@ -948,21 +948,21 @@ wayne config set auxiliary.vision.model <model_name>
 
 | Looking for... | Location |
 |----------------|----------|
-| Config options | `wayne config edit` or [Configuration docs](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) |
-| Available tools | `wayne tools list` or [Tools reference](https://hermes-agent.nousresearch.com/docs/reference/tools-reference) |
+| Config options | `work4you config edit` or [Configuration docs](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) |
+| Available tools | `work4you tools list` or [Tools reference](https://hermes-agent.nousresearch.com/docs/reference/tools-reference) |
 | Slash commands | `/help` in session or [Slash commands reference](https://hermes-agent.nousresearch.com/docs/reference/slash-commands) |
-| Skills catalog | `wayne skills browse` or [Skills catalog](https://hermes-agent.nousresearch.com/docs/reference/skills-catalog) |
-| Provider setup | `wayne model` or [Providers guide](https://hermes-agent.nousresearch.com/docs/integrations/providers) |
-| Platform setup | `wayne gateway setup` or [Messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/) |
-| MCP servers | `wayne mcp list` or [MCP guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) |
-| Profiles | `wayne profile list` or [Profiles docs](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) |
-| Cron jobs | `wayne cron list` or [Cron docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) |
-| Memory | `wayne memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
-| Env variables | `wayne config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
-| CLI commands | `wayne --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
-| Gateway logs | `~/.wayne/logs/gateway.log` |
-| Session files | `wayne sessions browse` (reads state.db) |
-| Source code | `~/.wayne/wayne-agent/` |
+| Skills catalog | `work4you skills browse` or [Skills catalog](https://hermes-agent.nousresearch.com/docs/reference/skills-catalog) |
+| Provider setup | `work4you model` or [Providers guide](https://hermes-agent.nousresearch.com/docs/integrations/providers) |
+| Platform setup | `work4you gateway setup` or [Messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/) |
+| MCP servers | `work4you mcp list` or [MCP guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) |
+| Profiles | `work4you profile list` or [Profiles docs](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) |
+| Cron jobs | `work4you cron list` or [Cron docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) |
+| Memory | `work4you memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
+| Env variables | `work4you config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
+| CLI commands | `work4you --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
+| Gateway logs | `~/.work4you/logs/gateway.log` |
+| Session files | `work4you sessions browse` (reads state.db) |
+| Source code | `~/.work4you/work4you-agent/` |
 
 ---
 
@@ -978,9 +978,9 @@ wayne-agent/
 ├── model_tools.py        # Tool discovery and dispatch
 ├── toolsets.py           # Toolset definitions
 ├── cli.py                # Interactive CLI (WayneCLI)
-├── wayne_state.py       # SQLite session store
+├── work4you_state.py    # SQLite session store
 ├── agent/                # Prompt builder, context compression, memory, model routing, credential pooling, skill dispatch
-├── wayne_cli/           # CLI subcommands, config, setup, commands
+├── work4you_cli/        # CLI subcommands, config, setup, commands
 │   ├── commands.py       # Slash command registry (CommandDef)
 │   ├── config.py         # DEFAULT_CONFIG, env var definitions
 │   └── main.py           # CLI entry point and argparse
@@ -993,7 +993,7 @@ wayne-agent/
 └── website/              # Docusaurus docs site
 ```
 
-Config: `~/.wayne/config.yaml` (settings), `~/.wayne/.env` (API keys) — both under `$WAYNE_HOME` when it is set.
+Config: `~/.work4you/config.yaml` (settings), `~/.work4you/.env` (API keys) — both under `$WAYNE_HOME` when it is set.
 
 ### Adding a Tool
 
@@ -1027,12 +1027,12 @@ registry.register(
 `_WAYNE_CORE_TOOLS` (every platform) or to a specific toolset.
 
 All handlers must return JSON strings. Use `get_wayne_home()` for paths,
-never hardcode `~/.wayne`. For custom/local-only tools, write a plugin in
-`~/.wayne/plugins/` instead of editing core — see the developer docs.
+never hardcode `~/.work4you`. For custom/local-only tools, write a plugin in
+`~/.work4you/plugins/` instead of editing core — see the developer docs.
 
 ### Adding a Slash Command
 
-1. Add `CommandDef` to `COMMAND_REGISTRY` in `wayne_cli/commands.py`
+1. Add `CommandDef` to `COMMAND_REGISTRY` in `work4you_cli/commands.py`
 2. Add handler in `cli.py` → `process_command()`
 3. (Optional) Add gateway handler in `gateway/run.py`
 
@@ -1062,7 +1062,7 @@ scripts/run_tests.sh tests/tools/test_x.py    # one file
 scripts/run_tests.sh -v --tb=long             # pass-through pytest flags
 ```
 
-- Tests auto-redirect `WAYNE_HOME` to temp dirs — never touch real `~/.wayne/`.
+- Tests auto-redirect `WAYNE_HOME` to temp dirs — never touch real `~/.work4you/`.
 - The script probes `.venv`, then `venv`, then the shared worktree venv.
 - **Windows:** the wrapper is POSIX-only; see the **Windows-Specific Quirks**
   section above for the direct-pytest workaround.
@@ -1106,6 +1106,6 @@ Types: `fix:`, `feat:`, `refactor:`, `docs:`, `chore:`
 
 - **Never break prompt caching** — don't change context, tools, or system prompt mid-conversation
 - **Message role alternation** — never two assistant or two user messages in a row
-- Use `get_wayne_home()` from `wayne_constants` for all paths (profile-safe)
+- Use `get_wayne_home()` from `work4you_constants` for all paths (profile-safe)
 - Config values go in `config.yaml`, secrets go in `.env`
 - New tools need a `check_fn` so they only appear when requirements are met

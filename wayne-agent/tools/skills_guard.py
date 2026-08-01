@@ -132,7 +132,7 @@ THREAT_PATTERNS = [
      "references Docker config (may contain registry creds)"),
     (r'\$HOME/\.wayne/\.env|\~/\.wayne/\.env',
      "wayne_env_access", "critical", "exfiltration",
-     "directly references Wayne secrets file"),
+     "directly references Work4You secrets file"),
     # Match `cat <secrets-file>` (reading credentials) but NOT `cat > <file>`
     # or `cat >> <file>`, which are output redirections that WRITE a file
     # (e.g. a setup doc telling the user to write their own keys into their
@@ -458,7 +458,7 @@ THREAT_PATTERNS = [
      "references agent config files (could persist malicious instructions across sessions)"),
     (r'\.wayne/config\.yaml|\.wayne/SOUL\.md',
      "wayne_config_mod", "critical", "persistence",
-     "references Wayne configuration files directly"),
+     "references Work4You configuration files directly"),
     (r'\.claude/settings|\.codex/config',
      "other_agent_config", "high", "persistence",
      "references other agent configuration files"),

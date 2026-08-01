@@ -27,7 +27,7 @@ Use this skill when the user wants secrets managed through 1Password instead of 
 - 1Password account
 - 1Password CLI (`op`) installed
 - One of: desktop app integration, service account token (`OP_SERVICE_ACCOUNT_TOKEN`), or Connect server
-- `tmux` available for stable authenticated sessions during Wayne terminal calls (desktop app flow only)
+- `tmux` available for stable authenticated sessions during Work4You terminal calls (desktop app flow only)
 
 ## When to Use
 
@@ -39,9 +39,9 @@ Use this skill when the user wants secrets managed through 1Password instead of 
 
 ## Authentication Methods
 
-### Service Account (recommended for Wayne)
+### Service Account (recommended for Work4You)
 
-Set `OP_SERVICE_ACCOUNT_TOKEN` in `${WAYNE_HOME:-~/.wayne}/.env` (the skill will prompt for this on first load).
+Set `OP_SERVICE_ACCOUNT_TOKEN` in `${WAYNE_HOME:-~/.work4you}/.env` (the skill will prompt for this on first load).
 No desktop app needed. Supports `op read`, `op inject`, `op run`.
 
 ```bash
@@ -85,17 +85,17 @@ op --version
 
 3. Choose an auth method above and configure it.
 
-## Wayne Execution Pattern (desktop app flow)
+## Work4You Execution Pattern (desktop app flow)
 
-Wayne terminal commands are non-interactive by default and can lose auth context between calls.
+Work4You terminal commands are non-interactive by default and can lose auth context between calls.
 For reliable `op` use with desktop app integration, run sign-in and secret operations inside a dedicated tmux session.
 
 Note: This is NOT needed when using `OP_SERVICE_ACCOUNT_TOKEN` — the token persists across terminal calls automatically.
 
 ```bash
-SOCKET_DIR="${TMPDIR:-/tmp}/wayne-tmux-sockets"
+SOCKET_DIR="${TMPDIR:-/tmp}/work4you-tmux-sockets"
 mkdir -p "$SOCKET_DIR"
-SOCKET="$SOCKET_DIR/wayne-op.sock"
+SOCKET="$SOCKET_DIR/work4you-op.sock"
 SESSION="op-auth-$(date +%Y%m%d-%H%M%S)"
 
 tmux -S "$SOCKET" new -d -s "$SESSION" -n shell

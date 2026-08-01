@@ -73,6 +73,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Input } from "@nous-research/ui/ui/components/input";
 import { useI18n } from "@/i18n";
+import { useHomePath, withHome } from "@/lib/home-path";
 import { PluginSlot } from "@/plugins";
 
 /* ------------------------------------------------------------------ */
@@ -275,6 +276,10 @@ function categoryIcon(category: string | null | undefined): LucideIcon {
 /* ------------------------------------------------------------------ */
 
 export default function SkillsPage() {
+  // The empty state names the skills directory — resolve the real path
+  // instead of spelling one out (profile-scoped, and it moved in the
+  // brand migration).
+  const home = useHomePath();
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [toolsets, setToolsets] = useState<ToolsetInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -811,7 +816,7 @@ export default function SkillsPage() {
               <Card className="rounded-none">
                 <CardContent className="py-10 text-center text-sm text-muted-foreground">
                   {displaySkills.length === 0
-                    ? t.skills.noSkills
+                    ? withHome(t.skills.noSkills, home)
                     : t.skills.noSkillsMatch}
                 </CardContent>
               </Card>
