@@ -357,7 +357,7 @@ def _install_method_project_root(project_root: Optional[Path] = None) -> Path:
     """Resolve the directory that holds the *running code* (the install tree).
 
     This is the parent of ``work4you_cli/`` — i.e. the git checkout for source
-    installs, ``/opt/wayne`` inside the published image, the venv's
+    installs, ``/opt/work4you`` inside the published image, the venv's
     site-packages root for pip installs. It is a property of the running
     interpreter, NOT of ``$WAYNE_HOME``, which is why a code-scoped stamp
     here is immune to two installs sharing one data directory.
@@ -405,7 +405,7 @@ def detect_install_method(project_root: Optional[Path] = None) -> str:
       - the curl installer (scripts/install.sh, the README/website install
         command) git-clones the repo and stamps ``git`` next to the code;
       - the published ``nousresearch/wayne-agent`` image bakes a ``docker``
-        stamp into ``/opt/wayne`` at build time.
+        stamp into ``/opt/work4you`` at build time.
     An unsupported manual install dropped into a container (no stamp) falls
     through to the ``.git``/pip checks and behaves like any off-path install.
     See issue #34397.
@@ -463,7 +463,7 @@ def stamp_install_method(method: str, project_root: Optional[Path] = None) -> No
     the full rationale.
 
     Best-effort: if the install tree is read-only (e.g. the immutable
-    ``/opt/wayne`` in the published image, which instead bakes the stamp at
+    ``/opt/work4you`` in the published image, which instead bakes the stamp at
     build time) the write silently no-ops and detection falls back to its
     other signals.
     """

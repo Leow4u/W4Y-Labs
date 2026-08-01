@@ -280,10 +280,10 @@ def _strip_container_argv_prefix(argv: Sequence[str]) -> list[str]:
     Two container-command argv shapes are handled:
 
     * **s6-overlay v2 / tini:** PID 1 argv is
-      ``/init /opt/wayne/docker/main-wrapper.sh <subcommand> [args...]``.
+      ``/init /opt/work4you/docker/main-wrapper.sh <subcommand> [args...]``.
     * **s6-overlay v3:** PID 1 is ``s6-svscan`` and the command lives on the
       rc.init-launched process as ``/bin/sh -e
-      /run/s6/basedir/scripts/rc.init top /opt/wayne/docker/main-wrapper.sh
+      /run/s6/basedir/scripts/rc.init top /opt/work4you/docker/main-wrapper.sh
       <subcommand> [args...]`` (see :func:`_read_container_argv`).
 
     Rather than peel each leading token positionally (which silently breaks

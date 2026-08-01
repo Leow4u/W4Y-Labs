@@ -10,29 +10,29 @@ FROM node:22-bookworm-slim@sha256:7af03b14a13c8cdd38e45058fd957bf00a72bbe17feac4
 FROM debian:13.4
 
 # Disable Python stdout buffering to ensure logs are printed immediately.
-# Do not write .pyc files at runtime: /opt/wayne is immutable in the
+# Do not write .pyc files at runtime: /opt/work4you is immutable in the
 # published container and writable state belongs under /opt/data.
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Store Playwright browsers outside the volume mount so the build-time
 # install survives the /opt/data volume overlay at runtime.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/wayne/.playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/work4you/.playwright
 
 # Install system dependencies in one layer, clear APT cache.
 # tini was previously PID 1 to reap orphaned zombie processes (MCP stdio
-# subprocesses, git, bun, etc.) that would otherwise accumulate when wayne
-# ran as PID 1. See #15012. Phase 2 of the s6-overlay supervision plan
+# subprocesses, git, bun, etc.) that would otherwise accumulate when the
+# agent ran as PID 1. See #15012. Phase 2 of the s6-overlay supervision plan
 # replaces tini with s6-overlay's /init (PID 1 = s6-svscan), which reaps
 # zombies non-blockingly on SIGCHLD and additionally supervises the main
-# wayne process, the dashboard, and per-profile gateways.
+# work4you process, the dashboard, and per-profile gateways.
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     ca-certificates curl iputils-ping python3 python-is-python3 ripgrep ffmpeg gcc g++ make cmake python3-dev python3-venv libffi-dev libolm-dev procps git openssh-client docker-cli xz-utils && \
     rm -rf /var/lib/apt/lists/*
 
 # ---------- s6-overlay install ----------
-# s6-overlay provides supervision for the main wayne process, the dashboard,
+# s6-overlay provides supervision for the main work4you process, the dashboard,
 # and per-profile gateways. /init becomes PID 1 below — see ENTRYPOINT.
 #
 # Multi-arch: BuildKit auto-populates TARGETARCH (amd64 / arm64). s6-overlay
@@ -88,8 +88,9 @@ RUN set -eu; \
     # ENTRYPOINT. Safe to drop once the affected catalogs are updated.\
     ln -sf /init /usr/bin/tini
 
-# Non-root user for runtime; UID can be overridden via WAYNE_UID at runtime
-RUN useradd -u 10000 -m -d /opt/data wayne
+# Non-root user for runtime; UID can be overridden via WORK4YOU_UID (or the
+# legacy WAYNE_UID / NAS PUID aliases) at runtime — see docker/stage2-hook.sh.
+RUN useradd -u 10000 -m -d /opt/data work4you
 
 COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
@@ -105,7 +106,15 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && 
     ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
     ln -sf /usr/local/lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack
 
-WORKDIR /opt/wayne
+WORKDIR /opt/work4you
+
+# Legacy-path compatibility symlink. External wrappers and hand-written
+# compose files created before the rebrand hard-code /opt/wayne paths
+# (entrypoint overrides pointing at /opt/wayne/docker/entrypoint.sh, exec
+# helpers, orchestration catalogs). Same one-release-cycle contract as the
+# /usr/bin/tini -> /init shim above: keep the old path resolving so those
+# wrappers keep working, drop once downstream references are migrated.
+RUN ln -s /opt/work4you /opt/wayne
 
 # ---------- Layer-cached dependency install ----------
 # Copy only package manifests first so npm install + Playwright are cached
@@ -170,7 +179,7 @@ RUN npm install --prefer-offline --no-audit && \
 # lazy-install access to PyPI (often blocked in containerized envs).
 #
 # The hindsight memory provider's client (hindsight-client) is baked in
-# for the same reason: it lazy-installs into /opt/wayne/.venv at first
+# for the same reason: it lazy-installs into /opt/work4you/.venv at first
 # use, which lives inside the (immutable) image layer rather than the
 # mounted /opt/data volume, so it is lost on every container recreate /
 # image update and recall/retain then fails with
@@ -202,35 +211,42 @@ RUN cd web && npm run build && \
 # the final read-only permissions at copy time so we skip the separate
 # `chmod -R` pass that previously walked ~30k files across the venv +
 # node_modules + source (21s amd64 / 222s arm64 — #49113).  `a+rX,go-w`
-# gives the non-root wayne user read + traverse but no write; root retains
+# gives the non-root work4you user read + traverse but no write; root retains
 # write so the build steps below don't need chmod u+w dances.
 COPY --link --chmod=a+rX,go-w . .
 
 # ---------- Permissions ----------
-# Link wayne-agent itself (editable). Deps are already installed in the
+# Link work4you-agent itself (editable). Deps are already installed in the
 # cached layer above; `--no-deps` makes this a fast egg-link creation with no
 # resolution or downloads.
 RUN uv pip install --no-cache-dir --no-deps -e "."
 
-# Wire the exec shim and install-method stamp.  Files under /opt/wayne are
+# Wire the exec shim and install-method stamp.  Files under /opt/work4you are
 # already root-owned (COPY, uv sync, npm install all run as root) and
-# read-only for the wayne user (go-w from the --chmod above).
+# read-only for the work4you user (go-w from the --chmod above).
+#
+# The shim is installed under BOTH launcher names: `work4you` (current) and
+# `wayne` (silent legacy alias, matching the [project.scripts] dual entry
+# points) so `docker exec <c> wayne ...` from old runbooks still privilege-
+# drops correctly.
 
 USER root
-RUN mkdir -p /opt/wayne/bin && \
-    cp /opt/wayne/docker/wayne-exec-shim.sh /opt/wayne/bin/wayne && \
-    chmod 0755 /opt/wayne/bin/wayne && \
-    printf 'docker\n' > /opt/wayne/.install_method
+RUN mkdir -p /opt/work4you/bin && \
+    cp /opt/work4you/docker/work4you-exec-shim.sh /opt/work4you/bin/work4you && \
+    chmod 0755 /opt/work4you/bin/work4you && \
+    ln -s work4you /opt/work4you/bin/wayne && \
+    printf 'docker\n' > /opt/work4you/.install_method
 # The ``.install_method`` stamp is baked next to the running code (the install
 # tree), NOT into $WAYNE_HOME. $WAYNE_HOME (/opt/data) is a shared data
 # volume that is commonly bind-mounted from the host and even shared with a
 # host-side Desktop/CLI install; stamping it at boot used to clobber that
-# host install's marker and wrongly block its ``wayne update``. A code-scoped
-# stamp is read first by detect_install_method() and is immune to the share.
+# host install's marker and wrongly block its ``work4you update``. A
+# code-scoped stamp is read first by detect_install_method() and is immune to
+# the share.
 # Start as root so the s6-overlay stage2 hook can usermod/groupmod and chown
-# the data volume. Each supervised service then drops to the wayne user via
-# `s6-setuidgid wayne` in its run script. If WAYNE_UID is unset, services
-# run as the default wayne user (UID 10000).
+# the data volume. Each supervised service then drops to the work4you user via
+# `s6-setuidgid work4you` in its run script. If WORK4YOU_UID/WAYNE_UID is
+# unset, services run as the default work4you user (UID 10000).
 
 # ---------- Bake build-time git revision ----------
 # .dockerignore excludes .git, so `git rev-parse HEAD` from inside the
@@ -240,8 +256,8 @@ RUN mkdir -p /opt/wayne/bin && \
 # we can't tell which commit the user is actually running.
 #
 # Fix: write the commit SHA passed via the WAYNE_GIT_SHA build-arg to
-# /opt/wayne/.wayne_build_sha at build time, and have
-# wayne_cli/build_info.py read it at runtime.  Both `wayne dump` and
+# /opt/work4you/.wayne_build_sha at build time, and have
+# work4you_cli/build_info.py read it at runtime.  Both `work4you dump` and
 # banner.get_git_banner_state() try the baked SHA first, then fall back
 # to live `git rev-parse` for source installs (unchanged behaviour).
 #
@@ -249,13 +265,17 @@ RUN mkdir -p /opt/wayne/bin && \
 # omits the file, and the runtime falls back to live-git lookup.  CI
 # (.github/workflows/docker.yml) passes ${{ github.sha }} so
 # every published image has it.
+#
+# ARG NAME STAYS WAYNE_GIT_SHA (external build pipelines pass it); the
+# stamp FILE NAME stays .wayne_build_sha (work4you_cli/build_info.py reads
+# that exact name). Rename both together in a later phase if ever.
 ARG WAYNE_GIT_SHA=
 RUN if [ -n "${WAYNE_GIT_SHA}" ]; then \
-        printf '%s\n' "${WAYNE_GIT_SHA}" > /opt/wayne/.wayne_build_sha; \
+        printf '%s\n' "${WAYNE_GIT_SHA}" > /opt/work4you/.wayne_build_sha; \
     fi
 
 # ---------- s6-overlay service wiring ----------
-# Static services declared at build time: main-wayne + dashboard.
+# Static services declared at build time: main-work4you + dashboard.
 # Per-profile gateway services are registered dynamically at runtime by
 # the profile create/delete hooks (Phase 4); they live under
 # /run/service/ (tmpfs) and are reconciled on container restart by
@@ -264,24 +284,30 @@ COPY docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
 
 # stage2-hook handles UID/GID remap, volume chown, config seeding,
 # skills sync — all the work the old entrypoint.sh did before
-# `exec wayne`. Wired in as cont-init.d/01- so it
+# `exec work4you`. Wired in as cont-init.d/01- so it
 # runs before user services start.
 #
 # 02-reconcile-profiles re-creates per-profile gateway s6 service
 # slots from $WAYNE_HOME/profiles/<name>/ after a container restart
 # (the /run/service/ scandir is tmpfs and wiped on restart). Phase 4.
 RUN mkdir -p /etc/cont-init.d && \
-    printf '#!/command/with-contenv sh\nexec /opt/wayne/docker/stage2-hook.sh\n' \
-        > /etc/cont-init.d/01-wayne-setup && \
-    chmod +x /etc/cont-init.d/01-wayne-setup
+    printf '#!/command/with-contenv sh\nexec /opt/work4you/docker/stage2-hook.sh\n' \
+        > /etc/cont-init.d/01-work4you-setup && \
+    chmod +x /etc/cont-init.d/01-work4you-setup
 COPY --chmod=0755 docker/cont-init.d/015-supervise-perms /etc/cont-init.d/015-supervise-perms
 COPY --chmod=0755 docker/cont-init.d/02-reconcile-profiles /etc/cont-init.d/02-reconcile-profiles
 
 # ---------- Runtime ----------
-ENV WAYNE_WEB_DIST=/opt/wayne/wayne_cli/web_dist
+# NOTE on env NAMES: the baked WAYNE_* variables below are the container's
+# data/config contract — orchestration templates, compose files, and the
+# Python runtime's canonical internal spellings all read them (the
+# WORK4YOU_* user-facing spellings are bridged onto WAYNE_* at process
+# start by work4you_constants.apply_work4you_env_aliases, legacy wins).
+# Only the path VALUES move to /opt/work4you here; the names stay.
+ENV WAYNE_WEB_DIST=/opt/work4you/work4you_cli/web_dist
 # Point the TUI launcher at the prebuilt bundle baked at build time (Layer 8:
 # `ui-tui && npm run build`). This makes _make_tui_argv take the prebuilt-bundle
-# fast path (`node --expose-gc /opt/wayne/ui-tui/dist/entry.js`) and skip the
+# fast path (`node --expose-gc /opt/work4you/ui-tui/dist/entry.js`) and skip the
 # _tui_need_npm_install / runtime `npm install` branch entirely — exactly the
 # nix/packaged-release path the launcher was designed for.
 #
@@ -293,11 +319,17 @@ ENV WAYNE_WEB_DIST=/opt/wayne/wayne_cli/web_dist
 # (/api/pty) connections → ENOTEMPTY → the chat tab dies with a 502 /
 # "[session ended]". Pointing at the prebuilt bundle sidesteps the whole
 # check. (A separate launcher hardening is tracked independently.)
-ENV WAYNE_TUI_DIR=/opt/wayne/ui-tui
+ENV WAYNE_TUI_DIR=/opt/work4you/ui-tui
+# WAYNE_HOME=/opt/data is the container's DATA CONTRACT and deliberately
+# keeps its legacy name: every published compose/orchestration template,
+# host bind-mount recipe (~/.wayne:/opt/data or ~/.work4you:/opt/data) and
+# in-container consumer (shell hooks + Python, which reads WAYNE_HOME first
+# by design — see get_wayne_home) pivots on this variable. A WORK4YOU_HOME
+# passed by the operator is honoured via the same dual-read.
 ENV WAYNE_HOME=/opt/data
 ENV WAYNE_WRITE_SAFE_ROOT=/opt/data
 ENV WAYNE_DISABLE_LAZY_INSTALLS=1
-# The published image seals /opt/wayne (root-owned, read-only) so a runtime
+# The published image seals /opt/work4you (root-owned, read-only) so a runtime
 # lazy install can't mutate the agent's own venv and brick it. But opt-in
 # backends (Firecrawl web search, Exa, Feishu, …) keep their SDKs in
 # tools/lazy_deps.py — deliberately NOT baked into [all] (see pyproject.toml
@@ -312,29 +344,31 @@ ENV WAYNE_DISABLE_LAZY_INSTALLS=1
 ENV WAYNE_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
 
 # `docker exec` privilege-drop shim. When operators run
-# `docker exec <c> wayne ...` they default to root, and any file the
+# `docker exec <c> work4you ...` they default to root, and any file the
 # command writes under $WAYNE_HOME (auth.json, .env, config.yaml) ends
 # up root-owned and unreadable to the supervised gateway (UID 10000).
-# The shim lives at /opt/wayne/bin/wayne, sits earliest on PATH, and
-# transparently re-exec's the real venv binary via `s6-setuidgid wayne`
-# when invoked as root. Non-root callers (supervised processes,
-# `--user wayne`, etc.) hit the short-circuit path with no overhead.
+# The shim lives at /opt/work4you/bin/work4you (with a `wayne` legacy
+# alias), sits earliest on PATH, and transparently re-exec's the real
+# venv binary via `s6-setuidgid work4you` when invoked as root.
+# Non-root callers (supervised processes, `--user work4you`, etc.) hit
+# the short-circuit path with no overhead.
 # Recursion is impossible because the shim exec's the venv binary by
-# absolute path (/opt/wayne/.venv/bin/wayne). See the shim source for
-# the opt-out env var (WAYNE_DOCKER_EXEC_AS_ROOT=1).
+# absolute path (/opt/work4you/.venv/bin/work4you). See the shim source
+# for the opt-out env var (WORK4YOU_DOCKER_EXEC_AS_ROOT=1 /
+# WAYNE_DOCKER_EXEC_AS_ROOT=1).
 
 # Pre-s6 entrypoint.sh did `source .venv/bin/activate` which exported
 # the venv bin onto PATH; Architecture B's main-wrapper.sh does the
 # same for the container's main process, but `docker exec` and our
 # cont-init.d scripts don't pass through the wrapper. Expose the venv
-# bin globally so `docker exec <container> wayne ...` and any
-# subprocess that doesn't activate the venv first still find wayne.
+# bin globally so `docker exec <container> work4you ...` and any
+# subprocess that doesn't activate the venv first still find work4you.
 #
-# /opt/wayne/bin is prepended ahead of the venv so the privilege-drop
+# /opt/work4you/bin is prepended ahead of the venv so the privilege-drop
 # shim wins PATH resolution. The shim's last act is to exec the venv
 # binary by absolute path, so this PATH ordering is transparent to
 # every other consumer.
-ENV PATH="/opt/wayne/bin:/opt/wayne/.venv/bin:/opt/data/.local/bin:${PATH}"
+ENV PATH="/opt/work4you/bin:/opt/work4you/.venv/bin:/opt/data/.local/bin:${PATH}"
 RUN mkdir -p /opt/data
 VOLUME [ "/opt/data" ]
 
@@ -355,10 +389,10 @@ VOLUME [ "/opt/data" ]
 #   docker run <image> sleep infinity   → /init main-wrapper.sh sleep infinity
 #   docker run <image> --tui            → /init main-wrapper.sh --tui
 #
-# main-wrapper.sh handles arg routing (bare-exec vs. wayne
-# subcommand vs. no-args), drops to the wayne user via s6-setuidgid,
+# main-wrapper.sh handles arg routing (bare-exec vs. work4you
+# subcommand vs. no-args), drops to the work4you user via s6-setuidgid,
 # and exec's the final program so its exit code becomes the container
 # exit code. Without the wrapper-as-ENTRYPOINT, leading-dash args
 # like `--version` would be intercepted by /init's POSIX shell.
-ENTRYPOINT [ "/init", "/opt/wayne/docker/main-wrapper.sh" ]
+ENTRYPOINT [ "/init", "/opt/work4you/docker/main-wrapper.sh" ]
 CMD [ ]
