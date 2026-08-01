@@ -106,6 +106,10 @@ function settingsThemeFor(key: string): SettingsTheme {
 
   if (
     key === 'SUDO_PASSWORD' ||
+    // WORK4YOU_* is the public env spelling; WAYNE_* is the legacy one the
+    // engine still reads internally — both land in the same settings group.
+    key.startsWith('WORK4YOU_') ||
+    key.startsWith('WORK4YOU_') ||
     key.startsWith('WAYNE_') ||
     key === 'RAFT_PROFILE' ||
     key.startsWith('TERMINAL_')

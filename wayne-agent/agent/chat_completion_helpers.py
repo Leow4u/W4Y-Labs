@@ -373,7 +373,7 @@ def interruptible_api_call(agent, api_kwargs: dict):
             logger.info(
                 "Disabling openai-codex no-byte TTFB watchdog for large request "
                 "(context=~%s tokens >= %.0f). Waiting for backend response instead. "
-                "Set WAYNE_CODEX_TTFB_STRICT=1 to force early reconnects.",
+                "Set WORK4YOU_CODEX_TTFB_STRICT=1 to force early reconnects.",
                 f"{_est_tokens_for_codex_watchdog:,}",
                 _ttfb_disable_above,
             )
@@ -382,7 +382,7 @@ def interruptible_api_call(agent, api_kwargs: dict):
             if _ttfb_cap > 0 and _ttfb_timeout > _ttfb_cap:
                 logger.info(
                     "Capping openai-codex no-byte TTFB timeout from %.0fs to %.0fs "
-                    "(context=~%s tokens). Set WAYNE_CODEX_TTFB_MAX_SECONDS to tune.",
+                    "(context=~%s tokens). Set WORK4YOU_CODEX_TTFB_MAX_SECONDS to tune.",
                     _ttfb_timeout,
                     _ttfb_cap,
                     f"{_est_tokens_for_codex_watchdog:,}",

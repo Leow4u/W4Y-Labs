@@ -1053,8 +1053,8 @@ export const af: Translations = {
     providersHint:
       "Skryf memory.provider (leeg = ingebou) en context.engine na config.yaml. Tree volgende sessie in werking.",
     refreshDashboard: "Herskandeer dashboard-uitbreidings",
-    removeConfirm: "Verwyder hierdie inprop uit ~/.wayne/plugins/?",
-    removeHint: "Slegs gebruiker-geïnstalleerde inproppe onder ~/.wayne/plugins kan verwyder word.",
+    removeConfirm: "Verwyder hierdie inprop uit {home}/plugins/?",
+    removeHint: "Slegs gebruiker-geïnstalleerde inproppe onder {home}/plugins kan verwyder word.",
     rescanHeading: "SPA-inprop-register",
     rescanHint: "Herskandeer ná die byvoeg van lêers op skyf sodat die dashboard-sybalk nuwe manifeste optel.",
     runtimeHeading: "Gateway-looptyd (YAML-inproppe)",
@@ -1076,7 +1076,7 @@ export const af: Translations = {
     all: "Alles",
     categories: "Kategorieë",
     filters: "Filters",
-    noSkills: "Geen vaardighede gevind nie. Vaardighede word gelaai uit ~/.wayne/skills/",
+    noSkills: "Geen vaardighede gevind nie. Vaardighede word gelaai uit {home}/skills/",
     noSkillsMatch: "Geen vaardighede stem ooreen met jou soektog of filter nie.",
     install: "Installeer",
     installed: "Geïnstalleer",
@@ -1136,7 +1136,7 @@ export const af: Translations = {
     "polymarket": { name: "Voorspellingsmarkte", desc: "Raadpleeg intydse waarskynlikhede en data van Polymarket-voorspellingsmarkte." },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "Filters",
     sections: "Afdelings",
     exportConfig: "Voer konfigurasie uit as JSON",

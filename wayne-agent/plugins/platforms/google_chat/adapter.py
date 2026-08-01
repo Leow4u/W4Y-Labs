@@ -3115,8 +3115,10 @@ def interactive_setup() -> None:
     if home:
         save_env_value("GOOGLE_CHAT_HOME_CHANNEL", home.strip())
 
+    from work4you_constants import display_wayne_home
+
     print()
-    print_success("Google Chat configuration saved to ~/.wayne/.env")
+    print_success(f"Google Chat configuration saved to {display_wayne_home()}/.env")
     print_info("Restart the gateway: wayne gateway restart")
 
 

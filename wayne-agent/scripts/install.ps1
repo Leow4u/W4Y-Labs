@@ -779,7 +779,7 @@ function Install-Git {
     and re-running this installer fully recovers.
 
     After install we locate ``bash.exe`` and persist the path in
-    ``WAYNE_GIT_BASH_PATH`` (User scope) so Wayne can find it in a fresh
+    ``WORK4YOU_GIT_BASH_PATH`` (User scope) so Work4You can find it in a fresh
     shell without a second PATH refresh.
     #>
     Write-Info "Checking Git..."
@@ -914,8 +914,8 @@ function Set-GitBashEnvVar {
     <#
     .SYNOPSIS
     Locate ``bash.exe`` from an already-installed Git and persist the path in
-    ``WAYNE_GIT_BASH_PATH`` (User env scope) so Wayne can find it even before
-    PATH propagation completes in a newly-spawned shell.
+    ``WORK4YOU_GIT_BASH_PATH`` (User env scope) so Work4You can find it even
+    before PATH propagation completes in a newly-spawned shell.
     #>
     $candidates = @()
 
@@ -951,15 +951,15 @@ function Set-GitBashEnvVar {
 
     foreach ($candidate in $candidates) {
         if ($candidate -and (Test-Path $candidate)) {
-            [Environment]::SetEnvironmentVariable("WAYNE_GIT_BASH_PATH", $candidate, "User")
-            $env:WAYNE_GIT_BASH_PATH = $candidate
-            Write-Info "Set WAYNE_GIT_BASH_PATH=$candidate"
+            [Environment]::SetEnvironmentVariable("WORK4YOU_GIT_BASH_PATH", $candidate, "User")
+            $env:WORK4YOU_GIT_BASH_PATH = $candidate
+            Write-Info "Set WORK4YOU_GIT_BASH_PATH=$candidate"
             return
         }
     }
 
     Write-Warn "Could not locate bash.exe -- Work4You may not find Git Bash."
-    Write-Info "If needed, set WAYNE_GIT_BASH_PATH manually to your bash.exe path."
+    Write-Info "If needed, set WORK4YOU_GIT_BASH_PATH manually to your bash.exe path."
 }
 
 # The desktop build runs Vite ^8, which refuses to start on Node outside

@@ -495,10 +495,21 @@ from gateway.session import SessionSource, build_session_key
 from work4you_constants import get_default_wayne_root, get_wayne_dir, get_wayne_home
 
 
-GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE = (
-    "Secure secret entry is not supported over messaging. "
-    "Load this skill in the local CLI to be prompted, or add the key to ~/.wayne/.env manually."
-)
+def gateway_secret_capture_unsupported_message() -> str:
+    """Message shown when a skill asks for a secret over a messaging channel.
+
+    Built per call, never as a module constant: the home directory is
+    profile-scoped and moved in the brand migration, so a value frozen at
+    import time would name the wrong path for anyone who switches profile
+    mid-process.
+    """
+    from work4you_constants import display_wayne_home
+
+    return (
+        "Secure secret entry is not supported over messaging. "
+        "Load this skill in the local CLI to be prompted, or add the key to "
+        f"{display_wayne_home()}/.env manually."
+    )
 
 
 def safe_url_for_log(url: str, max_len: int = 80) -> str:

@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from typing import Any, Optional
 
 from tools.environments.local import wayne_subprocess_env
+from work4you_constants import get_wayne_home
 
 # Default minimum codex version we test against. The PR sets this from the
 # `codex --version` parsed at install time; bumping is a one-line change here.
@@ -107,7 +108,7 @@ class CodexAppServerClient:
                 else spawn_env.get(
                     "WAYNE_KANBAN_ROOT",
                     os.path.join(
-                        spawn_env.get("WAYNE_HOME", os.path.expanduser("~/.wayne")),
+                        spawn_env.get("WAYNE_HOME") or str(get_wayne_home()),
                         "kanban",
                     ),
                 )

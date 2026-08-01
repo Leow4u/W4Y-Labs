@@ -1073,6 +1073,7 @@ class SessionStore:
         import tempfile
         self.sessions_dir.mkdir(parents=True, exist_ok=True)
         sessions_file = self.sessions_dir / "sessions.json"
+        from work4you_constants import display_wayne_home
 
         data = {key: entry.to_dict() for key, entry in self._entries.items()}
         # Self-documenting sentinel so anyone who inspects this file directly
@@ -1085,7 +1086,7 @@ class SessionStore:
                 "Gateway routing index ONLY: maps messaging session keys "
                 "(agent:main:<platform>:...) to active session IDs. This is NOT "
                 "the session list. ALL sessions (CLI, TUI, and gateway) live in "
-                "~/.wayne/state.db and are shown by `work4you sessions list` and "
+                f"{display_wayne_home()}/state.db and are shown by `work4you sessions list` and "
                 "`/sessions`. Seeing only gateway entries here is expected and "
                 "does not mean CLI sessions are missing."
             ),

@@ -7,13 +7,25 @@ from pathlib import Path
 from typing import Optional
 
 
+def _fallback_home() -> Path:
+    """Migration-aware default when ``work4you_constants`` cannot be imported.
+
+    The default root moved from ``~/.wayne`` to ``~/.work4you``; guarding the
+    old name only would leave the *live* home unprotected on a migrated
+    install, so probe the new name first and keep the legacy one for
+    installs that have not migrated yet.
+    """
+    new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+    return legacy_root if (legacy_root.is_dir() and not new_root.is_dir()) else new_root
+
+
 def _wayne_home_path() -> Path:
     """Resolve the active WAYNE_HOME (profile-aware) without circular imports."""
     try:
         from work4you_constants import get_wayne_home  # local import to avoid cycles
         return get_wayne_home()
     except Exception:
-        return Path(os.path.expanduser("~/.wayne"))
+        return _fallback_home()
 
 
 def _wayne_root_path() -> Path:
@@ -22,7 +34,7 @@ def _wayne_root_path() -> Path:
         from work4you_constants import get_default_wayne_root  # local import to avoid cycles
         return get_default_wayne_root()
     except Exception:
-        return Path(os.path.expanduser("~/.wayne"))
+        return _fallback_home()
 
 
 def build_write_denied_paths(home: str) -> set[str]:
@@ -235,7 +247,7 @@ def get_read_block_error(path: str) -> Optional[str]:
             except ValueError:
                 continue
             return (
-                f"Access denied: {path} is an internal Wayne cache file "
+                f"Access denied: {path} is an internal Work4You cache file "
                 "and cannot be read directly to prevent prompt injection. "
                 "Use the skills_list or skill_view tools instead."
             )
@@ -262,7 +274,7 @@ def get_read_block_error(path: str) -> Optional[str]:
                 continue
             if resolved == blocked:
                 return (
-                    f"Access denied: {path} is a Wayne credential store "
+                    f"Access denied: {path} is a Work4You credential store "
                     "and cannot be read directly. Provider tools consume "
                     "these credentials through internal channels. "
                     "(Defense-in-depth — not a security boundary; the "
@@ -278,7 +290,7 @@ def get_read_block_error(path: str) -> Optional[str]:
             continue
         if resolved == mcp_tokens:
             return (
-                f"Access denied: {path} is the Wayne MCP token directory "
+                f"Access denied: {path} is the Work4You MCP token directory "
                 "and cannot be read directly. (Defense-in-depth — not a "
                 "security boundary; the terminal tool can still bypass.)"
             )
@@ -287,7 +299,7 @@ def get_read_block_error(path: str) -> Optional[str]:
         except ValueError:
             continue
         return (
-            f"Access denied: {path} is a Wayne MCP token file "
+            f"Access denied: {path} is a Work4You MCP token file "
             "and cannot be read directly. (Defense-in-depth — not a "
             "security boundary; the terminal tool can still bypass.)"
         )
@@ -466,7 +478,7 @@ def get_cross_profile_warning(path: str) -> Optional[str]:
         return None
     return (
         f"Cross-profile write blocked by soft guard: {info['target_path']} "
-        f"belongs to Wayne profile {info['target_profile']!r}, but the "
+        f"belongs to Work4You profile {info['target_profile']!r}, but the "
         f"agent is running under profile {info['active_profile']!r}. "
         f"Editing another profile's {info['area']}/ will affect that "
         f"profile's future sessions, not the one you are currently in. "
@@ -576,9 +588,9 @@ def get_sandbox_mirror_warning(path: str) -> Optional[str]:
         f"Sandbox-mirror write blocked by soft guard: {info['target_path']} "
         f"sits under {info['mirror_root']!r}, which is a per-task mirror "
         f"created by a non-local terminal backend (docker/daytona/etc.). "
-        f"Writes here land on a copy that the host Wayne process never "
+        f"Writes here land on a copy that the host Work4You process never "
         f"reads — the authoritative file is likely {info['inner_path']!r} "
-        f"under the real WAYNE_HOME. Use the host-side tool for "
+        f"under the real Work4You home. Use the host-side tool for "
         f"authoritative state (e.g. ``memory`` for memories), or address "
         f"the host path directly. To bypass this guard after explicit "
         f"user direction, retry the call with ``cross_profile=True``. "
@@ -653,9 +665,9 @@ def get_container_mirror_warning(
     return (
         f"Sandbox-mirror write blocked by soft guard: {info['target_path']} "
         f"sits under {info['mirror_root']!r}, which is the container's "
-        f"bind-mounted home — a per-task mirror that the host Wayne "
+        f"bind-mounted home — a per-task mirror that the host Work4You "
         f"process never reads. The authoritative file is "
-        f"{info['inner_path']!r} under the real WAYNE_HOME. Use the "
+        f"{info['inner_path']!r} under the real Work4You home. Use the "
         f"host-side tool for authoritative state (e.g. ``memory`` for "
         f"memories), or address the host path directly. To bypass after "
         f"explicit user direction, retry with ``cross_profile=True``. "

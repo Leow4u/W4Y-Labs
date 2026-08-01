@@ -1594,7 +1594,7 @@ export const en: Translations = {
     emptyProductSkillsTitle: 'Extend Work4You with Skills',
     emptyProductSkillsDesc:
       'Skills package methods the agent can follow — learned recipes, project SKILL.md files, and playbooks. Built-in kit capabilities stay available in chat; accounts live under Connectors.',
-    projectSkillHint: 'From this project’s .wayne/skills folder — edit the file in the repo to change it.',
+    projectSkillHint: 'From this project’s .work4you/skills folder — edit the file in the repo to change it.',
     hubSkillManageHint: 'Installed earlier from the skill hub. Built-in capabilities stay in chat; accounts stay under Connectors.',
     changesApplyNewSessions: 'Changes apply to new sessions.',
     skillUpdated: 'Skill updated',
@@ -3315,7 +3315,7 @@ export const en: Translations = {
       reject: 'Reject',
       alwaysTitle: 'Always allow this command?',
       alwaysDescription: pattern =>
-        `This adds the “${pattern}” pattern to your permanent allowlist (~/.wayne/config.yaml). Work4You won’t ask again for commands like this — in this session or any future one.`,
+        `This adds the “${pattern}” pattern to your permanent allowlist (~/.work4you/config.yaml). Work4You won’t ask again for commands like this — in this session or any future one.`,
       alwaysAllow: 'Always allow'
     },
     clarify: {

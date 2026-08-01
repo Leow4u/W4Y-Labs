@@ -79,7 +79,7 @@ WAYNE_OVERLAYS: Dict[str, WayneOverlay] = {
         transport="openai_chat",
         auth_type="oauth_external",
         base_url_override="https://portal.qwen.ai/v1",
-        base_url_env_var="WAYNE_QWEN_BASE_URL",
+        base_url_env_var="WORK4YOU_QWEN_BASE_URL",
     ),
     "lmstudio": WayneOverlay(
         transport="openai_chat",

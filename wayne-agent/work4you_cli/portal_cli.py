@@ -58,7 +58,7 @@ def _cmd_status(args) -> int:
     else:
         print(f"  Auth:    {color('not logged in', Colors.YELLOW)}")
         print(f"  Sign up: {SUBSCRIPTION_URL}")
-        print(f"  Login:   wayne portal")
+        print(f"  Login:   work4you portal")
 
     # Provider selection (independent of auth)
     model_cfg = config.get("model") if isinstance(config.get("model"), dict) else {}
@@ -66,7 +66,7 @@ def _cmd_status(args) -> int:
     if provider == "nous":
         print(f"  Model:   {color('✓ using Nous as inference provider', Colors.GREEN)}")
     elif provider:
-        print(f"  Model:   currently {provider} (switch with `wayne model`)")
+        print(f"  Model:   currently {provider} (switch with `work4you model`)")
 
     # Tool Gateway routing
     print()
@@ -143,7 +143,7 @@ def _cmd_tools(args) -> int:
     print(color("  ────────────────────", Colors.MAGENTA))
 
     if not features.nous_auth_present:
-        print(color("  Not logged into Nous Portal — sign in with `wayne portal`.", Colors.YELLOW))
+        print(color("  Not logged into Nous Portal — sign in with `work4you portal`.", Colors.YELLOW))
         print()
 
     label_width = max(len(label) for _, label, _ in catalog)
@@ -204,7 +204,7 @@ def portal_command(args) -> int:
     if sub == "tools":
         return _cmd_tools(args)
     print(f"Unknown portal subcommand: {sub}", file=sys.stderr)
-    print("Run `wayne portal -h` for usage.", file=sys.stderr)
+    print("Run `work4you portal -h` for usage.", file=sys.stderr)
     return 1
 
 
@@ -214,10 +214,10 @@ def add_parser(subparsers) -> None:
         "portal",
         help="Set up Nous Portal (login, model pick, Tool Gateway); see also `portal info`",
         description=(
-            "Run `wayne portal` with no subcommand to log in to Nous Portal "
+            "Run `work4you portal` with no subcommand to log in to Nous Portal "
             "and set it up — pick a model, set Nous as your provider, and offer "
-            "the Tool Gateway (the human-readable alias for `wayne auth add "
-            "nous --type oauth`, identical to `wayne setup --portal`). "
+            "the Tool Gateway (the human-readable alias for `work4you auth add "
+            "nous --type oauth`, identical to `work4you setup --portal`). "
             "Subcommands: login (default), info, open, tools."
         ),
     )

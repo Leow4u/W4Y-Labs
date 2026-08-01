@@ -1233,12 +1233,14 @@ def interactive_setup() -> None:
     print("  2. Python package `websockets` installed (`pip install websockets`).")
     print()
 
+    from work4you_constants import display_wayne_home as _display_home
+
     try:
         from work4you_cli.config import get_env_value, save_env_value
     except ImportError:
         print(
             "work4you_cli.config not available; set SIMPLEX_* vars manually in "
-            "~/.wayne/.env"
+            f"{_display_home()}/.env"
         )
         return
 

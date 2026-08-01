@@ -861,9 +861,11 @@ class GeminiNativeClient:
         **_: Any,
     ) -> None:
         if not (api_key or "").strip():
+            from work4you_constants import display_wayne_home as _display_home
+
             raise RuntimeError(
                 "Gemini native client requires an API key, but none was provided. "
-                "Set GOOGLE_API_KEY or GEMINI_API_KEY in your environment / ~/.wayne/.env "
+                f"Set GOOGLE_API_KEY or GEMINI_API_KEY in your environment / {_display_home()}/.env "
                 "(get one at https://aistudio.google.com/app/apikey), or run `work4you setup` "
                 "to configure the Google provider."
             )

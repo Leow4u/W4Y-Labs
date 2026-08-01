@@ -286,7 +286,7 @@ def find_docker() -> Optional[str]:
     override = os.getenv("WAYNE_DOCKER_BINARY")
     if override and os.path.isfile(override) and os.access(override, os.X_OK):
         _docker_executable = override
-        logger.info("Using WAYNE_DOCKER_BINARY override: %s", override)
+        logger.info("Using WORK4YOU_DOCKER_BINARY override: %s", override)
         return override
 
     # 2. docker on PATH

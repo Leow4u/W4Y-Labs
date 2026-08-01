@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Callable
 
+from work4you_constants import display_wayne_home
+
 
 def build_hooks_parser(subparsers, *, cmd_hooks: Callable) -> None:
     """Attach the ``hooks`` subcommand to ``subparsers``."""
@@ -16,9 +18,9 @@ def build_hooks_parser(subparsers, *, cmd_hooks: Callable) -> None:
         "hooks",
         help="Inspect and manage shell-script hooks",
         description=(
-            "Inspect shell-script hooks declared in ~/.wayne/config.yaml, "
+            f"Inspect shell-script hooks declared in {display_wayne_home()}/config.yaml, "
             "test them against synthetic payloads, and manage the first-use "
-            "consent allowlist at ~/.wayne/shell-hooks-allowlist.json."
+            f"consent allowlist at {display_wayne_home()}/shell-hooks-allowlist.json."
         ),
     )
     hooks_subparsers = hooks_parser.add_subparsers(dest="hooks_action")

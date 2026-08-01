@@ -579,7 +579,11 @@ def _get_wayne_config_resolved() -> str | None:
         _wayne_config_resolved = str(get_config_path().resolve())
     except Exception:
         try:
-            _wayne_config_resolved = str(Path(_expand_tilde("~/.wayne/config.yaml")).resolve())
+            # Migration-aware last resort: the default root moved to ~/.work4you,
+            # and guarding a path the user no longer has is not a guard at all.
+            from work4you_constants import get_wayne_home
+
+            _wayne_config_resolved = str((get_wayne_home() / "config.yaml").resolve())
         except Exception:
             _wayne_config_resolved = None
     return _wayne_config_resolved
@@ -608,11 +612,13 @@ def _check_sensitive_path(filepath: str, task_id: str = "default") -> str | None
     # floor in tools/approval.py) so YOLO cannot open a side door.
     wayne_config = _get_wayne_config_resolved()
     if wayne_config and (resolved == wayne_config or normalized == wayne_config):
+        from work4you_constants import display_wayne_home as _display_home
+
         return (
             f"Refusing to write to Work4You config file: {filepath}\n"
             "Agent cannot modify security-sensitive configuration. "
             "Change settings in the Work4You Settings UI, or edit "
-            "~/.wayne/config.yaml yourself outside the agent."
+            f"{_display_home()}/config.yaml yourself outside the agent."
         )
     return None
 

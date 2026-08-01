@@ -55,7 +55,7 @@ Full CLI reference: [references/cli.md](references/cli.md).
 ## Setup (one-time)
 
 ```bash
-bash "$(dirname "$(find ~/.wayne/skills -path '*/hyperframes/SKILL.md' 2>/dev/null | head -1)")/scripts/setup.sh"
+bash "$(dirname "$(find ~/.work4you/skills -path '*/hyperframes/SKILL.md' 2>/dev/null | head -1)")/scripts/setup.sh"
 ```
 
 The script:

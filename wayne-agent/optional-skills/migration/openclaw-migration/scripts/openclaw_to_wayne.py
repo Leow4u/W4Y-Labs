@@ -28,6 +28,34 @@ except Exception:  # pragma: no cover - handled at runtime
 ENTRY_DELIMITER = "\n§\n"
 DEFAULT_MEMORY_CHAR_LIMIT = 2200
 DEFAULT_USER_CHAR_LIMIT = 1375
+def _home_path() -> Path:
+    """Resolve the Work4You home for standalone runs.
+
+    Prefers the engine's own resolver; the stdlib fallback mirrors it,
+    including the brand migration (``~/.wayne`` → ``~/.work4you``).
+    """
+    try:
+        from work4you_constants import get_wayne_home
+
+        return get_wayne_home()
+    except (ModuleNotFoundError, ImportError):
+        pass
+    val = (os.environ.get("WAYNE_HOME") or os.environ.get("WORK4YOU_HOME") or "").strip()
+    if val:
+        return Path(val)
+    new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+    return legacy_root if (legacy_root.is_dir() and not new_root.is_dir()) else new_root
+
+
+def _display_home() -> str:
+    """``~/``-shortened display string for :func:`_home_path`."""
+    home = _home_path()
+    try:
+        return "~/" + str(home.relative_to(Path.home()))
+    except ValueError:
+        return str(home)
+
+
 SKILL_CATEGORY_DIRNAME = "openclaw-imports"
 SKILL_CATEGORY_DESCRIPTION = (
     "Skills migrated from an OpenClaw workspace."
@@ -73,11 +101,11 @@ MIGRATION_OPTION_METADATA: Dict[str, Dict[str, str]] = {
     },
     "skills": {
         "label": "User skills",
-        "description": "Copy OpenClaw skills into ~/.wayne/skills/openclaw-imports/.",
+        "description": f"Copy OpenClaw skills into {_display_home()}/skills/openclaw-imports/.",
     },
     "tts-assets": {
         "label": "TTS assets",
-        "description": "Copy compatible workspace TTS assets into ~/.wayne/tts/.",
+        "description": f"Copy compatible workspace TTS assets into {_display_home()}/tts/.",
     },
     "discord-settings": {
         "label": "Discord settings",
@@ -2946,7 +2974,7 @@ class Migrator:
 
         notes.extend([
             "- Run `wayne gateway install` if you need the gateway service",
-            "- Review `~/.wayne/config.yaml` for any adjustments",
+            f"- Review `{_display_home()}/config.yaml` for any adjustments",
             "",
         ])
 
@@ -2960,7 +2988,7 @@ class Migrator:
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Migrate OpenClaw user state into Wayne Agent.")
     parser.add_argument("--source", default=str(Path.home() / ".openclaw"), help="OpenClaw home directory")
-    parser.add_argument("--target", default=os.environ.get("WAYNE_HOME") or str(Path.home() / ".wayne"), help="Wayne home directory")
+    parser.add_argument("--target", default=str(_home_path()), help="Work4You home directory")
     parser.add_argument(
         "--workspace-target",
         help="Optional workspace root where the workspace instructions file should be copied",
@@ -3067,7 +3095,7 @@ def main() -> int:
             seen_kinds.add(label)
             dest = item.get("destination") or ""
             if dest.startswith(str(report["target_root"])):
-                dest = "~/.wayne/" + dest[len(str(report["target_root"])) + 1:]
+                dest = _display_home() + "/" + dest[len(str(report["target_root"])) + 1:]
             meta = MIGRATION_OPTION_METADATA.get(label, {})
             display = meta.get("label", label)
             print(f"    ✔ {display:<35s} -> {dest}")
@@ -3113,7 +3141,7 @@ def main() -> int:
     if args.execute:
         print()
         print("  Next steps:")
-        print("    1. Review ~/.wayne/config.yaml")
+        print(f"    1. Review {_display_home()}/config.yaml")
         print("    2. Run: wayne mcp list")
         if any(i["kind"] == "cron-jobs" and i["status"] == "archived" for i in items):
             print("    3. Recreate cron jobs: wayne cron")

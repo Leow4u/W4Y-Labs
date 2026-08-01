@@ -1588,10 +1588,12 @@ def interactive_setup() -> None:
     print("then copy the values below.")
     print()
 
+    from work4you_constants import display_wayne_home as _display_home
+
     try:
         from work4you_cli.config import get_env_var, set_env_var
     except ImportError:
-        print("work4you_cli.config not available; set LINE_* vars manually in ~/.wayne/.env")
+        print(f"work4you_cli.config not available; set LINE_* vars manually in {_display_home()}/.env")
         return
 
     def _prompt(var: str, prompt: str, *, secret: bool = False) -> None:

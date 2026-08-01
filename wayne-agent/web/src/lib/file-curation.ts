@@ -27,7 +27,8 @@ const SYSTEM_NAMES = new Set<string>([
   "browser_screenshots", "lazy-packages", "lazy_packages",
   // runtime / install (venvs, toolchains, unix-home)
   "bin", "cache", "backups", "node_modules", "node", "go", "__pycache__",
-  "tmp", "temp", "lib", "lib64", "share", "include", "wayne", "wayne-agent",
+  "tmp", "temp", "lib", "lib64", "share", "include",
+  "work4you", "work4you-agent", "wayne", "wayne-agent",
   "lost+found",
 ]);
 

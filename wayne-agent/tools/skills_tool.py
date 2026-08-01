@@ -459,9 +459,11 @@ def _remaining_required_environment_names(
 
 def _gateway_setup_hint() -> str:
     try:
-        from gateway.platforms.base import GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE
+        from gateway.platforms.base import (
+            gateway_secret_capture_unsupported_message,
+        )
 
-        return GATEWAY_SECRET_CAPTURE_UNSUPPORTED_MESSAGE
+        return gateway_secret_capture_unsupported_message()
     except Exception:
         return f"Secure secret entry is not available. Load this skill in the local CLI to be prompted, or add the key to {display_wayne_home()}/.env manually."
 
@@ -789,7 +791,7 @@ def _serve_plugin_skill(
                 "success": False,
                 "error": (
                     f"Plugin '{namespace}' is disabled. "
-                    f"Re-enable with: wayne plugins enable {namespace}"
+                    f"Re-enable with: work4you plugins enable {namespace}"
                 ),
             },
             ensure_ascii=False,
@@ -1171,7 +1173,7 @@ def skill_view(
         if _outside_skills_dir or _injection_detected:
             _warnings = []
             if _outside_skills_dir:
-                _warnings.append(f"skill file is outside the trusted skills directory (~/.wayne/skills/): {skill_md}")
+                _warnings.append(f"skill file is outside the trusted skills directory ({display_wayne_home()}/skills/): {skill_md}")
             if _injection_detected:
                 _warnings.append("skill content contains patterns that may indicate prompt injection")
             logging.getLogger(__name__).warning("Skill security warning for '%s': %s", name, "; ".join(_warnings))
@@ -1200,7 +1202,7 @@ def skill_view(
                     "success": False,
                     "error": (
                         f"Skill '{resolved_name}' is disabled. "
-                        "Enable it with `wayne skills` or inspect the files directly on disk."
+                        "Enable it with `work4you skills` or inspect the files directly on disk."
                     ),
                 },
                 ensure_ascii=False,

@@ -13,7 +13,7 @@ metadata:
 
 # Codex CLI
 
-Delegate coding tasks to [Codex](https://github.com/openai/codex) via the Wayne terminal. Codex is OpenAI's autonomous coding agent CLI.
+Delegate coding tasks to [Codex](https://github.com/openai/codex) via the Work4You terminal. Codex is OpenAI's autonomous coding agent CLI.
 
 ## When to use
 
@@ -32,8 +32,8 @@ Requires the codex CLI and a git repository.
 - **Must run inside a git repository** — Codex refuses to run outside one
 - Use `pty=true` in terminal calls — Codex is an interactive terminal app
 
-For Wayne itself, `model.provider: openai-codex` uses Wayne-managed Codex
-OAuth from `~/.wayne/auth.json` after `wayne auth add openai-codex`. For the
+For Work4You itself, `model.provider: openai-codex` uses Work4You-managed Codex
+OAuth from `~/.work4you/auth.json` after `work4you auth add openai-codex`. For the
 standalone Codex CLI, a valid CLI OAuth session may live under
 `~/.codex/auth.json`; do not treat a missing `OPENAI_API_KEY` alone as proof
 that Codex auth is missing.
@@ -76,9 +76,9 @@ process(action="kill", session_id="<id>")
 | `--yolo` | No sandbox, no approvals (fastest, most dangerous) |
 | `--sandbox danger-full-access` | No Codex sandbox; useful when the host service context breaks bubblewrap |
 
-## Wayne Gateway Caveat
+## Work4You Gateway Caveat
 
-When invoking the Codex CLI from a Wayne gateway/service context (for example,
+When invoking the Codex CLI from a Work4You gateway/service context (for example,
 Telegram-driven agent sessions), Codex `workspace-write` sandboxing may fail even
 when the same command works in the user's interactive shell. A typical symptom is
 bubblewrap/user-namespace errors such as `setting up uid map: Permission denied`

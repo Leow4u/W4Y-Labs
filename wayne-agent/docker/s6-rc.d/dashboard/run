@@ -1,18 +1,21 @@
 #!/command/with-contenv sh
 # shellcheck shell=sh
 # Dashboard service. Always declared so s6 has a supervised slot; if
-# WAYNE_DASHBOARD isn't truthy the run script exits cleanly and the
+# WORK4YOU_DASHBOARD isn't truthy the run script exits cleanly and the
 # companion finish script returns 125 (s6's "permanent failure, do
 # not restart" marker), so s6-svstat reports the slot as down. See
 # also docker/s6-rc.d/dashboard/finish.
 
-case "${WAYNE_DASHBOARD:-}" in
+# Read by this shell script, i.e. BEFORE Python starts, so the
+# WORK4YOU_*→WAYNE_* bridge in work4you_constants cannot help here:
+# accept both spellings explicitly, new name first.
+case "${WORK4YOU_DASHBOARD:-${WAYNE_DASHBOARD:-}}" in
     1|true|TRUE|True|yes|YES|Yes) ;;
     *)
         # Exit 0; the finish script will exit 125 → s6-supervise won't
         # restart us and the slot reports down. Using a clean exit
         # (rather than `exec sleep infinity`) means s6-svstat reflects
-        # reality: when WAYNE_DASHBOARD is unset, the service is NOT
+        # reality: when WORK4YOU_DASHBOARD is unset, the service is NOT
         # running, just supervised-with-permanent-failure. See PR
         # #30136 review item I3.
         exit 0
@@ -27,26 +30,26 @@ cd /opt/data
 # shellcheck disable=SC1091
 . /opt/work4you/.venv/bin/activate
 
-dash_host="${WAYNE_DASHBOARD_HOST:-0.0.0.0}"
-dash_port="${WAYNE_DASHBOARD_PORT:-9119}"
+dash_host="${WORK4YOU_DASHBOARD_HOST:-${WAYNE_DASHBOARD_HOST:-0.0.0.0}}"
+dash_port="${WORK4YOU_DASHBOARD_PORT:-${WAYNE_DASHBOARD_PORT:-9119}}"
 
 # The dashboard's auth gate engages automatically on non-loopback binds and
 # REQUIRES a DashboardAuthProvider to be registered, else start_server fails
 # closed. Two zero-infra ways to satisfy it in a container:
-#   • Password: set WAYNE_DASHBOARD_BASIC_AUTH_USERNAME + _PASSWORD (bundled
+#   • Password: set WORK4YOU_DASHBOARD_BASIC_AUTH_USERNAME + _PASSWORD (bundled
 #     dashboard_auth/basic provider — no external IDP).
-#   • OAuth:    set WAYNE_DASHBOARD_OAUTH_CLIENT_ID (bundled nous provider).
+#   • OAuth:    set WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID (bundled nous provider).
 #
-# WAYNE_DASHBOARD_INSECURE no longer disables the gate (June 2026 hardening:
+# WORK4YOU_DASHBOARD_INSECURE no longer disables the gate (June 2026 hardening:
 # unauthenticated public dashboards were the entry point for the MCP-config
 # persistence campaign). It is accepted but ignored; warn if set so operators
 # migrate to a real provider.
-case "${WAYNE_DASHBOARD_INSECURE:-}" in
+case "${WORK4YOU_DASHBOARD_INSECURE:-${WAYNE_DASHBOARD_INSECURE:-}}" in
     1|true|TRUE|True|yes|YES|Yes)
-        echo "[dashboard] WAYNE_DASHBOARD_INSECURE no longer disables the auth gate." >&2
+        echo "[dashboard] WORK4YOU_DASHBOARD_INSECURE no longer disables the auth gate." >&2
         echo "[dashboard] A non-loopback dashboard requires an auth provider:" >&2
-        echo "[dashboard]   set WAYNE_DASHBOARD_BASIC_AUTH_USERNAME + _PASSWORD (password)" >&2
-        echo "[dashboard]   or WAYNE_DASHBOARD_OAUTH_CLIENT_ID (OAuth)." >&2
+        echo "[dashboard]   set WORK4YOU_DASHBOARD_BASIC_AUTH_USERNAME + _PASSWORD (password)" >&2
+        echo "[dashboard]   or WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID (OAuth)." >&2
         ;;
 esac
 

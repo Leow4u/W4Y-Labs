@@ -518,14 +518,14 @@ def _install_plugin_core(identifier: str, *, force: bool) -> tuple[Path, dict, s
                 raise PluginOperationError(
                     f"Plugin '{plugin_name}' requires manifest_version {mv}, "
                     f"but this installer only supports up to {_SUPPORTED_MANIFEST_VERSION}. "
-                    f"Run {recommended_update_command()} to update Wayne.",
+                    f"Run {recommended_update_command()} to update Work4You.",
                 ) from None
 
         if target.exists():
             if not force:
                 raise PluginOperationError(
                     f"Plugin '{plugin_name}' already exists. Use force reinstall "
-                    f"or run `wayne plugins update {plugin_name}`.",
+                    f"or run `work4you plugins update {plugin_name}`.",
                 )
             shutil.rmtree(target)
 
@@ -591,7 +591,7 @@ def cmd_install(
     ).exists():
         console.print(
             f"[yellow]Warning:[/yellow] {installed_name} doesn't contain plugin.yaml "
-            f"or __init__.py. It may not be a valid Wayne plugin.",
+            f"or __init__.py. It may not be a valid Work4You plugin.",
         )
 
     _prompt_plugin_env_vars(installed_manifest, console)
@@ -624,11 +624,11 @@ def cmd_install(
     else:
         console.print(
             f"[dim]Plugin installed but not enabled. "
-            f"Run `wayne plugins enable {installed_name}` to activate.[/dim]",
+            f"Run `work4you plugins enable {installed_name}` to activate.[/dim]",
         )
 
     console.print("[dim]Restart the gateway for the plugin to take effect:[/dim]")
-    console.print("[dim]  wayne gateway restart[/dim]")
+    console.print("[dim]  work4you gateway restart[/dim]")
     console.print()
 
 
@@ -895,7 +895,7 @@ def _resolve_tool_override_grant(
     else:
         console.print(
             f"[dim]{key} may not override built-in tools. Re-run "
-            f"`wayne plugins enable {key} --allow-tool-override` to grant "
+            f"`work4you plugins enable {key} --allow-tool-override` to grant "
             "this later.[/dim]"
         )
 
@@ -1054,7 +1054,7 @@ def cmd_list(args: Any | None = None) -> None:
     entries = _discover_all_plugins()
     if not entries:
         console.print("[dim]No plugins installed.[/dim]")
-        console.print("[dim]Install with:[/dim] wayne plugins install owner/repo")
+        console.print("[dim]Install with:[/dim] work4you plugins install owner/repo")
         return
 
     enabled = _get_enabled_set()
@@ -1105,9 +1105,9 @@ def cmd_list(args: Any | None = None) -> None:
     console.print()
     console.print(table)
     console.print()
-    console.print("[dim]Compact view:[/dim] wayne plugins list --plain --no-bundled")
-    console.print("[dim]Interactive toggle:[/dim] wayne plugins")
-    console.print("[dim]Enable/disable:[/dim] wayne plugins enable/disable <name>")
+    console.print("[dim]Compact view:[/dim] work4you plugins list --plain --no-bundled")
+    console.print("[dim]Interactive toggle:[/dim] work4you plugins")
+    console.print("[dim]Enable/disable:[/dim] work4you plugins enable/disable <name>")
     console.print("[dim]Plugins are opt-in by default — only 'enabled' plugins load.[/dim]")
 
 
@@ -1316,7 +1316,7 @@ def cmd_toggle() -> None:
 
     if not has_plugins and not has_categories:
         console.print("[dim]No plugins installed and no provider categories available.[/dim]")
-        console.print("[dim]Install with:[/dim] wayne plugins install owner/repo")
+        console.print("[dim]Install with:[/dim] work4you plugins install owner/repo")
         return
 
     # Non-TTY fallback

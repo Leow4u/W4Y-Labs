@@ -112,7 +112,7 @@ class TestCacheFileReadBlocking:
         with patch("agent.file_safety._wayne_home_path", return_value=wayne_home):
             error = get_read_block_error(str(cache))
             assert error is not None
-            assert "internal Wayne cache" in error
+            assert "internal Work4You cache" in error
 
     def test_hub_directory_blocked(self, tmp_path):
         """Hub directory reads are blocked."""
@@ -158,4 +158,4 @@ class TestCombinedGuards:
         with patch("agent.file_safety._wayne_home_path", return_value=wayne_home):
             error = get_read_block_error(str(cache))
             assert error is not None
-            assert "internal Wayne cache" in error
+            assert "internal Work4You cache" in error

@@ -16,9 +16,9 @@ def build_import_cmd_parser(subparsers, *, cmd_import: Callable) -> None:
     # =========================================================================
     import_parser = subparsers.add_parser(
         "import",
-        help="Restore a Wayne backup from a zip file",
-        description="Extract a previously created Wayne backup into your "
-        "Wayne home directory, restoring configuration, skills, "
+        help="Restore a Work4You backup from a zip file",
+        description="Extract a previously created Work4You backup into your "
+        "Work4You home directory, restoring configuration, skills, "
         "sessions, and data",
     )
     import_parser.add_argument("zipfile", help="Path to the backup zip file")

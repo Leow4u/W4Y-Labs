@@ -910,7 +910,7 @@ def image_generate_tool(
                 f"Model '{meta.get('display', model_id)}' ({model_id}) is not "
                 f"capable of image-to-image / editing. Provide a text-only "
                 f"prompt (omit image_url), or switch to an edit-capable model "
-                f"via `wayne tools` → Image Generation."
+                f"via `work4you tools` → Image Generation."
             )
 
         aspect_lc = (aspect_ratio or DEFAULT_ASPECT_RATIO).lower().strip()
@@ -1306,7 +1306,7 @@ def _dispatch_to_plugin_provider(
             "image": None,
             "error": (
                 f"image_gen.provider='{configured}' is set but no plugin "
-                f"registered that name. Run `wayne plugins list` to see "
+                f"registered that name. Run `work4you plugins list` to see "
                 f"available image gen backends."
             ),
             "error_type": "provider_not_registered",
@@ -1348,7 +1348,7 @@ def _dispatch_to_plugin_provider(
                     f"support image-to-image / editing (its generate() "
                     f"signature is out of date with the image_generate schema). "
                     f"Omit image_url for text-to-image, or pick a backend that "
-                    f"supports editing via `wayne tools` → Image Generation."
+                    f"supports editing via `work4you tools` → Image Generation."
                 ),
                 "error_type": "modality_unsupported",
             })

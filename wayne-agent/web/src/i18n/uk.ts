@@ -1054,8 +1054,8 @@ export const uk: Translations = {
     providersHint:
       "Записує memory.provider (порожньо = вбудований) та context.engine у config.yaml. Набуває чинності в наступній сесії.",
     refreshDashboard: "Перескан розширень панелі",
-    removeConfirm: "Видалити цей плагін з ~/.wayne/plugins/?",
-    removeHint: "Видаляти можна лише плагіни, встановлені користувачем у ~/.wayne/plugins.",
+    removeConfirm: "Видалити цей плагін з {home}/plugins/?",
+    removeHint: "Видаляти можна лише плагіни, встановлені користувачем у {home}/plugins.",
     rescanHeading: "Реєстр SPA-плагінів",
     rescanHint: "Скануйте після додавання файлів на диск, щоб бічна панель підхопила нові маніфести.",
     runtimeHeading: "Час виконання шлюзу (YAML-плагіни)",
@@ -1077,7 +1077,7 @@ export const uk: Translations = {
     all: "Усі",
     categories: "Категорії",
     filters: "Фільтри",
-    noSkills: "Навичок не знайдено. Навички завантажуються з ~/.wayne/skills/",
+    noSkills: "Навичок не знайдено. Навички завантажуються з {home}/skills/",
     noSkillsMatch: "Жодна навичка не відповідає вашому пошуку чи фільтру.",
     install: "Встановити",
     installed: "Встановлено",
@@ -1137,7 +1137,7 @@ export const uk: Translations = {
     "polymarket": { name: "Ринки прогнозів", desc: "Отримує актуальні коефіцієнти та дані з ринків прогнозів Polymarket у реальному часі." },
   },
   config: {
-    configPath: "~/.wayne/config.yaml",
+    configPath: "{home}/config.yaml",
     filters: "Фільтри",
     sections: "Розділи",
     exportConfig: "Експортувати конфігурацію як JSON",

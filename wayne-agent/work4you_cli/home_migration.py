@@ -44,6 +44,9 @@ _CODE_ENTRIES = {
 _MIGRATED_MARKER = ".migrated-from"
 _MOVED_STUB = ".moved-to-work4you"
 _LOCK_NAME = ".home-migration.lock"
+# Remembers which entries were blocked on the previous attempt so an identical
+# failure isn't re-announced on every single command invocation.
+_PENDING_NOTE = ".home-migration-pending"
 
 # Textual path-prefix rewrite targets: files whose VALUES may embed the
 # absolute legacy root (user config, env, cron job workdirs). Databases are
@@ -180,6 +183,50 @@ def _warn_stale_services(old_root: Path) -> None:
         )
 
 
+def _read_pending_note(new_root: Path) -> str:
+    try:
+        return (new_root / _PENDING_NOTE).read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return ""
+
+
+def _write_pending_note(new_root: Path, signature: str) -> None:
+    try:
+        new_root.mkdir(parents=True, exist_ok=True)
+        (new_root / _PENDING_NOTE).write_text(signature, encoding="utf-8")
+    except OSError:
+        pass
+
+
+def _finish_migration(old_root: Path, new_root: Path, blocked: bool = False) -> None:
+    """Stamp the completion markers so the migration stops re-running.
+
+    ``blocked`` means at least one entry is still stuck in the legacy root
+    (typically a Windows file lock): the new home is stamped as authoritative,
+    but the legacy root keeps no ``moved`` stub so a later run retries.
+    """
+    stamp = f"{old_root}\n{time.strftime('%Y-%m-%dT%H:%M:%S')}\n"
+    try:
+        new_root.mkdir(parents=True, exist_ok=True)
+        (new_root / _MIGRATED_MARKER).write_text(stamp, encoding="utf-8")
+    except OSError:
+        pass
+    if blocked:
+        return
+    try:
+        (old_root / _MOVED_STUB).write_text(
+            f"Data moved to {new_root}. The engine code that remains "
+            f"here relocates via the installer in a later update.\n",
+            encoding="utf-8",
+        )
+    except OSError:
+        pass
+    try:
+        (new_root / _PENDING_NOTE).unlink()
+    except OSError:
+        pass
+
+
 def maybe_migrate_home(argv: Optional[list[str]] = None) -> bool:
     """Move legacy home data to the new root. Returns True when a re-exec is
     required (migration happened this call). Never raises."""
@@ -248,51 +295,68 @@ def _maybe_migrate_home_inner() -> bool:
 
     moved_any = False
     try:
-        _say(f"→ Migrating your data home: {old_root} → {new_root}")
+        # Split the legacy root into what still needs moving vs. what is
+        # already duplicated in the new home. A resumed migration re-walks
+        # entries that a previous pass copied; counting those as "failures"
+        # used to keep the migration permanently unfinished, which re-printed
+        # the legacy-branded banner on *every* command forever.
+        pending = [
+            entry
+            for entry in sorted(old_root.iterdir(), key=lambda p: p.name)
+            if entry.name not in _CODE_ENTRIES
+            and entry.name not in {_LOCK_NAME, _MOVED_STUB, _MIGRATED_MARKER}
+        ]
+        if not pending:
+            # Code-only legacy root: nothing to migrate, and stamping markers
+            # here would block a future data migration.
+            return False
+
+        to_move = [e for e in pending if not (new_root / e.name).exists()]
+        if not to_move:
+            # Every data entry already lives in the new home: finish silently
+            # and leave the stale legacy copies for the installer to reap.
+            _finish_migration(old_root, new_root)
+            return False
+
         new_root.mkdir(parents=True, exist_ok=True)
+
+        # Repeat runs that hit the same blocked entries stay quiet — the user
+        # was already told once; spamming the banner on every invocation is
+        # worse than silence, and it keeps re-surfacing the old brand name.
+        signature = "\n".join(e.name for e in to_move)
+        announce = _read_pending_note(new_root) != signature
+
+        banner = f"→ Migrating your data home: {old_root} → {new_root}"
         failures = []
-        for entry in sorted(old_root.iterdir(), key=lambda p: p.name):
-            name = entry.name
-            if name in _CODE_ENTRIES or name in {_LOCK_NAME, _MOVED_STUB}:
-                continue
-            target = new_root / name
-            if target.exists():
-                failures.append(f"{name} (already exists in new home)")
-                continue
+        for entry in to_move:
             try:
-                os.rename(str(entry), str(target))
+                os.rename(str(entry), str(new_root / entry.name))
                 moved_any = True
             except OSError as exc:
-                failures.append(f"{name} ({exc})")
+                failures.append(f"{entry.name} ({exc})")
 
-        if failures:
-            _say("  ⚠ Some entries could not be moved:")
-            for f in failures[:10]:
-                _say(f"    • {f}")
+        if announce or moved_any:
+            _say(banner)
+            if failures:
+                _say("  ⚠ Some entries could not be moved:")
+                for f in failures[:10]:
+                    _say(f"    • {f}")
 
         if not moved_any:
-            # Nothing moved (e.g. code-only legacy root): don't relaunch, and
-            # don't stamp markers that would block a future data migration.
+            # Nothing moved (e.g. code-only legacy root, or every remaining
+            # entry is locked): don't relaunch, and don't stamp markers that
+            # would block a future data migration. Remember the blocked set so
+            # the next run doesn't repeat the warning verbatim.
+            _write_pending_note(new_root, signature)
             return False
 
         _rewrite_path_prefixes(new_root, old_root)
         _update_windows_registry_env(new_root)
         _warn_stale_services(old_root)
 
-        stamp = f"{old_root}\n{time.strftime('%Y-%m-%dT%H:%M:%S')}\n"
-        try:
-            (new_root / _MIGRATED_MARKER).write_text(stamp, encoding="utf-8")
-        except OSError:
-            pass
-        if not failures:
-            try:
-                (old_root / _MOVED_STUB).write_text(
-                    f"Data moved to {new_root}. The engine code that remains "
-                    f"here relocates via the installer in a later update.\n",
-                    encoding="utf-8",
-                )
-            except OSError:
-                pass
+        if failures:
+            _write_pending_note(new_root, "\n".join(f.split(" (")[0] for f in failures))
+        _finish_migration(old_root, new_root, blocked=bool(failures))
         _say(f"  ✓ Data home is now {new_root}")
         return True
     finally:

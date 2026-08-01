@@ -261,7 +261,7 @@ TOOLSETS = {
     "kanban": {
         "description": (
             "Kanban multi-agent coordination — only active when the agent "
-            "is spawned by the kanban dispatcher (WAYNE_KANBAN_TASK env "
+            "is spawned by the kanban dispatcher (WORK4YOU_KANBAN_TASK env "
             "set). The dispatcher runs inside the gateway by default; see "
             "`kanban.dispatch_in_gateway` in config.yaml. Lets workers mark "
             "tasks done with structured handoffs, block for human input, "
@@ -440,7 +440,7 @@ TOOLSETS = {
         # them down per the platform config. _DEFAULT_OFF_TOOLSETS (moa,
         # homeassistant) are excluded by _get_platform_tools() unless
         # the user explicitly enables them.
-        "description": "Default cron toolset - same core tools as wayne-cli; gated by `wayne tools`",
+        "description": "Default cron toolset - same core tools as wayne-cli; gated by `work4you tools`",
         "tools": _WAYNE_CORE_TOOLS,
         "includes": []
     },
@@ -491,7 +491,7 @@ TOOLSETS = {
     },
 
     "wayne-email": {
-        "description": "Email bot toolset - interact with Wayne via email (IMAP/SMTP)",
+        "description": "Email bot toolset - interact with Work4You via email (IMAP/SMTP)",
         "tools": _WAYNE_CORE_TOOLS,
         "includes": []
     },
@@ -564,7 +564,7 @@ TOOLSETS = {
     },
 
     "wayne-sms": {
-        "description": "SMS bot toolset - interact with Wayne via SMS (Twilio)",
+        "description": "SMS bot toolset - interact with Work4You via SMS (Twilio)",
         "tools": _WAYNE_CORE_TOOLS,
         "includes": []
     },

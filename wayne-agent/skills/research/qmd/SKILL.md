@@ -220,13 +220,13 @@ qmd multi-get "journals/*.md" --json  # Batch retrieve by glob
 ## MCP Integration (Recommended)
 
 qmd exposes an MCP server that provides search tools directly to
-Wayne Agent via the native MCP client. This is the preferred
+Work4You via the native MCP client. This is the preferred
 integration — once configured, the agent gets qmd tools automatically
 without needing to load this skill.
 
 ### Option A: Stdio Mode (Simple)
 
-Add to `~/.wayne/config.yaml`:
+Add to `~/.work4you/config.yaml`:
 
 ```yaml
 mcp_servers:
@@ -254,7 +254,7 @@ qmd mcp --http --daemon
 # Runs on http://localhost:8181 by default
 ```
 
-Then configure Wayne Agent to connect via HTTP:
+Then configure Work4You to connect via HTTP:
 
 ```yaml
 mcp_servers:

@@ -30,7 +30,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, NamedTuple, Optional, Set
 
-from work4you_constants import get_wayne_home
+from work4you_constants import display_wayne_home, get_wayne_home
 from tools import skill_usage
 from utils import atomic_json_write
 
@@ -384,7 +384,7 @@ CURATOR_DRY_RUN_BANNER = (
     "write_file, or remove_file.\n"
     "  • DO NOT call terminal to mv skill directories into .archive/.\n"
     "  • DO NOT call terminal to mv, cp, rm, or rewrite any file under "
-    "~/.wayne/skills/.\n"
+    f"{display_wayne_home()}/skills/.\n"
     "  • skills_list and skill_view are FINE — read as much as you need.\n"
     "\n"
     "Your output IS the deliverable. Produce the exact same "
@@ -401,7 +401,7 @@ CURATOR_DRY_RUN_BANNER = (
 
 
 CURATOR_REVIEW_PROMPT = (
-    "You are running as Wayne' background skill CURATOR. This is an "
+    "You are running as the Work4You background skill CURATOR. This is an "
     "UMBRELLA-BUILDING consolidation pass, not a passive audit and not a "
     "duplicate-finder.\n\n"
     "The goal of the skill collection is a LIBRARY OF CLASS-LEVEL "
@@ -420,7 +420,7 @@ CURATOR_REVIEW_PROMPT = (
     "to local curator-managed skills only; external skills are externally "
     "owned and read-only to this background curator.\n"
     "2. DO NOT delete any skill. Archiving (moving the skill's directory "
-    "into ~/.wayne/skills/.archive/) is the maximum destructive action. "
+    f"into {display_wayne_home()}/skills/.archive/) is the maximum destructive action. "
     "Archives are recoverable; deletion is not.\n"
     "3. DO NOT touch skills shown as pinned=yes. Skip them entirely.\n"
     "3b. DO NOT archive, delete, consolidate, move, or otherwise modify any "
@@ -478,7 +478,7 @@ CURATOR_REVIEW_PROMPT = (
     "      • `scripts/<name>.<ext>` for statically re-runnable actions "
     "(verification scripts, fixture generators, probes)\n"
     "      Then archive the old sibling. Use `terminal` with `mkdir -p "
-    "~/.wayne/skills/<umbrella>/references/ && mv ... <umbrella>/"
+    f"{display_wayne_home()}/skills/<umbrella>/references/ && mv ... <umbrella>/"
     "references/<topic>.md` (or templates/ / scripts/).\n\n"
     "Package integrity — not optional:\n"
     "Before demoting or archiving a skill, inspect it as a COMPLETE "
@@ -1321,7 +1321,7 @@ def _render_report_markdown(p: Dict[str, Any]) -> str:
         lines.append(
             "_These skills were **absorbed into another skill** during this run — "
             "their content still lives, just under a different name. "
-            "The original directory was moved to `~/.wayne/skills/.archive/` for "
+            f"The original directory was moved to `{display_wayne_home()}/skills/.archive/` for "
             "safety and can be restored via `work4you curator restore <name>` if the "
             "consolidation was wrong._\n"
         )
@@ -1357,7 +1357,7 @@ def _render_report_markdown(p: Dict[str, Any]) -> str:
         lines.append(
             "_These skills were archived without being merged into an umbrella "
             "(e.g. stale, unused, or judged irrelevant). "
-            "Directories live under `~/.wayne/skills/.archive/`. "
+            f"Directories live under `{display_wayne_home()}/skills/.archive/`. "
             "Restore any via `work4you curator restore <name>`._\n"
         )
         SHOW = 50
@@ -1444,7 +1444,7 @@ def _render_report_markdown(p: Dict[str, Any]) -> str:
     # Recovery footer
     lines.append("## Recovery\n")
     lines.append("- Restore an archived skill: `work4you curator restore <name>`")
-    lines.append("- All archives live under `~/.wayne/skills/.archive/` and are recoverable by `mv`")
+    lines.append(f"- All archives live under `{display_wayne_home()}/skills/.archive/` and are recoverable by `mv`")
     lines.append("- See `run.json` in this directory for the full machine-readable record.")
     lines.append("")
 

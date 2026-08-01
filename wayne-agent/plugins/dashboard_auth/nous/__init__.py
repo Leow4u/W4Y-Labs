@@ -628,7 +628,7 @@ def register(ctx) -> None:
 
     if not client_id:
         LAST_SKIP_REASON = (
-            "WAYNE_DASHBOARD_OAUTH_CLIENT_ID is not set (and "
+            "WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID is not set (and "
             "dashboard.oauth.client_id in config.yaml is empty). The "
             "Nous Portal provisions this env var (shape "
             "'agent:{instance_id}') when it deploys a Wayne Agent "

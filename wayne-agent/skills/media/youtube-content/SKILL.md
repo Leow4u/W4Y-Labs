@@ -14,7 +14,7 @@ Extract transcripts from YouTube videos and convert them into useful formats.
 
 ## Setup
 
-Use `uv` so the dependency is installed into the same Wayne-managed environment
+Use `uv` so the dependency is installed into the same Work4You-managed environment
 that runs the helper script:
 
 ```bash

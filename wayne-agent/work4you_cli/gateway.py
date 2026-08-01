@@ -1573,7 +1573,7 @@ def is_linux() -> bool:
     return sys.platform.startswith("linux")
 
 
-from work4you_constants import is_container, is_termux, is_wsl
+from work4you_constants import display_wayne_home, is_container, is_termux, is_wsl
 
 
 def _wsl_systemd_operational() -> bool:
@@ -2931,11 +2931,12 @@ def _refuse_temp_home_service_write(definition: str, kind: str) -> bool:
     if temp_home is None:
         return False
     print(
-        f"✗ Refusing to write the gateway {kind}: WAYNE_HOME resolves to a "
+        f"✗ Refusing to write the gateway {kind}: the Work4You home resolves to a "
         f"temporary directory ({temp_home})."
     )
     print(
-        "  This usually means a test/E2E environment exported WAYNE_HOME. "
+        "  This usually means a test/E2E environment exported WORK4YOU_HOME "
+        "(or the legacy WAYNE_HOME). "
         "Unset it (or run from a clean shell) and retry."
     )
     return True
@@ -4690,10 +4691,10 @@ def _guard_official_docker_root_gateway() -> None:
     )
     print(
         "  Running the gateway as root can leave root-owned files in "
-        "$WAYNE_HOME and break later non-root dashboard/gateway runs."
+        "$WORK4YOU_HOME and break later non-root dashboard/gateway runs."
     )
     print(
-        "  Set WAYNE_ALLOW_ROOT_GATEWAY=1 only if you intentionally accept this risk."
+        "  Set WORK4YOU_ALLOW_ROOT_GATEWAY=1 only if you intentionally accept this risk."
     )
     sys.exit(1)
 
@@ -5524,7 +5525,7 @@ def _setup_weixin():
     print_info("  1. Work4You will open Tencent iLink QR login in this terminal.")
     print_info("  2. Use WeChat to scan and confirm the QR code.")
     print_info(
-        "  3. Work4You will store the returned account_id/token in ~/.wayne/.env."
+        f"  3. Work4You will store the returned account_id/token in {display_wayne_home()}/.env."
     )
     print_info(
         "  4. This adapter supports native text, image, video, and document delivery."
@@ -6017,7 +6018,7 @@ def _configure_platform(platform: dict) -> None:
     print(color(f"  ─── {emoji} {label} Setup ───", Colors.CYAN))
     required = entry.required_env if entry else []
     if required:
-        print_info(f"  Set these env vars in ~/.wayne/.env: {', '.join(required)}")
+        print_info(f"  Set these env vars in {display_wayne_home()}/.env: {', '.join(required)}")
     else:
         print_info(
             f"  Configure {label} in config.yaml under gateway.platforms.{platform['key']}"
@@ -6464,10 +6465,10 @@ def _maybe_redirect_run_to_s6_supervision(args) -> bool:
     # gateway's own stdout/stderr from the supervisor.
     print(
         "→ gateway is now running under s6 supervision (auto-restart on crash,\n"
-        "  dashboard supervised alongside if WAYNE_DASHBOARD is set).\n"
+        "  dashboard supervised alongside if WORK4YOU_DASHBOARD is set).\n"
         "  This is the recommended setup for the s6 container image — the\n"
         "  gateway will keep running even if it crashes.\n"
-        "  Use `--no-supervise` (or WAYNE_GATEWAY_NO_SUPERVISE=1) to opt out\n"
+        "  Use `--no-supervise` (or WORK4YOU_GATEWAY_NO_SUPERVISE=1) to opt out\n"
         "  and get the pre-s6 foreground behavior instead.",
         file=sys.stderr,
         flush=True,
@@ -6623,7 +6624,7 @@ def _gateway_command_inner(args):
                 "  tmux new -s wayne 'work4you gateway run'         # persistent via tmux"
             )
             print(
-                "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
+                f"  nohup work4you gateway run > {display_wayne_home()}/logs/gateway.log 2>&1 &  # background"
             )
             sys.exit(1)
         elif is_container():
@@ -6742,7 +6743,7 @@ def _gateway_command_inner(args):
                 "  tmux new -s wayne 'work4you gateway run'         # persistent via tmux"
             )
             print(
-                "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
+                f"  nohup work4you gateway run > {display_wayne_home()}/logs/gateway.log 2>&1 &  # background"
             )
             print()
             print(
@@ -7090,14 +7091,14 @@ def _gateway_command_inner(args):
                 print("  work4you gateway run      # Run in foreground")
                 if is_termux():
                     print(
-                        "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # Best-effort background start"
+                        f"  nohup work4you gateway run > {display_wayne_home()}/logs/gateway.log 2>&1 &  # Best-effort background start"
                     )
                 elif is_wsl():
                     print(
                         "  tmux new -s wayne 'work4you gateway run'         # persistent via tmux"
                     )
                     print(
-                        "  nohup work4you gateway run > ~/.wayne/logs/gateway.log 2>&1 &  # background"
+                        f"  nohup work4you gateway run > {display_wayne_home()}/logs/gateway.log 2>&1 &  # background"
                     )
                 elif is_windows():
                     print(

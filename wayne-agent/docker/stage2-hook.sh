@@ -412,7 +412,7 @@ fi
 # $WAYNE_HOME on the mounted volume. Run the same safe, non-interactive
 # config-schema migrations that `work4you update` runs for non-Docker installs,
 # after first-boot seeding and before supervised gateway services start.
-# Set WAYNE_SKIP_CONFIG_MIGRATION=1 for controlled/manual migrations.
+# Set WORK4YOU_SKIP_CONFIG_MIGRATION=1 for controlled/manual migrations.
 if [ -f "$WAYNE_HOME/config.yaml" ]; then
     s6-setuidgid work4you "$INSTALL_DIR/.venv/bin/python" "$INSTALL_DIR/scripts/docker_config_migrate.py" \
         || echo "[stage2] Warning: docker_config_migrate.py failed; continuing"
@@ -421,6 +421,10 @@ fi
 # auth.json: bootstrap from env on first boot only. Same semantics as the
 # pre-s6 entrypoint — the [ ! -f ] guard is critical to avoid clobbering
 # rotated refresh tokens on container restart.
+# Read by this shell, before Python: the WORK4YOU_*->WAYNE_* bridge does not
+# apply here, so accept both spellings explicitly (new name wins).
+WAYNE_AUTH_JSON_BOOTSTRAP="${WORK4YOU_AUTH_JSON_BOOTSTRAP:-${WAYNE_AUTH_JSON_BOOTSTRAP:-}}"
+WAYNE_GATEWAY_BOOTSTRAP_STATE="${WORK4YOU_GATEWAY_BOOTSTRAP_STATE:-${WAYNE_GATEWAY_BOOTSTRAP_STATE:-}}"
 if [ ! -f "$WAYNE_HOME/auth.json" ] && [ -n "${WAYNE_AUTH_JSON_BOOTSTRAP:-}" ]; then
     if refuse_symlinked_path "seed" "$WAYNE_HOME/auth.json"; then
         :
@@ -441,14 +445,14 @@ fi
 # freshly-provisioned container comes up with the gateway down until
 # someone starts it (e.g. from the dashboard). An orchestrator that
 # provisions a fresh volume and wants the gateway running from first boot
-# can set WAYNE_GATEWAY_BOOTSTRAP_STATE=running; we seed the state file
+# can set WORK4YOU_GATEWAY_BOOTSTRAP_STATE=running; we seed the state file
 # here, BEFORE 02-reconcile-profiles runs (cont-init.d scripts run in
 # lexicographic order), so the reconciler sees prior_state=running and
 # brings the supervised slot up on the very first boot.
 #
 # This is a generic container contract, not specific to any host: it seeds
 # the SAME gateway_state.json the reconciler already consults, exactly as
-# WAYNE_AUTH_JSON_BOOTSTRAP seeds auth.json. The [ ! -f ] guard is the
+# WORK4YOU_AUTH_JSON_BOOTSTRAP seeds auth.json. The [ ! -f ] guard is the
 # load-bearing part — on every subsequent boot the persisted state wins,
 # so a gateway the operator deliberately stopped stays stopped across
 # restarts and we never clobber real runtime state.

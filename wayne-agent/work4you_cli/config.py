@@ -29,6 +29,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple, Set
 
+from work4you_constants import display_wayne_home
 from work4you_cli.secret_prompt import masked_secret_prompt
 
 logger = logging.getLogger(__name__)
@@ -196,6 +197,12 @@ _ENV_VAR_NAME_DENYLIST: frozenset[str] = frozenset({
     # NOT a WAYNE_* blanket: integration credentials (WAYNE_GEMINI_*,
     # WAYNE_LANGFUSE_*, WAYNE_SPOTIFY_*, ...) ARE allowed.
     "WAYNE_HOME", "WAYNE_PROFILE", "WAYNE_CONFIG", "WAYNE_ENV",
+    # The same four under the public WORK4YOU_* spelling.
+    # ``apply_work4you_env_aliases`` mirrors WORK4YOU_*→WAYNE_* every time a
+    # .env loads, so leaving these writable would hand the dashboard env
+    # writer exactly the state-relocation escalation the legacy names are
+    # blocked for.
+    "WORK4YOU_HOME", "WORK4YOU_PROFILE", "WORK4YOU_CONFIG", "WORK4YOU_ENV",
 })
 
 
@@ -210,9 +217,9 @@ def _reject_denylisted_env_var(key: str) -> None:
             f"Environment variable {key!r} is on the writer denylist. "
             "Names that influence subprocess execution (LD_PRELOAD, "
             "PYTHONPATH, PATH, EDITOR, ...) or Work4You runtime location "
-            "(WAYNE_HOME, WAYNE_PROFILE, ...) cannot be persisted via "
+            "(WORK4YOU_HOME, WORK4YOU_PROFILE, ...) cannot be persisted via "
             "the env writer. If you really need this, edit "
-            "~/.wayne/.env directly."
+            f"{display_wayne_home()}/.env directly."
         )
 
 _LAST_EXPANDED_CONFIG_BY_PATH: Dict[str, Any] = {}
@@ -579,7 +586,7 @@ def format_managed_message(action: str = "modify this Work4You installation") ->
         env_hint = "true" if raw in _MANAGED_TRUE_VALUES else raw or "true"
         return (
             f"Cannot {action}: this Work4You installation is managed by NixOS "
-            f"(WAYNE_MANAGED={env_hint}).\n"
+            f"(managed marker: {env_hint}).\n"
             "Edit services.wayne-agent.settings in your configuration.nix and run:\n"
             "  sudo nixos-rebuild switch"
         )
@@ -588,7 +595,7 @@ def format_managed_message(action: str = "modify this Work4You installation") ->
         env_hint = raw or "homebrew"
         return (
             f"Cannot {action}: this Work4You installation is managed by Homebrew "
-            f"(WAYNE_MANAGED={env_hint}).\n"
+            f"(managed marker: {env_hint}).\n"
             "Use your Homebrew formula to upgrade or reinstall."
         )
 
@@ -3453,7 +3460,7 @@ OPTIONAL_ENV_VARS = {
         "category": "provider",
         "advanced": True,
     },
-    "WAYNE_QWEN_BASE_URL": {
+    "WORK4YOU_QWEN_BASE_URL": {
         "description": "Qwen Portal base URL override (default: https://portal.qwen.ai/v1)",
         "prompt": "Qwen Portal base URL (leave empty for default)",
         "url": None,
@@ -4084,7 +4091,7 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "MATRIX_DEVICE_ID": {
-        "description": "Stable Matrix device ID for E2EE persistence across restarts (e.g. WAYNE_BOT)",
+        "description": "Stable Matrix device ID for E2EE persistence across restarts (e.g. WORK4YOU_BOT)",
         "prompt": "Matrix device ID (stable across restarts)",
         "url": None,
         "password": False,
@@ -4307,14 +4314,14 @@ OPTIONAL_ENV_VARS = {
     # are intentionally NOT listed here: OPTIONAL_ENV_VARS feeds user-facing
     # surfaces (dashboard keys page, setup checklists) and deprecated knobs
     # shouldn't be offered there.
-    "WAYNE_PREFILL_MESSAGES_FILE": {
+    "WORK4YOU_PREFILL_MESSAGES_FILE": {
         "description": "Path to JSON file with ephemeral prefill messages for few-shot priming",
         "prompt": "Prefill messages file path",
         "url": None,
         "password": False,
         "category": "setting",
     },
-    "WAYNE_EPHEMERAL_SYSTEM_PROMPT": {
+    "WORK4YOU_EPHEMERAL_SYSTEM_PROMPT": {
         "description": "Ephemeral system prompt injected at API-call time (never persisted to sessions)",
         "prompt": "Ephemeral system prompt",
         "url": None,
@@ -5246,7 +5253,7 @@ def warn_deprecated_cwd_env_vars(config: Optional[Dict[str, Any]] = None) -> Non
             f"this is deprecated."
         )
     if lines:
-        hint_path = os.environ.get("WAYNE_HOME", "~/.wayne")
+        hint_path = display_wayne_home()
         lines.insert(0, "\033[33m⚠ Deprecated .env settings detected:\033[0m")
         lines.append(
             f"  \033[2mMove to config.yaml instead:  "
@@ -5316,10 +5323,10 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
             old_mode = get_env_value("WAYNE_TOOL_PROGRESS_MODE")
             if old_enabled and old_enabled.lower() in {"false", "0", "no"}:
                 display["tool_progress"] = "off"
-                results["config_added"].append("display.tool_progress=off (from WAYNE_TOOL_PROGRESS=false)")
+                results["config_added"].append("display.tool_progress=off (from WORK4YOU_TOOL_PROGRESS=false)")
             elif old_mode and old_mode.lower() in {"new", "all"}:
                 display["tool_progress"] = old_mode.lower()
-                results["config_added"].append(f"display.tool_progress={old_mode.lower()} (from WAYNE_TOOL_PROGRESS_MODE)")
+                results["config_added"].append(f"display.tool_progress={old_mode.lower()} (from WORK4YOU_TOOL_PROGRESS_MODE)")
             else:
                 display["tool_progress"] = "all"
                 results["config_added"].append("display.tool_progress=all (default)")
@@ -5335,7 +5342,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
             old_tz = os.getenv("WAYNE_TIMEZONE", "")
             if old_tz and old_tz.strip():
                 config["timezone"] = old_tz.strip()
-                results["config_added"].append(f"timezone={old_tz.strip()} (from WAYNE_TIMEZONE)")
+                results["config_added"].append(f"timezone={old_tz.strip()} (from WORK4YOU_TIMEZONE)")
             else:
                 config["timezone"] = ""
                 results["config_added"].append("timezone= (empty, uses server-local)")
@@ -7380,6 +7387,13 @@ def save_env_value(key: str, value: str):
         raise
 
     os.environ[key] = value
+    # Public env interface is WORK4YOU_*, but plenty of internal readers still
+    # look up the legacy WAYNE_* name. At startup ``apply_work4you_env_aliases``
+    # mirrors them; a value written mid-process (dashboard Keys page, setup
+    # wizard) would otherwise stay invisible to those readers until restart.
+    # The four runtime-location names can't reach here — they're denylisted.
+    if key.startswith("WORK4YOU_"):
+        os.environ["WAYNE_" + key[len("WORK4YOU_"):]] = value
     invalidate_env_cache()
 
 
@@ -7452,6 +7466,10 @@ def remove_env_value(key: str) -> bool:
             raise
 
     os.environ.pop(key, None)
+    # Drop the legacy mirror too, otherwise a value removed from .env keeps
+    # working in-process via the WAYNE_* alias save_env_value planted.
+    if key.startswith("WORK4YOU_"):
+        os.environ.pop("WAYNE_" + key[len("WORK4YOU_"):], None)
     invalidate_env_cache()
     return found
 
@@ -7689,10 +7707,23 @@ def show_config():
     # config.yaml (issue #17534). Read the .env FILE directly so we catch the
     # ghost even when the gateway bridge already overrode os.environ.
     try:
-        _env_ghost = load_env().get("WAYNE_MAX_ITERATIONS")
+        _env_on_disk = load_env()
+        # Report whichever spelling is actually on disk: a .env written before
+        # the rename holds WAYNE_MAX_ITERATIONS, a current one holds
+        # WORK4YOU_MAX_ITERATIONS. Naming the wrong one sends the user
+        # grepping for a line that isn't there.
+        _ghost_key = next(
+            (
+                k
+                for k in ("WORK4YOU_MAX_ITERATIONS", "WAYNE_MAX_ITERATIONS")
+                if _env_on_disk.get(k) is not None
+            ),
+            "WORK4YOU_MAX_ITERATIONS",
+        )
+        _env_ghost = _env_on_disk.get(_ghost_key)
         if _env_ghost is not None and str(_env_ghost).strip() != str(_cfg_max_turns).strip():
             print(color(
-                f"                ⚠ .env has stale WAYNE_MAX_ITERATIONS={_env_ghost} "
+                f"                ⚠ .env has stale {_ghost_key}={_env_ghost} "
                 f"(run 'work4you doctor --fix' to remove)",
                 Colors.YELLOW,
             ))

@@ -2939,7 +2939,7 @@ class TelegramAdapter(BasePlatformAdapter):
                         raise OSError(
                             f"Telegram initialization timed out after {_max_connect} attempts "
                             f"({_init_timeout:.0f}s each). Check network connectivity to api.telegram.org "
-                            f"or set WAYNE_TELEGRAM_HTTP_CONNECT_TIMEOUT to a lower value."
+                            f"or set WORK4YOU_TELEGRAM_HTTP_CONNECT_TIMEOUT to a lower value."
                         )
                 except (NetworkError, TimedOut, OSError) as init_err:
                     if _attempt < _max_connect - 1:

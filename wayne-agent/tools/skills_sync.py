@@ -28,7 +28,7 @@ import os
 import shutil
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from work4you_constants import get_bundled_skills_dir, get_wayne_home, get_optional_skills_dir
+from work4you_constants import display_wayne_home, get_bundled_skills_dir, get_wayne_home, get_optional_skills_dir
 from agent.skill_utils import is_excluded_skill_path
 from typing import Dict, List, Optional, Set, Tuple
 from utils import atomic_replace
@@ -1161,8 +1161,8 @@ def set_bundled_skills_opt_out(enabled: bool) -> dict:
             WAYNE_HOME.mkdir(parents=True, exist_ok=True)
             marker.write_text(
                 "This profile opted out of bundled-skill seeding "
-                "(`wayne skills opt-out`).\n"
-                "Delete this file to re-enable sync on the next `wayne update`.\n",
+                "(`work4you skills opt-out`).\n"
+                "Delete this file to re-enable sync on the next `work4you update`.\n",
                 encoding="utf-8",
             )
             changed = not existed
@@ -1266,7 +1266,7 @@ def remove_pristine_bundled_skills(dry_run: bool = False) -> dict:
 
 
 if __name__ == "__main__":
-    print("Syncing bundled skills into ~/.wayne/skills/ ...")
+    print(f"Syncing bundled skills into {display_wayne_home()}/skills/ ...")
     result = sync_skills(quiet=False)
     parts = [
         f"{len(result['copied'])} new",

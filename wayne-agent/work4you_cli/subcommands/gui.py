@@ -6,6 +6,7 @@ Handler injected to avoid importing ``main``.
 
 from __future__ import annotations
 
+import argparse
 from typing import Callable
 
 
@@ -17,7 +18,7 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
         aliases=["gui"],
         help="Build and launch the native desktop app",
         description=(
-            "Launch the Wayne Electron desktop app. By default this installs "
+            "Launch the Work4You Electron desktop app. By default this installs "
             "workspace Node dependencies, builds the current OS's unpacked "
             "Electron app, then launches that packaged artifact."
         ),
@@ -40,15 +41,24 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
     gui_parser.add_argument(
         "--ignore-existing",
         action="store_true",
-        help="Force Desktop to ignore any wayne CLI already on PATH during backend resolution",
+        help="Force Desktop to ignore any Work4You CLI already on PATH during backend resolution",
     )
     gui_parser.add_argument(
+        "--work4you-root",
+        dest="wayne_root",
+        metavar="PATH",
+        help="Override the Work4You engine source root used by Desktop",
+    )
+    gui_parser.add_argument(
+        # Legacy spelling: desktop shells shipped before the rename still pass
+        # it. Hidden from --help so only the current flag is advertised.
         "--wayne-root",
-        help="Override the Wayne source root used by Desktop (sets WAYNE_DESKTOP_WAYNE_ROOT)",
+        dest="wayne_root",
+        help=argparse.SUPPRESS,
     )
     gui_parser.add_argument(
         "--cwd",
-        help="Initial project directory for Desktop chat sessions (sets WAYNE_DESKTOP_CWD)",
+        help="Initial project directory for Desktop chat sessions",
     )
     gui_parser.add_argument(
         "--skip-build",

@@ -315,6 +315,8 @@ work4you = "work4you_cli.main:main"
 # relaunch, service units, desktop engine spawn) still execs it. Removed in
 # the final migration phase once services/installs regenerate.
 wayne = "work4you_cli.main:main"
+work4you-agent = "run_agent:main"
+# `wayne-agent` stays: scripts and docs written before the rebrand call it.
 wayne-agent = "run_agent:main"
 work4you-acp = "acp_adapter.entry:main"
 # `wayne-acp` stays: editors (Zed, etc.) have the old binary name configured

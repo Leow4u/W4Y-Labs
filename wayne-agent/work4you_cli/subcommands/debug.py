@@ -9,6 +9,8 @@ from __future__ import annotations
 import argparse
 from typing import Callable
 
+from work4you_constants import display_wayne_home
+
 
 def build_debug_parser(subparsers, *, cmd_debug: Callable) -> None:
     """Attach the ``debug`` subcommand to ``subparsers``."""
@@ -18,19 +20,19 @@ def build_debug_parser(subparsers, *, cmd_debug: Callable) -> None:
     debug_parser = subparsers.add_parser(
         "debug",
         help="Debug tools — collect logs and system info for support",
-        description="Debug utilities for Wayne Agent. Use 'wayne debug share' to "
+        description="Debug utilities for Work4You. Use 'work4you debug share' to "
         "write a debug report (system info + recent logs) to local files "
-        "under ~/.wayne/debug-shares/. Remote upload is disabled in the "
+        f"under {display_wayne_home()}/debug-shares/. Remote upload is disabled in the "
         "W4Y fork — nothing leaves the machine.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
-    wayne debug share              Write debug report bundle to local files
-    wayne debug share --lines 500  Include more log lines
-    wayne debug share --local      Print report to stdout (no files written)
-    wayne debug share --no-redact  Disable secret redaction
-    wayne debug share --nous       Write a single gzipped JSON bundle file
-    wayne debug delete <url>       Delete a paste from a pre-fork install
+    work4you debug share              Write debug report bundle to local files
+    work4you debug share --lines 500  Include more log lines
+    work4you debug share --local      Print report to stdout (no files written)
+    work4you debug share --no-redact  Disable secret redaction
+    work4you debug share --nous       Write a single gzipped JSON bundle file
+    work4you debug delete <url>       Delete a paste from a pre-fork install
 """,
     )
     debug_sub = debug_parser.add_subparsers(dest="debug_command")
@@ -83,7 +85,7 @@ Examples:
     )
     delete_parser = debug_sub.add_parser(
         "delete",
-        help="Delete a paste uploaded by a pre-fork 'wayne debug share'",
+        help="Delete a paste uploaded by a pre-fork 'work4you debug share'",
     )
     delete_parser.add_argument(
         "urls",

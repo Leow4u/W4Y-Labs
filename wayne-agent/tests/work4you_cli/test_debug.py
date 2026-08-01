@@ -363,11 +363,11 @@ class TestCollectDebugReport:
 
         with patch("work4you_cli.dump.run_dump") as mock_dump:
             mock_dump.side_effect = lambda args: print(
-                "--- wayne dump ---\nversion: 0.8.0\n--- end dump ---"
+                "--- work4you dump ---\nversion: 0.8.0\n--- end dump ---"
             )
             report = collect_debug_report(log_lines=50)
 
-        assert "--- wayne dump ---" in report
+        assert "--- work4you dump ---" in report
         assert "version: 0.8.0" in report
 
     def test_report_includes_agent_log(self, wayne_home):
@@ -496,7 +496,7 @@ class TestRunDebugShare:
         from work4you_cli.debug import run_debug_share
 
         with patch("work4you_cli.dump.run_dump") as mock_dump:
-            mock_dump.side_effect = lambda a: print("--- wayne dump ---\nversion: test\n--- end dump ---")
+            mock_dump.side_effect = lambda a: print("--- work4you dump ---\nversion: test\n--- end dump ---")
             run_debug_share(self._args())
 
         files = self._share_files(wayne_home)
@@ -511,7 +511,7 @@ class TestRunDebugShare:
 
         # Each full-log file should start with the dump header + its section.
         by_name = {f.name: f.read_text(encoding="utf-8") for f in files}
-        assert "--- wayne dump ---" in by_name["agent.log"]
+        assert "--- work4you dump ---" in by_name["agent.log"]
         assert "--- full agent.log ---" in by_name["agent.log"]
         assert "--- full gateway.log ---" in by_name["gateway.log"]
         assert "--- full gui.log ---" in by_name["gui.log"]

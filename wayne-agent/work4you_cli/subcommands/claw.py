@@ -8,20 +8,22 @@ from __future__ import annotations
 
 from typing import Callable
 
+from work4you_constants import display_wayne_home
+
 
 def build_claw_parser(subparsers, *, cmd_claw: Callable) -> None:
     """Attach the ``claw`` subcommand to ``subparsers``."""
     claw_parser = subparsers.add_parser(
         "claw",
         help="OpenClaw migration tools",
-        description="Migrate settings, memories, skills, and API keys from OpenClaw to Wayne",
+        description="Migrate settings, memories, skills, and API keys from OpenClaw to Work4You",
     )
     claw_subparsers = claw_parser.add_subparsers(dest="claw_action")
 
     # claw migrate
     claw_migrate = claw_subparsers.add_parser(
         "migrate",
-        help="Migrate from OpenClaw to Wayne",
+        help="Migrate from OpenClaw to Work4You",
         description="Import settings, memories, skills, and API keys from an OpenClaw installation. "
         "Always shows a preview before making changes.",
     )
@@ -54,9 +56,9 @@ def build_claw_parser(subparsers, *, cmd_claw: Callable) -> None:
     claw_migrate.add_argument(
         "--no-backup",
         action="store_true",
-        help="Skip the pre-migration zip snapshot of ~/.wayne/ (by default a "
-        "single restore-point archive is written to ~/.wayne/backups/ "
-        "before apply; restorable with 'wayne import').",
+        help=f"Skip the pre-migration zip snapshot of {display_wayne_home()}/ (by default a "
+        f"single restore-point archive is written to {display_wayne_home()}/backups/ "
+        "before apply; restorable with 'work4you import').",
     )
     claw_migrate.add_argument(
         "--workspace-target", help="Absolute path to copy workspace instructions into"

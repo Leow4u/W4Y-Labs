@@ -545,9 +545,9 @@ def _validate_cron_script_path(script: Optional[str]) -> Optional[str]:
     # Only relative paths within ~/.wayne/scripts/ are allowed.
     if raw.startswith(("/", "~")) or (len(raw) >= 2 and raw[1] == ":"):
         return (
-            f"Script path must be relative to ~/.wayne/scripts/. "
+            f"Script path must be relative to {display_wayne_home()}/scripts/. "
             f"Got absolute or home-relative path: {raw!r}. "
-            f"Place scripts in ~/.wayne/scripts/ and use just the filename."
+            f"Place scripts in {display_wayne_home()}/scripts/ and use just the filename."
         )
 
     # Validate containment after resolution

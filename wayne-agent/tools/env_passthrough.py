@@ -144,7 +144,7 @@ def _load_config_passthrough() -> frozenset[str]:
                 # See GHSA-rhgp-j443-p4rf.
                 if _is_wayne_provider_credential(name):
                     logger.warning(
-                        "env passthrough: refusing to register Wayne "
+                        "env passthrough: refusing to register Work4You "
                         "provider credential %r from config.yaml (blocked "
                         "by _WAYNE_PROVIDER_ENV_BLOCKLIST). Operator "
                         "configuration must not override the execute_code "

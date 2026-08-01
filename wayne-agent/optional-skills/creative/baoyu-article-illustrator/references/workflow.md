@@ -2,7 +2,7 @@
 
 ## Step 1: Detect Reference Images
 
-If the user provides reference images (local path or URL), the goal is to produce **textual descriptions** that can be embedded in prompts — `image_generate` doesn't accept reference-image inputs, and Wayne' text file tools can't read or write binaries.
+If the user provides reference images (local path or URL), the goal is to produce **textual descriptions** that can be embedded in prompts — `image_generate` doesn't accept reference-image inputs, and Work4You's text file tools can't read or write binaries.
 
 **Tool rules**:
 

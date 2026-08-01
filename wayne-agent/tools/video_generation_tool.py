@@ -149,7 +149,7 @@ VIDEO_GENERATE_SCHEMA: Dict[str, Any] = {
                 "type": "string",
                 "description": (
                     "Optional model override. If omitted, the user's "
-                    "configured ``video_gen.model`` (set via `wayne tools` "
+                    "configured ``video_gen.model`` (set via `work4you tools` "
                     "→ Video Generation) is used. Models that the active "
                     "provider does not know are rejected."
                 ),
@@ -421,7 +421,7 @@ _GENERIC_DESCRIPTION = (
     "reference-to-video. Video edit/extend workflows are not part of this "
     "unified surface; use a dedicated provider-specific tool when one is "
     "available. The backend and model family are user-configured via "
-    "`wayne tools` → Video Generation; the agent does not pick them. "
+    "`work4you tools` → Video Generation; the agent does not pick them. "
     "Long-running generations may take 30 seconds to several minutes — "
     "the call blocks until the video is ready. Returns the result in the "
     "`video` field — either an HTTP URL or an absolute file path. To show "
@@ -476,7 +476,7 @@ def _build_dynamic_video_schema() -> Dict[str, Any]:
     if not configured:
         parts.append(
             "\nNo video backend is configured. Calls will return an error "
-            "until the user picks one via `wayne tools` → Video Generation."
+            "until the user picks one via `work4you tools` → Video Generation."
         )
         return {"description": "\n".join(parts)}
 

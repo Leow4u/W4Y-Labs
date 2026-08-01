@@ -9,10 +9,10 @@ def build_console_parser(subparsers, *, cmd_console: Callable) -> None:
     """Attach the safe Wayne Console REPL subcommand."""
     console_parser = subparsers.add_parser(
         "console",
-        help="Open the safe Wayne command console",
+        help="Open the safe Work4You command console",
         description=(
-            "Open a curated Wayne command REPL. This is not a raw shell and "
-            "does not expose the full Wayne CLI."
+            "Open a curated Work4You command REPL. This is not a raw shell and "
+            "does not expose the full Work4You CLI."
         ),
     )
     console_parser.set_defaults(func=cmd_console)

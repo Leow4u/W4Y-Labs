@@ -27,6 +27,13 @@ class TestTipsCorpus:
                 f"Tip {i} too long ({len(tip)} chars): {tip[:60]}..."
             )
 
+    def test_no_hardcoded_home_path(self):
+        """No tip may spell out a home directory — use the {home} token."""
+        for i, tip in enumerate(TIPS):
+            assert "~/.wayne" not in tip and "~/.work4you" not in tip, (
+                f"Tip {i} hard-codes a home path; use {{home}} instead: {tip[:80]}"
+            )
+
     def test_no_leading_trailing_whitespace(self):
         for i, tip in enumerate(TIPS):
             assert tip == tip.strip(), f"Tip {i} has leading/trailing whitespace"
@@ -41,8 +48,18 @@ class TestGetRandomTip:
         assert len(tip) > 0
 
     def test_returns_tip_from_corpus(self):
+        """Corpus entry, with {home} resolved to the real home directory.
+
+        Tips that name a path carry a ``{home}`` placeholder rather than a
+        hard-coded spelling — the home is profile-scoped and moved in the
+        brand migration — so compare against the rendered corpus.
+        """
+        from work4you_constants import display_wayne_home
+
+        rendered = {t.replace("{home}", display_wayne_home()) for t in TIPS}
         tip = get_random_tip()
-        assert tip in TIPS
+        assert tip in rendered
+        assert "{home}" not in tip
 
     def test_randomness(self):
         """Multiple calls should eventually return different tips."""

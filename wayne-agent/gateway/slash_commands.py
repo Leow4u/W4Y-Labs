@@ -2821,10 +2821,12 @@ class GatewaySlashCommandsMixin:
         # *different* command — it diffs a bundled skill against its stock
         # version — so we point at the pending JSON file, not that command.)
         if args and args[0].lower() == "diff" and len(out) > 3000:
+            from work4you_constants import display_wayne_home
+
             pending_id = args[1] if len(args) > 1 else "<id>"
             out = (out[:3000]
                    + "\n… (truncated — full diff in "
-                     f"~/.wayne/pending/skills/{pending_id}.json)")
+                     f"{display_wayne_home()}/pending/skills/{pending_id}.json)")
         return out
 
     async def _handle_fast_command(self, event: MessageEvent) -> str:
@@ -2908,6 +2910,7 @@ class GatewaySlashCommandsMixin:
         have its own verbosity level independently.
         """
         from gateway.run import _wayne_home, _load_gateway_config, _platform_config_key
+        from work4you_constants import display_wayne_home as _display_home
 
         config_path = _wayne_home / "config.yaml"
         platform_key = _platform_config_key(event.source.platform)
@@ -2932,7 +2935,9 @@ class GatewaySlashCommandsMixin:
             "new": t("gateway.verbose.mode_new"),
             "all": t("gateway.verbose.mode_all"),
             "verbose": t("gateway.verbose.mode_verbose"),
-            "log": t("gateway.verbose.mode_log"),
+            # {path} is resolved here, never spelled out in the locale files:
+            # the home directory is profile-scoped and platform-specific.
+            "log": t("gateway.verbose.mode_log", path=_display_home()),
         }
 
         # Read current effective mode for this platform via the resolver

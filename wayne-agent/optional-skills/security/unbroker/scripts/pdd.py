@@ -164,7 +164,7 @@ def cmd_doctor(args) -> None:
              "encrypts dossiers + ledgers on disk")
     if engaged:
         L.append(f"        key: {crypto.identity_path()} (0600) - guards casual/backup/commit "
-                 "exposure, NOT a full-WAYNE_HOME read")
+                 "exposure, NOT a full-home read")
     elif cfg["encryption"] == "age":
         L.append("        WARNING: encryption=age is SET but NOT engaged (age binary or key missing);"
                  " dossiers would be PLAINTEXT")
@@ -189,7 +189,7 @@ def cmd_doctor(args) -> None:
         L.append("  Email mode: browser (no password) - the agent sends opt-outs and opens verify "
                  "links via the operator's logged-in webmail. This needs Wayne pointed at the "
                  "operator's OWN Chrome over CDP (launch with --remote-debugging-port=9222 "
-                 "--user-data-dir=~/.wayne/chrome-debug, signed into the webmail once); else it falls "
+                 f"--user-data-dir={paths_mod.display_wayne_home()}/chrome-debug, signed into the webmail once); else it falls "
                  "back to drafts. Run `pdd.py cdp` to launch it (or `pdd.py cdp --print` for the command). "
                  "See methods.md 'Browser backends'.")
         cloud_scan = cfg.get("browser_backend") == "browserbase" or (
@@ -200,7 +200,7 @@ def cmd_doctor(args) -> None:
                      "and is itself Cloudflare/DataDome-gated on session-bound gates (e.g. PeopleConnect). "
                      "For Phase-2 email/verify, launch the operator's Chrome over CDP: `pdd.py cdp`.")
     if not crypto.is_engaged():
-        L.append("  Storage: dossiers are PLAINTEXT JSON (0600 under WAYNE_HOME). "
+        L.append("  Storage: dossiers are PLAINTEXT JSON (0600 under the Work4You home). "
                  "Run `setup --encryption age` for at-rest encryption.")
     if not live:
         L.append("  Next: run `refresh-brokers` to load the full broker list.")
@@ -752,7 +752,7 @@ def build_parser() -> argparse.ArgumentParser:
                        help="launch/detect the operator's Chrome over CDP (Phase-2 browser + webmail)")
     s.add_argument("--port", type=int, default=cdp.DEFAULT_PORT, help="remote debugging port (default 9222)")
     s.add_argument("--profile",
-                   help="user-data-dir (default: $WAYNE_HOME/chrome-debug, a dedicated debug profile)")
+                   help="user-data-dir (default: $WORK4YOU_HOME/chrome-debug, a dedicated debug profile)")
     s.add_argument("--browser", help="path to (or PATH name of) a Chrome/Chromium/Brave/Edge binary")
     s.add_argument("--check", action="store_true",
                    help="only report whether a debug browser is live; do not launch")

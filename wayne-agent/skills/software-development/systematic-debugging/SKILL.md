@@ -359,11 +359,11 @@ If you catch yourself thinking:
 | **3. Hypothesis** | Form theory, test minimally, one variable at a time | Confirmed or new hypothesis |
 | **4. Implementation** | Create regression test, fix root cause, verify | Bug resolved, all tests pass |
 
-## Wayne Agent Integration
+## Work4You Integration
 
 ### Investigation Tools
 
-Use these Wayne tools during Phase 1:
+Use these Work4You tools during Phase 1:
 
 - **`search_files`** — Find error strings, trace function calls, locate patterns
 - **`read_file`** — Read source code with line numbers for precise analysis

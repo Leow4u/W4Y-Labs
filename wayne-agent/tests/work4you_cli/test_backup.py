@@ -408,7 +408,7 @@ class TestBackup:
             assert pid_files == []
 
     def test_default_output_path(self, tmp_path, monkeypatch):
-        """When no output path given, zip goes to ~/wayne-backup-*.zip."""
+        """When no output path given, zip goes to ~/work4you-backup-*.zip."""
         wayne_home = tmp_path / ".wayne"
         wayne_home.mkdir()
         (wayne_home / "config.yaml").write_text("model: test\n")
@@ -422,7 +422,7 @@ class TestBackup:
         run_backup(args)
 
         # Should exist in home dir
-        zips = list(tmp_path.glob("wayne-backup-*.zip"))
+        zips = list(tmp_path.glob("work4you-backup-*.zip"))
         assert len(zips) == 1
 
     def test_skips_symlinked_files(self, tmp_path, monkeypatch):
@@ -996,7 +996,7 @@ class TestBackupEdgeCases:
         from work4you_cli.backup import run_backup
         run_backup(args)
 
-        zips = list(out_dir.glob("wayne-backup-*.zip"))
+        zips = list(out_dir.glob("work4you-backup-*.zip"))
         assert len(zips) == 1
 
     def test_output_without_zip_suffix(self, tmp_path, monkeypatch):

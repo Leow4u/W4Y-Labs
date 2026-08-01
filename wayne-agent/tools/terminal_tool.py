@@ -1187,9 +1187,11 @@ def _parse_env_var(name: str, default: str, converter: Any = int, type_label: st
     try:
         return converter(raw)
     except (ValueError, json.JSONDecodeError):
+        from work4you_constants import display_wayne_home as _display_home
+
         raise ValueError(
             f"Invalid value for {name}: {raw!r} (expected {type_label}). "
-            f"Check ~/.wayne/.env or environment variables."
+            f"Check {_display_home()}/.env or environment variables."
         )
 
 

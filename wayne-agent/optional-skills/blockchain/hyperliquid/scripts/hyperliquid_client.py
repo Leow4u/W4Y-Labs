@@ -46,7 +46,25 @@ DEFAULT_API_BASE = "https://api.hyperliquid.xyz"
 
 
 def _wayne_home() -> Path:
-    return Path(os.environ.get("WAYNE_HOME", "~/.wayne")).expanduser()
+    """Resolve the Work4You home, honouring the active profile.
+
+    Prefers the engine's own resolver; the stdlib fallback mirrors it,
+    including the brand migration (the default root moved from ``~/.wayne``
+    to ``~/.work4you``, and an unmigrated install still uses the old name).
+    Hard-coding ``~/.wayne`` here would silently point the skill at an empty
+    directory after a user migrates.
+    """
+    try:
+        from work4you_constants import get_wayne_home
+
+        return get_wayne_home()
+    except (ModuleNotFoundError, ImportError):
+        pass
+    val = (os.environ.get("WAYNE_HOME") or os.environ.get("WORK4YOU_HOME") or "").strip()
+    if val:
+        return Path(val).expanduser()
+    new_root, legacy_root = Path.home() / ".work4you", Path.home() / ".wayne"
+    return legacy_root if (legacy_root.is_dir() and not new_root.is_dir()) else new_root
 
 
 def _dotenv_paths() -> List[Path]:
