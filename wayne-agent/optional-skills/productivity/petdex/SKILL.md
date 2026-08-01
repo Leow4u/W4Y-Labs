@@ -1,8 +1,8 @@
 ---
 name: petdex
-description: Install and select animated petdex mascots for Wayne.
+description: Install and select animated petdex mascots for Work4You.
 version: 1.0.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -17,7 +17,7 @@ metadata:
 Browse, install, and select animated "pet" mascots from the public
 [petdex](https://github.com/crafter-station/petdex) gallery. An installed pet
 reacts to agent activity (idle, running a tool, reviewing, error, done) across
-the Wayne CLI, TUI, and desktop app. This skill drives the `wayne pets` CLI
+the Wayne CLI, TUI, and desktop app. This skill drives the `work4you pets` CLI
 and the `display.pet` config — it does not generate sprites.
 
 ## When to Use
@@ -36,28 +36,28 @@ and the `display.pet` config — it does not generate sprites.
 
 ## How to Run
 
-Use the `terminal` tool to run `wayne pets <subcommand>`.
+Use the `terminal` tool to run `work4you pets <subcommand>`.
 
 ## Quick Reference
 
 | Goal | Command |
 | --- | --- |
-| Browse the gallery | `wayne pets list` (add a substring to filter: `wayne pets list cat`) |
-| List installed pets | `wayne pets list --installed` |
-| Install a pet | `wayne pets install <slug>` (add `--select` to make it active) |
-| Set the active pet | `wayne pets select <slug>` (omit slug for a picker) |
-| Resize the pet everywhere | `wayne pets scale <factor>` (e.g. `0.5`, clamped 0.1–3.0) |
-| Preview/animate in terminal | `wayne pets show [slug] [--cycle] [--state run]` |
-| Disable the pet | `wayne pets off` |
-| Remove a pet | `wayne pets remove <slug>` |
-| Diagnose setup | `wayne pets doctor` |
+| Browse the gallery | `work4you pets list` (add a substring to filter: `work4you pets list cat`) |
+| List installed pets | `work4you pets list --installed` |
+| Install a pet | `work4you pets install <slug>` (add `--select` to make it active) |
+| Set the active pet | `work4you pets select <slug>` (omit slug for a picker) |
+| Resize the pet everywhere | `work4you pets scale <factor>` (e.g. `0.5`, clamped 0.1–3.0) |
+| Preview/animate in terminal | `work4you pets show [slug] [--cycle] [--state run]` |
+| Disable the pet | `work4you pets off` |
+| Remove a pet | `work4you pets remove <slug>` |
+| Diagnose setup | `work4you pets doctor` |
 
 ## Procedure
 
-1. Find a pet: `wayne pets list <query>` and note its `slug`.
-2. Install + activate: `wayne pets install <slug> --select`.
-3. Preview it: `wayne pets show` (Ctrl+C to stop).
-4. Confirm setup: `wayne pets doctor` — shows the resolved pet, configured
+1. Find a pet: `work4you pets list <query>` and note its `slug`.
+2. Install + activate: `work4you pets install <slug> --select`.
+3. Preview it: `work4you pets show` (Ctrl+C to stop).
+4. Confirm setup: `work4you pets doctor` — shows the resolved pet, configured
    render mode, detected terminal graphics protocol, and effective mode.
 
 Pets install into `<WAYNE_HOME>/pets/<slug>/` (profile-aware). Selecting a pet
@@ -72,7 +72,7 @@ Under `display.pet` in `config.yaml`:
 - `render_mode` — `auto` (detect) | `kitty` | `iterm` | `sixel` | `unicode` | `off`.
 - `scale` (float) — on-screen size of the native 192×208 frames (default 0.33,
   clamped 0.1–3.0). One knob resizes every surface; set it with
-  `wayne pets scale <factor>`, the `/pet scale` slash command, or the desktop
+  `work4you pets scale <factor>`, the `/pet scale` slash command, or the desktop
   Appearance slider.
 - `unicode_cols` (int) — width in columns for the Unicode fallback.
 
@@ -81,9 +81,9 @@ Under `display.pet` in `config.yaml`:
 - A pet only shows once one is installed AND selected (`enabled: true`).
 - Inside a pipe/redirect (no TTY) terminal rendering is disabled by design.
 - The petdex npm CLI installs to `~/.codex/pets`; Wayne uses its own
-  profile-scoped `<WAYNE_HOME>/pets/` instead — install through `wayne pets`.
+  profile-scoped `<WAYNE_HOME>/pets/` instead — install through `work4you pets`.
 
 ## Verification
 
-- `wayne pets doctor` reports `✓ ready` when a pet is installed, selected,
+- `work4you pets doctor` reports `✓ ready` when a pet is installed, selected,
   enabled, and Pillow is importable.

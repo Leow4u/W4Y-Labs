@@ -1,6 +1,6 @@
 ---
 name: openclaw-migration
-description: Migrate a user's OpenClaw customization footprint into Wayne Agent. Imports Wayne-compatible memories, SOUL.md, command allowlists, user skills, and selected workspace assets from ~/.openclaw, then reports exactly what could not be migrated and why.
+description: Migrate a user's OpenClaw customization footprint into Work4You. Imports Work4You-compatible memories, SOUL.md, command allowlists, user skills, and selected workspace assets from ~/.openclaw, then reports exactly what could not be migrated and why.
 version: 1.0.0
 author: Wayne Agent (Nous Research)
 license: MIT
@@ -20,16 +20,16 @@ Use this skill when a user wants to move their OpenClaw setup into Wayne Agent w
 For a quick, non-interactive migration, use the built-in CLI command:
 
 ```bash
-wayne claw migrate              # Full interactive migration
-wayne claw migrate --dry-run    # Preview what would be migrated
-wayne claw migrate --preset user-data   # Migrate without secrets
-wayne claw migrate --overwrite  # Overwrite existing conflicts
-wayne claw migrate --source /custom/path/.openclaw  # Custom source
+work4you claw migrate              # Full interactive migration
+work4you claw migrate --dry-run    # Preview what would be migrated
+work4you claw migrate --preset user-data   # Migrate without secrets
+work4you claw migrate --overwrite  # Overwrite existing conflicts
+work4you claw migrate --source /custom/path/.openclaw  # Custom source
 ```
 
 The CLI command runs the same migration script described below. Use this skill (via the agent) when you want an interactive, guided migration with dry-run previews and per-item conflict resolution.
 
-**First-time setup:** The `wayne setup` wizard automatically detects `~/.openclaw` and offers migration before configuration begins.
+**First-time setup:** The `work4you setup` wizard automatically detects `~/.openclaw` and offers migration before configuration begins.
 
 ## What this skill does
 

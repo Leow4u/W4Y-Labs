@@ -31,8 +31,8 @@ auth:
 # that list directly.
 
 post_install: |
-  On first connection, Wayne will open a browser to authenticate with Linear.
-  After auth, restart your Wayne session so the Linear tools are loaded.
+  On first connection, Work4You will open a browser to authenticate with Linear.
+  After auth, restart your Work4You session so the Linear tools are loaded.
 
   You can re-run the tool checklist any time with:
-    wayne mcp configure linear
+    work4you mcp configure linear
