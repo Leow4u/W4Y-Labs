@@ -2585,7 +2585,7 @@ def _remap_path_for_user(path: str, target_home_dir: str) -> str:
     to *target_home_dir*; otherwise the path is returned unchanged.
 
       /root/.wayne/wayne-agent  -> /home/alice/.wayne/wayne-agent
-      /opt/wayne                 -> /opt/wayne  (kept as-is)
+      /opt/work4you             -> /opt/work4you  (kept as-is)
 
     Note: this function intentionally does NOT resolve symlinks. A venv's
     ``bin/python`` is typically a symlink to the base interpreter (e.g. a
@@ -4487,8 +4487,11 @@ def _truthy_env(value: str | None) -> bool:
 
 
 def _is_official_docker_checkout() -> bool:
+    # Both roots: the image installs at /opt/work4you and keeps /opt/wayne as
+    # a compat symlink, so a container started via an old wrapper path still
+    # reports the legacy root here.
     return (
-        str(PROJECT_ROOT) == "/opt/wayne"
+        str(PROJECT_ROOT) in ("/opt/work4you", "/opt/wayne")
         and (PROJECT_ROOT / "docker" / "entrypoint.sh").is_file()
     )
 
@@ -6476,8 +6479,8 @@ def _maybe_redirect_run_to_s6_supervision(args) -> bool:
     # `docker stop` sends SIGTERM, at which point /init runs stage 3
     # shutdown (which tears down the supervised gateway cleanly).
     #
-    # Prefer `sleep infinity` (matches the static main-wayne service's
-    # pattern in docker/s6-rc.d/main-wayne/run, and frees the Python
+    # Prefer `sleep infinity` (matches the static main-work4you service's
+    # pattern in docker/s6-rc.d/main-work4you/run, and frees the Python
     # interpreter — the heartbeat is a tiny `sleep` process, not a
     # resident interpreter). But `os.execvp` does a PATH lookup for the
     # `sleep` binary and historically crashed the whole container with

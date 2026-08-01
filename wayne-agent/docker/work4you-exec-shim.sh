@@ -1,56 +1,56 @@
 #!/bin/sh
 # shellcheck shell=sh
-# /opt/wayne/bin/wayne — `docker exec` privilege-drop shim.
+# /opt/work4you/bin/work4you — `docker exec` privilege-drop shim.
 #
 # Background
 # ----------
 # The s6 image runs the supervised gateway/main process as the unprivileged
-# `wayne` user (UID 10000). When an operator runs `docker exec <c> wayne ...`
+# `work4you` user (UID 10000). When an operator runs `docker exec <c> work4you ...`
 # the default UID is root (0), and any file the command writes under
 # $WAYNE_HOME — auth.json, .env, config.yaml — ends up root-owned and
 # unreadable to the supervised gateway. The most common manifestation: the
-# user runs `docker exec <c> wayne login`, this writes
+# user runs `docker exec <c> work4you login`, this writes
 # /opt/data/auth.json as root:root mode 0600, and from then on the gateway
 # returns "Provider authentication failed: Wayne is not logged into Nous
-# Portal" on every incoming message — even though `docker exec <c> wayne
+# Portal" on every incoming message — even though `docker exec <c> work4you
 # chat -q ping` (also running as root) succeeds because root happens to be
 # able to read its own root-owned file. See systematic-debugging skill
 # notes attached to this fix.
 #
 # Fix
 # ---
-# This shim sits at /opt/wayne/bin/wayne and is placed earliest on PATH.
-# When invoked as root, it drops to the wayne user (via s6-setuidgid)
+# This shim sits at /opt/work4you/bin/work4you and is placed earliest on PATH.
+# When invoked as root, it drops to the work4you user (via s6-setuidgid)
 # before exec'ing the real venv binary, so anything that writes under
 # $WAYNE_HOME is uid-aligned with the supervised processes. When invoked
 # as any non-root UID — including the supervised processes themselves,
-# `docker exec --user wayne`, kanban subagents, etc. — it short-circuits
+# `docker exec --user work4you`, kanban subagents, etc. — it short-circuits
 # straight to the venv binary with no privilege change. Net: one extra
 # fork on the docker-exec-as-root path, zero behavioral change on every
 # other path.
 #
 # Recursion safety: the shim exec's the venv binary by *absolute path*
-# (/opt/wayne/.venv/bin/wayne), so the second hop cannot re-enter this
+# (/opt/work4you/.venv/bin/work4you), so the second hop cannot re-enter this
 # shim regardless of PATH state. No sentinel env var needed.
 #
 # Opt-out: set WAYNE_DOCKER_EXEC_AS_ROOT=1 (1/true/yes, case-insensitive)
 # to keep running as root. Reserved for diagnostic sessions where the
 # operator deliberately wants root semantics — e.g. inspecting root-only
-# state via the wayne CLI. Default is to drop.
+# state via the work4you CLI. Default is to drop.
 
 set -e
 
-REAL=/opt/wayne/.venv/bin/wayne
+REAL=/opt/work4you/.venv/bin/work4you
 
 # Defensive: if the venv binary is missing (corrupted image, partial
 # install), fail loudly rather than silently masking it.
 if [ ! -x "$REAL" ]; then
-    echo "wayne-shim: $REAL not found or not executable" >&2
+    echo "work4you-shim: $REAL not found or not executable" >&2
     exit 127
 fi
 
 # Already non-root? Just exec the real binary. This is the hot path for
-# supervised processes (uid 10000) and for `docker exec --user wayne`.
+# supervised processes (uid 10000) and for `docker exec --user work4you`.
 if [ "$(id -u)" != "0" ]; then
     exec "$REAL" "$@"
 fi
@@ -62,7 +62,7 @@ case "${WAYNE_DOCKER_EXEC_AS_ROOT:-}" in
         ;;
 esac
 
-# Root, no opt-out. Drop to the wayne user.
+# Root, no opt-out. Drop to the work4you user.
 #
 # s6-setuidgid lives under /command/ which is NOT on `docker exec`'s PATH
 # (s6-overlay only puts /command/ on PATH for supervision-tree children).
@@ -73,15 +73,15 @@ if [ ! -x "$S6_SUID" ]; then
     # Non-s6 image (someone stripped s6-overlay, or a hand-built variant).
     # Fail loud rather than silently re-execing as root and leaking the
     # bug this shim exists to prevent.
-    echo "wayne-shim: $S6_SUID not found; refusing to silently run as root." >&2
-    echo "wayne-shim: re-run with --user wayne or set WAYNE_DOCKER_EXEC_AS_ROOT=1." >&2
+    echo "work4you-shim: $S6_SUID not found; refusing to silently run as root." >&2
+    echo "work4you-shim: re-run with --user work4you or set WAYNE_DOCKER_EXEC_AS_ROOT=1." >&2
     exit 126
 fi
 
-# Reset HOME to the wayne user's home before dropping privileges. Without
+# Reset HOME to the work4you user's home before dropping privileges. Without
 # this, $HOME stays /root and any library that resolves paths off $HOME
 # (XDG caches, lockfiles, .config writes) will try to write to /root and
 # fail with EACCES. Mirrors main-wrapper.sh.
 export HOME=/opt/data
 
-exec "$S6_SUID" wayne "$REAL" "$@"
+exec "$S6_SUID" work4you "$REAL" "$@"

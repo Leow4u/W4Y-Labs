@@ -287,7 +287,7 @@ def _check_s6_supervision(issues: list[str]) -> None:
     container so host runs aren't cluttered with irrelevant output.
 
     Reports:
-      - Whether the main-wayne and dashboard static services are up
+      - Whether the main-work4you and dashboard static services are up
       - How many per-profile gateway slots are registered (via
         ``S6ServiceManager.list_profile_gateways()``) and how many are
         currently supervised as ``up``
@@ -309,10 +309,13 @@ def _check_s6_supervision(issues: list[str]) -> None:
 
     # Static services. They live under /run/service/ via s6-rc symlinks,
     # so the same s6-svstat probe works.
-    for static in ("main-wayne", "dashboard"):
+    # main-work4you is the current service name; main-wayne is what images
+    # built before the rebrand still supervise. Probe both, report the one
+    # that exists.
+    for static in ("main-work4you", "main-wayne", "dashboard"):
         if mgr.is_running(static):
             check_ok(f"{static}: up")
-        else:
+        elif static != "main-wayne":
             check_info(f"{static}: down (expected if not enabled via env)")
 
     profiles = mgr.list_profile_gateways()
