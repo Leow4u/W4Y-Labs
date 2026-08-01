@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@work4you/ink": ["src/types/wayne-ink.d.ts"]
+      "@work4you/ink": ["src/types/work4you-ink.d.ts"]
     }
   }
 }

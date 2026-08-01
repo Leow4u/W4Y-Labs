@@ -4055,7 +4055,7 @@ wheels = [
 ]
 
 [[package]]
-name = "wayne-agent"
+name = "work4you-agent"
 version = "0.18.0"
 source = { editable = "." }
 dependencies = [
@@ -4371,27 +4371,27 @@ requires-dist = [
     { name = "urllib3", specifier = ">=2.7.0,<3" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.24.0,<1" },
     { name = "uvicorn", extras = ["standard"], marker = "extra == 'web'", specifier = "==0.41.0" },
-    { name = "wayne-agent", extras = ["acp"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["acp"], marker = "extra == 'termux'" },
-    { name = "wayne-agent", extras = ["cli"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["cli"], marker = "extra == 'termux'" },
-    { name = "wayne-agent", extras = ["cron"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["cron"], marker = "extra == 'termux'" },
-    { name = "wayne-agent", extras = ["google"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["google"], marker = "extra == 'termux-all'" },
-    { name = "wayne-agent", extras = ["homeassistant"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["homeassistant"], marker = "extra == 'termux-all'" },
-    { name = "wayne-agent", extras = ["honcho"], marker = "extra == 'termux'" },
-    { name = "wayne-agent", extras = ["mcp"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["mcp"], marker = "extra == 'termux'" },
-    { name = "wayne-agent", extras = ["pty"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["pty"], marker = "extra == 'termux'" },
-    { name = "wayne-agent", extras = ["sms"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["sms"], marker = "extra == 'termux-all'" },
-    { name = "wayne-agent", extras = ["termux"], marker = "extra == 'termux-all'" },
-    { name = "wayne-agent", extras = ["web"], marker = "extra == 'all'" },
-    { name = "wayne-agent", extras = ["web"], marker = "extra == 'termux-all'" },
-    { name = "wayne-agent", extras = ["youtube"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["acp"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["acp"], marker = "extra == 'termux'" },
+    { name = "work4you-agent", extras = ["cli"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["cli"], marker = "extra == 'termux'" },
+    { name = "work4you-agent", extras = ["cron"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["cron"], marker = "extra == 'termux'" },
+    { name = "work4you-agent", extras = ["google"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["google"], marker = "extra == 'termux-all'" },
+    { name = "work4you-agent", extras = ["homeassistant"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["homeassistant"], marker = "extra == 'termux-all'" },
+    { name = "work4you-agent", extras = ["honcho"], marker = "extra == 'termux'" },
+    { name = "work4you-agent", extras = ["mcp"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["mcp"], marker = "extra == 'termux'" },
+    { name = "work4you-agent", extras = ["pty"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["pty"], marker = "extra == 'termux'" },
+    { name = "work4you-agent", extras = ["sms"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["sms"], marker = "extra == 'termux-all'" },
+    { name = "work4you-agent", extras = ["termux"], marker = "extra == 'termux-all'" },
+    { name = "work4you-agent", extras = ["web"], marker = "extra == 'all'" },
+    { name = "work4you-agent", extras = ["web"], marker = "extra == 'termux-all'" },
+    { name = "work4you-agent", extras = ["youtube"], marker = "extra == 'all'" },
     { name = "websockets", specifier = "==15.0.1" },
     { name = "youtube-transcript-api", marker = "extra == 'youtube'", specifier = "==1.2.4" },
 ]
