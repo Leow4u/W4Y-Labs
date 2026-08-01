@@ -3,8 +3,9 @@
 # ============================================================================
 # Packages the Work4You engine source (wayne-agent/) from the current checkout
 # into the distribution ZIP that scripts/install.ps1 consumes via
-# WAYNE_SOURCE_ZIP_URL (see Get-EngineSourceFromZip there -- keep the layout
-# contract in lockstep) and that the desktop in-app updater downloads via
+# WORK4YOU_SOURCE_ZIP_URL (legacy WAYNE_SOURCE_ZIP_URL still accepted; see
+# Get-EngineSourceFromZip there -- keep the layout contract in lockstep)
+# and that the desktop in-app updater downloads via
 # latest.json's zipUrl (apps/desktop/electron/w4y-wayne-resolve.cjs).
 #
 # Layout contract produced here:
@@ -24,10 +25,14 @@
 #       .wayne-engine-version   <- KEY=VALUE source pin (commit/branch/built);
 #                                  read by install.ps1's Write-BootstrapMarker
 #                                  since ZIP installs carry no .git metadata.
-#                                  NAME STAYS .wayne-engine-version: the reader
-#                                  lives in wayne-agent/scripts/install.ps1 and
-#                                  renames there ride the engine PR train, not
-#                                  this script.
+#                                  NAME STAYS .wayne-engine-version. The reader
+#                                  now accepts BOTH names (it tries
+#                                  .work4you-engine-version first), so the
+#                                  rename is unblocked on the install side --
+#                                  but every install.ps1 already published in
+#                                  the field reads only the old name, so the
+#                                  produced file keeps it until those cascas
+#                                  are gone.
 #       agent/ tools/ work4you_cli/ (incl. web_dist) wayne_cli/ (compat stub)
 #       gateway/ tui_gateway/ ...
 #
@@ -57,7 +62,7 @@
 #   pwsh platform/wayne-fly/build-engine-zip.ps1 [-OutputPath <file.zip>]
 #
 # The ZIP is then uploaded (manually, with the machine's GCP credentials) to
-# the bucket whose public URL becomes WAYNE_SOURCE_ZIP_URL / latest.json zipUrl.
+# the bucket whose public URL becomes WORK4YOU_SOURCE_ZIP_URL / latest.json zipUrl.
 # ============================================================================
 
 param(
@@ -137,8 +142,10 @@ if (-not (Test-Path $readmePath)) {
 
 # Source pin for ZIP-managed installs (no .git in the package). KEY=VALUE
 # lines; install.ps1's Write-BootstrapMarker reads `commit=` to keep the
-# desktop bootstrap marker valid without git metadata. The FILE NAME must stay
-# .wayne-engine-version until install.ps1's reader is renamed in lockstep.
+# desktop bootstrap marker valid without git metadata. Current install.ps1
+# reads .work4you-engine-version first and falls back to this name, so the
+# FILE NAME stays .wayne-engine-version for the benefit of the install.ps1
+# copies already published in the field.
 $commit = ""
 $branch = ""
 try {

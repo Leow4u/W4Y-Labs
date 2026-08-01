@@ -209,7 +209,8 @@ toolkit (a API só tem catalog/status/connect/attach/DELETE account) — então 
   toolkits/...` em qualquer nível — texto livre NUNCA casa, sem falso positivo em query). Erro
   claro pro modelo ("switched OFF for this session... do not retry"). Testado 9 casos unit.
 - **Entrega**: Dockerfile.projects agora COPIA `tools/approval.py` + `tools/mcp_tool.py`.
-- **GOTCHA install.ps1**: `WAYNE_SOURCE_ZIP_URL` NÃO aceita `file:///` ("scheme not supported") —
+- **GOTCHA install.ps1**: `WORK4YOU_SOURCE_ZIP_URL` (nome canónico; `WAYNE_SOURCE_ZIP_URL` ainda
+  é aceite como fallback) NÃO aceita `file:///` ("scheme not supported") —
   refresh in-place usa a URL https do bucket. Após refresh manual, atualizar TAMBÉM o marcador
   `%LOCALAPPDATA%\wayne\engine-version.json` (senão o chip oferece o mesmo update de novo;
   nome verificado em `apps/desktop/electron/w4y-wayne-resolve.cjs` — o doc dizia
@@ -269,7 +270,8 @@ tenant. Gotcha do flip: com `base_url` fora da openrouter.ai, o runtime prefere
 
 **Gotchas de empacotamento do motor.** `work4you update` **não funciona** em
 instalação por ZIP (update = re-correr o estágio `repository`), e
-`-IncludeDesktop` é incompatível com ZIP. `WAYNE_SOURCE_ZIP_URL` **não aceita
+`-IncludeDesktop` é incompatível com ZIP. `WORK4YOU_SOURCE_ZIP_URL` (legado
+`WAYNE_SOURCE_ZIP_URL` ainda aceite) **não aceita
 `file:///`** ("scheme not supported") — o refresh in-place usa a URL https do
 bucket. Depois de um refresh manual, actualizar também o marcador
 `engine-source.json`, senão o chip volta a oferecer o mesmo update.
