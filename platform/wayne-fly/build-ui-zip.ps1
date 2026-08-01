@@ -1,9 +1,11 @@
 # ============================================================================
 # Work4You UI-only package (web_dist)
 # ============================================================================
-# Builds a small ZIP of wayne_cli/web_dist for the desktop UI-only channel
-# (apps/desktop-shell/ui-update.cjs + ui-latest.json). Does NOT include the
-# Python motor — that stays on latest.json / wayne-engine-*.zip.
+# Builds a small ZIP of the CLI package's web_dist for the desktop UI-only
+# channel (ui-latest.json). Does NOT include the Python motor — that stays on
+# latest.json / work4you-engine-*.zip.
+# Package rename (brand migration): web_dist lives under work4you_cli/ in the
+# renamed tree and under wayne_cli/ in older checkouts — probe both, new first.
 #
 # Usage:
 #   cd wayne-agent/web && npm run build
@@ -21,9 +23,13 @@ if (-not $RepoRoot) {
     $RepoRoot = Join-Path $PSScriptRoot "..\..\wayne-agent"
 }
 $RepoRoot = (Resolve-Path $RepoRoot).ProviderPath
-$webDist = Join-Path $RepoRoot "wayne_cli\web_dist"
-if (-not (Test-Path (Join-Path $webDist "index.html"))) {
-    throw "web_dist missing or empty (run npm run build in wayne-agent/web first): $webDist"
+$webDist = $null
+foreach ($cliPkg in @("work4you_cli", "wayne_cli")) {
+    $candidate = Join-Path $RepoRoot (Join-Path $cliPkg "web_dist")
+    if (Test-Path (Join-Path $candidate "index.html")) { $webDist = $candidate; break }
+}
+if (-not $webDist) {
+    throw "web_dist missing or empty (run npm run build in wayne-agent/web first): looked in work4you_cli\web_dist and wayne_cli\web_dist under $RepoRoot"
 }
 
 if (-not $OutputPath) {

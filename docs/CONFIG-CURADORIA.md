@@ -13,7 +13,7 @@
 ## Contexto técnico
 
 - A tela de Configuração é um editor visual do arquivo `/opt/data/config.yaml` da instância do tenant (volume persistente exclusivo por usuário; caminho igual em todas as instâncias, discos separados).
-- Ela é dirigida pelo schema `/api/config/schema`, gerado automaticamente do `DEFAULT_CONFIG` ([wayne_cli/config.py](../wayne-agent/wayne_cli/config.py)) em [wayne_cli/web_server.py](../wayne-agent/wayne_cli/web_server.py): **~480 campos em ~36 categorias** (o menu exibe 15 na ordem fixa + extras em ordem alfabética).
+- Ela é dirigida pelo schema `/api/config/schema`, gerado automaticamente do `DEFAULT_CONFIG` ([work4you_cli/config.py](../wayne-agent/work4you_cli/config.py)) em [work4you_cli/web_server.py](../wayne-agent/work4you_cli/web_server.py): **~480 campos em ~36 categorias** (o menu exibe 15 na ordem fixa + extras em ordem alfabética).
 - Categorias pequenas são fundidas (`_CATEGORY_MERGE`): updates→general; context/skills/cron/network/checkpoints/code_execution/prompt_caching/goals/onboarding/computer_use→agent; privacy/approvals→security; human_delay/dashboard→display; telegram→discord.
 
 ## Plano de blocos (aprovado 06/07/2026)
@@ -438,7 +438,7 @@ Tudo só na instância `wayne-w4y` até aprovação final do pacote.
 
 | Controle (usuário) | Backing exato | Como ligar |
 |---|---|---|
-| **Instruções para a Work4You** (texto livre) | `SOUL.md` em WAYNE_HOME — slot de identidade nº1 do system prompt, injetado em TODA conversa (global, não só-código) | `api.updateProfileSoul('default', texto)` / `getProfileSoul('default')` (PUT /api/profiles/default/soul). **NÃO** é config.yaml. Efeito na próxima sessão; passa por filtro anti-injeção |
+| **Instruções para a Work4You** (texto livre) | `SOUL.md` em WORK4YOU_HOME — slot de identidade nº1 do system prompt, injetado em TODA conversa (global, não só-código) | `api.updateProfileSoul('default', texto)` / `getProfileSoul('default')` (PUT /api/profiles/default/soul). **NÃO** é config.yaml. Efeito na próxima sessão; passa por filtro anti-injeção |
 | **Aparência — tema** (botões) | `setTheme(chave)` do `useTheme()` → localStorage + PUT /api/dashboard/theme `{name}` | Chaves REAIS: `white`(Claro) · `mono`(Escuro) · `cyberpunk` · `rose`. Reusa hooks do ThemeSwitcher |
 | **Fonte** (dropdown) | `setFont(id)` → PUT /api/dashboard/font `{font}`; allow-list `FONT_CHOICES` | 14 fontes + `theme`(padrão do tema). Reusa `useTheme()`. NÃO é config.yaml dot-path |
 | **Notificações — memória** | `display.memory_notifications` (config.yaml) — enum `off`/`on`/`verbose`, default `on` | getConfig/saveConfig. Dropdown Desligado/Breve/Detalhado (NÃO toggle) |
@@ -489,7 +489,7 @@ Pivô: benchmark passa a ser **Manus web**; estrutura vira **Conta · Geral · P
 ## PERSONALIZAÇÃO
 - **Instruções personalizadas** ✅ — UM textarea = SOUL.md cru (PUT /api/profiles/default/soul), injetado como identidade em toda conversa. Absorve apelido/profissão/"mais sobre você"/persona em linguagem natural. Recomendado.
 - Campos separados (Apelido/Profissão/Mais sobre você) = net-new frágil (template+parse sobre o mesmo arquivo, com 2 editores). Não recomendado.
-- **Importar memória de outra AI** = sem lastro (só `wayne claw migrate` do OpenClaw via CLI). Workaround: colar no textarea de instruções. Deferir.
+- **Importar memória de outra AI** = sem lastro (só `work4you claw migrate` do OpenClaw via CLI). Workaround: colar no textarea de instruções. Deferir.
 
 ## Correções de valores (verificadas)
 - Tema "Escuro" = `mono` (não `black`); schema config `dashboard.theme` está STALE (não usar sua lista).
