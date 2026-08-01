@@ -1,25 +1,25 @@
 #!/usr/bin/env python3
 """
-Wayne Gateway - Standalone messaging platform integration.
+Work4You Gateway - Standalone messaging platform integration.
 
 This is the proper entry point for running the gateway as a service.
 NOT tied to the CLI - runs independently.
 
 Usage:
     # Run in foreground (for testing)
-    ./scripts/wayne-gateway
+    ./scripts/work4you-gateway
     
     # Install as systemd service
-    ./scripts/wayne-gateway install
+    ./scripts/work4you-gateway install
     
     # Manage the service
-    ./scripts/wayne-gateway start
-    ./scripts/wayne-gateway stop
-    ./scripts/wayne-gateway restart
-    ./scripts/wayne-gateway status
+    ./scripts/work4you-gateway start
+    ./scripts/work4you-gateway stop
+    ./scripts/work4you-gateway restart
+    ./scripts/work4you-gateway status
     
     # Uninstall
-    ./scripts/wayne-gateway uninstall
+    ./scripts/work4you-gateway uninstall
 """
 
 import argparse
@@ -45,7 +45,7 @@ if env_path.exists():
 # Service Configuration
 # =============================================================================
 
-SERVICE_NAME = "wayne-gateway"
+SERVICE_NAME = "work4you-gateway"
 SERVICE_DESCRIPTION = "Wayne Agent Gateway - Messaging Platform Integration"
 
 def get_systemd_unit_path() -> Path:
@@ -312,19 +312,19 @@ def main():
         epilog="""
 Examples:
     # Run in foreground (for testing)
-    ./scripts/wayne-gateway run
+    ./scripts/work4you-gateway run
     
     # Install as system service
-    ./scripts/wayne-gateway install
+    ./scripts/work4you-gateway install
     
     # Manage the service
-    ./scripts/wayne-gateway start
-    ./scripts/wayne-gateway stop
-    ./scripts/wayne-gateway restart
-    ./scripts/wayne-gateway status
+    ./scripts/work4you-gateway start
+    ./scripts/work4you-gateway stop
+    ./scripts/work4you-gateway restart
+    ./scripts/work4you-gateway status
     
     # Uninstall
-    ./scripts/wayne-gateway uninstall
+    ./scripts/work4you-gateway uninstall
 
 Configuration:
     Set environment variables in .env file or system environment:
@@ -363,7 +363,7 @@ Configuration:
             install_launchd()
         else:
             print("Service installation not supported on this platform.")
-            print("Please run manually: ./scripts/wayne-gateway run")
+            print("Please run manually: ./scripts/work4you-gateway run")
             sys.exit(1)
     
     elif args.command == "uninstall":
