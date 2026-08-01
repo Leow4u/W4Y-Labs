@@ -1,14 +1,20 @@
 # ============================================================================
 # Work4You engine ZIP builder
 # ============================================================================
-# Packages the Wayne engine source (wayne-agent/) from the current checkout
+# Packages the Work4You engine source (wayne-agent/) from the current checkout
 # into the distribution ZIP that scripts/install.ps1 consumes via
 # WAYNE_SOURCE_ZIP_URL (see Get-EngineSourceFromZip there -- keep the layout
-# contract in lockstep).
+# contract in lockstep) and that the desktop in-app updater downloads via
+# latest.json's zipUrl (apps/desktop/electron/w4y-wayne-resolve.cjs).
 #
 # Layout contract produced here:
-#   wayne-engine-<date>.zip
-#     wayne-agent/              <- single top-level folder (any name works)
+#   work4you-engine-<date>.zip
+#     work4you-agent/           <- single top-level folder. Every consumer is
+#                                  name-agnostic (install.ps1 probes for
+#                                  pyproject.toml in a wrapped-or-flat layout;
+#                                  the desktop resolver probes any top-level
+#                                  dir for the CLI entry module), so the name
+#                                  is branding only.
 #       pyproject.toml          <- REQUIRED at the folder root (installer probe)
 #       uv.lock
 #       README.md               <- placeholder created if the checkout has none
@@ -17,8 +23,28 @@
 #                                  cloud Dockerfile does the same `touch`)
 #       .wayne-engine-version   <- KEY=VALUE source pin (commit/branch/built);
 #                                  read by install.ps1's Write-BootstrapMarker
-#                                  since ZIP installs carry no .git metadata
-#       agent/ tools/ wayne_cli/ (incl. web_dist) gateway/ tui_gateway/ ...
+#                                  since ZIP installs carry no .git metadata.
+#                                  NAME STAYS .wayne-engine-version: the reader
+#                                  lives in wayne-agent/scripts/install.ps1 and
+#                                  renames there ride the engine PR train, not
+#                                  this script.
+#       agent/ tools/ work4you_cli/ (incl. web_dist) wayne_cli/ (compat stub)
+#       gateway/ tui_gateway/ ...
+#
+# Feed-cut compatibility (verified 01/08 against the published field state):
+#   - The updater NEVER inspects the artifact filename or the inner dir name.
+#     It fetches latest.json, compares version/builtAt against the local
+#     engine-version.json marker, and blindly downloads zipUrl. Renaming the
+#     artifact is inert by itself; the update fires when latest.json's
+#     version/builtAt changes (every publish does that anyway).
+#   - CONTENT is the cliff, not the name: cascas <= 1.0.45 validate the
+#     extracted tree by probing wayne_cli/main.py. A ZIP built from a checkout
+#     where the CLI package is work4you_cli/ (wayne_cli/ reduced to a stub
+#     without main.py) is REJECTED by those cascas (fail-safe: the old engine
+#     stays live). Do NOT point latest.json at a renamed-tree build until the
+#     casca containing the dual-spelling resolver (commit ee28fea) has been
+#     published AND applied by users -- or a wayne_cli/main.py shim ships in
+#     the package.
 #
 # Excluded from the package:
 #   apps/      -- the desktop app; the app never installs itself
@@ -31,14 +57,14 @@
 #   pwsh platform/wayne-fly/build-engine-zip.ps1 [-OutputPath <file.zip>]
 #
 # The ZIP is then uploaded (manually, with the machine's GCP credentials) to
-# the bucket whose public URL becomes WAYNE_SOURCE_ZIP_URL.
+# the bucket whose public URL becomes WAYNE_SOURCE_ZIP_URL / latest.json zipUrl.
 # ============================================================================
 
 param(
     # Root of the engine source checkout. Defaults to the sibling wayne-agent/
     # relative to this script (platform/wayne-fly/ -> repo root -> wayne-agent).
     [string]$RepoRoot = "",
-    # Destination ZIP path. Defaults to %TEMP%\wayne-engine-<yyyyMMdd>.zip.
+    # Destination ZIP path. Defaults to %TEMP%\work4you-engine-<yyyyMMdd>.zip.
     [string]$OutputPath = "",
     # Keep the staging directory around for inspection instead of deleting it.
     [switch]$KeepStage
@@ -55,11 +81,11 @@ if (-not (Test-Path (Join-Path $RepoRoot "pyproject.toml"))) {
 }
 
 if (-not $OutputPath) {
-    $OutputPath = Join-Path $env:TEMP ("wayne-engine-{0}.zip" -f (Get-Date -Format "yyyyMMdd"))
+    $OutputPath = Join-Path $env:TEMP ("work4you-engine-{0}.zip" -f (Get-Date -Format "yyyyMMdd"))
 }
 
-$stageRoot = Join-Path $env:TEMP "wayne-engine-stage"
-$stageDir  = Join-Path $stageRoot "wayne-agent"
+$stageRoot = Join-Path $env:TEMP "work4you-engine-stage"
+$stageDir  = Join-Path $stageRoot "work4you-agent"
 if (Test-Path $stageRoot) { Remove-Item -Recurse -Force $stageRoot }
 New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
 
@@ -72,18 +98,23 @@ $xdTopLevel = @(
     (Join-Path $RepoRoot "apps"),
     (Join-Path $RepoRoot "tests"),
     (Join-Path $RepoRoot "release"),
-    # UI SOURCES must not ship: the engine serves the prebuilt wayne_cli/web_dist,
-    # and if web/ sources are present the serve startup's mtime staleness check
-    # triggers an npm rebuild that fails on a user machine (no @wayne/shared —
-    # apps/ is excluded — and no dev deps). Real incident: first 0.3.0 install
-    # timed out on boot exactly this way. ui-tui/ ships out for the same reason.
+    # UI SOURCES must not ship: the engine serves the prebuilt web_dist, and if
+    # web/ sources are present the serve startup's mtime staleness check
+    # triggers an npm rebuild that fails on a user machine (no workspace shared
+    # package — apps/ is excluded — and no dev deps). Real incident: first
+    # 0.3.0 install timed out on boot exactly this way. ui-tui/ ships out for
+    # the same reason.
     (Join-Path $RepoRoot "web"),
     (Join-Path $RepoRoot "ui-tui")
 )
 $xdAnyDepth = @(
     ".git", "node_modules", "__pycache__", ".venv", "venv",
-    ".pytest_cache", ".ruff_cache", ".mypy_cache",
-    "wayne_agent.egg-info"
+    # Both spellings exist in the wild: pytest's own dir is .pytest_cache, but
+    # the checkout also carries a .pytest-cache (hyphen) that used to ship.
+    ".pytest_cache", ".pytest-cache", ".ruff_cache", ".mypy_cache",
+    # Both spellings: the dist name is migrating wayne-agent -> work4you-agent,
+    # and a checkout may carry either (or both) egg-info dirs.
+    "wayne_agent.egg-info", "work4you_agent.egg-info"
 )
 # Files excluded at any depth. `.env` holds real secrets in the checkout root
 # and must never ship; `.env.example` is a different name and is kept.
@@ -106,7 +137,8 @@ if (-not (Test-Path $readmePath)) {
 
 # Source pin for ZIP-managed installs (no .git in the package). KEY=VALUE
 # lines; install.ps1's Write-BootstrapMarker reads `commit=` to keep the
-# desktop bootstrap marker valid without git metadata.
+# desktop bootstrap marker valid without git metadata. The FILE NAME must stay
+# .wayne-engine-version until install.ps1's reader is renamed in lockstep.
 $commit = ""
 $branch = ""
 try {
@@ -135,8 +167,8 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 Write-Host "-> Compressing to $OutputPath"
 if (Test-Path $OutputPath) { Remove-Item -Force $OutputPath }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
-# includeBaseDirectory=$true wraps everything in a single wayne-agent/ folder,
-# the layout install.ps1's Get-EngineSourceFromZip resolves first.
+# includeBaseDirectory=$true wraps everything in a single work4you-agent/
+# folder, the layout install.ps1's Get-EngineSourceFromZip resolves first.
 [System.IO.Compression.ZipFile]::CreateFromDirectory(
     $stageDir, $OutputPath,
     [System.IO.Compression.CompressionLevel]::Optimal, $true)
@@ -146,6 +178,18 @@ $sizeMb = [Math]::Round($zipItem.Length / 1MB, 1)
 Write-Host ""
 Write-Host "[OK] Engine package built: $OutputPath ($sizeMb MB)"
 Write-Host "     commit=$commit branch=$branch"
+
+# Publish-time guardrail for the field cut (see header): cascas <= 1.0.45
+# probe wayne_cli/main.py in the extracted tree. Warn loudly when this build
+# would be rejected by them so nobody points latest.json at it by accident.
+$legacyEntry = Join-Path $stageDir "wayne_cli\main.py"
+$newEntry    = Join-Path $stageDir "work4you_cli\main.py"
+if ((Test-Path $newEntry) -and -not (Test-Path $legacyEntry)) {
+    Write-Warning ("This package has work4you_cli/main.py but NO wayne_cli/main.py: " +
+        "desktop cascas <= 1.0.45 will REJECT it as an engine update. " +
+        "Publish (and get applied) a casca with the dual-spelling resolver first.")
+}
+
 Write-Host ""
 Write-Host "Top-level contents:"
 Get-ChildItem $stageDir | Sort-Object { -not $_.PSIsContainer }, Name | ForEach-Object {

@@ -63,9 +63,9 @@ claude-code · codex · opencode · wayne-agent.
 **Marketing waves (stay optional / featured catalog only):** hyperframes ·
 baoyu-comic · stocks · lbo-model · adversarial-ux-test · scrapling.
 
-Constant: `wayne_cli.skills_config.KIT_TRIMMED_TO_OPTIONAL_SKILLS`.
+Constant: `work4you_cli.skills_config.KIT_TRIMMED_TO_OPTIONAL_SKILLS`.
 
-**Agent hub install blocked (30/07):** hardline on `wayne skills install|update|
+**Agent hub install blocked (30/07):** hardline on `work4you skills install|update|
 snapshot import`; `do_install` refuses `WAYNE_IN_AGENT_TOOL=1` (terminal /
 execute_code). `skill_manage` (learned methods) unchanged. Sync no longer
 backfills demoted optional leftovers into `.hub/lock.json` — it purges them.
@@ -113,8 +113,9 @@ xurl (X/Twitter pago) · yuanbao (Tencent)
 
 > **Estado:** saíram de `skills/` → `optional-skills/` (não entram no kit default).
 > Config migrate `_config_version` 34 uniõe estes nomes em `skills.disabled` para
-> cópias já semeadas em `~/.wayne/skills/`. Lar de produto = **Conectores**
-> (Composio). Constante: `wayne_cli.skills_config.CONNECTOR_DISGUISED_SKILLS`.
+> cópias já semeadas em `~/.work4you/skills/` (home migrado do antigo `~/.wayne/`).
+> Lar de produto = **Conectores** (Composio).
+> Constante: `work4you_cli.skills_config.CONNECTOR_DISGUISED_SKILLS`.
 
 ## ⚫ Incompatíveis / nicho (27) — ficam internas (`?full=1`)
 

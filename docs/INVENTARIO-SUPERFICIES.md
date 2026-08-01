@@ -24,7 +24,7 @@ fórmula nativa no motor + Conectores como única porta para contas/BYO + Skills
 = learned/Hub — ver `PRODUTO.md`. Não tratar essas abas como spec ao planear
 UI.
 
-**Método:** três varreduras paralelas sobre `tools/`, `toolsets.py`, `wayne_cli/`, `acp_adapter/`, `tui_gateway/`, `wayne_cli/web_server.py`, `apps/desktop/{src,electron}`. "CHAMADO" = referência literal encontrada no cliente. Métodos montados dinamicamente escapariam à deteção.
+**Método:** três varreduras paralelas sobre `tools/`, `toolsets.py`, `work4you_cli/` (à data da auditoria ainda `wayne_cli/`), `acp_adapter/`, `tui_gateway/`, `work4you_cli/web_server.py`, `apps/desktop/{src,electron}`. "CHAMADO" = referência literal encontrada no cliente. Métodos montados dinamicamente escapariam à deteção.
 
 ---
 
@@ -47,7 +47,7 @@ About e Settings → General **ficaram**: chamam `startActiveUpdate()`, a mesma 
 
 **Endereços corrigidos** em `hermes.ts` (`/api/hermes/update*` → `/api/wayne/update*`). Isto importa no modo remoto: o alvo realista é o nosso tenant na Fly, que corre em contentor, onde `_dashboard_local_update_managed_externally()` devolve `can_apply: false` e o `mapBackendCheck` traduz isso em "não suportado". Antes o mesmo cenário dava `check-failed` por 404.
 
-**Resíduo conhecido:** um desktop em modo remoto apontado a uma instalação git fora de contentor chega a executar `wayne update`, que neste fork imprime um aviso de desativado e sai com código 0 — o store leria isso como sucesso. Cenário de programador, não de utilizador. A cura definitiva é apagar o conceito de "update do backend" do desktop, que pertence à unificação mais ampla.
+**Resíduo conhecido:** um desktop em modo remoto apontado a uma instalação git fora de contentor chega a executar `work4you update`, que neste fork imprime um aviso de desativado e sai com código 0 — o store leria isso como sucesso. Cenário de programador, não de utilizador. A cura definitiva é apagar o conceito de "update do backend" do desktop, que pertence à unificação mais ampla.
 
 ### 1.2 Histórico de conectores nunca foi ligado
 
@@ -86,7 +86,7 @@ O caso mais literal de *"o que o motor tem versus o que a UI expõe"*: aqui a UI
 
 O `acp_adapter/edit_approval.py` recusa auto-aprovar edições a `.env`, chaves SSH e ao interior de `.git` — *"sensitive paths still ask even under autonomous policies"*. Essa regra nunca correu fora do ACP: o requester é preso num `ContextVar` durante uma execução ACP e, como o próprio ficheiro documenta na linha 5, *"CLI, gateway, and other sessions leave it unset and therefore bypass this guard"*.
 
-O que isso queria dizer na prática, e é maior do que parecia: **`tools/file_tools.py` não tem portão de aprovação nenhum.** A sua única proteção é uma recusa dura em caminhos de sistema e no `~/.wayne/config.yaml`. Editar o `.env` de um projeto pelo desktop nunca pediu autorização — em modo nenhum, não só em bypass.
+O que isso queria dizer na prática, e é maior do que parecia: **`tools/file_tools.py` não tem portão de aprovação nenhum.** A sua única proteção é uma recusa dura em caminhos de sistema e no `~/.work4you/config.yaml` (home migrado; antes `~/.wayne/`). Editar o `.env` de um projeto pelo desktop nunca pediu autorização — em modo nenhum, não só em bypass.
 
 A regra foi colhida para `tools/approval.py` como **piso**, não como modo: corre antes da verificação de bypass, porque YOLO e `approvals.mode: off` compram trabalho não vigiado no projeto, não reescritas silenciosas das credenciais lá dentro. Fica acima do piso de ficheiros de política, que recusa em absoluto o `config.yaml`/`.env` do próprio Wayne — um `.env` de projeto é do utilizador, por isso este pergunta em vez de recusar. Ligado em `model_tools.py` ao lado do gancho ACP, e saltado quando o requester ACP está preso, para não perguntar duas vezes no mesmo editor.
 
@@ -176,7 +176,7 @@ Plataforma: `wayne-cli`, `wayne-cron`, `wayne-gateway`, `wayne-api-server`, `way
 
 ### 3.4 Comandos slash
 
-`COMMAND_REGISTRY` em `wayne_cli/commands.py` — cerca de 90 comandos.
+`COMMAND_REGISTRY` em `work4you_cli/commands.py` — cerca de 90 comandos.
 
 | Escopo | Comandos |
 |---|---|
@@ -189,16 +189,16 @@ Plataforma: `wayne-cli`, `wayne-cron`, `wayne-gateway`, `wayne-api-server`, `way
 
 | Subsistema | Núcleo | CLI | Config |
 |---|---|---|---|
-| Cron / automações | `cron/jobs.py`, `cron/scheduler.py`, `tools/blueprints.py` | `wayne cron` | scheduler tick |
-| Kanban | `tools/kanban_tools.py`, `plugins/kanban/` | `wayne kanban` | `kanban.*` |
-| Curator | `agent/curator.py`, `agent/curator_backup.py` | `wayne curator` | `curator.*` |
-| Memória (providers) | ABC `agent/memory_provider.py`, orquestrador `agent/memory_manager.py`, 8 providers em `plugins/memory/` | `wayne memory` | `memory.provider` |
-| Cliente MCP | `tools/mcp_tool.py` | `wayne mcp` | servidores + OAuth |
-| Skills | `skills/` (~77) + `optional-skills/` (~97) | `wayne skills` | enable + `platforms:` |
+| Cron / automações | `cron/jobs.py`, `cron/scheduler.py`, `tools/blueprints.py` | `work4you cron` | scheduler tick |
+| Kanban | `tools/kanban_tools.py`, `plugins/kanban/` | `work4you kanban` | `kanban.*` |
+| Curator | `agent/curator.py`, `agent/curator_backup.py` | `work4you curator` | `curator.*` |
+| Memória (providers) | ABC `agent/memory_provider.py`, orquestrador `agent/memory_manager.py`, 8 providers em `plugins/memory/` | `work4you memory` | `memory.provider` |
+| Cliente MCP | `tools/mcp_tool.py` | `work4you mcp` | servidores + OAuth |
+| Skills | `skills/` (~77) + `optional-skills/` (~97) | `work4you skills` | enable + `platforms:` |
 | Delegação | `tools/delegate_tool.py`, `tools/async_delegation.py` | — | `delegation.*` |
 | Ambientes de terminal | `tools/environments/{local,local_desktop,docker,ssh,singularity,modal,managed_modal,daytona}.py` | — | `terminal.backend` |
 | Registos de providers | `agent/{image_gen,video_gen,browser,web_search,tts,transcription}_registry.py` | — | credenciais |
-| Providers de modelo | `plugins/model-providers/` | `wayne model`, `wayne login` | auth |
+| Providers de modelo | `plugins/model-providers/` | `work4you model`, `work4you login` | auth |
 
 ---
 
@@ -259,8 +259,8 @@ Ligar o ACP não recupera nada do que está visível no desktop hoje. Dá o Work
 |---|---|
 | Desktop lança `serve --host 127.0.0.1 --port 0` | `electron/backend-command.cjs:20-23`; spawn em `main.cjs:5486`, `5703-5750` |
 | Fallback para `dashboard --no-open` | `backend-command.cjs:31-35` |
-| `serve` e `dashboard` partilham handler → `web_server.start_server` | `wayne_cli/subcommands/dashboard.py:1-22`, `86-95` |
-| REST `/api/*` | `wayne_cli/web_server.py` (FastAPI) via IPC `hermes:api` (`main.cjs:6697`) |
+| `serve` e `dashboard` partilham handler → `web_server.start_server` | `work4you_cli/subcommands/dashboard.py:1-22`, `86-95` |
+| REST `/api/*` | `work4you_cli/web_server.py` (FastAPI) via IPC `hermes:api` (`main.cjs:6697`) |
 | JSON-RPC `WS /api/ws` | `web_server.py:16410` → `tui_gateway.ws.handle_ws` → `dispatch` |
 | WS não usados pelo desktop | `/api/pty`, `/api/pub`, `/api/events`, `/api/console` |
 
@@ -365,7 +365,7 @@ Chaves do motor sem UI nenhuma: `display.tool_progress`, `display.tool_progress_
 
 | Aba (`app/skills/`) | Estado após UI 29/07 | Destino produto ([PRODUTO.md](PRODUTO.md#fórmula-vs-conectores)) |
 |---|---|---|
-| Skills | `agent` + `project` (+ hub legado); sem toggles; sem CTA Hub | Learned + `<cwd>/.wayne/skills`; kit = fórmula |
+| Skills | `agent` + `project` (+ hub legado); sem toggles; sem CTA Hub | Learned + `<cwd>/.work4you/skills` (dual-scan aceita `.wayne`); kit = fórmula |
 | Tools / toolsets | **Removida da face** | Fora da face — decisão de plataforma no motor |
 | Conectores | Mantém | Única porta contas/BYO |
 | MCP | **Removida da face** | Tubagem sob Conectores / motor |
@@ -373,7 +373,7 @@ Chaves do motor sem UI nenhuma: `display.tool_progress`, `display.tool_progress_
 
 **Resíduo motor (não é UI):** providers Nous/BYO e toolsets activos no `config.yaml` / runtime — a fórmula ainda não força defaults de plataforma no backend; só a face deixou de expô-los.
 
-**Gates (29/07):** `web.backend` / `image_gen.provider` / `video_gen.provider` configurados mas **sem credencial** já não são escolhidos no dispatch — caem para backend disponível (ex. OpenRouter, Parallel) ou a tool some do schema. Erros deixam de pedir `wayne tools` / `FAL_KEY` ao agente.
+**Gates (29/07):** `web.backend` / `image_gen.provider` / `video_gen.provider` configurados mas **sem credencial** já não são escolhidos no dispatch — caem para backend disponível (ex. OpenRouter, Parallel) ou a tool some do schema. Erros deixam de pedir `work4you tools` / `FAL_KEY` ao agente.
 
 ---
 
