@@ -57,6 +57,32 @@ def test_setup_path_shim_block_removes_old_link_before_writing() -> None:
     )
 
 
+def test_setup_path_installs_canonical_and_legacy_launchers() -> None:
+    """`work4you` is the canonical launcher; `wayne` stays as an alias.
+
+    Brand migration: fresh installs must expose ``work4you`` on PATH, and the
+    old name has to keep working (service units, the updater's relaunch, and
+    every install made before the rebrand still invoke ``wayne``).  The alias
+    is written as a second PLAIN FILE, never a symlink — a symlink at either
+    path reintroduces the #21454 stomp class, and not every filesystem we
+    install onto (Termux, exFAT) supports them.
+    """
+    block = _extract_setup_path_shim_block()
+    for name in ("work4you", "wayne"):
+        rm_idx = block.find(f'rm -f "$command_link_dir/{name}"')
+        cat_idx = block.find(f'cat > "$command_link_dir/{name}" <<EOF')
+        chmod_idx = block.find(f'chmod +x "$command_link_dir/{name}"')
+        assert rm_idx != -1, f"setup_path() must rm the old {name} launcher first"
+        assert cat_idx != -1, f"setup_path() must write the {name} launcher"
+        assert chmod_idx != -1, f"the {name} launcher must be made executable"
+        assert rm_idx < cat_idx < chmod_idx, (
+            f"{name}: expected rm -> cat -> chmod order"
+        )
+    assert "ln -s" not in block, (
+        "the launchers must be plain files, not symlinks (#21454)"
+    )
+
+
 def test_re_running_setup_path_block_preserves_pip_entry_point(tmp_path: Path) -> None:
     """Behavioral repro: simulate prior-install symlink + new-install heredoc.
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Wayne Agent Installer
+# Work4You Installer
 # ============================================================================
 # Installation script for Linux, macOS, and Android/Termux.
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
@@ -44,10 +44,27 @@ BOLD='\033[1m'
 
 # Configuration
 # Source resolution (Work4You distribution model): the engine git remote comes
-# from the environment (WAYNE_SOURCE_REPO_URL) — mirrors install.ps1. Nothing
-# is ever fetched from a hardcoded upstream repo.
-SOURCE_REPO_URL="${WAYNE_SOURCE_REPO_URL:-}"
-WAYNE_HOME="${WAYNE_HOME:-$HOME/.wayne}"
+# from the environment — mirrors install.ps1. WORK4YOU_SOURCE_REPO_URL is the
+# canonical name; the legacy WAYNE_SOURCE_REPO_URL still works so runners and
+# CI jobs configured before the rebrand keep installing. Nothing is ever
+# fetched from a hardcoded upstream repo.
+SOURCE_REPO_URL="${WORK4YOU_SOURCE_REPO_URL:-${WAYNE_SOURCE_REPO_URL:-}}"
+
+# Data home.  WORK4YOU_HOME is the canonical env var; WAYNE_HOME is still read
+# (the engine uses that spelling internally, and installs predating the rebrand
+# persisted it).  When neither is set the default is resolved by
+# resolve_home_layout() after arg parsing: ~/.work4you for fresh installs, an
+# existing ~/.wayne adopted in place so nothing is ever duplicated.
+WAYNE_HOME="${WORK4YOU_HOME:-${WAYNE_HOME:-}}"
+if [ -n "$WAYNE_HOME" ]; then
+    HOME_EXPLICIT=true
+else
+    HOME_EXPLICIT=false
+fi
+WORK4YOU_DEFAULT_HOME="$HOME/.work4you"
+LEGACY_DEFAULT_HOME="$HOME/.wayne"
+# Set by resolve_home_layout() when a pre-rebrand home is adopted in place.
+LEGACY_HOME_ADOPTED=false
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
@@ -144,8 +161,11 @@ while [[ $# -gt 0 ]]; do
             INSTALL_DIR_EXPLICIT=true
             shift 2
             ;;
-        --wayne-home)
+        --work4you-home|--wayne-home)
+            # --wayne-home is a silent legacy alias: desktop bootstrap runners
+            # and scripted installs predating the rebrand still pass it.
             WAYNE_HOME="$2"
+            HOME_EXPLICIT=true
             shift 2
             ;;
         --ensure)
@@ -157,7 +177,7 @@ while [[ $# -gt 0 ]]; do
             shift
             ;;
         -h|--help)
-            echo "Wayne Agent Installer"
+            echo "Work4You Installer"
             echo ""
             echo "Usage: install.sh [OPTIONS]"
             echo ""
@@ -166,34 +186,36 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-setup   Skip interactive setup wizard"
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
             echo "  --no-skills    Start with a blank slate — seed no bundled skills, and"
-            echo "                   write \$WAYNE_HOME/.no-bundled-skills so future"
-            echo "                   'wayne update' runs never inject bundled skills either"
+            echo "                   write \$WORK4YOU_HOME/.no-bundled-skills so future"
+            echo "                   'work4you update' runs never inject bundled skills either"
             echo "  --branch NAME  Git branch to install (default: main)"
             echo "  --commit SHA   Pin checkout to a specific commit after clone/update"
             echo "  --manifest     Print desktop bootstrap stage manifest as JSON"
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Wayne.app)"
+            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Work4You.app)"
             echo "  --dir PATH     Installation directory"
-            echo "                   default (non-root):  ~/.wayne/wayne-agent"
-            echo "                   default (root, Linux): /usr/local/lib/wayne-agent"
-            echo "  --wayne-home PATH  Data directory (default: ~/.wayne, or \$WAYNE_HOME)"
+            echo "                   default (non-root):  ~/.work4you/work4you-agent"
+            echo "                   default (root, Linux): /usr/local/lib/work4you-agent"
+            echo "  --work4you-home PATH  Data directory (default: ~/.work4you, or"
+            echo "                   \$WORK4YOU_HOME)"
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
-            echo "  When running as root on Linux, Wayne installs the code under"
-            echo "  /usr/local/lib/wayne-agent and links the command into"
-            echo "  /usr/local/bin/wayne (FHS layout — matches Claude Code / Codex CLI)."
-            echo "  Data, config, sessions, and logs still live in \$WAYNE_HOME"
-            echo "  (default /root/.wayne).  This keeps Docker bind-mounted volumes"
+            echo "  When running as root on Linux, Work4You installs the code under"
+            echo "  /usr/local/lib/work4you-agent and links the command into"
+            echo "  /usr/local/bin/work4you (FHS layout — matches Claude Code / Codex CLI)."
+            echo "  Data, config, sessions, and logs still live in \$WORK4YOU_HOME"
+            echo "  (default /root/.work4you).  This keeps Docker bind-mounted volumes"
             echo "  small and ensures the command is on PATH for all shells."
-            echo "  Existing installs at \$WAYNE_HOME/wayne-agent are preserved in-place."
+            echo "  A pre-rebrand install (~/.wayne, wayne-agent/) is updated in place —"
+            echo "  never duplicated; the engine moves its data on the next run."
             echo "  --ensure DEPS  Install only specified deps (comma-separated)"
             echo "                   Supported: node, browser, ripgrep, ffmpeg"
             echo "                   Does NOT clone repo or create venv"
             echo "  --postinstall  Run post-install setup only (for pip users)"
-            echo "                   Installs optional deps + runs wayne setup"
+            echo "                   Installs optional deps + runs work4you setup"
             echo "                   Does NOT clone repo or create venv"
             exit 0
             ;;
@@ -212,9 +234,9 @@ print_banner() {
     echo ""
     echo -e "${MAGENTA}${BOLD}"
     echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│             ⚕ Wayne Agent Installer                    │"
+    echo "│             ⚕ Work4You Installer                       │"
     echo "├─────────────────────────────────────────────────────────┤"
-    echo "│  An open source AI agent by Nous Research.              │"
+    echo "│  Work4You — your AI digital employee.                   │"
     echo "└─────────────────────────────────────────────────────────┘"
     echo -e "${NC}"
 }
@@ -322,7 +344,7 @@ emit_manifest() {
     if [ "$INCLUDE_DESKTOP" = true ]; then
         desktop_stage='{"name":"desktop","title":"Build desktop app","category":"runtime","needs_user_input":false},'
     fi
-    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download Wayne Agent","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install wayne command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
+    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download Work4You","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install work4you command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
     printf '\n'
 }
 
@@ -390,29 +412,86 @@ is_termux() {
     [ -n "${TERMUX_VERSION:-}" ] || [[ "${PREFIX:-}" == *"com.termux/files/usr"* ]]
 }
 
-# Decide where the repo checkout + venv live, and where the `wayne` command
-# symlink goes.  Called after detect_os so $OS/$DISTRO are known.
+# Resolve the data home when the user gave us neither $WORK4YOU_HOME /
+# $WAYNE_HOME nor --work4you-home.
+#
+#   1. ~/.work4you exists            → use it (fresh installs and machines the
+#                                      engine already migrated)
+#   2. ~/.wayne exists with content  → ADOPT IT IN PLACE.  A pre-rebrand install
+#                                      keeps its data exactly where it is; the
+#                                      engine's first-run migration
+#                                      (work4you_cli/home_migration.py) moves it
+#                                      to ~/.work4you and re-execs.  Creating a
+#                                      second home here would strand that data:
+#                                      the migration refuses to run when both
+#                                      roots hold content.
+#   3. otherwise                     → ~/.work4you
+#
+# Silent by design: --manifest prints pure JSON on stdout, so this must not log.
+# The user-facing notice lives in resolve_install_layout().
+resolve_home_layout() {
+    [ "$HOME_EXPLICIT" = true ] && return 0
+
+    if [ -d "$WORK4YOU_DEFAULT_HOME" ]; then
+        WAYNE_HOME="$WORK4YOU_DEFAULT_HOME"
+        return 0
+    fi
+    if [ -d "$LEGACY_DEFAULT_HOME" ] \
+            && [ -n "$(ls -A "$LEGACY_DEFAULT_HOME" 2>/dev/null)" ]; then
+        WAYNE_HOME="$LEGACY_DEFAULT_HOME"
+        LEGACY_HOME_ADOPTED=true
+        return 0
+    fi
+    WAYNE_HOME="$WORK4YOU_DEFAULT_HOME"
+}
+
+# Engine checkout directory under a given root.  Fresh installs get
+# <root>/work4you-agent; an existing <root>/wayne-agent checkout is reused in
+# place so a pre-rebrand install is updated, never duplicated.  (The desktop
+# engine resolver accepts both directory names.)
+resolve_engine_dir() {
+    local root="$1"
+    if [ -d "$root/work4you-agent" ]; then
+        echo "$root/work4you-agent"
+    elif [ -d "$root/wayne-agent" ]; then
+        echo "$root/wayne-agent"
+    else
+        echo "$root/work4you-agent"
+    fi
+}
+
+# Decide where the repo checkout + venv live, and where the `work4you` command
+# shim goes.  Called after detect_os so $OS/$DISTRO are known.
 #
 # Defaults:
-#   - Non-root, any OS:       INSTALL_DIR = $WAYNE_HOME/wayne-agent
+#   - Non-root, any OS:       INSTALL_DIR = $WORK4YOU_HOME/work4you-agent
 #                             command link in $HOME/.local/bin
-#   - Termux (any uid):       INSTALL_DIR = $WAYNE_HOME/wayne-agent
+#   - Termux (any uid):       INSTALL_DIR = $WORK4YOU_HOME/work4you-agent
 #                             command link in $PREFIX/bin (already on PATH)
-#   - Root on Linux (new):    INSTALL_DIR = /usr/local/lib/wayne-agent
+#   - Root on Linux (new):    INSTALL_DIR = /usr/local/lib/work4you-agent
 #                             command link in /usr/local/bin
-#                             (unless a legacy install already exists at
-#                              $WAYNE_HOME/wayne-agent — then preserve it)
+#                             (unless an install already exists at
+#                              $WORK4YOU_HOME/<engine dir> — then preserve it)
+#
+# A pre-rebrand checkout (wayne-agent/, /usr/local/lib/wayne-agent) is reused
+# in place — see resolve_engine_dir().
 #
 # Always no-op when the user set --dir or $WAYNE_INSTALL_DIR.
 resolve_install_layout() {
+    if [ "$LEGACY_HOME_ADOPTED" = true ]; then
+        log_info "Existing Work4You data home detected at $WAYNE_HOME (pre-rebrand layout)"
+        log_info "  Updating it in place — nothing is copied, moved, or removed here."
+        log_info "  The engine relocates its own data to $WORK4YOU_DEFAULT_HOME on its next run."
+    fi
+
     if [ "$INSTALL_DIR_EXPLICIT" = true ]; then
         log_info "Install directory: $INSTALL_DIR (explicit)"
         return 0
     fi
 
-    # Termux: package manager manages /data/data/..., keep code in WAYNE_HOME.
+    # Termux: package manager manages /data/data/..., keep code in the home.
     if is_termux; then
-        INSTALL_DIR="$WAYNE_HOME/wayne-agent"
+        INSTALL_DIR="$(resolve_engine_dir "$WAYNE_HOME")"
         return 0
     fi
 
@@ -420,31 +499,36 @@ resolve_install_layout() {
     # macOS root installs keep the legacy layout because /usr/local/ on macOS
     # is Homebrew territory and we don't want to fight that.
     if [ "$OS" = "linux" ] && [ "$(id -u)" -eq 0 ]; then
-        if [ -d "$WAYNE_HOME/wayne-agent/.git" ]; then
-            INSTALL_DIR="$WAYNE_HOME/wayne-agent"
+        if [ -d "$WAYNE_HOME/work4you-agent/.git" ] || [ -d "$WAYNE_HOME/wayne-agent/.git" ]; then
+            INSTALL_DIR="$(resolve_engine_dir "$WAYNE_HOME")"
             log_info "Existing install detected at $INSTALL_DIR — keeping legacy layout"
-            log_info "  (new root installs use /usr/local/lib/wayne-agent)"
+            log_info "  (new root installs use /usr/local/lib/work4you-agent)"
             return 0
         fi
-        INSTALL_DIR="/usr/local/lib/wayne-agent"
+        if [ -d "/usr/local/lib/wayne-agent" ] && [ ! -d "/usr/local/lib/work4you-agent" ]; then
+            # Pre-rebrand FHS install: update it where it is.
+            INSTALL_DIR="/usr/local/lib/wayne-agent"
+        else
+            INSTALL_DIR="/usr/local/lib/work4you-agent"
+        fi
         ROOT_FHS_LAYOUT=true
         # Place uv-managed Python under /usr/local/share so the venv interpreter
         # is world-readable.  Default uv paths land in /root/.local/share/uv,
         # which non-root users can't traverse — leaving the shared
-        # /usr/local/bin/wayne wrapper unable to exec the bad-interpreter venv
+        # /usr/local/bin/work4you wrapper unable to exec the bad-interpreter venv
         # python.  See #21457.
         export UV_PYTHON_INSTALL_DIR="${UV_PYTHON_INSTALL_DIR:-/usr/local/share/uv/python}"
         export UV_PYTHON_BIN_DIR="${UV_PYTHON_BIN_DIR:-/usr/local/share/uv/bin}"
         log_info "Root install on Linux — using FHS layout"
         log_info "  Code:    $INSTALL_DIR"
-        log_info "  Command: /usr/local/bin/wayne"
+        log_info "  Command: /usr/local/bin/work4you"
         log_info "  Data:    $WAYNE_HOME (unchanged)"
         log_info "  uv Python: $UV_PYTHON_INSTALL_DIR (world-readable)"
         return 0
     fi
 
-    # Default: non-root, non-Termux → legacy user-scoped layout.
-    INSTALL_DIR="$WAYNE_HOME/wayne-agent"
+    # Default: non-root, non-Termux → user-scoped layout.
+    INSTALL_DIR="$(resolve_engine_dir "$WAYNE_HOME")"
 }
 
 get_command_link_dir() {
@@ -489,10 +573,13 @@ configure_managed_node_npm_prefix() {
 get_wayne_command_path() {
     local link_dir
     link_dir="$(get_command_link_dir)"
-    if [ -x "$link_dir/wayne" ]; then
+    if [ -x "$link_dir/work4you" ]; then
+        echo "$link_dir/work4you"
+    elif [ -x "$link_dir/wayne" ]; then
+        # Pre-rebrand install that hasn't been re-linked yet.
         echo "$link_dir/wayne"
     else
-        echo "wayne"
+        echo "work4you"
     fi
 }
 
@@ -814,13 +901,13 @@ check_node() {
     # Prefer a Wayne-managed Node from a previous run over a too-old system one.
     if [ -x "$WAYNE_HOME/node/bin/node" ] && node_satisfies_build "$("$WAYNE_HOME/node/bin/node" --version)"; then
         export PATH="$WAYNE_HOME/node/bin:$PATH"
-        log_success "Node.js $("$WAYNE_HOME/node/bin/node" --version) found (Wayne-managed)"
+        log_success "Node.js $("$WAYNE_HOME/node/bin/node" --version) found (Work4You-managed)"
         HAS_NODE=true
         return 0
     fi
 
     if command -v node &> /dev/null; then
-        log_warn "Node.js $(node --version) is too old for the desktop build (need ^20.19 or >=22.12) — installing Wayne-managed Node $NODE_VERSION LTS..."
+        log_warn "Node.js $(node --version) is too old for the desktop build (need ^20.19 or >=22.12) — installing Work4You-managed Node $NODE_VERSION LTS..."
     elif [ "$DISTRO" = "termux" ]; then
         log_info "Node.js not found — installing Node.js via pkg..."
     else
@@ -902,7 +989,7 @@ install_node() {
         return 0
     fi
 
-    log_info "Extracting to ~/.wayne/node/..."
+    log_info "Extracting to $WAYNE_HOME/node/..."
     if [[ "$tarball_name" == *.tar.xz ]]; then
         tar xf "$tmp_dir/$tarball_name" -C "$tmp_dir"
     else
@@ -940,7 +1027,7 @@ install_node() {
 
     local installed_ver
     installed_ver=$("$WAYNE_HOME/node/bin/node" --version 2>/dev/null)
-    log_success "Node.js $installed_ver installed to ~/.wayne/node/"
+    log_success "Node.js $installed_ver installed to $WAYNE_HOME/node/"
     HAS_NODE=true
 }
 
@@ -974,7 +1061,7 @@ check_network_prerequisites() {
         log_info "If mirrors are stale: termux-change-repo"
         log_info "Then test: curl -I https://pypi.org/simple/ && curl -I https://duckduckgo.com/"
     else
-        log_warn "Network checks failed. Wayne install may complete, but web search and dependency downloads can fail."
+        log_warn "Network checks failed. The Work4You install may complete, but web search and dependency downloads can fail."
         log_info "Verify internet/DNS and retry if pip install fails."
     fi
 }
@@ -1098,7 +1185,7 @@ install_system_packages() {
             if [ "$IS_INTERACTIVE" = true ]; then
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Wayne Agent itself does not require or retain root access."
+                log_info "Work4You itself does not require or retain root access."
                 if prompt_yes_no "Install ${description}? (requires sudo)" "no"; then
                     if sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a $install_cmd; then
                         [ "$need_ripgrep" = true ] && HAS_RIPGREP=true && log_success "ripgrep installed"
@@ -1114,7 +1201,7 @@ install_system_packages() {
                 # but opening fails with ENXIO. See #16746.
                 echo ""
                 log_info "sudo is needed ONLY to install optional system packages (${pkgs[*]}) via your package manager."
-                log_info "Wayne Agent itself does not require or retain root access."
+                log_info "Work4You itself does not require or retain root access."
                 if prompt_yes_no "Install ${description}?" "yes"; then
                     if sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a $install_cmd < /dev/tty; then
                         [ "$need_ripgrep" = true ] && HAS_RIPGREP=true && log_success "ripgrep installed"
@@ -1252,7 +1339,7 @@ clone_repo() {
                     if git stash apply "$autostash_ref"; then
                         git stash drop "$autostash_ref" >/dev/null
                         log_warn "Local changes were restored on top of the updated codebase."
-                        log_warn "Review git diff / git status if Wayne behaves unexpectedly."
+                        log_warn "Review git diff / git status if Work4You behaves unexpectedly."
                     else
                         log_error "Update succeeded, but restoring local changes failed. Your changes are still preserved in git stash."
                         log_info "Resolve manually with: git stash apply $autostash_ref"
@@ -1273,7 +1360,7 @@ clone_repo() {
         if [ -z "$SOURCE_REPO_URL" ]; then
             # User-facing error in PT (product language); code stays in English.
             log_error "Fonte de instalação não configurada."
-            log_info "Defina a variável de ambiente WAYNE_SOURCE_REPO_URL (URL git do motor Work4You)"
+            log_info "Defina a variável de ambiente WORK4YOU_SOURCE_REPO_URL (URL git do motor Work4You)"
             log_info "e execute o instalador novamente."
             exit 1
         fi
@@ -1436,7 +1523,7 @@ install_deps() {
                     log_success "Build tools installed"
                 else
                     log_info "sudo is needed ONLY to install build tools (build-essential, python3-dev, libffi-dev) via apt."
-                    log_info "Wayne Agent itself does not require or retain root access."
+                    log_info "Work4You itself does not require or retain root access."
                     if prompt_yes_no "Install build tools?" "yes"; then
                         sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get update -qq && sudo DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a apt-get install -y -qq build-essential python3-dev libffi-dev >/dev/null 2>&1 || true
                         log_success "Build tools installed"
@@ -1599,22 +1686,88 @@ PY
     log_success "All dependencies installed"
 }
 
+# Persist the data directory for future shells as WORK4YOU_HOME (the canonical
+# spelling; the engine still reads WAYNE_HOME internally and bridges the two).
+#
+# Deliberately a no-op when the home IS the platform default, and when a
+# pre-rebrand home was adopted: a persisted home pins the engine to that path
+# and suppresses its one-time data migration — work4you_cli/home_migration.py
+# bails out as soon as either WORK4YOU_HOME or WAYNE_HOME is set.  So we only
+# write the block for a home the user actually chose.
+persist_home_env() {
+    [ "$LEGACY_HOME_ADOPTED" = true ] && return 0
+    [ "$WAYNE_HOME" = "$WORK4YOU_DEFAULT_HOME" ] && return 0
+
+    local login_shell rc
+    local rc_files=()
+    login_shell="$(basename "${SHELL:-/bin/bash}")"
+    case "$login_shell" in
+        zsh)
+            [ -f "$HOME/.zshrc" ] && rc_files+=("$HOME/.zshrc")
+            ;;
+        fish)
+            rc_files+=("$HOME/.config/fish/config.fish")
+            ;;
+        *)
+            [ -f "$HOME/.bashrc" ] && rc_files+=("$HOME/.bashrc")
+            [ -f "$HOME/.profile" ] && rc_files+=("$HOME/.profile")
+            ;;
+    esac
+
+    if [ ${#rc_files[@]} -eq 0 ]; then
+        log_warn "Could not detect a shell config file for WORK4YOU_HOME"
+        log_info "Add manually: export WORK4YOU_HOME=\"$WAYNE_HOME\""
+    fi
+
+    for rc in "${rc_files[@]}"; do
+        mkdir -p "$(dirname "$rc")" 2>/dev/null || true
+        [ -f "$rc" ] || touch "$rc" 2>/dev/null || continue
+        # Idempotent, and marker-aware: a WAYNE_HOME line written by a
+        # pre-rebrand installer counts as already-present so the file never
+        # ends up carrying both spellings of the same setting.
+        if grep -qE '^[[:space:]]*(export[[:space:]]+|set[[:space:]]+-gx[[:space:]]+)?(WORK4YOU|WAYNE)_HOME[ =]' "$rc" 2>/dev/null; then
+            continue
+        fi
+        {
+            echo ""
+            echo "# Work4You — data directory"
+            if [ "$login_shell" = "fish" ]; then
+                echo "set -gx WORK4YOU_HOME \"$WAYNE_HOME\""
+            else
+                echo "export WORK4YOU_HOME=\"$WAYNE_HOME\""
+            fi
+        } >> "$rc"
+        log_success "Persisted WORK4YOU_HOME=$WAYNE_HOME in $rc"
+    done
+
+    # Make the rest of this run (setup wizard, gateway) agree with the choice.
+    export WORK4YOU_HOME="$WAYNE_HOME"
+}
+
 setup_path() {
-    log_info "Setting up wayne command..."
+    log_info "Setting up work4you command..."
+
+    persist_home_env
 
     if [ "$USE_VENV" = true ]; then
-        WAYNE_BIN="$INSTALL_DIR/venv/bin/wayne"
+        # `work4you` is the canonical console script; `wayne` is kept as an
+        # alias by pyproject and is the only entry point older venvs have.
+        if [ -x "$INSTALL_DIR/venv/bin/work4you" ]; then
+            WAYNE_BIN="$INSTALL_DIR/venv/bin/work4you"
+        else
+            WAYNE_BIN="$INSTALL_DIR/venv/bin/wayne"
+        fi
     else
-        WAYNE_BIN="$(which wayne 2>/dev/null || echo "")"
+        WAYNE_BIN="$(which work4you 2>/dev/null || which wayne 2>/dev/null || echo "")"
         if [ -z "$WAYNE_BIN" ]; then
-            log_warn "wayne not found on PATH after install"
+            log_warn "work4you not found on PATH after install"
             return 0
         fi
     fi
 
     # Verify the entry point script was actually generated
     if [ ! -x "$WAYNE_BIN" ]; then
-        log_warn "wayne entry point not found at $WAYNE_BIN"
+        log_warn "work4you entry point not found at $WAYNE_BIN"
         log_info "This usually means the pip install didn't complete successfully."
         if [ "$DISTRO" = "termux" ]; then
             log_info "Try: cd $INSTALL_DIR && python -m pip install -e '.[termux-all]' -c constraints-termux.txt"
@@ -1629,10 +1782,22 @@ setup_path() {
     command_link_dir="$(get_command_link_dir)"
     command_link_display_dir="$(get_command_link_display_dir)"
 
-    # Create a user-facing shim for the wayne command.
+    # Create the user-facing shims: `work4you` (canonical) and `wayne` (silent
+    # legacy alias — existing installs, service units and the updater's relaunch
+    # still invoke the old name).  Both are plain files execing the same entry
+    # point: a symlink for the alias would reintroduce the #21454 stomp class,
+    # and Termux/exFAT layouts don't always support symlinks.
     # We intentionally clear PYTHONPATH/PYTHONHOME here so inherited env vars
     # can't make this launcher import modules from another checkout.
     mkdir -p "$command_link_dir"
+    rm -f "$command_link_dir/work4you"
+    cat > "$command_link_dir/work4you" <<EOF
+#!/usr/bin/env bash
+unset PYTHONPATH
+unset PYTHONHOME
+exec "$WAYNE_BIN" "\$@"
+EOF
+    chmod +x "$command_link_dir/work4you"
     # Older installs created this path as a symlink to $WAYNE_BIN. Without
     # the rm, `cat >` follows the symlink and overwrites the venv pip entry
     # point with this shim — making `exec "$WAYNE_BIN"` self-recurse. (#21454)
@@ -1644,12 +1809,12 @@ unset PYTHONHOME
 exec "$WAYNE_BIN" "\$@"
 EOF
     chmod +x "$command_link_dir/wayne"
-    log_success "Installed wayne launcher → $command_link_display_dir/wayne"
+    log_success "Installed work4you launcher → $command_link_display_dir/work4you"
 
     if [ "$DISTRO" = "termux" ]; then
         export PATH="$command_link_dir:$PATH"
         log_info "$command_link_display_dir is the native Termux command path"
-        log_success "wayne command ready"
+        log_success "work4you command ready"
         return 0
     fi
 
@@ -1664,16 +1829,16 @@ EOF
         # Probe a fresh non-login interactive bash the way the user will use it.
         # `bash -i -c` sources ~/.bashrc but NOT ~/.bash_profile or /etc/profile,
         # which is the exact scenario where RHEL root loses /usr/local/bin.
-        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v wayne' \
+        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v work4you' \
                 >/dev/null 2>&1; then
             log_info "/usr/local/bin is already on PATH for all shells"
-            log_success "wayne command ready"
+            log_success "work4you command ready"
             return 0
         fi
 
-        log_info "wayne not on PATH in non-login shells (common on RHEL-family)"
+        log_info "work4you not on PATH in non-login shells (common on RHEL-family)"
         PATH_LINE='export PATH="/usr/local/bin:$PATH"'
-        PATH_COMMENT='# Wayne Agent — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
+        PATH_COMMENT='# Work4You — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
         for SHELL_CONFIG in "$HOME/.bashrc" "$HOME/.bash_profile"; do
             [ -f "$SHELL_CONFIG" ] || continue
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null \
@@ -1684,7 +1849,7 @@ EOF
                 log_success "Added /usr/local/bin to PATH in $SHELL_CONFIG"
             fi
         done
-        log_success "wayne command ready"
+        log_success "work4you command ready"
         return 0
     fi
 
@@ -1730,7 +1895,7 @@ EOF
         for SHELL_CONFIG in "${SHELL_CONFIGS[@]}"; do
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null | grep -qE 'PATH=.*\.local/bin'; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# Wayne Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# Work4You — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo "$PATH_LINE" >> "$SHELL_CONFIG"
                 log_success "Added ~/.local/bin to PATH in $SHELL_CONFIG"
             fi
@@ -1740,7 +1905,7 @@ EOF
         if [ "$IS_FISH" = "true" ]; then
             if ! grep -q 'fish_add_path.*\.local/bin' "$FISH_CONFIG" 2>/dev/null; then
                 echo "" >> "$FISH_CONFIG"
-                echo "# Wayne Agent — ensure ~/.local/bin is on PATH" >> "$FISH_CONFIG"
+                echo "# Work4You — ensure ~/.local/bin is on PATH" >> "$FISH_CONFIG"
                 echo 'fish_add_path "$HOME/.local/bin"' >> "$FISH_CONFIG"
                 log_success "Added ~/.local/bin to PATH in $FISH_CONFIG"
             fi
@@ -1754,29 +1919,29 @@ EOF
         log_info "~/.local/bin already on PATH"
     fi
 
-    # Export for current session so wayne works immediately
+    # Export for current session so work4you works immediately
     export PATH="$command_link_dir:$PATH"
 
-    log_success "wayne command ready"
+    log_success "work4you command ready"
 }
 
 copy_config_templates() {
     log_info "Setting up configuration files..."
 
-    # Create ~/.wayne directory structure (config at top level, code in subdir)
+    # Create the data-home structure (config at top level, code in subdir)
     mkdir -p "$WAYNE_HOME"/{cron,sessions,logs,pairing,hooks,image_cache,audio_cache,memories,skills}
 
-    # Create .env at ~/.wayne/.env (top level, easy to find)
+    # Create .env at <home>/.env (top level, easy to find)
     if [ ! -f "$WAYNE_HOME/.env" ]; then
         if [ -f "$INSTALL_DIR/.env.example" ]; then
             cp "$INSTALL_DIR/.env.example" "$WAYNE_HOME/.env"
-            log_success "Created ~/.wayne/.env from template"
+            log_success "Created $WAYNE_HOME/.env from template"
         else
             touch "$WAYNE_HOME/.env"
-            log_success "Created ~/.wayne/.env"
+            log_success "Created $WAYNE_HOME/.env"
         fi
     else
-        log_info "~/.wayne/.env already exists, keeping it"
+        log_info "$WAYNE_HOME/.env already exists, keeping it"
     fi
     # Restrict .env permissions — this file holds API keys and tokens.
     # 0600 ensures only the file owner can read/write, matching standard
@@ -1784,38 +1949,38 @@ copy_config_templates() {
     chmod 600 "$WAYNE_HOME/.env"
     configure_browser_env_from_system_browser
 
-    # Create config.yaml at ~/.wayne/config.yaml (top level, easy to find)
+    # Create config.yaml at <home>/config.yaml (top level, easy to find)
     if [ ! -f "$WAYNE_HOME/config.yaml" ]; then
         if [ -f "$INSTALL_DIR/cli-config.yaml.example" ]; then
             cp "$INSTALL_DIR/cli-config.yaml.example" "$WAYNE_HOME/config.yaml"
-            log_success "Created ~/.wayne/config.yaml from template"
+            log_success "Created $WAYNE_HOME/config.yaml from template"
         fi
     else
-        log_info "~/.wayne/config.yaml already exists, keeping it"
+        log_info "$WAYNE_HOME/config.yaml already exists, keeping it"
     fi
 
-    log_success "Configuration directory ready: ~/.wayne/"
+    log_success "Configuration directory ready: $WAYNE_HOME"
 
-    # Seed bundled skills into ~/.wayne/skills/ (manifest-based, one-time per skill)
+    # Seed bundled skills into <home>/skills/ (manifest-based, one-time per skill)
     if [ "$NO_SKILLS" = true ]; then
         # Blank-slate install: write the opt-out marker and skip seeding.
-        # skills_sync.py and `wayne update` both honor this marker, so the
+        # skills_sync.py and `work4you update` both honor this marker, so the
         # default profile stays empty across future updates too.
         printf '%s\n' \
             "This profile opted out of bundled-skill seeding (installed with --no-skills)." \
-            "Delete this file to re-enable sync on the next 'wayne update'." \
+            "Delete this file to re-enable sync on the next 'work4you update'." \
             > "$WAYNE_HOME/.no-bundled-skills" 2>/dev/null || true
         log_info "Skipping bundled skills (--no-skills). Wrote $WAYNE_HOME/.no-bundled-skills"
-        log_info "  Future 'wayne update' runs will not inject bundled skills. Delete the marker to opt back in."
+        log_info "  Future 'work4you update' runs will not inject bundled skills. Delete the marker to opt back in."
     else
-        log_info "Syncing bundled skills to ~/.wayne/skills/ ..."
+        log_info "Syncing bundled skills to $WAYNE_HOME/skills/ ..."
         if "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/tools/skills_sync.py" 2>/dev/null; then
-            log_success "Skills synced to ~/.wayne/skills/"
+            log_success "Skills synced to $WAYNE_HOME/skills/"
         else
             # Fallback: simple directory copy if Python sync fails
             if [ -d "$INSTALL_DIR/skills" ] && [ ! "$(ls -A "$WAYNE_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
                 cp -r "$INSTALL_DIR/skills/"* "$WAYNE_HOME/skills/" 2>/dev/null || true
-                log_success "Skills copied to ~/.wayne/skills/"
+                log_success "Skills copied to $WAYNE_HOME/skills/"
             fi
         fi
     fi
@@ -1871,10 +2036,12 @@ strip_snap_browser_override() {
 
     local tmp
     tmp="$(mktemp)" || return 0
-    if grep -Ev '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/|^# Wayne Agent browser tools' "$env_file" > "$tmp"; then
+    # Both marker spellings are stripped: installs predating the rebrand wrote
+    # the comment as "# Wayne Agent browser tools".
+    if grep -Ev '^AGENT_BROWSER_EXECUTABLE_PATH=/snap/|^# (Work4You|Wayne Agent) browser tools' "$env_file" > "$tmp"; then
         mv "$tmp" "$env_file"
         log_warn "Removed stale Snap browser override (AGENT_BROWSER_EXECUTABLE_PATH=/snap/...) from $env_file"
-        log_info "Wayne will use the bundled Chromium instead."
+        log_info "Work4You will use the bundled Chromium instead."
         # Drop it from this process too so the rest of the run doesn't re-detect it.
         unset AGENT_BROWSER_EXECUTABLE_PATH
     else
@@ -2095,7 +2262,7 @@ configure_browser_env_from_system_browser() {
 
     {
         echo ""
-        echo "# Wayne Agent browser tools — explicit browser override."
+        echo "# Work4You browser tools — explicit browser override."
         echo "AGENT_BROWSER_EXECUTABLE_PATH=$browser_path"
     } >> "$env_file"
     log_success "Configured browser tools to use $browser_path"
@@ -2222,7 +2389,7 @@ install_node_deps() {
         cd "$INSTALL_DIR/ui-tui"
         # Time-boxed: a stalled registry fetch would otherwise hang here (#39219).
         run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
-            log_warn "TUI npm install failed or timed out (wayne --tui may not work)"
+            log_warn "TUI npm install failed or timed out (work4you --tui may not work)"
         }
         log_success "TUI dependencies installed"
     fi
@@ -2246,7 +2413,7 @@ run_setup_wizard() {
     # but opening fails with ENXIO, so the wizard would proceed and
     # then crash on `< /dev/tty` below.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Setup wizard skipped (no terminal available). Run 'wayne setup' after install."
+        log_info "Setup wizard skipped (no terminal available). Run 'work4you setup' after install."
         return 0
     fi
 
@@ -2287,7 +2454,7 @@ maybe_start_gateway() {
 
     echo ""
     log_info "Messaging platform token detected!"
-    log_info "The gateway needs to be running for Wayne to send/receive messages."
+    log_info "The gateway needs to be running for Work4You to send/receive messages."
 
     # If WhatsApp is enabled and no session exists yet, run foreground first for QR scan
     WHATSAPP_VAL=$(grep "^WHATSAPP_ENABLED=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2-)
@@ -2296,14 +2463,14 @@ maybe_start_gateway() {
         if [ "$IS_INTERACTIVE" = true ]; then
             echo ""
             log_info "WhatsApp is enabled but not yet paired."
-            log_info "Running 'wayne whatsapp' to pair via QR code..."
+            log_info "Running 'work4you whatsapp' to pair via QR code..."
             echo ""
             if prompt_yes_no "Pair WhatsApp now?" "yes"; then
                 WAYNE_CMD="$(get_wayne_command_path)"
                 $WAYNE_CMD whatsapp || true
             fi
         else
-            log_info "WhatsApp pairing skipped (non-interactive). Run 'wayne whatsapp' to pair."
+            log_info "WhatsApp pairing skipped (non-interactive). Run 'work4you whatsapp' to pair."
         fi
     fi
 
@@ -2311,7 +2478,7 @@ maybe_start_gateway() {
     # in Docker builds where the device node is in the mount namespace
     # but opening fails with ENXIO. See #16746.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Gateway setup skipped (no terminal available). Run 'wayne gateway install' later."
+        log_info "Gateway setup skipped (no terminal available). Run 'work4you gateway install' later."
         return 0
     fi
 
@@ -2337,10 +2504,10 @@ maybe_start_gateway() {
                 if $WAYNE_CMD gateway start 2>/dev/null; then
                     log_success "Gateway started! Your bot is now online."
                 else
-                    log_warn "Service installed but failed to start. Try: wayne gateway start"
+                    log_warn "Service installed but failed to start. Try: work4you gateway start"
                 fi
             else
-                log_warn "Systemd install failed. You can start manually: wayne gateway"
+                log_warn "Systemd install failed. You can start manually: work4you gateway"
             fi
         else
             if [ "$DISTRO" = "termux" ]; then
@@ -2350,15 +2517,15 @@ maybe_start_gateway() {
             fi
             nohup $WAYNE_CMD gateway > "$WAYNE_HOME/logs/gateway.log" 2>&1 &
             GATEWAY_PID=$!
-            log_success "Gateway started (PID $GATEWAY_PID). Logs: ~/.wayne/logs/gateway.log"
+            log_success "Gateway started (PID $GATEWAY_PID). Logs: $WAYNE_HOME/logs/gateway.log"
             log_info "To stop: kill $GATEWAY_PID"
-            log_info "To restart later: wayne gateway"
+            log_info "To restart later: work4you gateway"
             if [ "$DISTRO" = "termux" ]; then
                 log_warn "Android may stop background processes when Termux is suspended or the system reclaims resources."
             fi
         fi
     else
-        log_info "Skipped. Start the gateway later with: wayne gateway"
+        log_info "Skipped. Start the gateway later with: work4you gateway"
     fi
 }
 
@@ -2384,24 +2551,24 @@ print_success() {
     echo ""
     echo -e "${CYAN}${BOLD}🚀 Commands:${NC}"
     echo ""
-    echo -e "   ${GREEN}wayne${NC}              Start chatting"
-    echo -e "   ${GREEN}wayne setup${NC}        Configure API keys & settings"
-    echo -e "   ${GREEN}wayne config${NC}       View/edit configuration"
-    echo -e "   ${GREEN}wayne config edit${NC}  Open config in editor"
-    echo -e "   ${GREEN}wayne gateway install${NC} Install gateway service (messaging + cron)"
-    echo -e "   ${GREEN}wayne update${NC}       Update to latest version"
+    echo -e "   ${GREEN}work4you${NC}              Start chatting"
+    echo -e "   ${GREEN}work4you setup${NC}        Configure API keys & settings"
+    echo -e "   ${GREEN}work4you config${NC}       View/edit configuration"
+    echo -e "   ${GREEN}work4you config edit${NC}  Open config in editor"
+    echo -e "   ${GREEN}work4you gateway install${NC} Install gateway service (messaging + cron)"
+    echo -e "   ${GREEN}work4you update${NC}       Update to latest version"
     echo ""
 
     echo -e "${CYAN}─────────────────────────────────────────────────────────${NC}"
     echo ""
     if [ "$DISTRO" = "termux" ]; then
-        echo -e "${YELLOW}⚡ 'wayne' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
+        echo -e "${YELLOW}⚡ 'work4you' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
         echo ""
     elif [ "$ROOT_FHS_LAYOUT" = true ]; then
-        echo -e "${YELLOW}⚡ 'wayne' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
+        echo -e "${YELLOW}⚡ 'work4you' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
         echo ""
     else
-        echo -e "${YELLOW}⚡ Reload your shell to use 'wayne' command:${NC}"
+        echo -e "${YELLOW}⚡ Reload your shell to use the 'work4you' command:${NC}"
         echo ""
         LOGIN_SHELL="$(basename "${SHELL:-/bin/bash}")"
         if [ "$LOGIN_SHELL" = "zsh" ]; then
@@ -2554,7 +2721,7 @@ postinstall_mode() {
     print_banner
     detect_os
 
-    log_info "Post-install mode: setting up Wayne for pip install"
+    log_info "Post-install mode: setting up Work4You for pip install"
 
     check_node
     check_network_prerequisites
@@ -2564,12 +2731,14 @@ postinstall_mode() {
         ensure_browser
     fi
 
-    WAYNE_CMD="$(command -v wayne 2>/dev/null || echo "")"
+    # `work4you` is the canonical binary; `wayne` still resolves on installs
+    # made before the rebrand.
+    WAYNE_CMD="$(command -v work4you 2>/dev/null || command -v wayne 2>/dev/null || echo "")"
     if [ -n "$WAYNE_CMD" ]; then
-        log_info "Running wayne setup..."
+        log_info "Running work4you setup..."
         "$WAYNE_CMD" setup
     else
-        log_warn "wayne command not found on PATH"
+        log_warn "work4you command not found on PATH"
         log_info "Try: python -m work4you_cli.main setup"
     fi
 }
@@ -2855,16 +3024,26 @@ install_desktop() {
         return 1
     fi
 
+    # apps/desktop's productName is now Work4You; the old names are kept as
+    # fallbacks so a checkout from before the desktop rename still validates.
     local app=""
     if [ "$OS" = "linux" ]; then
-        if [ -x "$desktop_dir/release/linux-unpacked/Wayne" ]; then
-            app="$desktop_dir/release/linux-unpacked/Wayne"
-        elif [ -x "$desktop_dir/release/linux-unpacked/wayne" ]; then
-            app="$desktop_dir/release/linux-unpacked/wayne"
-        fi
+        local lcand
+        for lcand in \
+            "$desktop_dir/release/linux-unpacked/Work4You" \
+            "$desktop_dir/release/linux-unpacked/work4you" \
+            "$desktop_dir/release/linux-unpacked/Wayne" \
+            "$desktop_dir/release/linux-unpacked/wayne"; do
+            if [ -x "$lcand" ]; then
+                app="$lcand"
+                break
+            fi
+        done
     else
         local cand
         for cand in \
+            "$desktop_dir/release/mac-arm64/Work4You.app" \
+            "$desktop_dir/release/mac/Work4You.app" \
             "$desktop_dir/release/mac-arm64/Wayne.app" \
             "$desktop_dir/release/mac/Wayne.app"; do
             if [ -d "$cand" ]; then
@@ -3109,6 +3288,11 @@ main() {
     # See detect_install_method().
     echo "git" > "$INSTALL_DIR/.install_method"
 }
+
+# Resolve the data home before any mode runs (each --stage invocation is its
+# own process, so this must happen on every entry path).  Silent: --manifest
+# writes pure JSON to stdout.
+resolve_home_layout
 
 if [ "$MANIFEST_MODE" = true ]; then
     emit_manifest

@@ -1,11 +1,11 @@
 # ============================================================================
-# Wayne Agent Installer for Windows
+# Work4You Installer for Windows
 # ============================================================================
 # Installation script for Windows (PowerShell).
 # Uses uv for fast Python provisioning and package management.
 #
 # Usage (the engine source is distributed as a ZIP package hosted by us):
-#   $env:WAYNE_SOURCE_ZIP_URL = "https://<our-host>/wayne-engine-<date>.zip"
+#   $env:WORK4YOU_SOURCE_ZIP_URL = "https://<our-host>/work4you-engine-<date>.zip"
 #   .\install.ps1
 #
 # Or with options:
@@ -24,8 +24,15 @@ param(
     # exact ref.  Precedence: Commit > Tag > Branch.
     [string]$Commit = "",
     [string]$Tag = "",
-    [string]$WayneHome = $(if ($env:WAYNE_HOME) { $env:WAYNE_HOME } else { "$env:LOCALAPPDATA\wayne" }),
-    [string]$InstallDir = $(if ($env:WAYNE_HOME) { "$env:WAYNE_HOME\wayne-agent" } else { "$env:LOCALAPPDATA\wayne\wayne-agent" }),
+    # Data home.  -Work4YouHome is the canonical spelling; -WayneHome is kept
+    # as a silent alias because the desktop bootstrap runner and Wayne-Setup.exe
+    # builds already in the field pass the old name.  Left empty here on
+    # purpose: the real default needs Test-Path probes (fresh install vs a
+    # pre-rebrand home to adopt), which a param default cannot do -- see the
+    # "Home + install layout" block in Configuration below.
+    [Alias('WayneHome')]
+    [string]$Work4YouHome = "",
+    [string]$InstallDir = "",
 
     # --- Stage protocol (additive; default invocation behaves as before) ----
     # See the "Stage protocol" section near the bottom of the file for the
@@ -138,13 +145,64 @@ foreach ($tmpVar in @('TEMP', 'TMP')) {
 # ============================================================================
 
 # Engine source distribution (Work4You). The engine is distributed as a ZIP
-# package hosted by us -- set WAYNE_SOURCE_ZIP_URL to its URL (main path).
-# WAYNE_SOURCE_REPO_URL optionally points at a git remote used as a fallback
-# (default empty = ZIP-only; git is never assumed). There is deliberately NO
-# hardcoded upstream repository: with neither variable set, the repository
-# stage fails with a clear error instead of cloning a third-party repo.
-$SourceZipUrl  = if ($env:WAYNE_SOURCE_ZIP_URL)  { $env:WAYNE_SOURCE_ZIP_URL }  else { "" }
-$SourceRepoUrl = if ($env:WAYNE_SOURCE_REPO_URL) { $env:WAYNE_SOURCE_REPO_URL } else { "" }
+# package hosted by us -- set WORK4YOU_SOURCE_ZIP_URL to its URL (main path).
+# WORK4YOU_SOURCE_REPO_URL optionally points at a git remote used as a fallback
+# (default empty = ZIP-only; git is never assumed). The legacy WAYNE_SOURCE_*
+# spellings still work so runners configured before the rebrand keep building.
+# There is deliberately NO hardcoded upstream repository: with neither variable
+# set, the repository stage fails with a clear error instead of cloning a
+# third-party repo.
+$SourceZipUrl  = if ($env:WORK4YOU_SOURCE_ZIP_URL)  { $env:WORK4YOU_SOURCE_ZIP_URL }
+                 elseif ($env:WAYNE_SOURCE_ZIP_URL)  { $env:WAYNE_SOURCE_ZIP_URL }  else { "" }
+$SourceRepoUrl = if ($env:WORK4YOU_SOURCE_REPO_URL) { $env:WORK4YOU_SOURCE_REPO_URL }
+                 elseif ($env:WAYNE_SOURCE_REPO_URL) { $env:WAYNE_SOURCE_REPO_URL } else { "" }
+
+# ---------------------------------------------------------------------------
+# Home + install layout
+# ---------------------------------------------------------------------------
+# Fresh installs are born Work4You: data in %LOCALAPPDATA%\work4you, engine
+# checkout in <home>\work4you-agent.
+#
+# A pre-rebrand install (%LOCALAPPDATA%\wayne, wayne-agent\) is ADOPTED IN
+# PLACE: it is updated where it is -- never duplicated, never deleted. Creating
+# a second home here would strand the user's data, because the engine's
+# first-run migration (work4you_cli/home_migration.py) refuses to move anything
+# when both roots hold content. That migration is what performs the transition,
+# on the next run of the engine.
+$Work4YouDefaultHome = "$env:LOCALAPPDATA\work4you"
+$LegacyDefaultHome   = "$env:LOCALAPPDATA\wayne"
+$LegacyHomeAdopted   = $false
+
+if ($Work4YouHome) {
+    # Explicit -Work4YouHome / -WayneHome wins over everything.
+    $WayneHome = $Work4YouHome
+} elseif ($env:WORK4YOU_HOME) {
+    $WayneHome = $env:WORK4YOU_HOME
+} elseif ($env:WAYNE_HOME) {
+    $WayneHome = $env:WAYNE_HOME
+} elseif (Test-Path $Work4YouDefaultHome) {
+    $WayneHome = $Work4YouDefaultHome
+} elseif ((Test-Path $LegacyDefaultHome) -and
+          @(Get-ChildItem -Force -LiteralPath $LegacyDefaultHome -ErrorAction SilentlyContinue).Count -gt 0) {
+    $WayneHome    = $LegacyDefaultHome
+    $LegacyHomeAdopted = $true
+} else {
+    $WayneHome = $Work4YouDefaultHome
+}
+# Keep the canonical variable in sync for any later reader.
+$Work4YouHome = $WayneHome
+
+if (-not $InstallDir) {
+    # An existing wayne-agent\ checkout is reused in place; fresh installs get
+    # work4you-agent\. (The desktop engine resolver accepts both names.)
+    if (Test-Path (Join-Path $WayneHome "work4you-agent")) {
+        $InstallDir = Join-Path $WayneHome "work4you-agent"
+    } elseif (Test-Path (Join-Path $WayneHome "wayne-agent")) {
+        $InstallDir = Join-Path $WayneHome "wayne-agent"
+    } else {
+        $InstallDir = Join-Path $WayneHome "work4you-agent"
+    }
+}
 $PythonVersion = "3.11"
 # Minor versions the installer accepts when the requested $PythonVersion isn't
 # available, in preference order.  uv discovers both uv-managed and system
@@ -214,7 +272,7 @@ function Get-WindowsArch {
 function Write-Banner {
     Write-Host ""
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
-    Write-Host "|             * Wayne Agent Installer                    |" -ForegroundColor Magenta
+    Write-Host "|             * Work4You Installer                        |" -ForegroundColor Magenta
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
     Write-Host "|  Work4You -- your AI digital employee.                  |" -ForegroundColor Magenta
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
@@ -766,7 +824,7 @@ function Install-Git {
         $gitVerTag = "$gitVer.windows.1"
 
         if ($arch -eq "32-bit-mingit") {
-            Write-Warn "32-bit Windows detected -- PortableGit is 64-bit only.  Installing MinGit 32-bit as a last resort; bash-dependent Wayne features (terminal tool, agent-browser) will not work on this machine."
+            Write-Warn "32-bit Windows detected -- PortableGit is 64-bit only.  Installing MinGit 32-bit as a last resort; bash-dependent Work4You features (terminal tool, agent-browser) will not work on this machine."
             $assetName    = "MinGit-$gitVer-32-bit.zip"
             $downloadIsZip = $true
         } elseif ($arch -eq "arm64") {
@@ -846,7 +904,7 @@ function Install-Git {
         Write-Err "Could not install portable Git: $_"
         Write-Info ""
         Write-Info "Fallback: install Git manually from https://git-scm.com/download/win"
-        Write-Info "then re-run this installer.  Wayne needs Git Bash on Windows to run"
+        Write-Info "then re-run this installer.  Work4You needs Git Bash on Windows to run"
         Write-Info "shell commands (same as Claude Code and other coding agents)."
         return $false
     }
@@ -900,7 +958,7 @@ function Set-GitBashEnvVar {
         }
     }
 
-    Write-Warn "Could not locate bash.exe -- Wayne may not find Git Bash."
+    Write-Warn "Could not locate bash.exe -- Work4You may not find Git Bash."
     Write-Info "If needed, set WAYNE_GIT_BASH_PATH manually to your bash.exe path."
 }
 
@@ -939,12 +997,12 @@ function Test-Node {
     if ((Test-Path $managedNode) -and (Test-NodeVersionOk (& $managedNode --version))) {
         $version = & $managedNode --version
         $env:Path = "$WayneHome\node;$env:Path"
-        Write-Success "Node.js $version found (Wayne-managed)"
+        Write-Success "Node.js $version found (Work4You-managed)"
         $script:HasNode = $true
         return $true
     }
 
-    Write-Info "Installing Wayne-managed Node.js $NodeVersion LTS..."
+    Write-Info "Installing Work4You-managed Node.js $NodeVersion LTS..."
 
     # Try the portable-zip path FIRST -- no UAC, no admin, no winget MSI.
     # winget install OpenJS.NodeJS.LTS triggers a system-wide MSI install
@@ -1265,7 +1323,7 @@ function Install-SystemPackages {
 # at its root -- a flat archive with pyproject.toml directly at the ZIP root is
 # accepted too. Throws on any failure; returns $true on success.
 function Get-EngineSourceFromZip {
-    Write-Info "Downloading Wayne engine package..."
+    Write-Info "Downloading Work4You engine package..."
     Write-Info "  $SourceZipUrl"
     $zipPath = "$env:TEMP\wayne-engine-package.zip"
     $extractPath = "$env:TEMP\wayne-engine-extract"
@@ -1305,7 +1363,7 @@ function Get-EngineSourceFromZip {
                 # A directory that failed the "looks like an install" checks is
                 # moved aside by Install-Repository before we run; anything
                 # still here was re-created since. Never overwrite it silently.
-                throw "Target directory $InstallDir exists but is not a Wayne install; move it aside and re-run"
+                throw "Target directory $InstallDir exists but is not a Work4You install; move it aside and re-run"
             }
             Move-Item $srcRoot $InstallDir -Force
         }
@@ -1317,19 +1375,31 @@ function Get-EngineSourceFromZip {
     }
 }
 
+function Write-LegacyHomeNotice {
+    # Point 6 of the rebrand contract: an install predating the rebrand is
+    # detected, announced, and then updated IN PLACE. Nothing is copied to the
+    # new root and nothing is removed -- the engine's own first-run migration
+    # moves the data (see work4you_cli/home_migration.py).
+    if (-not $LegacyHomeAdopted) { return }
+    Write-Info "Existing Work4You data home detected at $WayneHome (pre-rebrand layout)"
+    Write-Info "  Updating it in place -- nothing is copied, moved, or removed here."
+    Write-Info "  Work4You relocates its own data to $Work4YouDefaultHome on its next run."
+}
+
 function Install-Repository {
+    Write-LegacyHomeNotice
     Write-Info "Installing to $InstallDir..."
 
     # Source resolution (Work4You distribution model): the engine ships as a
-    # ZIP package hosted by us (WAYNE_SOURCE_ZIP_URL, the main path) with an
-    # optional git remote fallback (WAYNE_SOURCE_REPO_URL, default empty =
+    # ZIP package hosted by us (WORK4YOU_SOURCE_ZIP_URL, the main path) with an
+    # optional git remote fallback (WORK4YOU_SOURCE_REPO_URL, default empty =
     # ZIP-only). Nothing is ever fetched from a hardcoded upstream repo.
     if (-not $SourceZipUrl -and -not $SourceRepoUrl) {
         # User-facing error in PT (product language); code stays in English.
         Write-Err "Fonte de instalacao nao configurada."
-        Write-Info "Defina a variavel de ambiente WAYNE_SOURCE_ZIP_URL (URL do pacote ZIP do motor Work4You)"
-        Write-Info "ou WAYNE_SOURCE_REPO_URL (URL git alternativa) e execute o instalador novamente."
-        throw "Fonte de instalacao nao configurada (defina WAYNE_SOURCE_ZIP_URL ou WAYNE_SOURCE_REPO_URL)"
+        Write-Info "Defina a variavel de ambiente WORK4YOU_SOURCE_ZIP_URL (URL do pacote ZIP do motor Work4You)"
+        Write-Info "ou WORK4YOU_SOURCE_REPO_URL (URL git alternativa) e execute o instalador novamente."
+        throw "Fonte de instalacao nao configurada (defina WORK4YOU_SOURCE_ZIP_URL ou WORK4YOU_SOURCE_REPO_URL)"
     }
 
     $didUpdate = $false
@@ -1492,7 +1562,7 @@ function Install-Repository {
                         if ($LASTEXITCODE -eq 0) {
                             git -c windows.appendAtomically=false stash drop $autostashRef 2>$null
                             Write-Warn "Local changes were restored on top of the updated codebase."
-                            Write-Warn "Review git diff / git status if Wayne behaves unexpectedly."
+                            Write-Warn "Review git diff / git status if Work4You behaves unexpectedly."
                         } else {
                             Write-Err "Update succeeded, but restoring local changes failed. Your changes are still preserved in git stash."
                             Write-Info "Resolve manually with: git stash apply $autostashRef"
@@ -1532,7 +1602,7 @@ function Install-Repository {
             } catch {
                 Write-Err "Could not move $InstallDir aside : $_"
                 Write-Info "Close any programs that might be using files in $InstallDir (editors,"
-                Write-Info "terminals, running wayne processes) and try again."
+                Write-Info "terminals, running work4you processes) and try again."
                 throw
             }
         }
@@ -1599,14 +1669,15 @@ function Install-Repository {
             $tried = @()
             if ($SourceZipUrl)  { $tried += "zip ($SourceZipUrl)" }
             if ($SourceRepoUrl) { $tried += "git ($SourceRepoUrl)" }
-            throw "Failed to obtain the Wayne engine source. Tried: $($tried -join ', ')"
+            throw "Failed to obtain the Work4You engine source. Tried: $($tried -join ', ')"
         }
     }
 
     # Per-repo git config + Commit/Tag pinning apply only to git-managed
     # installs. ZIP-managed installs carry no .git metadata -- their source
-    # pin ships inside the package as .wayne-engine-version (written by
-    # platform/wayne-fly/build-engine-zip.ps1, read by Write-BootstrapMarker).
+    # pin ships inside the package as .work4you-engine-version /
+    # .wayne-engine-version (written by platform/wayne-fly/build-engine-zip.ps1,
+    # read by Write-BootstrapMarker, which accepts both names).
     if (Test-Path "$InstallDir\.git") {
         Push-Location $InstallDir
         try {
@@ -1694,7 +1765,7 @@ function Install-Venv {
         # whole install/update aborts at this stage.
         if ($env:OS -eq "Windows_NT") {
             $myPid = $PID
-            Write-Info "Stopping any running wayne processes before recreating venv..."
+            Write-Info "Stopping any running Work4You processes before recreating venv..."
             # Disarm the respawner FIRST: the gateway autostart Scheduled Task
             # relaunches a killed gateway within seconds, and losing that race
             # re-locks the venv's .pyd files between our kill sweep and
@@ -1720,9 +1791,13 @@ function Install-Venv {
             } catch {
                 Write-Warn "Could not enumerate gateway scheduled tasks: $($_.Exception.Message)"
             }
-            # The launcher CLI (wayne.exe) plus its child tree.
+            # The launcher CLI plus its child tree. Both console-script names
+            # are stopped: work4you.exe is canonical, wayne.exe is the legacy
+            # alias still produced by pyproject and the only one an install
+            # predating the rebrand has.
+            & taskkill /F /T /IM work4you.exe /FI "PID ne $myPid" 2>$null | Out-Null
             & taskkill /F /T /IM wayne.exe /FI "PID ne $myPid" 2>$null | Out-Null
-            # taskkill /IM wayne.exe is NOT enough: the gateway/agent that a
+            # taskkill /IM <launcher>.exe is NOT enough: the gateway/agent that a
             # scheduled task or watchdog autostarts runs as
             # `pythonw.exe -m work4you_cli.main gateway run` straight out of
             # venv\Scripts\, so its image name is python/pythonw, not wayne.exe.
@@ -2084,11 +2159,11 @@ print(','.join(scripts))
         } catch { }
         $ErrorActionPreference = $prevEAP
         if (-not $webOk) {
-            Write-Warn "fastapi/uvicorn not importable -- `wayne dashboard` will not work."
+            Write-Warn "fastapi/uvicorn not importable -- `work4you dashboard` will not work."
             Write-Info "Attempting targeted install of [web] extra as last resort..."
             & $UvCmd pip install -e ".[web]"
             if ($LASTEXITCODE -eq 0) {
-                Write-Success "[web] extra installed; `wayne dashboard` should now work."
+                Write-Success "[web] extra installed; `work4you dashboard` should now work."
             } else {
                 Write-Warn "Could not install [web] extra. Run manually: uv pip install --python `"$pythonExe`" `"fastapi>=0.104,<1`" `"uvicorn[standard]>=0.24,<1`""
             }
@@ -2101,18 +2176,23 @@ print(','.join(scripts))
 }
 
 function Set-PathVariable {
-    Write-Info "Setting up wayne command..."
-    
+    Write-Info "Setting up work4you command..."
+
     if ($NoVenv) {
         $wayneBin = "$InstallDir"
     } else {
         $wayneBin = "$InstallDir\venv\Scripts"
     }
-    
-    # Add the venv Scripts dir to user PATH so wayne is globally available
-    # On Windows, the wayne.exe in venv\Scripts\ has the venv Python baked in
+
+    # Add the venv Scripts dir to user PATH so work4you is globally available.
+    # On Windows the .exe shims in venv\Scripts\ have the venv Python baked in,
+    # and pyproject ships BOTH console scripts -- work4you.exe (canonical) and
+    # wayne.exe (silent legacy alias: service units, the updater's relaunch and
+    # installs made before the rebrand still invoke the old name). Putting the
+    # directory on PATH is what installs both names; there is no separate shim
+    # to write on Windows.
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
-    
+
     if ($currentPath -notlike "*$wayneBin*") {
         [Environment]::SetEnvironmentVariable(
             "Path",
@@ -2123,21 +2203,54 @@ function Set-PathVariable {
     } else {
         Write-Info "PATH already configured"
     }
-    
-    # Set WAYNE_HOME so the Python code finds config/data in the right place.
-    # Only needed on Windows where we install to %LOCALAPPDATA%\wayne instead
-    # of the Unix default ~/.wayne
-    $currentWayneHome = [Environment]::GetEnvironmentVariable("WAYNE_HOME", "User")
-    if (-not $currentWayneHome -or $currentWayneHome -ne $WayneHome) {
-        [Environment]::SetEnvironmentVariable("WAYNE_HOME", $WayneHome, "User")
-        Write-Success "Set WAYNE_HOME=$WayneHome"
+
+    # Persist the data home so the Python code finds config/data in the right
+    # place.  WORK4YOU_HOME is the canonical spelling; work4you_constants
+    # mirrors it onto WAYNE_HOME (which the engine still reads internally).
+    #
+    # Skipped for an adopted pre-rebrand home ON PURPOSE: persisting a home
+    # pins the engine to that path and suppresses its one-time data migration
+    # (home_migration.py bails out as soon as either variable is set), which
+    # would freeze the user on the old root forever.
+    if ($LegacyHomeAdopted) {
+        # Session-only: every step of THIS run agrees on the old root (config
+        # templates, setup wizard, gateway). Nothing is written to the User
+        # environment, so the next freshly-launched Work4You process sees no
+        # home variable, resolves the legacy root dynamically, and migrates.
+        $env:WORK4YOU_HOME = $WayneHome
+        $env:WAYNE_HOME = $WayneHome
+        Write-Info "Not persisting a home variable, so Work4You can relocate its data on the next run"
+    } else {
+        $currentHome = [Environment]::GetEnvironmentVariable("WORK4YOU_HOME", "User")
+        if (-not $currentHome -or $currentHome -ne $WayneHome) {
+            [Environment]::SetEnvironmentVariable("WORK4YOU_HOME", $WayneHome, "User")
+            Write-Success "Set WORK4YOU_HOME=$WayneHome"
+        }
+        $env:WORK4YOU_HOME = $WayneHome
+        $env:WAYNE_HOME = $WayneHome
+
+        # A WAYNE_HOME left in the User environment by a pre-rebrand installer
+        # WINS over WORK4YOU_HOME inside the engine (see
+        # work4you_constants.apply_work4you_env_aliases), so the two spellings
+        # must not disagree.  Only our own leftover -- same value, or the
+        # legacy default we wrote ourselves -- is cleared; a home the user
+        # deliberately set is never touched, only reported.
+        $legacyVar = [Environment]::GetEnvironmentVariable("WAYNE_HOME", "User")
+        if ($legacyVar) {
+            if ($legacyVar -eq $WayneHome -or $legacyVar -eq $LegacyDefaultHome) {
+                [Environment]::SetEnvironmentVariable("WAYNE_HOME", $null, "User")
+                Write-Info "Converged the home environment variable on WORK4YOU_HOME"
+            } else {
+                Write-Warn "WAYNE_HOME=$legacyVar is still set in your user environment and takes precedence over WORK4YOU_HOME=$WayneHome"
+                Write-Info "Remove it (or re-run with a matching -Work4YouHome) if that is not what you want."
+            }
+        }
     }
-    $env:WAYNE_HOME = $WayneHome
-    
+
     # Update current session
     $env:Path = "$wayneBin;$env:Path"
-    
-    Write-Success "wayne command ready"
+
+    Write-Success "work4you command ready"
 }
 
 function Write-BootstrapMarker {
@@ -2188,14 +2301,22 @@ function Write-BootstrapMarker {
     }
 
     if (-not $pinnedCommit) {
-        # ZIP-managed installs carry no .git metadata; the engine package
-        # ships its source pin in .wayne-engine-version (KEY=VALUE lines,
-        # written by platform/wayne-fly/build-engine-zip.ps1).
-        $engineVersionFile = Join-Path $InstallDir ".wayne-engine-version"
-        if (Test-Path $engineVersionFile) {
+        # ZIP-managed installs carry no .git metadata; the engine package ships
+        # its source pin as KEY=VALUE lines next to the tree.
+        # .work4you-engine-version is the name we read first;
+        # platform/wayne-fly/build-engine-zip.ps1 still WRITES
+        # .wayne-engine-version (deliberately -- renaming the produced file
+        # would break every published casca that reads it), so the legacy name
+        # remains the live path and must stay in this list.
+        foreach ($markerName in @(".work4you-engine-version", ".wayne-engine-version")) {
+            $engineVersionFile = Join-Path $InstallDir $markerName
+            if (-not (Test-Path $engineVersionFile)) { continue }
             $commitLine = Get-Content $engineVersionFile -ErrorAction SilentlyContinue |
                 Where-Object { $_ -match '^commit=' } | Select-Object -First 1
-            if ($commitLine) { $pinnedCommit = ($commitLine -replace '^commit=', '').Trim() }
+            if ($commitLine) {
+                $pinnedCommit = ($commitLine -replace '^commit=', '').Trim()
+                if ($pinnedCommit) { break }
+            }
         }
     }
 
@@ -2319,7 +2440,7 @@ function Install-NodeDeps {
     $npmCmd = Get-Command npm -ErrorAction SilentlyContinue
     if (-not $npmCmd) {
         Write-Warn "npm not found on PATH -- skipping Node.js dependencies."
-        Write-Info "Open a new PowerShell window and re-run 'wayne setup tools' later."
+        Write-Info "Open a new PowerShell window and re-run 'work4you setup tools' later."
         return
     }
     $npmExe = $npmCmd.Source
@@ -2840,8 +2961,12 @@ function Install-Desktop {
     Pop-Location
 
     # 3. Sanity-check the produced binary. Probe both arches so this works
-    # on x64 and arm64 build machines.
+    # on x64 and arm64 build machines, and both product names: apps/desktop's
+    # productName is now Work4You, but a checkout from before the desktop
+    # rename still packs Wayne.exe.
     $exeCandidates = @(
+        "$desktopDir\release\win-unpacked\Work4You.exe",
+        "$desktopDir\release\win-arm64-unpacked\Work4You.exe",
         "$desktopDir\release\win-unpacked\Wayne.exe",
         "$desktopDir\release\win-arm64-unpacked\Wayne.exe"
     )
@@ -2856,7 +2981,7 @@ function Install-Desktop {
         }
     }
     if (-not $found) {
-        throw "Desktop build completed but no Wayne.exe was found under $desktopDir\release\*-unpacked\"
+        throw "Desktop build completed but no Work4You.exe was found under $desktopDir\release\*-unpacked\"
     }
 
     # 3b. The Wayne icon + identity are stamped onto Wayne.exe by the
@@ -3056,7 +3181,7 @@ function Invoke-SetupWizard {
         # The setup wizard prompts for API keys, model choice, persona, etc.
         # Non-interactive callers (GUI installer) own that UX themselves; let
         # them drive it after install.ps1 returns.
-        Write-Info "Skipping setup wizard (non-interactive). Configure via the GUI or 'wayne setup'."
+        Write-Info "Skipping setup wizard (non-interactive). Configure via the GUI or 'work4you setup'."
         return
     }
 
@@ -3089,9 +3214,14 @@ function Start-GatewayIfConfigured {
 
     if (-not $hasMessaging) { return }
 
-    $wayneCmd = "$InstallDir\venv\Scripts\wayne.exe"
+    # work4you.exe is the canonical console script; wayne.exe is the legacy
+    # alias older venvs may be the only ones to have.
+    $wayneCmd = "$InstallDir\venv\Scripts\work4you.exe"
     if (-not (Test-Path $wayneCmd)) {
-        $wayneCmd = "wayne"
+        $wayneCmd = "$InstallDir\venv\Scripts\wayne.exe"
+    }
+    if (-not (Test-Path $wayneCmd)) {
+        $wayneCmd = "work4you"
     }
 
     # If WhatsApp is enabled but not yet paired, run foreground for QR scan
@@ -3100,7 +3230,7 @@ function Start-GatewayIfConfigured {
     if ($whatsappEnabled -and -not (Test-Path $whatsappSession)) {
         Write-Host ""
         Write-Info "WhatsApp is enabled but not yet paired."
-        Write-Info "Running 'wayne whatsapp' to pair via QR code..."
+        Write-Info "Running 'work4you whatsapp' to pair via QR code..."
         Write-Host ""
         # Non-interactive callers (GUI installer, CI) skip the QR-pair prompt;
         # WhatsApp pairing requires a human looking at a phone camera, so the
@@ -3129,7 +3259,7 @@ function Start-GatewayIfConfigured {
     # services on the build agent, etc.).  Treat it like the user declined.
     if ($NonInteractive) {
         Write-Info "Skipping gateway autostart prompt (non-interactive)."
-        Write-Info "Start the gateway later with: wayne gateway"
+        Write-Info "Start the gateway later with: work4you gateway"
         return
     }
 
@@ -3147,10 +3277,10 @@ function Start-GatewayIfConfigured {
             Write-Info "Logs: $logFile"
             Write-Info "To stop: close the gateway process from Task Manager"
         } catch {
-            Write-Warn "Failed to start gateway. Run manually: wayne gateway"
+            Write-Warn "Failed to start gateway. Run manually: work4you gateway"
         }
     } else {
-        Write-Info "Skipped. Start the gateway later with: wayne gateway"
+        Write-Info "Skipped. Start the gateway later with: work4you gateway"
     }
 }
 
@@ -3171,24 +3301,24 @@ function Write-Completion {
     Write-Host "   Data:      " -NoNewline -ForegroundColor Yellow
     Write-Host "$WayneHome\cron\, sessions\, logs\"
     Write-Host "   Code:      " -NoNewline -ForegroundColor Yellow
-    Write-Host "$WayneHome\wayne-agent\"
+    Write-Host "$InstallDir\"
     Write-Host ""
     
     Write-Host "---------------------------------------------------------" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "* Commands:" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "   wayne              " -NoNewline -ForegroundColor Green
+    Write-Host "   work4you              " -NoNewline -ForegroundColor Green
     Write-Host "Start chatting"
-    Write-Host "   wayne setup        " -NoNewline -ForegroundColor Green
+    Write-Host "   work4you setup        " -NoNewline -ForegroundColor Green
     Write-Host "Configure API keys & settings"
-    Write-Host "   wayne config       " -NoNewline -ForegroundColor Green
+    Write-Host "   work4you config       " -NoNewline -ForegroundColor Green
     Write-Host "View/edit configuration"
-    Write-Host "   wayne config edit  " -NoNewline -ForegroundColor Green
+    Write-Host "   work4you config edit  " -NoNewline -ForegroundColor Green
     Write-Host "Open config in editor"
-    Write-Host "   wayne gateway      " -NoNewline -ForegroundColor Green
+    Write-Host "   work4you gateway      " -NoNewline -ForegroundColor Green
     Write-Host "Start messaging gateway (Telegram, Discord, etc.)"
-    Write-Host "   wayne update       " -NoNewline -ForegroundColor Green
+    Write-Host "   work4you update       " -NoNewline -ForegroundColor Green
     Write-Host "Update to latest version"
     Write-Host ""
     
@@ -3290,7 +3420,7 @@ $InstallStages = @(
     @{ Name = "git";              Title = "Installing Git";                       Category = "prereqs";      NeedsUserInput = $false; Worker = "Stage-Git" }
     @{ Name = "node";             Title = "Detecting Node.js";                    Category = "prereqs";      NeedsUserInput = $false; Worker = "Stage-Node" }
     @{ Name = "system-packages";  Title = "Installing ripgrep and ffmpeg";        Category = "prereqs";      NeedsUserInput = $false; Worker = "Stage-SystemPackages" }
-    @{ Name = "repository";       Title = "Downloading Wayne engine source";     Category = "install";      NeedsUserInput = $false; Worker = "Stage-Repository" }
+    @{ Name = "repository";       Title = "Downloading Work4You engine source";  Category = "install";      NeedsUserInput = $false; Worker = "Stage-Repository" }
     @{ Name = "venv";             Title = "Creating Python virtual environment";  Category = "install";      NeedsUserInput = $false; Worker = "Stage-Venv" }
     @{ Name = "dependencies";     Title = "Installing Python dependencies";       Category = "install";      NeedsUserInput = $false; Worker = "Stage-Dependencies" }
     @{ Name = "node-deps";        Title = "Installing Node.js dependencies";      Category = "install";      NeedsUserInput = $false; Worker = "Stage-NodeDeps" }
@@ -3302,7 +3432,7 @@ if ($IncludeDesktop) {
     $InstallStages += @{ Name = "desktop"; Title = "Building desktop app"; Category = "install"; NeedsUserInput = $false; Worker = "Stage-Desktop" }
 }
 $InstallStages += @(
-    @{ Name = "path";             Title = "Adding Wayne to PATH";                Category = "finalize";     NeedsUserInput = $false; Worker = "Stage-Path" }
+    @{ Name = "path";             Title = "Adding Work4You to PATH";             Category = "finalize";     NeedsUserInput = $false; Worker = "Stage-Path" }
     @{ Name = "config-templates"; Title = "Writing configuration templates";      Category = "finalize";     NeedsUserInput = $false; Worker = "Stage-ConfigTemplates" }
     @{ Name = "platform-sdks";    Title = "Installing messaging platform SDKs";   Category = "finalize";     NeedsUserInput = $false; Worker = "Stage-PlatformSdks" }
     @{ Name = "bootstrap-marker"; Title = "Marking install complete";              Category = "finalize";     NeedsUserInput = $false; Worker = "Stage-BootstrapMarker" }
