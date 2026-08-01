@@ -2,7 +2,7 @@
 name: github-auth
 description: "GitHub auth setup: HTTPS tokens, SSH keys, gh CLI login."
 version: 1.1.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -52,7 +52,7 @@ This is the most portable method — works everywhere, no SSH config needed.
 Tell the user to go to: **https://github.com/settings/tokens**
 
 - Click "Generate new token (classic)"
-- Give it a name like "wayne-agent"
+- Give it a name like "work4you"
 - Select scopes:
   - `repo` (full repository access — read, write, push, PRs)
   - `workflow` (trigger and manage GitHub Actions)
@@ -131,7 +131,7 @@ cat ~/.ssh/id_ed25519.pub
 Tell the user to add the public key at: **https://github.com/settings/keys**
 - Click "New SSH key"
 - Paste the public key content
-- Give it a title like "wayne-agent-<machine-name>"
+- Give it a title like "work4you-<machine-name>"
 
 **Step 3: Test the connection**
 
@@ -220,8 +220,9 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null; then
   echo "AUTH_METHOD=gh"
 elif [ -n "$GITHUB_TOKEN" ]; then
   echo "AUTH_METHOD=curl"
-elif _wayne_env="${WAYNE_HOME:-$HOME/.wayne}/.env"; [ -f "$_wayne_env" ] && grep -q "^GITHUB_TOKEN=" "$_wayne_env"; then
-  export GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_wayne_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
+# WAYNE_HOME / ~/.wayne are the legacy (pre-rebrand) fallbacks
+elif _w4y_env="${WORK4YOU_HOME:-${WAYNE_HOME:-$HOME/.work4you}}/.env"; [ -f "$_w4y_env" ] && grep -q "^GITHUB_TOKEN=" "$_w4y_env"; then
+  export GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_w4y_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
   echo "AUTH_METHOD=curl"
 elif grep -q "github.com" ~/.git-credentials 2>/dev/null; then
   export GITHUB_TOKEN=$(grep "github.com" ~/.git-credentials | head -1 | sed 's|https://[^:]*:\([^@]*\)@.*|\1|')

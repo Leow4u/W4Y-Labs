@@ -3,10 +3,10 @@ label: WeCom (Enterprise WeChat)
 kind: platform
 version: 1.0.0
 description: >
-  WeCom / Enterprise WeChat gateway adapter for Wayne Agent. Registers two
+  WeCom / Enterprise WeChat gateway adapter for Work4You. Registers two
   platforms: ``wecom`` (Smart Robot over WebSocket) and ``wecom_callback``
   (self-built apps over an HTTP callback endpoint with AES message crypto).
-  Relays messages between WeCom chats and the Wayne agent.
+  Relays messages between WeCom chats and the Work4You agent.
 author: NousResearch
 requires_env:
   - name: WECOM_BOT_ID

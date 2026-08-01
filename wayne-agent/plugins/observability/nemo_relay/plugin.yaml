@@ -1,6 +1,6 @@
 name: nemo_relay
 version: "0.1.0"
-description: "Optional NeMo Relay observability for Wayne. Opt in with `wayne plugins enable observability/nemo_relay`; WAYNE_NEMO_RELAY_* env vars configure exports after the plugin is enabled."
+description: "Optional NeMo Relay observability for Work4You. Opt in with `work4you plugins enable observability/nemo_relay`; WAYNE_NEMO_RELAY_* env vars configure exports after the plugin is enabled."
 author: NousResearch
 hooks:
   - on_session_start

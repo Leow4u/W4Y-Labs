@@ -2,7 +2,7 @@
 name: llm-wiki
 description: "Karpathy's LLM Wiki: build/query interlinked markdown KB."
 version: 2.1.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -35,7 +35,7 @@ Use this skill when the user:
 
 ## Wiki Location
 
-**Location:** Set via `WIKI_PATH` environment variable (e.g. in `${WAYNE_HOME:-~/.wayne}/.env`).
+**Location:** Set via `WIKI_PATH` environment variable (e.g. in `${WORK4YOU_HOME:-~/.work4you}/.env`; legacy installs: `${WAYNE_HOME:-~/.wayne}/.env`).
 
 If unset, defaults to `~/wiki`.
 

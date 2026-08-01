@@ -1,6 +1,6 @@
 ---
 name: teams-meeting-pipeline
-description: "Operate the Teams meeting summary pipeline via Wayne CLI — summarize meetings, inspect pipeline status, replay jobs, manage Microsoft Graph subscriptions."
+description: "Operate the Teams meeting summary pipeline via Work4You CLI — summarize meetings, inspect pipeline status, replay jobs, manage Microsoft Graph subscriptions."
 version: 1.1.0
 author: Wayne Agent + Teknium
 license: MIT
@@ -20,7 +20,7 @@ metadata:
 
 Use this skill whenever the user asks about Microsoft Teams meeting summaries, transcripts, recordings, action items, Graph subscriptions, or any operational question about the Teams meeting pipeline. Works in any language — the triggers below are examples, not an exhaustive list.
 
-Everything operator-facing is a `wayne teams-pipeline` subcommand run via the terminal tool. There are no new model tools for this pipeline — the CLI is the surface.
+Everything operator-facing is a `work4you teams-pipeline` subcommand run via the terminal tool. There are no new model tools for this pipeline — the CLI is the surface.
 
 ## When to use this skill
 
@@ -54,35 +54,35 @@ If any are missing, direct the user to the Azure app registration guide at `/doc
 ### Status and inspection (start here)
 
 ```bash
-wayne teams-pipeline validate              # config snapshot — run first after any change
-wayne teams-pipeline token-health          # Graph token status
-wayne teams-pipeline token-health --force-refresh   # force a fresh token acquisition
-wayne teams-pipeline list                  # recent meeting jobs
-wayne teams-pipeline list --status failed  # only failed jobs
-wayne teams-pipeline show <job-id>         # full detail of one job
-wayne teams-pipeline subscriptions         # current Graph webhook subscriptions
+work4you teams-pipeline validate              # config snapshot — run first after any change
+work4you teams-pipeline token-health          # Graph token status
+work4you teams-pipeline token-health --force-refresh   # force a fresh token acquisition
+work4you teams-pipeline list                  # recent meeting jobs
+work4you teams-pipeline list --status failed  # only failed jobs
+work4you teams-pipeline show <job-id>         # full detail of one job
+work4you teams-pipeline subscriptions         # current Graph webhook subscriptions
 ```
 
 ### Re-running / debugging
 
 ```bash
-wayne teams-pipeline run <job-id>          # replay a stored job (re-summarize, re-deliver)
-wayne teams-pipeline fetch --meeting-id <id>   # dry-run: resolve meeting + transcript without persisting
-wayne teams-pipeline fetch --join-web-url "<url>"   # dry-run by join URL
+work4you teams-pipeline run <job-id>          # replay a stored job (re-summarize, re-deliver)
+work4you teams-pipeline fetch --meeting-id <id>   # dry-run: resolve meeting + transcript without persisting
+work4you teams-pipeline fetch --join-web-url "<url>"   # dry-run by join URL
 ```
 
 ### Subscription management
 
 ```bash
-wayne teams-pipeline subscribe \
+work4you teams-pipeline subscribe \
   --resource communications/onlineMeetings/getAllTranscripts \
   --notification-url https://<your-public-host>/msgraph/webhook \
   --client-state "$MSGRAPH_WEBHOOK_CLIENT_STATE"
 
-wayne teams-pipeline renew-subscription <sub-id> --expiration <iso-8601>
-wayne teams-pipeline delete-subscription <sub-id>
-wayne teams-pipeline maintain-subscriptions            # renew near-expiry ones
-wayne teams-pipeline maintain-subscriptions --dry-run  # show what would be renewed
+work4you teams-pipeline renew-subscription <sub-id> --expiration <iso-8601>
+work4you teams-pipeline delete-subscription <sub-id>
+work4you teams-pipeline maintain-subscriptions            # renew near-expiry ones
+work4you teams-pipeline maintain-subscriptions --dry-run  # show what would be renewed
 ```
 
 ## Decision tree for common asks
@@ -97,9 +97,9 @@ wayne teams-pipeline maintain-subscriptions --dry-run  # show what would be rene
 Microsoft Graph caps webhook subscriptions at 72 hours and **will not auto-renew them**. If `maintain-subscriptions` is not scheduled, meeting notifications silently stop arriving 3 days after any manual subscription creation.
 
 When the user reports "the pipeline worked yesterday but nothing is arriving today":
-1. Run `wayne teams-pipeline subscriptions` — if it's empty or all entries show `expirationDateTime` in the past, that's the cause.
+1. Run `work4you teams-pipeline subscriptions` — if it's empty or all entries show `expirationDateTime` in the past, that's the cause.
 2. Recreate with `subscribe` as shown above.
-3. **Set up automated renewal immediately** via `wayne cron add`, a systemd timer, or plain crontab. The operator runbook at `/docs/guides/operate-teams-meeting-pipeline#automating-subscription-renewal-required-for-production` has all three options. 12-hour interval is safe (6x headroom against the 72h limit).
+3. **Set up automated renewal immediately** via `work4you cron add`, a systemd timer, or plain crontab. The operator runbook at `/docs/guides/operate-teams-meeting-pipeline#automating-subscription-renewal-required-for-production` has all three options. 12-hour interval is safe (6x headroom against the 72h limit).
 
 ## Other pitfalls
 

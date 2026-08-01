@@ -3,7 +3,7 @@ label: iMessage via Photon
 kind: platform
 version: 0.3.0
 description: >
-  Photon Spectrum gateway adapter for Wayne Agent.
+  Photon Spectrum gateway adapter for Work4You.
   Connects to iMessage (and other Spectrum interfaces) through Photon's
   managed Spectrum platform. Both directions run over the `spectrum-ts`
   SDK's long-lived gRPC stream via a small supervised Node sidecar —
@@ -11,7 +11,7 @@ description: >
   no public URL, no signing secret), and outbound messages are sent over
   the same sidecar.
 
-  The plugin ships with a `wayne photon` CLI for the one-time device
+  The plugin ships with a `work4you photon` CLI for the one-time device
   login + project + user setup. Runtime credentials are written to
   ``~/.wayne/.env`` (``PHOTON_PROJECT_ID`` = the Spectrum project id,
   ``PHOTON_PROJECT_SECRET``) like every other channel, with management
@@ -20,12 +20,12 @@ description: >
 author: NousResearch
 requires_env:
   - name: PHOTON_PROJECT_ID
-    description: "Spectrum project id (the project's spectrumProjectId; set by `wayne photon setup`)"
+    description: "Spectrum project id (the project's spectrumProjectId; set by `work4you photon setup`)"
     prompt: "Photon Spectrum project id"
     url: "https://app.photon.codes/"
     password: false
   - name: PHOTON_PROJECT_SECRET
-    description: "Project secret paired with the Spectrum project id (set by `wayne photon setup`)"
+    description: "Project secret paired with the Spectrum project id (set by `work4you photon setup`)"
     prompt: "Photon project secret"
     url: "https://app.photon.codes/"
     password: true
@@ -75,7 +75,7 @@ optional_env:
     prompt: "Home channel display name"
     password: false
   - name: PHOTON_TELEMETRY
-    description: "Enable Spectrum SDK telemetry in the sidecar (true/false, default false; toggle with `wayne photon telemetry on|off`)"
+    description: "Enable Spectrum SDK telemetry in the sidecar (true/false, default false; toggle with `work4you photon telemetry on|off`)"
     prompt: "Enable Spectrum telemetry? (true/false)"
     password: false
   - name: PHOTON_MARKDOWN

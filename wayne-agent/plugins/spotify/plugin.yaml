@@ -1,6 +1,6 @@
 name: spotify
 version: 1.0.0
-description: "Native Spotify integration — 7 tools (playback, devices, queue, search, playlists, albums, library) using Spotify Web API + PKCE OAuth. Auth via `wayne auth spotify`. Tools gate on `providers.spotify` in ~/.wayne/auth.json."
+description: "Native Spotify integration — 7 tools (playback, devices, queue, search, playlists, albums, library) using Spotify Web API + PKCE OAuth. Auth via `work4you auth spotify`. Tools gate on `providers.spotify` in ~/.wayne/auth.json."
 author: NousResearch
 kind: backend
 provides_tools:

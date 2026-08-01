@@ -2,7 +2,7 @@
 name: github-issues
 description: "Create, triage, label, assign GitHub issues via gh or REST."
 version: 1.1.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -28,8 +28,9 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null; then
 else
   AUTH="git"
   if [ -z "$GITHUB_TOKEN" ]; then
-    if _wayne_env="${WAYNE_HOME:-$HOME/.wayne}/.env"; [ -f "$_wayne_env" ] && grep -q "^GITHUB_TOKEN=" "$_wayne_env"; then
-      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_wayne_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
+    # WAYNE_HOME / ~/.wayne are the legacy (pre-rebrand) fallbacks
+    if _w4y_env="${WORK4YOU_HOME:-${WAYNE_HOME:-$HOME/.work4you}}/.env"; [ -f "$_w4y_env" ] && grep -q "^GITHUB_TOKEN=" "$_w4y_env"; then
+      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_w4y_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
     elif grep -q "github.com" ~/.git-credentials 2>/dev/null; then
       GITHUB_TOKEN=$(grep "github.com" ~/.git-credentials 2>/dev/null | head -1 | sed 's|https://[^:]*:\([^@]*\)@.*|\1|')
     fi

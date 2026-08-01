@@ -1,6 +1,6 @@
 ---
 name: telephony
-description: Give Wayne phone capabilities without core tool changes. Provision and persist a Twilio number, send and receive SMS/MMS, make direct calls, and place AI-driven outbound calls through Bland.ai or Vapi.
+description: Give Work4You phone capabilities without core tool changes. Provision and persist a Twilio number, send and receive SMS/MMS, make direct calls, and place AI-driven outbound calls through Bland.ai or Vapi.
 version: 1.0.0
 author: Nous Research
 license: MIT
@@ -140,8 +140,8 @@ If `SCRIPT` is empty, the skill is not installed yet.
 This is an official optional skill, so install it from the Skills Hub:
 
 ```bash
-wayne skills search telephony
-wayne skills install official/productivity/telephony
+work4you skills search telephony
+work4you skills install official/productivity/telephony
 ```
 
 ## Provider setup
