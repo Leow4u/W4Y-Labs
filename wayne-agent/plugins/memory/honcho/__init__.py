@@ -459,7 +459,7 @@ class HonchoMemoryProvider(MemoryProvider):
         # of performing a one-time migration.
         try:
             if not session.messages and cfg.session_strategy != "per-session":
-                from wayne_constants import get_wayne_home
+                from work4you_constants import get_wayne_home
                 mem_dir = str(get_wayne_home() / "memories")
                 self._manager.migrate_memory_files(self._session_key, mem_dir)
                 logger.debug("Honcho memory file migration attempted for new session: %s", self._session_key)

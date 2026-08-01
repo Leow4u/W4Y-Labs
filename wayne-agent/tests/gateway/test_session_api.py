@@ -8,7 +8,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from gateway.config import PlatformConfig
 from gateway.platforms.api_server import APIServerAdapter
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 @pytest.fixture

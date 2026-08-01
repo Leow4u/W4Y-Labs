@@ -149,7 +149,7 @@ def verify_on_stop_enabled(config: dict[str, Any] | None = None) -> bool:
         return env.strip().lower() not in {"0", "false", "no", "off"}
     if config is None:
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
 
             config = load_config()
         except Exception:

@@ -8,7 +8,7 @@
  * lives where a test can reach it.
  *
  * What it deliberately does NOT do is judge the restart. That decision moved to
- * the backend (`wayne_cli/restart_jobs.judge_restart`), which is the only place
+ * the backend (`work4you_cli/restart_jobs.judge_restart`), which is the only place
  * that can check real gateway health: the gateway may run in the FOREGROUND and
  * never exit, and a process exiting 0 proves only that a command ran.
  */

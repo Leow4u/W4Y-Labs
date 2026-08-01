@@ -3,7 +3,7 @@
 import time
 import pytest
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 from agent.insights import (
     InsightsEngine,
     _estimate_cost,

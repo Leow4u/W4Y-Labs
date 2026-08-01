@@ -1,5 +1,5 @@
 """Tests for the memory/skill write-approval gate (tools/write_approval.py)
-and the shared slash-command handlers (wayne_cli/write_approval_commands.py).
+and the shared slash-command handlers (work4you_cli/write_approval_commands.py).
 
 Covers the boolean write_approval gate (off by default = write freely; on =
 require approval) for both subsystems, the foreground-vs-background staging
@@ -26,7 +26,7 @@ def wayne_home(monkeypatch):
 
 
 def _set_approval(subsystem, enabled):
-    import wayne_cli.config as cfg
+    import work4you_cli.config as cfg
     c = cfg.load_config()
     c.setdefault(subsystem, {})["write_approval"] = enabled
     cfg.save_config(c)
@@ -115,7 +115,7 @@ def test_cli_memory_approve_without_live_agent_uses_fresh_store(wayne_home, caps
     import json
     from tools.memory_tool import memory_tool, MemoryStore
     from tools import write_approval as wa
-    from wayne_cli.cli_commands_mixin import CLICommandsMixin
+    from work4you_cli.cli_commands_mixin import CLICommandsMixin
 
     _set_approval("memory", True)
     staging = MemoryStore(); staging.load_from_disk()
@@ -147,7 +147,7 @@ def test_load_on_disk_store_honors_configured_char_limits(wayne_home, monkeypatc
 
     # Config override path: helper picks up the configured limits.
     monkeypatch.setattr(
-        "wayne_cli.config.load_config",
+        "work4you_cli.config.load_config",
         lambda: {"memory": {"memory_char_limit": 999, "user_char_limit": 444}},
     )
     store = load_on_disk_store()
@@ -158,7 +158,7 @@ def test_load_on_disk_store_honors_configured_char_limits(wayne_home, monkeypatc
     def _boom():
         raise RuntimeError("no config")
 
-    monkeypatch.setattr("wayne_cli.config.load_config", _boom)
+    monkeypatch.setattr("work4you_cli.config.load_config", _boom)
     fallback = load_on_disk_store()
     assert fallback.memory_char_limit == 2200
     assert fallback.user_char_limit == 1375
@@ -242,14 +242,14 @@ def test_pending_store_roundtrip(wayne_home):
 # ---------------------------------------------------------------------------
 
 def test_handle_pending_list_empty(wayne_home):
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools import write_approval as wa
     out = handle_pending_subcommand(wa.MEMORY, ["pending"])
     assert "No pending memory" in out
 
 
 def test_handle_approve_all(wayne_home):
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools.memory_tool import MemoryStore
     from tools import write_approval as wa
     store = MemoryStore(); store.load_from_disk()
@@ -264,7 +264,7 @@ def test_handle_approve_all(wayne_home):
 
 
 def test_handle_reject(wayne_home):
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools import write_approval as wa
     rec = wa.stage_write("skills", {"action": "create", "name": "s"},
                          summary="create s", origin="background_review")
@@ -274,7 +274,7 @@ def test_handle_reject(wayne_home):
 
 
 def test_handle_approval_on(wayne_home):
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools import write_approval as wa
     captured = {}
     out = handle_pending_subcommand(
@@ -286,7 +286,7 @@ def test_handle_approval_on(wayne_home):
 
 
 def test_handle_approval_off(wayne_home):
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools import write_approval as wa
     captured = {}
     out = handle_pending_subcommand(
@@ -299,7 +299,7 @@ def test_handle_approval_off(wayne_home):
 
 def test_handle_mode_alias_still_works(wayne_home):
     # 'mode' is kept as a back-compat alias for 'approval'.
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools import write_approval as wa
     captured = {}
     out = handle_pending_subcommand(
@@ -311,7 +311,7 @@ def test_handle_mode_alias_still_works(wayne_home):
 
 
 def test_handle_approval_invalid(wayne_home):
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools import write_approval as wa
     out = handle_pending_subcommand(wa.MEMORY, ["approval", "bogus"],
                                     set_mode_fn=lambda enabled: None)
@@ -319,7 +319,7 @@ def test_handle_approval_invalid(wayne_home):
 
 
 def test_handle_unknown_subcommand_returns_none(wayne_home):
-    from wayne_cli.write_approval_commands import handle_pending_subcommand
+    from work4you_cli.write_approval_commands import handle_pending_subcommand
     from tools import write_approval as wa
     # An unrecognized /skills subcommand (e.g. 'search') must return None so
     # the CLI falls through to the skills hub.

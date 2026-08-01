@@ -36,7 +36,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 def _build_agent_with_db(db: SessionDB, session_id: str):
@@ -348,7 +348,7 @@ def test_typeerror_fallback_exception_stops_lock_refresher(tmp_path: Path, monke
 class _NoLockSubsystemDB:
     """Wraps a real SessionDB but simulates a pre-#34351 version skew.
 
-    A long-lived process can hold ``wayne_state.SessionDB`` bound to the
+    A long-lived process can hold ``work4you_state.SessionDB`` bound to the
     OLD class in memory (no compression-lock methods) while a lazily
     re-imported ``conversation_compression.py`` calls the NEW lock code.
     ``try_acquire_compression_lock`` then raises ``AttributeError`` — which

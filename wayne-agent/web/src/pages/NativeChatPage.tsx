@@ -829,7 +829,7 @@ export default function NativeChatPage({ isActive = true }: { isActive?: boolean
 
   // Onda D2.2: connected apps the agent used, recognized by INVERSION. Composio
   // enters the agent as an MCP server (entry "composio" global / "composio_agente"
-  // per-agent — wayne_cli/web_server.py:2001-2002) and every MCP tool is
+  // per-agent — work4you_cli/web_server.py:2001-2002) and every MCP tool is
   // registered as mcp_<server>_<tool> (tools/mcp_tool.py:3941, case-preserved) —
   // so a connector action arrives in tool.start/history verbatim as e.g.
   // mcp_composio_GMAIL_FETCH_EMAILS (useChatSession.ts:757 sets tc.name raw).

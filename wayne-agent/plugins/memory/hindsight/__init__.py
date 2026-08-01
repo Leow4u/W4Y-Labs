@@ -44,9 +44,9 @@ from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from agent.memory_provider import MemoryProvider
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from tools.registry import tool_error
-from wayne_cli.config import cfg_get
+from work4you_cli.config import cfg_get
 
 logger = logging.getLogger(__name__)
 
@@ -760,10 +760,10 @@ class HindsightMemoryProvider(MemoryProvider):
         import sys
         from pathlib import Path
 
-        from wayne_cli.config import save_config
-        from wayne_cli.secret_prompt import masked_secret_prompt
+        from work4you_cli.config import save_config
+        from work4you_cli.secret_prompt import masked_secret_prompt
 
-        from wayne_cli.memory_setup import _CANCELLED, _curses_select, _print_cancelled_setup
+        from work4you_cli.memory_setup import _CANCELLED, _curses_select, _print_cancelled_setup
 
         print("\n  Configuring Hindsight memory:\n")
 

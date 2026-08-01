@@ -30,14 +30,14 @@ def _expand_tilde(path: str) -> str:
 
     In-process file tools share the gateway process's HOME, which may differ
     from the profile-specific HOME that interactive CLI sessions use.  This
-    mirrors ``wayne_constants.get_subprocess_home()`` so that ``~`` resolves
+    mirrors ``work4you_constants.get_subprocess_home()`` so that ``~`` resolves
     consistently regardless of whether the tool runs interactively or inside a
     gateway-driven cron job (#48552).
     """
     if not path or "~" not in path:
         return path
     try:
-        from wayne_constants import get_subprocess_home
+        from work4you_constants import get_subprocess_home
 
         home = get_subprocess_home()
     except Exception:
@@ -71,7 +71,7 @@ def _get_max_read_chars() -> int:
     if _max_read_chars_cached is not None:
         return _max_read_chars_cached
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         cfg = load_config()
         val = cfg.get("file_read_max_chars")
         if isinstance(val, (int, float)) and val > 0:
@@ -575,7 +575,7 @@ def _get_wayne_config_resolved() -> str | None:
         return _wayne_config_resolved
     _wayne_config_resolved_loaded = True
     try:
-        from wayne_cli.config import get_config_path
+        from work4you_cli.config import get_config_path
         _wayne_config_resolved = str(get_config_path().resolve())
     except Exception:
         try:

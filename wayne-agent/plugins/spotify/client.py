@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import httpx
 
-from wayne_cli.auth import (
+from work4you_cli.auth import (
     AuthError,
     resolve_spotify_runtime_credentials,
 )

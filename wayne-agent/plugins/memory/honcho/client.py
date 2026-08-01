@@ -20,8 +20,8 @@ import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from wayne_constants import get_wayne_home
-from wayne_cli.profiles import _get_default_wayne_home
+from work4you_constants import get_wayne_home
+from work4you_cli.profiles import _get_default_wayne_home
 from plugins.plugin_utils import SingletonSlot
 from typing import Any, TYPE_CHECKING
 
@@ -64,7 +64,7 @@ def resolve_active_host() -> str:
         return explicit
 
     try:
-        from wayne_cli.profiles import get_active_profile_name
+        from work4you_cli.profiles import get_active_profile_name
         profile = get_active_profile_name()
         return profile_host_key(profile)
     except Exception:
@@ -842,7 +842,7 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
         resolved_timeout = config.timeout
         if not resolved_base_url or resolved_timeout is None:
             try:
-                from wayne_cli.config import load_config
+                from work4you_cli.config import load_config
                 wayne_cfg = load_config()
                 honcho_cfg = wayne_cfg.get("honcho", {})
                 if isinstance(honcho_cfg, dict):

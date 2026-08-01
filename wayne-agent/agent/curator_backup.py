@@ -48,7 +48,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, Tuple
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from agent.skill_utils import is_excluded_skill_path
 
 logger = logging.getLogger(__name__)
@@ -142,7 +142,7 @@ def _utc_id(now: Optional[datetime] = None) -> str:
 
 def _load_config() -> Dict[str, Any]:
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         cfg = load_config()
     except Exception as e:
         logger.debug("Failed to load config for curator backup: %s", e)

@@ -191,7 +191,7 @@ def test_subprocess_pkill_wayne_gateway_blocked():
 
 
 def test_subprocess_pkill_python_dash_f_blocked():
-    """``pkill -f python`` matches the gateway's "python -m wayne_cli.main"."""
+    """``pkill -f python`` matches the gateway's "python -m work4you_cli.main"."""
     with pytest.raises(RuntimeError, match="live-system guard"):
         subprocess.run(["pkill", "-f", "python"])
 

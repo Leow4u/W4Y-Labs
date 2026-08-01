@@ -2581,20 +2581,20 @@ class TestGoogleChatInteractiveSetup:
         def fake_prompt(question, default=None, password=False):
             return answers.get(question, default or "")
 
-        monkeypatch.setattr("wayne_cli.config.get_env_value", fake_get_env_value)
-        monkeypatch.setattr("wayne_cli.config.save_env_value", fake_save_env_value)
-        monkeypatch.setattr("wayne_cli.cli_output.prompt", fake_prompt)
+        monkeypatch.setattr("work4you_cli.config.get_env_value", fake_get_env_value)
+        monkeypatch.setattr("work4you_cli.config.save_env_value", fake_save_env_value)
+        monkeypatch.setattr("work4you_cli.cli_output.prompt", fake_prompt)
         monkeypatch.setattr(
-            "wayne_cli.cli_output.prompt_yes_no", lambda *_a, **_kw: True
+            "work4you_cli.cli_output.prompt_yes_no", lambda *_a, **_kw: True
         )
         monkeypatch.setattr(
-            "wayne_cli.cli_output.print_info", lambda *_a, **_kw: None
+            "work4you_cli.cli_output.print_info", lambda *_a, **_kw: None
         )
         monkeypatch.setattr(
-            "wayne_cli.cli_output.print_success", lambda *_a, **_kw: None
+            "work4you_cli.cli_output.print_success", lambda *_a, **_kw: None
         )
         monkeypatch.setattr(
-            "wayne_cli.cli_output.print_warning", lambda *_a, **_kw: None
+            "work4you_cli.cli_output.print_warning", lambda *_a, **_kw: None
         )
 
         gc_mod.interactive_setup()
@@ -2750,7 +2750,7 @@ class TestCronSchedulerRegistry:
             return
         # Discover first so the plugin is loaded at all.
         try:
-            from wayne_cli.plugins import discover_plugins
+            from work4you_cli.plugins import discover_plugins
             discover_plugins()
         except Exception:
             pass

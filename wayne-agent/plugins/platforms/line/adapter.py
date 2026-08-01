@@ -1296,7 +1296,7 @@ class LineAdapter(BasePlatformAdapter):
             return web.Response(status=404, text="not found")
 
         try:
-            from wayne_constants import get_wayne_home
+            from work4you_constants import get_wayne_home
             wayne_home = Path(get_wayne_home()).resolve()
         except Exception:
             wayne_home = Path.home().joinpath(".wayne").resolve()
@@ -1579,7 +1579,7 @@ def interactive_setup() -> None:
     """Minimal stdin wizard for ``wayne setup line``.
 
     Mirrors the irc/teams style: prompts for the two required vars, plus
-    one optional public URL. Writes to ``~/.wayne/.env`` via ``wayne_cli.config``.
+    one optional public URL. Writes to ``~/.wayne/.env`` via ``work4you_cli.config``.
     """
     print()
     print("LINE Messaging API setup")
@@ -1589,9 +1589,9 @@ def interactive_setup() -> None:
     print()
 
     try:
-        from wayne_cli.config import get_env_var, set_env_var
+        from work4you_cli.config import get_env_var, set_env_var
     except ImportError:
-        print("wayne_cli.config not available; set LINE_* vars manually in ~/.wayne/.env")
+        print("work4you_cli.config not available; set LINE_* vars manually in ~/.wayne/.env")
         return
 
     def _prompt(var: str, prompt: str, *, secret: bool = False) -> None:
@@ -1599,7 +1599,7 @@ def interactive_setup() -> None:
         suffix = " [keep current]" if existing else ""
         try:
             if secret:
-                from wayne_cli.secret_prompt import masked_secret_prompt
+                from work4you_cli.secret_prompt import masked_secret_prompt
                 value = masked_secret_prompt(f"{prompt}{suffix}: ")
             else:
                 value = input(f"{prompt}{suffix}: ").strip()

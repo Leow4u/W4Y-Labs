@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 # ---------------------------------------------------------------------------

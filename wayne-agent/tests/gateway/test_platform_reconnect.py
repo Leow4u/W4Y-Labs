@@ -119,8 +119,8 @@ class TestStartupPlatformIsolation:
             return MagicMock()
 
         with patch("gateway.status.write_runtime_status"):
-            with patch("wayne_cli.plugins.discover_plugins"):
-                with patch("wayne_cli.config.load_config", return_value={}):
+            with patch("work4you_cli.plugins.discover_plugins"):
+                with patch("work4you_cli.config.load_config", return_value={}):
                     with patch("agent.shell_hooks.register_from_config"):
                         with patch(
                             "tools.process_registry.process_registry.recover_from_checkpoint",

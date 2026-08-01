@@ -1091,7 +1091,7 @@ class TestLoadGatewayConfig:
 
         monkeypatch.setenv("WAYNE_HOME", str(wayne_home))
 
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         config = load_config()
 

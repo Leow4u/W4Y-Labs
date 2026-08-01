@@ -79,7 +79,7 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-from wayne_cli.dashboard_auth import (
+from work4you_cli.dashboard_auth import (
     DashboardAuthProvider,
     InvalidCodeError,
     LoginStart,
@@ -549,7 +549,7 @@ def _load_config_oauth_section() -> dict:
     through to ``{}`` so register() can rely on `.get(...)` access.
     """
     try:
-        from wayne_cli.config import cfg_get, load_config
+        from work4you_cli.config import cfg_get, load_config
 
         cfg = load_config()
     except Exception as exc:  # noqa: BLE001 — broad catch is intentional
@@ -616,7 +616,7 @@ def register(ctx) -> None:
 
     Operator-owned dashboards (loopback / ``--insecure``) leave both
     surfaces unset, so this plugin is a no-op for them. The gate-
-    engagement layer (``wayne_cli.web_server.should_require_auth`` +
+    engagement layer (``work4you_cli.web_server.should_require_auth`` +
     the fail-closed check in ``start_server``) handles the "public bind
     with zero providers" case independently.
     """

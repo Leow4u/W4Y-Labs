@@ -82,7 +82,7 @@ def http_server(tmp_path, monkeypatch):
     # Force the constants/image cache helpers to re-read WAYNE_HOME.
     import sys
     for mod in list(sys.modules):
-        if mod.startswith("wayne_constants") or mod.startswith("agent.image_gen_provider"):
+        if mod.startswith("work4you_constants") or mod.startswith("agent.image_gen_provider"):
             sys.modules.pop(mod, None)
 
     httpd = socketserver.TCPServer(("127.0.0.1", 0), _TinyImageHandler)

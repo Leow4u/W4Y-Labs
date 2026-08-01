@@ -176,7 +176,7 @@ def check_env_vars():
 
     # Load .env
     try:
-        from wayne_cli.env_loader import load_wayne_dotenv
+        from work4you_cli.env_loader import load_wayne_dotenv
 
         load_wayne_dotenv(
             wayne_home=ENV_FILE.parent,

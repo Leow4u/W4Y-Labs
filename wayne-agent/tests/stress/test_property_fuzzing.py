@@ -240,9 +240,9 @@ def main():
 
         # Fresh module state per sequence to avoid cached init paths.
         for m in list(sys.modules.keys()):
-            if m.startswith("wayne_cli"):
+            if m.startswith("work4you_cli"):
                 del sys.modules[m]
-        from wayne_cli import kanban_db as kb
+        from work4you_cli import kanban_db as kb
 
         kb.init_db()
         conn = kb.connect()

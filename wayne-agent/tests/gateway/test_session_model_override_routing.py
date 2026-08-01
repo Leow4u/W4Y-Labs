@@ -188,7 +188,7 @@ fallback_providers:
 
     def fake_resolve_runtime_provider(*, requested=None, explicit_base_url=None, explicit_api_key=None):
         if requested in {None, "", "openai-codex"}:
-            from wayne_cli.auth import AuthError
+            from work4you_cli.auth import AuthError
             raise AuthError("No Codex credentials stored. Run `wayne auth` to authenticate.")
         assert requested == "openrouter"
         return {
@@ -201,7 +201,7 @@ fallback_providers:
             "credential_pool": None,
         }
 
-    import wayne_cli.runtime_provider as runtime_provider
+    import work4you_cli.runtime_provider as runtime_provider
 
     monkeypatch.setattr(runtime_provider, "resolve_runtime_provider", fake_resolve_runtime_provider)
 
@@ -249,7 +249,7 @@ fallback_providers:
             "credential_pool": None,
         }
 
-    import wayne_cli.runtime_provider as runtime_provider
+    import work4you_cli.runtime_provider as runtime_provider
 
     monkeypatch.setattr(runtime_provider, "resolve_runtime_provider", fake_resolve_runtime_provider)
 

@@ -31,7 +31,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 
 
 # ---------------------------------------------------------------------------

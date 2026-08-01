@@ -30,7 +30,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from plugins.google_meet.node import protocol as _proto
 
 

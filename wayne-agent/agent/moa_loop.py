@@ -144,7 +144,7 @@ def _slot_runtime(slot: dict[str, str]) -> dict[str, Any]:
     model = str(slot.get("model") or "").strip()
     out: dict[str, Any] = {"provider": provider, "model": model}
     try:
-        from wayne_cli.runtime_provider import resolve_runtime_provider
+        from work4you_cli.runtime_provider import resolve_runtime_provider
 
         rt = resolve_runtime_provider(requested=provider, target_model=model)
         # Forward the resolved endpoint through to call_llm unconditionally.
@@ -783,8 +783,8 @@ class MoAChatCompletions:
             logger.debug("MoA reference_callback failed for %s: %s", event, exc)
 
     def create(self, **api_kwargs: Any) -> Any:
-        from wayne_cli.config import load_config
-        from wayne_cli.moa_config import resolve_moa_preset
+        from work4you_cli.config import load_config
+        from work4you_cli.moa_config import resolve_moa_preset
 
         preset = resolve_moa_preset(load_config().get("moa") or {}, self.preset_name)
         messages = list(api_kwargs.get("messages") or [])

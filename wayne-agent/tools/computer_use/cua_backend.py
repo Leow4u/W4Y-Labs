@@ -115,7 +115,7 @@ def _cua_telemetry_disabled() -> bool:
     privacy-preserving default of telemetry disabled.
     """
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         cfg = load_config() or {}
         cu = cfg.get("computer_use") or {}

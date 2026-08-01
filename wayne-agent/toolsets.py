@@ -363,7 +363,7 @@ TOOLSETS = {
         "includes": [],
         # Posture toolset: selected per-session by agent/coding_context.py,
         # never auto-recovered into per-platform tool config (see the
-        # non-configurable-toolset recovery loop in wayne_cli/tools_config.py).
+        # non-configurable-toolset recovery loop in work4you_cli/tools_config.py).
         "posture": True,
     },
     

@@ -15,7 +15,7 @@ description: >
 author: sprmn24
 # ``requires_env`` and ``optional_env`` entries are surfaced in the
 # ``wayne config`` UI via the platform-plugin env var injector in
-# ``wayne_cli/config.py``.
+# ``work4you_cli/config.py``.
 requires_env:
   - name: NTFY_TOPIC
     description: "Topic name to subscribe to (e.g. wayne-in)"

@@ -207,7 +207,7 @@ class TestSealedVenvDurableTarget:
         monkeypatch.setenv("WAYNE_LAZY_INSTALL_TARGET", str(tmp_path / "lazy"))
         # config.yaml kill-switch left at default (allow).
         monkeypatch.setattr(
-            "wayne_cli.config.load_config",
+            "work4you_cli.config.load_config",
             lambda: {"security": {"allow_lazy_installs": True}},
         )
 
@@ -245,7 +245,7 @@ class TestSealedVenvDurableTarget:
         monkeypatch.setenv("WAYNE_DISABLE_LAZY_INSTALLS", "1")
         monkeypatch.delenv("WAYNE_LAZY_INSTALL_TARGET", raising=False)
         monkeypatch.setattr(
-            "wayne_cli.config.load_config",
+            "work4you_cli.config.load_config",
             lambda: {"security": {"allow_lazy_installs": True}},
         )
         monkeypatch.setattr(ld, "_is_satisfied", lambda spec: False)

@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
-from wayne_constants import display_wayne_home
+from work4you_constants import display_wayne_home
 from gateway.config import Platform, load_gateway_config
 from plugins.teams_pipeline.meetings import (
     enrich_meeting_with_call_record,

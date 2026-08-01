@@ -210,7 +210,7 @@ class TestHandleVoiceCommand:
 
         fake_cfg = {"voice": {"auto_tts": True}}
         monkeypatch.setattr(
-            "wayne_cli.config.load_config",
+            "work4you_cli.config.load_config",
             lambda: fake_cfg,
         )
         adapter = SimpleNamespace(
@@ -607,13 +607,13 @@ class TestVoiceInHelp:
 
     def test_voice_in_help_output(self):
         """The gateway help text includes /voice (generated from registry)."""
-        from wayne_cli.commands import gateway_help_lines
+        from work4you_cli.commands import gateway_help_lines
         help_text = "\n".join(gateway_help_lines())
         assert "/voice" in help_text
 
     def test_voice_is_known_command(self):
         """The /voice command is in GATEWAY_KNOWN_COMMANDS."""
-        from wayne_cli.commands import GATEWAY_KNOWN_COMMANDS
+        from work4you_cli.commands import GATEWAY_KNOWN_COMMANDS
         assert "voice" in GATEWAY_KNOWN_COMMANDS
 
 

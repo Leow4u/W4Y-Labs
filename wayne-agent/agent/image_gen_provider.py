@@ -229,7 +229,7 @@ def normalize_reference_images(value: Any) -> Optional[List[str]]:
 
 def _images_cache_dir() -> Path:
     """Return ``$WAYNE_HOME/cache/images/``, creating parents as needed."""
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 
     path = get_wayne_home() / "cache" / "images"
     path.mkdir(parents=True, exist_ok=True)

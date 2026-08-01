@@ -1667,7 +1667,7 @@ def qr_scan_for_bot_info(
 # plugin. register() exposes BOTH platforms via the registry, replacing the
 # Platform.WECOM / Platform.WECOM_CALLBACK elifs in gateway/run.py, the
 # _PLATFORM_CONNECTED_CHECKERS entries in gateway/config.py, the _setup_wecom
-# wizard + _PLATFORMS["wecom"] static dict in wayne_cli/gateway.py, and the
+# wizard + _PLATFORMS["wecom"] static dict in work4you_cli/gateway.py, and the
 # _send_wecom dispatch in tools/send_message_tool.py. Env→PlatformConfig
 # seeding stays in core, same as prior migrations.
 # ──────────────────────────────────────────────────────────────────────────
@@ -1715,12 +1715,12 @@ async def _standalone_send(
 def interactive_setup() -> None:
     """Interactive setup for WeCom — QR scan or manual credential input.
 
-    Replaces wayne_cli/gateway.py::_setup_wecom and the static
+    Replaces work4you_cli/gateway.py::_setup_wecom and the static
     _PLATFORMS["wecom"] dict. CLI helpers are lazy-imported.
     """
-    from wayne_cli.config import get_env_value, save_env_value
-    from wayne_cli.setup import prompt_choice
-    from wayne_cli.cli_output import (
+    from work4you_cli.config import get_env_value, save_env_value
+    from work4you_cli.setup import prompt_choice
+    from work4you_cli.cli_output import (
         prompt,
         prompt_yes_no,
         print_header,

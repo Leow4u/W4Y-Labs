@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 
 _DB_LOCK = threading.Lock()

@@ -12,7 +12,7 @@ from pathlib import Path
 
 import pytest
 
-from wayne_state import SessionDB
+from work4you_state import SessionDB
 from gateway.config import GatewayConfig
 from gateway.session import SessionStore
 

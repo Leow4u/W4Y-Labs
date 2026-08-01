@@ -9,7 +9,7 @@ import contextlib
 
 import uvicorn
 
-from wayne_cli import web_server
+from work4you_cli import web_server
 
 
 def _stub_uvicorn(monkeypatch):

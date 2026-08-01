@@ -236,7 +236,7 @@ async function getSessionToken(): Promise<string> {
 /**
  * Fetch a single-use ticket for a WebSocket upgrade in gated mode.
  *
- * The dashboard's gated-mode WS auth (``wayne_cli.web_server._ws_auth_ok``)
+ * The dashboard's gated-mode WS auth (``work4you_cli.web_server._ws_auth_ok``)
  * rejects the legacy ``?token=<_SESSION_TOKEN>`` path and only accepts
  * ``?ticket=<minted>`` consumed against the in-memory ticket store. Browsers
  * can't set ``Authorization`` on a WS upgrade, so this round-trip via the
@@ -2455,7 +2455,7 @@ export interface ManagedFileReadResponse {
   can_change_path: boolean;
 }
 
-/** A folder owned by a project (wayne_cli/projects_db.ProjectFolder). */
+/** A folder owned by a project (work4you_cli/projects_db.ProjectFolder). */
 export interface ProjectFolderRow {
   path: string;
   label: string | null;
@@ -2464,7 +2464,7 @@ export interface ProjectFolderRow {
 }
 
 /**
- * A first-class project (wayne_cli/projects_db.Project) — a named workspace
+ * A first-class project (work4you_cli/projects_db.Project) — a named workspace
  * that owns N folders. A session belongs to it when its cwd sits under one of
  * them (longest-prefix). Mirrors Project.to_dict() exactly.
  */

@@ -12,12 +12,12 @@ Usage:
     python cli.py --list-tools             # List available tools and exit
 """
 
-# IMPORTANT: wayne_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See wayne_bootstrap.py for full rationale.
+# IMPORTANT: work4you_bootstrap must be the very first import — UTF-8 stdio
+# on Windows.  No-op on POSIX.  See work4you_bootstrap.py for full rationale.
 try:
-    import wayne_bootstrap  # noqa: F401
+    import work4you_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    # Graceful fallback when wayne_bootstrap isn't registered in the venv
+    # Graceful fallback when work4you_bootstrap isn't registered in the venv
     # yet — happens during partial ``work4you update`` where git-reset landed
     # new code but ``uv pip install -e .`` didn't finish.  Missing bootstrap
     # means UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
@@ -51,9 +51,9 @@ os.environ["WAYNE_QUIET"] = "1"  # Our own modules
 
 import yaml
 
-from wayne_cli.fallback_config import get_fallback_chain
-from wayne_cli.cli_agent_setup_mixin import CLIAgentSetupMixin
-from wayne_cli.cli_commands_mixin import CLICommandsMixin
+from work4you_cli.fallback_config import get_fallback_chain
+from work4you_cli.cli_agent_setup_mixin import CLIAgentSetupMixin
+from work4you_cli.cli_commands_mixin import CLICommandsMixin
 
 # prompt_toolkit for fixed input area TUI
 from prompt_toolkit.history import FileHistory
@@ -76,7 +76,7 @@ except (ImportError, AttributeError):
     _STEADY_CURSOR = None
 
 try:
-    from wayne_cli.pt_input_extras import (
+    from work4you_cli.pt_input_extras import (
         install_ctrl_enter_alias,
         install_ignored_terminal_sequences,
         install_shift_enter_alias,
@@ -160,21 +160,21 @@ def realign_markdown_tables(*args, **kwargs):
 # NOTE: `from agent.account_usage import ...` is deliberately NOT at module
 # top — it transitively pulls the OpenAI SDK chain (~230 ms cold) and is only
 # needed when the user runs `/limits`. Lazy-imported inside the handler below.
-from wayne_cli.banner import _format_context_length, format_banner_version_label
+from work4you_cli.banner import _format_context_length, format_banner_version_label
 
 _COMMAND_SPINNER_FRAMES = ("⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏")
 
 
 # Load .env from ~/.wayne/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
-from wayne_constants import get_wayne_home, display_wayne_home
-from wayne_cli.browser_connect import (
+from work4you_constants import get_wayne_home, display_wayne_home
+from work4you_cli.browser_connect import (
     DEFAULT_BROWSER_CDP_URL,
     is_browser_debug_ready,
     manual_chrome_debug_command,
     try_launch_chrome_debug,
 )
-from wayne_cli.env_loader import load_wayne_dotenv
+from work4you_cli.env_loader import load_wayne_dotenv
 from utils import base_url_host_matches, fast_safe_load
 
 _wayne_home = get_wayne_home()
@@ -340,7 +340,7 @@ def _parse_reasoning_config(effort) -> dict | None:
     Accepts the raw config value (string or YAML boolean — ``false``/``off``
     parse as thinking disabled, see parse_reasoning_effort).
     """
-    from wayne_constants import parse_reasoning_effort
+    from work4you_constants import parse_reasoning_effort
     result = parse_reasoning_effort(effort)
     if effort and str(effort).strip() and result is None:
         logger.warning("Unknown reasoning_effort '%s', using default (medium)", effort)
@@ -449,7 +449,7 @@ def load_cli_config() -> Dict[str, Any]:
         "display": {
             "compact": False,
             "resume_display": "full",
-            # Recap tuning for /resume — see wayne_cli/config.py DEFAULT_CONFIG.
+            # Recap tuning for /resume — see work4you_cli/config.py DEFAULT_CONFIG.
             "resume_exchanges": 10,
             "resume_max_user_chars": 300,
             "resume_max_assistant_chars": 200,
@@ -512,7 +512,7 @@ def load_cli_config() -> Dict[str, Any]:
     if config_path.exists():
         try:
             with open(config_path, "r", encoding="utf-8") as f:
-                from wayne_cli.config import _normalize_root_model_keys
+                from work4you_cli.config import _normalize_root_model_keys
 
                 file_config = _normalize_root_model_keys(fast_safe_load(f) or {})
             
@@ -564,25 +564,25 @@ def load_cli_config() -> Dict[str, Any]:
             logger.warning("Failed to load cli-config.yaml: %s", e)
 
     # Expand ${ENV_VAR} references in config values before bridging to env vars.
-    from wayne_cli.config import _expand_env_vars
+    from work4you_cli.config import _expand_env_vars
     defaults = _expand_env_vars(defaults)
 
     # Managed scope: overlay administrator-pinned values LAST so they win over
     # the user's config here too. cli.py builds its config independently of
-    # wayne_cli.config._load_config_impl (which has its own managed merge), so
+    # work4you_cli.config._load_config_impl (which has its own managed merge), so
     # without this the entire interactive CLI/TUI surface — skin, display prefs,
     # etc. read from CLI_CONFIG — would silently ignore managed scope while
     # `work4you config`/`doctor`/guards (which use load_config) honor it. The
     # shared helper mirrors _load_config_impl (env-only expansion, root-model
     # normalization, leaf-merge) and is fail-open.
-    from wayne_cli import managed_scope
+    from work4you_cli import managed_scope
 
     defaults = managed_scope.apply_managed_overlay(defaults)
 
     # Apply terminal config to environment variables (so terminal_tool picks them up)
     terminal_config = defaults.get("terminal", {})
     
-    # Normalize config key: the new config system (wayne_cli/config.py) and all
+    # Normalize config key: the new config system (work4you_cli/config.py) and all
     # documentation use "backend", the legacy cli-config.yaml uses "env_type".
     # Accept both, with "backend" taking precedence (it's the documented key).
     if "backend" in terminal_config:
@@ -728,21 +728,21 @@ CLI_CONFIG = load_cli_config()
 # Initialize centralized logging early — agent.log + errors.log in ~/.wayne/logs/.
 # This ensures CLI sessions produce a log trail even before AIAgent is instantiated.
 try:
-    from wayne_logging import setup_logging
+    from work4you_logging import setup_logging
     setup_logging(mode="cli")
 except Exception:
     pass  # Logging setup is best-effort — don't crash the CLI
 
 # Validate config structure early — print warnings before user hits cryptic errors
 try:
-    from wayne_cli.config import print_config_warnings
+    from work4you_cli.config import print_config_warnings
     print_config_warnings()
 except Exception:
     pass
 
 # Initialize the skin engine from config
 try:
-    from wayne_cli.skin_engine import init_skin_from_config
+    from work4you_cli.skin_engine import init_skin_from_config
     init_skin_from_config(CLI_CONFIG)
 except Exception:
     pass  # Skin engine is optional — default skin used if unavailable
@@ -838,7 +838,7 @@ def AIAgent(*args, **kwargs):
 
 
 def get_tool_definitions(*args, **kwargs):
-    from wayne_cli.mcp_startup import wait_for_mcp_discovery
+    from work4you_cli.mcp_startup import wait_for_mcp_discovery
     from model_tools import get_tool_definitions as _get_tool_definitions
 
     wait_for_mcp_discovery()
@@ -851,8 +851,8 @@ def get_toolset_for_tool(*args, **kwargs):
     return _get_toolset_for_tool(*args, **kwargs)
 
 # Extracted CLI modules (Phase 3)
-from wayne_cli.banner import build_welcome_banner
-from wayne_cli.commands import SlashCommandCompleter, SlashCommandAutoSuggest
+from work4you_cli.banner import build_welcome_banner
+from work4you_cli.commands import SlashCommandCompleter, SlashCommandAutoSuggest
 
 
 def get_all_toolsets(*args, **kwargs):
@@ -886,7 +886,7 @@ def get_job(*args, **kwargs):
     return _get_job(*args, **kwargs)
 
 # Resource cleanup imports for safe shutdown (terminal VMs, browser sessions)
-from wayne_cli.callbacks import prompt_for_secret
+from work4you_cli.callbacks import prompt_for_secret
 
 
 def _cleanup_all_terminals(*args, **kwargs):
@@ -955,7 +955,7 @@ def _prepare_deferred_agent_startup() -> None:
         "on",
     }
     try:
-        from wayne_cli.plugins import discover_plugins
+        from work4you_cli.plugins import discover_plugins
 
         discover_plugins()
     except Exception:
@@ -964,7 +964,7 @@ def _prepare_deferred_agent_startup() -> None:
             exc_info=True,
         )
     try:
-        from wayne_cli.mcp_startup import start_background_mcp_discovery
+        from work4you_cli.mcp_startup import start_background_mcp_discovery
 
         start_background_mcp_discovery(
             logger=logger,
@@ -977,7 +977,7 @@ def _prepare_deferred_agent_startup() -> None:
         )
     try:
         from agent.shell_hooks import register_from_config
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         register_from_config(load_config(), accept_hooks=_accept_hooks)
     except Exception:
@@ -1146,7 +1146,7 @@ def _notify_session_finalize(
     reason: str = "shutdown",
 ) -> None:
     try:
-        from wayne_cli.plugins import invoke_hook as _invoke_hook
+        from work4you_cli.plugins import invoke_hook as _invoke_hook
         _invoke_hook(
             "on_session_finalize",
             session_id=session_id,
@@ -1176,7 +1176,7 @@ def _emit_interrupted_session_end(cli, *, reason: str = "keyboard_interrupt") ->
             pass
 
     try:
-        from wayne_cli.plugins import invoke_hook as _invoke_hook
+        from work4you_cli.plugins import invoke_hook as _invoke_hook
         _invoke_hook(
             "on_session_end",
             session_id=session_id,
@@ -1753,7 +1753,7 @@ def _run_state_db_auto_maintenance(session_db) -> None:
     """Call ``SessionDB.maybe_auto_prune_and_vacuum`` using current config.
 
     Reads the ``sessions:`` section from config.yaml via
-    :func:`wayne_cli.config.load_config` (the authoritative loader that
+    :func:`work4you_cli.config.load_config` (the authoritative loader that
     deep-merges DEFAULT_CONFIG, so unmigrated configs still get default
     values). Honours ``auto_prune`` / ``retention_days`` /
     ``vacuum_after_prune`` / ``min_interval_hours``, and delegates to the
@@ -1762,8 +1762,8 @@ def _run_state_db_auto_maintenance(session_db) -> None:
     if session_db is None:
         return
     try:
-        from wayne_cli.config import load_config as _load_full_config
-        from wayne_constants import get_wayne_home as _get_wayne_home
+        from work4you_cli.config import load_config as _load_full_config
+        from work4you_constants import get_wayne_home as _get_wayne_home
         _wayne_home_maint = _get_wayne_home()
 
         # One-time prune of empty TUI ghost sessions.
@@ -1807,12 +1807,12 @@ def _run_checkpoint_auto_maintenance() -> None:
     """Call ``checkpoint_manager.maybe_auto_prune_checkpoints`` using current config.
 
     Reads the ``checkpoints:`` section from config.yaml via
-    :func:`wayne_cli.config.load_config`. Honours ``auto_prune`` /
+    :func:`work4you_cli.config.load_config`. Honours ``auto_prune`` /
     ``retention_days`` / ``delete_orphans`` / ``min_interval_hours``.
     Never raises — maintenance must never block interactive startup.
     """
     try:
-        from wayne_cli.config import load_config as _load_full_config
+        from work4you_cli.config import load_config as _load_full_config
         cfg = (_load_full_config().get("checkpoints") or {})
         if not cfg.get("auto_prune", False):
             return
@@ -2265,7 +2265,7 @@ def _install_skin_light_mode_hook() -> None:
     """Wrap SkinConfig.get_color at import time so EVERY skin color read goes
     through the light-mode remap.  Idempotent."""
     try:
-        from wayne_cli.skin_engine import SkinConfig  # type: ignore[import]
+        from work4you_cli.skin_engine import SkinConfig  # type: ignore[import]
     except Exception:
         return
     if getattr(SkinConfig, "_wayne_light_mode_hook_installed", False):
@@ -2313,7 +2313,7 @@ class _SkinAwareAnsi:
     def __str__(self) -> str:
         if self._cached is None:
             try:
-                from wayne_cli.skin_engine import get_active_skin
+                from work4you_cli.skin_engine import get_active_skin
                 self._cached = _hex_to_ansi(
                     get_active_skin().get_color(self._skin_key, self._fallback_hex),
                     bold=self._bold,
@@ -2363,7 +2363,7 @@ def _d(s: str) -> str:
 def _accent_hex() -> str:
     """Return the active skin accent color for legacy CLI output lines."""
     try:
-        from wayne_cli.skin_engine import get_active_skin
+        from work4you_cli.skin_engine import get_active_skin
         return get_active_skin().get_color("ui_accent", "#FFBF00")
     except Exception:
         return "#FFBF00"
@@ -2742,7 +2742,7 @@ _IMAGE_EXTENSIONS = frozenset({
 })
 
 
-from wayne_constants import is_termux as _is_termux_environment
+from work4you_constants import is_termux as _is_termux_environment
 
 
 def _termux_example_image_path(filename: str = "cat.png") -> str:
@@ -3433,7 +3433,7 @@ class ChatConsole:
 def _build_compact_banner() -> str:
     """Build a compact banner that fits the current terminal width."""
     try:
-        from wayne_cli.skin_engine import get_active_skin
+        from work4you_cli.skin_engine import get_active_skin
         _skin = get_active_skin()
     except Exception:
         _skin = None
@@ -3452,8 +3452,8 @@ def _build_compact_banner() -> str:
         tiny_line = agent_name
 
     if os.environ.get("WAYNE_FAST_STARTUP_BANNER") == "1":
-        from wayne_cli import __release_date__ as _release_date
-        from wayne_cli import __version__ as _version
+        from work4you_cli import __release_date__ as _release_date
+        from work4you_cli import __version__ as _version
 
         version_line = f"Work4You v{_version} ({_release_date})"
     else:
@@ -3553,7 +3553,7 @@ def build_bundle_invocation_message(*args, **kwargs):
 def _get_plugin_cmd_handler_names() -> set:
     """Return plugin command names (without slash prefix) for dispatch matching."""
     try:
-        from wayne_cli.plugins import get_plugin_commands
+        from work4you_cli.plugins import get_plugin_commands
         return set(get_plugin_commands().keys())
     except Exception:
         return set()
@@ -3775,7 +3775,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if self.model == _DEFAULT_CONFIG_MODEL:
             _base_url = (_model_config.get("base_url") or "") if isinstance(_model_config, dict) else ""
             if "localhost" in _base_url or "127.0.0.1" in _base_url:
-                from wayne_cli.runtime_provider import _auto_detect_local_model
+                from work4you_cli.runtime_provider import _auto_detect_local_model
                 _detected = _auto_detect_local_model(_base_url)
                 if _detected:
                     self.model = _detected
@@ -3854,7 +3854,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         self.checkpoint_max_file_size_mb = cp_cfg.get("max_file_size_mb", 10)
         self.pass_session_id = pass_session_id
         # --ignore-rules: honor either the constructor flag or the env var set
-        # by `work4you chat --ignore-rules` in wayne_cli/main.py. When true we
+        # by `work4you chat --ignore-rules` in work4you_cli/main.py. When true we
         # pass skip_context_files=True and skip_memory=True to AIAgent so
         # AGENTS.md/SOUL.md/.cursorrules and persistent memory are not loaded.
         self.ignore_rules = ignore_rules or os.environ.get("WAYNE_IGNORE_RULES") == "1"
@@ -3931,7 +3931,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         self._session_db = None
         self._session_db_unavailable = False
         try:
-            from wayne_state import SessionDB
+            from work4you_state import SessionDB
             self._session_db = SessionDB()
         except Exception as e:
             # #41386: a failed session store means the transcript is NOT
@@ -4107,7 +4107,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if self._active_session_lease is not None:
             return True
         try:
-            from wayne_cli.active_sessions import try_acquire_active_session
+            from work4you_cli.active_sessions import try_acquire_active_session
 
             lease, message = try_acquire_active_session(
                 session_id=self.session_id,
@@ -4228,7 +4228,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         never prevents the other.
         """
         try:
-            from wayne_cli.curses_ui import flush_stdin
+            from work4you_cli.curses_ui import flush_stdin
             flush_stdin()
         except Exception:
             pass
@@ -4764,7 +4764,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         try:
             from agent.pet import constants, store
             from agent.pet.render import PetRenderer
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
 
             cfg = load_config()
             display = cfg.get("display", {}) if isinstance(cfg.get("display"), dict) else {}
@@ -4985,7 +4985,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         registered so the cached label always matches the live binding.
         """
         try:
-            from wayne_cli.voice import format_voice_record_key_for_status
+            from work4you_cli.voice import format_voice_record_key_for_status
             self._voice_record_key_display_cache = format_voice_record_key_for_status(raw_key)
         except Exception:
             self._voice_record_key_display_cache = "Ctrl+B"
@@ -5205,7 +5205,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         changed = False
 
         try:
-            from wayne_cli.model_normalize import (
+            from work4you_cli.model_normalize import (
                 _AGGREGATOR_PROVIDERS,
                 normalize_model_for_provider,
             )
@@ -5225,7 +5225,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         if resolved_provider == "copilot":
             try:
-                from wayne_cli.models import copilot_model_api_mode, normalize_copilot_model_id
+                from work4you_cli.models import copilot_model_api_mode, normalize_copilot_model_id
 
                 canonical = normalize_copilot_model_id(current_model, api_key=self.api_key)
                 if canonical and canonical != current_model:
@@ -5247,7 +5247,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         if resolved_provider in {"opencode-zen", "opencode-go"}:
             try:
-                from wayne_cli.models import normalize_opencode_model_id, opencode_model_api_mode
+                from work4you_cli.models import normalize_opencode_model_id, opencode_model_api_mode
 
                 canonical = normalize_opencode_model_id(resolved_provider, current_model)
                 if canonical and canonical != current_model:
@@ -5286,7 +5286,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if self._model_is_default:
             fallback_model = "gpt-5.3-codex"
             try:
-                from wayne_cli.codex_models import get_codex_model_ids
+                from work4you_cli.codex_models import get_codex_model_ids
 
                 available = get_codex_model_ids(
                     access_token=self.api_key if self.api_key else None,
@@ -5737,7 +5737,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 return
             self._stream_box_opened = True
             try:
-                from wayne_cli.skin_engine import get_active_skin
+                from work4you_cli.skin_engine import get_active_skin
                 _skin = get_active_skin()
                 label = _skin.get_branding("response_label", " Work4You ")
                 _text_hex = _skin.get_color("banner_text", "#FFF8DC")
@@ -6070,7 +6070,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         small.
         """
         try:
-            from wayne_cli.security_advisories import (
+            from work4you_cli.security_advisories import (
                 detect_compromised,
                 startup_banner,
             )
@@ -6151,7 +6151,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 )
 
         # Warn if the configured model is a Nous Wayne LLM (not agentic)
-        from wayne_cli.model_switch import is_nous_wayne_non_agentic
+        from work4you_cli.model_switch import is_nous_wayne_non_agentic
 
         model_name = getattr(self, "model", "") or ""
         if is_nous_wayne_non_agentic(model_name):
@@ -6248,7 +6248,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         Saves the image to ~/.wayne/images/ and appends the path to
         ``_attached_images``.  Returns True if an image was attached.
         """
-        from wayne_cli.clipboard import save_clipboard_image
+        from work4you_cli.clipboard import save_clipboard_image
 
         img_dir = get_wayne_home() / "images"
         self._image_counter += 1
@@ -6440,7 +6440,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         # Build status line with proper markup — skin-aware colors
         try:
-            from wayne_cli.skin_engine import get_active_skin
+            from work4you_cli.skin_engine import get_active_skin
             skin = get_active_skin()
             separator_color = skin.get_color("banner_dim", "#B8860B")
             accent_color = skin.get_color("ui_accent", "#FFBF00")
@@ -6516,7 +6516,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
     
     def _fast_command_available(self) -> bool:
         try:
-            from wayne_cli.models import model_supports_fast_mode
+            from work4you_cli.models import model_supports_fast_mode
         except Exception:
             return False
         agent = getattr(self, "agent", None)
@@ -6530,10 +6530,10 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
     def show_help(self):
         """Display help information with categorized commands."""
-        from wayne_cli.commands import COMMANDS_BY_CATEGORY
+        from work4you_cli.commands import COMMANDS_BY_CATEGORY
 
         try:
-            from wayne_cli.skin_engine import get_active_help_header
+            from work4you_cli.skin_engine import get_active_help_header
             header = get_active_help_header("(^_^)? Available Commands")
         except Exception:
             header = "(^_^)? Available Commands"
@@ -6726,7 +6726,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if not self._session_db:
             return []
         try:
-            from wayne_cli.session_listing import query_session_listing
+            from work4you_cli.session_listing import query_session_listing
 
             return query_session_listing(
                 self._session_db,
@@ -6749,7 +6749,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if not sessions:
             return False
 
-        from wayne_cli.main import _relative_time
+        from work4you_cli.main import _relative_time
 
         _cli_visible_print()
         if reason == "history":
@@ -6860,7 +6860,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         lifecycle point (shutdown, /new, /reset).
         """
         try:
-            from wayne_cli.plugins import invoke_hook as _invoke_hook
+            from work4you_cli.plugins import invoke_hook as _invoke_hook
             _invoke_hook(
                 event_type,
                 session_id=self.agent.session_id if self.agent else None,
@@ -6889,7 +6889,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if getattr(self, "conversation_history", None):
             return False
         try:
-            from wayne_constants import get_wayne_home as _ghh
+            from work4you_constants import get_wayne_home as _ghh
             return self._session_db.delete_session_if_empty(
                 session_id, sessions_dir=_ghh() / "sessions"
             )
@@ -6971,7 +6971,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 except Exception:
                     pass
                 if title and self._session_db:
-                    from wayne_state import SessionDB
+                    from work4you_state import SessionDB
                     try:
                         sanitized = SessionDB.sanitize_title(title)
                     except ValueError as e:
@@ -7276,7 +7276,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
     def _run_curses_picker(self, title: str, items: list[str], default_index: int = 0) -> int | None:
         """Run curses_single_select via run_in_terminal so prompt_toolkit handles terminal ownership cleanly."""
         import threading
-        from wayne_cli.curses_ui import curses_single_select
+        from work4you_cli.curses_ui import curses_single_select
 
         result = [None]
 
@@ -7625,7 +7625,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if not getattr(result, "success", False):
             return True
         try:
-            from wayne_cli.model_cost_guard import expensive_model_warning
+            from work4you_cli.model_cost_guard import expensive_model_warning
 
             warning = expensive_model_warning(
                 result.new_model,
@@ -7701,7 +7701,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         if self.agent is not None:
             try:
-                from wayne_cli.context_switch_guard import merge_preflight_compression_warning
+                from work4you_cli.context_switch_guard import merge_preflight_compression_warning
 
                 merge_preflight_compression_warning(
                     result,
@@ -7780,7 +7780,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # (e.g. gpt-5.5 is 1.05M on openai but 272K on Codex OAuth).
         mi = result.model_info
         try:
-            from wayne_cli.model_switch import resolve_display_context_length
+            from work4you_cli.model_switch import resolve_display_context_length
             ctx = resolve_display_context_length(
                 result.new_model,
                 result.target_provider,
@@ -7833,7 +7833,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             model_list = provider_data.get("models", [])
             if not model_list:
                 try:
-                    from wayne_cli.models import provider_model_ids
+                    from work4you_cli.models import provider_model_ids
                     live = provider_model_ids(provider_data["slug"])
                     if live:
                         model_list = live
@@ -7859,7 +7859,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 self._close_model_picker()
                 return
             if selected < len(model_list):
-                from wayne_cli.model_switch import switch_model
+                from work4you_cli.model_switch import switch_model
                 chosen_model = model_list[selected]
                 result = switch_model(
                     raw_input=chosen_model,
@@ -7898,12 +7898,12 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         Persistence defaults to on (``model.persist_switch_by_default`` in
         config.yaml, default True). Use ``--session`` for a one-off switch.
         """
-        from wayne_cli.model_switch import (
+        from work4you_cli.model_switch import (
             switch_model,
             parse_model_flags,
             resolve_persist_behavior,
         )
-        from wayne_cli.providers import get_label
+        from work4you_cli.providers import get_label
 
         # Parse args from the original command
         parts = cmd_original.split(None, 1)  # split off '/model'
@@ -7928,7 +7928,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # /v1/models endpoint on this open.
         if force_refresh:
             try:
-                from wayne_cli.models import clear_provider_models_cache
+                from work4you_cli.models import clear_provider_models_cache
                 clear_provider_models_cache()
                 _cprint("  Cleared model picker cache. Refreshing...")
             except Exception:
@@ -7938,7 +7938,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # dashboard / TUI used to duplicate. Overlay live session state
         # via with_overrides (truthy-only) so empty self.* attrs don't
         # clobber disk config.
-        from wayne_cli.inventory import build_models_payload, load_picker_context
+        from work4you_cli.inventory import build_models_payload, load_picker_context
 
         try:
             ctx = load_picker_context().with_overrides(
@@ -8003,7 +8003,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         if self.agent is not None:
             try:
-                from wayne_cli.context_switch_guard import merge_preflight_compression_warning
+                from work4you_cli.context_switch_guard import merge_preflight_compression_warning
 
                 merge_preflight_compression_warning(
                     result,
@@ -8088,7 +8088,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # Copilot, and Nous-enforced caps win over the raw models.dev entry
         # (e.g. gpt-5.5 is 1.05M on openai but 272K on Codex OAuth).
         mi = result.model_info
-        from wayne_cli.model_switch import resolve_display_context_length
+        from work4you_cli.model_switch import resolve_display_context_length
         ctx = resolve_display_context_length(
             result.new_model,
             result.target_provider,
@@ -8134,7 +8134,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             /codex-runtime codex_app_server      — hand turns to codex subprocess
             /codex-runtime on / off              — synonyms for the above
         """
-        from wayne_cli import codex_runtime_switch as crs
+        from work4you_cli import codex_runtime_switch as crs
 
         parts = cmd_original.split(None, 1)
         raw_args = parts[1].strip() if len(parts) > 1 else ""
@@ -8146,7 +8146,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         # Load + persist via the existing config helpers
         try:
-            from wayne_cli.config import load_config, save_config
+            from work4you_cli.config import load_config, save_config
         except Exception as exc:
             _cprint(f"❌ could not load config: {exc}")
             return
@@ -8170,7 +8170,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if not text or has_images or not _looks_like_slash_command(text):
             return False
         try:
-            from wayne_cli.commands import resolve_command
+            from work4you_cli.commands import resolve_command
             base = text.split(None, 1)[0].lower().lstrip('/')
             cmd = resolve_command(base)
             return bool(cmd and cmd.name == "model")
@@ -8194,7 +8194,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         if not getattr(self, "_agent_running", False):
             return False
         try:
-            from wayne_cli.commands import resolve_command
+            from work4you_cli.commands import resolve_command
             base = text.split(None, 1)[0].lower().lstrip('/')
             cmd = resolve_command(base)
             return bool(cmd and cmd.name == "steer")
@@ -8300,8 +8300,8 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         cmd_original = command.strip()
 
         # Resolve aliases via central registry so adding an alias is a one-line
-        # change in wayne_cli/commands.py instead of touching every dispatch site.
-        from wayne_cli.commands import resolve_command as _resolve_cmd
+        # change in work4you_cli/commands.py instead of touching every dispatch site.
+        from work4you_cli.commands import resolve_command as _resolve_cmd
         _base_word = cmd_lower.split()[0].lstrip("/")
         _cmd_def = _resolve_cmd(_base_word)
         canonical = _cmd_def.name if _cmd_def else _base_word
@@ -8390,10 +8390,10 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 _cprint("  ✨ (◕‿◕)✨ Fresh start! Screen cleared and conversation reset.\n")
                 # Show a random tip on new session
                 try:
-                    from wayne_cli.tips import get_random_tip
+                    from work4you_cli.tips import get_random_tip
                     _tip = get_random_tip()
                     try:
-                        from wayne_cli.skin_engine import get_active_skin
+                        from work4you_cli.skin_engine import get_active_skin
                         _tip_color = get_active_skin().get_color("banner_dim", "#B8860B")
                     except Exception:
                         _tip_color = "#B8860B"
@@ -8405,10 +8405,10 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 print("  ✨ (◕‿◕)✨ Fresh start! Screen cleared and conversation reset.\n")
                 # Show a random tip on new session
                 try:
-                    from wayne_cli.tips import get_random_tip
+                    from work4you_cli.tips import get_random_tip
                     _tip = get_random_tip()
                     try:
-                        from wayne_cli.skin_engine import get_active_skin
+                        from work4you_cli.skin_engine import get_active_skin
                         _tip_color = get_active_skin().get_color("banner_dim", "#B8860B")
                     except Exception:
                         _tip_color = "#B8860B"
@@ -8425,7 +8425,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     if self._session_db:
                         # Sanitize the title early so feedback matches what gets stored
                         try:
-                            from wayne_state import SessionDB
+                            from work4you_state import SessionDB
                             new_title = SessionDB.sanitize_title(raw_title)
                         except ValueError as e:
                             _cprint(f"  {e}")
@@ -8451,7 +8451,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                                 self._pending_title = new_title
                                 _cprint(f"  Session title queued: {new_title} (will be saved on first message)")
                     else:
-                        from wayne_state import format_session_db_unavailable
+                        from work4you_state import format_session_db_unavailable
                         _cprint(f"  {format_session_db_unavailable()}")
                 else:
                     _cprint("  Usage: /title <your session title>")
@@ -8466,7 +8466,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 else:
                     _cprint("  No title set. Usage: /title <your session title>")
             else:
-                from wayne_state import format_session_db_unavailable
+                from work4you_state import format_session_db_unavailable
                 _cprint(f"  {format_session_db_unavailable()}")
         elif canonical == "handoff":
             if not self._handle_handoff_command(cmd_original):
@@ -8592,7 +8592,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             if self._handle_update_command():
                 return False
         elif canonical == "version":
-            from wayne_cli.main import _print_version_info
+            from work4you_cli.main import _print_version_info
 
             _print_version_info(check_updates=True)
         elif canonical == "paste":
@@ -8600,7 +8600,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         elif canonical == "image":
             self._handle_image_command(cmd_original)
         elif canonical == "reload":
-            from wayne_cli.config import reload_env
+            from work4you_cli.config import reload_env
             count = reload_env()
             print(f"  Reloaded .env ({count} var(s) updated)")
         elif canonical == "reload-mcp":
@@ -8622,7 +8622,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 # too. The plugin manager only knows about *loaded* plugins, so
                 # using it alone made freshly-installed, not-yet-enabled plugins
                 # look like "nothing installed".
-                from wayne_cli.plugins_cmd import (
+                from work4you_cli.plugins_cmd import (
                     _discover_all_plugins,
                     _get_disabled_set,
                     _get_enabled_set,
@@ -8651,7 +8651,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     # keyed by name, when available.
                     loaded: dict = {}
                     try:
-                        from wayne_cli.plugins import get_plugin_manager
+                        from work4you_cli.plugins import get_plugin_manager
                         for p in get_plugin_manager().list_plugins():
                             loaded[p["name"]] = p
                     except Exception:
@@ -8734,7 +8734,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             # default MoA preset, then restore the prior model. To *switch* to a
             # MoA preset for the session, pick it from the model picker (MoA
             # presets surface as a virtual "Mixture of Agents" provider).
-            from wayne_cli.moa_config import (
+            from work4you_cli.moa_config import (
                 moa_usage,
                 normalize_moa_config,
             )
@@ -8823,7 +8823,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     self._console_print(f"[bold red]Quick command '{base_cmd}' has unsupported type (supported: 'exec', 'alias')[/]")
             # Check for plugin-registered slash commands
             elif base_cmd.lstrip("/") in _get_plugin_cmd_handler_names():
-                from wayne_cli.plugins import (
+                from work4you_cli.plugins import (
                     get_plugin_command_handler,
                     resolve_plugin_command_result,
                 )
@@ -8879,7 +8879,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 # Prefix matching: if input uniquely identifies one command, execute it.
                 # Matches against both built-in COMMANDS and installed skill commands so
                 # that execution-time resolution agrees with tab-completion.
-                from wayne_cli.commands import COMMANDS
+                from work4you_cli.commands import COMMANDS
                 typed_base = cmd_lower.split()[0]
                 all_known = set(COMMANDS) | set(skill_commands) | set(skill_bundles)
                 matches = [c for c in all_known if c.startswith(typed_base)]
@@ -8943,8 +8943,8 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         session split).
         """
         try:
-            from wayne_cli.goals import GoalManager
-            from wayne_cli.config import load_config
+            from work4you_cli.goals import GoalManager
+            from work4you_cli.config import load_config
         except Exception as exc:
             logging.debug("goal manager unavailable: %s", exc)
             return None
@@ -9099,7 +9099,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             return
 
         try:
-            from wayne_cli.goals import gather_background_processes as _gather_bg
+            from work4you_cli.goals import gather_background_processes as _gather_bg
             _bg_procs = _gather_bg()
         except Exception:
             _bg_procs = None
@@ -9151,7 +9151,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # prompt_toolkit's renderer.  self.console.print() with Rich markup
         # writes directly to stdout which patch_stdout's StdoutProxy mangles
         # into garbled sequences like '?[33mTool progress: NEW?[0m' (#2262).
-        from wayne_cli.colors import Colors as _Colors
+        from work4you_cli.colors import Colors as _Colors
         labels = {
             "off": f"{_Colors.DIM}Tool progress: OFF{_Colors.RESET} — silent mode, just the final response.",
             "new": f"{_Colors.YELLOW}Tool progress: NEW{_Colors.RESET} — show each new tool (skip repeats).",
@@ -9230,7 +9230,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         ``set_current_session_key`` so the bypass takes effect on the very
         next dangerous command in this run.
         """
-        from wayne_cli.colors import Colors as _Colors
+        from work4you_cli.colors import Colors as _Colors
         from tools.approval import (
             disable_session_yolo,
             enable_session_yolo,
@@ -9291,7 +9291,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print("(._.) Compression is disabled in config.")
             return
 
-        from wayne_cli.partial_compress import (
+        from work4you_cli.partial_compress import (
             extract_compress_flags,
             parse_partial_compress_args,
             rejoin_compressed_head_and_tail,
@@ -9547,7 +9547,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             # above the file handler level filters records before they
             # reach handlers, so agent.log / errors.log lose visibility
             # into stream-retry events, credential rotations, etc.
-            # Console quietness is enforced by wayne_logging not
+            # Console quietness is enforced by work4you_logging not
             # installing a console StreamHandler in non-verbose mode.
 
     def _print_nous_credits_block(self) -> bool:
@@ -9927,7 +9927,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             return
 
         # Submit the charge with a fresh idempotency key (reused on retry).
-        from wayne_cli.nous_billing import (
+        from work4you_cli.nous_billing import (
             BillingError,
             BillingScopeRequired,
             post_charge,
@@ -9955,7 +9955,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         import time as _time
 
         from agent.billing_view import format_money
-        from wayne_cli.nous_billing import (
+        from work4you_cli.nous_billing import (
             BillingError,
             BillingRateLimited,
             get_charge_status,
@@ -10010,7 +10010,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
     def _billing_render_charge_error(self, state, exc):
         """Render a typed BillingError at submit time (pre-poll)."""
-        from wayne_cli.nous_billing import BillingRateLimited
+        from work4you_cli.nous_billing import BillingRateLimited
 
         code = getattr(exc, "error", None)
         portal_url = getattr(exc, "portal_url", None) or getattr(state, "portal_url", None)
@@ -10060,7 +10060,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print("  🟡 Cancelled.")
             return
         try:
-            from wayne_cli.auth import step_up_nous_billing_scope
+            from work4you_cli.auth import step_up_nous_billing_scope
 
             granted = step_up_nous_billing_scope(open_browser=True)
         except Exception as exc:
@@ -10208,7 +10208,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print("  🟡 Cancelled.")
             return
 
-        from wayne_cli.nous_billing import (
+        from work4you_cli.nous_billing import (
             BillingError,
             BillingScopeRequired,
             patch_auto_top_up,
@@ -10233,7 +10233,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         The endpoint requires ``threshold``/``topUpAmount`` in the body even when
         disabling, so we echo back the current values (falling back to 0).
         """
-        from wayne_cli.nous_billing import (
+        from work4you_cli.nous_billing import (
             BillingError,
             BillingScopeRequired,
             patch_auto_top_up,
@@ -10299,7 +10299,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 i += 1
 
         try:
-            from wayne_state import SessionDB
+            from work4you_state import SessionDB
             from agent.insights import InsightsEngine
 
             db = SessionDB()
@@ -10327,7 +10327,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             return
         self._last_config_check = now
 
-        from wayne_cli.config import get_config_path as _get_config_path
+        from work4you_cli.config import get_config_path as _get_config_path
         cfg_path = _get_config_path()
         if not cfg_path.exists():
             return
@@ -10988,7 +10988,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # instead of crashing on ``.get()``.
         voice_cfg: dict = {}
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
             _cfg = load_config().get("voice")
             voice_cfg = _cfg if isinstance(_cfg, dict) else {}
         except Exception:
@@ -11107,7 +11107,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             # Get STT model from config
             stt_model = None
             try:
-                from wayne_cli.config import load_config
+                from work4you_cli.config import load_config
                 stt_config = load_config().get("stt", {})
                 stt_model = stt_config.get("model")
             except Exception:
@@ -11241,7 +11241,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
     def _voice_beeps_enabled(self) -> bool:
         """Return whether CLI voice mode should play record start/stop beeps."""
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
             voice_cfg = load_config().get("voice", {})
             if isinstance(voice_cfg, dict):
                 return bool(voice_cfg.get("beep_enabled", True))
@@ -11285,7 +11285,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # Check config for auto_tts (shape-safe — malformed ``voice:`` YAML
         # leaves ``voice_config`` as a non-dict, so guard before .get()).
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
             _raw_voice = load_config().get("voice")
             voice_config = _raw_voice if isinstance(_raw_voice, dict) else {}
             if voice_config.get("auto_tts", False):
@@ -11955,7 +11955,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     build_native_content_parts,
                     decide_image_input_mode,
                 )
-                from wayne_cli.config import load_config
+                from work4you_cli.config import load_config
 
                 _img_mode = decide_image_input_mode(
                     (self.provider or "").strip(),
@@ -12482,7 +12482,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             if response and not response_previewed:
                 # Use skin engine for label/color with fallback
                 try:
-                    from wayne_cli.skin_engine import get_active_skin
+                    from work4you_cli.skin_engine import get_active_skin
                     _skin = get_active_skin()
                     label = _skin.get_branding("response_label", " Work4You ")
                     _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
@@ -12697,7 +12697,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             # session on the next invocation. The "default" and "custom"
             # profile names use the standard WAYNE_HOME, so no -p needed.
             try:
-                from wayne_cli.profiles import get_active_profile_name
+                from work4you_cli.profiles import get_active_profile_name
                 _active_profile = get_active_profile_name()
             except Exception:
                 _active_profile = "default"
@@ -12715,7 +12715,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             print(f"Messages:       {msg_count} ({user_msgs} user, {tool_calls} tool calls)")
         else:
             try:
-                from wayne_cli.skin_engine import get_active_goodbye
+                from work4you_cli.skin_engine import get_active_goodbye
                 goodbye = get_active_goodbye("Goodbye! ⚕")
             except Exception:
                 goodbye = "Goodbye! ⚕"
@@ -12732,7 +12732,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         prepended to the prompt symbol: ``coder ❯`` instead of ``❯``.
         """
         try:
-            from wayne_cli.skin_engine import get_active_prompt_symbol
+            from work4you_cli.skin_engine import get_active_prompt_symbol
             symbol = get_active_prompt_symbol("❯ ")
         except Exception:
             symbol = "❯ "
@@ -12741,7 +12741,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
 
         # Prepend profile name when not default
         try:
-            from wayne_cli.profiles import get_active_profile_name
+            from work4you_cli.profiles import get_active_profile_name
             profile = get_active_profile_name()
             if profile not in {"default", "custom"}:
                 symbol = f"{profile} {symbol}"
@@ -12826,7 +12826,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         """
         style_dict = dict(getattr(self, "_tui_style_base", {}) or {})
         try:
-            from wayne_cli.skin_engine import get_prompt_toolkit_style_overrides
+            from work4you_cli.skin_engine import get_prompt_toolkit_style_overrides
             style_dict.update(get_prompt_toolkit_style_overrides())
         except Exception:
             pass
@@ -12977,7 +12977,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 self._display_resumed_history()
 
         try:
-            from wayne_cli.skin_engine import get_active_skin
+            from work4you_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
             _welcome_text = _welcome_skin.get_branding(
                 "welcome",
@@ -12994,7 +12994,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # otherwise blocks ~1-2s on serial /v1/models fetches the first time
         # it's opened in a session. Fire-and-forget, guarded once-per-process.
         try:
-            from wayne_cli.model_switch import prewarm_picker_cache_async
+            from work4you_cli.model_switch import prewarm_picker_cache_async
             prewarm_picker_cache_async()
         except Exception:
             pass
@@ -13034,7 +13034,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                     _resid_color = "#B8860B"
                 self._console_print(f"[{_resid_color}]{openclaw_residue_hint_cli()}[/]")
                 try:
-                    from wayne_cli.config import get_config_path as _get_cfg_path_resid
+                    from work4you_cli.config import get_config_path as _get_cfg_path_resid
                     mark_seen(_get_cfg_path_resid(), OPENCLAW_RESIDUE_FLAG)
                 except Exception:
                     pass  # best-effort — banner will fire again next session
@@ -13042,7 +13042,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             pass  # banner is non-critical — never break startup
         # Show a random tip to help users discover features
         try:
-            from wayne_cli.tips import get_random_tip
+            from work4you_cli.tips import get_random_tip
             _tip = get_random_tip()
             try:
                 _tip_color = _welcome_skin.get_color("banner_dim", "#B8860B")
@@ -13085,11 +13085,11 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         self._last_ctrl_c_time = 0  # Track double Ctrl+C for force exit
 
         # Give plugin manager a CLI reference so plugins can inject messages
-        from wayne_cli.plugins import get_plugin_manager
+        from work4you_cli.plugins import get_plugin_manager
         get_plugin_manager()._cli_ref = self
 
         # Config file watcher — detect mcp_servers changes and auto-reload
-        from wayne_cli.config import get_config_path as _get_config_path
+        from work4you_cli.config import get_config_path as _get_config_path
         _cfg_path = _get_config_path()
         self._config_mtime: float = _cfg_path.stat().st_mtime if _cfg_path.exists() else 0.0
         self._config_mcp_servers: dict = self.config.get("mcp_servers") or {}
@@ -13157,7 +13157,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         def handle_ignored_terminal_sequence(event):
             """Consume parser-level ignored terminal sequences before self-insert.
 
-            install_ignored_terminal_sequences() in wayne_cli.pt_input_extras
+            install_ignored_terminal_sequences() in work4you_cli.pt_input_extras
             registers focus reports (CSI I / CSI O) as Keys.Ignore at the
             VT100 parser level. Without this no-op binding the default
             self-insert path would still fire and the bytes would land in
@@ -13219,7 +13219,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 try:
                     # Picker selections persist by default (same default as
                     # /model <name>); honour model.persist_switch_by_default.
-                    from wayne_cli.model_switch import resolve_persist_behavior
+                    from work4you_cli.model_switch import resolve_persist_behavior
 
                     self._handle_model_picker_selection(
                         persist_global=resolve_persist_behavior(False, False)
@@ -13805,7 +13805,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 return
             import signal as _sig
             from prompt_toolkit.application import run_in_terminal
-            from wayne_cli.skin_engine import get_active_skin
+            from work4you_cli.skin_engine import get_active_skin
             agent_name = get_active_skin().get_branding("agent_name", "Work4You")
             msg = f"\n{agent_name} has been suspended. Run `fg` to bring {agent_name} back."
             def _suspend():
@@ -13824,8 +13824,8 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # TUI/CLI split instead of a silent mismatch (round-11).
         _raw_key: object = "ctrl+b"
         try:
-            from wayne_cli.config import load_config
-            from wayne_cli.voice import (
+            from work4you_cli.config import load_config
+            from work4you_cli.voice import (
                 normalize_voice_record_key_for_prompt_toolkit,
                 voice_record_key_from_config,
             )
@@ -15420,7 +15420,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                 # and SQLite history. Ported from google-gemini/gemini-cli#19332.
                 if getattr(self, '_delete_session_on_exit', False):
                     try:
-                        from wayne_constants import get_wayne_home as _ghh
+                        from work4you_constants import get_wayne_home as _ghh
                         _sessions_dir = _ghh() / "sessions"
                         _sid = self.agent.session_id
                         if self._session_db.delete_session(_sid, sessions_dir=_sessions_dir):
@@ -15435,7 +15435,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
             # the exit occurred, meaning run_conversation's hook didn't fire.
             if self.agent and getattr(self, '_agent_running', False):
                 try:
-                    from wayne_cli.plugins import invoke_hook as _invoke_hook
+                    from work4you_cli.plugins import invoke_hook as _invoke_hook
                     _invoke_hook(
                         "on_session_end",
                         session_id=self.agent.session_id,
@@ -15457,7 +15457,7 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
         # thread (which would skip terminal cleanup on POSIX and only exit
         # the worker thread on Windows).
         if getattr(self, '_pending_relaunch', None):
-            from wayne_cli.relaunch import relaunch
+            from work4you_cli.relaunch import relaunch
             relaunch(self._pending_relaunch, preserve_inherited=False)
 
 
@@ -15481,8 +15481,8 @@ def _run_kanban_goal_loop_q(cli: "WayneCLI", first_response: str) -> None:
     if not task_id:
         return
 
-    from wayne_cli import kanban_db as _kb
-    from wayne_cli.goals import run_kanban_goal_loop as _run_loop, DEFAULT_MAX_TURNS as _DEF_TURNS
+    from work4you_cli import kanban_db as _kb
+    from work4you_cli.goals import run_kanban_goal_loop as _run_loop, DEFAULT_MAX_TURNS as _DEF_TURNS
 
     # Resolve goal text from the card (title + body = the acceptance
     # criteria the judge evaluates against).
@@ -15619,7 +15619,7 @@ def main(
     # Rich console prints Unicode box-drawing characters that would
     # UnicodeEncodeError on cp1252.  No-op on Linux/macOS.
     try:
-        from wayne_cli.stdio import configure_windows_stdio
+        from work4you_cli.stdio import configure_windows_stdio
         configure_windows_stdio()
     except Exception:
         pass
@@ -15695,7 +15695,7 @@ def main(
             toolsets_list = _coding
         else:
             # Use the shared resolver so MCP servers are included at runtime
-            from wayne_cli.tools_config import _get_platform_tools
+            from work4you_cli.tools_config import _get_platform_tools
             toolsets_list = sorted(_get_platform_tools(CLI_CONFIG, "cli"))
     
     parsed_skills = _parse_skills_argument(skills)
@@ -15858,7 +15858,7 @@ def main(
             _kanban_task_id = os.environ.get("WAYNE_KANBAN_TASK", "").strip()
             if _kanban_task_id:
                 try:
-                    from wayne_cli import kanban_db as _kb
+                    from work4you_cli import kanban_db as _kb
                     from agent.image_routing import extract_image_refs as _extract_refs
 
                     _conn = _kb.connect()
@@ -15904,7 +15904,7 @@ def main(
                                 build_native_content_parts as _build_parts,  # noqa: F811
                             )
                             from agent.image_routing import decide_image_input_mode
-                            from wayne_cli.config import load_config
+                            from work4you_cli.config import load_config
 
                             _img_mode = decide_image_input_mode(
                                 (cli.provider or "").strip(),
@@ -16027,7 +16027,7 @@ def main(
                                 "failure_reason"
                             ) in ("rate_limit", "billing"):
                                 try:
-                                    from wayne_cli.kanban_db import (
+                                    from work4you_cli.kanban_db import (
                                         KANBAN_RATE_LIMIT_EXIT_CODE as _RL_CODE,
                                     )
                                     _exit_code = _RL_CODE

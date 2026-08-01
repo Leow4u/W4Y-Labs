@@ -302,12 +302,12 @@ class TestSysPathOrdering:
     """Test that sys.path is set before repo-level imports."""
 
     def test_wayne_time_importable(self):
-        """wayne_time should be importable when cron.scheduler loads."""
+        """work4you_time should be importable when cron.scheduler loads."""
         # This import would fail if sys.path.insert comes after the import
         from cron.scheduler import _wayne_now
         assert callable(_wayne_now)
 
     def test_wayne_constants_importable(self):
-        """wayne_constants should be importable from cron context."""
-        from wayne_constants import get_wayne_home
+        """work4you_constants should be importable from cron context."""
+        from work4you_constants import get_wayne_home
         assert callable(get_wayne_home)

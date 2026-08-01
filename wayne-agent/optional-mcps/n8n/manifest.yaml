@@ -10,7 +10,7 @@ source: https://github.com/CyberSamuraiX/wayne-n8n-mcp
 
 # How to launch the server once installed. The keys here map 1:1 to the
 # `mcp_servers.<name>` block written into ~/.wayne/config.yaml by the
-# existing `_save_mcp_server()` helper in wayne_cli/mcp_config.py.
+# existing `_save_mcp_server()` helper in work4you_cli/mcp_config.py.
 transport:
   type: stdio
   # For git-installed servers, ${INSTALL_DIR} is substituted at install time

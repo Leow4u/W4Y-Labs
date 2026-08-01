@@ -75,9 +75,9 @@ logger = logging.getLogger("gateway.platforms.google_chat_user_oauth")
 # Use the project's WAYNE_HOME helper so the token follows the user's
 # profile (e.g. tests can override via WAYNE_HOME=/tmp/...).
 try:
-    from wayne_constants import display_wayne_home, get_wayne_home
+    from work4you_constants import display_wayne_home, get_wayne_home
 except (ModuleNotFoundError, ImportError):
-    # Fallback for environments where wayne_constants isn't importable
+    # Fallback for environments where work4you_constants isn't importable
     # (mirrors the same fallback used by the google-workspace skill's
     # _wayne_home.py shim).
     def get_wayne_home() -> Path:

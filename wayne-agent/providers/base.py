@@ -29,7 +29,7 @@ def _profile_user_agent() -> str:
     (OpenCode Zen, etc.) sit behind a WAF that returns 403 for that.
     """
     try:
-        from wayne_cli import __version__ as _ver  # lazy: avoid layer cycle at import time
+        from work4you_cli import __version__ as _ver  # lazy: avoid layer cycle at import time
         return f"wayne-cli/{_ver}"
     except Exception:
         return "wayne-cli"

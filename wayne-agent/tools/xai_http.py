@@ -36,7 +36,7 @@ def has_xai_credentials() -> bool:
     if os.environ.get("XAI_API_KEY", "").strip():
         return True
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         auth_path = get_wayne_home() / "auth.json"
         if not auth_path.exists():
@@ -54,12 +54,12 @@ def has_xai_credentials() -> bool:
 def get_env_value(name: str, default=None):
     """Read ``name`` from ``~/.wayne/.env`` first, then ``os.environ``.
 
-    Wraps :func:`wayne_cli.config.get_env_value` so tests can patch
+    Wraps :func:`work4you_cli.config.get_env_value` so tests can patch
     ``tools.xai_http.get_env_value`` to inject dotenv-only secrets into the
     xAI credential resolver.
     """
     try:
-        from wayne_cli.config import get_env_value as _wayne_get_env_value
+        from work4you_cli.config import get_env_value as _wayne_get_env_value
 
         value = _wayne_get_env_value(name)
         if value is not None:
@@ -72,7 +72,7 @@ def get_env_value(name: str, default=None):
 def wayne_xai_user_agent() -> str:
     """Return a stable Wayne-specific User-Agent for xAI HTTP calls."""
     try:
-        from wayne_cli import __version__
+        from work4you_cli import __version__
     except Exception:
         __version__ = "unknown"
     return f"Wayne-Agent/{__version__}"
@@ -81,7 +81,7 @@ def wayne_xai_user_agent() -> str:
 def _load_config_section(section_name: str) -> Dict[str, Any]:
     """Return a top-level Wayne config section as a dict, or empty."""
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         cfg = load_config()
         section = cfg.get(section_name) if isinstance(cfg, dict) else None
@@ -208,7 +208,7 @@ def maybe_mark_xai_storage_notice_seen(section_name: str) -> Optional[str]:
     if not notice:
         return None
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
 
         marker_dir = get_wayne_home() / "state"
         marker_dir.mkdir(parents=True, exist_ok=True)
@@ -225,7 +225,7 @@ def resolve_xai_http_credentials(*, force_refresh: bool = False) -> Dict[str, st
     """Resolve bearer credentials for direct xAI HTTP endpoints.
 
     Prefers Wayne-managed xAI OAuth credentials when available, then falls back
-    to ``XAI_API_KEY`` resolved via ``wayne_cli.config.get_env_value`` so keys
+    to ``XAI_API_KEY`` resolved via ``work4you_cli.config.get_env_value`` so keys
     stored in ``~/.wayne/.env`` (the standard Wayne location) are honored —
     not just ones already exported into ``os.environ``. This keeps direct xAI
     endpoints (images, TTS, STT, etc.) aligned with the main runtime auth model
@@ -238,7 +238,7 @@ def resolve_xai_http_credentials(*, force_refresh: bool = False) -> Dict[str, st
     the auth-store lock is held for the duration of the refresh.
     """
     try:
-        from wayne_cli.auth import resolve_xai_oauth_runtime_credentials
+        from work4you_cli.auth import resolve_xai_oauth_runtime_credentials
 
         creds = resolve_xai_oauth_runtime_credentials(force_refresh=force_refresh)
         access_token = str(creds.get("api_key") or "").strip()
@@ -254,7 +254,7 @@ def resolve_xai_http_credentials(*, force_refresh: bool = False) -> Dict[str, st
 
     if not force_refresh:
         try:
-            from wayne_cli.runtime_provider import resolve_runtime_provider
+            from work4you_cli.runtime_provider import resolve_runtime_provider
 
             runtime = resolve_runtime_provider(requested="xai-oauth")
             access_token = str(runtime.get("api_key") or "").strip()

@@ -1,4 +1,4 @@
-import { Box, type ScrollBoxHandle, stringWidth, Text } from '@wayne/ink'
+import { Box, type ScrollBoxHandle, stringWidth, Text } from '@work4you/ink'
 import { useStore } from '@nanostores/react'
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import unicodeSpinners from 'unicode-animations'

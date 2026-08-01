@@ -152,7 +152,7 @@ class TestShutdownTranscriptSurvivesResumeE2E:
         # Isolated state.db.
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path / ".wayne"))
 
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
         from run_agent import AIAgent
 
         db = SessionDB(db_path=tmp_path / "state.db")
@@ -225,7 +225,7 @@ class TestShutdownTranscriptSurvivesResumeE2E:
         duplicate rows when _finalize_shutdown_agents re-flushes."""
         monkeypatch.setenv("WAYNE_HOME", str(tmp_path / ".wayne"))
 
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
         from run_agent import AIAgent
 
         db = SessionDB(db_path=tmp_path / "state.db")

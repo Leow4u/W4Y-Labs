@@ -847,7 +847,7 @@ def _is_local_openviking_url(value: str) -> bool:
 
 def _load_wayne_openviking_config() -> dict:
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
 
         config = load_config()
         memory_config = config.get("memory", {}) if isinstance(config, dict) else {}
@@ -1141,7 +1141,7 @@ def _local_openviking_bind(endpoint: str) -> tuple[str, int]:
 
 def _openviking_server_log_path() -> Path:
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         home = get_wayne_home()
     except Exception:
         home = Path(os.environ.get("WAYNE_HOME", "")).expanduser() if os.environ.get("WAYNE_HOME") else Path.home() / ".wayne"
@@ -1955,8 +1955,8 @@ class OpenVikingMemoryProvider(MemoryProvider):
 
     def post_setup(self, wayne_home: str, config: dict) -> None:
         """Custom setup that can reuse OpenViking's shared CLI config."""
-        from wayne_cli.config import save_config
-        from wayne_cli.memory_setup import _CANCELLED, _curses_select, _print_cancelled_setup, _prompt
+        from work4you_cli.config import save_config
+        from work4you_cli.memory_setup import _CANCELLED, _curses_select, _print_cancelled_setup, _prompt
 
         wayne_home_path = Path(wayne_home)
         env_path = wayne_home_path / ".env"

@@ -62,7 +62,7 @@ except ImportError:
 def _get_sessions_dir() -> Path:
     """Return the sessions directory using WAYNE_HOME."""
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         return get_wayne_home() / "sessions"
     except ImportError:
         return Path(os.environ.get("WAYNE_HOME", Path.home() / ".wayne")) / "sessions"
@@ -71,7 +71,7 @@ def _get_sessions_dir() -> Path:
 def _get_session_db():
     """Get a SessionDB instance for reading message transcripts."""
     try:
-        from wayne_state import SessionDB
+        from work4you_state import SessionDB
         return SessionDB()
     except Exception as e:
         logger.debug("SessionDB unavailable: %s", e)
@@ -105,7 +105,7 @@ def _load_sessions_index() -> dict:
 def _load_channel_directory() -> dict:
     """Load the cached channel directory for available targets."""
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         directory_file = get_wayne_home() / "channel_directory.json"
     except ImportError:
         directory_file = Path(
@@ -372,7 +372,7 @@ class EventBridge:
 
         # Check if state.db has changed
         try:
-            from wayne_constants import get_wayne_home
+            from work4you_constants import get_wayne_home
             db_file = get_wayne_home() / "state.db"
         except ImportError:
             db_file = Path(os.environ.get("WAYNE_HOME", Path.home() / ".wayne")) / "state.db"

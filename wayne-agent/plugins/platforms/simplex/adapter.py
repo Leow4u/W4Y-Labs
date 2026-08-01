@@ -1223,7 +1223,7 @@ def interactive_setup() -> None:
 
     Prompts for the WebSocket URL and the optional allowlist / groups /
     auto-accept / home channel. Writes to ``~/.wayne/.env`` via
-    ``wayne_cli.config``.
+    ``work4you_cli.config``.
     """
     print()
     print("SimpleX Chat setup")
@@ -1234,10 +1234,10 @@ def interactive_setup() -> None:
     print()
 
     try:
-        from wayne_cli.config import get_env_value, save_env_value
+        from work4you_cli.config import get_env_value, save_env_value
     except ImportError:
         print(
-            "wayne_cli.config not available; set SIMPLEX_* vars manually in "
+            "work4you_cli.config not available; set SIMPLEX_* vars manually in "
             "~/.wayne/.env"
         )
         return
@@ -1247,7 +1247,7 @@ def interactive_setup() -> None:
         suffix = " [keep current]" if existing else ""
         try:
             if secret:
-                from wayne_cli.secret_prompt import masked_secret_prompt
+                from work4you_cli.secret_prompt import masked_secret_prompt
                 value = masked_secret_prompt(f"{prompt}{suffix}: ")
             else:
                 value = input(f"{prompt}{suffix}: ").strip()

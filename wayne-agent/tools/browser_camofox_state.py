@@ -13,7 +13,7 @@ import uuid
 from pathlib import Path
 from typing import Dict, Optional
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 CAMOFOX_STATE_DIR_NAME = "browser_auth"
 CAMOFOX_STATE_SUBDIR = "camofox"

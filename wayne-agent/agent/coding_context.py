@@ -60,7 +60,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
-from wayne_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
+from work4you_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
 
 logger = logging.getLogger("wayne.coding_context")
 
@@ -337,7 +337,7 @@ def _coding_mode(config: Optional[dict[str, Any]]) -> str:
     """Return the normalized ``agent.coding_context`` mode (auto/focus/on/off)."""
     if config is None:
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
 
             config = load_config()
         except Exception:
@@ -365,7 +365,7 @@ def _coding_instructions(config: Optional[dict[str, Any]]) -> str:
     """
     if config is None:
         try:
-            from wayne_cli.config import load_config
+            from work4you_cli.config import load_config
 
             config = load_config()
         except Exception:
@@ -662,8 +662,8 @@ def _enabled_mcp_servers(config: Optional[dict[str, Any]]) -> list[str]:
     of the coding workflow, not noise to strip.
     """
     try:
-        from wayne_cli.config import read_raw_config
-        from wayne_cli.tools_config import _parse_enabled_flag
+        from work4you_cli.config import read_raw_config
+        from work4you_cli.tools_config import _parse_enabled_flag
 
         servers = read_raw_config().get("mcp_servers") or {}
         return [

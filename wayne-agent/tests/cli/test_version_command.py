@@ -3,7 +3,7 @@
 from unittest.mock import patch
 
 from cli import WayneCLI
-from wayne_cli.commands import GATEWAY_KNOWN_COMMANDS, resolve_command
+from work4you_cli.commands import GATEWAY_KNOWN_COMMANDS, resolve_command
 
 
 def test_version_command_is_registered():
@@ -22,7 +22,7 @@ def test_version_is_gateway_known():
 def test_process_command_version_prints_version_info():
     cli_obj = WayneCLI.__new__(WayneCLI)
 
-    with patch("wayne_cli.main._print_version_info") as mock_print:
+    with patch("work4you_cli.main._print_version_info") as mock_print:
         assert cli_obj.process_command("/version") is True
 
     mock_print.assert_called_once_with(check_updates=True)

@@ -35,8 +35,8 @@ def _restore_tool_modules():
         for name, module in sys.modules.items()
         if name == "tools"
         or name.startswith("tools.")
-        or name == "wayne_cli"
-        or name.startswith("wayne_cli.")
+        or name == "work4you_cli"
+        or name.startswith("work4you_cli.")
         or name == "modal"
         or name.startswith("modal.")
     }
@@ -47,7 +47,7 @@ def _restore_tool_modules():
             os.environ.pop("WAYNE_HOME", None)
         else:
             os.environ["WAYNE_HOME"] = original_wayne_home
-        _reset_modules(("tools", "wayne_cli", "modal"))
+        _reset_modules(("tools", "work4you_cli", "modal"))
         sys.modules.update(original_modules)
 
 
@@ -57,14 +57,14 @@ def _install_modal_test_modules(
     fail_on_snapshot_ids: set[str] | None = None,
     snapshot_id: str = "im-fresh",
 ):
-    _reset_modules(("tools", "wayne_cli", "modal"))
+    _reset_modules(("tools", "work4you_cli", "modal"))
 
-    wayne_cli = types.ModuleType("wayne_cli")
-    wayne_cli.__path__ = []  # type: ignore[attr-defined]
-    sys.modules["wayne_cli"] = wayne_cli
+    work4you_cli = types.ModuleType("work4you_cli")
+    work4you_cli.__path__ = []  # type: ignore[attr-defined]
+    sys.modules["work4you_cli"] = work4you_cli
     wayne_home = tmp_path / "wayne-home"
     os.environ["WAYNE_HOME"] = str(wayne_home)
-    sys.modules["wayne_cli.config"] = types.SimpleNamespace(
+    sys.modules["work4you_cli.config"] = types.SimpleNamespace(
         get_wayne_home=lambda: wayne_home,
     )
 

@@ -52,11 +52,11 @@ def _run_with_current_provider(job, current_provider, tmp_path):
     fake_db = MagicMock()
     with patch("cron.scheduler._wayne_home", tmp_path), \
          patch("cron.scheduler._resolve_origin", return_value=None), \
-         patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-         patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-         patch("wayne_state.SessionDB", return_value=fake_db), \
+         patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+         patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+         patch("work4you_state.SessionDB", return_value=fake_db), \
          patch(
-             "wayne_cli.runtime_provider.resolve_runtime_provider",
+             "work4you_cli.runtime_provider.resolve_runtime_provider",
              return_value={
                  "api_key": "test-key",
                  "base_url": "https://example.invalid/v1",
@@ -176,7 +176,7 @@ class TestCreateJobSnapshot:
         jobs = self._isolate_storage(monkeypatch)
 
         with patch(
-            "wayne_cli.runtime_provider.resolve_runtime_provider",
+            "work4you_cli.runtime_provider.resolve_runtime_provider",
             return_value={"provider": "openrouter"},
         ):
             job = jobs.create_job(prompt="do a thing", schedule="every 1 hour")
@@ -188,7 +188,7 @@ class TestCreateJobSnapshot:
         jobs = self._isolate_storage(monkeypatch)
 
         resolver = MagicMock(return_value={"provider": "openrouter"})
-        with patch("wayne_cli.runtime_provider.resolve_runtime_provider", resolver):
+        with patch("work4you_cli.runtime_provider.resolve_runtime_provider", resolver):
             job = jobs.create_job(
                 prompt="do a thing", schedule="every 1 hour", provider="nous"
             )
@@ -203,7 +203,7 @@ class TestCreateJobSnapshot:
         jobs = self._isolate_storage(monkeypatch)
 
         with patch(
-            "wayne_cli.runtime_provider.resolve_runtime_provider",
+            "work4you_cli.runtime_provider.resolve_runtime_provider",
             side_effect=RuntimeError("no creds"),
         ):
             job = jobs.create_job(prompt="do a thing", schedule="every 1 hour")
@@ -218,7 +218,7 @@ class TestCreateJobSnapshot:
             "cron.jobs.get_wayne_home", lambda: tmp_path, raising=True
         )
         with patch(
-            "wayne_cli.runtime_provider.resolve_runtime_provider",
+            "work4you_cli.runtime_provider.resolve_runtime_provider",
             return_value={"provider": "openrouter"},
         ):
             job = jobs.create_job(prompt="do a thing", schedule="every 1 hour")
@@ -233,7 +233,7 @@ class TestCreateJobSnapshot:
             "cron.jobs.get_wayne_home", lambda: tmp_path, raising=True
         )
         with patch(
-            "wayne_cli.runtime_provider.resolve_runtime_provider",
+            "work4you_cli.runtime_provider.resolve_runtime_provider",
             return_value={"provider": "openrouter"},
         ):
             job = jobs.create_job(
@@ -253,11 +253,11 @@ def _run_with_current_provider_and_model(job, current_provider, current_model, t
     with patch("cron.scheduler._wayne_home", tmp_path), \
          patch("cron.scheduler._get_wayne_home", return_value=tmp_path), \
          patch("cron.scheduler._resolve_origin", return_value=None), \
-         patch("wayne_cli.env_loader.load_wayne_dotenv"), \
-         patch("wayne_cli.env_loader.reset_secret_source_cache"), \
-         patch("wayne_state.SessionDB", return_value=fake_db), \
+         patch("work4you_cli.env_loader.load_wayne_dotenv"), \
+         patch("work4you_cli.env_loader.reset_secret_source_cache"), \
+         patch("work4you_state.SessionDB", return_value=fake_db), \
          patch(
-             "wayne_cli.runtime_provider.resolve_runtime_provider",
+             "work4you_cli.runtime_provider.resolve_runtime_provider",
              return_value={
                  "api_key": "test-key",
                  "base_url": "https://example.invalid/v1",

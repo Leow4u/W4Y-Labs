@@ -522,7 +522,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         # made the in-memory version of this heuristic flaky for
         # multi-restart sessions).
         try:
-            from wayne_constants import get_wayne_home as _get_wayne_home
+            from work4you_constants import get_wayne_home as _get_wayne_home
             _wayne_home = _get_wayne_home()
         except (ModuleNotFoundError, ImportError):
             _wayne_home = _Path.home() / ".wayne"
@@ -3031,20 +3031,20 @@ def _env_enablement() -> Optional[Dict[str, Any]]:
 def interactive_setup() -> None:
     """Walk the user through Google Chat configuration via ``wayne setup``.
 
-    The setup wizard at ``wayne_cli/gateway.py`` calls this for plugin
+    The setup wizard at ``work4you_cli/gateway.py`` calls this for plugin
     platforms instead of using the in-tree ``_PLATFORMS`` data block. The
     flow mirrors the in-tree built-ins: print the GCP setup instructions,
     prompt for env vars, persist them to ``~/.wayne/.env`` so the next
     gateway restart picks them up.
     """
-    from wayne_cli.cli_output import (
+    from work4you_cli.cli_output import (
         print_info,
         print_success,
         print_warning,
         prompt,
         prompt_yes_no,
     )
-    from wayne_cli.config import get_env_value, save_env_value
+    from work4you_cli.config import get_env_value, save_env_value
 
     existing_sub = get_env_value("GOOGLE_CHAT_SUBSCRIPTION_NAME")
     if existing_sub:

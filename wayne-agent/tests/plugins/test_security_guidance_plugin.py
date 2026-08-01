@@ -320,10 +320,10 @@ class TestPluginDiscovery:
 
         # Wipe any cached plugin state from earlier tests in this worker.
         for k in list(sys.modules):
-            if k.startswith(("wayne_plugins", "wayne_cli.plugins")):
+            if k.startswith(("wayne_plugins", "work4you_cli.plugins")):
                 del sys.modules[k]
 
-        from wayne_cli.plugins import _ensure_plugins_discovered
+        from work4you_cli.plugins import _ensure_plugins_discovered
 
         mgr = _ensure_plugins_discovered(force=True)
         loaded = set()

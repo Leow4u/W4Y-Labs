@@ -20,8 +20,8 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import IO, Callable, Protocol
 
-from wayne_constants import get_wayne_home
-from wayne_cli._subprocess_compat import windows_hide_flags
+from work4you_constants import get_wayne_home
+from work4you_cli._subprocess_compat import windows_hide_flags
 from tools.interrupt import is_interrupted
 
 logger = logging.getLogger(__name__)

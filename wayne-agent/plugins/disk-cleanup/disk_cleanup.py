@@ -29,7 +29,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
 except Exception:  # pragma: no cover — plugin may load before constants resolves
     import os
 

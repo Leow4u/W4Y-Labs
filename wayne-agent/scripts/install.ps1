@@ -452,7 +452,7 @@ function Get-PowerShellHostExe {
 function Install-Uv {
     # Wayne owns its own uv at $WayneHome\bin\uv.exe.  Always install there —
     # no PATH probing, no conda guards, no multi-location resolution chains.
-    # The runtime update path (wayne_cli/managed_uv.py) looks in the same
+    # The runtime update path (work4you_cli/managed_uv.py) looks in the same
     # place, so install.ps1 and `wayne update` stay in sync.
     $managedUv = Join-Path $WayneHome "bin\uv.exe"
 
@@ -1724,7 +1724,7 @@ function Install-Venv {
             & taskkill /F /T /IM wayne.exe /FI "PID ne $myPid" 2>$null | Out-Null
             # taskkill /IM wayne.exe is NOT enough: the gateway/agent that a
             # scheduled task or watchdog autostarts runs as
-            # `pythonw.exe -m wayne_cli.main gateway run` straight out of
+            # `pythonw.exe -m work4you_cli.main gateway run` straight out of
             # venv\Scripts\, so its image name is python/pythonw, not wayne.exe.
             # That process holds the venv's .pyd files open and re-triggers the
             # access-denied failure. Stop anything whose executable lives under
@@ -1732,7 +1732,7 @@ function Install-Venv {
             # and a global/system python outside the venv is never touched.
             #
             # The gateway autostart task registers with /RL LIMITED as the current
-            # user (see wayne_cli/gateway_windows.py), so the installer always
+            # user (see work4you_cli/gateway_windows.py), so the installer always
             # runs at equal-or-higher integrity and can read its executable path.
             # Get-CimInstance is used over Get-Process because it returns a null
             # ExecutablePath for a process it cannot inspect (a different session)
@@ -2055,7 +2055,7 @@ print(','.join(scripts))
                     }
                     if ($stillMissing.Count -gt 0) {
                         Write-Warn "Entry points still missing after repair: $($stillMissing -join ', ')"
-                        Write-Info "Workaround: `"$pythonExe`" -m wayne_cli.main <command>"
+                        Write-Info "Workaround: `"$pythonExe`" -m work4you_cli.main <command>"
                     } else {
                         Write-Success "Console entry points restored"
                     }
@@ -3068,9 +3068,9 @@ function Invoke-SetupWizard {
 
     # Run wayne setup using the venv Python directly (no activation needed)
     if (-not $NoVenv) {
-        & ".\venv\Scripts\python.exe" -m wayne_cli.main setup
+        & ".\venv\Scripts\python.exe" -m work4you_cli.main setup
     } else {
-        python -m wayne_cli.main setup
+        python -m work4you_cli.main setup
     }
 
     Pop-Location

@@ -21,7 +21,7 @@ import subprocess
 from pathlib import Path
 from urllib.parse import urlparse
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 from typing import Any, Dict, List, Optional, Tuple
 from utils import base_url_host_matches, normalize_proxy_env_vars
 
@@ -1431,7 +1431,7 @@ def run_wayne_oauth_login_pure() -> Optional[Dict[str, Any]]:
     print()
 
     try:
-        from wayne_cli.auth import _can_open_graphical_browser as _can_open_gui
+        from work4you_cli.auth import _can_open_graphical_browser as _can_open_gui
     except Exception:
         _can_open_gui = lambda: True  # noqa: E731 — degrade to prior behavior
 

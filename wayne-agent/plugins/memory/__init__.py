@@ -28,7 +28,7 @@ import logging
 import sys
 from pathlib import Path
 from typing import List, Optional, Tuple
-from wayne_cli.config import cfg_get
+from work4you_cli.config import cfg_get
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +64,7 @@ def _register_synthetic_package(name: str, search_locations: List[str]) -> None:
 def _get_user_plugins_dir() -> Optional[Path]:
     """Return ``$WAYNE_HOME/plugins/`` or None if unavailable."""
     try:
-        from wayne_constants import get_wayne_home
+        from work4you_constants import get_wayne_home
         d = get_wayne_home() / "plugins"
         return d if d.is_dir() else None
     except Exception:
@@ -344,7 +344,7 @@ def _get_active_memory_provider() -> Optional[str]:
     no plugin loading.
     """
     try:
-        from wayne_cli.config import load_config
+        from work4you_cli.config import load_config
         config = load_config()
         return cfg_get(config, "memory", "provider") or None
     except Exception:

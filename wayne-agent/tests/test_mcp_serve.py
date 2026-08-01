@@ -29,8 +29,8 @@ def _isolate_wayne_home(tmp_path, monkeypatch):
     """Redirect WAYNE_HOME to a temp directory."""
     monkeypatch.setenv("WAYNE_HOME", str(tmp_path))
     try:
-        import wayne_constants
-        monkeypatch.setattr(wayne_constants, "get_wayne_home", lambda: tmp_path)
+        import work4you_constants
+        monkeypatch.setattr(work4you_constants, "get_wayne_home", lambda: tmp_path)
     except (ImportError, AttributeError):
         pass
     return tmp_path
@@ -122,7 +122,7 @@ def populated_sessions_dir(sessions_dir, sample_sessions):
 
 
 def _create_test_db(db_path, session_id, messages):
-    """Create a minimal SQLite DB mimicking wayne_state schema."""
+    """Create a minimal SQLite DB mimicking work4you_state schema."""
     conn = sqlite3.connect(str(db_path))
     conn.execute("""
         CREATE TABLE IF NOT EXISTS sessions (
@@ -1010,7 +1010,7 @@ class TestCliIntegration:
 
         import argparse
         args = argparse.Namespace(mcp_action="serve", verbose=True)
-        from wayne_cli.mcp_config import mcp_command
+        from work4you_cli.mcp_config import mcp_command
         mcp_command(args)
         mock_run.assert_called_once_with(verbose=True)
 

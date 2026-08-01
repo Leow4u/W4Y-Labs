@@ -37,8 +37,8 @@ def fake_wayne(tmp_path, monkeypatch):
 
     monkeypatch.setenv("WAYNE_HOME", str(sec_home))
 
-    import wayne_constants
-    monkeypatch.setattr(wayne_constants, "get_default_wayne_root", lambda: root)
+    import work4you_constants
+    monkeypatch.setattr(work4you_constants, "get_default_wayne_root", lambda: root)
 
     import agent.file_safety as fs
     monkeypatch.setattr(fs, "_wayne_home_path", lambda: sec_home)

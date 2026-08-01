@@ -1677,7 +1677,7 @@ class TestDefaultInteractionDispatch:
         wayne_home = tmp_path / "wayne_home"
         wayne_home.mkdir()
         monkeypatch.setattr(
-            "wayne_constants.get_wayne_home",
+            "work4you_constants.get_wayne_home",
             lambda: wayne_home,
         )
 
@@ -1698,7 +1698,7 @@ class TestDefaultInteractionDispatch:
         wayne_home = tmp_path / "wayne_home"
         wayne_home.mkdir()
         monkeypatch.setattr(
-            "wayne_constants.get_wayne_home",
+            "work4you_constants.get_wayne_home",
             lambda: wayne_home,
         )
         from gateway.platforms.qqbot.keyboards import parse_interaction_event

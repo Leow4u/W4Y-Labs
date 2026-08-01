@@ -1074,7 +1074,7 @@ class MemoryManager:
         ``get_wayne_home()`` themselves.
         """
         if "wayne_home" not in kwargs:
-            from wayne_constants import get_wayne_home
+            from work4you_constants import get_wayne_home
             kwargs["wayne_home"] = str(get_wayne_home())
         for provider in self._providers:
             try:

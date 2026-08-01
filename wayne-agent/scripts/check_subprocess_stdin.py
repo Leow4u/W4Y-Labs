@@ -57,7 +57,7 @@ SKIP_DIRS = {
     "scripts/",
     "skills/",
     "optional-skills/",
-    "wayne_cli/",
+    "work4you_cli/",
     "gateway/",
     "cron/",
 }

@@ -13,7 +13,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from wayne_constants import get_wayne_home
+from work4you_constants import get_wayne_home
 
 from ._oss_providers import (
     LLM_PROVIDERS,
@@ -26,7 +26,7 @@ from ._oss_providers import (
 
 def _curses_select(title: str, items: list[tuple[str, str]], default: int = 0) -> int:
     """Interactive single-select with arrow keys."""
-    from wayne_cli.curses_ui import curses_radiolist
+    from work4you_cli.curses_ui import curses_radiolist
     display_items = [
         f"{label}  {desc}" if desc else label
         for label, desc in items
@@ -294,7 +294,7 @@ def _setup_platform(wayne_home: str, config: dict, flags: dict[str, str]) -> Non
 
     provider_config["mode"] = "platform"
 
-    from wayne_cli.config import save_config
+    from work4you_cli.config import save_config
     config["memory"]["provider"] = "mem0"
     save_config(config)
 
@@ -353,7 +353,7 @@ def _setup_oss(wayne_home: str, config: dict, flags: dict[str, str]) -> None:
 
     _install_provider_deps(llm_id, embedder_id, vector_id)
 
-    from wayne_cli.config import save_config
+    from work4you_cli.config import save_config
     config["memory"]["provider"] = "mem0"
     save_config(config)
 
@@ -706,7 +706,7 @@ def _setup_oss_interactive(wayne_home: str, config: dict) -> None:
     if vector_id == "pgvector" and pgvector_config:
         _ensure_pgvector_extension(pgvector_config)
 
-    from wayne_cli.config import save_config
+    from work4you_cli.config import save_config
     config["memory"]["provider"] = "mem0"
     save_config(config)
 

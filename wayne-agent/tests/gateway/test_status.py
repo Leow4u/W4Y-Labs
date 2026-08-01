@@ -64,7 +64,7 @@ class TestGatewayPidState:
         pid_path.write_text(json.dumps({
             "pid": dead_pid,
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway", "run"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway", "run"],
             "start_time": 111,
         }))
 
@@ -82,7 +82,7 @@ class TestGatewayPidState:
         pid_path.write_text(json.dumps({
             "pid": os.getpid(),
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway"],
             "start_time": 123,
         }))
 
@@ -102,7 +102,7 @@ class TestGatewayPidState:
         pid_path.write_text(json.dumps({
             "pid": os.getpid(),
             "kind": "wayne-gateway",
-            "argv": ["/venv/bin/python", "/repo/wayne_cli/main.py", "gateway", "run", "--replace"],
+            "argv": ["/venv/bin/python", "/repo/work4you_cli/main.py", "gateway", "run", "--replace"],
             "start_time": 123,
         }))
 
@@ -111,7 +111,7 @@ class TestGatewayPidState:
         monkeypatch.setattr(
             status,
             "_read_process_cmdline",
-            lambda pid: "/venv/bin/python /repo/wayne_cli/main.py gateway run --replace",
+            lambda pid: "/venv/bin/python /repo/work4you_cli/main.py gateway run --replace",
         )
 
         assert status.acquire_gateway_runtime_lock() is True
@@ -127,7 +127,7 @@ class TestGatewayPidState:
         pid_path.write_text(json.dumps({
             "pid": os.getpid(),
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway"],
             "start_time": 123,
         }))
 
@@ -139,7 +139,7 @@ class TestGatewayPidState:
         lock_path.write_text(json.dumps({
             "pid": os.getpid(),
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway"],
             "start_time": 123,
         }))
         monkeypatch.setattr(status, "is_gateway_runtime_lock_active", lambda lock_path=None: True)
@@ -164,7 +164,7 @@ class TestGatewayPidState:
         pid_path.write_text(json.dumps({
             "pid": os.getpid(),
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway"],
             "start_time": 123,
         }))
 
@@ -182,7 +182,7 @@ class TestGatewayPidState:
         record = {
             "pid": os.getpid(),
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway", "restart"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway", "restart"],
             "start_time": 123,
         }
         pid_path.write_text(json.dumps(record))
@@ -192,7 +192,7 @@ class TestGatewayPidState:
         monkeypatch.setattr(
             status,
             "_read_process_cmdline",
-            lambda pid: "python -m wayne_cli.main gateway restart",
+            lambda pid: "python -m work4you_cli.main gateway restart",
         )
 
         assert status.acquire_gateway_runtime_lock() is True
@@ -209,7 +209,7 @@ class TestGatewayPidState:
             "gateway_state": "running",
             "pid": os.getpid(),
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway", "restart"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway", "restart"],
             "start_time": 123,
         }))
 
@@ -218,7 +218,7 @@ class TestGatewayPidState:
         monkeypatch.setattr(
             status,
             "_read_process_cmdline",
-            lambda pid: "python -m wayne_cli.main gateway restart",
+            lambda pid: "python -m work4you_cli.main gateway restart",
         )
 
         assert status.get_running_pid() == os.getpid()
@@ -242,13 +242,13 @@ class TestGatewayPidState:
         pid_path.write_text(json.dumps({
             "pid": dead_foreign_pid,
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway"],
             "start_time": 123,
         }))
         lock_path.write_text(json.dumps({
             "pid": dead_foreign_pid,
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway"],
             "start_time": 123,
         }))
 
@@ -263,7 +263,7 @@ class TestGatewayPidState:
         pid_path.write_text(json.dumps({
             "pid": 99999,
             "kind": "wayne-gateway",
-            "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+            "argv": ["python", "-m", "work4you_cli.main", "gateway"],
             "start_time": 123,
         }))
 
@@ -275,7 +275,7 @@ class TestGatewayPidState:
             lambda: {
                 "pid": os.getpid(),
                 "kind": "wayne-gateway",
-                "argv": ["python", "-m", "wayne_cli.main", "gateway"],
+                "argv": ["python", "-m", "work4you_cli.main", "gateway"],
                 "start_time": 123,
             },
         )
@@ -634,7 +634,7 @@ class TestTerminatePid:
         # pythonw.exe backend doesn't flash a conhost window on force-kill.
         # windows_hide_flags() is 0 on the POSIX test host (a valid no-op
         # creationflags value); on real Windows it is CREATE_NO_WINDOW.
-        from wayne_cli._subprocess_compat import windows_hide_flags
+        from work4you_cli._subprocess_compat import windows_hide_flags
 
         assert calls == [
             (["taskkill", "/PID", "123", "/T", "/F"], True, True, 10, windows_hide_flags())
@@ -723,7 +723,7 @@ class TestScopedLocks:
             "pid": 873,
             "start_time": None,
             "kind": "wayne-gateway",
-            "argv": ["/Users/user/.wayne/wayne-agent/wayne_cli/main.py", "gateway", "run", "--replace"],
+            "argv": ["/Users/user/.wayne/wayne-agent/work4you_cli/main.py", "gateway", "run", "--replace"],
         }))
 
         # Post-#21561 the liveness probe routes through
@@ -759,7 +759,7 @@ class TestScopedLocks:
             "pid": 99999,
             "start_time": None,
             "kind": "wayne-gateway",
-            "argv": ["wayne_cli/main.py", "gateway", "run"],
+            "argv": ["work4you_cli/main.py", "gateway", "run"],
         }))
 
         monkeypatch.setattr(status, "_pid_exists", lambda pid: True)
@@ -783,7 +783,7 @@ class TestScopedLocks:
             "pid": 99999,
             "start_time": None,
             "kind": "wayne-gateway",
-            "argv": ["/Users/user/.wayne/wayne-agent/wayne_cli/main.py", "gateway", "run", "--replace"],
+            "argv": ["/Users/user/.wayne/wayne-agent/work4you_cli/main.py", "gateway", "run", "--replace"],
         }))
 
         monkeypatch.setattr(status, "_pid_exists", lambda pid: True)
@@ -915,7 +915,7 @@ class TestScopedLocks:
             "pid": 840,
             "start_time": 123,
             "kind": "wayne-gateway",
-            "argv": ["/usr/bin/python", "-m", "wayne_cli.main", "gateway", "run"],
+            "argv": ["/usr/bin/python", "-m", "work4you_cli.main", "gateway", "run"],
         }))
 
         monkeypatch.setattr(status, "_pid_exists", lambda pid: True)
@@ -1379,7 +1379,7 @@ class TestReadProcessCmdlinePsFallback:
 
         monkeypatch.setattr(status.Path, "read_bytes", fake_read_bytes)
         result = status._read_process_cmdline(12345)
-        assert "wayne_cli/main.py" in result
+        assert "work4you_cli/main.py" in result
         assert calls == ["proc"]
 
     def test_ps_fallback_used_when_proc_returns_empty(self, monkeypatch):
@@ -1387,10 +1387,10 @@ class TestReadProcessCmdlinePsFallback:
         monkeypatch.setattr(status, "_IS_WINDOWS", False)
         monkeypatch.setattr(
             status.subprocess, "run",
-            lambda args, **kwargs: SimpleNamespace(returncode=0, stdout="python wayne_cli/main.py gateway run\n"),
+            lambda args, **kwargs: SimpleNamespace(returncode=0, stdout="python work4you_cli/main.py gateway run\n"),
         )
         result = status._read_process_cmdline(12345)
-        assert "wayne_cli/main.py" in result
+        assert "work4you_cli/main.py" in result
 
     def test_windows_skips_ps_fallback_and_uses_psutil(self, monkeypatch):
         monkeypatch.setattr(status.Path, "read_bytes", lambda self: (_ for _ in ()).throw(FileNotFoundError))
@@ -1407,7 +1407,7 @@ class TestReadProcessCmdlinePsFallback:
                 self.pid = pid
 
             def cmdline(self):
-                return ["pythonw.exe", "-m", "wayne_cli.main", "gateway", "run"]
+                return ["pythonw.exe", "-m", "work4you_cli.main", "gateway", "run"]
 
         monkeypatch.setitem(
             sys.modules,
@@ -1417,7 +1417,7 @@ class TestReadProcessCmdlinePsFallback:
 
         result = status._read_process_cmdline(12345)
 
-        assert result == "pythonw.exe -m wayne_cli.main gateway run"
+        assert result == "pythonw.exe -m work4you_cli.main gateway run"
         assert ps_calls == []
 
 

@@ -217,7 +217,7 @@ def _global_allow_private_urls() -> bool:
 
     # 2. Config file
     try:
-        from wayne_cli.config import read_raw_config
+        from work4you_cli.config import read_raw_config
         cfg = read_raw_config()
         # security.allow_private_urls (preferred)
         sec = cfg.get("security", {})

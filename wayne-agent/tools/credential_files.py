@@ -26,7 +26,7 @@ import posixpath
 from contextvars import ContextVar
 from pathlib import Path
 from typing import Dict, List, Optional
-from wayne_cli.config import cfg_get
+from work4you_cli.config import cfg_get
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +50,7 @@ _config_files: List[Dict[str, str]] | None = None
 
 
 def _resolve_wayne_home() -> Path:
-    from wayne_constants import get_wayne_home
+    from work4you_constants import get_wayne_home
     return get_wayne_home()
 
 
@@ -137,7 +137,7 @@ def _load_config_files() -> List[Dict[str, str]]:
 
     result: List[Dict[str, str]] = []
     try:
-        from wayne_cli.config import read_raw_config
+        from work4you_cli.config import read_raw_config
         wayne_home = _resolve_wayne_home()
         cfg = read_raw_config()
         cred_files = cfg_get(cfg, "terminal", "credential_files")
@@ -342,7 +342,7 @@ def iter_skills_files(
 # ---------------------------------------------------------------------------
 
 # The cache subdirectories that should be mirrored into remote backends.
-# Each tuple is (new_subpath, old_name) matching wayne_constants.get_wayne_dir().
+# Each tuple is (new_subpath, old_name) matching work4you_constants.get_wayne_dir().
 _CACHE_DIRS: list[tuple[str, str]] = [
     ("cache/documents", "document_cache"),
     ("cache/images", "image_cache"),
@@ -363,7 +363,7 @@ def get_cache_directory_mounts(
     ``container_path`` keys.  The host path is resolved via
     ``get_wayne_dir()`` for backward compatibility with old directory layouts.
     """
-    from wayne_constants import get_wayne_dir
+    from work4you_constants import get_wayne_dir
 
     mounts: List[Dict[str, str]] = []
     for new_subpath, old_name in _CACHE_DIRS:
@@ -431,7 +431,7 @@ def iter_cache_files(
     Used by Modal to upload files individually and resync before each command.
     Skips symlinks.  The container paths use the new ``cache/<subdir>`` layout.
     """
-    from wayne_constants import get_wayne_dir
+    from work4you_constants import get_wayne_dir
 
     result: List[Dict[str, str]] = []
     for new_subpath, old_name in _CACHE_DIRS:

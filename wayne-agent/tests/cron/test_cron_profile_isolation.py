@@ -23,10 +23,10 @@ from pathlib import Path
 def _set_profile_env(monkeypatch, root: Path, profile_home: Path) -> None:
     """Pretend the platform default root is ``root`` and the active
     WAYNE_HOME is a profile under it (``<root>/profiles/<name>``)."""
-    import wayne_constants
+    import work4you_constants
 
     monkeypatch.setattr(
-        wayne_constants, "_get_platform_default_wayne_home", lambda: root
+        work4you_constants, "_get_platform_default_wayne_home", lambda: root
     )
     monkeypatch.setenv("WAYNE_HOME", str(profile_home))
 
@@ -40,11 +40,11 @@ def test_cron_storage_anchors_at_profile_home(tmp_path, monkeypatch):
 
     _set_profile_env(monkeypatch, root, profile_home)
 
-    import wayne_constants
+    import work4you_constants
 
     # Sanity: the override is wired the way the gateway sees it.
-    assert wayne_constants.get_wayne_home().resolve() == profile_home.resolve()
-    assert wayne_constants.get_default_wayne_root().resolve() == root.resolve()
+    assert work4you_constants.get_wayne_home().resolve() == profile_home.resolve()
+    assert work4you_constants.get_default_wayne_root().resolve() == root.resolve()
 
     # cron/jobs.py computes WAYNE_DIR from get_wayne_home() at import, so a
     # fresh import under this env anchors the store at <profile>/cron.
@@ -108,10 +108,10 @@ def test_cron_storage_unaffected_when_no_profile(tmp_path, monkeypatch):
     root = tmp_path / "wayne_home"
     root.mkdir(parents=True)
 
-    import wayne_constants
+    import work4you_constants
 
     monkeypatch.setattr(
-        wayne_constants, "_get_platform_default_wayne_home", lambda: root
+        work4you_constants, "_get_platform_default_wayne_home", lambda: root
     )
     monkeypatch.setenv("WAYNE_HOME", str(root))
 

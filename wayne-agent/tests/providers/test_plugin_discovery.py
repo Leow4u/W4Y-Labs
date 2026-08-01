@@ -122,7 +122,7 @@ def test_user_plugin_overrides_bundled(tmp_path, monkeypatch):
 def test_general_plugin_manager_skips_model_provider_kind(tmp_path, monkeypatch):
     """The general PluginManager must NOT import model-provider plugins
     (providers/__init__.py handles them). It records the manifest only."""
-    from wayne_cli import plugins as plugin_mod
+    from work4you_cli import plugins as plugin_mod
 
     wayne_home = tmp_path / ".wayne"
     wayne_home.mkdir()

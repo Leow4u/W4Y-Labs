@@ -23,8 +23,8 @@ def backup_env(monkeypatch, tmp_path):
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     # Reload so get_wayne_home picks up the env var fresh.
-    import wayne_constants
-    importlib.reload(wayne_constants)
+    import work4you_constants
+    importlib.reload(work4you_constants)
     from agent import curator_backup
     importlib.reload(curator_backup)
     return {"home": home, "skills": home / "skills", "cb": curator_backup}
@@ -270,7 +270,7 @@ def test_real_run_takes_pre_snapshot(backup_env, monkeypatch):
     skills = backup_env["skills"]
     _write_skill(skills, "alpha")
 
-    # Reload curator module against the freshly-env'd wayne_constants
+    # Reload curator module against the freshly-env'd work4you_constants
     from agent import curator
     importlib.reload(curator)
 
@@ -337,8 +337,8 @@ def _write_cron_jobs(home: Path, jobs: list) -> Path:
 
 def _reload_cron_jobs(home: Path):
     """Reload cron.jobs so its module-level WAYNE_DIR picks up the tmp HOME."""
-    import wayne_constants
-    importlib.reload(wayne_constants)
+    import work4you_constants
+    importlib.reload(work4you_constants)
     if "cron.jobs" in sys.modules:
         import cron.jobs as _cj
         importlib.reload(_cj)

@@ -1,6 +1,6 @@
 // FPS counter overlay (WAYNE_TUI_FPS=1). Zero-cost when disabled.
 
-import { Text } from '@wayne/ink'
+import { Text } from '@work4you/ink'
 import { useStore } from '@nanostores/react'
 
 import { SHOW_FPS } from '../config/env.js'

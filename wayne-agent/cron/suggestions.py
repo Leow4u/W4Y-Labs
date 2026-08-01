@@ -36,8 +36,8 @@ import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from wayne_constants import get_wayne_home
-from wayne_time import now as _wayne_now
+from work4you_constants import get_wayne_home
+from work4you_time import now as _wayne_now
 from utils import atomic_replace
 
 logger = logging.getLogger(__name__)

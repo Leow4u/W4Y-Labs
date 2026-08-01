@@ -20,7 +20,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from wayne_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
+from work4you_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
 from agent.conversation_loop import _get_continuation_prompt
 
 

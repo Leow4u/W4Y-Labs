@@ -1,4 +1,4 @@
-"""Tests for _setup_feishu() in wayne_cli/gateway.py.
+"""Tests for _setup_feishu() in work4you_cli/gateway.py.
 
 Verifies that the interactive setup writes env vars that correctly drive the
 Feishu adapter: credentials, connection mode, DM policy, and group policy.
@@ -39,16 +39,16 @@ def _run_setup_feishu(
     def mock_get(name):
         return existing_env.get(name, "")
 
-    with patch("wayne_cli.config.save_env_value", side_effect=mock_save), \
-         patch("wayne_cli.config.get_env_value", side_effect=mock_get), \
-         patch("wayne_cli.cli_output.prompt_yes_no", side_effect=prompt_yes_no_responses), \
-         patch("wayne_cli.setup.prompt_choice", side_effect=prompt_choice_responses), \
-         patch("wayne_cli.cli_output.prompt", side_effect=prompt_responses), \
-         patch("wayne_cli.cli_output.print_header"), \
-         patch("wayne_cli.cli_output.print_info"), \
-         patch("wayne_cli.cli_output.print_success"), \
-         patch("wayne_cli.cli_output.print_warning"), \
-         patch("wayne_cli.cli_output.print_error"), \
+    with patch("work4you_cli.config.save_env_value", side_effect=mock_save), \
+         patch("work4you_cli.config.get_env_value", side_effect=mock_get), \
+         patch("work4you_cli.cli_output.prompt_yes_no", side_effect=prompt_yes_no_responses), \
+         patch("work4you_cli.setup.prompt_choice", side_effect=prompt_choice_responses), \
+         patch("work4you_cli.cli_output.prompt", side_effect=prompt_responses), \
+         patch("work4you_cli.cli_output.print_header"), \
+         patch("work4you_cli.cli_output.print_info"), \
+         patch("work4you_cli.cli_output.print_success"), \
+         patch("work4you_cli.cli_output.print_warning"), \
+         patch("work4you_cli.cli_output.print_error"), \
          patch("plugins.platforms.feishu.adapter.qr_register", return_value=qr_result):
 
         from plugins.platforms.feishu.adapter import interactive_setup
