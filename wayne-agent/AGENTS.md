@@ -1,6 +1,6 @@
 # Wayne Agent - Development Guide
 
-Instructions for AI coding assistants and developers working on the wayne-agent codebase.
+Instructions for AI coding assistants and developers working on the Work4You agent codebase.
 
 **Never give up on the right solution.**
 
@@ -60,7 +60,7 @@ conservative at the waist.
   including large ones (a new messaging channel, a session-cap feature, a
   Windows PTY bridge). Breadth in the product is a goal, not a footprint
   concern — as long as it integrates with the existing setup/config UX
-  (`wayne tools`, `wayne setup`, auto-install) rather than bolting on a raw
+  (`work4you tools`, `work4you setup`, auto-install) rather than bolting on a raw
   env var.
 - **Refactor god-files into clean modules.** Extracting a multi-thousand-line
   cluster out of `cli.py` / `run_agent.py` / `gateway/run.py` into a focused
@@ -117,7 +117,7 @@ conservative at the waist.
   feature.
 - **Outbound telemetry / usage attribution without opt-in gating.** No new
   analytics, third-party identifier tagging, or attribution tags until a
-  generic user-facing opt-in (config gate + setup prompt + `wayne tools`
+  generic user-facing opt-in (config gate + setup prompt + `work4you tools`
   toggle) exists. Park behind a label, do not merge.
 - **Change-detector tests, cache-breaking mid-conversation, dead code wired in
   without E2E proof, and plugins that touch core files.** Plugins live in their
@@ -128,7 +128,7 @@ conservative at the waist.
   and similar "someone else's product" plugins do NOT land under `plugins/` in
   this repo. They place an ongoing maintenance burden on us to keep them working
   against a fast-moving core, for a backend we don't own. Ship them as a
-  **standalone plugin repo** users install into `~/.wayne/plugins/` (or via a
+  **standalone plugin repo** users install into `~/.work4you/plugins/` (or via a
   pip entry point), and promote them in the Nous Research Discord
   (`#plugins-skills-and-skins`). This is a coupling-and-maintenance decision, not
   a quality bar — the plugin can be excellent and still be a close. PRs that add
@@ -187,14 +187,14 @@ Each rung adds more permanent surface than the one above. Choose the highest
 1. **Extend existing code** — the capability is a variation of something that
    already exists. Zero new surface.
 2. **CLI command + skill** — manages config/state/infra expressible as shell
-   commands. The agent runs `wayne <subcommand>` guided by a skill. Zero
+   commands. The agent runs `work4you <subcommand>` guided by a skill. Zero
    model-tool footprint. Default choice for subscriptions, scheduled tasks,
-   service setup. Examples: `wayne webhook`, `wayne cron`, `wayne tools`.
+   service setup. Examples: `work4you webhook`, `work4you cron`, `work4you tools`.
 3. **Service-gated tool (`check_fn`)** — needs structured params/returns AND
    only appears when a prerequisite is configured. Zero footprint otherwise.
    Examples: Home Assistant tools (gated on token), memory-provider tools.
 4. **Plugin** — third-party/niche/user-specific capability that doesn't ship in
-   core. Lives in `~/.wayne/plugins/` or a pip package, discovered at runtime.
+   core. Lives in `~/.work4you/plugins/` or a pip package, discovered at runtime.
 5. **MCP server (in the catalog)** — if the capability genuinely needs to be a
    tool (structured I/O the agent invokes) but isn't core-fundamental, prefer
    building it as an MCP server and adding it to the MCP catalog over growing
@@ -233,12 +233,12 @@ wayne-agent/
 ├── model_tools.py        # Tool orchestration, discover_builtin_tools(), handle_function_call()
 ├── toolsets.py           # Toolset definitions, _WAYNE_CORE_TOOLS list
 ├── cli.py                # WayneCLI class — interactive CLI orchestrator (~11k LOC)
-├── wayne_state.py       # SessionDB — SQLite session store (FTS5 search)
-├── wayne_constants.py   # get_wayne_home(), display_wayne_home() — profile-aware paths
+├── work4you_state.py       # SessionDB — SQLite session store (FTS5 search)
+├── work4you_constants.py   # get_wayne_home(), display_wayne_home() — profile-aware paths
 ├── wayne_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
 ├── batch_runner.py       # Parallel batch processing
 ├── agent/                # Agent internals (provider adapters, memory, caching, compression, etc.)
-├── wayne_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
+├── work4you_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
 ├── tools/                # Tool implementations — auto-discovered via tools/registry.py
 │   └── environments/     # Terminal backends (local, docker, ssh, modal, daytona, singularity)
 ├── gateway/              # Messaging gateway — run.py + session.py + platforms/
@@ -259,7 +259,7 @@ wayne-agent/
 │                         #   strike-freedom-cockpit, ...
 ├── optional-skills/      # Heavier/niche skills shipped but NOT active by default
 ├── skills/               # Built-in skills bundled with the repo
-├── ui-tui/               # Ink (React) terminal UI — `wayne --tui`
+├── ui-tui/               # Ink (React) terminal UI — `work4you --tui`
 │   └── src/              # entry.tsx, app.tsx, gatewayClient.ts + app/components/hooks/lib
 ├── tui_gateway/          # Python JSON-RPC backend for the TUI
 ├── acp_adapter/          # ACP server (VS Code / Zed / JetBrains integration)
@@ -269,10 +269,10 @@ wayne-agent/
 └── tests/                # Pytest suite (~17k tests across ~900 files as of May 2026)
 ```
 
-**User config:** `~/.wayne/config.yaml` (settings), `~/.wayne/.env` (API keys only).
-**Logs:** `~/.wayne/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
+**User config:** `~/.work4you/config.yaml` (settings), `~/.work4you/.env` (API keys only).
+**Logs:** `~/.work4you/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
 `gateway.log` when running the gateway. Profile-aware via `get_wayne_home()`.
-Browse with `wayne logs [--follow] [--level ...] [--session ...]`.
+Browse with `work4you logs [--follow] [--level ...] [--session ...]`.
 
 ## TypeScript Style
 
@@ -376,11 +376,11 @@ Reasoning content is stored in `assistant_msg["reasoning"]`.
 - **Rich** for banner/panels, **prompt_toolkit** for input with autocomplete
 - **KawaiiSpinner** (`agent/display.py`) — animated faces during API calls, `┊` activity feed for tool results
 - `load_cli_config()` in cli.py merges hardcoded defaults + user config YAML
-- **Skin engine** (`wayne_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
+- **Skin engine** (`work4you_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
 - `process_command()` is a method on `WayneCLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
-- Skill slash commands: `agent/skill_commands.py` scans `~/.wayne/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
+- Skill slash commands: `agent/skill_commands.py` scans `~/.work4you/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
 
-### Slash Command Registry (`wayne_cli/commands.py`)
+### Slash Command Registry (`work4you_cli/commands.py`)
 
 All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandDef` objects. Every downstream consumer derives from this registry automatically:
 
@@ -388,13 +388,13 @@ All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandD
 - **Gateway** — `GATEWAY_KNOWN_COMMANDS` frozenset for hook emission, `resolve_command()` for dispatch
 - **Gateway help** — `gateway_help_lines()` generates `/help` output
 - **Telegram** — `telegram_bot_commands()` generates the BotCommand menu
-- **Slack** — `slack_subcommand_map()` generates `/wayne` subcommand routing
+- **Slack** — `slack_subcommand_map()` generates `/work4you` subcommand routing
 - **Autocomplete** — `COMMANDS` flat dict feeds `SlashCommandCompleter`
 - **CLI help** — `COMMANDS_BY_CATEGORY` dict feeds `show_help()`
 
 ### Adding a Slash Command
 
-1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `wayne_cli/commands.py`:
+1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `work4you_cli/commands.py`:
 ```python
 CommandDef("mycommand", "Description of what it does", "Session",
            aliases=("mc",), args_hint="[arg]"),
@@ -427,12 +427,12 @@ if canonical == "mycommand":
 
 ## TUI Architecture (ui-tui + tui_gateway)
 
-The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `wayne --tui` or `WAYNE_TUI=1`.
+The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `work4you --tui` or `WAYNE_TUI=1`.
 
 ### Process Model
 
 ```
-wayne --tui
+work4you --tui
   └─ Node (Ink)  ──stdio JSON-RPC──  Python (tui_gateway)
        │                                  └─ AIAgent + tools + sessions
        └─ renders transcript, composer, prompts, activity
@@ -467,25 +467,25 @@ Newline-delimited JSON-RPC over stdio. Requests from Ink, events from Python. Se
 ```bash
 cd ui-tui
 npm install       # first time
-npm run dev       # watch mode (rebuilds wayne-ink + tsx --watch)
+npm run dev       # watch mode (rebuilds work4you-ink + tsx --watch)
 npm start         # production
-npm run build     # full build (wayne-ink + tsc)
+npm run build     # full build (work4you-ink + tsc)
 npm run typecheck # typecheck only (tsc --noEmit)
 npm run lint      # eslint
 npm run fmt       # prettier
 npm test          # vitest
 ```
 
-### TUI in the Dashboard (`wayne dashboard` → `/chat`)
+### TUI in the Dashboard (`work4you dashboard` → `/chat`)
 
-The dashboard embeds the real `wayne --tui` — **not** a rewrite.  See `wayne_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `wayne_cli/web_server.py`.
+The dashboard embeds the real `work4you --tui` — **not** a rewrite.  See `work4you_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `work4you_cli/web_server.py`.
 
 - Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
 - `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
-- The server spawns whatever `wayne --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
+- The server spawns whatever `work4you --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
 - Frames: raw PTY bytes each direction; resize via `\x1b[RESIZE:<cols>;<rows>]` intercepted on the server and applied with `TIOCSWINSZ`.
 
-**Do not re-implement the primary chat experience in React.** The main transcript, composer/input flow (including slash-command behavior), and PTY-backed terminal belong to the embedded `wayne --tui` — anything new you add to Ink shows up in the dashboard automatically. If you find yourself rebuilding the transcript or composer for the dashboard, stop and extend Ink instead.
+**Do not re-implement the primary chat experience in React.** The main transcript, composer/input flow (including slash-command behavior), and PTY-backed terminal belong to the embedded `work4you --tui` — anything new you add to Ink shows up in the dashboard automatically. If you find yourself rebuilding the transcript or composer for the dashboard, stop and extend Ink instead.
 
 **Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
 
@@ -546,8 +546,8 @@ desktop to be a browser chrome over the site.
 Before adding any tool, settle the footprint question first (see "The
 Footprint Ladder" in the Contribution Rubric): most capabilities should NOT
 be core tools. For custom or local-only tools, do **not** edit Wayne core.
-Use the plugin route instead: create `~/.wayne/plugins/<name>/plugin.yaml`
-and `~/.wayne/plugins/<name>/__init__.py`, then register tools with
+Use the plugin route instead: create `~/.work4you/plugins/<name>/plugin.yaml`
+and `~/.work4you/plugins/<name>/__init__.py`, then register tools with
 `ctx.register_tool(...)`. Plugin toolsets are discovered automatically and can be
 enabled or disabled without touching `tools/` or `toolsets.py`.
 
@@ -617,7 +617,7 @@ Reference: #2810 (bounds pass), #9801 (SHA pinning + audit CI).
 ## Adding Configuration
 
 ### config.yaml options:
-1. Add to `DEFAULT_CONFIG` in `wayne_cli/config.py`
+1. Add to `DEFAULT_CONFIG` in `work4you_cli/config.py`
 2. Bump `_config_version` (check the current value at the top of `DEFAULT_CONFIG`)
    ONLY if you need to actively migrate/transform existing user config
    (renaming keys, changing structure). Adding a new key to an existing
@@ -641,7 +641,7 @@ its own provider/model/base_url/max_tokens/reasoning_effort. See
 `archive_after_days`, `backup` (nested).
 
 ### .env variables (SECRETS ONLY — API keys, tokens, passwords):
-1. Add to `OPTIONAL_ENV_VARS` in `wayne_cli/config.py` with metadata:
+1. Add to `OPTIONAL_ENV_VARS` in `work4you_cli/config.py` with metadata:
 ```python
 "NEW_API_KEY": {
     "description": "What it's for",
@@ -662,7 +662,7 @@ the env var in code (see `gateway_timeout`, `terminal.cwd` → `TERMINAL_CWD`).
 | Loader | Used by | Location |
 |--------|---------|----------|
 | `load_cli_config()` | CLI mode | `cli.py` — merges CLI-specific defaults + user YAML |
-| `load_config()` | `wayne tools`, `wayne setup`, most CLI subcommands | `wayne_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
+| `load_config()` | `work4you tools`, `work4you setup`, most CLI subcommands | `work4you_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
 | Direct YAML load | Gateway runtime | `gateway/run.py` + `gateway/config.py` — reads user YAML raw |
 
 If you add a new key and the CLI sees it but the gateway doesn't (or vice
@@ -680,13 +680,13 @@ versa), you're on the wrong loader. Check `DEFAULT_CONFIG` coverage.
 
 ## Skin/Theme System
 
-The skin engine (`wayne_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
+The skin engine (`work4you_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
 
 ### Architecture
 
 ```
-wayne_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
-~/.wayne/skins/*.yaml       # User-installed custom skins (drop-in)
+work4you_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
+~/.work4you/skins/*.yaml       # User-installed custom skins (drop-in)
 ```
 
 - `init_skin_from_config()` — called at CLI startup, reads `display.skin` from config
@@ -725,7 +725,7 @@ wayne_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
 
 ### Adding a built-in skin
 
-Add to `_BUILTIN_SKINS` dict in `wayne_cli/skin_engine.py`:
+Add to `_BUILTIN_SKINS` dict in `work4you_cli/skin_engine.py`:
 
 ```python
 "mytheme": {
@@ -740,7 +740,7 @@ Add to `_BUILTIN_SKINS` dict in `wayne_cli/skin_engine.py`:
 
 ### User skins (YAML)
 
-Users create `~/.wayne/skins/<name>.yaml`:
+Users create `~/.work4you/skins/<name>.yaml`:
 
 ```yaml
 name: cyberpunk
@@ -771,11 +771,11 @@ Activate with `/skin cyberpunk` or `display.skin: cyberpunk` in config.yaml.
 
 Wayne has two plugin surfaces. Both live under `plugins/` in the repo so
 repo-shipped plugins can be discovered alongside user-installed ones in
-`~/.wayne/plugins/` and pip-installed entry points.
+`~/.work4you/plugins/` and pip-installed entry points.
 
-### General plugins (`wayne_cli/plugins.py` + `plugins/<name>/`)
+### General plugins (`work4you_cli/plugins.py` + `plugins/<name>/`)
 
-`PluginManager` discovers plugins from `~/.wayne/plugins/`, `./.wayne/plugins/`,
+`PluginManager` discovers plugins from `~/.work4you/plugins/`, `./.work4you/plugins/`,
 and pip entry points. Each plugin exposes a `register(ctx)` function that
 can:
 
@@ -784,8 +784,8 @@ can:
   `on_session_start`, `on_session_end`
 - Register new tools via `ctx.register_tool(...)`
 - Register CLI subcommands via `ctx.register_cli_command(...)` — the
-  plugin's argparse tree is wired into `wayne` at startup so
-  `wayne <pluginname> <subcmd>` works with no change to `main.py`
+  plugin's argparse tree is wired into `work4you` at startup so
+  `work4you <pluginname> <subcmd>` works with no change to `main.py`
 
 Hooks are invoked from `model_tools.py` (pre/post tool) and `run_agent.py`
 (lifecycle). **Discovery timing pitfall:** `discover_plugins()` only runs
@@ -806,13 +806,13 @@ and is orchestrated by `agent/memory_manager.py`. Lifecycle hooks include
 
 **CLI commands via `plugins/memory/<name>/cli.py`:** if a memory plugin
 defines `register_cli(subparser)`, `discover_plugin_cli_commands()` finds
-it at argparse setup time and wires it into `wayne <plugin>`. The
+it at argparse setup time and wires it into `work4you <plugin>`. The
 framework only exposes CLI commands for the **currently active** memory
 provider (read from `memory.provider` in config.yaml), so disabled
-providers don't clutter `wayne --help`.
+providers don't clutter `work4you --help`.
 
 **Rule (Teknium, May 2026):** plugins MUST NOT modify core files
-(`run_agent.py`, `cli.py`, `gateway/run.py`, `wayne_cli/main.py`, etc.).
+(`run_agent.py`, `cli.py`, `gateway/run.py`, `work4you_cli/main.py`, etc.).
 If a plugin needs a capability the framework doesn't expose, expand the
 generic plugin surface (new hook, new ctx method) — never hardcode
 plugin-specific logic into core. PR #5295 removed 95 lines of hardcoded
@@ -821,9 +821,9 @@ honcho argparse from `main.py` for exactly this reason.
 **No new in-tree memory providers (policy, May 2026):** the set of
 built-in memory providers under `plugins/memory/` is closed. New memory
 backends must ship as **standalone plugin repos** that users install
-into `~/.wayne/plugins/` (or via pip entry points) — they implement
+into `~/.work4you/plugins/` (or via pip entry points) — they implement
 the same `MemoryProvider` ABC, register through the same discovery
-path, and integrate via `wayne memory setup` / `post_setup()` without
+path, and integrate via `work4you memory setup` / `post_setup()` without
 landing in this tree. PRs that add a new directory under
 `plugins/memory/` will be closed with a pointer to publish the
 provider as its own repo. Existing in-tree providers stay; bug fixes
@@ -834,7 +834,7 @@ same rule applies beyond memory providers. Plugins that integrate
 someone else's product or project — observability/metrics backends,
 vendor SaaS connectors, analytics dashboards, paid-service tie-ins —
 must ship as **standalone plugin repos** that users install into
-`~/.wayne/plugins/` (or via pip entry points). They register through
+`~/.work4you/plugins/` (or via pip entry points). They register through
 the existing plugin discovery path and use the ABCs/hooks/ctx surface
 we expose; nothing special is needed in core. The reason is
 maintenance load: every product we absorb into the tree becomes our
@@ -893,7 +893,7 @@ Two parallel surfaces:
   Organized by category directories (e.g. `skills/github/`, `skills/mlops/`).
 - **`optional-skills/`** — heavier or niche skills shipped with the repo but
   NOT active by default. Installed explicitly via
-  `wayne skills install official/<category>/<skill>`. Adapter lives in
+  `work4you skills install official/<category>/<skill>`. Adapter lives in
   `tools/skills_hub.py` (`OptionalSkillSource`). Categories include
   `autonomous-ai-agents`, `blockchain`, `communication`, `creative`,
   `devops`, `email`, `health`, `mcp`, `migration`, `mlops`, `productivity`,
@@ -1009,7 +1009,7 @@ Current toolset keys: `browser`, `clarify`, `code_execution`, `cronjob`,
 `messaging`, `moa`, `rl`, `safe`, `search`, `session_search`, `skills`,
 `spotify`, `terminal`, `todo`, `tts`, `video`, `vision`, `web`, `yuanbao`.
 
-Enable/disable per platform via `wayne tools` (the curses UI) or the
+Enable/disable per platform via `work4you tools` (the curses UI) or the
 `tools.<platform>.enabled` / `tools.<platform>.disabled` lists in
 `config.yaml`.
 
@@ -1053,15 +1053,15 @@ turn but still process-local. For work that must survive process restart, use
 
 Background skill-maintenance system that tracks usage on agent-created
 skills and auto-archives stale ones. Users never lose skills; archives
-go to `~/.wayne/skills/.archive/` and are restorable.
+go to `~/.work4you/skills/.archive/` and are restorable.
 
 - **Core:** `agent/curator.py` (review loop, auto-transitions, LLM review
   prompt) + `agent/curator_backup.py` (pre-run tar.gz snapshots).
-- **CLI:** `wayne_cli/curator.py` wires `wayne curator <verb>` where
+- **CLI:** `work4you_cli/curator.py` wires `work4you curator <verb>` where
   verbs are: `status`, `run`, `pause`, `resume`, `pin`, `unpin`,
   `archive`, `restore`, `prune`, `backup`, `rollback`.
 - **Telemetry:** `tools/skill_usage.py` owns the sidecar
-  `~/.wayne/skills/.usage.json` — per-skill `use_count`, `view_count`,
+  `~/.work4you/skills/.usage.json` — per-skill `use_count`, `view_count`,
   `patch_count`, `last_activity_at`, `state` (active / stale /
   archived), `pinned`.
 
@@ -1086,7 +1086,7 @@ Full user-facing docs: `website/docs/user-guide/features/curator.md`.
 ## Cron (scheduled jobs)
 
 `cron/jobs.py` (job store) + `cron/scheduler.py` (tick loop). Agents
-schedule jobs via the `cronjob` tool; users via `wayne cron <verb>`
+schedule jobs via the `cronjob` tool; users via `work4you cron <verb>`
 (`list`, `add`, `edit`, `pause`, `resume`, `run`, `remove`) or the
 `/cron` slash command.
 
@@ -1108,7 +1108,7 @@ Hardening invariants:
   cannot monopolize the scheduler.
 - Catchup window: half the job's period, clamped to 120s–2h.
 - Grace window: 120s for one-shot jobs whose fire time was missed.
-- File lock at `~/.wayne/cron/.tick.lock` prevents duplicate ticks
+- File lock at `~/.work4you/cron/.tick.lock` prevents duplicate ticks
   across processes.
 - Cron sessions pass `skip_memory=True` by default; memory providers
   intentionally do not run during cron.
@@ -1122,12 +1122,12 @@ main conversation's message-role alternation stays intact.
 ## Kanban (multi-agent work queue)
 
 Durable SQLite-backed board that lets multiple profiles / workers
-collaborate on shared tasks. Users drive it via `wayne kanban <verb>`;
+collaborate on shared tasks. Users drive it via `work4you kanban <verb>`;
 workers spawned by the dispatcher drive it via a dedicated `kanban_*`
 toolset so their schema footprint is zero when they're not inside a
 kanban task.
 
-- **CLI:** `wayne_cli/kanban.py` wires `wayne kanban` with verbs
+- **CLI:** `work4you_cli/kanban.py` wires `work4you kanban` with verbs
   `init`, `create`, `list` (alias `ls`), `show`, `assign`, `link`,
   `unlink`, `comment`, `complete`, `block`, `unblock`, `archive`,
   `tail`, plus less-commonly-used `watch`, `stats`, `runs`, `log`,
@@ -1197,32 +1197,32 @@ in config.yaml (or `WAYNE_BACKGROUND_NOTIFICATIONS` env var):
 Wayne supports **profiles** — multiple fully isolated instances, each with its own
 `WAYNE_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
 
-The core mechanism: `_apply_profile_override()` in `wayne_cli/main.py` sets
+The core mechanism: `_apply_profile_override()` in `work4you_cli/main.py` sets
 `WAYNE_HOME` before any module imports. All `get_wayne_home()` references
 automatically scope to the active profile.
 
 ### Rules for profile-safe code
 
-1. **Use `get_wayne_home()` for all WAYNE_HOME paths.** Import from `wayne_constants`.
+1. **Use `get_wayne_home()` for all WAYNE_HOME paths.** Import from `work4you_constants`.
    NEVER hardcode `~/.wayne` or `Path.home() / ".wayne"` in code that reads/writes state.
    ```python
    # GOOD
-   from wayne_constants import get_wayne_home
+   from work4you_constants import get_wayne_home
    config_path = get_wayne_home() / "config.yaml"
 
    # BAD — breaks profiles
    config_path = Path.home() / ".wayne" / "config.yaml"
    ```
 
-2. **Use `display_wayne_home()` for user-facing messages.** Import from `wayne_constants`.
-   This returns `~/.wayne` for default or `~/.wayne/profiles/<name>` for profiles.
+2. **Use `display_wayne_home()` for user-facing messages.** Import from `work4you_constants`.
+   This returns `~/.wayne` for default or `~/.work4you/profiles/<name>` for profiles.
    ```python
    # GOOD
-   from wayne_constants import display_wayne_home
+   from work4you_constants import display_wayne_home
    print(f"Config saved to {display_wayne_home()}/config.yaml")
 
    # BAD — shows wrong path for profiles
-   print("Config saved to ~/.wayne/config.yaml")
+   print("Config saved to ~/.work4you/config.yaml")
    ```
 
 3. **Module-level constants are fine** — they cache `get_wayne_home()` at import time,
@@ -1251,16 +1251,16 @@ automatically scope to the active profile.
 ## Known Pitfalls
 
 ### DO NOT hardcode `~/.wayne` paths
-Use `get_wayne_home()` from `wayne_constants` for code paths. Use `display_wayne_home()`
+Use `get_wayne_home()` from `work4you_constants` for code paths. Use `display_wayne_home()`
 for user-facing print/log messages. Hardcoding `~/.wayne` breaks profiles — each profile
 has its own `WAYNE_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
 
 ### DO NOT introduce new `simple_term_menu` usage
-Existing call sites in `wayne_cli/main.py` remain for legacy fallback only;
+Existing call sites in `work4you_cli/main.py` remain for legacy fallback only;
 the preferred UI is curses (stdlib) because `simple_term_menu` has
 ghost-duplication rendering bugs in tmux/iTerm2 with arrow keys. New
-interactive menus must use `wayne_cli/curses_ui.py` — see
-`wayne_cli/tools_config.py` for the canonical pattern.
+interactive menus must use `work4you_cli/curses_ui.py` — see
+`work4you_cli/tools_config.py` for the canonical pattern.
 
 ### DO NOT use `\033[K` (ANSI erase-to-EOL) in spinner/display code
 Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-padding: `f"\r{line}{' ' * pad}"`.
@@ -1295,12 +1295,12 @@ Unused code that was never shipped was dead for a reason. Before wiring an
 unused module into a live code path, E2E test the real resolution chain
 with actual imports (not mocks) against a temp `WAYNE_HOME`.
 
-### Tests must not write to `~/.wayne/`
-The `_isolate_wayne_home` autouse fixture in `tests/conftest.py` redirects `WAYNE_HOME` to a temp dir. Never hardcode `~/.wayne/` paths in tests.
+### Tests must not write to `~/.work4you/`
+The `_isolate_wayne_home` autouse fixture in `tests/conftest.py` redirects `WAYNE_HOME` to a temp dir. Never hardcode `~/.work4you/` paths in tests.
 
 **Profile tests**: When testing profile features, also mock `Path.home()` so that
 `_get_profiles_root()` and `_get_default_wayne_home()` resolve within the temp dir.
-Use the pattern from `tests/wayne_cli/test_profiles.py`:
+Use the pattern from `tests/work4you_cli/test_profiles.py`:
 ```python
 @pytest.fixture
 def profile_env(tmp_path, monkeypatch):
@@ -1338,7 +1338,7 @@ ContextVars from one test file cannot leak into the next.
 |                     | Without wrapper                             | With wrapper                              |
 | ------------------- | ------------------------------------------- | ----------------------------------------- |
 | Provider API keys   | Whatever is in your env (auto-detects pool) | All env vars except a specific few unset. |
-| HOME / `~/.wayne/` | Your real config+auth.json                  | Temp dir per test                         |
+| HOME / `~/.work4you/` | Your real config+auth.json                  | Temp dir per test                         |
 | Timezone            | Local TZ (PDT etc.)                         | UTC                                       |
 | Locale              | Whatever is set                             | C.UTF-8                                   |
 
