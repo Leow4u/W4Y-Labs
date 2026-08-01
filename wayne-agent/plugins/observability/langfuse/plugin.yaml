@@ -1,6 +1,6 @@
 name: langfuse
 version: "1.0.0"
-description: "Optional Langfuse observability for Wayne — traces conversations, LLM calls, and tool usage. Opt-in via `wayne plugins enable observability/langfuse` or `wayne tools → Langfuse Observability`."
+description: "Optional Langfuse observability for Work4You — traces conversations, LLM calls, and tool usage. Opt-in via `work4you plugins enable observability/langfuse` or `work4you tools → Langfuse Observability`."
 author: NousResearch
 requires_env:
   - WAYNE_LANGFUSE_PUBLIC_KEY

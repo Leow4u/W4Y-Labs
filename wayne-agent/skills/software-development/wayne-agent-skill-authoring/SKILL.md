@@ -2,7 +2,7 @@
 name: wayne-agent-skill-authoring
 description: "Author in-repo SKILL.md: frontmatter, validator, structure, and writing-quality principles."
 version: 1.1.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -11,13 +11,13 @@ metadata:
     related_skills: [plan, requesting-code-review]
 ---
 
-# Authoring Wayne-Agent Skills (in-repo)
+# Authoring Work4You Skills (in-repo)
 
 ## Overview
 
 There are two places a SKILL.md can live:
 
-1. **User-local:** `~/.wayne/skills/<maybe-category>/<name>/SKILL.md` — personal, not shared. Created via `skill_manage(action='create')`.
+1. **User-local:** `~/.work4you/skills/<maybe-category>/<name>/SKILL.md` — personal, not shared. Created via `skill_manage(action='create')`.
 2. **In-repo (this skill is about this case):** `/home/bb/wayne-agent/skills/<category>/<name>/SKILL.md` — committed, shipped with the package. Use `write_file` + `git add`. `skill_manage(action='create')` does NOT target this tree.
 
 ## When to Use
@@ -44,7 +44,7 @@ Peer-matched shape used by every skill under `skills/software-development/`:
 name: my-skill-name               # lowercase, hyphens, ≤64 chars (MAX_NAME_LENGTH)
 description: Use when <trigger>. <one-line behavior>.
 version: 1.1.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 metadata:
   wayne:
@@ -68,7 +68,7 @@ A skill exists to make the agent's process more predictable. Predictability does
 Use these quality checks when writing or editing any skill:
 
 1. **Optimize for process predictability.** Ask: what behavior should change when this skill loads? If a line does not change behavior, cut it.
-2. **Choose the right context load.** A model-invoked Wayne skill pays for its description every turn. Keep descriptions focused on trigger classes and the skill's distinctive behavior. Put details in the body or linked references.
+2. **Choose the right context load.** A model-invoked Work4You skill pays for its description every turn. Keep descriptions focused on trigger classes and the skill's distinctive behavior. Put details in the body or linked references.
 3. **Use an information hierarchy.** Put always-needed steps in `SKILL.md`; put branch-specific or bulky reference material in `references/`, `templates/`, or `scripts/` and point to it only when needed.
 4. **End steps with completion criteria.** Each ordered step should say how the agent knows it is done. Good criteria are checkable and, when it matters, exhaustive: "every modified file accounted for" beats "summarize changes."
 5. **Co-locate rules with the concept they govern.** Avoid scattering one idea across the file. Keep definition, caveats, examples, and verification near each other.
@@ -101,7 +101,7 @@ One or two paragraphs: what and why.
 ## <Topic sections specific to the skill>
 - Quick-reference tables are common
 - Code blocks with exact commands
-- Wayne-specific recipes (tests via scripts/run_tests.sh, ui-tui paths, etc.)
+- Work4You-specific recipes (tests via scripts/run_tests.sh, ui-tui paths, etc.)
 
 ## Common Pitfalls
 Numbered list of mistakes and their fixes.
@@ -150,7 +150,7 @@ Pick the closest existing category. Don't invent new top-level categories casual
 
 ## Cross-Referencing Other Skills
 
-`metadata.wayne.related_skills` unions both trees (`skills/` in-repo and `~/.wayne/skills/`) at load time. You CAN reference a user-local skill from an in-repo skill, but it won't resolve for other users who clone the repo fresh. Prefer referencing only in-repo skills from in-repo skills. If a frequently-referenced skill lives only in `~/.wayne/skills/`, consider promoting it to the repo.
+`metadata.wayne.related_skills` unions both trees (`skills/` in-repo and `~/.work4you/skills/`) at load time. You CAN reference a user-local skill from an in-repo skill, but it won't resolve for other users who clone the repo fresh. Prefer referencing only in-repo skills from in-repo skills. If a frequently-referenced skill lives only in `~/.work4you/skills/`, consider promoting it to the repo.
 
 ## Editing Existing In-Repo Skills
 
@@ -161,7 +161,7 @@ Pick the closest existing category. Don't invent new top-level categories casual
 
 ## Common Pitfalls
 
-1. **Using `skill_manage(action='create')` for an in-repo skill.** It writes to `~/.wayne/skills/`, not the repo tree. Use `write_file` for in-repo creation.
+1. **Using `skill_manage(action='create')` for an in-repo skill.** It writes to `~/.work4you/skills/`, not the repo tree. Use `write_file` for in-repo creation.
 
 2. **Leading whitespace before `---`.** The validator checks `content.startswith("---")`; any leading blank line or BOM fails validation.
 
@@ -181,7 +181,7 @@ Pick the closest existing category. Don't invent new top-level categories casual
 
 ## Verification Checklist
 
-- [ ] File is at `skills/<category>/<name>/SKILL.md` (not in `~/.wayne/skills/`)
+- [ ] File is at `skills/<category>/<name>/SKILL.md` (not in `~/.work4you/skills/`)
 - [ ] Frontmatter starts at byte 0 with `---`, closes with `\n---\n`
 - [ ] `name`, `description`, `version`, `author`, `license`, `metadata.wayne.{tags, related_skills}` all present
 - [ ] Name ≤ 64 chars, lowercase + hyphens

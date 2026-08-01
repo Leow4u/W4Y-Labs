@@ -161,10 +161,10 @@ rm -f /tmp/link-card.json
 `@stripe/link-cli --mcp` exposes the same commands as MCP tools over stdio. To register it with Wayne' native MCP:
 
 ```
-wayne mcp add stripe-link --command "npx" --args "@stripe/link-cli --mcp"
+work4you mcp add stripe-link --command "npx" --args "@stripe/link-cli --mcp"
 ```
 
-Then `wayne mcp list` should show `stripe-link`. The same approval rules apply — MCP doesn't bypass the Link app approval step.
+Then `work4you mcp list` should show `stripe-link`. The same approval rules apply — MCP doesn't bypass the Link app approval step.
 
 ## Pitfalls
 

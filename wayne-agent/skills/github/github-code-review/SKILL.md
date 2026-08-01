@@ -2,7 +2,7 @@
 name: github-code-review
 description: "Review PRs: diffs, inline comments via gh or REST."
 version: 1.1.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -28,8 +28,9 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null; then
 else
   AUTH="git"
   if [ -z "$GITHUB_TOKEN" ]; then
-    if _wayne_env="${WAYNE_HOME:-$HOME/.wayne}/.env"; [ -f "$_wayne_env" ] && grep -q "^GITHUB_TOKEN=" "$_wayne_env"; then
-      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_wayne_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
+    # WAYNE_HOME / ~/.wayne are the legacy (pre-rebrand) fallbacks
+    if _w4y_env="${WORK4YOU_HOME:-${WAYNE_HOME:-$HOME/.work4you}}/.env"; [ -f "$_w4y_env" ] && grep -q "^GITHUB_TOKEN=" "$_w4y_env"; then
+      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_w4y_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
     elif grep -q "github.com" ~/.git-credentials 2>/dev/null; then
       GITHUB_TOKEN=$(grep "github.com" ~/.git-credentials 2>/dev/null | head -1 | sed 's|https://[^:]*:\([^@]*\)@.*|\1|')
     fi
@@ -262,7 +263,7 @@ curl -s -X POST \
   -d "{
     \"commit_id\": \"$HEAD_SHA\",
     \"event\": \"COMMENT\",
-    \"body\": \"Code review from Wayne Agent\",
+    \"body\": \"Code review from Work4You\",
     \"comments\": [
       {\"path\": \"src/auth.py\", \"line\": 45, \"body\": \"Use parameterized queries to prevent SQL injection.\"},
       {\"path\": \"src/models/user.py\", \"line\": 23, \"body\": \"Hash passwords with bcrypt before storing.\"},
@@ -335,7 +336,8 @@ When the user asks you to "review PR #N", "look at this PR", or gives you a PR U
 ### Step 1: Set up environment
 
 ```bash
-source "${WAYNE_HOME:-$HOME/.wayne}/skills/github/github-auth/scripts/gh-env.sh"
+# WAYNE_HOME / ~/.wayne are the legacy (pre-rebrand) fallbacks
+source "${WORK4YOU_HOME:-${WAYNE_HOME:-$HOME/.work4you}}/skills/github/github-auth/scripts/gh-env.sh"
 # Or run the inline setup block from the top of this skill
 ```
 
@@ -409,7 +411,7 @@ Collect your findings and submit them as a formal review with inline comments.
 **With gh:**
 ```bash
 # If no issues — approve
-gh pr review $PR_NUMBER --approve --body "Reviewed by Wayne Agent. Code looks clean — good test coverage, no security concerns."
+gh pr review $PR_NUMBER --approve --body "Reviewed by Work4You. Code looks clean — good test coverage, no security concerns."
 
 # If issues found — request changes with inline comments
 gh pr review $PR_NUMBER --request-changes --body "Found a few issues — see inline comments."
@@ -428,7 +430,7 @@ curl -s -X POST \
   -d "{
     \"commit_id\": \"$HEAD_SHA\",
     \"event\": \"REQUEST_CHANGES\",
-    \"body\": \"## Wayne Agent Review\n\nFound 2 issues, 1 suggestion. See inline comments.\",
+    \"body\": \"## Work4You Review\n\nFound 2 issues, 1 suggestion. See inline comments.\",
     \"comments\": [
       {\"path\": \"src/auth.py\", \"line\": 45, \"body\": \"🔴 **Critical:** User input passed directly to SQL query — use parameterized queries.\"},
       {\"path\": \"src/models.py\", \"line\": 23, \"body\": \"⚠️ **Warning:** Password stored without hashing.\"},
@@ -462,7 +464,7 @@ gh pr comment $PR_NUMBER --body "$(cat <<'EOF'
 - Good error handling in the middleware layer
 
 ---
-*Reviewed by Wayne Agent*
+*Reviewed by Work4You*
 EOF
 )"
 ```
