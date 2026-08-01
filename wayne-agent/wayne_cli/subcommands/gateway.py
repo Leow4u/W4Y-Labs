@@ -216,12 +216,13 @@ def build_gateway_parser(
     # gateway migrate-legacy
     gateway_migrate_legacy = gateway_subparsers.add_parser(
         "migrate-legacy",
-        help="Remove legacy wayne.service units from pre-rename installs",
+        help="Remove legacy gateway units from pre-rename installs",
         description=(
             "Stop, disable, and remove legacy Wayne gateway unit files "
-            "(e.g. wayne.service) left over from older installs. Profile "
-            "units (wayne-gateway-<profile>.service) and unrelated "
-            "third-party services are never touched."
+            "(wayne.service and the pre-rebrand wayne-gateway[-<profile>]"
+            ".service of the CURRENT profile) left over from older "
+            "installs. Other profiles' units and unrelated third-party "
+            "services are never touched."
         ),
     )
     gateway_migrate_legacy.add_argument(

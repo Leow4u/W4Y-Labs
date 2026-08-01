@@ -1302,7 +1302,9 @@ def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
         current_user = None
 
     backend_tokens = {"serve", "dashboard", "gateway"}
-    wayne_markers = ("wayne_cli.main", "wayne-gateway", "tui_gateway")
+    # Both brand generations: work4you* is current, wayne* processes still
+    # exist during the rebrand upgrade window. Additive — do not remove.
+    wayne_markers = ("wayne_cli.main", "work4you-gateway", "wayne-gateway", "tui_gateway")
     pids: list[int] = []
 
     for proc in psutil.process_iter(["pid", "name", "username", "cmdline"]):
@@ -1326,6 +1328,8 @@ def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
                 any(marker in joined for marker in wayne_markers)
                 or exe_name == "wayne"
                 or exe_name.startswith("wayne")
+                or exe_name == "work4you"
+                or exe_name.startswith("work4you")
             )
             if not is_wayne:
                 continue

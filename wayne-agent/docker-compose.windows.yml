@@ -9,13 +9,19 @@
 # Usage:
 #   docker compose -f docker-compose.windows.yml up -d
 #
+# A shell inside the running container:
+#   docker exec -it work4you bash
+#
+# WAYNE_UID/WAYNE_GID keep their names for now — the environment-variable
+# rename ships in a later migration phase with its own dual-read bridge.
+#
 services:
   gateway:
     # Built locally from this repo (same as docker-compose.yml) — never the
     # upstream Docker Hub image, which ships different code.
     build: .
-    image: wayne-agent
-    container_name: wayne
+    image: work4you-agent
+    container_name: work4you
     restart: unless-stopped
     volumes:
       - ${USERPROFILE}/.wayne:/opt/data
@@ -25,8 +31,8 @@ services:
     command: ["gateway", "run"]
 
   dashboard:
-    image: wayne-agent
-    container_name: wayne-dashboard
+    image: work4you-agent
+    container_name: work4you-dashboard
     restart: unless-stopped
     depends_on:
       - gateway

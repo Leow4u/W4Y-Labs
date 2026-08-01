@@ -316,6 +316,9 @@ work4you = "wayne_cli.main:main"
 # the final migration phase once services/installs regenerate.
 wayne = "wayne_cli.main:main"
 wayne-agent = "run_agent:main"
+work4you-acp = "acp_adapter.entry:main"
+# `wayne-acp` stays: editors (Zed, etc.) have the old binary name configured
+# in their agent-server settings; removing it breaks existing ACP setups.
 wayne-acp = "acp_adapter.entry:main"
 
 [tool.setuptools]

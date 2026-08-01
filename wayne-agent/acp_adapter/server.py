@@ -459,7 +459,7 @@ class WayneACPAgent(acp.Agent):
         "compact": "Compress conversation context",
         "steer": "Inject guidance into the currently running agent turn",
         "queue": "Queue a prompt to run after the current turn finishes",
-        "version": "Show Wayne version",
+        "version": "Show Work4You version",
     }
 
     _ADVERTISED_COMMANDS = (
@@ -500,7 +500,7 @@ class WayneACPAgent(acp.Agent):
         },
         {
             "name": "version",
-            "description": "Show Wayne version",
+            "description": "Show Work4You version",
         },
     )
 
@@ -883,7 +883,7 @@ class WayneACPAgent(acp.Agent):
 
         return InitializeResponse(
             protocol_version=acp.PROTOCOL_VERSION,
-            agent_info=Implementation(name="wayne-agent", version=WAYNE_VERSION),
+            agent_info=Implementation(name="work4you-agent", version=WAYNE_VERSION),
             agent_capabilities=AgentCapabilities(
                 load_session=True,
                 prompt_capabilities=PromptCapabilities(image=True),
@@ -1988,7 +1988,7 @@ class WayneACPAgent(acp.Agent):
         return f"Queued for the next turn. ({depth} queued)"
 
     def _cmd_version(self, args: str, state: SessionState) -> str:
-        return f"Wayne Agent v{WAYNE_VERSION}"
+        return f"Work4You v{WAYNE_VERSION}"
 
     # ---- Model switching (ACP protocol method) -------------------------------
 

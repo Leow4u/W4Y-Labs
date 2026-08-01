@@ -29,6 +29,11 @@ if sys.platform == "win32":
 else:
     import fcntl
 
+# Persisted marker in gateway PID records (``kind`` field). This is a state-
+# file CONTRACT, not a display string: records written by pre-rebrand
+# gateways carry "wayne-gateway", and a rebranded value would make every
+# existing install's PID record fail validation across the upgrade. Keep it
+# as-is; renaming it needs a dual-read migration of its own.
 _GATEWAY_KIND = "wayne-gateway"
 _RUNTIME_STATUS_FILE = "gateway_state.json"
 _LOCKS_DIRNAME = "gateway-locks"
@@ -230,18 +235,29 @@ def _gateway_command_subcommand(command: str | None) -> str | None:
         return None
 
     # Gateway-dedicated entrypoints carry no subcommand to inspect.
+    # Both brand generations are accepted: work4you* is the current name,
+    # wayne* processes exist during the upgrade window (old service still
+    # running while the new one installs) — do NOT remove the old names.
     for token in tokens:
         if token == "gateway/run.py" or token.endswith("/gateway/run.py"):
             return "run"
         basename = token.rsplit("/", 1)[-1]
-        if basename in ("wayne-gateway", "wayne-gateway.exe"):
+        if basename in (
+            "work4you-gateway",
+            "work4you-gateway.exe",
+            "wayne-gateway",
+            "wayne-gateway.exe",
+        ):
             return "run"
 
     joined = " ".join(tokens)
     has_gateway_entry = (
         "wayne_cli.main" in joined
         or "wayne_cli/main.py" in joined
-        or any(t.rsplit("/", 1)[-1] in ("wayne", "wayne.exe") for t in tokens)
+        or any(
+            t.rsplit("/", 1)[-1] in ("work4you", "work4you.exe", "wayne", "wayne.exe")
+            for t in tokens
+        )
     )
     if not has_gateway_entry:
         return None

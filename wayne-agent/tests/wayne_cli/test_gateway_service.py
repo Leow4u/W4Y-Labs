@@ -659,6 +659,9 @@ class TestLaunchdServiceRecovery:
         monkeypatch.setattr(gateway_cli.subprocess, "run", fake_run)
         # Not running inside the gateway tree → direct bootout/bootstrap path.
         monkeypatch.setattr("gateway.status.get_running_pid", lambda *a, **k: None)
+        # Keep the rebrand migration out of this test (and off the real
+        # ~/Library/LaunchAgents of whoever runs the suite).
+        monkeypatch.setattr(gateway_cli, "_migrate_legacy_launchd_plist", lambda: None)
 
         gateway_cli.launchd_install()
 
@@ -1078,6 +1081,7 @@ class TestLaunchdServiceRecovery:
             return SimpleNamespace(returncode=0, stdout="", stderr="")
 
         monkeypatch.setattr(gateway_cli.subprocess, "run", fake_run)
+        monkeypatch.setattr(gateway_cli, "_migrate_legacy_launchd_plist", lambda: None)
 
         spawned = []
         monkeypatch.setattr(
@@ -1269,6 +1273,7 @@ class TestLaunchdServiceRecovery:
         def fake_run(cmd, check=False, **kwargs):
             return SimpleNamespace(returncode=0, stdout="", stderr="")
         monkeypatch.setattr(gateway_cli.subprocess, "run", fake_run)
+        monkeypatch.setattr(gateway_cli, "_migrate_legacy_launchd_plist", lambda: None)
 
         gateway_cli.launchd_install(force=True)
 
@@ -2474,7 +2479,7 @@ class TestProfileArg:
 
         plist_path = gateway_cli.get_launchd_plist_path()
 
-        assert plist_path == machine_home / "Library" / "LaunchAgents" / "ai.wayne.gateway-orcha.plist"
+        assert plist_path == machine_home / "Library" / "LaunchAgents" / "ai.work4you.gateway-orcha.plist"
 
 
 class TestRemapPathForUser:
@@ -2639,9 +2644,11 @@ class TestLegacyWayneUnitDetection:
     via systemd), the two services began SIGTERM-flapping over the same
     Telegram bot token in a 30-second cycle.
 
-    The detector must flag ``wayne.service`` ONLY when it actually runs our
-    gateway, and must NEVER flag profile units
-    (``wayne-gateway-<profile>.service``) or unrelated third-party services.
+    The detector must flag legacy names (``wayne.service``, and since the
+    Work4You rebrand also ``wayne-gateway.service`` plus the CURRENT
+    profile's ``wayne-gateway-<suffix>.service``) ONLY when they actually
+    run our gateway, and must NEVER flag other profiles' units or
+    unrelated third-party services.
     """
 
     # Minimal ExecStart that looks like our gateway
@@ -2691,13 +2698,16 @@ class TestLegacyWayneUnitDetection:
         assert path == legacy
         assert is_system is True
 
-    def test_ignores_profile_unit_wayne_gateway_coder(self, tmp_path, monkeypatch):
-        """CRITICAL: profile units must NOT be flagged as legacy.
+    def test_ignores_other_profiles_units_flags_pre_rebrand_default(self, tmp_path, monkeypatch):
+        """CRITICAL: OTHER profiles' units must NOT be flagged as legacy.
 
-        Teknium's concern — ``wayne-gateway-coder.service`` is our standard
-        naming for the ``coder`` profile. The legacy detector is an explicit
-        allowlist, not a glob, so profile units are safe.
+        Teknium's concern — ``wayne-gateway-coder.service`` is the coder
+        profile's pre-rebrand unit; from the default home it must survive.
+        The detector is an explicit allowlist (never a glob): from the
+        default home (empty suffix) only ``wayne.service`` and the
+        pre-rebrand ``wayne-gateway.service`` are legacy.
         """
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "")
         user_dir, system_dir = self._setup_search_paths(tmp_path, monkeypatch)
         # Drop profile units in BOTH scopes with our ExecStart
         for base in (user_dir, system_dir):
@@ -2713,8 +2723,31 @@ class TestLegacyWayneUnitDetection:
 
         results = gateway_cli._find_legacy_wayne_units()
 
-        assert results == []
-        assert gateway_cli.has_legacy_wayne_units() is False
+        # Only the pre-rebrand default unit is flagged (one per scope);
+        # coder/orcha profile units are never touched from the default home.
+        assert sorted(name for name, _p, _s in results) == [
+            "wayne-gateway.service",
+            "wayne-gateway.service",
+        ]
+        assert gateway_cli.has_legacy_wayne_units() is True
+
+    def test_flags_current_profiles_pre_rebrand_unit(self, tmp_path, monkeypatch):
+        """Rebrand migration: the CURRENT profile's pre-rebrand unit
+        (``wayne-gateway-<suffix>.service``) is enumerated at runtime —
+        still no glob, so a sibling profile's unit is never matched."""
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "coder")
+        user_dir, _ = self._setup_search_paths(tmp_path, monkeypatch)
+        (user_dir / "wayne-gateway-coder.service").write_text(
+            self._OUR_UNIT_TEXT, encoding="utf-8"
+        )
+        (user_dir / "wayne-gateway-orcha.service").write_text(
+            self._OUR_UNIT_TEXT, encoding="utf-8"
+        )
+
+        results = gateway_cli._find_legacy_wayne_units()
+
+        assert [name for name, _p, _s in results] == ["wayne-gateway-coder.service"]
+        assert gateway_cli.has_legacy_wayne_units() is True
 
     def test_ignores_unrelated_wayne_service(self, tmp_path, monkeypatch):
         """Third-party ``wayne.service`` that isn't ours stays untouched.
@@ -2934,12 +2967,15 @@ class TestRemoveLegacyWayneUnits:
         assert not user_legacy.exists()
         assert not system_legacy.exists()
 
-    def test_does_not_touch_profile_units_during_migration(
+    def test_does_not_touch_other_profiles_units_during_migration(
         self, tmp_path, monkeypatch, capsys
     ):
-        """Teknium's constraint: profile units (wayne-gateway-coder.service)
-        must survive a migration call, even if we somehow include them in the
-        search dir."""
+        """Teknium's constraint: OTHER profiles' units
+        (wayne-gateway-coder.service seen from the default home) must
+        survive a migration call, even if we somehow include them in the
+        search dir. The pre-rebrand default unit (wayne-gateway.service)
+        IS migrated — that's the whole point of the Work4You rename."""
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "")
         user_dir, _, _ = self._setup(tmp_path, monkeypatch, as_root=True)
         profile_unit = user_dir / "wayne-gateway-coder.service"
         profile_unit.write_text(self._OUR_UNIT_TEXT, encoding="utf-8")
@@ -2948,11 +2984,12 @@ class TestRemoveLegacyWayneUnits:
 
         removed, remaining = gateway_cli.remove_legacy_wayne_units(interactive=False)
 
-        assert removed == 0
+        assert removed == 1
         assert remaining == []
-        # Both the profile unit and the current default unit must survive
+        # Another profile's unit must survive; the pre-rebrand default
+        # unit is removed (migrated to work4you-gateway.service).
         assert profile_unit.exists()
-        assert default_unit.exists()
+        assert not default_unit.exists()
 
     def test_interactive_prompt_no_skips_removal(self, tmp_path, monkeypatch, capsys):
         """When interactive=True and user answers no, no removal happens."""
@@ -3511,6 +3548,87 @@ class TestLaunchctlBootstrapEioRetry:
         assert excinfo.value.returncode == 125
         # A non-EIO failure is not the already-loaded case: no bootout/retry.
         assert calls == [["launchctl", "bootstrap", self.DOMAIN, self.PLIST]]
+
+
+class TestMigrateLegacyLaunchdPlist:
+    """Rebrand migration: the pre-rebrand ai.wayne.gateway[-suffix] plist
+    (same profile suffix only) is unloaded + removed when installing the
+    new ai.work4you.gateway agent."""
+
+    def test_unloads_and_removes_legacy_plist(self, tmp_path, monkeypatch, capsys):
+        legacy_plist = tmp_path / "ai.wayne.gateway.plist"
+        legacy_plist.write_text("<plist>old</plist>", encoding="utf-8")
+        calls = []
+
+        monkeypatch.setattr(gateway_cli, "_legacy_launchd_plist_path", lambda: legacy_plist)
+        monkeypatch.setattr(gateway_cli, "_legacy_launchd_label", lambda: "ai.wayne.gateway")
+        monkeypatch.setattr(gateway_cli, "_launchd_domain", lambda: "gui/501")
+
+        def fake_run(cmd, **kwargs):
+            calls.append(cmd)
+            return SimpleNamespace(returncode=0, stdout="", stderr="")
+
+        monkeypatch.setattr(gateway_cli.subprocess, "run", fake_run)
+
+        gateway_cli._migrate_legacy_launchd_plist()
+
+        assert ["launchctl", "bootout", "gui/501/ai.wayne.gateway"] in calls
+        assert not legacy_plist.exists()
+        out = capsys.readouterr().out
+        assert "ai.wayne.gateway" in out
+
+    def test_noop_when_no_legacy_plist(self, tmp_path, monkeypatch, capsys):
+        calls = []
+        monkeypatch.setattr(
+            gateway_cli,
+            "_legacy_launchd_plist_path",
+            lambda: tmp_path / "ai.wayne.gateway.plist",
+        )
+        monkeypatch.setattr(
+            gateway_cli.subprocess,
+            "run",
+            lambda cmd, **kw: calls.append(cmd) or SimpleNamespace(returncode=0, stdout="", stderr=""),
+        )
+
+        gateway_cli._migrate_legacy_launchd_plist()
+
+        assert calls == []
+        assert capsys.readouterr().out == ""
+
+    def test_profile_suffix_scopes_legacy_label(self, monkeypatch):
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "coder")
+        assert gateway_cli._legacy_launchd_label() == "ai.wayne.gateway-coder"
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "")
+        assert gateway_cli._legacy_launchd_label() == "ai.wayne.gateway"
+
+    def test_new_label_is_work4you_branded(self, monkeypatch):
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "coder")
+        assert gateway_cli.get_launchd_label() == "ai.work4you.gateway-coder"
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "")
+        assert gateway_cli.get_launchd_label() == "ai.work4you.gateway"
+
+
+class TestServiceNameRebrand:
+    """get_service_name / _legacy_service_names after the Work4You rename."""
+
+    def test_service_name_is_work4you_branded(self, monkeypatch):
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "")
+        assert gateway_cli.get_service_name() == "work4you-gateway"
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "coder")
+        assert gateway_cli.get_service_name() == "work4you-gateway-coder"
+
+    def test_legacy_service_names_enumerate_current_suffix_only(self, monkeypatch):
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "")
+        assert gateway_cli._legacy_service_names() == (
+            "wayne.service",
+            "wayne-gateway.service",
+        )
+        monkeypatch.setattr(gateway_cli, "_profile_suffix", lambda: "coder")
+        assert gateway_cli._legacy_service_names() == (
+            "wayne.service",
+            "wayne-gateway.service",
+            "wayne-gateway-coder.service",
+        )
 
 
 class TestRetryLaunchctlBootstrapUntilRegistered:

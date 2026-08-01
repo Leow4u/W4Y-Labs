@@ -2,9 +2,18 @@
 # default (config key: kanban.dispatch_in_gateway, default true). To
 # migrate:
 #
-#     systemctl --user disable --now wayne-kanban-dispatcher.service
+#     systemctl --user disable --now work4you-kanban-dispatcher.service
 #     # then make sure a gateway is running; e.g. a systemd user unit
-#     # for `wayne gateway start`. The gateway hosts the dispatcher.
+#     # for `work4you gateway start`. The gateway hosts the dispatcher.
+#
+# Upgrading from a pre-rebrand install? The old unit was named
+# wayne-kanban-dispatcher.service. Disable and remove it BEFORE
+# enabling this one — running both races two dispatchers against the
+# same kanban.db:
+#
+#     systemctl --user disable --now wayne-kanban-dispatcher.service
+#     rm -f ~/.config/systemd/user/wayne-kanban-dispatcher.service
+#     systemctl --user daemon-reload
 #
 # This unit is kept for users who truly cannot run the gateway (host
 # policy forbids long-lived services, etc.). It now invokes the
@@ -14,13 +23,12 @@
 # dispatch_in_gateway=true is NOT supported.
 
 [Unit]
-Description=Wayne Kanban dispatcher (DEPRECATED standalone daemon — prefer gateway-embedded dispatch)
-Documentation=https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban
+Description=Work4You Kanban dispatcher (DEPRECATED standalone daemon — prefer gateway-embedded dispatch)
 After=network.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/env wayne kanban daemon --force --interval 60 --pidfile %t/wayne-kanban-dispatcher.pid
+ExecStart=/usr/bin/env work4you kanban daemon --force --interval 60 --pidfile %t/work4you-kanban-dispatcher.pid
 Restart=on-failure
 RestartSec=5
 # Log to the journal via stdout/stderr; the dispatcher also writes per-task
