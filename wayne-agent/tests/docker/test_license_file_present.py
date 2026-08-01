@@ -17,10 +17,10 @@ def test_docker_image_contains_license_file(built_image: str) -> None:
     """
     r = subprocess.run(
         ["docker", "run", "--rm", "--entrypoint", "test",
-         built_image, "-f", "/opt/wayne/LICENSE"],
+         built_image, "-f", "/opt/work4you/LICENSE"],
         capture_output=True, text=True, timeout=60,
     )
     assert r.returncode == 0, (
-        f"LICENSE file not found at /opt/wayne/LICENSE inside the Docker "
+        f"LICENSE file not found at /opt/work4you/LICENSE inside the Docker "
         f"image: {r.stderr[-500:]}"
     )

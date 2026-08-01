@@ -446,11 +446,11 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
 
     Layout produced
     ---------------
-    ``svc_dir/``                           wayne:wayne, 0755 (parent must already exist)
-    ``svc_dir/event/``                     wayne:wayne, 03730   (setgid + g+rwx + sticky)
-    ``svc_dir/supervise/``                 wayne:wayne, 0755
-    ``svc_dir/supervise/event/``           wayne:wayne, 03730
-    ``svc_dir/supervise/control``          wayne:wayne, 0660    (FIFO)
+    ``svc_dir/``                           work4you:work4you, 0755 (parent must already exist)
+    ``svc_dir/event/``                     work4you:work4you, 03730   (setgid + g+rwx + sticky)
+    ``svc_dir/supervise/``                 work4you:work4you, 0755
+    ``svc_dir/supervise/event/``           work4you:work4you, 03730
+    ``svc_dir/supervise/control``          work4you:work4you, 0660    (FIFO)
 
     The ``death_tally``, ``lock``, and ``status`` regular files end up
     written by s6-supervise itself (as root), but those land mode 0644 —
@@ -672,7 +672,7 @@ class S6ServiceManager:
             "set -e",
             "export HOME=/opt/data",
             "cd /opt/data",
-            ". /opt/wayne/.venv/bin/activate",
+            ". /opt/work4you/.venv/bin/activate",
         ]
         for k, v in sorted(extra_env.items()):
             lines.append(f"export {k}={shlex.quote(v)}")
@@ -700,13 +700,13 @@ class S6ServiceManager:
         # single supervised instance per slot, so there is no legitimate
         # supervised sibling for ``--replace`` to clobber.
         if profile == "default":
-            gateway_cmd = "wayne gateway run --replace"
+            gateway_cmd = "work4you gateway run --replace"
         else:
-            gateway_cmd = f"wayne -p {shlex.quote(profile)} gateway run --replace"
+            gateway_cmd = f"work4you -p {shlex.quote(profile)} gateway run --replace"
         # Skip the drop when already non-root (setgroups() lacks CAP_SETGID →
         # s6 boot-loop).
         lines.append(f'[ "$(id -u)" = 0 ] || exec {gateway_cmd}')
-        lines.append(f"exec s6-setuidgid wayne {gateway_cmd}")
+        lines.append(f"exec s6-setuidgid work4you {gateway_cmd}")
         return "\n".join(lines) + "\n"
 
     @staticmethod
@@ -792,12 +792,12 @@ class S6ServiceManager:
             # root-context boot, so it also heals volumes already poisoned
             # by older images. Non-recursive on purpose: sibling profile
             # dirs are each managed by their own log/run. See #45258.
-            f'chown wayne:wayne "$WAYNE_HOME/logs/gateways" 2>/dev/null || true\n'
-            f'chown -R wayne:wayne "$log_dir" 2>/dev/null || true\n'
+            f'chown work4you:work4you "$WAYNE_HOME/logs/gateways" 2>/dev/null || true\n'
+            f'chown -R work4you:work4you "$log_dir" 2>/dev/null || true\n'
             f'rm -f "$log_dir/lock"\n'
             # Skip the drop when already non-root (CAP_SETGID).
             f'[ "$(id -u)" = 0 ] || exec s6-log 1 n10 s1000000 T "$log_dir"\n'
-            f'exec s6-setuidgid wayne s6-log 1 n10 s1000000 T "$log_dir"\n'
+            f'exec s6-setuidgid work4you s6-log 1 n10 s1000000 T "$log_dir"\n'
         )
 
     # -- lifecycle ---------------------------------------------------------

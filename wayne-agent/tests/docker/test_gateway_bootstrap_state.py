@@ -175,10 +175,10 @@ def _boot_with_bind_mount(
 
 
 def _cleanup_bind_mount(built_image: str, container_name: str, host_dir: Path) -> None:
-    """Remove root/wayne-owned files left in a bind-mounted host dir.
+    """Remove root/work4you-owned files left in a bind-mounted host dir.
 
     The stage2 hook chowns /opt/data (and its contents) to UID 10000
-    (wayne), which the host test user cannot delete. We run a throwaway
+    (work4you), which the host test user cannot delete. We run a throwaway
     container as root to chown everything back and rm -rf the contents
     before the temp dir is cleaned up.
     """

@@ -101,8 +101,14 @@ validate_uid_gid() {
 # this alias those vars are silently ignored and the s6-setuidgid drop to
 # UID 10000 leaves the runtime unable to read the volume.  WAYNE_UID/
 # WAYNE_GID still win when both are set.  See #15290, salvages #25872.
-WAYNE_UID="${WAYNE_UID:-${PUID:-}}"
-WAYNE_GID="${WAYNE_GID:-${PGID:-}}"
+#
+# WORK4YOU_UID/GID is the current spelling and wins over both; the legacy
+# WAYNE_* names keep working for compose files written before the rebrand.
+# (The Python-side env bridge only mirrors WORK4YOU_* onto WAYNE_* inside
+# the agent process — it never reaches this boot hook, so the fallback
+# chain has to be spelled out here.)
+WAYNE_UID="${WORK4YOU_UID:-${WAYNE_UID:-${PUID:-}}}"
+WAYNE_GID="${WORK4YOU_GID:-${WAYNE_GID:-${PGID:-}}}"
 
 if [ -n "${WAYNE_UID:-}" ] && validate_uid_gid "$WAYNE_UID" && [ "$WAYNE_UID" != "$(id -u work4you)" ]; then
     echo "[stage2] Changing work4you UID to $WAYNE_UID"

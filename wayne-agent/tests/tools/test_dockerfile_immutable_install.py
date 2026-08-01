@@ -1,4 +1,4 @@
-"""Contract tests for the Docker image's immutable /opt/wayne install tree."""
+"""Contract tests for the Docker image's immutable /opt/work4you install tree."""
 from __future__ import annotations
 
 import re
@@ -19,9 +19,9 @@ def test_dockerfile_makes_opt_wayne_readonly_for_wayne_user() -> None:
     # of a separate chmod -R pass (which walked ~30k files — #49113).
     assert "COPY --link --chmod=a+rX,go-w . ." in text
     # The old tree-walking passes must not be present.
-    assert "chown -R root:root /opt/wayne" not in text
-    assert "chmod -R a+rX /opt/wayne" not in text
-    assert "chmod -R a-w /opt/wayne" not in text
+    assert "chown -R root:root /opt/work4you" not in text
+    assert "chmod -R a+rX /opt/work4you" not in text
+    assert "chmod -R a-w /opt/work4you" not in text
 
 
 def test_dockerfile_keeps_mutable_state_under_opt_data() -> None:
@@ -37,20 +37,20 @@ def test_dockerfile_disables_runtime_install_mutations() -> None:
 
     assert "ENV PYTHONDONTWRITEBYTECODE=1" in text
     assert "ENV WAYNE_DISABLE_LAZY_INSTALLS=1" in text
-    assert "WAYNE_TUI_DIR=/opt/wayne/ui-tui" in text
+    assert "WAYNE_TUI_DIR=/opt/work4you/ui-tui" in text
 
 
 def test_dockerfile_does_not_chown_install_trees_to_wayne() -> None:
     text = _dockerfile_text()
     forbidden_patterns = (
-        r"chown\s+-R\s+wayne:wayne\s+/opt/wayne/\.venv",
-        r"chown\s+-R\s+wayne:wayne\s+/opt/wayne/ui-tui",
-        r"chown\s+-R\s+wayne:wayne\s+/opt/wayne/gateway",
-        r"chown\s+-R\s+wayne:wayne\s+/opt/wayne/node_modules",
+        r"chown\s+-R\s+work4you:work4you\s+/opt/work4you/\.venv",
+        r"chown\s+-R\s+work4you:work4you\s+/opt/work4you/ui-tui",
+        r"chown\s+-R\s+work4you:work4you\s+/opt/work4you/gateway",
+        r"chown\s+-R\s+work4you:work4you\s+/opt/work4you/node_modules",
     )
     for pattern in forbidden_patterns:
         assert not re.search(pattern, text), (
-            "runtime install trees under /opt/wayne must stay immutable; "
+            "runtime install trees under /opt/work4you must stay immutable; "
             f"found forbidden pattern {pattern!r}"
         )
 
@@ -59,20 +59,20 @@ def test_dockerfile_bakes_code_scoped_install_method_stamp() -> None:
     """The 'docker' install-method stamp is baked next to the code.
 
     detect_install_method() reads the code-scoped stamp
-    (/opt/wayne/.install_method) first; baking it at build time keeps the
+    (/opt/work4you/.install_method) first; baking it at build time keeps the
     published image self-identifying as 'docker' WITHOUT writing into the
     shared $WAYNE_HOME data volume (which a host install may also use).
     The stamp is created by root in the shim-wiring RUN block; the wayne
     user can't modify it (go-w from the --chmod on the source COPY).
     """
     text = _dockerfile_text()
-    assert "printf 'docker\\n' > /opt/wayne/.install_method" in text
+    assert "printf 'docker\\n' > /opt/work4you/.install_method" in text
 
     # The stamp must be in the RUN block that wires the exec shim.
     shim_block = re.search(
-        r"RUN mkdir -p /opt/wayne/bin && \\\n"
+        r"RUN mkdir -p /opt/work4you/bin && \\\n"
         r"(?:.*\\\n)+?"
-        r"\s+printf 'docker\\n' > /opt/wayne/\.install_method",
+        r"\s+printf 'docker\\n' > /opt/work4you/\.install_method",
         text,
     )
     assert shim_block, "install-method stamp must be in the shim-wiring RUN block"
@@ -90,10 +90,10 @@ def test_dockerfile_redirects_lazy_installs_to_durable_target() -> None:
     target = "/opt/data/lazy-packages"
 
     # The redirect target must be set AND must live under the data volume,
-    # never under the immutable /opt/wayne tree.
+    # never under the immutable /opt/work4you tree.
     assert f"ENV WAYNE_LAZY_INSTALL_TARGET={target}" in text
     assert target.startswith("/opt/data/"), "target must be on the durable volume"
-    assert "ENV WAYNE_LAZY_INSTALL_TARGET=/opt/wayne" not in text
+    assert "ENV WAYNE_LAZY_INSTALL_TARGET=/opt/work4you" not in text
 
     # The seal flag must still be present — the redirect rides on top of it,
     # it does not replace it.

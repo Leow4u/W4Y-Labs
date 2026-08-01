@@ -1,20 +1,20 @@
-"""Regression test: ``wayne dump`` reports a real git SHA inside the container.
+"""Regression test: ``work4you dump`` reports a real git SHA inside the container.
 
 Background: ``.dockerignore`` excludes ``.git``, so ``git rev-parse HEAD``
-fails inside the published image and ``wayne dump`` used to report
+fails inside the published image and ``work4you dump`` used to report
 ``version: ... [(unknown)]``.  The Dockerfile now writes the build-time
-``$WAYNE_GIT_SHA`` build-arg to ``/opt/wayne/.wayne_build_sha`` and
+``$WAYNE_GIT_SHA`` build-arg to ``/opt/work4you/.wayne_build_sha`` and
 ``work4you_cli/build_info.py`` reads it as a fallback.
 
 CI (``.github/workflows/docker.yml``) always sets the build-arg
 to ``${{ github.sha }}``.  Local ``docker build`` (the ``built_image``
 fixture in ``tests/docker/conftest.py``) does NOT — so locally the file
-is absent and ``wayne dump`` correctly falls back to ``(unknown)``.
+is absent and ``work4you dump`` correctly falls back to ``(unknown)``.
 
 This test handles both cases:
 
-* If ``/opt/wayne/.wayne_build_sha`` exists in the image, assert that
-  ``wayne dump`` surfaces its content as the version SHA (not
+* If ``/opt/work4you/.wayne_build_sha`` exists in the image, assert that
+  ``work4you dump`` surfaces its content as the version SHA (not
   ``(unknown)``).
 * If the file is absent, assert the legacy behaviour (``(unknown)``)
   still holds — defensive guard against the helper accidentally
@@ -34,7 +34,7 @@ def _run_dump(image: str) -> str:
     """Return the stdout of ``docker run <image> dump``.
 
     Relies on Docker's anonymous VOLUME for ``/opt/data`` (declared by the
-    Dockerfile) so the container's wayne user (UID 10000) can bootstrap
+    Dockerfile) so the container's work4you user (UID 10000) can bootstrap
     its config.  Anonymous volumes are auto-cleaned by ``--rm``, so unlike
     a host bind-mount we don't have to chown anything to UID 10000 (which
     would break cleanup on non-root hosts).
@@ -44,18 +44,18 @@ def _run_dump(image: str) -> str:
         capture_output=True, text=True, timeout=120,
     )
     assert r.returncode == 0, (
-        f"wayne dump exited {r.returncode}: "
+        f"work4you dump exited {r.returncode}: "
         f"stderr={r.stderr[-1000:]!r}\nstdout={r.stdout[-1000:]!r}"
     )
     return r.stdout
 
 
 def _read_baked_sha_from_image(image: str) -> str | None:
-    """Return the ``/opt/wayne/.wayne_build_sha`` content, or None if absent."""
+    """Return the ``/opt/work4you/.wayne_build_sha`` content, or None if absent."""
     r = subprocess.run(
         [
             "docker", "run", "--rm", "--entrypoint", "cat", image,
-            "/opt/wayne/.wayne_build_sha",
+            "/opt/work4you/.wayne_build_sha",
         ],
         capture_output=True, text=True, timeout=30,
     )
@@ -91,7 +91,7 @@ def test_dump_reports_baked_sha_when_present(built_image: str) -> None:
         )
         return
 
-    # CI path: build-arg was set, baked file exists.  ``wayne dump``
+    # CI path: build-arg was set, baked file exists.  ``work4you dump``
     # truncates to 8 chars via ``git rev-parse --short=8`` semantics.
     assert reported != "(unknown)", (
         "baked SHA file present in image but dump still reported "

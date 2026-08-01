@@ -21,14 +21,14 @@ def test_container_sets_hosted_write_policy_env(built_image: str) -> None:
     assert result.returncode == 0, result.stderr[-2000:]
 
 
-def test_wayne_user_cannot_modify_install_but_can_write_data(built_image: str) -> None:
+def test_work4you_user_cannot_modify_install_but_can_write_data(built_image: str) -> None:
     script = textwrap.dedent(
         r"""
         set -eu
-        /opt/wayne/.venv/bin/python - <<'PY'
+        /opt/work4you/.venv/bin/python - <<'PY'
         from pathlib import Path
 
-        install_file = Path("/opt/wayne/agent/message_sanitization.py")
+        install_file = Path("/opt/work4you/agent/message_sanitization.py")
         try:
             with install_file.open("a", encoding="utf-8") as handle:
                 handle.write("\n# unexpected hosted mutation\n")
@@ -54,7 +54,7 @@ def test_wayne_user_cannot_modify_install_but_can_write_data(built_image: str) -
             "--entrypoint",
             "su",
             built_image,
-            "wayne",
+            "work4you",
             "-s",
             "/bin/sh",
             "-c",
