@@ -99,6 +99,10 @@ def _get_service_pids() -> set:
                     scope_args
                     + [
                         "list-units",
+                        # Both patterns: work4you-gateway* is the current name;
+                        # wayne-gateway* covers pre-rebrand units still running
+                        # during an upgrade (removed with the legacy alias).
+                        "work4you-gateway*",
                         "wayne-gateway*",
                         "--plain",
                         "--no-legend",
@@ -1662,7 +1666,7 @@ def _windows_gateway_should_absorb_console_controls() -> bool:
 # Service Configuration
 # =============================================================================
 
-_SERVICE_BASE = "wayne-gateway"
+_SERVICE_BASE = "work4you-gateway"
 SERVICE_DESCRIPTION = "Work4You Gateway - Messaging Platform Integration"
 
 
@@ -1740,8 +1744,10 @@ def _profile_arg_for_target_user(wayne_home: str, target_home_dir: str) -> str:
 def get_service_name() -> str:
     """Derive a systemd service name scoped to this WAYNE_HOME.
 
-    Default ``~/.wayne`` returns ``wayne-gateway`` (backward compatible).
-    Profile ``~/.wayne/profiles/coder`` returns ``wayne-gateway-coder``.
+    Default ``~/.wayne`` returns ``work4you-gateway``.
+    Profile ``~/.wayne/profiles/coder`` returns ``work4you-gateway-coder``.
+    Pre-rebrand ``wayne-gateway[-<suffix>]`` units are migrated by the
+    legacy-unit mechanism below (see ``_legacy_service_names``).
     Any other WAYNE_HOME appends a short hash for uniqueness.
     """
     suffix = _profile_suffix()
@@ -2004,11 +2010,31 @@ def has_conflicting_systemd_units() -> bool:
     return len(get_installed_systemd_scopes()) > 1
 
 
-# Legacy service names from older Wayne installs that predate the
-# wayne-gateway rename. Kept as an explicit allowlist (NOT a glob) so
-# profile units (wayne-gateway-*.service) and unrelated third-party
-# "wayne" units are never matched.
-_LEGACY_SERVICE_NAMES: tuple[str, ...] = ("wayne.service",)
+# Legacy service names from older installs that predate the current
+# work4you-gateway name. Kept as an explicit allowlist (NOT a glob) so
+# profile units of OTHER profiles and unrelated third-party "wayne"
+# units are never matched.
+#   - "wayne.service": the pre-wayne-gateway name (very old installs).
+#   - "wayne-gateway.service": the pre-rebrand default-profile name.
+# The profile variant of the CURRENT home ("wayne-gateway-<suffix>.service")
+# is appended at runtime by ``_legacy_service_names()`` — the suffix is only
+# computable via ``_profile_suffix()``, and enumerating it per-install keeps
+# the no-glob design (only names we can spell out are ever matched).
+_LEGACY_SERVICE_NAMES: tuple[str, ...] = ("wayne.service", "wayne-gateway.service")
+
+
+def _legacy_service_names() -> tuple[str, ...]:
+    """Return the legacy unit names to migrate for the CURRENT WAYNE_HOME.
+
+    Static allowlist plus the pre-rebrand profile unit for this home
+    (``wayne-gateway-<suffix>.service``). Still an explicit enumeration —
+    never a glob — so other profiles' units are never touched.
+    """
+    names = list(_LEGACY_SERVICE_NAMES)
+    suffix = _profile_suffix()
+    if suffix:
+        names.append(f"wayne-gateway-{suffix}.service")
+    return tuple(names)
 
 # ExecStart content markers that identify a unit as running our gateway.
 # A legacy unit is only flagged when its file contains one of these.
@@ -2036,18 +2062,19 @@ def _legacy_unit_search_paths() -> list[tuple[bool, Path]]:
 def _find_legacy_wayne_units() -> list[tuple[str, Path, bool]]:
     """Return ``[(unit_name, unit_path, is_system)]`` for legacy Wayne gateway units.
 
-    Detects unit files installed by older Wayne versions that used a
-    different service name (e.g. ``wayne.service`` before the rename to
-    ``wayne-gateway.service``). When both a legacy unit and the current
-    ``wayne-gateway.service`` are active, they fight over the same bot
-    token — the PR #5646 signal-recovery change turns this into a 30-second
-    SIGTERM flap loop.
+    Detects unit files installed by older versions that used a different
+    service name (``wayne.service``, and the pre-rebrand
+    ``wayne-gateway[-<suffix>].service``). When both a legacy unit and the
+    current ``work4you-gateway.service`` are active, they fight over the
+    same bot token — the PR #5646 signal-recovery change turns this into a
+    30-second SIGTERM flap loop.
 
     Safety guards:
 
-    * Explicit allowlist of legacy names (no globbing). Profile units such
-      as ``wayne-gateway-coder.service`` and unrelated third-party
-      ``wayne-*`` services are never matched.
+    * Explicit allowlist of legacy names (no globbing) via
+      ``_legacy_service_names()``. Other profiles' units (only the CURRENT
+      home's ``wayne-gateway-<suffix>.service`` is enumerated) and
+      unrelated third-party ``wayne-*`` services are never matched.
     * ExecStart content check — only flag units that invoke our gateway
       entrypoint. A user-created ``wayne.service`` running an unrelated
       binary is left untouched.
@@ -2056,7 +2083,7 @@ def _find_legacy_wayne_units() -> list[tuple[str, Path, bool]]:
     """
     results: list[tuple[str, Path, bool]] = []
     for is_system, base in _legacy_unit_search_paths():
-        for name in _LEGACY_SERVICE_NAMES:
+        for name in _legacy_service_names():
             unit_path = base / name
             try:
                 if not unit_path.exists():
@@ -2089,7 +2116,7 @@ def print_legacy_unit_warning() -> None:
     for name, path, is_system in legacy:
         scope = "system" if is_system else "user"
         print_info(f"    {path}  ({scope} scope)")
-    print_info("  These run alongside the current wayne-gateway service and")
+    print_info("  These run alongside the current work4you-gateway service and")
     print_info("  cause SIGTERM flap loops — both try to use the same bot token.")
     print_info("  Remove them with:")
     print_info("    work4you gateway migrate-legacy")
@@ -2102,8 +2129,8 @@ def remove_legacy_wayne_units(
     """Stop, disable, and remove legacy Wayne gateway unit files.
 
     Iterates over whatever ``_find_legacy_wayne_units()`` returns — which is
-    an explicit allowlist of legacy names (not a glob). Profile units and
-    unrelated third-party services are never touched.
+    an explicit allowlist of legacy names (not a glob). Other profiles'
+    units and unrelated third-party services are never touched.
 
     Args:
         interactive: When True, prompt before removing. When False, remove
@@ -2423,12 +2450,29 @@ def _launchd_user_home() -> Path:
 def get_launchd_plist_path() -> Path:
     """Return the launchd plist path, scoped per profile.
 
-    Default ``~/.wayne`` → ``ai.wayne.gateway.plist`` (backward compatible).
-    Profile ``~/.wayne/profiles/coder`` → ``ai.wayne.gateway-coder.plist``.
+    Default ``~/.wayne`` → ``ai.work4you.gateway.plist``.
+    Profile ``~/.wayne/profiles/coder`` → ``ai.work4you.gateway-coder.plist``.
+    Pre-rebrand ``ai.wayne.gateway[-<suffix>].plist`` files are migrated at
+    install time (see ``_migrate_legacy_launchd_plist``).
     """
     suffix = _profile_suffix()
-    name = f"ai.wayne.gateway-{suffix}" if suffix else "ai.wayne.gateway"
+    name = f"ai.work4you.gateway-{suffix}" if suffix else "ai.work4you.gateway"
     return _launchd_user_home() / "Library" / "LaunchAgents" / f"{name}.plist"
+
+
+def _legacy_launchd_label() -> str:
+    """Pre-rebrand launchd label for the SAME profile suffix (no glob)."""
+    suffix = _profile_suffix()
+    return f"ai.wayne.gateway-{suffix}" if suffix else "ai.wayne.gateway"
+
+
+def _legacy_launchd_plist_path() -> Path:
+    return (
+        _launchd_user_home()
+        / "Library"
+        / "LaunchAgents"
+        / f"{_legacy_launchd_label()}.plist"
+    )
 
 
 def _detect_venv_dir() -> Path | None:
@@ -3069,11 +3113,12 @@ def systemd_install(
     if system:
         _require_root_for_system_service("install")
 
-    # Offer to remove legacy units (wayne.service from pre-rename installs)
-    # before installing the new wayne-gateway.service. If both remain, they
-    # flap-fight for the Telegram bot token on every gateway startup.
-    # Only removes units matching _LEGACY_SERVICE_NAMES + our ExecStart
-    # signature — profile units are never touched.
+    # Offer to remove legacy units (wayne.service and the pre-rebrand
+    # wayne-gateway[-<suffix>].service) before installing the new
+    # work4you-gateway.service. If both remain, they flap-fight for the
+    # Telegram bot token on every gateway startup.
+    # Only removes units matching _legacy_service_names() + our ExecStart
+    # signature — other profiles' units are never touched.
     if has_legacy_wayne_units():
         print()
         print_legacy_unit_warning()
@@ -3436,7 +3481,7 @@ def systemd_status(deep: bool = False, system: bool = False, full: bool = False)
 def get_launchd_label() -> str:
     """Return the launchd service label, scoped per profile."""
     suffix = _profile_suffix()
-    return f"ai.wayne.gateway-{suffix}" if suffix else "ai.wayne.gateway"
+    return f"ai.work4you.gateway-{suffix}" if suffix else "ai.work4you.gateway"
 
 
 # Cached launchd domain result — probing is cheap but should only run once per
@@ -4041,8 +4086,43 @@ def refresh_launchd_plist_if_needed() -> bool:
     return True
 
 
+def _migrate_legacy_launchd_plist() -> None:
+    """Unload + remove the pre-rebrand launchd plist for the SAME suffix.
+
+    Older installs used the ``ai.wayne.gateway[-<suffix>]`` label. Left in
+    place next to the new ``ai.work4you.gateway[-<suffix>]`` agent, both
+    would supervise a gateway for the same WAYNE_HOME and fight over the
+    bot token. Only the plist matching the CURRENT profile suffix is
+    touched — other profiles' agents are never enumerated (no glob).
+    Idempotent and safe to call when no legacy plist exists.
+    """
+    legacy_plist = _legacy_launchd_plist_path()
+    if not legacy_plist.exists():
+        return
+    legacy_label = _legacy_launchd_label()
+    print(f"↻ Migrating legacy launchd service {legacy_label!r}")
+    try:
+        subprocess.run(
+            ["launchctl", "bootout", f"{_launchd_domain()}/{legacy_label}"],
+            check=False,
+            capture_output=True,
+            timeout=90,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pass  # best-effort unload; file removal below still de-registers it at next login
+    try:
+        legacy_plist.unlink()
+        print(f"✓ Removed legacy plist {legacy_plist}")
+    except OSError as e:
+        print(f"⚠ Could not remove legacy plist {legacy_plist}: {e}")
+
+
 def launchd_install(force: bool = False):
     plist_path = get_launchd_plist_path()
+
+    # Migrate the pre-rebrand ai.wayne.gateway[-suffix] agent (same profile
+    # suffix only) before installing the new label.
+    _migrate_legacy_launchd_plist()
 
     if plist_path.exists() and not force:
         if not launchd_plist_is_current():

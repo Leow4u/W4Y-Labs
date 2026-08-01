@@ -2266,8 +2266,8 @@ def terminal_tool(
                         env = new_env
                     logger.info("%s environment ready for task %s", env_type, effective_task_id[:8])
 
-        # Hard-block: gateway lifecycle commands (systemctl/launchctl/wayne
-        # restart|stop targeting wayne-gateway) must never run inside the
+        # Hard-block: gateway lifecycle commands (systemctl/launchctl/work4you
+        # restart|stop targeting the gateway service) must never run inside the
         # gateway process itself. The restart would SIGTERM the gateway, which
         # kills this very subprocess before it can complete — the service may
         # never restart. This mirrors the `wayne gateway restart` guard in

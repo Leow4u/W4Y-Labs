@@ -483,7 +483,7 @@ def _iter_plugin_command_entries() -> list[tuple[str, str, str]]:
     Plugin commands are registered via
     :func:`wayne_cli.plugins.PluginContext.register_command`. They behave
     like ``CommandDef`` entries for gateway surfacing: they appear in the
-    Telegram command menu, in Slack's ``/wayne`` subcommand mapping, and
+    Telegram command menu, in Slack's ``/work4you`` subcommand mapping, and
     (via :func:`plugins.platforms.discord.adapter._register_slash_commands`) in
     Discord's native slash command picker.
 
@@ -1141,29 +1141,33 @@ _SLACK_RESERVED_COMMANDS = frozenset({
 # registry fills up. Without this, adding a new canonical command silently
 # clamps off low-priority aliases (they're added in the second pass), so a
 # long-standing native slash like /btw could disappear just because an
-# unrelated command landed. These claim their slots right after /wayne,
-# ahead of both canonical names and the rest of the aliases. Anything not
-# listed here still degrades gracefully (reachable via /wayne <command>).
+# unrelated command landed. These claim their slots right after the
+# /work4you + /wayne parent commands, ahead of both canonical names and the
+# rest of the aliases. Anything not listed here still degrades gracefully
+# (reachable via /work4you <command>).
 # Keep this list TIGHT: every pinned alias takes a slot a canonical command
 # would otherwise get, and the Telegram-parity test fails when a canonical
 # gets clamped ("reset" was unpinned for exactly that — /new keeps its
-# native slot, the alias spelling stays reachable via /wayne reset).
+# native slot, the alias spelling stays reachable via /work4you reset).
 _SLACK_PRIORITY_ALIASES = ("btw", "bg")
 
 # Canonical commands intentionally NOT given a native Slack slash slot. Slack
 # caps apps at 50 slash commands and the registry is at that ceiling; rather
 # than let the clamp silently drop whichever command sorts last (and break
 # Telegram parity), we explicitly route a few low-frequency commands through
-# ``/wayne <command>`` on Slack only. They remain native on every other
+# ``/work4you <command>`` on Slack only. They remain native on every other
 # surface (CLI, TUI, Telegram, Discord). Keep this list TIGHT and intentional —
 # the telegram-parity test reads it so an entry here is a deliberate
 # "Slack-via-/wayne" decision, not a silent clamp.
-#   - credits: the billing/top-up surface; reached via /wayne credits on Slack.
-#   - billing: the terminal-billing surface (buy/auto-reload/limit); /wayne billing.
-#   - moa: high-cost slash mode, available through /wayne moa to avoid
+#   - credits: the billing/top-up surface; reached via /work4you credits on Slack.
+#   - billing: the terminal-billing surface (buy/auto-reload/limit); /work4you billing.
+#   - moa: high-cost slash mode, available through /work4you moa to avoid
 #     displacing existing native Slack slash commands at the 50-command cap.
-#   - debug: the log/report upload surface; reached via /wayne debug on Slack.
-_SLACK_VIA_WAYNE_ONLY = frozenset({"credits", "billing", "moa", "debug"})
+#   - debug: the log/report upload surface; reached via /work4you debug on Slack.
+#   - platform: rare admin surface (pause/resume a failing gateway platform);
+#     moved here when the legacy /wayne parent kept its manifest slot next to
+#     the new /work4you parent (both must be declared; 50-slash cap).
+_SLACK_VIA_WAYNE_ONLY = frozenset({"credits", "billing", "moa", "debug", "platform"})
 
 
 def _sanitize_slack_name(raw: str) -> str:
@@ -1184,7 +1188,7 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
     Every gateway-available command in ``COMMAND_REGISTRY`` is surfaced as
     a standalone Slack slash command (e.g. ``/btw``, ``/stop``, ``/model``),
     matching Discord's and Telegram's model where every command is a
-    first-class slash and not a ``/wayne <verb>`` subcommand.
+    first-class slash and not a ``/work4you <verb>`` subcommand.
 
     Both canonical names and aliases are included so users can type any
     documented form (e.g. ``/background``, ``/bg``, and ``/btw`` all work).
@@ -1192,19 +1196,26 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
 
     Commands whose sanitized name collides with a Slack built-in
     (e.g. ``/status``, ``/me``, ``/join``) are silently skipped.  Users
-    can still reach them via ``/wayne <command>``.
+    can still reach them via ``/work4you <command>``.
 
     Results are clamped to Slack's 50-command limit with duplicate-name
-    avoidance. ``/wayne`` is always reserved as the first entry so the
-    legacy ``/wayne <subcommand>`` form keeps working for anything that
-    gets dropped by the clamp or for free-form questions.
+    avoidance. ``/work4you`` is always reserved as the first entry (and the
+    legacy ``/wayne`` spelling right after it — older workspace manifests
+    still declare it) so the ``/work4you <subcommand>`` form keeps working
+    for anything that gets dropped by the clamp or for free-form questions.
     """
     overrides = _resolve_config_gates()
     entries: list[tuple[str, str, str]] = []
     seen: set[str] = set()
 
-    # Reserve /wayne as the catch-all top-level command.
-    entries.append(("wayne", "Talk to Work4You or run a subcommand", "[subcommand] [args]"))
+    # Reserve /work4you as the catch-all top-level command, plus the legacy
+    # /wayne spelling. BOTH are declared in the generated manifest and both
+    # are accepted by the dispatcher (Slack only delivers slash events the
+    # workspace manifest declares, so dropping /wayne would break every
+    # workspace that installed the app pre-rebrand).
+    entries.append(("work4you", "Talk to Work4You or run a subcommand", "[subcommand] [args]"))
+    seen.add("work4you")
+    entries.append(("wayne", "Talk to Work4You or run a subcommand (legacy alias of /work4you)", "[subcommand] [args]"))
     seen.add("wayne")
 
     def _add(name: str, desc: str, hint: str) -> None:
@@ -1214,7 +1225,8 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
         if slack_name in _SLACK_RESERVED_COMMANDS:
             return
         if slack_name in _SLACK_VIA_WAYNE_ONLY:
-            # Intentionally Slack-via-/wayne only (see _SLACK_VIA_WAYNE_ONLY).
+            # Intentionally reachable only via the /work4you (or legacy
+            # /wayne) parent on Slack (see _SLACK_VIA_WAYNE_ONLY).
             return
         if len(entries) >= _SLACK_MAX_SLASH_COMMANDS:
             return
@@ -1223,9 +1235,9 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
         seen.add(slack_name)
 
     # Priority pass: pin high-value aliases (e.g. /btw, /bg, /reset) ahead of
-    # everything except /wayne, so a new canonical command can never silently
-    # clamp them off the 50-slash cap. Each alias borrows its parent command's
-    # description and hint.
+    # everything except the /work4you + /wayne parents, so a new canonical
+    # command can never silently clamp them off the 50-slash cap. Each alias
+    # borrows its parent command's description and hint.
     _alias_to_cmd = {
         alias: cmd
         for cmd in COMMAND_REGISTRY
@@ -1259,7 +1271,7 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
     return entries
 
 
-def slack_app_manifest(request_url: str = "https://wayne-agent.local/slack/commands") -> dict[str, Any]:
+def slack_app_manifest(request_url: str = "https://work4you-agent.local/slack/commands") -> dict[str, Any]:
     """Generate a Slack app manifest with all gateway commands as slashes.
 
     ``request_url`` is required by Slack's manifest schema for every slash
@@ -1287,13 +1299,14 @@ def slack_app_manifest(request_url: str = "https://wayne-agent.local/slack/comma
 
 
 def slack_subcommand_map() -> dict[str, str]:
-    """Return subcommand -> /command mapping for Slack /wayne handler.
+    """Return subcommand -> /command mapping for the Slack parent handler.
 
-    Maps both canonical names and aliases so /wayne bg do stuff works
-    the same as /wayne background do stuff.
+    Serves both parent spellings (``/work4you`` and legacy ``/wayne``).
+    Maps both canonical names and aliases so /work4you bg do stuff works
+    the same as /work4you background do stuff.
 
-    Plugin-registered slash commands are included so ``/wayne <plugin-cmd>``
-    routes through the plugin handler.
+    Plugin-registered slash commands are included so ``/work4you
+    <plugin-cmd>`` routes through the plugin handler.
     """
     overrides = _resolve_config_gates()
     mapping: dict[str, str] = {}

@@ -661,8 +661,8 @@ DANGEROUS_PATTERNS = [
     # terminates all running agents mid-work.  Allow global flags between
     # `wayne` and `gateway` (e.g. `wayne -p ade gateway restart`) so a
     # profile flag can't slip the agent past the guard.
-    (r'\bwayne\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*gateway\s+(stop|restart)\b', "stop/restart work4you gateway (kills running agents)"),
-    (r'\bwayne\s+update\b', "work4you update (restarts gateway, kills running agents)"),
+    (r'\b(?:work4you|wayne)\s+(?:-{1,2}\S+(?:\s+\S+)?\s+)*gateway\s+(stop|restart)\b', "stop/restart work4you gateway (kills running agents)"),
+    (r'\b(?:work4you|wayne)\s+update\b', "work4you update (restarts gateway, kills running agents)"),
     # Docker container lifecycle — any user with docker.sock mounted (a common
     # Docker Compose pattern) gives the agent the ability to restart/stop/kill
     # containers without approval.  These are agent-initiated lifecycle operations
@@ -671,10 +671,10 @@ DANGEROUS_PATTERNS = [
     (r'\bdocker\s+compose\s+(restart|stop|kill|down)\b', "docker compose restart/stop/kill/down (container lifecycle)"),
     (r'\bdocker\s+(restart|stop|kill)\b', "docker restart/stop/kill (container lifecycle)"),
     # Gateway protection: never start gateway outside systemd management
-    (r'gateway\s+run\b.*(&\s*$|&\s*;|\bdisown\b|\bsetsid\b)', "start gateway outside systemd (use 'systemctl --user restart wayne-gateway')"),
-    (r'\bnohup\b.*gateway\s+run\b', "start gateway outside systemd (use 'systemctl --user restart wayne-gateway')"),
+    (r'gateway\s+run\b.*(&\s*$|&\s*;|\bdisown\b|\bsetsid\b)', "start gateway outside systemd (use 'systemctl --user restart work4you-gateway')"),
+    (r'\bnohup\b.*gateway\s+run\b', "start gateway outside systemd (use 'systemctl --user restart work4you-gateway')"),
     # Self-termination protection: prevent agent from killing its own process
-    (r'\b(pkill|killall)\b.*\b(wayne|gateway|cli\.py)\b', "kill wayne/gateway process (self-termination)"),
+    (r'\b(pkill|killall)\b.*\b(work4you|wayne|gateway|cli\.py)\b', "kill work4you/gateway process (self-termination)"),
     # Self-termination via kill + command substitution (pgrep/pidof).
     # The name-based pattern above catches `pkill wayne` but not
     # `kill -9 $(pgrep -f wayne)` because the substitution is opaque
@@ -684,10 +684,11 @@ DANGEROUS_PATTERNS = [
     (r'\bkill\b.*\$\(\s*(pgrep|pidof)\b', "kill process via pgrep/pidof expansion (self-termination)"),
     (r'\bkill\b.*`\s*(pgrep|pidof)\b', "kill process via backtick pgrep/pidof expansion (self-termination)"),
     # launchctl-driven gateway stop/restart on macOS. The agent can bypass
-    # the `wayne gateway stop|restart` pattern above by driving launchd
-    # directly against the service label (commonly `ai.wayne.gateway`).
-    # Catch the operations that stop, restart, or unload it.
-    (r'\blaunchctl\s+(stop|kickstart|bootout|unload|kill|disable|remove)\b.*\b(wayne|ai\.wayne)\b', "stop/restart work4you launchd service (kills running agents)"),
+    # the `work4you gateway stop|restart` pattern above by driving launchd
+    # directly against the service label (commonly `ai.work4you.gateway`,
+    # legacy `ai.wayne.gateway`). Catch the operations that stop, restart,
+    # or unload it.
+    (r'\blaunchctl\s+(stop|kickstart|bootout|unload|kill|disable|remove)\b.*\b(work4you|ai\.work4you|wayne|ai\.wayne)\b', "stop/restart work4you launchd service (kills running agents)"),
     # File copy/move/edit into sensitive system paths (/etc/ and macOS
     # /private/etc/ mirror).
     (rf'\b(cp|mv|install)\b.*\s{_SYSTEM_CONFIG_PATH}', "copy/move file into system config path"),

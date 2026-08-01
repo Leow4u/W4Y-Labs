@@ -298,12 +298,14 @@ class TestSlackNativeSlashes:
             assert isinstance(desc, str)
             assert isinstance(hint, str)
 
-    def test_wayne_catchall_is_first(self):
-        """``/wayne`` must be reserved as the first slot so the legacy
-        ``/wayne <subcommand>`` form keeps working after we add new
-        commands and hit the 50-slash cap."""
+    def test_work4you_catchall_is_first(self):
+        """``/work4you`` must be reserved as the first slot (with the legacy
+        ``/wayne`` spelling right after it) so the parent ``<subcommand>``
+        form keeps working after we add new commands and hit the 50-slash
+        cap — and so pre-rebrand workspace manifests keep dispatching."""
         slashes = slack_native_slashes()
-        assert slashes[0][0] == "wayne"
+        assert slashes[0][0] == "work4you"
+        assert slashes[1][0] == "wayne"
 
     def test_names_respect_slack_limits(self):
         for name, _desc, _hint in slack_native_slashes():

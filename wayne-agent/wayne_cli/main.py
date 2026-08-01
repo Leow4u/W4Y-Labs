@@ -6908,9 +6908,17 @@ def _wayne_exe_shims(scripts_dir: Path) -> list[Path]:
     if not _is_windows():
         return []
 
-    names = set(_load_console_script_names()) or {"wayne", "wayne-agent", "wayne-acp"}
-    # The gateway shim is not a [project.scripts] entry point, but older
-    # update/install paths still rewrite and quarantine it.
+    names = set(_load_console_script_names()) or {
+        "work4you",
+        "work4you-acp",
+        "wayne",
+        "wayne-agent",
+        "wayne-acp",
+    }
+    # The gateway shims are not [project.scripts] entry points, but older
+    # update/install paths still rewrite and quarantine them. Both brand
+    # generations are listed — old-name shims exist during the upgrade.
+    names.add("work4you-gateway")
     names.add("wayne-gateway")
     return [scripts_dir / f"{name}.exe" for name in sorted(names)]
 
@@ -9867,7 +9875,8 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 non-interactive sudo (``sudo -n``) — first a blanket probe,
                 then a targeted ``systemctl reset-failed`` probe so a
                 least-privilege sudoers entry scoped to
-                ``systemctl ... wayne-gateway*`` also qualifies
+                ``systemctl ... work4you-gateway*`` (or the pre-rebrand
+                ``wayne-gateway*``) also qualifies
                 (``reset-failed`` is an idempotent no-op we run before every
                 privileged restart anyway).  If neither works, return None —
                 the caller must SKIP the restart (without draining the
@@ -9894,7 +9903,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                         sudo_ok = _probe.returncode == 0
                         if not sudo_ok:
                             # Blanket sudo refused — a targeted sudoers entry
-                            # (NOPASSWD for systemctl ... wayne-gateway*)
+                            # (NOPASSWD for systemctl ... work4you-gateway*)
                             # may still allow the exact commands we need.
                             _probe = subprocess.run(
                                 sudo_cmd + ["reset-failed", svc_name_],
@@ -9945,7 +9954,9 @@ def _cmd_update_impl(args, gateway_mode: bool):
             relaunched_profiles = []
 
             # --- Systemd services (Linux) ---
-            # Discover all wayne-gateway* units (default + profiles)
+            # Discover all gateway units (default + profiles). Both name
+            # generations are listed: work4you-gateway* is current,
+            # wayne-gateway* still exists during the rebrand upgrade window.
             if supports_systemd_services():
                 try:
                     _ensure_user_systemd_env()
@@ -9961,6 +9972,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                             scope_cmd
                             + [
                                 "list-units",
+                                "work4you-gateway*",
                                 "wayne-gateway*",
                                 "--plain",
                                 "--no-legend",
@@ -9976,7 +9988,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                                 continue
                             unit = parts[
                                 0
-                            ]  # e.g. wayne-gateway.service or wayne-gateway-coder.service
+                            ]  # e.g. work4you-gateway.service or work4you-gateway-coder.service
                             if not unit.endswith(".service"):
                                 continue
                             svc_name = unit.removesuffix(".service")
@@ -10393,8 +10405,9 @@ def _cmd_update_impl(args, gateway_mode: bool):
         _resume_windows_gateways_after_update(_windows_gateway_resume)
 
         # Warn if legacy Wayne gateway unit files are still installed.
-        # When both wayne.service (from a pre-rename install) and the
-        # current wayne-gateway.service are enabled, they SIGTERM-fight
+        # When a pre-rename unit (wayne.service or the pre-rebrand
+        # wayne-gateway[-<suffix>].service) and the current
+        # work4you-gateway.service are both enabled, they SIGTERM-fight
         # for the same bot token (see PR #11909). Flagging here means
         # every `work4you update` surfaces the issue until the user migrates.
         try:
@@ -10411,8 +10424,8 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     scope = "system" if is_sys else "user"
                     print(f"    {path}  ({scope} scope)")
                 print()
-                print("  These pre-rename units (wayne.service) fight the current")
-                print("  wayne-gateway.service for the bot token and cause SIGTERM")
+                print("  These pre-rename units fight the current")
+                print("  work4you-gateway.service for the bot token and cause SIGTERM")
                 print("  flap loops. Remove them with:")
                 print()
                 print("    work4you gateway migrate-legacy")
