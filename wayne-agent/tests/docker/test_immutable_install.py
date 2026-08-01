@@ -2,9 +2,9 @@
 
 Build the real image and verify at runtime:
 
-  1. /opt/wayne is not writable by the wayne user (immutable install tree)
+  1. /opt/work4you is not writable by the work4you user (immutable install tree)
   2. PYTHONDONTWRITEBYTECODE and WAYNE_DISABLE_LAZY_INSTALLS are set
-  3. /opt/wayne/.install_method contains "docker" (code-scoped stamp)
+  3. /opt/work4you/.install_method contains "docker" (code-scoped stamp)
   4. $WAYNE_HOME/.install_method is NOT stamped as "docker" by stage2
   5. A stale "docker" stamp in $WAYNE_HOME is healed (removed) on boot
 """
@@ -18,10 +18,10 @@ from tests.docker.conftest import (
 )
 
 
-def test_install_tree_not_writable_by_wayne(
+def test_install_tree_not_writable_by_work4you(
     built_image: str, container_name: str,
 ) -> None:
-    """The wayne user must not be able to modify /opt/wayne.
+    """The work4you user must not be able to modify /opt/work4you.
 
     The install tree (source, venv, TUI bundle, node_modules) must remain
     root-owned and non-writable so an agent session cannot self-modify
@@ -31,29 +31,29 @@ def test_install_tree_not_writable_by_wayne(
 
     r = docker_exec_sh(
         container_name,
-        # Try to create a file under /opt/wayne as the wayne user
-        "touch /opt/wayne/test_write 2>&1 && "
+        # Try to create a file under /opt/work4you as the work4you user
+        "touch /opt/work4you/test_write 2>&1 && "
         "echo WRITE_SUCCEEDED || echo WRITE_FAILED",
         timeout=10,
     )
     assert "WRITE_FAILED" in r.stdout, (
-        f"wayne user can write to /opt/wayne (install tree not immutable): "
+        f"work4you user can write to /opt/work4you (install tree not immutable): "
         f"{r.stdout}"
     )
 
     # Also check a key subdirectory
     r = docker_exec_sh(
         container_name,
-        "touch /opt/wayne/.venv/test_write 2>&1 && "
+        "touch /opt/work4you/.venv/test_write 2>&1 && "
         "echo WRITE_SUCCEEDED || echo WRITE_FAILED",
         timeout=10,
     )
     assert "WRITE_FAILED" in r.stdout, (
-        f"wayne user can write to /opt/wayne/.venv: {r.stdout}"
+        f"work4you user can write to /opt/work4you/.venv: {r.stdout}"
     )
 
 
-def test_wayne_disable_lazy_installs_and_dont_write_bytecode(
+def test_disable_lazy_installs_and_dont_write_bytecode(
     built_image: str, container_name: str,
 ) -> None:
     """The container must set PYTHONDONTWRITEBYTECODE and
@@ -78,17 +78,17 @@ def test_install_method_stamp_is_code_scoped(
     built_image: str, container_name: str,
 ) -> None:
     """The 'docker' install-method stamp must be baked at
-    /opt/wayne/.install_method (code-scoped), NOT in $WAYNE_HOME."""
+    /opt/work4you/.install_method (code-scoped), NOT in $WAYNE_HOME."""
     start_container(built_image, container_name)
 
     # Code-scoped stamp must exist and say "docker"
     r = docker_exec_sh(
         container_name,
-        "cat /opt/wayne/.install_method",
+        "cat /opt/work4you/.install_method",
         timeout=10,
     )
     assert r.returncode == 0, (
-        f"/opt/wayne/.install_method not found: {r.stderr}"
+        f"/opt/work4you/.install_method not found: {r.stderr}"
     )
     assert r.stdout.strip() == "docker", (
         f"expected 'docker' stamp, got: {r.stdout.strip()!r}"

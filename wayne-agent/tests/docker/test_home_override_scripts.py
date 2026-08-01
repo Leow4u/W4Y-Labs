@@ -62,15 +62,15 @@ def test_dashboard_service_resets_home(
     # Check if the dashboard process is running and inspect its HOME.
     r = docker_exec_sh(
         container_name,
-        # Find the dashboard process (wayne dashboard) and read its HOME
+        # Find the dashboard process (work4you dashboard) and read its HOME
         # from /proc/<pid>/environ. If not running, verify the run script
         # itself exports HOME=/opt/data by grepping the script source.
-        'pid=$(pgrep -f "wayne dashboard" | head -1); '
+        'pid=$(pgrep -f "work4you dashboard" | head -1); '
         'if [ -n "$pid" ]; then '
         '  tr "\\0" "\\n" < /proc/$pid/environ | grep "^HOME="; '
         'else '
         '  grep -q "export HOME=/opt/data" '
-        '    /opt/wayne/docker/s6-rc.d/dashboard/run && '
+        '    /opt/work4you/docker/s6-rc.d/dashboard/run && '
         '  echo "HOME=/opt/data"; '
         'fi',
         timeout=15,
@@ -101,7 +101,7 @@ def test_dashboard_does_not_auto_insecure_from_host(
     # Check the dashboard process command line for --insecure.
     r = docker_exec_sh(
         container_name,
-        'pid=$(pgrep -f "wayne dashboard" | head -1); '
+        'pid=$(pgrep -f "work4you dashboard" | head -1); '
         'if [ -n "$pid" ]; then '
         '  tr "\\0" " " < /proc/$pid/cmdline; '
         'fi',
@@ -121,7 +121,7 @@ def test_stage2_repairs_profiles_and_cron_ownership(
 ) -> None:
     """profiles/ and cron/ must both be reclaimed after root-context writes.
 
-    The stage2 hook chowns these dirs to wayne:wayne on every boot.
+    The stage2 hook chowns these dirs to work4you:work4you on every boot.
     We simulate a root-owned file in each, then restart the container
     and verify ownership is repaired.
     """
@@ -156,14 +156,14 @@ def test_stage2_repairs_profiles_and_cron_ownership(
     # Restart — stage2 hook runs again and repairs ownership.
     restart_container(container_name)
 
-    # Verify files are now owned by wayne.
+    # Verify files are now owned by work4you.
     r = docker_exec_sh(
         container_name,
         'stat -c "%U" /opt/data/profiles/testprof/marker '
         '/opt/data/cron/root_owned.json',
         timeout=5,
     )
-    assert "wayne" in r.stdout, (
-        f"expected wayne-owned files after restart, got: {r.stdout!r} — "
+    assert "work4you" in r.stdout, (
+        f"expected work4you-owned files after restart, got: {r.stdout!r} — "
         f"stage2 hook did not repair profiles/ and cron/ ownership"
     )

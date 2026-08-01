@@ -19,7 +19,7 @@ from collections.abc import Iterator
 
 import pytest
 
-IMAGE_TAG = os.environ.get("WAYNE_TEST_IMAGE", "wayne-agent-harness:latest")
+IMAGE_TAG = os.environ.get("WAYNE_TEST_IMAGE", "work4you-agent-harness:latest")
 
 
 def _docker_available() -> bool:
@@ -79,7 +79,7 @@ def built_image() -> str:
 def container_name(request) -> Iterator[str]:
     """Generate a unique container name and ensure cleanup on test exit."""
     safe = request.node.name.replace("[", "_").replace("]", "_")
-    name = f"wayne-test-{safe}"
+    name = f"work4you-test-{safe}"
     yield name
     subprocess.run(
         ["docker", "rm", "-f", name],
@@ -88,19 +88,19 @@ def container_name(request) -> Iterator[str]:
 
 
 # ---------------------------------------------------------------------------
-# docker_exec — default to the unprivileged wayne user
+# docker_exec — default to the unprivileged work4you user
 # ---------------------------------------------------------------------------
 #
-# Background: every Wayne runtime path inside the container drops to UID
-# 10000 (the ``wayne`` user) via ``s6-setuidgid wayne``. ``docker exec``
+# Background: every Work4You runtime path inside the container drops to UID
+# 10000 (the ``work4you`` user) via ``s6-setuidgid work4you``. ``docker exec``
 # without ``-u`` runs as root, which is **not** representative of how
 # production code executes. PR #30136 review caught a real regression
 # this way — ``Path('/proc/1/exe').resolve()`` works as root and silently
-# fails (PermissionError swallowed) for wayne, so a test that ran as root
+# fails (PermissionError swallowed) for work4you, so a test that ran as root
 # couldn't catch a feature that was inert for the actual runtime user.
 #
 # Tests in this directory MUST exercise the realistic user context. The
-# helpers below run every probe under ``-u wayne`` unless a specific
+# helpers below run every probe under ``-u work4you`` unless a specific
 # test explicitly opts into ``user="root"`` (rare — e.g. inspecting
 # /proc/1/exe itself, chowning a volume).
 # ---------------------------------------------------------------------------
@@ -109,11 +109,11 @@ def container_name(request) -> Iterator[str]:
 def docker_exec(
     container: str,
     *args: str,
-    user: str = "wayne",
+    user: str = "work4you",
     timeout: int = 30,
     extra_docker_args: tuple[str, ...] = (),
 ) -> subprocess.CompletedProcess[str]:
-    """Run a command inside ``container`` as ``user`` (default: wayne).
+    """Run a command inside ``container`` as ``user`` (default: work4you).
 
     Returns the CompletedProcess with text=True, capture_output=True.
 
@@ -131,7 +131,7 @@ def docker_exec_sh(
     container: str,
     command: str,
     *,
-    user: str = "wayne",
+    user: str = "work4you",
     timeout: int = 30,
 ) -> subprocess.CompletedProcess[str]:
     """Run ``sh -c <command>`` inside the container as ``user``."""
@@ -232,7 +232,7 @@ def poll_container(
     *,
     deadline_s: float = 30.0,
     interval_s: float = 0.5,
-    user: str = "wayne",
+    user: str = "work4you",
 ) -> tuple[bool, str]:
     """Repeatedly run ``probe`` inside the container until it exits 0 or
     ``deadline_s`` elapses.
