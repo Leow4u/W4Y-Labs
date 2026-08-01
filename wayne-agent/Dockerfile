@@ -122,16 +122,16 @@ RUN ln -s /opt/work4you /opt/wayne
 # carry a root package-lock.json, so the plain `npm install` below resolves
 # from the manifests directly.
 #
-# ui-tui/packages/wayne-ink/ is copied IN FULL (not just its manifests)
+# ui-tui/packages/work4you-ink/ is copied IN FULL (not just its manifests)
 # because it is referenced as a `file:` workspace dependency from
 # ui-tui/package.json.  Copying the tree up front lets npm resolve the
 # workspace to real content instead of stopping at a bare package.json.
 COPY package.json ./
 COPY web/package.json web/
 COPY ui-tui/package.json ui-tui/
-COPY ui-tui/packages/wayne-ink/ ui-tui/packages/wayne-ink/
+COPY ui-tui/packages/work4you-ink/ ui-tui/packages/work4you-ink/
 # apps/shared (@wayne/shared) is copied IN FULL for the same reason as
-# wayne-ink above: web/ references it as a `file:../apps/shared` workspace
+# work4you-ink above: web/ references it as a `file:../apps/shared` workspace
 # dependency (it re-exports ./src/index.ts directly, no build step). Without
 # it, `npm install` can't resolve the workspace symlink and the web build
 # below fails with "Cannot find module '@wayne/shared'". W4Y fork addition:
@@ -144,7 +144,7 @@ COPY apps/shared/ apps/shared/
 # explicitly anyway as defense-in-depth: the previous Debian-bundled npm
 # 9.x defaulted to install-as-copy, which produced a hidden
 # node_modules/.package-lock.json that permanently disagreed with the root
-# lock on the @wayne/ink entry, tripped the TUI launcher's
+# lock on the @work4you/ink entry, tripped the TUI launcher's
 # `_tui_need_npm_install()` check on every startup, and triggered a
 # runtime `npm install` that then failed with EACCES.  Keeping the env
 # guards against a future regression if the source npm version changes.
