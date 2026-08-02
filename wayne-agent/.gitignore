@@ -14,12 +14,14 @@ __pycache__/
 .env.production.local
 .env.development
 .env.test
+.work4you-docker/
 .wayne-docker/
 .notebooklm-home/
 .notebooklm-cli-venv/
 .notebooklm-playwright/
 .pip-cache/
 .uv-cache/
+compose.work4you.local.yml
 compose.wayne.local.yml
 export*
 __pycache__/model_tools.cpython-310.pyc
@@ -31,6 +33,7 @@ test_durations.json
 .pytest-cache/
 tmp/
 temp_vision_images/
+work4you-*/*
 wayne-*/*
 examples/
 tests/quick_test_dataset.jsonl
@@ -50,6 +53,7 @@ agent-browser/
 privvy*
 images/
 __pycache__/
+work4you_agent.egg-info/
 wayne_agent.egg-info/
 wandb/
 testlogs
@@ -64,7 +68,7 @@ ignored/
 environments/benchmarks/evals/
 
 # Web UI build output
-wayne_cli/web_dist/
+work4you_cli/web_dist/
 apps/desktop/build/
 apps/desktop/dist/
 apps/desktop/release/
@@ -104,18 +108,20 @@ models-dev-upstream/
 opencode.json
 config/mcporter.json
 
-wayne_cli/tui_dist/*
-wayne_cli/scripts/
+work4you_cli/tui_dist/*
+work4you_cli/scripts/
 docs/superpowers/*
 # Working directory for the Wayne Agent's session state (~/.wayne/ at runtime;
 # also created in-repo when an agent operates in this checkout). Plans, audit
 # logs, and per-session caches are never artifacts of the codebase.
+.work4you/
 .wayne/
 
 # Desktop/bootstrap install marker written into the managed checkout root by the
 # bootstrap installer. It is Wayne-managed runtime state, never a code change —
 # ignore it so `wayne update`'s `git stash push --include-untracked` does not
 # treat it as a local edit and autostash it on every run (#38529).
+.work4you-bootstrap-complete
 .wayne-bootstrap-complete
 
 # Interrupted-update breadcrumb + recovery lock written next to the shared venv

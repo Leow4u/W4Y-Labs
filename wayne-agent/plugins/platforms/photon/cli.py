@@ -1,5 +1,5 @@
 """
-``wayne photon ...`` CLI subcommands — registered by the plugin via
+``work4you photon ...`` CLI subcommands — registered by the plugin via
 ``ctx.register_cli_command()``.
 
 Subcommands:
@@ -37,7 +37,7 @@ _SIDECAR_DIR = Path(__file__).parent / "sidecar"
 # argparse wiring
 
 def register_cli(parser: argparse.ArgumentParser) -> None:
-    """Wire up `wayne photon ...` subcommands."""
+    """Wire up `work4you photon ...` subcommands."""
     subs = parser.add_subparsers(dest="photon_command", required=False)
 
     p_setup = subs.add_parser(
@@ -98,7 +98,7 @@ def _run_device_login(args: argparse.Namespace) -> int:
     """Run the RFC 8628 device-code login flow and persist the token.
 
     Internal helper — invoked as the first step of ``setup``. There is
-    no standalone ``wayne photon login`` command; Photon onboards
+    no standalone ``work4you photon login`` command; Photon onboards
     through the single ``setup`` surface like every other channel.
     """
     def _print_code(code):
@@ -405,15 +405,15 @@ def _install_sidecar() -> int:
 # ---------------------------------------------------------------------------
 # Gateway-setup entry point
 #
-# `wayne gateway setup` discovers platforms via the registry and calls each
+# `work4you gateway setup` discovers platforms via the registry and calls each
 # entry's zero-arg ``setup_fn``. Photon registers this function so it appears
 # in the unified setup wizard alongside every other channel — same onboarding
 # surface, no Photon-specific detour. It runs the identical device-login +
-# project + user + sidecar flow as ``wayne photon setup`` with interactive
+# project + user + sidecar flow as ``work4you photon setup`` with interactive
 # defaults (phone is prompted when stdin is a TTY).
 
 def gateway_setup() -> None:
-    """Run Photon first-time setup from the `wayne gateway setup` wizard."""
+    """Run Photon first-time setup from the `work4you gateway setup` wizard."""
     args = argparse.Namespace(
         photon_command="setup",
         project_name=None,

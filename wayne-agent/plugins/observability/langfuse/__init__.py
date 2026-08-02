@@ -3,12 +3,12 @@
 Traces Wayne conversations, LLM calls, and tool usage to Langfuse.
 
 Activation is handled by the Wayne plugin system — standalone plugins only
-load when listed in ``plugins.enabled`` (via ``wayne plugins enable
-observability/langfuse`` or ``wayne tools → Langfuse Observability``). At
+load when listed in ``plugins.enabled`` (via ``work4you plugins enable
+observability/langfuse`` or ``work4you tools → Langfuse Observability``). At
 runtime the plugin also requires the ``langfuse`` SDK and credentials; if
 either is missing the hooks are inert.
 
-Required env vars (set via ``wayne tools`` or ~/.wayne/.env):
+Required env vars (set via ``work4you tools`` or ~/.wayne/.env):
   WAYNE_LANGFUSE_PUBLIC_KEY  - Langfuse project public key (pk-lf-...)
   WAYNE_LANGFUSE_SECRET_KEY  - Langfuse project secret key (sk-lf-...)
   WAYNE_LANGFUSE_BASE_URL    - Langfuse server URL (default: https://cloud.langfuse.com)

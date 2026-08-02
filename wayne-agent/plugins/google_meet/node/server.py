@@ -5,7 +5,7 @@ Mac laptop with a signed-in Chrome). Exposes a WebSocket endpoint that
 accepts signed RPC requests and dispatches them to the existing
 ``plugins.google_meet.process_manager`` module.
 
-Launched by ``wayne meet node run``.
+Launched by ``work4you meet node run``.
 
 Token handling
 --------------
@@ -13,7 +13,7 @@ On first boot we mint 32 hex chars of entropy and persist them at
 ``$WAYNE_HOME/workspace/meetings/node_token.json``. Subsequent boots
 reuse the same token so previously-approved gateways don't need to be
 re-paired. The operator copies this token out-of-band to the gateway
-via ``wayne meet node approve <name> <url> <token>``.
+via ``work4you meet node approve <name> <url> <token>``.
 
 Dependencies
 ------------

@@ -1,9 +1,11 @@
 import { createWriteStream } from 'node:fs'
 import { mkdir, readdir, readFile, stat, unlink, writeFile } from 'node:fs/promises'
-import { homedir, tmpdir } from 'node:os'
+import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { getHeapSnapshot, getHeapSpaceStatistics, getHeapStatistics } from 'node:v8'
+
+import { homeDir } from './homeDir.js'
 
 export type MemoryTrigger = 'auto-critical' | 'auto-high' | 'manual'
 
@@ -148,7 +150,11 @@ export async function performHeapDump(trigger: MemoryTrigger = 'manual'): Promis
     // Diagnostics first — heap-snapshot serialization can crash on very large
     // heaps, and the JSON sidecar is the most actionable artifact if so.
     const diagnostics = await captureMemoryDiagnostics(trigger)
-    const dir = process.env.WAYNE_HEAPDUMP_DIR?.trim() || join(homedir() || tmpdir(), '.wayne', 'heapdumps')
+    // Resolve the home dynamically: the brand migration moved the root from
+    // `~/.wayne` to `~/.work4you` (and Windows to `%LOCALAPPDATA%\work4you`),
+    // so a hardcoded `.wayne` wrote dumps into a directory the user no longer
+    // has. `homeDir()` probes the same order the Python engine does.
+    const dir = process.env.WAYNE_HEAPDUMP_DIR?.trim() || join(homeDir() || tmpdir(), 'heapdumps')
 
     await mkdir(dir, { recursive: true })
 

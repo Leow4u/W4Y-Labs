@@ -1502,14 +1502,14 @@ def validate_config(config) -> bool:
 
 
 def is_connected(config) -> bool:
-    """Surface in ``wayne status`` even before the adapter is instantiated."""
+    """Surface in ``work4you status`` even before the adapter is instantiated."""
     return validate_config(config)
 
 
 def _env_enablement() -> Optional[Dict[str, Any]]:
     """Auto-seed PlatformConfig.extra from env-only setups.
 
-    Lets ``wayne status`` reflect a LINE configuration that lives entirely
+    Lets ``work4you status`` reflect a LINE configuration that lives entirely
     in ``.env`` without a ``platforms.line`` block in ``config.yaml``.
     Mirrors the IRC plugin's pattern.
     """
@@ -1576,7 +1576,7 @@ async def _standalone_send(
 
 
 def interactive_setup() -> None:
-    """Minimal stdin wizard for ``wayne setup line``.
+    """Minimal stdin wizard for ``work4you setup line``.
 
     Mirrors the irc/teams style: prompts for the two required vars, plus
     one optional public URL. Writes to ``~/.wayne/.env`` via ``work4you_cli.config``.

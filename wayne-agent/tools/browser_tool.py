@@ -232,6 +232,13 @@ MIN_FIRST_OPEN_TIMEOUT = 120
 # Max tokens for snapshot content before summarization
 SNAPSHOT_SUMMARIZE_THRESHOLD = 8000
 
+# What to tell a containerised user whose image predates the bundled Chromium.
+# Rebuild from the local engine checkout — never ``docker pull``: this fork
+# publishes no image, so a pull would swap in a different engine.  Same rule
+# (and same command) as
+# ``work4you_cli.config.recommended_update_command_for_method("docker")``.
+_DOCKER_REBUILD_CMD = "docker compose build && docker compose up -d --force-recreate"
+
 # Commands that legitimately return empty stdout (e.g. close, record).
 _EMPTY_OK_COMMANDS: frozenset = frozenset({"close", "record"})
 
@@ -362,8 +369,8 @@ def _format_browser_timeout_error(
         if _running_in_docker():
             hints.append(
                 "The browser daemon may still be starting or Chromium may be "
-                "missing. Pull the latest image: "
-                "docker pull ghcr.io/nousresearch/wayne-agent:latest"
+                "missing. Rebuild the image from your engine checkout: "
+                f"{_DOCKER_REBUILD_CMD}"
             )
         else:
             hints.append(
@@ -1028,8 +1035,8 @@ def _run_chrome_fallback_command(
         if _running_in_docker():
             hint = (
                 "Chrome fallback requires Chromium, but it is missing. "
-                "You're running in Docker — pull the latest image: "
-                "docker pull ghcr.io/nousresearch/wayne-agent:latest"
+                "You're running in Docker — rebuild the image from your engine "
+                f"checkout: {_DOCKER_REBUILD_CMD}"
             )
         else:
             hint = (
@@ -2305,9 +2312,9 @@ def _run_browser_command(
     ):
         if _running_in_docker():
             hint = (
-                "Chromium browser is missing. You're running in Docker — pull "
-                "the latest image to get the bundled Chromium: "
-                "docker pull ghcr.io/nousresearch/wayne-agent:latest"
+                "Chromium browser is missing. You're running in Docker — "
+                "rebuild the image from your engine checkout to get the "
+                f"bundled Chromium: {_DOCKER_REBUILD_CMD}"
             )
         else:
             hint = (
@@ -4688,10 +4695,11 @@ if __name__ == "__main__":
                 print(f"     Searched: {searched}")
                 if _running_in_docker():
                     print(
-                        "     Docker: pull the latest image — the current one "
-                        "predates the bundled Chromium install"
+                        "     Docker: rebuild the image from your engine "
+                        "checkout — the current one predates the bundled "
+                        "Chromium install"
                     )
-                    print("       docker pull ghcr.io/nousresearch/wayne-agent:latest")
+                    print(f"       {_DOCKER_REBUILD_CMD}")
                 else:
                     print("     Install it with:")
                     print("       npx agent-browser install --with-deps")

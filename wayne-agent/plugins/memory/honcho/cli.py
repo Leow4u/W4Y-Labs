@@ -1,6 +1,6 @@
 """CLI commands for Honcho integration management.
 
-Handles: wayne honcho setup | status | sessions | map | peer
+Handles: work4you honcho setup | status | sessions | map | peer
 """
 
 from __future__ import annotations
@@ -161,7 +161,7 @@ def cmd_disable(args) -> None:
 def cmd_sync(args) -> None:
     """Sync Honcho config to all existing profiles.
 
-    Scans all Wayne profiles and creates host blocks for any that don't
+    Scans all Work4You profiles and creates host blocks for any that don't
     have one yet. Inherits settings from the default host block.
     """
     try:
@@ -173,7 +173,7 @@ def cmd_sync(args) -> None:
 
     cfg = _read_config()
     if not cfg:
-        print("  No Honcho config found. Run 'wayne honcho setup' first.\n")
+        print("  No Honcho config found. Run 'work4you honcho setup' first.\n")
         return
 
     hosts = cfg.get("hosts", {})
@@ -181,7 +181,7 @@ def cmd_sync(args) -> None:
     has_key = bool(cfg.get("apiKey") or os.environ.get("HONCHO_API_KEY"))
 
     if not default_block and not has_key:
-        print("  Honcho not configured on default profile. Run 'wayne honcho setup' first.\n")
+        print("  Honcho not configured on default profile. Run 'work4you honcho setup' first.\n")
         return
 
     created = 0
@@ -207,7 +207,7 @@ def cmd_sync(args) -> None:
 def sync_honcho_profiles_quiet() -> int:
     """Sync Honcho host blocks for all profiles. Returns count of newly created blocks.
 
-    Called from `wayne update` -- no output, no exceptions.
+    Called from `work4you update` -- no output, no exceptions.
     """
     try:
         from work4you_cli.profiles import list_profiles
@@ -237,7 +237,7 @@ _profile_override: str | None = None
 
 
 def _host_key() -> str:
-    """Return the active Honcho host key, derived from the current Wayne profile."""
+    """Return the active Honcho host key, derived from the current Work4You profile."""
     if _profile_override:
         if _profile_override in {"default", "custom"}:
             return HOST
@@ -539,7 +539,7 @@ def cmd_setup(args) -> None:
     write_path = _local_config_path()
     read_path = _config_path()
     print("\nHoncho memory setup\n" + "─" * 40)
-    print("  Honcho gives Wayne persistent cross-session memory.")
+    print("  Honcho gives Work4You persistent cross-session memory.")
     print(f"  Config: {write_path}")
     if read_path != write_path and read_path.exists():
         print(f"  (seeding from existing config at {read_path})")
@@ -663,7 +663,7 @@ def cmd_setup(args) -> None:
                 )
             except Exception as e:
                 print(f"  OAuth sign-in failed: {e}")
-                print("  Re-run 'wayne honcho setup' to retry, or choose an API key instead.\n")
+                print("  Re-run 'work4you honcho setup' to retry, or choose an API key instead.\n")
                 return
             wayne_host["apiKey"] = cred.access_token
             wayne_host["oauth"] = cred.oauth_block()
@@ -681,7 +681,7 @@ def cmd_setup(args) -> None:
 
             if not cfg.get("apiKey"):
                 print("\n  No API key configured. Get yours at https://app.honcho.dev")
-                print("  Run 'wayne honcho setup' again once you have a key.\n")
+                print("  Run 'work4you honcho setup' again once you have a key.\n")
                 return
 
     # --- 3. Identity ---
@@ -701,7 +701,7 @@ def cmd_setup(args) -> None:
         wayne_host["workspace"] = new_workspace
 
     # --- 3b. Gateway identity mapping ---
-    # These keys only affect the Wayne GATEWAY (Telegram/Discord/Slack/...),
+    # These keys only affect the Work4You GATEWAY (Telegram/Discord/Slack/...),
     # the one entrypoint that supplies a runtime user ID.  CLI/TUI/desktop/ACP
     # sessions have no runtime ID and fall through to peerName, so the step is
     # moot off-gateway — gate it behind detection.
@@ -728,7 +728,7 @@ def cmd_setup(args) -> None:
     if gw_platforms is None:
         print("\n  Gateway identity mapping routes platform users to memory peers.")
         run_mapping = _prompt(
-            "Running the Wayne gateway (Telegram/Discord/etc.)? (y/N)",
+            "Running the Work4You gateway (Telegram/Discord/etc.)? (y/N)",
             default="n",
         ).strip().lower() in {"y", "yes"}
     elif not gw_platforms:
@@ -941,7 +941,7 @@ def cmd_setup(args) -> None:
         print("  Memory provider set to 'honcho' in config.yaml")
     except Exception as e:
         print(f"  Could not auto-enable in config.yaml: {e}")
-        print("  Run: wayne config set memory.provider honcho")
+        print("  Run: work4you config set memory.provider honcho")
 
     # --- Test connection ---
     print("  Testing connection... ", end="", flush=True)
@@ -971,15 +971,15 @@ def cmd_setup(args) -> None:
     print("    honcho_reasoning -- ask Honcho a question, synthesized answer")
     print("    honcho_conclude  -- persist a user fact to memory")
     print("\n  Other commands:")
-    print("    wayne honcho status     -- show full config")
-    print("    wayne honcho mode       -- change recall/observation mode")
-    print("    wayne honcho tokens     -- tune context and dialectic budgets")
-    print("    wayne honcho peer       -- update peer names")
-    print("    wayne honcho map <name> -- map this directory to a session name\n")
+    print("    work4you honcho status     -- show full config")
+    print("    work4you honcho mode       -- change recall/observation mode")
+    print("    work4you honcho tokens     -- tune context and dialectic budgets")
+    print("    work4you honcho peer       -- update peer names")
+    print("    work4you honcho map <name> -- map this directory to a session name\n")
 
 
 def _active_profile_name() -> str:
-    """Return the active Wayne profile name (respects --target-profile override)."""
+    """Return the active Work4You profile name (respects --target-profile override)."""
     if _profile_override:
         return _profile_override
     try:
@@ -1028,7 +1028,7 @@ def cmd_status(args) -> None:
     try:
         import honcho  # noqa: F401
     except ImportError:
-        print("  honcho-ai is not installed. Run: wayne honcho setup\n")
+        print("  honcho-ai is not installed. Run: work4you honcho setup\n")
         return
 
     cfg = _read_config()
@@ -1046,11 +1046,11 @@ def cmd_status(args) -> None:
                 cfg = {"apiKey": _env_cfg.api_key, "enabled": _env_cfg.enabled}
             else:
                 print(f"  No Honcho config found at {active_path}")
-                print("  Run 'wayne honcho setup' to configure.\n")
+                print("  Run 'work4you honcho setup' to configure.\n")
                 return
         except Exception:
             print(f"  No Honcho config found at {active_path}")
-            print("  Run 'wayne honcho setup' to configure.\n")
+            print("  Run 'work4you honcho setup' to configure.\n")
             return
 
     try:
@@ -1213,7 +1213,7 @@ def cmd_sessions(args) -> None:
 
     if not sessions:
         print("  No session mappings configured.\n")
-        print("  Add one with: wayne honcho map <session-name>")
+        print("  Add one with: work4you honcho map <session-name>")
         print(f"  Or edit {_config_path()} directly.\n")
         return
 
@@ -1273,7 +1273,7 @@ def cmd_peer(args) -> None:
         print(f"  User peer:   {user}")
         print("    Your identity in Honcho. Messages you send build this peer's card.")
         print(f"  AI peer:     {ai}")
-        print("    Wayne' identity in Honcho. Seed with 'wayne honcho identity <file>'.")
+        print("    Work4You's identity in Honcho. Seed with 'work4you honcho identity <file>'.")
         print("    Dialectic calls ask this peer questions to warm session context.")
         print()
         print(f"  Dialectic reasoning:  {lvl}  ({', '.join(REASONING_LEVELS)})")
@@ -1326,7 +1326,7 @@ def cmd_mode(args) -> None:
         for m, desc in MODES.items():
             marker = " <-" if m == current else ""
             print(f"  {m:<10}  {desc}{marker}")
-        print(f"\n  Set with: wayne honcho mode [hybrid|context|tools]\n")
+        print(f"\n  Set with: work4you honcho mode [hybrid|context|tools]\n")
         return
 
     if mode_arg not in MODES:
@@ -1361,7 +1361,7 @@ def cmd_strategy(args) -> None:
         for s, desc in STRATEGIES.items():
             marker = " <-" if s == current else ""
             print(f"  {s:<15}  {desc}{marker}")
-        print(f"\n  Set with: wayne honcho strategy [per-session|per-directory|per-repo|global]\n")
+        print(f"\n  Set with: work4you honcho strategy [per-session|per-directory|per-repo|global]\n")
         return
 
     if strat_arg not in STRATEGIES:
@@ -1395,11 +1395,11 @@ def cmd_tokens(args) -> None:
         print("    the user and session, injected directly into the system prompt.")
         print()
         print(f"  Dialectic   {d_chars} chars, reasoning: {d_level}")
-        print("    AI-to-AI inference. Wayne asks Honcho's AI peer a question")
+        print("    AI-to-AI inference. Work4You asks Honcho's AI peer a question")
         print("    (e.g. \"what were we working on?\") and Honcho runs its own model")
         print("    to synthesize an answer. Used for first-turn session continuity.")
         print("    Level controls how much reasoning Honcho spends on the answer.")
-        print("\n  Set with: wayne honcho tokens [--context N] [--dialectic N]\n")
+        print("\n  Set with: work4you honcho tokens [--context N] [--dialectic N]\n")
         return
 
     host = _host_key()
@@ -1423,7 +1423,7 @@ def cmd_identity(args) -> None:
     """Seed AI peer identity or show both peer representations."""
     cfg = _read_config()
     if not _resolve_api_key(cfg):
-        print("  No API key configured. Run 'wayne honcho setup' first.\n")
+        print("  No API key configured. Run 'work4you honcho setup' first.\n")
         return
 
     file_path = getattr(args, "file", None)
@@ -1460,7 +1460,7 @@ def cmd_identity(args) -> None:
             print(ai_rep["card"])
         else:
             print("  No representation built yet.")
-            print("  Run 'wayne honcho identity <file>' to seed one.")
+            print("  Run 'work4you honcho identity <file>' to seed one.")
         print()
         return
 
@@ -1469,8 +1469,8 @@ def cmd_identity(args) -> None:
         print(f"  User peer: {hcfg.peer_name or 'not set'}")
         print(f"  AI peer:   {hcfg.ai_peer}")
         print()
-        print("    wayne honcho identity --show        — show both peer representations")
-        print("    wayne honcho identity <file>        — seed AI peer from SOUL.md or any .md/.txt\n")
+        print("    work4you honcho identity --show        — show both peer representations")
+        print("    work4you honcho identity <file>        — seed AI peer from SOUL.md or any .md/.txt\n")
         return
 
     from pathlib import Path
@@ -1494,7 +1494,7 @@ def cmd_identity(args) -> None:
 
 
 def cmd_migrate(args) -> None:
-    """Step-by-step migration guide: OpenClaw native memory → Wayne + Honcho."""
+    """Step-by-step migration guide: OpenClaw native memory → Work4You + Honcho."""
     from pathlib import Path
 
     # ── Detect OpenClaw native memory files ──────────────────────────────────
@@ -1522,7 +1522,7 @@ def cmd_migrate(args) -> None:
     cfg = _read_config()
     has_key = bool(_resolve_api_key(cfg))
 
-    print("\nHoncho migration: OpenClaw native memory → Wayne\n" + "─" * 50)
+    print("\nHoncho migration: OpenClaw native memory → Work4You\n" + "─" * 50)
     print()
     print("  OpenClaw's native memory stores context in local markdown files")
     print("  (USER.md, MEMORY.md, SOUL.md, ...) and injects them via QMD search.")
@@ -1539,21 +1539,21 @@ def cmd_migrate(args) -> None:
         print(f"  Honcho API key already configured: {masked}")
         print("  Skip to Step 2.")
     else:
-        print("  Honcho is a cloud memory service that gives Wayne persistent memory")
+        print("  Honcho is a cloud memory service that gives Work4You persistent memory")
         print("  across sessions. You need an API key to use it.")
         print()
         print("  1. Get your API key at https://app.honcho.dev")
-        print("  2. Run:  wayne honcho setup")
+        print("  2. Run:  work4you honcho setup")
         print("     Paste the key when prompted.")
         print()
-        answer = _prompt("  Run 'wayne honcho setup' now?", default="y")
+        answer = _prompt("  Run 'work4you honcho setup' now?", default="y")
         if answer.lower() in {"y", "yes"}:
             cmd_setup(args)
             cfg = _read_config()
             has_key = bool(cfg.get("apiKey", ""))
         else:
             print()
-            print("  Run 'wayne honcho setup' when ready, then re-run this walkthrough.")
+            print("  Run 'work4you honcho setup' when ready, then re-run this walkthrough.")
 
     # ── Step 2: Detected files ────────────────────────────────────────────────
     print()
@@ -1571,7 +1571,7 @@ def cmd_migrate(args) -> None:
     else:
         print("  No OpenClaw native memory files found in cwd or ~/.openclaw/.")
         print("  If your files are elsewhere, copy them here before continuing,")
-        print("  or seed them manually:  wayne honcho identity <path/to/file>")
+        print("  or seed them manually:  work4you honcho identity <path/to/file>")
 
     # ── Step 3: Migrate user memory ───────────────────────────────────────────
     print()
@@ -1584,13 +1584,13 @@ def cmd_migrate(args) -> None:
     if user_files:
         print(f"  Found: {', '.join(f.name for f in user_files)}")
         print()
-        print("  These are picked up automatically the first time you run 'wayne'")
+        print("  These are picked up automatically the first time you run 'work4you'")
         print("  with Honcho configured and no prior session history.")
-        print("  (Wayne calls migrate_memory_files() on first session init.)")
+        print("  (Work4You calls migrate_memory_files() on first session init.)")
         print()
         print("  If you want to migrate them now without starting a session:")
         for f in user_files:
-            print("    wayne honcho migrate  — this step handles it interactively")
+            print("    work4you honcho migrate  — this step handles it interactively")
         if has_key:
             answer = _prompt("  Upload user memory files to Honcho now?", default="y")
             if answer.lower() in {"y", "yes"}:
@@ -1621,7 +1621,7 @@ def cmd_migrate(args) -> None:
                 except Exception as e:
                     print(f"  Failed: {e}")
         else:
-            print("  Run 'wayne honcho setup' first, then re-run this step.")
+            print("  Run 'work4you honcho setup' first, then re-run this step.")
     else:
         print("  No user memory files detected. Nothing to migrate here.")
 
@@ -1633,7 +1633,7 @@ def cmd_migrate(args) -> None:
     print("  agent's character, capabilities, and behavioral rules. In OpenClaw")
     print("  these are injected via file search at prompt-build time.")
     print()
-    print("  In Wayne, they are seeded once into Honcho's AI peer through the")
+    print("  In Work4You, they are seeded once into Honcho's AI peer through the")
     print("  observation pipeline. Honcho builds a representation from them and")
     print("  from every subsequent assistant message (observe_me=True). Over time")
     print("  the representation reflects actual behavior, not just declaration.")
@@ -1667,12 +1667,12 @@ def cmd_migrate(args) -> None:
                 except Exception as e:
                     print(f"  Failed: {e}")
         else:
-            print("  Run 'wayne honcho setup' first, then seed manually:")
+            print("  Run 'work4you honcho setup' first, then seed manually:")
             for f in agent_files:
-                print(f"    wayne honcho identity {f}")
+                print(f"    work4you honcho identity {f}")
     else:
         print("  No agent identity files detected.")
-        print("  To seed manually:  wayne honcho identity <path/to/SOUL.md>")
+        print("  To seed manually:  work4you honcho identity <path/to/SOUL.md>")
 
     # ── Step 5: What changes ──────────────────────────────────────────────────
     print()
@@ -1680,17 +1680,17 @@ def cmd_migrate(args) -> None:
     print()
     print("  Storage")
     print("    OpenClaw: markdown files on disk, searched via QMD at prompt-build time.")
-    print("    Wayne:   cloud-backed Honcho peers. Files can stay on disk as source")
+    print("    Work4You: cloud-backed Honcho peers. Files can stay on disk as source")
     print("              of truth; Honcho holds the live representation.")
     print()
     print("  Context injection")
     print("    OpenClaw: file excerpts injected synchronously before each LLM call.")
-    print("    Wayne:   Honcho context fetched async at turn end, injected next turn.")
+    print("    Work4You: Honcho context fetched async at turn end, injected next turn.")
     print("              First turn has no Honcho context; subsequent turns are loaded.")
     print()
     print("  Memory growth")
     print("    OpenClaw: you edit files manually to update memory.")
-    print("    Wayne:   Honcho observes every message and updates representations")
+    print("    Work4You: Honcho observes every message and updates representations")
     print("              automatically. Files become the seed, not the live store.")
     print()
     print("  Honcho tools (available to the agent during conversation)")
@@ -1702,23 +1702,23 @@ def cmd_migrate(args) -> None:
     print()
     print("  Session naming")
     print("    OpenClaw: no persistent session concept — files are global.")
-    print("    Wayne:   per-session by default — each run gets its own session")
-    print("              Map a custom name:  wayne honcho map <session-name>")
+    print("    Work4You: per-session by default — each run gets its own session")
+    print("              Map a custom name:  work4you honcho map <session-name>")
 
     # ── Step 6: Next steps ────────────────────────────────────────────────────
     print()
     print("Step 6  Next steps")
     print()
     if not has_key:
-        print("  1. wayne honcho setup              — configure API key (required)")
-        print("  2. wayne honcho migrate            — re-run this walkthrough")
+        print("  1. work4you honcho setup              — configure API key (required)")
+        print("  2. work4you honcho migrate            — re-run this walkthrough")
     else:
-        print("  1. wayne honcho status             — verify Honcho connection")
-        print("  2. wayne                           — start a session")
+        print("  1. work4you honcho status             — verify Honcho connection")
+        print("  2. work4you                        — start a session")
         print("     (user memory files auto-uploaded on first turn if not done above)")
-        print("  3. wayne honcho identity --show    — verify AI peer representation")
-        print("  4. wayne honcho tokens             — tune context and dialectic budgets")
-        print("  5. wayne honcho mode               — view or change memory mode")
+        print("  3. work4you honcho identity --show    — verify AI peer representation")
+        print("  4. work4you honcho tokens             — tune context and dialectic budgets")
+        print("  5. work4you honcho mode               — view or change memory mode")
     print()
 
 
@@ -1731,7 +1731,7 @@ def honcho_command(args) -> None:
     if sub == "setup":
         # Redirect to memory setup — honcho setup goes through the unified path
         print("\n  Honcho is configured via the memory provider system.")
-        print("  Running 'wayne memory setup'...\n")
+        print("  Running 'work4you memory setup'...\n")
         from work4you_cli.memory_setup import cmd_setup_provider
         cmd_setup_provider("honcho")
         return
@@ -1769,10 +1769,10 @@ def honcho_command(args) -> None:
 
 
 def register_cli(subparser) -> None:
-    """Build the ``wayne honcho`` argparse subcommand tree.
+    """Build the ``work4you honcho`` argparse subcommand tree.
 
     Called by the plugin CLI registration system during argparse setup.
-    The *subparser* is the parser for ``wayne honcho``.
+    The *subparser* is the parser for ``work4you honcho``.
     """
 
     subparser.add_argument(
@@ -1783,7 +1783,7 @@ def register_cli(subparser) -> None:
 
     subs.add_parser(
         "setup",
-        help="Initial Honcho setup (redirects to wayne memory setup)",
+        help="Initial Honcho setup (redirects to work4you memory setup)",
     )
 
     status_parser = subs.add_parser(
@@ -1859,7 +1859,7 @@ def register_cli(subparser) -> None:
 
     subs.add_parser(
         "migrate",
-        help="Step-by-step migration guide from openclaw-honcho to Wayne Honcho",
+        help="Step-by-step migration guide from openclaw-honcho to Work4You Honcho",
     )
     subs.add_parser("enable", help="Enable Honcho for the active profile")
     subs.add_parser("disable", help="Disable Honcho for the active profile")

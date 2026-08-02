@@ -1,6 +1,6 @@
 """CLI commands for the google_meet plugin.
 
-Wires ``wayne meet <subcommand>``:
+Wires ``work4you meet <subcommand>``:
   setup       — preflight playwright, chromium, auth file, print fixes
   auth        — open a browser to sign into Google, save storage state
   join <url>  — join a Meet URL synchronously (also callable from the agent)
@@ -32,7 +32,7 @@ def _auth_state_path() -> Path:
 # ---------------------------------------------------------------------------
 
 def register_cli(subparser: argparse.ArgumentParser) -> None:
-    """Build the ``wayne meet`` argparse tree.
+    """Build the ``work4you meet`` argparse tree.
 
     Called by :func:`_register_cli_commands` at plugin load time.
     """
@@ -57,7 +57,7 @@ def register_cli(subparser: argparse.ArgumentParser) -> None:
 
     join_p = subs.add_parser("join", help="Join a Meet URL")
     join_p.add_argument("url", help="https://meet.google.com/...")
-    join_p.add_argument("--guest-name", default="Wayne Agent")
+    join_p.add_argument("--guest-name", default="Work4You")
     join_p.add_argument("--duration", default=None, help="e.g. 30m, 2h, 90s")
     join_p.add_argument("--headed", action="store_true", help="show browser")
     join_p.add_argument(
@@ -93,7 +93,7 @@ def register_cli(subparser: argparse.ArgumentParser) -> None:
         # missing at import time etc.), leave the subparser present but
         # flag it. The argparse dispatch will surface a clear error.
         def _node_unavailable(args):
-            print(f"wayne meet node: module unavailable ({e})")
+            print(f"work4you meet node: module unavailable ({e})")
             return 1
         node_p.set_defaults(func=_node_unavailable)
 
@@ -107,7 +107,7 @@ def register_cli(subparser: argparse.ArgumentParser) -> None:
 def meet_command(args: argparse.Namespace) -> int:
     sub = getattr(args, "meet_command", None)
     if not sub:
-        print("usage: wayne meet {setup,auth,join,status,transcript,say,stop,node}")
+        print("usage: work4you meet {setup,auth,join,status,transcript,say,stop,node}")
         return 2
     if sub == "setup":
         return _cmd_setup()
@@ -140,7 +140,7 @@ def meet_command(args: argparse.Namespace) -> int:
         # whatever its subparsers wired.
         fn = getattr(args, "func", None)
         if fn is None or fn is meet_command:
-            print("usage: wayne meet node {run,list,approve,remove,status,ping}")
+            print("usage: work4you meet node {run,list,approve,remove,status,ping}")
             return 2
         return fn(args)
     print(f"unknown subcommand: {sub}")
@@ -196,7 +196,7 @@ def _cmd_setup() -> int:
     auth_ok = auth_path.is_file()
     print(
         "  google auth    : "
-        + (f"ok ({auth_path})" if auth_ok else "not saved — run: wayne meet auth")
+        + (f"ok ({auth_path})" if auth_ok else "not saved — run: work4you meet auth")
     )
 
     print()
@@ -204,7 +204,7 @@ def _cmd_setup() -> int:
     if all_ok:
         print(
             "ready. Join a meeting:  "
-            "wayne meet join https://meet.google.com/abc-defg-hij"
+            "work4you meet join https://meet.google.com/abc-defg-hij"
         )
     else:
         print("not ready yet — fix the items above.")
@@ -329,7 +329,7 @@ def _cmd_install(*, realtime: bool, assume_yes: bool) -> int:
     else:
         print("\n[3/3] skipped (pass --realtime to install audio tooling too)")
 
-    print("\ndone. verify with: wayne meet setup")
+    print("\ndone. verify with: work4you meet setup")
     return 0
 
 
@@ -364,7 +364,7 @@ def _cmd_auth() -> int:
     except Exception as e:
         print(f"auth failed: {e}")
         return 1
-    print("saved. you can now run: wayne meet join <url>")
+    print("saved. you can now run: work4you meet join <url>")
     return 0
 
 
@@ -465,13 +465,13 @@ def _cmd_transcript(last: Optional[int]) -> int:
 
 
 def _cmd_stop() -> int:
-    res = pm.stop(reason="wayne meet stop")
+    res = pm.stop(reason="work4you meet stop")
     print(json.dumps(res, indent=2))
     return 0 if res.get("ok") else 1
 
 
 if __name__ == "__main__":  # pragma: no cover
-    parser = argparse.ArgumentParser(prog="wayne meet")
+    parser = argparse.ArgumentParser(prog="work4you meet")
     register_cli(parser)
     ns = parser.parse_args()
     sys.exit(meet_command(ns))

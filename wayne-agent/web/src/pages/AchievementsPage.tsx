@@ -89,6 +89,14 @@ import { cn } from "@/lib/utils";
 /**
  * The plugin catalog is authored in English and brand-names the runtime.
  * The product surface only ever says Work4You.
+ *
+ * The BUNDLED catalog (plugins/wayne-achievements/dashboard/plugin_api.py) is
+ * now clean, so this is no longer what keeps our own copy on-brand. It stays
+ * because the catalog is not necessarily ours: `_discover_dashboard_plugins`
+ * ranks `<home>/plugins/<name>/` ABOVE the bundled copy, and the plugin's
+ * upstream repo (PCinkusz/wayne-achievements) still says "Wayne" everywhere —
+ * a user who clones or updates it there shadows the bundled catalog and this
+ * is the only thing between that copy and the screen.
  */
 function sanitize(text: string): string {
   return text

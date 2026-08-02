@@ -179,7 +179,7 @@ def tail_log(
     log_path = get_wayne_home() / "logs" / filename
     if not log_path.exists():
         print(f"Log file not found: {log_path}")
-        print(f"(Logs are created when Wayne runs — try 'wayne chat' first)")
+        print(f"(Logs are created when Work4You runs — try 'work4you chat' first)")
         sys.exit(1)
 
     # Parse --since into a datetime cutoff

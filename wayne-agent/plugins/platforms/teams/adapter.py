@@ -506,8 +506,8 @@ async def _standalone_send(
     """Acquire a Bot Framework bearer token and POST a single message activity.
 
     Used by ``tools/send_message_tool._send_via_adapter`` when the gateway
-    runner is not in this process (e.g. ``wayne cron`` running as a
-    separate process from ``wayne gateway``).  Without this hook,
+    runner is not in this process (e.g. ``work4you cron`` running as a
+    separate process from ``work4you gateway``).  Without this hook,
     ``deliver=teams`` cron jobs fail with ``No live adapter for platform``.
 
     Configuration: requires ``TEAMS_CLIENT_ID``, ``TEAMS_CLIENT_SECRET``,
@@ -747,7 +747,7 @@ class TeamsAdapter(BasePlatformAdapter):
                 client_secret=self._client_secret,
                 tenant_id=self._tenant_id,
                 http_server_adapter=_AiohttpBridgeAdapter(aiohttp_app),
-                client=ClientOptions(headers={"User-Agent": "Wayne"}),
+                client=ClientOptions(headers={"User-Agent": "Work4You"}),
             )
 
             # Register message handler before initialize()
@@ -820,7 +820,7 @@ class TeamsAdapter(BasePlatformAdapter):
         ) as client:
             response = await client.get(
                 url,
-                headers={"User-Agent": "Mozilla/5.0 (compatible; WayneAgent/1.0)"},
+                headers={"User-Agent": "Mozilla/5.0 (compatible; Work4YouAgent/1.0)"},
             )
             response.raise_for_status()
             return response.content
@@ -1355,7 +1355,7 @@ def interactive_setup() -> None:
     print()
     print_info("Then expose port 3978 publicly (devtunnel / ngrok / cloudflared),")
     print_info("and create your bot:")
-    print_info("  teams app create --name \"Wayne\" --endpoint \"https://<tunnel>/api/messages\"")
+    print_info("  teams app create --name \"Work4You\" --endpoint \"https://<tunnel>/api/messages\"")
     print()
     print_info("The CLI will print CLIENT_ID, CLIENT_SECRET, and TENANT_ID. Paste them below.")
     print()
@@ -1399,7 +1399,7 @@ def interactive_setup() -> None:
     print()
     print_success(f"Teams configuration saved to {_display_home()}/.env")
     print_info("Install the app in Teams:  teams app install --id <teamsAppId>")
-    print_info("Restart the gateway:       wayne gateway restart")
+    print_info("Restart the gateway:       work4you gateway restart")
 
 
 # ── Plugin entry point ────────────────────────────────────────────────────────

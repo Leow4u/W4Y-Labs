@@ -77,7 +77,7 @@ _DISCORD_NONCONVERSATIONAL_HISTORY_MESSAGE_PATTERNS = (
         re.IGNORECASE,
     ),
     re.compile(
-        r"^\s*(?:✅|❌)\s+Wayne update\s+"
+        r"^\s*(?:✅|❌)\s+(?:Wayne|Work4You) update\s+"
         r"(?:finished|failed|timed out)[\s\S]*$",
         re.IGNORECASE,
     ),
@@ -3900,7 +3900,7 @@ class DiscordAdapter(BasePlatformAdapter):
         async def slash_new(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/reset", "New conversation started~")
 
-        @tree.command(name="reset", description="Reset your Wayne session")
+        @tree.command(name="reset", description="Reset your Work4You session")
         async def slash_reset(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/reset", "Session reset~")
 
@@ -3927,7 +3927,7 @@ class DiscordAdapter(BasePlatformAdapter):
         async def slash_undo(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/undo")
 
-        @tree.command(name="status", description="Show Wayne session status")
+        @tree.command(name="status", description="Show Work4You session status")
         async def slash_status(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/status", "Status sent~")
 
@@ -3935,7 +3935,7 @@ class DiscordAdapter(BasePlatformAdapter):
         async def slash_sethome(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/sethome")
 
-        @tree.command(name="stop", description="Stop the running Wayne agent")
+        @tree.command(name="stop", description="Stop the running Work4You agent")
         async def slash_stop(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/stop", "Stop requested~")
 
@@ -3999,11 +3999,11 @@ class DiscordAdapter(BasePlatformAdapter):
         async def slash_voice(interaction: discord.Interaction, mode: str = ""):
             await self._run_simple_slash(interaction, f"/voice {mode}".strip())
 
-        @tree.command(name="update", description="Update Wayne Agent to the latest version")
+        @tree.command(name="update", description="Update Work4You to the latest version")
         async def slash_update(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/update", "Update initiated~")
 
-        @tree.command(name="restart", description="Gracefully restart the Wayne gateway")
+        @tree.command(name="restart", description="Gracefully restart the Work4You gateway")
         async def slash_restart(interaction: discord.Interaction):
             await self._run_simple_slash(interaction, "/restart", "Restart requested~")
 
@@ -4017,10 +4017,10 @@ class DiscordAdapter(BasePlatformAdapter):
         async def slash_deny(interaction: discord.Interaction, scope: str = ""):
             await self._run_simple_slash(interaction, f"/deny {scope}".strip())
 
-        @tree.command(name="thread", description="Create a new thread and start a Wayne session in it")
+        @tree.command(name="thread", description="Create a new thread and start a Work4You session in it")
         @discord.app_commands.describe(
             name="Thread name",
-            message="Optional first message to send to Wayne in the thread",
+            message="Optional first message to send to Work4You in the thread",
             auto_archive_duration="Auto-archive in minutes (60, 1440, 4320, 10080)",
         )
         async def slash_thread(
@@ -4344,7 +4344,7 @@ class DiscordAdapter(BasePlatformAdapter):
 
             cmd = discord.app_commands.Command(
                 name="skill",
-                description="Run a Wayne skill",
+                description="Run a Work4You skill",
                 callback=_skill_handler,
             )
             tree.add_command(cmd)
@@ -5105,7 +5105,7 @@ class DiscordAdapter(BasePlatformAdapter):
             }
         except Exception as direct_error:
             try:
-                seed_content = starter_message or f"\U0001f9f5 Thread created by Wayne: **{name}**"
+                seed_content = starter_message or f"\U0001f9f5 Thread created by Work4You: **{name}**"
                 seed_msg = await parent_channel.send(seed_content)
                 thread = await seed_msg.create_thread(
                     name=name,
@@ -5147,7 +5147,7 @@ class DiscordAdapter(BasePlatformAdapter):
         content = re.sub(r"<@[!&]?\d+>", "", content)
         content = re.sub(r"<#\d+>", "", content)
         content = re.sub(r"\s+", " ", content).strip()
-        thread_name = content[:80] if content else "Wayne"
+        thread_name = content[:80] if content else "Work4You"
         if len(content) > 80:
             thread_name = thread_name[:77] + "..."
 
@@ -5165,7 +5165,7 @@ class DiscordAdapter(BasePlatformAdapter):
                 last_direct_error = direct_error
                 try:
                     seed_msg = await message.channel.send(
-                        f"\U0001f9f5 Thread created by Wayne: **{thread_name}**"
+                        f"\U0001f9f5 Thread created by Work4You: **{thread_name}**"
                     )
                     thread = await seed_msg.create_thread(
                         name=thread_name,
@@ -5231,7 +5231,7 @@ class DiscordAdapter(BasePlatformAdapter):
             return None
 
         thread_name = (name or "handoff").strip()[:80] or "handoff"
-        reason = "Wayne session handoff"
+        reason = "Work4You session handoff"
 
         # First try: create a thread directly on the channel.
         try:
@@ -5254,7 +5254,7 @@ class DiscordAdapter(BasePlatformAdapter):
             send = getattr(parent, "send", None)
             if send is None:
                 return None
-            seed_msg = await send(f"\U0001f9f5 Wayne handoff: **{thread_name}**")
+            seed_msg = await send(f"\U0001f9f5 Work4You handoff: **{thread_name}**")
             thread = await seed_msg.create_thread(
                 name=thread_name,
                 auto_archive_duration=1440,
@@ -5401,7 +5401,7 @@ class DiscordAdapter(BasePlatformAdapter):
                 body = body[: max_desc - 3] + "..."
 
             embed = discord.Embed(
-                title="❓ Wayne needs your input",
+                title="❓ Work4You needs your input",
                 description=body,
                 color=discord.Color.orange(),
             )
@@ -5477,7 +5477,7 @@ class DiscordAdapter(BasePlatformAdapter):
     ) -> SendResult:
         """Send an interactive button-based update prompt (Yes / No).
 
-        Used by the gateway ``/update`` watcher when ``wayne update --gateway``
+        Used by the gateway ``/update`` watcher when ``work4you update --gateway``
         needs user input (stash restore, config migration).
         """
         if not self._client or not DISCORD_AVAILABLE:
@@ -5884,7 +5884,7 @@ class DiscordAdapter(BasePlatformAdapter):
                     # invocation for this message.
                     try:
                         await message.channel.send(
-                            "⚠️ Wayne could not create a Discord thread for "
+                            "⚠️ Work4You could not create a Discord thread for "
                             "this message, so the request was not processed. Please retry."
                         )
                     except Exception as notify_error:
@@ -6638,7 +6638,7 @@ def _define_discord_view_classes() -> None:
                     pass
 
     class UpdatePromptView(discord.ui.View):
-        """Interactive Yes/No buttons for ``wayne update`` prompts.
+        """Interactive Yes/No buttons for ``work4you update`` prompts.
 
         Clicking a button writes the answer to ``.update_response`` so the
         detached update process can pick it up.  Only authorized users can
@@ -7291,7 +7291,7 @@ if DISCORD_AVAILABLE:
 
 # ── Standalone (out-of-process) sender ────────────────────────────────────────
 # Used by ``tools/send_message_tool._send_via_adapter`` when the gateway runner
-# is not in this process (e.g. ``wayne cron`` running standalone) and no live
+# is not in this process (e.g. ``work4you cron`` running standalone) and no live
 # DiscordAdapter instance is available.  Implements the same forum/thread/
 # multipart logic the live adapter would use, via Discord's REST API directly.
 #
@@ -7620,7 +7620,7 @@ def interactive_setup() -> None:
         print_info("⚠️  No allowlist set - anyone in servers with your bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Wayne delivers cron job results,")
+    print_info("📬 Home Channel: where Work4You delivers cron job results,")
     print_info("   cross-platform messages, and notifications.")
     print_info("   To get a channel ID: right-click a channel → Copy Channel ID")
     print_info("   (requires Developer Mode in Discord settings)")

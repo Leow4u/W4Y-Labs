@@ -10,7 +10,7 @@ Configuration
 Secret (lives in $WAYNE_HOME/.env or the environment):
   MEM0_API_KEY       — Mem0 Platform API key (required for platform mode)
 
-Behavioral settings (live in $WAYNE_HOME/mem0.json, set via `wayne memory
+Behavioral settings (live in $WAYNE_HOME/mem0.json, set via `work4you memory
 setup`):
   mode               — Backend mode: "platform" (default) or "oss"
   user_id            — Canonical user identifier. When set, it is applied

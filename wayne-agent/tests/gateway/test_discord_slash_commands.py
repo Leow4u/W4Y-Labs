@@ -589,10 +589,10 @@ async def test_auto_create_thread_strips_mention_syntax_from_name(adapter):
 
 
 @pytest.mark.asyncio
-async def test_auto_create_thread_falls_back_to_wayne_when_only_mentions(adapter):
+async def test_auto_create_thread_falls_back_to_brand_when_only_mentions(adapter):
     """If a message contains only mention syntax, the stripped content is
-    empty — fall back to the 'Wayne' default rather than ''."""
-    thread = SimpleNamespace(id=999, name="Wayne")
+    empty — fall back to the 'Work4You' default rather than ''."""
+    thread = SimpleNamespace(id=999, name="Work4You")
     message = SimpleNamespace(
         content="<@&1490963422786093149>",
         create_thread=AsyncMock(return_value=thread),
@@ -603,7 +603,7 @@ async def test_auto_create_thread_falls_back_to_wayne_when_only_mentions(adapter
     await adapter._auto_create_thread(message)
 
     name = message.create_thread.await_args[1]["name"]
-    assert name == "Wayne"
+    assert name == "Work4You"
 
 
 @pytest.mark.asyncio
@@ -638,7 +638,7 @@ async def test_auto_create_thread_falls_back_to_seed_message(adapter):
 
     result = await adapter._auto_create_thread(message)
     assert result is thread
-    message.channel.send.assert_awaited_once_with("🧵 Thread created by Wayne: **Hello**")
+    message.channel.send.assert_awaited_once_with("🧵 Thread created by Work4You: **Hello**")
     seed_message.create_thread.assert_awaited_once_with(
         name="Hello",
         auto_archive_duration=1440,

@@ -7859,7 +7859,7 @@ def _default_spawn(
         log_f.close()
         raise RuntimeError(
             "`wayne` executable not found on PATH. "
-            "Install Wayne Agent or activate its venv before running the kanban dispatcher."
+            "Install Work4You or activate its venv before running the kanban dispatcher."
         )
     # NOTE: we intentionally do NOT close log_f here — we want Popen's
     # child process to keep writing after this function returns.  The
