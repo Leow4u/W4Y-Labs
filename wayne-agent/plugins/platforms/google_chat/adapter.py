@@ -49,7 +49,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 # Heavy google-cloud + googleapiclient imports are deferred to first
 # adapter use. Importing them eagerly here added ~110ms wall and ~33MB
 # RSS to *every* CLI invocation (the plugin loader imports this module at
-# ``model_tools`` import time, so ``wayne status``, ``wayne chat``, etc.
+# ``model_tools`` import time, so ``work4you status``, ``work4you chat``, etc.
 # all paid the cost even though they never instantiate the adapter).
 #
 # All names below are module globals that ``_load_google_modules()``
@@ -2267,7 +2267,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         keeps running and creates a card in Chat that we have NO way to
         track (the storage line never runs). Next ``_keep_typing`` tick
         sees an empty slot and creates a SECOND card. Result: one orphan
-        "Wayne is thinking…" stuck in chat forever, plus one card that
+        "Work4You is thinking…" stuck in chat forever, plus one card that
         gets patched into the reply.
 
         Fix: reserve the slot with an in-flight ``Event``, run the
@@ -2296,7 +2296,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         thread_id = self._resolve_thread_id(
             reply_to=None, metadata=metadata, chat_id=chat_id,
         )
-        body: Dict[str, Any] = {"text": "Wayne is thinking…"}
+        body: Dict[str, Any] = {"text": "Work4You is thinking…"}
         if thread_id:
             body["thread"] = {"name": thread_id}
 
@@ -2344,7 +2344,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
     async def stop_typing(self, chat_id: str) -> None:
         """Stop the typing indicator — NO-OP when a live card is tracked.
 
-        Google Chat has no separate typing API: the "Wayne is thinking…"
+        Google Chat has no separate typing API: the "Work4You is thinking…"
         marker is a real message that ``send()`` patches in-place with the
         agent's reply. Deleting the marker creates a "Message deleted by
         its author" tombstone, which is visual noise.
@@ -2396,7 +2396,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         when the API call takes longer than _keep_typing's wait_for
         timeout), the orphan id is stashed in ``self._orphan_typing_messages``.
         Patch each orphan with an empty-ish marker so the user doesn't
-        see "Wayne is thinking…" stuck forever.
+        see "Work4You is thinking…" stuck forever.
         """
         if event.source is None:
             return
@@ -2451,7 +2451,7 @@ class GoogleChatAdapter(BasePlatformAdapter):
         Leaves the SENTINEL in place when present: a previous ``send()``
         already consumed the typing card, and the SENTINEL must stay in
         the slot to keep the base class's ``_keep_typing`` loop from
-        creating a fresh "Wayne is thinking…" card during any subsequent
+        creating a fresh "Work4You is thinking…" card during any subsequent
         attachment send (which would later be reaped as "(no reply)").
         """
         current = self._typing_messages.get(chat_id)
@@ -3029,7 +3029,7 @@ def _env_enablement() -> Optional[Dict[str, Any]]:
 
 
 def interactive_setup() -> None:
-    """Walk the user through Google Chat configuration via ``wayne setup``.
+    """Walk the user through Google Chat configuration via ``work4you setup``.
 
     The setup wizard at ``work4you_cli/gateway.py`` calls this for plugin
     platforms instead of using the in-tree ``_PLATFORMS`` data block. The
@@ -3119,7 +3119,7 @@ def interactive_setup() -> None:
 
     print()
     print_success(f"Google Chat configuration saved to {display_wayne_home()}/.env")
-    print_info("Restart the gateway: wayne gateway restart")
+    print_info("Restart the gateway: work4you gateway restart")
 
 
 # Strict resource-name pattern.  ``spaces/<id>`` and ``users/<id>`` must
@@ -3141,8 +3141,8 @@ async def _standalone_send(
     """POST a single Google Chat message via the REST API without the SDK.
 
     Used by ``tools/send_message_tool._send_via_adapter`` when the gateway
-    runner is not in this process (e.g. ``wayne cron`` running as a
-    separate process from ``wayne gateway``).  Without this hook,
+    runner is not in this process (e.g. ``work4you cron`` running as a
+    separate process from ``work4you gateway``).  Without this hook,
     ``deliver=google_chat`` cron jobs fail with ``No live adapter for
     platform``.
 
@@ -3339,7 +3339,7 @@ def register(ctx) -> None:
             "to a text notice with the host path. Do NOT generate interactive "
             "Card v2 buttons — Google Chat interactivity is not yet supported "
             "by this gateway; ask for typed confirmations instead. While you "
-            "are generating a response, a 'Wayne is thinking…' marker message "
+            "are generating a response, a 'Work4You is thinking…' marker message "
             "appears in the space and is deleted once your response is ready. "
             "You do NOT have access to Google Chat-specific APIs — you cannot "
             "search space history, list space members, or manage spaces. Do "

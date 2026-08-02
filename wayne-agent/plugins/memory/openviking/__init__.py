@@ -1609,7 +1609,7 @@ def _print_openviking_ready(message: str, path: Optional[Path] = None) -> None:
     print(f"  {message}")
     if path is not None:
         print(f"  Config file: {path}")
-    print("  Start a new Wayne session to activate.\n")
+    print("  Start a new Work4You session to activate.\n")
 
 
 def _run_existing_profile_setup(
@@ -1727,7 +1727,7 @@ def _run_create_profile_setup(
     save_choice = select(
         "  Save OpenViking config",
         [
-            ("Keep in Wayne only", "write values only to Wayne .env"),
+            ("Keep in Work4You only", "write values only to Work4You .env"),
             ("Mirror to OpenViking store", "write ~/.openviking/ovcli.conf.<name> and link it"),
         ],
         default=1,
@@ -1760,7 +1760,7 @@ def _run_create_profile_setup(
         env_path=env_path,
         values=values,
     )
-    _print_openviking_ready("Connection saved to Wayne .env.")
+    _print_openviking_ready("Connection saved to Work4You .env.")
     return True
 
 

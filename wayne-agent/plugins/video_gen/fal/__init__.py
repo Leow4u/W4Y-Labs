@@ -386,7 +386,7 @@ def _submit_fal_video_request(endpoint: str, arguments: Dict[str, Any]):
                 f"(HTTP {status}). This model may not yet be enabled on "
                 f"the Nous Portal's FAL proxy. Either:\n"
                 f"  • Set FAL_KEY in your environment to use FAL.ai directly, or\n"
-                f"  • Pick a different model via `wayne tools` → Video Generation."
+                f"  • Pick a different model via `work4you tools` → Video Generation."
             ) from exc
         raise
 
@@ -493,8 +493,8 @@ class FALVideoGenProvider(VideoGenProvider):
             return error_response(
                 error=(
                     "No FAL backend available. Either set FAL_KEY "
-                    "(run `wayne tools` → Video Generation → FAL to configure) "
-                    "or sign in to Nous (`wayne setup`) for managed gateway access."
+                    "(run `work4you tools` → Video Generation → FAL to configure) "
+                    "or sign in to Nous (`work4you setup`) for managed gateway access."
                 ),
                 error_type="auth_required",
                 provider="fal",
@@ -524,7 +524,7 @@ class FALVideoGenProvider(VideoGenProvider):
                     error=(
                         f"FAL family {family_id} has no image-to-video "
                         f"endpoint. Pick a family with image-to-video support "
-                        f"via `wayne tools` → Video Generation."
+                        f"via `work4you tools` → Video Generation."
                     ),
                     error_type="modality_unsupported",
                     provider="fal", model=family_id, prompt=prompt,

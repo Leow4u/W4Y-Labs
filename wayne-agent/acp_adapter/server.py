@@ -237,7 +237,7 @@ def _resource_link_to_parts(block: ResourceContentBlock) -> list[dict[str, Any]]
                 uri=uri,
                 name=name,
                 title=title,
-                body="[Resource link only; Wayne cannot read non-file ACP resource URIs directly.]",
+                body="[Resource link only; Work4You cannot read non-file ACP resource URIs directly.]",
             ),
         }]
 

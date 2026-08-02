@@ -312,5 +312,5 @@ def register(ctx) -> None:
     ctx.register_command(
         "disk-cleanup",
         handler=_handle_slash,
-        description="Track and clean up ephemeral Wayne session files.",
+        description="Track and clean up ephemeral Work4You session files.",
     )

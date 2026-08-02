@@ -23,7 +23,7 @@ Config keys this provider responds to::
 Auth env vars (one of)::
 
     BROWSER_USE_API_KEY=...           # https://browser-use.com
-    # OR a managed Nous gateway entry (configured via 'wayne setup')
+    # OR a managed Nous gateway entry (configured via 'work4you setup')
 """
 
 from __future__ import annotations

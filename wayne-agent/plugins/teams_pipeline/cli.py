@@ -92,7 +92,7 @@ def teams_pipeline_command(args: argparse.Namespace) -> int:
     action = getattr(args, "teams_pipeline_action", None)
     if not action:
         print(
-            "Usage: wayne teams-pipeline "
+            "Usage: work4you teams-pipeline "
             "{list|show|run|fetch|subscriptions|subscribe|renew-subscription|delete-subscription|maintain-subscriptions|token-health|validate}"
         )
         return 2

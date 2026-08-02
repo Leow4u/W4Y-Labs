@@ -50,34 +50,66 @@ def find_shell_configs() -> list:
     return configs
 
 
+# Comment markers scripts/install.sh writes above each line it appends to a
+# shell rc. It emits the Work4You spellings today ("# Work4You — data
+# directory", "# Work4You — ensure ~/.local/bin is on PATH"); the Wayne
+# spellings are what pre-rebrand installs left behind. Both must be matched or
+# `work4you uninstall` strands the settings it added.
+_RC_BLOCK_MARKERS = ("# Work4You", "# work4you", "# Wayne Agent", "# wayne-agent")
+
+# Brand tokens that identify a bare PATH line as ours (legacy rc layouts, where
+# the PATH itself pointed into the install dir).
+_RC_PATH_TOKENS = ("work4you", "wayne")
+
+
+def _is_installer_written_setting(line: str) -> bool:
+    """True if *line* is one the installer writes under its comment marker.
+
+    install.sh only ever appends one of these directly below a marker:
+    ``export PATH=...`` / ``set -gx PATH ...``, ``fish_add_path ...``, or
+    ``export WORK4YOU_HOME=...`` / ``set -gx WORK4YOU_HOME ...``. Matching the
+    shape (rather than blindly dropping the next line) means a hand-edited rc
+    that drifted does not lose an unrelated setting.
+    """
+    lowered = line.lower()
+    return (
+        'path=' in lowered
+        or 'fish_add_path' in lowered
+        or 'work4you_home' in lowered
+        or 'wayne_home' in lowered
+    )
+
+
 def remove_path_from_shell_configs():
-    """Remove Wayne PATH entries from shell configuration files."""
+    """Remove Work4You PATH/home entries from shell configuration files."""
     configs = find_shell_configs()
     removed_from = []
-    
+
     for config_path in configs:
         try:
             content = config_path.read_text()
             original_content = content
-            
-            # Remove lines containing wayne-agent or wayne PATH entries
+
+            # Remove our comment marker plus the setting it introduces.
             new_lines = []
             skip_next = False
-            
+
             for line in content.split('\n'):
-                # Skip the "# Wayne Agent" comment and following line
-                if '# Wayne Agent' in line or '# wayne-agent' in line:
+                lowered = line.lower()
+                if any(m in line for m in _RC_BLOCK_MARKERS):
                     skip_next = True
                     continue
-                if skip_next and ('wayne' in line.lower() and 'PATH' in line):
+                if skip_next:
                     skip_next = False
+                    if _is_installer_written_setting(line):
+                        continue
+
+                # Remove any PATH line naming the product.
+                if any(t in lowered for t in _RC_PATH_TOKENS) and (
+                    'PATH=' in line or 'path=' in lowered
+                ):
                     continue
-                skip_next = False
-                
-                # Remove any PATH line containing wayne
-                if 'wayne' in line.lower() and ('PATH=' in line or 'path=' in line.lower()):
-                    continue
-                    
+
                 new_lines.append(line)
             
             new_content = '\n'.join(new_lines)
@@ -875,11 +907,18 @@ def _perform_uninstall(
         print(color("Your configuration and data have been preserved:", Colors.CYAN))
         print(f"  {wayne_home}/")
         print()
-        print("To reinstall later with your existing settings:")
+        # Never print a hosted `curl … | bash` / `irm … | iex` one-liner here.
+        # This fork is not distributed from the upstream install endpoint, so
+        # that command would install a DIFFERENT engine over the user's data —
+        # the same reason config.recommended_update_command_for_method() routes
+        # updates through the local checkout instead of brew/pip/docker pull.
+        print("To reinstall later with your existing settings, run the installer")
+        print("from a checkout of the Work4You engine repo:")
         if _is_windows():
-            print(color("  iex (irm https://hermes-agent.nousresearch.com/install.ps1)", Colors.DIM))
+            print(color("  powershell -ExecutionPolicy Bypass -File scripts\\install.ps1", Colors.DIM))
         else:
-            print(color("  curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash", Colors.DIM))
+            print(color("  bash scripts/install.sh", Colors.DIM))
+        print(f"It will pick your existing data back up from {wayne_home}.")
         print()
 
     if _is_windows():

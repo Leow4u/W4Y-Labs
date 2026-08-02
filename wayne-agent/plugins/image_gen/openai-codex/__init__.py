@@ -452,7 +452,7 @@ class OpenAICodexImageGenProvider(ImageGenProvider):
             "tag": "gpt-image-2 via ChatGPT/Codex OAuth — no API key required; supports text and image inputs",
             "env_vars": [],
             "post_setup_hint": (
-                "Sign in with `wayne auth codex` (or `wayne setup` → Codex) "
+                "Sign in with `work4you auth codex` (or `work4you setup` → Codex) "
                 "if you haven't already. No API key needed."
             ),
         }
@@ -488,7 +488,7 @@ class OpenAICodexImageGenProvider(ImageGenProvider):
             return error_response(
                 error=(
                     "No Codex/ChatGPT OAuth credentials available. Run "
-                    "`wayne auth codex` (or `wayne setup` → Codex) to sign in."
+                    "`work4you auth codex` (or `work4you setup` → Codex) to sign in."
                 ),
                 error_type="auth_required",
                 provider="openai-codex",
@@ -513,7 +513,7 @@ class OpenAICodexImageGenProvider(ImageGenProvider):
             return error_response(
                 error=(
                     "No Codex/ChatGPT OAuth credentials available. Run "
-                    "`wayne auth codex` (or `wayne setup` → Codex) to sign in."
+                    "`work4you auth codex` (or `work4you setup` → Codex) to sign in."
                 ),
                 error_type="auth_required",
                 provider="openai-codex",

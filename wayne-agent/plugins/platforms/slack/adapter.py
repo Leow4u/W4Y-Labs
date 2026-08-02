@@ -880,7 +880,7 @@ class SlackAdapter(BasePlatformAdapter):
                     "and 'message.mpim' event. Add 'mpim:history' (and "
                     "'mpim:read') to bot scopes, add 'message.mpim' to event "
                     "subscriptions, then REINSTALL the app to the workspace. "
-                    "Regenerating the app from `wayne slack` produces a "
+                    "Regenerating the app from `work4you slack` produces a "
                     "manifest with these already included.",
                     team_key or "this workspace",
                 )
@@ -1143,7 +1143,7 @@ class SlackAdapter(BasePlatformAdapter):
             # N identical @app.command() decorators.
             #
             # The slash commands must ALSO be declared in the Slack app
-            # manifest (see `wayne slack manifest`). In Socket Mode, Slack
+            # manifest (see `work4you slack manifest`). In Socket Mode, Slack
             # routes the command event through the socket regardless of the
             # manifest's request URL, but it will not deliver an event for
             # a slash command the manifest doesn't declare.
@@ -1291,7 +1291,7 @@ class SlackAdapter(BasePlatformAdapter):
             if client is None:
                 return None
             seed_text = (
-                f":thread: Wayne handoff — *{(name or 'session').strip()[:80]}*"
+                f":thread: Work4You handoff — *{(name or 'session').strip()[:80]}*"
             )
             result = await client.chat_postMessage(
                 channel=parent_chat_id,
@@ -4396,8 +4396,8 @@ def interactive_setup() -> None:
             import json as _json
 
             manifest = _build_full_manifest(
-                bot_name="Wayne",
-                bot_description="Your Wayne agent on Slack",
+                bot_name="Work4You",
+                bot_description="Your Work4You agent on Slack",
             )
             target = Path(get_wayne_home()) / "slack-manifest.json"
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -4412,8 +4412,8 @@ def interactive_setup() -> None:
                 "reinstall if scopes or slash commands changed."
             )
             print_info(
-                "   Re-run `wayne slack manifest --write` anytime to refresh after "
-                "Wayne adds new commands."
+                "   Re-run `work4you slack manifest --write` anytime to refresh after "
+                "Work4You adds new commands."
             )
         except Exception as e:
             print_warning(f"Could not write Slack manifest: {e}")
@@ -4427,7 +4427,7 @@ def interactive_setup() -> None:
             # new commands (e.g. /btw, /stop, ...) get registered in Slack.
             if prompt_yes_no(
                 "Regenerate the Slack app manifest with the latest command "
-                "list? (recommended after `wayne update`)",
+                "list? (recommended after `work4you update`)",
                 True,
             ):
                 _write_slack_manifest_and_instruct()
@@ -4474,7 +4474,7 @@ def interactive_setup() -> None:
         print_info("   Set SLACK_ALLOW_ALL_USERS=true or GATEWAY_ALLOW_ALL_USERS=true only if you intentionally want open workspace access.")
 
     print()
-    print_info("📬 Home Channel: where Wayne delivers cron job results,")
+    print_info("📬 Home Channel: where Work4You delivers cron job results,")
     print_info("   cross-platform messages, and notifications.")
     print_info("   To get a channel ID: open the channel in Slack, then right-click")
     print_info("   the channel name → Copy link — the ID starts with C (e.g. C01ABC2DE3F).")

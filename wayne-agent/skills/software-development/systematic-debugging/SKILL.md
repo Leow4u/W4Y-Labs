@@ -2,7 +2,7 @@
 name: systematic-debugging
 description: "4-phase root cause debugging: understand bugs before fixing."
 version: 1.1.0
-author: Wayne Agent (adapted from obra/superpowers)
+author: Work4You (adapted from obra/superpowers)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

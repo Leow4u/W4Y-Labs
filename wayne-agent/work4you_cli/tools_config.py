@@ -1002,11 +1002,15 @@ def _run_post_setup(post_setup_key: str):
             _print_warning(
                 "    Chromium is missing but you're running in Docker."
             )
+            # Rebuild from the local checkout, never ``docker pull``: this fork
+            # publishes no image, so a pull installs a different engine. Same
+            # command as config.recommended_update_command_for_method("docker").
             _print_info(
-                "    Pull the latest image to get the bundled Chromium:"
+                "    Rebuild the image from your engine checkout to get the "
+                "bundled Chromium:"
             )
             _print_info(
-                "      docker pull ghcr.io/nousresearch/wayne-agent:latest"
+                "      docker compose build && docker compose up -d --force-recreate"
             )
             return
 
@@ -1210,7 +1214,7 @@ def _run_post_setup(post_setup_key: str):
         except Exception as exc:
             _print_warning(f"    Could not enable plugin automatically: {exc}")
             _print_info("    Run manually: wayne plugins enable observability/langfuse")
-        _print_info("    Restart Wayne for tracing to take effect.")
+        _print_info("    Restart Work4You for tracing to take effect.")
         _print_info("    Verify: wayne plugins list")
 
     elif post_setup_key == "xai_grok":

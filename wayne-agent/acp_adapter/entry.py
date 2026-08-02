@@ -117,7 +117,7 @@ def _load_env() -> None:
 def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         prog="wayne-acp",
-        description="Run Wayne Agent as an ACP stdio server.",
+        description="Run Work4You as an ACP stdio server.",
     )
     parser.add_argument("--version", action="store_true", help="Print Wayne version and exit")
     parser.add_argument(

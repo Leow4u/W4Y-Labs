@@ -11826,7 +11826,7 @@ def _(rid, params: dict) -> dict:
 def _cli_exec_blocked(argv: list[str]) -> str | None:
     """Return user hint if this argv must not run headless in the gateway process."""
     if not argv:
-        return "bare `work4you` is interactive — use `/wayne chat -q …` or run `work4you` in another terminal"
+        return "bare `work4you` is interactive — use `work4you chat -q …` or run `work4you` in another terminal"
     a0 = argv[0].lower()
     if a0 == "setup":
         return "`work4you setup` needs a full terminal — run it outside the TUI"

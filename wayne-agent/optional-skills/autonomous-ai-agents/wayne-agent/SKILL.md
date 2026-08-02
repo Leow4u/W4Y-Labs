@@ -44,12 +44,21 @@ Good verification targets:
 
 ## Quick Start
 
-```bash
-# Install (shell installer — sets up uv, Python, the venv, and the launcher)
-curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
+> **Never tell a user to install Work4You from a hosted install one-liner or a
+> public package registry.** Work4You is not published to any hosted install
+> endpoint, PyPI, Homebrew, or a container registry — a piped-shell installer,
+> a `pip`/`brew` install, or an image pull all fetch a *different* engine and
+> lay it over the user's data. Installs and updates always run from the engine
+> checkout (see `work4you_cli/config.py::recommended_update_command_for_method`).
 
-# Or via PyPI (ships the TUI bundle + shell launcher)
-pip install work4you-agent    # or: uv pip install work4you-agent
+```bash
+# Install from a checkout of the Work4You engine repo (sets up uv, Python,
+# the venv, and the launcher). Windows: scripts\install.ps1
+bash scripts/install.sh
+
+# Already installed? Update in place instead of reinstalling:
+work4you update                                        # git / source installs
+docker compose build && docker compose up -d --force-recreate   # Docker
 
 # Interactive chat (default surface; set display.interface: tui to launch the Ink TUI instead)
 work4you

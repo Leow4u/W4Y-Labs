@@ -905,7 +905,7 @@ class DingTalkAdapter(BasePlatformAdapter):
 
         payload = {
             "msgtype": "markdown",
-            "markdown": {"title": "Wayne", "text": normalized},
+            "markdown": {"title": "Work4You", "text": normalized},
         }
 
         try:

@@ -2,7 +2,7 @@
 name: frontend-design
 description: Distinctive UI direction: type, palette, anti-slop.
 version: 1.0.0
-author: Anthropic (adapted for Wayne)
+author: Anthropic (adapted for Work4You)
 license: Apache-2.0
 platforms: [linux, macos, windows]
 metadata:

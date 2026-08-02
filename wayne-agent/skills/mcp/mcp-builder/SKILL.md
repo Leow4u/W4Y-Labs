@@ -2,7 +2,7 @@
 name: mcp-builder
 description: Design high-quality MCP servers in Python or TS.
 version: 1.0.0
-author: Anthropic (adapted for Wayne)
+author: Anthropic (adapted for Work4You)
 license: Apache-2.0
 platforms: [linux, macos, windows]
 metadata:

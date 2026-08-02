@@ -2,7 +2,7 @@
 name: theme-factory
 description: Apply curated color/font themes to artifacts.
 version: 1.0.0
-author: Anthropic (adapted for Wayne)
+author: Anthropic (adapted for Work4You)
 license: Apache-2.0
 platforms: [linux, macos, windows]
 metadata:

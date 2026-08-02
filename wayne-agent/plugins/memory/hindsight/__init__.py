@@ -1385,8 +1385,8 @@ class HindsightMemoryProvider(MemoryProvider):
                 msg = (
                     "Hindsight local_embedded mode cannot run as root "
                     "(PostgreSQL initdb refuses root). Skipping the embedded "
-                    "memory daemon. Run Wayne as a non-root user, or switch "
-                    "to cloud / local_external mode via 'wayne memory setup'."
+                    "memory daemon. Run Work4You as a non-root user, or switch "
+                    "to cloud / local_external mode via 'work4you memory setup'."
                 )
                 logger.warning(msg)
                 # Surface to the terminal too — a daemon that never starts

@@ -276,7 +276,7 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
         Precedence: explicit caller override (the ``model`` kwarg) → the
         provider's ``*_IMAGE_MODEL`` env override → scoped
         ``image_gen.<provider>.model`` → top-level ``image_gen.model`` (written
-        by ``wayne tools``) → the quality-first default chain.
+        by ``work4you tools``) → the quality-first default chain.
 
         Any explicit user/model selection means "use this exact model", so no
         fallback. Only the bare default chain carries a Gemini fallback.
@@ -323,7 +323,7 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             return error_response(
                 error=(
                     f"No {self._display} credentials found. "
-                    f"Configure {self._display} in `wayne tools` → Image Generation."
+                    f"Configure {self._display} in `work4you tools` → Image Generation."
                 ),
                 error_type="missing_api_key",
                 provider=self._name,

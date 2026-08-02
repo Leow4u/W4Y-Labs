@@ -1169,17 +1169,17 @@ def _build_parser() -> argparse.ArgumentParser:
 
     sub.add_parser("diagnose", help="Show saved telephony state and provider readiness")
 
-    p = sub.add_parser("save-twilio", help="Save Twilio credentials to the Wayne .env file")
+    p = sub.add_parser("save-twilio", help="Save Twilio credentials to the Work4You .env file")
     p.add_argument("account_sid")
     p.add_argument("auth_token")
     p.add_argument("--phone-number", default="")
     p.add_argument("--phone-sid", default="")
 
-    p = sub.add_parser("save-bland", help="Save Bland.ai settings to the Wayne .env file")
+    p = sub.add_parser("save-bland", help="Save Bland.ai settings to the Work4You .env file")
     p.add_argument("api_key")
     p.add_argument("--voice", default=BLAND_DEFAULT_VOICE)
 
-    p = sub.add_parser("save-vapi", help="Save Vapi settings to the Wayne .env file")
+    p = sub.add_parser("save-vapi", help="Save Vapi settings to the Work4You .env file")
     p.add_argument("api_key")
     p.add_argument("--phone-number-id", default="")
     p.add_argument("--voice-provider", default=VAPI_DEFAULT_VOICE_PROVIDER)

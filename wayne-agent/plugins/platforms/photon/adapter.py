@@ -130,9 +130,9 @@ def check_requirements() -> bool:
     if not shutil.which(os.getenv("PHOTON_NODE_BIN") or "node"):
         return False
     if not (_SIDECAR_DIR / "node_modules").exists():
-        # spectrum-ts not installed yet — `wayne photon setup` will
+        # spectrum-ts not installed yet — `work4you photon setup` will
         # install it.  check_fn still returns False so the gateway
-        # surfaces the missing-deps state in `wayne setup` / status.
+        # surfaces the missing-deps state in `work4you setup` / status.
         return False
     return True
 
@@ -344,7 +344,7 @@ class PhotonAdapter(BasePlatformAdapter):
             self._set_fatal_error(
                 "MISSING_CREDENTIALS",
                 "PHOTON_PROJECT_ID and PHOTON_PROJECT_SECRET are required. "
-                "Run: wayne photon setup",
+                "Run: work4you photon setup",
                 retryable=False,
             )
             return False
@@ -839,7 +839,7 @@ class PhotonAdapter(BasePlatformAdapter):
         if not (_SIDECAR_DIR / "node_modules").exists():
             raise RuntimeError(
                 f"Photon sidecar deps not installed. Run: "
-                f"cd {_SIDECAR_DIR} && npm install   (or `wayne photon setup`)"
+                f"cd {_SIDECAR_DIR} && npm install   (or `work4you photon setup`)"
             )
         await self._reap_stale_sidecar()
 
@@ -1655,7 +1655,7 @@ async def _standalone_send(
 def register(ctx) -> None:
     """Called by the Wayne plugin loader at startup."""
     # Local import to avoid argparse work at module load; reused for both the
-    # gateway-setup hook and the `wayne photon` CLI command below.
+    # gateway-setup hook and the `work4you photon` CLI command below.
     from . import cli as _cli
 
     ctx.register_platform(
@@ -1667,11 +1667,11 @@ def register(ctx) -> None:
         is_connected=is_connected,
         required_env=["PHOTON_PROJECT_ID", "PHOTON_PROJECT_SECRET"],
         install_hint=(
-            "Run: wayne photon setup  (logs in via device flow, creates a "
+            "Run: work4you photon setup  (logs in via device flow, creates a "
             "Spectrum project, links your phone number, installs the "
             "spectrum-ts sidecar)."
         ),
-        # Surfaces Photon in `wayne gateway setup` alongside every other
+        # Surfaces Photon in `work4you gateway setup` alongside every other
         # channel — same unified onboarding wizard, no Photon-only detour.
         setup_fn=_cli.gateway_setup,
         env_enablement_fn=_env_enablement,
@@ -1696,7 +1696,7 @@ def register(ctx) -> None:
         ),
     )
 
-    # Register CLI subcommands — `wayne photon ...`
+    # Register CLI subcommands — `work4you photon ...`
     ctx.register_cli_command(
         name="photon",
         help="Set up and manage the Photon iMessage integration",
