@@ -3023,10 +3023,27 @@ function New-DesktopShortcuts {
             $iconLocation = "$TargetExe,0"
         }
 
-        $targets = @(
-            (Join-Path ([Environment]::GetFolderPath('Programs')) 'Wayne.lnk'),
-            (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Wayne.lnk')
+        $shortcutDirs = @(
+            [Environment]::GetFolderPath('Programs'),
+            [Environment]::GetFolderPath('Desktop')
         )
+        $targets = $shortcutDirs | ForEach-Object { Join-Path $_ 'Work4You.lnk' }
+
+        # Pre-rebrand installs dropped 'Wayne.lnk' in the same two folders.
+        # Remove them first, otherwise the user ends up with two shortcuts
+        # (an orphaned 'Wayne' next to the new 'Work4You') pointing at the
+        # same exe. Best-effort: a locked/absent .lnk must not fail install.
+        $legacyLnks = $shortcutDirs | ForEach-Object { Join-Path $_ 'Wayne.lnk' }
+        foreach ($legacy in $legacyLnks) {
+            try {
+                if (Test-Path -LiteralPath $legacy) {
+                    Remove-Item -LiteralPath $legacy -Force -ErrorAction Stop
+                    Write-Info "Removed pre-rebrand shortcut: $legacy"
+                }
+            } catch {
+                Write-Warn "Could not remove old shortcut $legacy : $($_.Exception.Message)"
+            }
+        }
 
         foreach ($lnkPath in $targets) {
             try {
@@ -3038,7 +3055,7 @@ function New-DesktopShortcuts {
                 $sc.TargetPath = $TargetExe
                 $sc.WorkingDirectory = $workDir
                 $sc.IconLocation = $iconLocation
-                $sc.Description = 'Wayne Agent'
+                $sc.Description = 'Work4You'
                 $sc.Save()
                 Write-Success "Shortcut created: $lnkPath"
             } catch {

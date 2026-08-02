@@ -75,7 +75,7 @@ def _bare_custom_provider_def(current_base_url: str) -> Optional[ProviderDef]:
 
 _WAYNE_MODEL_WARNING = (
     "Nous Research Wayne 3 & 4 models are NOT agentic and are not designed "
-    "for use with Wayne Agent. They lack the tool-calling capabilities "
+    "for use with Work4You. They lack the tool-calling capabilities "
     "required for agent workflows. Consider using an agentic model instead "
     "(Claude, GPT, Gemini, DeepSeek, etc.)."
 )

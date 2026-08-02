@@ -113,12 +113,19 @@ def packaged_gui_app_paths() -> "list[Path]":
 
     Returns every candidate for the current OS; the caller filters to those
     that actually exist. We never glob system-wide — only the well-known
-    electron-builder output locations for the "Wayne" product.
+    electron-builder output locations for the product.
+
+    electron-builder derives these directory/bundle names from `productName`
+    (apps/desktop/package.json), which the rebrand moved from Wayne to
+    Work4You. Both names are probed so an install made before the rename is
+    still found and removed.
     """
     home = Path.home()
     paths: list[Path] = []
     if sys.platform == "darwin":
         paths += [
+            Path("/Applications/Work4You.app"),
+            home / "Applications" / "Work4You.app",
             Path("/Applications/Wayne.app"),
             home / "Applications" / "Wayne.app",
         ]
@@ -126,14 +133,17 @@ def packaged_gui_app_paths() -> "list[Path]":
         local = os.environ.get("LOCALAPPDATA")
         local_base = Path(local) if local else (home / "AppData" / "Local")
         paths += [
-            # NSIS per-user install (perMachine=false → Programs\Wayne).
+            # NSIS per-user install (perMachine=false → Programs\<productName>).
+            local_base / "Programs" / "Work4You",
             local_base / "Programs" / "Wayne",
             # Older / alternate layout some builds used.
+            local_base / "work4you-desktop",
             local_base / "wayne-desktop",
         ]
         program_files = os.environ.get("ProgramFiles")
         if program_files:
             # NSIS per-machine fallback (needs admin to remove).
+            paths.append(Path(program_files) / "Work4You")
             paths.append(Path(program_files) / "Wayne")
     else:
         # Linux: AppImage is a single file the user placed somewhere; we can
@@ -144,7 +154,13 @@ def packaged_gui_app_paths() -> "list[Path]":
         # ``uninstall_gui``.
         data = os.environ.get("XDG_DATA_HOME")
         data_base = Path(data) if data else (home / ".local" / "share")
+        # electron-builder names the entry after `executableName`, which
+        # apps/desktop/package.json now sets to Work4You. The pre-rename
+        # Wayne names stay so upgrading installs still get cleaned up —
+        # same both-names approach install.ps1 uses for the .lnk shortcuts.
         paths += [
+            data_base / "applications" / "work4you.desktop",
+            data_base / "applications" / "Work4You.desktop",
             data_base / "applications" / "wayne.desktop",
             data_base / "applications" / "Wayne.desktop",
         ]

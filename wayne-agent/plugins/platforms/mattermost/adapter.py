@@ -1158,13 +1158,13 @@ def interactive_setup() -> None:
         print_info("⚠️  No allowlist set - anyone who can message the bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Wayne delivers cron job results and notifications.")
+    print_info("📬 Home Channel: where Work4You delivers cron job results and notifications.")
     print_info("   To get a channel ID: click channel name → View Info → copy the ID")
     print_info("   You can also set this later by typing /set-home in a Mattermost channel.")
     home_channel = prompt("Home channel ID (leave empty to set later with /set-home)")
     if home_channel:
         save_env_value("MATTERMOST_HOME_CHANNEL", home_channel)
-    print_info("   Open config in your editor:  wayne config edit")
+    print_info("   Open config in your editor:  work4you config edit")
 
 
 # ---------------------------------------------------------------------------

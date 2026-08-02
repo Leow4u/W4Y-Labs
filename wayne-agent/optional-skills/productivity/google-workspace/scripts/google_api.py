@@ -1052,7 +1052,7 @@ def _docs_insert_text(doc_id: str, text: str, index: int) -> None:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Google Workspace API for Wayne Agent")
+    parser = argparse.ArgumentParser(description="Google Workspace API for Work4You")
     sub = parser.add_subparsers(dest="service", required=True)
 
     # --- Gmail ---

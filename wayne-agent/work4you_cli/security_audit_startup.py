@@ -54,7 +54,7 @@ def _running_as_root() -> Optional[str]:
     return (
         "Running as ROOT. The agent's terminal/file tools execute with full "
         "root privileges — a single prompt-injection or exposed endpoint is a "
-        "full host compromise. Run Wayne as an unprivileged user (or in a "
+        "full host compromise. Run Work4You as an unprivileged user (or in a "
         "sandboxed terminal backend / container with a non-root user)."
     )
 

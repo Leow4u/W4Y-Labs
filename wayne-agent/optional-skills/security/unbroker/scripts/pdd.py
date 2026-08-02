@@ -260,7 +260,7 @@ def cmd_cdp(args) -> None:
         _out({"running": True, "endpoint": f"127.0.0.1:{port}",
               "browser": live.get("Browser"),
               "webSocketDebuggerUrl": live.get("webSocketDebuggerUrl"),
-              "note": "a debuggable browser is already listening; point Wayne's browser tools at "
+              "note": "a debuggable browser is already listening; point Work4You's browser tools at "
                       f"127.0.0.1:{port} and make sure the operator's webmail is signed in in THAT browser."})
         return
 
@@ -292,7 +292,7 @@ def cmd_cdp(args) -> None:
     _out({"running": bool(live), "launched_pid": pid, "browser": browser,
           "profile": str(profile), "endpoint": f"127.0.0.1:{port}",
           "webSocketDebuggerUrl": (live or {}).get("webSocketDebuggerUrl"),
-          "next": ([f"point Wayne's browser tools at 127.0.0.1:{port} (CDP)",
+          "next": ([f"point Work4You's browser tools at 127.0.0.1:{port} (CDP)",
                     "in the launched browser, sign into the operator's webmail ONCE (dedicated debug profile)",
                     "then run email/verify flows in browser mode -- they use this logged-in session"]
                    if live else

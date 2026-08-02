@@ -801,7 +801,7 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
         raise ValueError(
             "Honcho API key not found. "
             "Get your API key at https://app.honcho.dev, "
-            "then run 'wayne honcho setup' or set HONCHO_API_KEY. "
+            "then run 'work4you honcho setup' or set HONCHO_API_KEY. "
             "For local instances, set HONCHO_BASE_URL instead."
         )
 
@@ -814,7 +814,7 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
         # Lazy-install the honcho SDK on demand. ensure() honors
         # security.allow_lazy_installs (default true). On failure we surface
         # the original ImportError-shape message so existing callers still get
-        # the "go run wayne honcho setup" hint they used to.
+        # the "go run work4you honcho setup" hint they used to.
         try:
             from tools.lazy_deps import FeatureUnavailable, ensure as _lazy_ensure
             _lazy_ensure("memory.honcho", prompt=False)
@@ -832,7 +832,7 @@ def get_honcho_client(config: HonchoClientConfig | None = None) -> Honcho:
             raise ImportError(
                 "honcho-ai is required for Honcho integration. "
                 "Install it with: pip install honcho-ai  "
-                "(or run `wayne honcho setup` to configure)."
+                "(or run `work4you honcho setup` to configure)."
             )
 
         # Allow config.yaml honcho.base_url to override the SDK's environment

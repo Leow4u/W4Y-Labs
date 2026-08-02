@@ -299,7 +299,7 @@ class OpenRouterVideoGenProvider(VideoGenProvider):
             return error_response(
                 error=(
                     "No OpenRouter credentials found. Configure OpenRouter in "
-                    "`wayne tools` → Video Generation (same key as chat)."
+                    "`work4you tools` → Video Generation (same key as chat)."
                 ),
                 error_type="missing_api_key",
                 provider=self.name,

@@ -99,7 +99,7 @@ class TestInitialize:
         resp = await agent.initialize(protocol_version=1)
         assert resp.agent_info is not None
         assert isinstance(resp.agent_info, Implementation)
-        assert resp.agent_info.name == "wayne-agent"
+        assert resp.agent_info.name == "work4you-agent"
         assert resp.agent_info.version == WAYNE_VERSION
 
     @pytest.mark.asyncio
@@ -150,11 +150,11 @@ class TestInitialize:
             {
                 "args": ["--setup"],
                 "description": (
-                    "Open Wayne' interactive model/provider setup in a terminal. "
-                    "Use this when Wayne has not been configured on this machine yet."
+                    "Open Work4You's interactive model/provider setup in a terminal. "
+                    "Use this when Work4You has not been configured on this machine yet."
                 ),
                 "id": TERMINAL_SETUP_AUTH_METHOD_ID,
-                "name": "Configure Wayne provider",
+                "name": "Configure Work4You provider",
                 "type": "terminal",
             }
         ]

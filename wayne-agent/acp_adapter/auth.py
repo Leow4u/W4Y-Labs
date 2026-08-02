@@ -1,15 +1,19 @@
-"""ACP auth helpers — detect and advertise Wayne authentication methods."""
+"""ACP auth helpers — detect and advertise Work4You authentication methods."""
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
 
+# Wire identity, not copy: the editor (Zed and other ACP clients) echoes this
+# id back in ``authenticate`` and may persist the user's chosen method in its
+# own settings. Renaming it would invalidate that saved choice, so the brand
+# migration only rebrands the human-readable name/description below.
 TERMINAL_SETUP_AUTH_METHOD_ID = "wayne-setup"
 
 
 def detect_provider() -> Optional[str]:
-    """Resolve the active Wayne runtime provider, or None if unavailable.
+    """Resolve the active Work4You runtime provider, or None if unavailable.
 
     Treats a ``Callable`` ``api_key`` (Azure Foundry Entra ID bearer
     token provider — see :mod:`agent.azure_identity_adapter`) as a valid
@@ -34,16 +38,16 @@ def detect_provider() -> Optional[str]:
 
 
 def has_provider() -> bool:
-    """Return True if Wayne can resolve any runtime provider credentials."""
+    """Return True if Work4You can resolve any runtime provider credentials."""
     return detect_provider() is not None
 
 
 def build_auth_methods() -> list[Any]:
-    """Return registry-compatible ACP auth methods for Wayne.
+    """Return registry-compatible ACP auth methods for Work4You.
 
     The official ACP registry validates that agents advertise at least one
     usable auth method during the initial handshake. A fresh Zed install may
-    not have Wayne provider credentials configured yet, so Wayne always
+    not have Work4You provider credentials configured yet, so Work4You always
     advertises a terminal setup method. When credentials are already present,
     it also advertises the resolved provider as the default agent-managed
     runtime credential method.
@@ -58,7 +62,7 @@ def build_auth_methods() -> list[Any]:
                 id=provider,
                 name=f"{provider} runtime credentials",
                 description=(
-                    "Authenticate Wayne using the currently configured "
+                    "Authenticate Work4You using the currently configured "
                     f"{provider} runtime credentials."
                 ),
             )
@@ -67,10 +71,10 @@ def build_auth_methods() -> list[Any]:
     methods.append(
         TerminalAuthMethod(
             id=TERMINAL_SETUP_AUTH_METHOD_ID,
-            name="Configure Wayne provider",
+            name="Configure Work4You provider",
             description=(
-                "Open Wayne' interactive model/provider setup in a terminal. "
-                "Use this when Wayne has not been configured on this machine yet."
+                "Open Work4You's interactive model/provider setup in a terminal. "
+                "Use this when Work4You has not been configured on this machine yet."
             ),
             type="terminal",
             args=["--setup"],

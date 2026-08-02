@@ -3360,7 +3360,7 @@ class FeishuAdapter(BasePlatformAdapter):
             response = await client.get(
                 file_url,
                 headers={
-                    "User-Agent": "Mozilla/5.0 (compatible; WayneAgent/1.0)",
+                    "User-Agent": "Mozilla/5.0 (compatible; Work4YouAgent/1.0)",
                     "Accept": "*/*",
                 },
             )
@@ -4979,7 +4979,7 @@ class FeishuAdapter(BasePlatformAdapter):
 #
 # Device-code flow: user scans a QR code with Feishu/Lark mobile app and the
 # platform creates a fully configured bot application automatically.
-# Called by `wayne gateway setup` via _setup_feishu() in work4you_cli/gateway.py.
+# Called by `work4you gateway setup` via _setup_feishu() in work4you_cli/gateway.py.
 # =============================================================================
 
 

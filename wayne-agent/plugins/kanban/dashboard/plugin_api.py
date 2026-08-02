@@ -26,7 +26,7 @@ For the ``/events`` WebSocket we still require the session token as a
 header on an upgrade request), matching the established pattern used by
 the in-browser PTY bridge in ``work4you_cli/web_server.py``.
 
-This means ``wayne dashboard --host 0.0.0.0`` is safe to run on a LAN:
+This means ``work4you dashboard --host 0.0.0.0`` is safe to run on a LAN:
 plugin routes are no longer an unauthenticated exception. The auth still
 isn't multi-user — anyone who can read the printed URL+token gets full
 dashboard access — but they can't ride along just because they can reach
@@ -812,7 +812,7 @@ class UpdateTaskBody(BaseModel):
     result: Optional[str] = None
     block_reason: Optional[str] = None
     # Structured handoff fields — forwarded to complete_task when status
-    # transitions to 'done'. Dashboard parity with ``wayne kanban
+    # transitions to 'done'. Dashboard parity with ``work4you kanban
     # complete --summary ... --metadata ...``.
     summary: Optional[str] = None
     metadata: Optional[dict] = None
@@ -1275,7 +1275,7 @@ def list_diagnostics(
 
     Severity-filterable so the UI can render "just the critical ones"
     or the CLI can grep. Useful for the board-header attention strip
-    AND for ``wayne kanban diagnostics`` which shells to this
+    AND for ``work4you kanban diagnostics`` which shells to this
     endpoint when the dashboard's running, or invokes the engine
     directly when it isn't.
     """
@@ -1571,7 +1571,7 @@ def reclaim_task_endpoint(
     Used by the dashboard recovery popover when an operator wants to
     abort a stuck worker (e.g. one that keeps hallucinating card ids)
     without waiting for the claim TTL. Maps 1:1 to
-    ``wayne kanban reclaim <task_id> --reason ...``.
+    ``work4you kanban reclaim <task_id> --reason ...``.
     """
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -1605,7 +1605,7 @@ def specify_task_endpoint(
     board: Optional[str] = Query(None),
 ):
     """Flesh out a triage-column task via the auxiliary LLM and promote
-    it to ``todo``. Maps 1:1 to ``wayne kanban specify <task_id>``.
+    it to ``todo``. Maps 1:1 to ``work4you kanban specify <task_id>``.
 
     Returns the outcome shape used by the CLI: ``{ok, task_id, reason,
     new_title}``. A non-OK outcome is NOT an HTTP error — the UI renders
@@ -1659,7 +1659,7 @@ def reassign_task_endpoint(
     Used by the dashboard recovery popover when an operator wants to
     retry a task with a different worker profile (e.g. switch to a
     smarter model after the assigned profile keeps hallucinating).
-    Maps 1:1 to ``wayne kanban reassign <task_id> <profile> [--reclaim]``.
+    Maps 1:1 to ``work4you kanban reassign <task_id> <profile> [--reclaim]``.
     """
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -2219,7 +2219,7 @@ def decompose_task_endpoint(
 ):
     """Fan a triage-column task out into a graph of child tasks via the
     auxiliary LLM, routed to specialist profiles by description. Maps
-    1:1 to ``wayne kanban decompose <task_id>``.
+    1:1 to ``work4you kanban decompose <task_id>``.
 
     Returns the outcome shape used by the CLI: ``{ok, task_id, reason,
     fanout, child_ids, new_title}``. A non-OK outcome is NOT an HTTP

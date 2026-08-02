@@ -2411,7 +2411,7 @@ _HIGH_IMPACT_KIND_KEYWORDS = {
     "slack": "⚠ Slack — this will point Work4You at your OpenClaw Slack workspace",
     "discord": "⚠ Discord — this will point Work4You at your OpenClaw Discord bot",
     "whatsapp": "⚠ WhatsApp — this will point Work4You at your OpenClaw WhatsApp connection",
-    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to Wayne equivalents",
+    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to Work4You equivalents",
     "soul": "⚠ Instruction file — may contain OpenClaw-specific setup/restart procedures",
     "memory": "⚠ Memory/context file — may reference OpenClaw-specific infrastructure",
     "context": "⚠ Context file — may contain OpenClaw-specific instructions",
@@ -2455,7 +2455,7 @@ def _print_migration_preview(report: dict):
         print()
 
     if conflict_items:
-        print(color("  Would overwrite (conflicts with existing Wayne config):", Colors.YELLOW))
+        print(color("  Would overwrite (conflicts with existing Work4You config):", Colors.YELLOW))
         for item in conflict_items:
             kind = item.get("kind", "unknown")
             reason = item.get("reason", "already exists")
@@ -2476,8 +2476,8 @@ def _print_migration_preview(report: dict):
         for warning in sorted(warnings_shown):
             print(color(f"    {warning}", Colors.YELLOW))
         print()
-        print(color("  Note: OpenClaw config values may have different semantics in Wayne.", Colors.YELLOW))
-        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ Wayne's yolo mode.", Colors.YELLOW))
+        print(color("  Note: OpenClaw config values may have different semantics in Work4You.", Colors.YELLOW))
+        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ Work4You's yolo mode.", Colors.YELLOW))
         print(color("  Instruction files (.md) from OpenClaw may contain incompatible procedures.", Colors.YELLOW))
         print()
 
@@ -2500,7 +2500,7 @@ def _offer_openclaw_migration(wayne_home: Path) -> bool:
     print()
     print_header("OpenClaw Installation Detected")
     print_info(f"Found OpenClaw data at {openclaw_dir}")
-    print_info("Wayne can preview what would be imported before making any changes.")
+    print_info("Work4You can preview what would be imported before making any changes.")
     print()
 
     if not prompt_yes_no("Would you like to see what can be imported?", default=True):
@@ -2821,7 +2821,8 @@ def run_setup_wizard(args):
     )
     print(
         color(
-            "│             ⚕ Wayne Agent Setup Wizard                │", Colors.MAGENTA
+            "│                 ⚕ Work4You Setup Wizard                 │",
+            Colors.MAGENTA,
         )
     )
     print(
@@ -2832,12 +2833,14 @@ def run_setup_wizard(args):
     )
     print(
         color(
-            "│  Let's configure your Wayne Agent installation.       │", Colors.MAGENTA
+            "│  Let's configure your Work4You installation.            │",
+            Colors.MAGENTA,
         )
     )
     print(
         color(
-            "│  Press Ctrl+C at any time to exit.                     │", Colors.MAGENTA
+            "│  Press Ctrl+C at any time to exit.                      │",
+            Colors.MAGENTA,
         )
     )
     print(
@@ -2886,7 +2889,7 @@ def run_setup_wizard(args):
             config = load_config()
 
         setup_mode = prompt_choice(
-            "How would you like to set up Wayne?",
+            "How would you like to set up Work4You?",
             [
                 "Quick Setup (Nous Portal) — free OAuth login, no API keys, model + tools (recommended)",
                 "Full setup — configure every provider, tool & option yourself (bring your own keys)",
@@ -3345,7 +3348,7 @@ def _run_quick_setup(config: dict, wayne_home):
     if missing_messaging:
         print()
         print_header("Messaging Platforms")
-        print_info("Connect Wayne to messaging apps to chat from anywhere.")
+        print_info("Connect Work4You to messaging apps to chat from anywhere.")
         print_info("You can configure these later with 'work4you setup gateway'.")
 
         # Group by platform (preserving order)

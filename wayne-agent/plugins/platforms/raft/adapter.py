@@ -755,7 +755,7 @@ def _env_enablement() -> Optional[dict]:
 
 
 def interactive_setup() -> None:
-    """Interactive ``wayne gateway setup`` flow for the Raft platform.
+    """Interactive ``work4you gateway setup`` flow for the Raft platform.
 
     Lazy-imports CLI helpers so the plugin stays importable in gateway runtime
     and test contexts. The flow persists ``RAFT_PROFILE`` to the Wayne env
@@ -779,7 +779,7 @@ def interactive_setup() -> None:
             print_info(f"Keeping RAFT_PROFILE={existing_profile}.")
             return
 
-    print_info("Connect Wayne to Raft as an external agent.")
+    print_info("Connect Work4You to Raft as an external agent.")
     print_info("Create the External Agent in Raft first, then run:")
     print_info("  raft agent login --server <server-url> --agent <agent-id> --profile-slug <slug>")
     print()
