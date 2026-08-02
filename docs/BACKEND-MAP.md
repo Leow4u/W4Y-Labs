@@ -309,3 +309,71 @@ Ver memória `desktop-parity-checklist` (upstream em `C:/DEV/hermes-upstream`).
 - #103 — bundles acumulados: **corrigido** nos 2 Dockerfiles, provado no fly194 (1 bundle).
 - **Wake cron** — `platform/infra/wake-cron.ps1` captura o job vivo; apertar intervalo
   (hoje `*/15`) se quiser pontualidade = PARTIAL → mais perto de “na hora”.
+
+## Residuais da migração de marca Wayne→Work4You (01/08/2026)
+
+A onda de migração está completa do lado do utilizador. O que resta com o nome
+antigo fica **de propósito**, por uma destas razões:
+
+**Interface interna de env.** O código lê `WAYNE_*` (≈380 variáveis, `WAYNE_HOME`
+sozinha em ~3.000 sítios). A interface pública é `WORK4YOU_*`:
+`work4you_constants.apply_work4you_env_aliases()` espelha `WORK4YOU_*` → `WAYNE_*`
+no arranque e depois do `.env`, com precedência para `WAYNE_*` quando ambos
+existem — spawners internos injectam `WAYNE_HOME` por perfil e a grafia nova não
+pode quebrar o isolamento. ⚠️ A ponte vive **dentro do processo Python**: shell
+scripts e hooks de boot (ex. `docker/stage2-hook.sh`) precisam da cadeia escrita à
+mão.
+
+**Compatibilidade com o que já está instalado.** Alias `wayne` (deprecado, avisa
+só em TTY — a maquinaria de update/serviços ainda o executa); `wayne-agent` e
+`wayne-acp` (editores ACP configurados); stubs `wayne_cli`/`wayne_*` com troca em
+`sys.modules`; **`wayne_cli/main.py` físico** — cascas desktop ≤1.0.45 sondam esse
+caminho literal antes de arrancar o motor; symlink `/opt/wayne` na imagem;
+launcher `wayne` dentro do contentor; `_LEGACY_SERVICE_NAMES` e o matcher de
+unidades systemd; matchers de processo `wayne.exe`; headers `X-Wayne-*`
+(dual-accept); `/wayne` no Slack; `hermes://` a par de `work4you://`.
+
+**Contratos persistidos que um rename órfã.** `metadata.wayne` (frontmatter de
+todas as SKILL.md, incluindo cópias já instaladas nas homes dos utilizadores);
+ids instaláveis de skills e plugins; `_GATEWAY_KIND="wayne-gateway"` nos registos
+de PID; toolset `wayne-cli` em `config.yaml` existentes; `DEFAULT_PROJECT_NAME`
+do Photon (chave find-or-create do serviço).
+
+**Identificadores externos registados** — mudar parte a integração:
+`DEFAULT_NOUS_CLIENT_ID='wayne-cli'` (OAuth do Nous Portal), `X-Title: Wayne Agent`
+enviado ao OpenRouter, fórmula Homebrew `wayne-agent`.
+
+**Família de modelos da Nous.** `nousresearch/wayne-3-*` e `wayne-4-*` são modelos
+de terceiros, não a nossa marca. ⚠️ Cuidado ao varrer: `optional-skills/security/godmode/SKILL.md`
+mistura as duas leituras no mesmo ficheiro.
+
+**Atribuição upstream (MIT).** `FORK-NOTES.md`, `LICENSE-UPSTREAM`, `CREDITS.md`,
+autores Nous/Teknium, URLs de docs `hermes-agent.nousresearch.com` ainda citadas
+no `--help`.
+
+**Infra por migrar em janela própria** (fora do âmbito desta onda): apps Fly
+`wayne-<slug>` e `wayne-w4y` (renomear = reprovisionar tenants; `APP_RE` em
+`login/enter/route.ts` só aceita `^wayne-`), colunas `wayne_run_id`/`wayne_session_id`,
+cookies `wayne_session_*`, workspace npm `@wayne/shared`, e o artefacto
+`.wayne-engine-version` (o `install.ps1` lê o nome fixo).
+
+### Sequência obrigatória do corte do feed do motor
+
+O updater compara **apenas** `version`/`builtAt` do `latest.json` — o nome do zip é
+inerte e todos os resolvers sondam conteúdo. Mas as cascas ≤1.0.45 validam o
+caminho literal `wayne_cli/main.py`. Publicar **casca ≥1.0.46 antes** do primeiro
+zip da árvore renomeada; o stub físico é a defesa em profundidade.
+
+### Decisões de produto em aberto
+
+1. **Perfis não sobrevivem a `docker restart`** (bug pré-existente, não do rebrand):
+   `container_boot.py` usa `SOUL.md` como marcador de "perfil real", mas
+   `config.py::_ensure_default_soul_md` nunca o cria (decisão do fork: identidade
+   é baked-in). Nenhum gateway não-default é restaurado. Alternativa já em disco:
+   `gateway_state.json`. Dois testes em `tests/docker/test_container_restart.py`
+   ficaram vermelhos de propósito.
+2. **`LICENSE` do fork** — o repo tem `LICENSE-UPSTREAM` mas nunca teve `LICENSE`;
+   há um teste que o exige.
+3. **Homebrew sem comando concreto** — `format_managed_message()` deixou de citar a
+   fórmula (é id upstream), enquanto o ramo NixOS ao lado mantém identificadores
+   accionáveis.
