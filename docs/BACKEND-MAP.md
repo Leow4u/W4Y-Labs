@@ -364,16 +364,21 @@ inerte e todos os resolvers sondam conteúdo. Mas as cascas ≤1.0.45 validam o
 caminho literal `wayne_cli/main.py`. Publicar **casca ≥1.0.46 antes** do primeiro
 zip da árvore renomeada; o stub físico é a defesa em profundidade.
 
-### Decisões de produto em aberto
+### Decisões fechadas (02/08)
 
-1. **Perfis não sobrevivem a `docker restart`** (bug pré-existente, não do rebrand):
-   `container_boot.py` usa `SOUL.md` como marcador de "perfil real", mas
-   `config.py::_ensure_default_soul_md` nunca o cria (decisão do fork: identidade
-   é baked-in). Nenhum gateway não-default é restaurado. Alternativa já em disco:
-   `gateway_state.json`. Dois testes em `tests/docker/test_container_restart.py`
-   ficaram vermelhos de propósito.
-2. **`LICENSE` do fork** — o repo tem `LICENSE-UPSTREAM` mas nunca teve `LICENSE`;
-   há um teste que o exige.
-3. **Homebrew sem comando concreto** — `format_managed_message()` deixou de citar a
-   fórmula (é id upstream), enquanto o ramo NixOS ao lado mantém identificadores
-   accionáveis.
+1. **Perfis sobrevivem a `docker restart`** — corrigido de raiz. O
+   `container_boot` deixou de exigir `SOUL.md` (que o fork nunca cria) e passou
+   a usar a **mesma definição de perfil que o resto do CLI**: a forma do id
+   (`_PROFILE_ID_RE`). Dirs de backup (`coder.bak`, `Coder`, `.tmp`) continuam
+   filtrados. Os dois testes em `tests/docker/test_container_restart.py` passam.
+2. **`LICENSE`** — o fork passa a ter o seu (MIT, com o copyright da Nous
+   preservado); `LICENSE-UPSTREAM` fica intacto como cópia do original. Isto
+   também reparava a metadata: o `pyproject` já declarava
+   `license-files = ["LICENSE"]` para um ficheiro que não existia.
+3. **Homebrew — residual assumido.** `format_managed_message()` não cita a
+   fórmula `wayne-agent` porque é um **id publicado upstream**: mandar o
+   utilizador correr `brew upgrade wayne-agent` instalaria o pacote da Nous por
+   cima do Work4You. Enquanto não existir fórmula própria, a mensagem manda usar
+   a fórmula que ele tiver. O ramo NixOS mantém identificadores porque são
+   *dele* (`services.wayne-agent.settings` é config local, não um pacote remoto).
+

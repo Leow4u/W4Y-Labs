@@ -349,18 +349,44 @@ def test_profile_without_state_file_is_registered_but_not_started(
 
 
 def test_directory_without_marker_file_is_skipped(tmp_path: Path) -> None:
-    """A stray dir under profiles/ that isn't actually a profile (no
-    SOUL.md — the marker the reconciler keys on) should be skipped."""
+    """A stray dir whose name is not a valid profile id is skipped.
+
+    Backup/scratch dirs left under profiles/ (``coder.bak``, ``Coder``,
+    ``.tmp``) fail the profile-id shape the rest of the CLI uses, so they
+    never get an s6 slot. A dir that DOES look like a profile is
+    reconciled even with no files in it yet — the fork bakes identity into
+    the engine and never seeds SOUL.md, so keying on a seeded file left
+    every profile dead after a restart.
+    """
     scandir = tmp_path / "run-service"; scandir.mkdir()
-    # Create a profile dir but without SOUL.md
-    (tmp_path / "profiles" / "stray").mkdir(parents=True)
+    for stray in ("coder.bak", "Coder", ".tmp"):
+        (tmp_path / "profiles" / stray).mkdir(parents=True)
 
     actions = reconcile_profile_gateways(
         wayne_home=tmp_path, scandir=scandir, dry_run=False,
     )
 
     assert _named_actions(actions) == []
-    assert not (scandir / "gateway-stray").exists()
+    for stray in ("coder.bak", "Coder", ".tmp"):
+        assert not (scandir / f"gateway-{stray}").exists()
+
+
+def test_profile_without_seeded_files_is_still_reconciled(tmp_path: Path) -> None:
+    """Regression: the fork never seeds SOUL.md, so a bare profile dir
+    must still get its s6 slot back after a container restart."""
+    scandir = tmp_path / "run-service"; scandir.mkdir()
+    profile = tmp_path / "profiles" / "coder"
+    profile.mkdir(parents=True)
+    (profile / "gateway_state.json").write_text(
+        '{"gateway_state": "running", "timestamp": 1}'
+    )
+
+    actions = reconcile_profile_gateways(
+        wayne_home=tmp_path, scandir=scandir, dry_run=False,
+    )
+
+    assert [a.profile for a in actions if a.profile != "default"] == ["coder"]
+    assert (scandir / "gateway-coder").exists()
 
 
 def test_corrupt_state_file_treated_as_no_prior_state(tmp_path: Path) -> None:
