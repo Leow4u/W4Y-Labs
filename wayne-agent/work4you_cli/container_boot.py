@@ -22,9 +22,16 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal, Sequence
+
+# Same profile-id shape as ``work4you_cli.profiles._PROFILE_ID_RE``. Kept as a
+# local copy on purpose: this module runs inside the container's cont-init
+# hook, where importing the full profiles module (and its config/CLI deps)
+# would be both slow and a new failure surface at boot.
+_PROFILE_ID_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,63}$")
 
 log = logging.getLogger(__name__)
 
@@ -153,11 +160,21 @@ def reconcile_profile_gateways(
         for entry in sorted(profiles_root.iterdir()):
             if not entry.is_dir():
                 continue
-            # SOUL.md is always seeded by `wayne profile create` (config.yaml
-            # is not — that comes later via `wayne setup`). Use it as the
-            # "real profile" marker so stray dirs (backups, manual mkdir)
-            # aren't picked up.
-            if not (entry / "SOUL.md").exists():
+            # What counts as a profile is decided in ONE place: the same
+            # profile-id shape ``work4you_cli.profiles`` uses everywhere
+            # else (``_PROFILE_ID_RE``). This used to gate on SOUL.md as a
+            # "real profile" marker, but the fork bakes its identity into
+            # the engine and deliberately never seeds SOUL.md
+            # (``config.py::_ensure_default_soul_md`` only removes it), so
+            # NO profile qualified and none was ever restored after a
+            # container restart. Stray dirs (backups, manual mkdir) are
+            # still filtered: a backup like ``coder.bak`` or ``Coder``
+            # fails the id shape, and anything that passes it is
+            # addressable as a profile by the rest of the CLI anyway.
+            if not _PROFILE_ID_RE.match(entry.name):
+                log.debug(
+                    "skipping %s: not a valid profile id", entry.name,
+                )
                 continue
             # The "default" service name is reserved for the root
             # profile (above) — if a user has somehow created a
