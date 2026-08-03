@@ -544,6 +544,10 @@ function downloadFileToPath(url, destPath, onProgress, hops = 0) {
  */
 function extractZipTo(zipPath, destDir, onLog) {
   return new Promise((resolve, reject) => {
+    // This is the path that bricked installs on 02/08/2026: the packaged
+    // first-run bootstrap extracts straight onto the engine dir, and a
+    // dangling junction there makes mkdir fail with ENOENT on every retry.
+    clearDanglingLink(destDir);
     fs.mkdirSync(destDir, { recursive: true });
     const IS_WIN = process.platform === "win32";
     let child;
@@ -596,7 +600,41 @@ function resolveExtractedSourceRoot(extractDir) {
  * Copy engine source files from srcRoot onto destRoot, preserving the local
  * venv (`.venv` / `venv`) so updates do not wipe installed packages.
  */
+/**
+ * Remove a dangling junction/symlink sitting where a directory should be.
+ *
+ * The engine dir is swapped via a junction. If an update repoints it and the
+ * new target is then lost (a failed promote deletes the staged dir), the link
+ * survives with a target that no longer exists — `mkdir -p` on that path fails
+ * with ENOENT forever and the app can never start again, because the very
+ * code that would repair the engine is the code that cannot create the dir.
+ * Seen in the field on 02/08/2026. lstat sees the link itself; existsSync
+ * follows it, so "link exists but does not resolve" is exactly a dangling
+ * reparse point. Removing it is safe: the data lives at the target, and the
+ * target is gone.
+ */
+function clearDanglingLink(p) {
+  let st;
+  try {
+    st = fs.lstatSync(p);
+  } catch {
+    return; // nothing there at all
+  }
+  if (!st.isSymbolicLink() && !st.isDirectory()) return;
+  if (fs.existsSync(p)) return; // resolves fine — leave it alone
+  try {
+    fs.rmSync(p, { recursive: true, force: true });
+  } catch {
+    try {
+      fs.unlinkSync(p);
+    } catch {
+      /* best effort — the mkdir below will surface the real error */
+    }
+  }
+}
+
 function mergeEngineTree(srcRoot, destRoot) {
+  clearDanglingLink(destRoot);
   fs.mkdirSync(destRoot, { recursive: true });
   const skip = new Set([".venv", "venv", "__pycache__", ".pytest_cache"]);
   for (const name of fs.readdirSync(srcRoot)) {
@@ -766,6 +804,7 @@ module.exports = {
   ensureWayneEngineForPackaged,
   fetchEngineZipUrl,
   parseManifestJson,
+  clearDanglingLink,
   isWayneSourceRoot,
   tryResolveWayneBackend,
   wayneRootCandidates,
