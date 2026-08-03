@@ -1916,6 +1916,34 @@ export const zh: Translations = {
     search: '搜索消息平台…',
     loading: '正在加载消息平台…',
     loadFailed: '消息平台加载失败',
+    title: '频道',
+    subtitle: '与智能体对话、接待会话，并在此跟进所有互动。',
+    featured: '精选',
+    moreChannels: '更多频道',
+    showMore: '显示更多',
+    showLess: '收起',
+    systemChannels: '高级',
+    connected: '已连接',
+    needsLink: '连接',
+    backToChannels: '频道',
+    configure: '配置',
+    conversationsTitle: '会话',
+    conversationsCount: count => (count === 1 ? '此频道 1 个会话' : `此频道 ${count} 个会话`),
+    conversationsEmpty: '暂无会话',
+    conversationsEmptyHint: '在此频道给智能体发消息后，会话会出现在这里。',
+    openConversation: '打开会话',
+    sectionConnect: '连接频道',
+    sectionWho: '谁可以与智能体对话',
+    sectionWhoHint: '留空则仅允许你自己。',
+    sectionHome: '提醒与定时任务',
+    sectionHomeHint: '主动提醒与定时任务的投递位置。',
+    test: '测试',
+    testing: '测试中…',
+    testOk: name => `${name}：连接正常`,
+    testFailed: name => `${name}：测试失败`,
+    testHintUnpaired: '这仅检查状态。若尚未配对，请完成上方的二维码步骤，打开开关，并从状态栏重启网关。',
+    whatsappUnpairedError: 'WhatsApp 已开启但尚未配对。请完成上方的二维码步骤，并从状态栏重启网关。',
+    openProductDocs: 'Work4You 文档',
     states: {
       connected: '已连接',
       connecting: '连接中',
@@ -1929,7 +1957,7 @@ export const zh: Translations = {
     },
     unknown: '未知',
     hintPendingRestart: '在状态栏重启网关以应用此更改。',
-    hintGatewayStopped: '在状态栏启动网关以建立连接。',
+    hintGatewayStopped: '请从状态栏（账户 / 状态区域）启动网关，然后回到这里。',
     credentialsSet: '凭据已设置',
     needsSetup: '需要设置',
     gatewayStopped: '消息网关已停止',
@@ -2040,6 +2068,33 @@ export const zh: Translations = {
       api_server:
         '把 Work4You 暴露为兼容 OpenAI 的 API。设置一个鉴权密钥，然后把 Open WebUI / LobeChat 等指向 host:port。',
       webhook: '运行一个 HTTP 服务器，供其他工具 (GitHub、GitLab、自定义应用)POST。用 secret 验证签名。'
+    },
+    platformCopy: {
+      whatsapp: {
+        name: 'WhatsApp',
+        desc: '个人号码（扫码）。智能体使用与手机相同的 WhatsApp。'
+      },
+      whatsapp_cloud: {
+        name: 'WhatsApp（官方 API）',
+        desc: 'Meta Business Cloud API。独立商务号码，适合客户服务。'
+      },
+      telegram: { name: 'Telegram', desc: '在私信、群组和话题中与智能体对话。' },
+      email: { name: '电子邮件', desc: '通过邮箱收发消息。' },
+      slack: { name: 'Slack', desc: '在频道和私信中联系智能体。' },
+      teams: { name: 'Microsoft Teams', desc: '在 Teams 中联系智能体。' },
+      sms: { name: '短信', desc: '收发短信。' },
+      discord: { name: 'Discord', desc: '在服务器和私信中联系智能体。' },
+      google_chat: { name: 'Google Chat', desc: '在 Google Chat 中联系智能体。' }
+    },
+    platformNotice: {
+      whatsapp: {
+        title: '个人号码 — 请了解风险',
+        body: '此通道绑定手机上的同一 WhatsApp 账号（桥接 + 扫码），不是 Meta 官方 API。个人聊天可能与智能体流量混在一起，且 Meta 可能限制非官方桥接。面向客户请优先使用带商务号码的官方 API。连接即表示你接受此风险。'
+      },
+      whatsapp_cloud: {
+        title: 'Meta 官方 Business API',
+        body: '使用 WhatsApp Cloud API、商务号码与 Meta 凭证（令牌、webhook）。面向客户服务，请与个人 WhatsApp 分开。需要 Meta Business 配置，并遵守 Meta 的消息规则与计费。'
+      }
     }
   },
 

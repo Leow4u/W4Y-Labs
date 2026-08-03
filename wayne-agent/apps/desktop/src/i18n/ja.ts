@@ -1140,9 +1140,40 @@ export const ja = defineLocale({
   },
 
   messaging: {
-    search: 'メッセージングを検索...',
-    loading: 'メッセージングプラットフォームを読み込み中...',
-    loadFailed: 'メッセージングプラットフォームの読み込みに失敗しました',
+    search: 'チャンネルを検索...',
+    loading: 'チャンネルを読み込み中...',
+    loadFailed: 'チャンネルの読み込みに失敗しました',
+    title: 'チャンネル',
+    subtitle: 'エージェントと話し、会話を受け、すべてをここで追えます。',
+    featured: 'おすすめ',
+    moreChannels: 'その他のチャンネル',
+    showMore: 'もっと見る',
+    showLess: '閉じる',
+    systemChannels: '詳細',
+    connected: '接続済み',
+    needsLink: '接続',
+    backToChannels: 'チャンネル',
+    configure: '設定',
+    conversationsTitle: '会話',
+    conversationsCount: count =>
+      count === 1 ? 'このチャンネルに 1 件の会話' : `このチャンネルに ${count} 件の会話`,
+    conversationsEmpty: 'まだ会話がありません',
+    conversationsEmptyHint: 'このチャンネルでエージェントにメッセージを送ると、ここに表示されます。',
+    openConversation: '会話を開く',
+    sectionConnect: 'チャンネルを接続',
+    sectionWho: 'エージェントと話せる人',
+    sectionWhoHint: '空欄の場合はあなただけが許可されます。',
+    sectionHome: '通知とルーチン',
+    sectionHomeHint: '通知やスケジュール配信の送り先。',
+    test: 'テスト',
+    testing: 'テスト中...',
+    testOk: name => `${name}: 接続は問題ありません`,
+    testFailed: name => `${name}: テストに失敗しました`,
+    testHintUnpaired:
+      'これは状態の確認だけです。まだペアリングしていない場合は、上の QR 手順を完了し、オンにしてステータスバーからゲートウェイを再起動してください。',
+    whatsappUnpairedError:
+      'WhatsApp はオンですが未ペアリングです。上の QR 手順を完了し、ステータスバーからゲートウェイを再起動してください。',
+    openProductDocs: 'Work4You ドキュメント',
     states: {
       connected: '接続済み',
       connecting: '接続中',
@@ -1156,7 +1187,7 @@ export const ja = defineLocale({
     },
     unknown: '不明',
     hintPendingRestart: 'この変更を適用するにはステータスバーからゲートウェイを再起動してください。',
-    hintGatewayStopped: 'ステータスバーからゲートウェイを起動して接続してください。',
+    hintGatewayStopped: 'ステータスバー（アカウント / ステータス）からゲートウェイを起動して、ここに戻ってください。',
     credentialsSet: '認証情報を設定しました',
     needsSetup: '設定が必要',
     gatewayStopped: 'メッセージングゲートウェイが停止中',
@@ -1276,7 +1307,34 @@ export const ja = defineLocale({
         help: '推奨。カンマ区切りの電話番号または WhatsApp ID。'
       }
     },
-    platformIntro: {}
+    platformIntro: {},
+    platformCopy: {
+      whatsapp: {
+        name: 'WhatsApp',
+        desc: '個人番号（QR）。エージェントはスマホと同じ WhatsApp を使います。'
+      },
+      whatsapp_cloud: {
+        name: 'WhatsApp（公式 API）',
+        desc: 'Meta Business Cloud API。別のビジネス番号 — 顧客対応向け。'
+      },
+      telegram: { name: 'Telegram', desc: 'DM・グループ・トピックでエージェントと話す。' },
+      email: { name: 'メール', desc: 'メールボックスで送受信。' },
+      slack: { name: 'Slack', desc: 'チャンネルや DM でエージェントに連絡。' },
+      teams: { name: 'Microsoft Teams', desc: 'Teams でエージェントに連絡。' },
+      sms: { name: 'SMS', desc: 'テキストメッセージの送受信。' },
+      discord: { name: 'Discord', desc: 'サーバーや DM でエージェントに連絡。' },
+      google_chat: { name: 'Google Chat', desc: 'Google Chat でエージェントに連絡。' }
+    },
+    platformNotice: {
+      whatsapp: {
+        title: '個人番号 — リスクを理解してください',
+        body: 'このチャネルはスマホと同じ WhatsApp アカウントに接続します（ブリッジ + QR）。Meta の公式 API ではありません。個人チャットとエージェントの通信が混ざる可能性があり、非公式ブリッジは Meta により制限されることがあります。顧客対応にはビジネス番号の公式 API を推奨します。接続するとこのリスクを受け入れたことになります。'
+      },
+      whatsapp_cloud: {
+        title: 'Meta 公式 Business API',
+        body: 'ビジネス番号と Meta 認証情報（トークン、webhook）で WhatsApp Cloud API を使います。顧客対応向けで、個人の WhatsApp とは分けてください。Meta Business の設定とメッセージ規約・料金が必要です。'
+      }
+    }
   },
 
   profiles: {

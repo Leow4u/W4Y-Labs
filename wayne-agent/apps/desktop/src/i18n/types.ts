@@ -1352,6 +1352,36 @@ export interface Translations {
     search: string
     loading: string
     loadFailed: string
+    title: string
+    subtitle: string
+    featured: string
+    moreChannels: string
+    showMore: string
+    showLess: string
+    systemChannels: string
+    connected: string
+    needsLink: string
+    backToChannels: string
+    configure: string
+    conversationsTitle: string
+    conversationsCount: (count: number) => string
+    conversationsEmpty: string
+    conversationsEmptyHint: string
+    openConversation: string
+    sectionConnect: string
+    sectionWho: string
+    sectionWhoHint: string
+    sectionHome: string
+    sectionHomeHint: string
+    test: string
+    testing: string
+    testOk: (name: string) => string
+    testFailed: (name: string) => string
+    /** Extra line under Test result when pairing may still be needed (no vendor CLI names). */
+    testHintUnpaired: string
+    /** Replaces engine English "not paired / wayne whatsapp" for WhatsApp bridge. */
+    whatsappUnpairedError: string
+    openProductDocs: string
     states: Record<string, string>
     unknown: string
     hintPendingRestart: string
@@ -1388,6 +1418,9 @@ export interface Translations {
     failedClear: (key: string) => string
     fieldCopy: Record<string, { label?: string; help?: string; placeholder?: string }>
     platformIntro: Record<string, string>
+    platformCopy: Record<string, { name?: string; desc?: string }>
+    /** Important risk / product notes shown at the top of a channel detail. */
+    platformNotice: Record<string, { title: string; body: string }>
   }
 
   profiles: {

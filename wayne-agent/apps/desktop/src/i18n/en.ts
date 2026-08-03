@@ -1920,37 +1920,68 @@ export const en: Translations = {
   },
 
   messaging: {
-    search: 'Search messaging...',
-    loading: 'Loading messaging platforms...',
-    loadFailed: 'Messaging platforms failed to load',
+    search: 'Search channels…',
+    loading: 'Loading channels…',
+    loadFailed: 'Could not load channels',
+    title: 'Channels',
+    subtitle: 'Talk to your agent, let others reach it, and follow every conversation here.',
+    featured: 'Featured',
+    moreChannels: 'More channels',
+    showMore: 'Show more',
+    showLess: 'Show less',
+    systemChannels: 'Advanced',
+    connected: 'Connected',
+    needsLink: 'Connect',
+    backToChannels: 'Channels',
+    configure: 'Configure',
+    conversationsTitle: 'Conversations',
+    conversationsCount: count =>
+      count === 1 ? '1 conversation on this channel' : `${count} conversations on this channel`,
+    conversationsEmpty: 'No conversations yet',
+    conversationsEmptyHint: 'Message the agent on this channel — threads show up here.',
+    openConversation: 'Open conversation',
+    sectionConnect: 'Connect the channel',
+    sectionWho: 'Who can talk to the agent',
+    sectionWhoHint: 'Leave blank to allow only you.',
+    sectionHome: 'Alerts and routines',
+    sectionHomeHint: 'Where proactive alerts and scheduled jobs are delivered.',
+    test: 'Test',
+    testing: 'Testing…',
+    testOk: name => `${name}: connection looks good`,
+    testFailed: name => `${name}: test failed`,
+    testHintUnpaired:
+      'This only checks status. If it is not paired yet, finish the QR pairing steps above, turn the channel on, and restart the gateway from the status bar.',
+    whatsappUnpairedError:
+      'WhatsApp is on but not paired yet. Finish the QR pairing steps above, then restart the gateway from the status bar.',
+    openProductDocs: 'Work4You documentation',
     states: {
       connected: 'Connected',
       connecting: 'Connecting',
-      disabled: 'Disabled',
+      disabled: 'Off',
       fatal: 'Error',
-      gateway_stopped: 'Messaging gateway stopped',
-      not_configured: 'Needs setup',
+      gateway_stopped: 'Gateway stopped',
+      not_configured: 'Connect',
       pending_restart: 'Restart needed',
       retrying: 'Retrying',
       startup_failed: 'Startup failed'
     },
     unknown: 'Unknown',
     hintPendingRestart: 'Restart the gateway from the status bar to apply this change.',
-    hintGatewayStopped: 'Start the gateway from the status bar to connect.',
+    hintGatewayStopped: 'Start the gateway from the status bar (account / status area), then come back here.',
     credentialsSet: 'Credentials set',
     needsSetup: 'Needs setup',
-    gatewayStopped: 'Messaging gateway stopped',
+    gatewayStopped: 'Gateway stopped',
     getCredentials: 'Get your credentials',
     openSetupGuide: 'Open setup guide',
     required: 'Required',
     recommended: 'Recommended',
     advanced: count => `Advanced (${count})`,
-    noTokenNeeded: 'This platform does not need a token here. Use the setup guide above, then enable it below.',
-    enabled: 'Enabled',
-    disabled: 'Disabled',
+    noTokenNeeded: 'This channel does not need a token here. Use the setup guide, then turn it on.',
+    enabled: 'On',
+    disabled: 'Off',
     unsavedChanges: 'Unsaved changes',
-    saving: 'Saving...',
-    saveChanges: 'Save changes',
+    saving: 'Saving…',
+    saveChanges: 'Save',
     saved: 'Saved',
     replaceValue: 'Replace current value',
     openDocs: 'Open docs',
@@ -1974,8 +2005,8 @@ export const en: Translations = {
         placeholder: 'Paste Telegram bot token'
       },
       TELEGRAM_ALLOWED_USERS: {
-        label: 'Allowed Telegram user IDs',
-        help: 'Recommended. Comma-separated numeric IDs from @userinfobot. Without this, anyone can DM your bot.'
+        label: 'Who can talk to the agent',
+        help: 'Leave blank to allow only you. Comma-separated numeric IDs from @userinfobot.'
       },
       TELEGRAM_PROXY: { label: 'Proxy URL', help: 'Only needed on networks where Telegram is blocked.' },
       DISCORD_BOT_TOKEN: {
@@ -1983,31 +2014,37 @@ export const en: Translations = {
         help: 'Create an application in the Discord Developer Portal, add a bot, then paste its token.'
       },
       DISCORD_ALLOWED_USERS: {
-        label: 'Allowed Discord user IDs',
-        help: 'Recommended. Comma-separated Discord user IDs.'
+        label: 'Who can talk to the agent',
+        help: 'Leave blank to allow only you. Comma-separated Discord user IDs.'
       },
       DISCORD_REPLY_TO_MODE: { label: 'Reply style', help: 'first, all, or off.' },
       DISCORD_ALLOW_ALL_USERS: {
-        label: 'Allow all Discord users',
-        help: 'Development only. When true, anyone can DM the bot without an allowlist.'
+        label: 'Allow anyone',
+        help: 'Development only. When on, anyone can message the bot without an allowlist.'
       },
       DISCORD_HOME_CHANNEL: {
-        label: 'Home channel ID',
-        help: 'Channel where the bot sends proactive messages (cron output, reminders).'
+        label: 'Home channel',
+        help: 'Where alerts and scheduled jobs are delivered.'
       },
       DISCORD_HOME_CHANNEL_NAME: {
         label: 'Home channel name',
-        help: 'Display name for the home channel in logs and status output.'
+        help: 'Display name for the home channel.'
       },
       BLUEBUBBLES_ALLOW_ALL_USERS: {
-        label: 'Allow all iMessage users',
-        help: 'When true, skip the BlueBubbles allowlist.'
+        label: 'Allow anyone',
+        help: 'When on, skip the BlueBubbles allowlist.'
       },
-      MATTERMOST_ALLOW_ALL_USERS: { label: 'Allow all Mattermost users' },
-      MATTERMOST_HOME_CHANNEL: { label: 'Home channel' },
-      QQ_ALLOW_ALL_USERS: { label: 'Allow all QQ users' },
-      QQBOT_HOME_CHANNEL: { label: 'QQ home channel', help: 'Default channel or group for cron delivery.' },
-      QQBOT_HOME_CHANNEL_NAME: { label: 'QQ home channel name' },
+      MATTERMOST_ALLOW_ALL_USERS: { label: 'Allow anyone' },
+      MATTERMOST_HOME_CHANNEL: {
+        label: 'Home channel',
+        help: 'Where alerts and scheduled jobs are delivered.'
+      },
+      QQ_ALLOW_ALL_USERS: { label: 'Allow anyone' },
+      QQBOT_HOME_CHANNEL: {
+        label: 'Home channel',
+        help: 'Where alerts and scheduled jobs are delivered.'
+      },
+      QQBOT_HOME_CHANNEL_NAME: { label: 'Home channel name' },
       SLACK_BOT_TOKEN: {
         label: 'Slack bot token',
         help: 'Use the bot token from OAuth & Permissions after installing your Slack app.',
@@ -2018,19 +2055,22 @@ export const en: Translations = {
         help: 'Use the app-level token required for Socket Mode.',
         placeholder: 'Paste Slack app token'
       },
-      SLACK_ALLOWED_USERS: { label: 'Allowed Slack user IDs', help: 'Recommended. Comma-separated Slack user IDs.' },
+      SLACK_ALLOWED_USERS: {
+        label: 'Who can talk to the agent',
+        help: 'Leave blank to allow only you. Comma-separated Slack user IDs.'
+      },
       MATTERMOST_URL: { label: 'Server URL', placeholder: 'https://mattermost.example.com' },
       MATTERMOST_TOKEN: { label: 'Bot token' },
       MATTERMOST_ALLOWED_USERS: {
-        label: 'Allowed user IDs',
-        help: 'Recommended. Comma-separated Mattermost user IDs.'
+        label: 'Who can talk to the agent',
+        help: 'Leave blank to allow only you. Comma-separated Mattermost user IDs.'
       },
       MATRIX_HOMESERVER: { label: 'Homeserver URL', placeholder: 'https://matrix.org' },
       MATRIX_ACCESS_TOKEN: { label: 'Access token' },
       MATRIX_USER_ID: { label: 'Bot user ID', placeholder: '@work4you:example.org' },
       MATRIX_ALLOWED_USERS: {
-        label: 'Allowed Matrix user IDs',
-        help: 'Recommended. Comma-separated user IDs in @user:server format.'
+        label: 'Who can talk to the agent',
+        help: 'Leave blank to allow only you. Comma-separated user IDs in @user:server format.'
       },
       SIGNAL_HTTP_URL: {
         label: 'Signal bridge URL',
@@ -2038,18 +2078,63 @@ export const en: Translations = {
         help: 'URL of a running signal-cli REST bridge.'
       },
       SIGNAL_ACCOUNT: { label: 'Phone number', help: 'The number registered with your signal-cli bridge.' },
-      SIGNAL_ALLOWED_USERS: { label: 'Allowed Signal users', help: 'Recommended. Comma-separated Signal identifiers.' },
-      WHATSAPP_ENABLED: {
-        label: 'Enable WhatsApp bridge',
-        help: 'Set automatically by the toggle below. Leave alone unless you know you need it.'
+      SIGNAL_ALLOWED_USERS: {
+        label: 'Who can talk to the agent',
+        help: 'Leave blank to allow only you. Comma-separated Signal identifiers.'
       },
-      WHATSAPP_MODE: { label: 'Bridge mode' },
+      WHATSAPP_ENABLED: {
+        label: 'WhatsApp env enable (advanced)',
+        help: 'Mirrors the On switch into .env for a double-check. Prefer the On toggle below for day-to-day use.'
+      },
+      WHATSAPP_MODE: {
+        label: 'Bridge mode',
+        help: 'Usually self-chat or bot. Leave the default unless you know you need another mode.'
+      },
+      WHATSAPP_ALLOW_ALL_USERS: {
+        label: 'Allow anyone',
+        help: 'Development only. When on, any WhatsApp user can talk to the agent.'
+      },
+      WHATSAPP_HOME_CHANNEL: {
+        label: 'Alerts channel',
+        help: 'Chat ID where scheduled jobs and proactive alerts are delivered.'
+      },
+      WHATSAPP_HOME_CHANNEL_NAME: {
+        label: 'Channel display name',
+        help: 'Friendly name for that alerts channel.'
+      },
       WHATSAPP_ALLOWED_USERS: {
-        label: 'Allowed WhatsApp users',
-        help: 'Recommended. Comma-separated phone numbers or WhatsApp IDs.'
+        label: 'Who can talk to the agent',
+        help: 'Leave blank to allow only you. Comma-separated phone numbers or WhatsApp IDs.'
       }
     },
-    platformIntro: {}
+    platformIntro: {},
+    platformCopy: {
+      whatsapp: {
+        name: 'WhatsApp',
+        desc: 'Your personal number via QR. The agent uses the same WhatsApp as your phone.'
+      },
+      whatsapp_cloud: {
+        name: 'WhatsApp (official API)',
+        desc: 'Meta Business Cloud API. Separate business number — for customer support at scale.'
+      },
+      telegram: { name: 'Telegram', desc: 'Talk to your agent in DMs, groups, and topics.' },
+      email: { name: 'Email', desc: 'Receive and reply from a mailbox.' },
+      slack: { name: 'Slack', desc: 'Reach the agent in channels and DMs.' },
+      teams: { name: 'Microsoft Teams', desc: 'Reach the agent in Teams chats and channels.' },
+      sms: { name: 'SMS', desc: 'Send and receive text messages.' },
+      discord: { name: 'Discord', desc: 'Reach the agent in servers, channels, and DMs.' },
+      google_chat: { name: 'Google Chat', desc: 'Reach the agent in Chat spaces and DMs.' }
+    },
+    platformNotice: {
+      whatsapp: {
+        title: 'Personal number — understand the risk',
+        body: 'This channel links the same WhatsApp account as on your phone (bridge + QR). It is not Meta’s official API. Personal chats can mix with agent traffic, and Meta may restrict unofficial bridges. Prefer the official API with a Business number for customers. By connecting, you accept this risk.'
+      },
+      whatsapp_cloud: {
+        title: 'Official Meta Business API',
+        body: 'Uses WhatsApp Cloud API with a Business number and Meta credentials (tokens, webhook). Built for customer support — keep it separate from your personal WhatsApp. Requires a Meta Business setup and Meta’s messaging rules and pricing.'
+      }
+    }
   },
 
   profiles: {

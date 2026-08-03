@@ -6596,7 +6596,8 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     "whatsapp": {
         "name": "WhatsApp",
         "description": "WhatsApp through the bundled bridge, paired with a QR code.",
-        "docs_url": "https://github.com/tulir/whatsmeow",
+        # Product docs — never third-party GitHub (whatsmeow) in the user-facing guide.
+        "docs_url": "https://work4you.ai/docs",
         "env_vars": ("WHATSAPP_ENABLED", "WHATSAPP_MODE", "WHATSAPP_ALLOWED_USERS"),
         "required_env": (),
     },

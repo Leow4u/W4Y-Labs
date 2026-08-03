@@ -575,7 +575,195 @@ export const pt = defineLocale({
   },
 
   messaging: {
-    search: 'Buscar canais…'
+    search: 'Buscar canais…',
+    loading: 'A carregar canais…',
+    loadFailed: 'Não foi possível carregar os canais',
+    title: 'Canais',
+    subtitle: 'Fale com o agente, atenda conversas e acompanhe tudo aqui.',
+    featured: 'Em destaque',
+    moreChannels: 'Mais canais',
+    showMore: 'Ver mais',
+    showLess: 'Ver menos',
+    systemChannels: 'Avançado',
+    connected: 'Conectado',
+    needsLink: 'Conectar',
+    backToChannels: 'Canais',
+    configure: 'Configurar',
+    conversationsTitle: 'Conversas',
+    conversationsCount: count =>
+      count === 1 ? '1 conversa neste canal' : `${count} conversas neste canal`,
+    conversationsEmpty: 'Ainda sem conversas',
+    conversationsEmptyHint: 'Envie uma mensagem ao agente neste canal — as conversas aparecem aqui.',
+    openConversation: 'Abrir conversa',
+    sectionConnect: 'Ligar o canal',
+    sectionWho: 'Quem pode falar com o agente',
+    sectionWhoHint: 'Em branco = só você.',
+    sectionHome: 'Avisos e rotinas',
+    sectionHomeHint: 'Para onde vão avisos e rotinas agendadas.',
+    test: 'Testar',
+    testing: 'A testar…',
+    testOk: name => `${name}: ligação OK`,
+    testFailed: name => `${name}: teste falhou`,
+    testHintUnpaired:
+      'Isto só valida o estado. Se ainda não estiver pareado, completa os passos do QR acima, liga Ativo e reinicia o gateway na barra de estado.',
+    whatsappUnpairedError:
+      'O WhatsApp está activo mas ainda não foi pareado. Completa os passos do QR acima e reinicia o gateway na barra de estado.',
+    openProductDocs: 'Documentação Work4You',
+    states: {
+      connected: 'Conectado',
+      connecting: 'A conectar',
+      disabled: 'Desligado',
+      fatal: 'Erro',
+      gateway_stopped: 'Gateway parado',
+      not_configured: 'Conectar',
+      pending_restart: 'Reinício necessário',
+      retrying: 'A tentar de novo',
+      startup_failed: 'Falha ao iniciar'
+    },
+    unknown: 'Desconhecido',
+    hintPendingRestart: 'Reinicie o gateway na barra de estado para aplicar.',
+    hintGatewayStopped: 'Inicia o gateway na barra de estado (conta / área de estado) e volta aqui.',
+    credentialsSet: 'Credenciais guardadas',
+    needsSetup: 'Precisa de configuração',
+    gatewayStopped: 'Gateway parado',
+    getCredentials: 'Obter credenciais',
+    openSetupGuide: 'Abrir guia de configuração',
+    required: 'Obrigatório',
+    recommended: 'Recomendado',
+    advanced: count => `Avançado (${count})`,
+    noTokenNeeded: 'Este canal não precisa de token aqui. Use o guia, depois ligue-o.',
+    enabled: 'Ativo',
+    disabled: 'Desligado',
+    unsavedChanges: 'Alterações por guardar',
+    saving: 'A guardar…',
+    saveChanges: 'Guardar',
+    saved: 'Guardado',
+    replaceValue: 'Substituir valor actual',
+    openDocs: 'Abrir documentação',
+    clearField: key => `Limpar ${key}`,
+    enableAria: name => `Ligar ${name}`,
+    disableAria: name => `Desligar ${name}`,
+    platformEnabled: name => `${name} ligado`,
+    platformDisabled: name => `${name} desligado`,
+    restartToApply: 'A alteração passa a valer depois de reiniciar o gateway.',
+    setupSaved: name => `Configuração de ${name} guardada`,
+    restartToReconnect: 'As novas credenciais passam a valer depois de reiniciar o gateway.',
+    keyCleared: key => `${key} limpo`,
+    setupUpdated: name => `Configuração de ${name} actualizada.`,
+    failedUpdate: name => `Falha ao actualizar ${name}`,
+    failedSave: name => `Falha ao guardar ${name}`,
+    failedClear: key => `Falha ao limpar ${key}`,
+    fieldCopy: {
+      TELEGRAM_BOT_TOKEN: {
+        label: 'Token do bot',
+        help: 'Crie um bot com @BotFather e cole o token.',
+        placeholder: 'Cole o token do Telegram'
+      },
+      TELEGRAM_ALLOWED_USERS: {
+        label: 'Quem pode falar com o agente',
+        help: 'Em branco = só você. IDs numéricos separados por vírgula (@userinfobot).'
+      },
+      TELEGRAM_PROXY: { label: 'URL do proxy', help: 'Só se a rede bloquear o Telegram.' },
+      DISCORD_BOT_TOKEN: {
+        label: 'Token do bot',
+        help: 'Crie uma aplicação no Discord Developer Portal, adicione um bot e cole o token.'
+      },
+      DISCORD_ALLOWED_USERS: {
+        label: 'Quem pode falar com o agente',
+        help: 'Em branco = só você. IDs do Discord separados por vírgula.'
+      },
+      DISCORD_ALLOW_ALL_USERS: {
+        label: 'Liberar para qualquer pessoa',
+        help: 'Só para desenvolvimento. Qualquer pessoa pode falar com o bot.'
+      },
+      DISCORD_HOME_CHANNEL: {
+        label: 'Canal principal',
+        help: 'Para onde vão avisos e rotinas.'
+      },
+      DISCORD_HOME_CHANNEL_NAME: { label: 'Nome do canal principal' },
+      SLACK_BOT_TOKEN: {
+        label: 'Token do bot Slack',
+        help: 'Token do bot em OAuth & Permissions depois de instalar a app.',
+        placeholder: 'Cole o token do Slack'
+      },
+      SLACK_APP_TOKEN: {
+        label: 'Token da app Slack',
+        help: 'Token de nível de app necessário para Socket Mode.',
+        placeholder: 'Cole o token da app'
+      },
+      SLACK_ALLOWED_USERS: {
+        label: 'Quem pode falar com o agente',
+        help: 'Em branco = só você. IDs do Slack separados por vírgula.'
+      },
+      WHATSAPP_ENABLED: {
+        label: 'Activar WhatsApp no .env (avançado)',
+        help: 'Espelho do interruptor Ativo no ficheiro .env (dupla checagem). No dia a dia, usa o Ativo em baixo.'
+      },
+      WHATSAPP_MODE: {
+        label: 'Modo da bridge',
+        help: 'Normalmente self-chat ou bot. Mantém o predefinido salvo se souberes o que mudas.'
+      },
+      WHATSAPP_ALLOW_ALL_USERS: {
+        label: 'Liberar para qualquer pessoa',
+        help: 'Só para desenvolvimento. Qualquer número pode falar com o agente.'
+      },
+      WHATSAPP_HOME_CHANNEL: {
+        label: 'Canal de avisos',
+        help: 'ID do chat onde vão rotinas agendadas e avisos.'
+      },
+      WHATSAPP_HOME_CHANNEL_NAME: {
+        label: 'Nome do canal',
+        help: 'Nome amigável desse canal de avisos.'
+      },
+      WHATSAPP_ALLOWED_USERS: {
+        label: 'Quem pode falar com o agente',
+        help: 'Em branco = só você. Números ou IDs do WhatsApp separados por vírgula.'
+      },
+      MATTERMOST_HOME_CHANNEL: {
+        label: 'Canal principal',
+        help: 'Para onde vão avisos e rotinas.'
+      },
+      MATTERMOST_ALLOWED_USERS: {
+        label: 'Quem pode falar com o agente',
+        help: 'Em branco = só você.'
+      }
+    },
+    platformIntro: {
+      telegram: 'No Telegram, fale com @BotFather, use /newbot e copie o token. O seu ID numérico vem do @userinfobot.',
+      discord:
+        'No Discord Developer Portal, crie uma aplicação, adicione um Bot e copie o token. Convide o bot para o servidor.',
+      slack: 'Crie uma app Slack, active Socket Mode, instale no workspace e copie o bot token e o app token.',
+      whatsapp: 'Este canal pareia com QR no telemóvel. Não há token para colar aqui.',
+      email: 'Use uma caixa dedicada. No Gmail, crie uma senha de aplicação (imap.gmail.com / smtp.gmail.com).',
+      sms: 'No Twilio, copie Account SID, Auth Token e um número que envie SMS.'
+    },
+    platformCopy: {
+      whatsapp: {
+        name: 'WhatsApp',
+        desc: 'Número pessoal via QR. O agente usa o mesmo WhatsApp da app no telemóvel.'
+      },
+      whatsapp_cloud: {
+        name: 'WhatsApp (API oficial)',
+        desc: 'Cloud API da Meta (Business). Número comercial separado — para atender clientes.'
+      },
+      telegram: { name: 'Telegram', desc: 'Fale com o agente em privados, grupos e tópicos.' },
+      email: { name: 'E-mail', desc: 'Receba e responda por uma caixa de e-mail.' },
+      slack: { name: 'Slack', desc: 'Fale com o agente em canais e mensagens diretas.' },
+      teams: { name: 'Microsoft Teams', desc: 'Fale com o agente no Teams.' },
+      sms: { name: 'SMS', desc: 'Envie e receba mensagens de texto.' },
+      discord: { name: 'Discord', desc: 'Fale com o agente em servidores e DMs.' },
+      google_chat: { name: 'Google Chat', desc: 'Fale com o agente no Google Chat.' }
+    },
+    platformNotice: {
+      whatsapp: {
+        title: 'Número pessoal — entenda o risco',
+        body: 'Este canal liga a mesma conta WhatsApp do teu telemóvel (bridge + QR). Não é a API oficial da Meta. Conversas pessoais podem misturar-se com o tráfego do agente, e a Meta pode restringir bridges não oficiais. Para clientes, prefere a API oficial com número Business. Ao conectar, assumes este risco.'
+      },
+      whatsapp_cloud: {
+        title: 'API oficial Business da Meta',
+        body: 'Usa a WhatsApp Cloud API com número Business e credenciais Meta (tokens, webhook). Pensado para atendimento a clientes — mantém separado do WhatsApp pessoal. Exige conta Meta Business e segue as regras e preços de mensagens da Meta.'
+      }
+    }
   },
 
   commandCenter: {
