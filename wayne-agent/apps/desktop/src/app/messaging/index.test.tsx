@@ -3,14 +3,19 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { I18nProvider } from '@/i18n'
+import type * as HermesApi from '@/hermes'
 import type { MessagingPlatformInfo } from '@/types/hermes'
+
+import { MessagingView } from './index'
 
 const getMessagingPlatforms = vi.fn()
 const updateMessagingPlatform = vi.fn()
 const testMessagingPlatform = vi.fn()
 const openExternalLink = vi.fn()
 
-vi.mock('@/hermes', () => ({
+vi.mock('@/hermes', async importOriginal => ({
+  ...(await importOriginal<typeof HermesApi>()),
   getMessagingPlatforms: (...args: unknown[]) => getMessagingPlatforms(...args),
   updateMessagingPlatform: (id: string, body: unknown) => updateMessagingPlatform(id, body),
   testMessagingPlatform: (id: string) => testMessagingPlatform(id)
@@ -59,15 +64,16 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
+  vi.clearAllMocks()
 })
 
-async function renderMessaging(route = '/messaging?platform=teams&view=setup') {
-  const { MessagingView } = await import('./index')
-
+function renderMessaging(route = '/messaging?platform=teams&view=setup') {
   return render(
-    <MemoryRouter initialEntries={[route]}>
-      <MessagingView />
-    </MemoryRouter>
+    <I18nProvider configClient={null}>
+      <MemoryRouter initialEntries={[route]}>
+        <MessagingView />
+      </MemoryRouter>
+    </I18nProvider>
   )
 }
 
@@ -76,9 +82,9 @@ describe('MessagingView setup-guide link', () => {
     const docsUrl = 'https://hermes-agent.nousresearch.com/docs/user-guide/messaging/teams'
     getMessagingPlatforms.mockResolvedValue({ platforms: [platform({ docs_url: docsUrl })] })
 
-    await renderMessaging()
+    renderMessaging()
 
-    const link = await screen.findByText('Open setup guide')
+    const link = await screen.findByRole('link', { name: /Open setup guide/i })
     fireEvent.click(link)
 
     await waitFor(() => expect(openExternalLink).toHaveBeenCalledWith(docsUrl))
@@ -87,13 +93,10 @@ describe('MessagingView setup-guide link', () => {
   it('hides the setup-guide button for a plugin platform with no docs URL', async () => {
     getMessagingPlatforms.mockResolvedValue({ platforms: [platform({ docs_url: '' })] })
 
-    const { container } = await renderMessaging()
+    renderMessaging()
 
-    await waitFor(() => {
-      expect(getMessagingPlatforms).toHaveBeenCalled()
-      expect(container.textContent ?? '').toMatch(/Teams/i)
-    })
-    expect(screen.queryByText('Open setup guide')).toBeNull()
-    expect(screen.queryByText('Work4You documentation')).toBeNull()
+    await screen.findByRole('heading', { name: /Microsoft Teams/i })
+    expect(screen.queryByRole('link', { name: /Open setup guide/i })).toBeNull()
+    expect(screen.queryByRole('link', { name: /Work4You documentation/i })).toBeNull()
   })
 })
