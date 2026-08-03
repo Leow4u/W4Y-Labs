@@ -3,11 +3,10 @@
  * crystalline green mark (transparent PNG source):
  *   - assets/icon.png       (1024, electron-builder / Linux / mac source)
  *   - assets/icon.ico       (multi-size PNG-in-ICO for rcedit + NSIS + taskbar)
- *   - public/apple-touch-icon.png (180, in-app favicon only — NOT the taskbar)
+ *   - public/apple-touch-icon.png (180, in-app favicon)
  *
- * Windows 11 paints a white squircle behind small transparent window icons.
- * Pack icons (ico/png) use an opaque dark canvas + large mark; touch icon stays
- * transparent for the renderer.
+ * Taskbar parity (ChatGPT / Claude): transparent canvas, mark scaled to the
+ * edges — not a painted background behind the logo.
  *
  * Run:  npm run make-icon
  */
@@ -23,9 +22,8 @@ const OUT_TOUCH = path.join(DESKTOP_ROOT, 'public', 'apple-touch-icon.png')
 const SIZE = 1024
 const TOUCH_SIZE = 180
 const ICO_SIZES = [256, 128, 64, 48, 32, 16]
-const PACK_FILL_RATIO = 0.9
-const TOUCH_FILL_RATIO = 0.92
-const WIN_ICON_BG = [20, 20, 20, 255]
+/** Star tips clip slightly — visual weight matches filled logos like ChatGPT. */
+const FILL_RATIO = 1.24
 const ALPHA_TRIM_THRESHOLD = 12
 const BACKGROUND_LUMINANCE_MAX = 24
 
@@ -113,31 +111,7 @@ function trimToContent(img) {
   })
 }
 
-function flattenOntoBackground(canvas, size, bg) {
-  for (let y = 0; y < size; y += 1) {
-    for (let x = 0; x < size; x += 1) {
-      const index = (y * size + x) * 4
-      const alpha = canvas[index + 3] / 255
-
-      if (alpha <= 0) {
-        canvas[index] = bg[0]
-        canvas[index + 1] = bg[1]
-        canvas[index + 2] = bg[2]
-        canvas[index + 3] = 255
-        continue
-      }
-
-      if (alpha < 1) {
-        canvas[index] = Math.round(canvas[index] * alpha + bg[0] * (1 - alpha))
-        canvas[index + 1] = Math.round(canvas[index + 1] * alpha + bg[1] * (1 - alpha))
-        canvas[index + 2] = Math.round(canvas[index + 2] * alpha + bg[2] * (1 - alpha))
-        canvas[index + 3] = 255
-      }
-    }
-  }
-}
-
-function fitToSquareCanvas(img, size, fillRatio, { opaqueBackground = false } = {}) {
+function fitToSquareCanvas(img, size, fillRatio) {
   const trimmed = trimToContent(img)
   const { height: contentHeight, width: contentWidth } = trimmed.getSize()
   const target = Math.max(1, Math.round(size * fillRatio))
@@ -165,19 +139,11 @@ function fitToSquareCanvas(img, size, fillRatio, { opaqueBackground = false } = 
     }
   }
 
-  if (opaqueBackground) {
-    flattenOntoBackground(canvas, size, WIN_ICON_BG)
-  }
-
   return nativeImage.createFromBuffer(canvas, { height: size, scaleFactor: 1, width: size })
 }
 
-function renderPackIcon(img, size) {
-  return fitToSquareCanvas(img, size, PACK_FILL_RATIO, { opaqueBackground: true }).toPNG()
-}
-
-function renderTouchIcon(img, size) {
-  return fitToSquareCanvas(img, size, TOUCH_FILL_RATIO, { opaqueBackground: false }).toPNG()
+function resizePng(img, size) {
+  return fitToSquareCanvas(img, size, FILL_RATIO).toPNG()
 }
 
 app.whenReady().then(() => {
@@ -199,16 +165,16 @@ app.whenReady().then(() => {
   fs.mkdirSync(path.dirname(OUT_TOUCH), { recursive: true })
 
   try {
-    fs.writeFileSync(OUT_PNG, renderPackIcon(src, SIZE))
-    fs.writeFileSync(OUT_TOUCH, renderTouchIcon(src, TOUCH_SIZE))
+    fs.writeFileSync(OUT_PNG, resizePng(src, SIZE))
+    fs.writeFileSync(OUT_TOUCH, resizePng(src, TOUCH_SIZE))
 
     const imgs = ICO_SIZES.map(s => ({
-      buf: renderPackIcon(src, s),
+      buf: resizePng(src, s),
       size: s
     }))
     fs.writeFileSync(OUT_ICO, buildIco(imgs))
 
-    console.log(`[make-icon] wrote ${OUT_PNG} ${OUT_ICO} ${OUT_TOUCH}`)
+    console.log(`[make-icon] wrote ${OUT_PNG} ${OUT_ICO} ${OUT_TOUCH} (fill=${FILL_RATIO}, transparent)`)
   } catch (err) {
     console.error('[make-icon] failed:', err)
     app.exitCode = 1
