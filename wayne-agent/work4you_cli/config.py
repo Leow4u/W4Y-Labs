@@ -3203,8 +3203,8 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "OPENROUTER_API_KEY": {
-        "description": "OpenRouter API key (for vision, web scraping helpers, and MoA)",
-        "prompt": "OpenRouter API key",
+        "description": "Model catalog API key (for vision, web scraping helpers, and MoA)",
+        "prompt": "Model catalog API key",
         "url": "https://openrouter.ai/keys",
         "password": True,
         "tools": ["vision_analyze"],
@@ -7679,7 +7679,7 @@ def show_config():
     print(color("◆ API Keys", Colors.CYAN, Colors.BOLD))
     
     keys = [
-        ("OPENROUTER_API_KEY", "OpenRouter"),
+        ("OPENROUTER_API_KEY", "Model catalog"),
         ("VOICE_TOOLS_OPENAI_KEY", "OpenAI (STT/TTS)"),
         ("EXA_API_KEY", "Exa"),
         ("PARALLEL_API_KEY", "Parallel"),

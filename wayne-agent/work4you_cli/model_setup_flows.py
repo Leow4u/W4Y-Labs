@@ -85,7 +85,7 @@ def _model_flow_openrouter(config, current_model=""):
     # isn't in PROVIDER_REGISTRY so we synthesize a minimal pconfig.
     pconfig = ProviderConfig(
         id="openrouter",
-        name="OpenRouter",
+        name="Model catalog",
         auth_type="api_key",
         api_key_env_vars=("OPENROUTER_API_KEY",),
     )

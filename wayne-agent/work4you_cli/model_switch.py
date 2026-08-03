@@ -1668,8 +1668,7 @@ def list_authenticated_providers(
             top = model_ids[:max_models] if max_models is not None else model_ids
 
         slug = wayne_id
-        pinfo = _mdev_pinfo(mdev_id)
-        display_name = pinfo.name if pinfo else mdev_id
+        display_name = get_label(slug)
 
         results.append({
             "slug": slug,
