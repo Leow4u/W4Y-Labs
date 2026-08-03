@@ -10,12 +10,22 @@
 #
 # Layout contract produced here:
 #   work4you-engine-<date>.zip
-#     work4you-agent/           <- single top-level folder. Every consumer is
-#                                  name-agnostic (install.ps1 probes for
-#                                  pyproject.toml in a wrapped-or-flat layout;
-#                                  the desktop resolver probes any top-level
-#                                  dir for the CLI entry module), so the name
-#                                  is branding only.
+#     wayne-agent/              <- single top-level folder. THE NAME IS A
+#                                  PUBLISHED CONTRACT — DO NOT REBRAND IT.
+#                                  Shells <=1.0.45 promote the extracted
+#                                  wrapper dir by an ALLOWLIST of names
+#                                  (wayne-agent, wayne-agent-main). A zip
+#                                  whose wrapper is called anything else
+#                                  fails promotion, and the updater leaves
+#                                  the engine junction dangling — the app
+#                                  then dies with "motor not found" and the
+#                                  user cannot start it at all. This is not
+#                                  hypothetical: it happened on 02/08/2026
+#                                  with work4you-engine-20260802.zip.
+#                                  The rename may only happen once no shell
+#                                  older than the dual-name resolver is left
+#                                  in the field. Content is already fully
+#                                  rebranded; only the wrapper name waits.
 #       pyproject.toml          <- REQUIRED at the folder root (installer probe)
 #       uv.lock
 #       README.md               <- placeholder created if the checkout has none
@@ -90,7 +100,7 @@ if (-not $OutputPath) {
 }
 
 $stageRoot = Join-Path $env:TEMP "work4you-engine-stage"
-$stageDir  = Join-Path $stageRoot "work4you-agent"
+$stageDir  = Join-Path $stageRoot "wayne-agent"
 if (Test-Path $stageRoot) { Remove-Item -Recurse -Force $stageRoot }
 New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
 

@@ -357,12 +357,27 @@ no `--help`.
 cookies `wayne_session_*`, workspace npm `@wayne/shared`, e o artefacto
 `.wayne-engine-version` (o `install.ps1` lê o nome fixo).
 
-### Sequência obrigatória do corte do feed do motor
+### ⚠️ INCIDENTE 02/08 — o nome da pasta DENTRO do zip do motor é contrato
 
-O updater compara **apenas** `version`/`builtAt` do `latest.json` — o nome do zip é
-inerte e todos os resolvers sondam conteúdo. Mas as cascas ≤1.0.45 validam o
-caminho literal `wayne_cli/main.py`. Publicar **casca ≥1.0.46 antes** do primeiro
-zip da árvore renomeada; o stub físico é a defesa em profundidade.
+`work4you-engine-20260802.zip` foi publicado com o wrapper renomeado para
+`work4you-agent/`. As cascas ≤1.0.45 promovem o wrapper extraído por uma
+**allowlist de nomes** (`wayne-agent`, `wayne-agent-main`). A promoção falhou, o
+updater deixou o **junction do motor pendurado** (`…\wayne\wayne-agent` →
+`…\wayne\e\<id>` inexistente) e a app deixou de arrancar: *"Work4You motor
+não encontrado"*. Sem motor, sem recuperação pela própria app.
+
+O que eu tinha assumido e estava errado: o stub físico `wayne_cli/main.py`
+protege a sonda de **conteúdo** (`isWayneSourceRoot`), mas a promoção acontece
+**antes**, e é por **nome de pasta**. Publicar a casca 1.0.46 primeiro também não
+chegava — quem ainda estivesse na 1.0.45 apanhava o motor novo primeiro.
+
+Correcção: `build-engine-zip.ps1` volta a emitir o wrapper `wayne-agent/` com o
+conteúdo já rebrandizado (`work4you-engine-20260802b.zip`). O rename do wrapper
+só pode acontecer quando não houver casca antiga no terreno.
+
+Recuperação de uma máquina apanhada: recriar o alvo do junction
+(`%LOCALAPPDATA%\wayne\e\<id>`), extrair lá o conteúdo do zip, correr
+`uv sync` no checkout e alinhar `engine-version.json`.
 
 ### Decisões fechadas (02/08)
 
