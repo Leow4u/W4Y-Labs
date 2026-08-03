@@ -22,8 +22,8 @@ const OUT_TOUCH = path.join(DESKTOP_ROOT, 'public', 'apple-touch-icon.png')
 const SIZE = 1024
 const TOUCH_SIZE = 180
 const ICO_SIZES = [256, 128, 64, 48, 32, 16]
-/** Star tips clip slightly — visual weight matches filled logos like ChatGPT. */
-const FILL_RATIO = 1.24
+/** Fit mark to ~98% of canvas — transparent margins, no clipping at edges. */
+const FILL_RATIO = 0.98
 const ALPHA_TRIM_THRESHOLD = 12
 const BACKGROUND_LUMINANCE_MAX = 24
 
