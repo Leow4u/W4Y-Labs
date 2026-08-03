@@ -22,7 +22,7 @@ function keyVar(patch: Partial<EnvVarInfo> = {}): EnvVarInfo {
 describe('buildByokProviderKeyGroups', () => {
   it('hides platform catalog keys from the curated BYOK face', () => {
     const vars = {
-      OPENROUTER_API_KEY: keyVar({ provider_label: 'OpenRouter' }),
+      OPENROUTER_API_KEY: keyVar({ provider_label: 'Model catalog' }),
       ANTHROPIC_API_KEY: keyVar({ provider_label: 'Anthropic' }),
       NOUS_API_KEY: keyVar({ provider_label: 'Nous Portal' })
     }
@@ -30,8 +30,8 @@ describe('buildByokProviderKeyGroups', () => {
     const all = buildProviderKeyGroups(vars)
     const byok = buildByokProviderKeyGroups(vars)
 
-    expect(all.map(g => g.name)).toEqual(expect.arrayContaining(['OpenRouter', 'Anthropic', 'Nous Portal']))
+    expect(all.map(g => g.name)).toEqual(expect.arrayContaining(['Model catalog', 'Anthropic', 'Nous Portal']))
     expect(byok.map(g => g.name)).toEqual(['Anthropic'])
-    expect(byok.some(g => g.name === 'OpenRouter')).toBe(false)
+    expect(byok.some(g => g.name === 'Model catalog')).toBe(false)
   })
 })

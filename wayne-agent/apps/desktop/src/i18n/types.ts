@@ -2177,6 +2177,7 @@ export interface Translations {
     connected: string
     featuredPitch: string
     openRouterPitch: string
+    catalogKeyTitle: string
     apiKeyOptions: Record<string, { short: string; description: string }>
     backToSignIn: string
     getKey: string

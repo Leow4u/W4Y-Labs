@@ -38,7 +38,7 @@ export function GenerateUnavailable({ onSetup }: GenerateUnavailableProps) {
           href="https://openrouter.ai/keys"
           showExternalIcon={false}
         >
-          OpenRouter
+          Model catalog
         </ExternalLink>
         <span>·</span>
         <ExternalLink

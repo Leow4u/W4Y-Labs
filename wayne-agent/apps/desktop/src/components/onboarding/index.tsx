@@ -51,7 +51,7 @@ export interface ApiKeyOption {
 const API_KEY_OPTIONS: ApiKeyOption[] = [
   {
     id: 'openrouter',
-    name: 'OpenRouter',
+    name: 'Model catalog',
     envKey: 'OPENROUTER_API_KEY',
     docsUrl: 'https://openrouter.ai/keys'
   },

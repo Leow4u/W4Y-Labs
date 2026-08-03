@@ -46,7 +46,7 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
   },
   {
     prefix: 'OPENROUTER_',
-    name: 'OpenRouter',
+    name: 'Model catalog',
     description: 'Aggregator for hundreds of frontier models',
     docsUrl: 'https://openrouter.ai/keys',
     priority: 1

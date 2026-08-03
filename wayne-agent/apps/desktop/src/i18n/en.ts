@@ -2363,7 +2363,7 @@ export const en: Translations = {
     saveChanges: 'Save changes',
     createAction: 'Create automation',
     triggersSection: 'Triggers',
-    triggersHint: 'When this automation should run — schedule, app events (Composio), or webhook.',
+    triggersHint: 'When this automation should run — schedule, app events, or webhook.',
     instructionsSection: 'Agent instructions',
     instructionsHint: 'What the agent should do each time this automation fires.',
     toolsSection: 'Tools',
@@ -2378,7 +2378,7 @@ export const en: Translations = {
     composioTriggers: 'App events',
     webhookTrigger: 'Webhook',
     webhookHint:
-      'Enable the webhook channel to get a URL, or add an app-event trigger to register the Composio webhook.',
+      'Enable the webhook channel to get a URL, or add an app-event trigger to register the connector webhook.',
     noScheduleYet: 'No schedule yet — add a Scheduled trigger.',
     nextRunAt: when => `Next run: ${when}`,
     triggerAdded: 'Trigger added',
@@ -2415,7 +2415,7 @@ export const en: Translations = {
     disconnect: 'Disconnect',
     disconnectAll: 'Disconnect all',
     disconnectAllConfirm:
-      'Revoke every Composio account for this agent? Chat will ask you to authorize again when connecting.',
+      'Revoke every connected app account for this agent? Chat will ask you to authorize again when connecting.',
     disconnectAllDone: 'Disconnected {count} account(s)',
     connectedToast: '{name} connected',
     disconnectedToast: 'Disconnected',
@@ -3017,6 +3017,7 @@ export const en: Translations = {
     connected: 'Connected',
     featuredPitch: 'One subscription, 300+ frontier models — the recommended way to run Work4You',
     openRouterPitch: 'One key, hundreds of models — a solid default',
+    catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {
       openrouter: {
         short: 'one key, many models',

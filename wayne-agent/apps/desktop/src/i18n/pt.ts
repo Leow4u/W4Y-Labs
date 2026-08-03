@@ -235,7 +235,7 @@ export const pt = defineLocale({
     disconnect: 'Desconectar',
     disconnectAll: 'Desconectar todas',
     disconnectAllConfirm:
-      'Revogar todas as contas Composio deste agente? O chat pedirá autorização de novo ao conectar.',
+      'Revogar todas as contas de apps ligadas deste agente? O chat pedirá autorização de novo ao conectar.',
     disconnectAllDone: 'Desconectadas {count} conta(s)',
     connectedToast: '{name} conectado',
     disconnectedToast: 'Desconectado',
@@ -523,7 +523,7 @@ export const pt = defineLocale({
     pauseTitle: 'Pausar',
     triggersSection: 'Gatilhos',
     triggersHint:
-      'Quando esta automação deve correr. Agendamento, eventos de apps (Composio) e webhook.',
+      'Quando esta automação deve correr. Agendamento, eventos de apps e webhook.',
     instructionsSection: 'Instruções do agente',
     instructionsHint: 'O que o agente deve fazer cada vez que esta automação dispara.',
     toolsSection: 'Ferramentas',
@@ -538,7 +538,7 @@ export const pt = defineLocale({
     composioTriggers: 'Eventos de apps',
     webhookTrigger: 'Webhook',
     webhookHint:
-      'Ative o canal webhook para obter um URL, ou adicione um evento de app para registar o webhook Composio.',
+      'Ative o canal webhook para obter um URL, ou adicione um evento de app para registar o webhook do conector.',
     noScheduleYet: 'Ainda sem agendamento — adicione um gatilho Agendado.',
     nextRunAt: when => `Próxima execução: ${when}`,
     triggerAdded: 'Gatilho adicionado',

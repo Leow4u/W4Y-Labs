@@ -2061,6 +2061,7 @@ export const ja = defineLocale({
     connected: '接続済み',
     featuredPitch: '1 つのサブスクリプションで 300 以上の最先端モデル — Work4You を実行するための推奨方法',
     openRouterPitch: '1 つのキーで数百のモデル — 堅実なデフォルト',
+    catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {
       openrouter: {
         short: '1 つのキーで多くのモデル',

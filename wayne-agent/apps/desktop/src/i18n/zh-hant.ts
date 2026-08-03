@@ -1466,7 +1466,7 @@ export const zhHant = defineLocale({
     reconnect: '重新連接',
     disconnect: '中斷連接',
     disconnectAll: '全部中斷連接',
-    disconnectAllConfirm: '撤銷此代理的全部 Composio 帳號？連接時聊天會再次要求授權。',
+    disconnectAllConfirm: '撤銷此代理的全部已連接應用帳號？連接時聊天會再次要求授權。',
     disconnectAllDone: '已中斷連接 {count} 個帳號',
     connectedToast: '{name} 已連接',
     disconnectedToast: '已中斷連接',
@@ -1949,6 +1949,7 @@ export const zhHant = defineLocale({
     connected: '已連線',
     featuredPitch: '一個訂閱，300+ 前沿模型 — 執行 Work4You 的建議方式',
     openRouterPitch: '一個金鑰，數百個模型 — 穩定的預設選擇',
+    catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {
       openrouter: { short: '一個金鑰，多個模型', description: '用一個金鑰存取數百個模型。適合新安裝的預設選擇。' },
       openai: { short: 'GPT 等級模型', description: '直接存取 OpenAI 模型。' },

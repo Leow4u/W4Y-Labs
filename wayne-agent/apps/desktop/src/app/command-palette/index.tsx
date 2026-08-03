@@ -604,7 +604,7 @@ export function CommandPalette() {
         {
           icon: Link2,
           id: 'cap-connectors',
-          keywords: ['connectors', 'composio', 'integrations', 'gmail', 'slack', 'mcp'],
+          keywords: ['connectors', 'integrations', 'gmail', 'slack', 'mcp'],
           label: `${capLabel}: ${t.skills.tabConnectors}`,
           run: go(`${SKILLS_ROUTE}?tab=connectors`)
         }

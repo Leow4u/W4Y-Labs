@@ -82,7 +82,7 @@ export function KeyProviderRow({ onClick }: { onClick: () => void }) {
   return (
     <RowButton className={PROVIDER_ROW_CLASS} onClick={onClick}>
       <div className="min-w-0">
-        <span className="text-[length:var(--conversation-text-font-size)] font-semibold">OpenRouter</span>
+        <span className="text-[length:var(--conversation-text-font-size)] font-semibold">{t.onboarding.catalogKeyTitle}</span>
         <p className="mt-1 text-xs leading-5 text-muted-foreground">{t.onboarding.openRouterPitch}</p>
       </div>
       <ChevronRight className="size-4 text-muted-foreground transition group-hover:text-foreground" />
