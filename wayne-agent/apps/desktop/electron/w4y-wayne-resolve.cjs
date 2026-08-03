@@ -482,6 +482,11 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
   }
 
   writeEngineVersionMarker(wayneHome, remote);
+  try {
+    ensureCliShims(engineRoot, wayneHome);
+  } catch {
+    void 0;
+  }
   log(`Motor v${versionLabel} atualizado com sucesso!`, 100);
 }
 
@@ -691,6 +696,104 @@ function promoteIfNeeded(destDir) {
   }
 }
 
+function resolveVenvScriptsDir(engineRoot) {
+  const names = process.platform === "win32" ? [".venv", "venv"] : [".venv", "venv"];
+  for (const name of names) {
+    const scripts =
+      process.platform === "win32"
+        ? path.join(engineRoot, name, "Scripts")
+        : path.join(engineRoot, name, "bin");
+    const exe = process.platform === "win32" ? "work4you.exe" : "work4you";
+    const legacy = process.platform === "win32" ? "wayne.exe" : "wayne";
+    if (exists(path.join(scripts, exe)) || exists(path.join(scripts, legacy))) {
+      return scripts;
+    }
+  }
+  return null;
+}
+
+/**
+ * Desktop uv sync uses `.venv/`; older install.ps1 put `venv\Scripts` on PATH.
+ * Write stable shims into %LOCALAPPDATA%\wayne\bin (already on PATH) and
+ * repair a stale venv\Scripts entry when present.
+ */
+function ensureCliShims(engineRoot, wayneHome) {
+  const scriptsDir = resolveVenvScriptsDir(engineRoot);
+  if (!scriptsDir || !wayneHome) return;
+
+  const binDir = path.join(wayneHome, "bin");
+  fs.mkdirSync(binDir, { recursive: true });
+
+  if (process.platform === "win32") {
+    const work4youExe = path.join(scriptsDir, "work4you.exe");
+    const wayneExe = path.join(scriptsDir, "wayne.exe");
+    if (exists(work4youExe)) {
+      fs.writeFileSync(
+        path.join(binDir, "work4you.cmd"),
+        `@echo off\r\n"${work4youExe}" %*\r\n`,
+        "utf8"
+      );
+    }
+    if (exists(wayneExe)) {
+      fs.writeFileSync(
+        path.join(binDir, "wayne.cmd"),
+        `@echo off\r\n"${wayneExe}" %*\r\n`,
+        "utf8"
+      );
+    }
+
+    try {
+      const userPath = execFileSync(
+        "powershell",
+        [
+          "-NoProfile",
+          "-Command",
+          "[Environment]::GetEnvironmentVariable('Path','User')",
+        ],
+        { encoding: "utf8", windowsHide: true, timeout: 15_000 }
+      ).trim();
+      const stale = path.join(engineRoot, "venv", "Scripts");
+      const parts = userPath.split(";").filter(Boolean);
+      const withoutStale = parts.filter(
+        (p) => path.resolve(p).toLowerCase() !== path.resolve(stale).toLowerCase()
+      );
+      const norm = (p) => path.resolve(p).toLowerCase();
+      const hasBin = withoutStale.some((p) => norm(p) === norm(binDir));
+      const hasScripts = withoutStale.some((p) => norm(p) === norm(scriptsDir));
+      const nextParts = [...withoutStale];
+      if (!hasBin) nextParts.unshift(binDir);
+      if (!hasScripts) nextParts.unshift(scriptsDir);
+      const nextPath = nextParts.join(";");
+      if (nextPath !== userPath) {
+        execFileSync(
+          "powershell",
+          [
+            "-NoProfile",
+            "-Command",
+            `[Environment]::SetEnvironmentVariable('Path', ${JSON.stringify(nextPath)}, 'User')`,
+          ],
+          { windowsHide: true, timeout: 15_000 }
+        );
+      }
+    } catch {
+      void 0;
+    }
+    return;
+  }
+
+  for (const name of ["work4you", "wayne"]) {
+    const target = path.join(scriptsDir, name);
+    const link = path.join(binDir, name);
+    if (!exists(target)) continue;
+    try {
+      fs.rmSync(link, { force: true });
+      fs.symlinkSync(target, link);
+    } catch {
+      void 0;
+    }
+  }
+}
+
 /**
  * Run `uv sync` (or fall back to `pip install`) in the Wayne engine root.
  * Creates the venv under `.venv/`.
@@ -795,6 +898,12 @@ async function ensureWayneEngineForPackaged(destRoot, opts = {}) {
     const manifest = await fetchEngineLatestManifest().catch(() => null);
     if (manifest) writeEngineVersionMarker(path.dirname(destRoot), manifest);
   } catch { void 0; }
+
+  try {
+    ensureCliShims(destRoot, path.dirname(destRoot));
+  } catch {
+    void 0;
+  }
 
   log("Motor Work4You pronto!", 100);
 }

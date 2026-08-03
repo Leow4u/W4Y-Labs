@@ -2181,7 +2181,21 @@ function Set-PathVariable {
     if ($NoVenv) {
         $wayneBin = "$InstallDir"
     } else {
-        $wayneBin = "$InstallDir\venv\Scripts"
+        $wayneBin = $null
+        foreach ($venvName in @('.venv', 'venv')) {
+            $candidate = Join-Path $InstallDir "$venvName\Scripts"
+            if (Test-Path (Join-Path $candidate 'work4you.exe')) {
+                $wayneBin = $candidate
+                break
+            }
+            if (Test-Path (Join-Path $candidate 'wayne.exe')) {
+                $wayneBin = $candidate
+                break
+            }
+        }
+        if (-not $wayneBin) {
+            $wayneBin = Join-Path $InstallDir 'venv\Scripts'
+        }
     }
 
     # Add the venv Scripts dir to user PATH so work4you is globally available.
@@ -2192,14 +2206,39 @@ function Set-PathVariable {
     # directory on PATH is what installs both names; there is no separate shim
     # to write on Windows.
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $staleBins = @(
+        (Join-Path $InstallDir 'venv\Scripts'),
+        (Join-Path $InstallDir '.venv\Scripts')
+    ) | Where-Object { $_ -ne $wayneBin }
 
-    if ($currentPath -notlike "*$wayneBin*") {
-        [Environment]::SetEnvironmentVariable(
-            "Path",
-            "$wayneBin;$currentPath",
-            "User"
-        )
-        Write-Success "Added to user PATH: $wayneBin"
+    $pathParts = @($currentPath -split ';' | Where-Object { $_ })
+    foreach ($stale in $staleBins) {
+        $pathParts = @($pathParts | Where-Object {
+            $_.TrimEnd('\') -ne $stale.TrimEnd('\')
+        })
+    }
+    $currentPath = ($pathParts -join ';')
+
+    $homeBin = Join-Path $WayneHome "bin"
+    New-Item -ItemType Directory -Path $homeBin -Force | Out-Null
+    if (-not $NoVenv) {
+        $work4youExe = Join-Path $wayneBin 'work4you.exe'
+        $wayneExe = Join-Path $wayneBin 'wayne.exe'
+        if (Test-Path $work4youExe) {
+            Set-Content -Path (Join-Path $homeBin 'work4you.cmd') -Value "@echo off`r`n`"$work4youExe`" %*" -Encoding ASCII
+        }
+        if (Test-Path $wayneExe) {
+            Set-Content -Path (Join-Path $homeBin 'wayne.cmd') -Value "@echo off`r`n`"$wayneExe`" %*" -Encoding ASCII
+        }
+    }
+
+    $pathToAdd = @($homeBin, $wayneBin) | Where-Object { $_ -and $currentPath -notlike "*$_*" }
+    if ($pathToAdd.Count -gt 0) {
+        $joined = ($pathToAdd + @($currentPath)) -join ';'
+        [Environment]::SetEnvironmentVariable("Path", $joined, "User")
+        foreach ($entry in $pathToAdd) {
+            Write-Success "Added to user PATH: $entry"
+        }
     } else {
         Write-Info "PATH already configured"
     }
@@ -2248,7 +2287,7 @@ function Set-PathVariable {
     }
 
     # Update current session
-    $env:Path = "$wayneBin;$env:Path"
+    $env:Path = "$homeBin;$wayneBin;$env:Path"
 
     Write-Success "work4you command ready"
 }
