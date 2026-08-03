@@ -9,16 +9,7 @@ const os = require("node:os");
 const path = require("node:path");
 const { cloudApiRequest } = require("./w4y-cloud.cjs");
 
-function resolveWayneHome() {
-  // WAYNE_HOME first (spawner-injected, profile isolation), then the
-  // user-facing WORK4YOU_HOME spelling — mirrors the engine's precedence.
-  if (process.env.WAYNE_HOME) return path.resolve(process.env.WAYNE_HOME);
-  if (process.env.WORK4YOU_HOME) return path.resolve(process.env.WORK4YOU_HOME);
-  if (process.platform === "win32" && process.env.LOCALAPPDATA) {
-    return path.join(process.env.LOCALAPPDATA, "wayne");
-  }
-  return path.join(os.homedir(), ".wayne");
-}
+const { resolveWayneHome } = require("./w4y-home.cjs");
 
 function upsertEnvKeyLocal(key, value) {
   const file = path.join(resolveWayneHome(), ".env");
