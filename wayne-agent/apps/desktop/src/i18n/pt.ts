@@ -294,7 +294,7 @@ export const pt = defineLocale({
       cron: 'Automações',
       skills: 'Personalizar',
       messaging: 'Canais',
-      artifacts: 'Entregas'
+      artifacts: 'Artefatos'
     },
     account: {
       fallbackName: 'Conta',
@@ -568,10 +568,50 @@ export const pt = defineLocale({
   },
 
   artifacts: {
-    search: 'Buscar entregas…',
-    refresh: 'Atualizar entregas',
-    noArtifactsTitle: 'Ainda sem entregas',
-    noArtifactsDesc: 'Planilhas, PDFs e ficheiros que o agente criar aparecem aqui.'
+    search: 'Buscar artefatos…',
+    refresh: 'Atualizar artefatos',
+    refreshing: 'A atualizar artefatos',
+    indexing: 'A indexar artefatos recentes',
+    tabAll: 'Todos',
+    tabImages: 'Imagens',
+    tabFiles: 'Arquivos',
+    tabLinks: 'Links',
+    noArtifactsTitle: 'Ainda sem artefatos',
+    noArtifactsDesc:
+      'Ficheiros, imagens e links que o agente cria aparecem aqui — não citações de pesquisa na web.',
+    noImagesTitle: 'Sem imagens geradas',
+    noImagesDesc: 'Imagens de image_generate ou saídas MEDIA: aparecem aqui.',
+    noFilesTitle: 'Sem ficheiros gerados',
+    noFilesDesc: 'Ficheiros escritos ou alterados pelo agente aparecem aqui.',
+    noLinksTitle: 'Sem links publicados',
+    noLinksDesc:
+      'URLs de download ou publicação devolvidas por ferramentas de output aparecem aqui — não links mencionados no chat.',
+    noMatchTitle: 'Nenhum artefato corresponde',
+    noMatchDesc: 'Tente outro termo de busca ou mude de aba.',
+    sessionsBadge: (count, latestTitle) =>
+      count === 1 ? latestTitle : `${latestTitle} · ${count} sessões`,
+    failedLoad: 'Não foi possível carregar artefatos',
+    openFailed: 'Falha ao abrir',
+    itemsImage: 'imagens',
+    itemsLink: 'links',
+    itemsFile: 'ficheiros',
+    itemsGeneric: 'itens',
+    zero: '0',
+    rangeOf: (start, end, total) => `${start}-${end} de ${total}`,
+    goToPage: (itemLabel, page) => `Ir para a página ${page} de ${itemLabel}`,
+    colTitleLink: 'Título do link',
+    colTitleFile: 'Nome',
+    colTitleDefault: 'Título / nome',
+    colLocationLink: 'URL',
+    colLocationFile: 'Caminho',
+    colLocationDefault: 'Local',
+    colSession: 'Sessão',
+    kindImage: 'imagem',
+    kindFile: 'ficheiro',
+    kindLink: 'link',
+    chat: 'Chat',
+    copyUrl: 'Copiar URL',
+    copyPath: 'Copiar caminho'
   },
 
   messaging: {
@@ -773,7 +813,7 @@ export const pt = defineLocale({
       settings: { title: 'Definições', detail: 'Configurar o Work4You no desktop' },
       skills: { title: 'Personalizar', detail: 'Skills, conectores e MCP' },
       messaging: { title: 'Canais', detail: 'Telegram, Slack, Discord e mais' },
-      artifacts: { title: 'Entregas', detail: 'Ver resultados gerados' }
+      artifacts: { title: 'Artefatos', detail: 'Ver outputs gerados pelo agente' }
     }
   },
 

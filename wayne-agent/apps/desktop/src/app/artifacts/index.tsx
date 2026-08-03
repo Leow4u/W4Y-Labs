@@ -38,8 +38,33 @@ import {
   type ArtifactFilter,
   artifactImageSrc,
   type ArtifactRecord,
-  collectArtifactsForSession
+  collectArtifactsForSession,
+  mergeArtifactsAcrossSessions
 } from './artifact-utils'
+
+function emptyArtifactsCopy(
+  kindFilter: ArtifactFilter,
+  query: string,
+  a: Translations['artifacts']
+): { desc: string; title: string } {
+  if (query.trim()) {
+    return { desc: a.noMatchDesc, title: a.noMatchTitle }
+  }
+
+  if (kindFilter === 'image') {
+    return { desc: a.noImagesDesc, title: a.noImagesTitle }
+  }
+
+  if (kindFilter === 'file') {
+    return { desc: a.noFilesDesc, title: a.noFilesTitle }
+  }
+
+  if (kindFilter === 'link') {
+    return { desc: a.noLinksDesc, title: a.noLinksTitle }
+  }
+
+  return { desc: a.noArtifactsDesc, title: a.noArtifactsTitle }
+}
 
 function formatArtifactTime(timestamp: number): string {
   return fmtDayTime.format(new Date(timestamp))
@@ -134,7 +159,9 @@ export function ArtifactsView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
         nextArtifacts.push(...collectArtifactsForSession(session, result.value.messages))
       })
 
-      setArtifacts(nextArtifacts.sort((left, right) => right.timestamp - left.timestamp))
+      setArtifacts(
+        mergeArtifactsAcrossSessions(nextArtifacts).sort((left, right) => right.timestamp - left.timestamp)
+      )
     } catch (err) {
       notifyError(err, a.failedLoad)
       setArtifacts([])
@@ -307,10 +334,16 @@ export function ArtifactsView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
         <PageLoader label={a.indexing} />
       ) : visibleArtifacts.length === 0 ? (
         <div className="grid h-full place-items-center px-6 text-center">
-          <div>
-            <div className="text-sm font-medium">{a.noArtifactsTitle}</div>
-            <div className="mt-1 text-xs text-muted-foreground">{a.noArtifactsDesc}</div>
-          </div>
+          {(() => {
+            const empty = emptyArtifactsCopy(kindFilter, query, a)
+
+            return (
+              <div>
+                <div className="text-sm font-medium">{empty.title}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{empty.desc}</div>
+              </div>
+            )
+          })()}
         </div>
       ) : (
         <div className="h-full overflow-y-auto [scrollbar-gutter:stable]">
@@ -593,10 +626,15 @@ function LocationCell({ artifact }: { artifact: ArtifactRecord; ctx: CellCtx }) 
 }
 
 function SessionCell({ artifact, ctx }: { artifact: ArtifactRecord; ctx: CellCtx }) {
+  const { t } = useI18n()
+  const sessionCount = artifact.sessionCount ?? 1
+  const sessionLabel =
+    sessionCount > 1 ? t.artifacts.sessionsBadge(sessionCount, artifact.sessionTitle) : artifact.sessionTitle
+
   return (
-    <ArtifactCellAction onClick={() => ctx.onOpenChat(artifact.sessionId)} title={artifact.sessionTitle}>
+    <ArtifactCellAction onClick={() => ctx.onOpenChat(artifact.sessionId)} title={sessionLabel}>
       <span className="flex min-w-0 flex-col">
-        <span className="truncate">{artifact.sessionTitle}</span>
+        <span className="truncate">{sessionLabel}</span>
         <span className="truncate text-[0.6875rem] font-normal text-(--ui-text-tertiary)">
           {formatArtifactTime(artifact.timestamp)}
         </span>

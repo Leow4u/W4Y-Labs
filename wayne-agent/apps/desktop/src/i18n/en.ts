@@ -1823,7 +1823,7 @@ export const en: Translations = {
       settings: { title: 'Settings', detail: 'Configure Work4You desktop' },
       skills: { title: 'Customize', detail: 'Skills, connectors, and MCP' },
       messaging: { title: 'Channels', detail: 'Set up Telegram, Slack, Discord, and more' },
-      artifacts: { title: 'Deliverables', detail: 'Browse generated outputs' }
+      artifacts: { title: 'Artifacts', detail: 'Browse agent-generated outputs' }
     },
     sectionEntries: {
       sessions: { title: 'Sessions panel', detail: 'Search, pin, and manage sessions' },
@@ -2468,17 +2468,27 @@ export const en: Translations = {
   },
 
   artifacts: {
-    search: 'Search deliverables...',
-    refresh: 'Refresh deliverables',
-    refreshing: 'Refreshing deliverables',
-    indexing: 'Indexing recent deliverables',
+    search: 'Search artifacts…',
+    refresh: 'Refresh artifacts',
+    refreshing: 'Refreshing artifacts',
+    indexing: 'Indexing recent artifacts',
     tabAll: 'All',
     tabImages: 'Images',
     tabFiles: 'Files',
     tabLinks: 'Links',
-    noArtifactsTitle: 'No deliverables yet',
-    noArtifactsDesc: 'Spreadsheets, PDFs, and files your agent creates will show up here.',
-    failedLoad: 'Could not load deliverables',
+    noArtifactsTitle: 'No artifacts yet',
+    noArtifactsDesc: 'Files, images, and links the agent creates will show up here — not citations from web search.',
+    noImagesTitle: 'No generated images',
+    noImagesDesc: 'Images from image_generate or MEDIA: outputs appear here.',
+    noFilesTitle: 'No generated files',
+    noFilesDesc: 'Files written or patched by the agent appear here.',
+    noLinksTitle: 'No published links',
+    noLinksDesc: 'Download or publish URLs returned by output tools appear here — not links mentioned in chat.',
+    noMatchTitle: 'No matching artifacts',
+    noMatchDesc: 'Try another search term or switch tabs.',
+    sessionsBadge: (count, latestTitle) =>
+      count === 1 ? latestTitle : `${latestTitle} · ${count} sessions`,
+    failedLoad: 'Could not load artifacts',
     openFailed: 'Open failed',
     itemsImage: 'images',
     itemsLink: 'links',
@@ -2508,7 +2518,7 @@ export const en: Translations = {
       cron: 'Automations',
       skills: 'Customize',
       messaging: 'Channels',
-      artifacts: 'Deliverables'
+      artifacts: 'Artifacts'
     },
     account: {
       fallbackName: 'Account',

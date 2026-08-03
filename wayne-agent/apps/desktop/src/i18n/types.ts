@@ -1714,6 +1714,15 @@ export interface Translations {
     tabLinks: string
     noArtifactsTitle: string
     noArtifactsDesc: string
+    noImagesTitle: string
+    noImagesDesc: string
+    noFilesTitle: string
+    noFilesDesc: string
+    noLinksTitle: string
+    noLinksDesc: string
+    noMatchTitle: string
+    noMatchDesc: string
+    sessionsBadge: (count: number, latestTitle: string) => string
     failedLoad: string
     openFailed: string
     itemsImage: string
