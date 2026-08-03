@@ -2,7 +2,7 @@
   "name": "work4you-desktop",
   "productName": "Work4You",
   "private": true,
-  "version": "1.0.50",
+  "version": "1.0.51",
   "description": "Work4You desktop — native agent workspace (official app).",
   "author": "Work4You",
   "type": "module",

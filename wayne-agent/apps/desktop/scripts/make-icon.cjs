@@ -2,15 +2,12 @@
  * make-icon.cjs — build desktop packaging icons from the official Work4You
  * crystalline green mark (transparent PNG source):
  *   - assets/icon.png       (1024, electron-builder / Linux / mac source)
- *   - assets/icon.ico       (multi-size PNG-in-ICO for rcedit + NSIS)
- *   - public/apple-touch-icon.png (180, renderer favicon + BrowserWindow)
+ *   - assets/icon.ico       (multi-size PNG-in-ICO for rcedit + NSIS + taskbar)
+ *   - public/apple-touch-icon.png (180, in-app favicon only — NOT the taskbar)
  *
- * Source PNG: apps/desktop/assets/work4you-favicon-source.png
- * (canonical mark also lives at platform/web/public/brand/work4you-favicon-transparent-1024.png)
- *
- * The source PNG ships with generous transparent margins. Windows taskbar icons
- * look tiny when those margins survive into icon.ico — trim to content bounds,
- * then scale to FILL_RATIO of the canvas so we match other apps' visual weight.
+ * Windows 11 paints a white squircle behind small transparent window icons.
+ * Pack icons (ico/png) use an opaque dark canvas + large mark; touch icon stays
+ * transparent for the renderer.
  *
  * Run:  npm run make-icon
  */
@@ -26,8 +23,9 @@ const OUT_TOUCH = path.join(DESKTOP_ROOT, 'public', 'apple-touch-icon.png')
 const SIZE = 1024
 const TOUCH_SIZE = 180
 const ICO_SIZES = [256, 128, 64, 48, 32, 16]
-/** Scale past the canvas edge so star tips reach the taskbar squircle (corners clip). */
-const FILL_RATIO = 1.18
+const PACK_FILL_RATIO = 0.9
+const TOUCH_FILL_RATIO = 0.92
+const WIN_ICON_BG = [20, 20, 20, 255]
 const ALPHA_TRIM_THRESHOLD = 12
 const BACKGROUND_LUMINANCE_MAX = 24
 
@@ -115,7 +113,31 @@ function trimToContent(img) {
   })
 }
 
-function fitToSquareCanvas(img, size, fillRatio) {
+function flattenOntoBackground(canvas, size, bg) {
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const index = (y * size + x) * 4
+      const alpha = canvas[index + 3] / 255
+
+      if (alpha <= 0) {
+        canvas[index] = bg[0]
+        canvas[index + 1] = bg[1]
+        canvas[index + 2] = bg[2]
+        canvas[index + 3] = 255
+        continue
+      }
+
+      if (alpha < 1) {
+        canvas[index] = Math.round(canvas[index] * alpha + bg[0] * (1 - alpha))
+        canvas[index + 1] = Math.round(canvas[index + 1] * alpha + bg[1] * (1 - alpha))
+        canvas[index + 2] = Math.round(canvas[index + 2] * alpha + bg[2] * (1 - alpha))
+        canvas[index + 3] = 255
+      }
+    }
+  }
+}
+
+function fitToSquareCanvas(img, size, fillRatio, { opaqueBackground = false } = {}) {
   const trimmed = trimToContent(img)
   const { height: contentHeight, width: contentWidth } = trimmed.getSize()
   const target = Math.max(1, Math.round(size * fillRatio))
@@ -143,11 +165,19 @@ function fitToSquareCanvas(img, size, fillRatio) {
     }
   }
 
+  if (opaqueBackground) {
+    flattenOntoBackground(canvas, size, WIN_ICON_BG)
+  }
+
   return nativeImage.createFromBuffer(canvas, { height: size, scaleFactor: 1, width: size })
 }
 
-function resizePng(img, size) {
-  return fitToSquareCanvas(img, size, FILL_RATIO).toPNG()
+function renderPackIcon(img, size) {
+  return fitToSquareCanvas(img, size, PACK_FILL_RATIO, { opaqueBackground: true }).toPNG()
+}
+
+function renderTouchIcon(img, size) {
+  return fitToSquareCanvas(img, size, TOUCH_FILL_RATIO, { opaqueBackground: false }).toPNG()
 }
 
 app.whenReady().then(() => {
@@ -169,17 +199,16 @@ app.whenReady().then(() => {
   fs.mkdirSync(path.dirname(OUT_TOUCH), { recursive: true })
 
   try {
-    const icon1024 = resizePng(src, SIZE)
-    fs.writeFileSync(OUT_PNG, icon1024)
-    fs.writeFileSync(OUT_TOUCH, resizePng(src, TOUCH_SIZE))
+    fs.writeFileSync(OUT_PNG, renderPackIcon(src, SIZE))
+    fs.writeFileSync(OUT_TOUCH, renderTouchIcon(src, TOUCH_SIZE))
 
     const imgs = ICO_SIZES.map(s => ({
-      buf: resizePng(src, s),
+      buf: renderPackIcon(src, s),
       size: s
     }))
     fs.writeFileSync(OUT_ICO, buildIco(imgs))
 
-    console.log(`[make-icon] wrote ${OUT_PNG} ${OUT_ICO} ${OUT_TOUCH} (fill=${FILL_RATIO})`)
+    console.log(`[make-icon] wrote ${OUT_PNG} ${OUT_ICO} ${OUT_TOUCH}`)
   } catch (err) {
     console.error('[make-icon] failed:', err)
     app.exitCode = 1
