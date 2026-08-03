@@ -3236,6 +3236,17 @@ async function ensureRuntime(backend) {
 
       const wayneHome = w4yLogin.resolveWayneHome()
       const engineDest = path.join(wayneHome, 'wayne-agent')
+      const engineStageStarted = Date.now()
+
+      try {
+        broadcastBootstrapEvent({
+          type: 'stage',
+          name: 'engine-download',
+          state: 'running'
+        })
+      } catch {
+        void 0
+      }
 
       try {
         await w4yWayne.ensureWayneEngineForPackaged(engineDest, {
@@ -3254,10 +3265,36 @@ async function ensureRuntime(backend) {
           }
         })
         rememberLog('[w4y] Motor Work4You instalado. Re-resolvendo backend.')
+        try {
+          broadcastBootstrapEvent({
+            type: 'stage',
+            name: 'engine-download',
+            state: 'succeeded',
+            durationMs: Date.now() - engineStageStarted
+          })
+          broadcastBootstrapEvent({ type: 'complete', marker: { kind: 'engine-download' } })
+        } catch {
+          void 0
+        }
         // Re-resolve: tryResolveWayneBackend will now find the new engine.
         return ensureRuntime(resolveHermesBackend(backend.args))
       } catch (engineErr) {
         rememberLog(`[w4y] Download do motor falhou: ${engineErr && engineErr.message}`)
+        try {
+          broadcastBootstrapEvent({
+            type: 'stage',
+            name: 'engine-download',
+            state: 'failed',
+            durationMs: Date.now() - engineStageStarted,
+            error: engineErr && engineErr.message ? String(engineErr.message) : 'engine download failed'
+          })
+          broadcastBootstrapEvent({
+            type: 'failed',
+            error: engineErr && engineErr.message ? String(engineErr.message) : 'engine download failed'
+          })
+        } catch {
+          void 0
+        }
         // Fall through to hard error below.
       }
 
