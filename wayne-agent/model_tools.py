@@ -509,6 +509,18 @@ def _compute_tool_definitions(
                     }
                     break
 
+    # Composio tool-router ships generic web/browser helpers alongside OAuth
+    # app connectors. When native web/browser tools are available, drop the
+    # duplicates and steer meta-tools toward connected-app work only.
+    try:
+        from tools.composio_routing import apply_composio_native_routing
+
+        filtered_tools, available_tool_names = apply_composio_native_routing(
+            filtered_tools, available_tool_names,
+        )
+    except Exception as e:  # pragma: no cover — defensive
+        logger.warning("Composio native routing skipped: %s", e)
+
     if not quiet_mode:
         if filtered_tools:
             tool_names = [t["function"]["name"] for t in filtered_tools]
