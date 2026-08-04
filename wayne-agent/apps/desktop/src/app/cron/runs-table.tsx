@@ -5,6 +5,7 @@ import { coarseElapsed } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
 import type { AutomationRunRow, RunOutcome } from './run-stats'
+import { runStoryText } from './run-stats'
 
 function formatRunTime(seconds?: null | number): string {
   if (!seconds) {
@@ -97,9 +98,10 @@ export function RunsTable({
           <tr className="border-b border-(--ui-stroke-tertiary)/80">
             {showAutomationColumn ? <th className="px-4 py-3 font-medium">{c.colAutomation}</th> : null}
             <th className="px-4 py-3 font-medium">{c.colTriggered}</th>
-            <th className="hidden px-4 py-3 font-medium md:table-cell">{c.colTools}</th>
+            <th className="hidden px-4 py-3 font-medium md:table-cell">{c.colStory}</th>
+            <th className="hidden px-4 py-3 font-medium lg:table-cell">{c.colTools}</th>
             <th className="px-4 py-3 font-medium">{c.colStatus}</th>
-            <th className="hidden px-4 py-3 font-medium lg:table-cell">{c.colDuration}</th>
+            <th className="hidden px-4 py-3 font-medium xl:table-cell">{c.colDuration}</th>
           </tr>
         </thead>
         <tbody>
@@ -107,7 +109,7 @@ export function RunsTable({
             <tr>
               <td
                 className="px-4 py-16 text-center text-sm text-foreground/70"
-                colSpan={showAutomationColumn ? 5 : 4}
+                colSpan={showAutomationColumn ? 6 : 5}
               >
                 {emptyLabel}
               </td>
@@ -116,12 +118,14 @@ export function RunsTable({
             rows.map(row => {
               const active = row.outcome === 'running'
               const failed = row.outcome === 'failed'
+              const story = runStoryText(row.run)
 
               return (
                 <tr
                   className="group/row cursor-pointer border-b border-(--ui-stroke-tertiary)/60 last:border-b-0 transition-colors hover:bg-(--chrome-action-hover)"
                   key={`${row.jobId}:${row.run.id}`}
                   onClick={() => onOpenSession?.(row.run.id)}
+                  title={c.openRunStory}
                 >
                   {showAutomationColumn ? (
                     <td className="px-4 py-3.5">
@@ -136,7 +140,10 @@ export function RunsTable({
                   <td className="px-4 py-3.5 text-foreground/70 tabular-nums">
                     {formatRunTime(row.run.started_at || row.run.last_active)}
                   </td>
-                  <td className="hidden px-4 py-3.5 text-foreground/70 tabular-nums md:table-cell">
+                  <td className="hidden max-w-[16rem] px-4 py-3.5 text-foreground/70 md:table-cell">
+                    <span className="line-clamp-2 text-[0.75rem] leading-snug">{story}</span>
+                  </td>
+                  <td className="hidden px-4 py-3.5 text-foreground/70 tabular-nums lg:table-cell">
                     {row.run.tool_call_count > 0 ? String(row.run.tool_call_count) : '—'}
                   </td>
                   <td className="px-4 py-3.5">
@@ -162,7 +169,7 @@ export function RunsTable({
                       {runStatusLabel(row.outcome, c)}
                     </span>
                   </td>
-                  <td className="hidden px-4 py-3.5 text-foreground/70 tabular-nums lg:table-cell">
+                  <td className="hidden px-4 py-3.5 text-foreground/70 tabular-nums xl:table-cell">
                     {formatRunDuration(row.run, nowMs)}
                   </td>
                 </tr>

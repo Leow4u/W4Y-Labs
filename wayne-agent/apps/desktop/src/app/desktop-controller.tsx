@@ -1275,7 +1275,7 @@ export function DesktopController() {
             element={
               <Suspense fallback={<ViewFallback />}>
                 <CronView
-                  onOpenSession={sessionId => navigate(sessionRoute(sessionId))}
+                  onOpenSession={sessionId => void resumeSession(sessionId, true)}
                   setStatusbarItemGroup={setStatusbarItemGroup}
                 />
               </Suspense>

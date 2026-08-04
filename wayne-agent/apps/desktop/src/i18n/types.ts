@@ -1534,8 +1534,10 @@ export interface Translations {
     colTools: string
     colAutomation: string
     colTriggered: string
+    colStory: string
     colDuration: string
     authorYou: string
+    openRunStory: string
     statusActive: string
     statusInactive: string
     backToList: string

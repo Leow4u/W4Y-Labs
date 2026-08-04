@@ -74,6 +74,22 @@ export function runStartedMs(run: SessionInfo): number {
   return (run.started_at || run.last_active || 0) * 1000
 }
 
+/** One-line run story for history tables — title when set, else first prompt snippet. */
+export function runStoryText(run: SessionInfo): string {
+  const title = run.title?.trim()
+  const preview = run.preview?.trim()
+
+  if (title) {
+    return title
+  }
+
+  if (preview) {
+    return preview
+  }
+
+  return '—'
+}
+
 export async function computeRunStats(jobs: CronJob[]): Promise<RunStats> {
   if (jobs.length === 0) {
     return emptyRunStats()

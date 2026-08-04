@@ -363,6 +363,8 @@ export interface SessionInfo {
   /** Handoff lifecycle: 'pending' | 'in_progress' | 'completed' | 'failed'. */
   handoff_state?: null | string
   handoff_error?: null | string
+  /** Why the session ended (e.g. `cron_complete`, `compression`). */
+  end_reason?: null | string
   /** Owning profile name, set by the cross-profile aggregator
    *  (`/api/profiles/sessions`). Absent on legacy single-profile responses,
    *  which the UI treats as the default profile. */
@@ -599,6 +601,10 @@ export interface CronJob {
   skill?: null | string
   /** Restrict agent toolsets for this job (empty = profile default). */
   enabled_toolsets?: null | string[]
+  /** Owning profile from gateway annotation (`_annotate_cron_job`). */
+  profile?: null | string
+  profile_name?: null | string
+  is_default_profile?: boolean
 }
 
 export interface CronJobCreatePayload {

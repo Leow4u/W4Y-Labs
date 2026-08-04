@@ -46,6 +46,7 @@ import {
   setScheduleSiblings
 } from './automation-triggers'
 import { deliveryLabelForId, mergeDeliveryTargets } from './delivery-targets'
+import { jobAuthorLabel } from './job-profile'
 import { AutomationEditor, type EditorMode, type EditorValues } from './automation-editor'
 import { jobState, jobTitle } from './job-state'
 import {
@@ -546,7 +547,8 @@ export function CronView({
       return (
         row.jobName.toLowerCase().includes(q) ||
         row.outcome.toLowerCase().includes(q) ||
-        (row.run.title?.toLowerCase().includes(q) ?? false)
+        (row.run.title?.toLowerCase().includes(q) ?? false) ||
+        (row.run.preview?.toLowerCase().includes(q) ?? false)
       )
     })
   }, [runStats.rows, runsQuery])
@@ -723,7 +725,9 @@ export function CronView({
                               ) : null}
                             </div>
                           </td>
-                          <td className="hidden px-4 py-3.5 text-foreground/70 sm:table-cell">{c.authorYou}</td>
+                          <td className="hidden px-4 py-3.5 text-foreground/70 sm:table-cell">
+                            {jobAuthorLabel(job, c.authorYou)}
+                          </td>
                           <td className="hidden px-4 py-3.5 text-foreground/70 tabular-nums md:table-cell">
                             {createdMs ? relativeTime(createdMs, nowMs) : c.createdUnknown}
                           </td>
