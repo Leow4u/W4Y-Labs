@@ -167,14 +167,13 @@ class TestMessageLimits:
         from plugins.platforms.whatsapp.adapter import WhatsAppAdapter
         assert WhatsAppAdapter.MAX_MESSAGE_LENGTH == 4096
 
-    def test_chunk_limit_reserves_default_self_chat_prefix(self, monkeypatch):
+    def test_chunk_limit_with_empty_default_prefix(self, monkeypatch):
         adapter = _make_adapter()
         monkeypatch.delenv("WHATSAPP_REPLY_PREFIX", raising=False)
         monkeypatch.setenv("WHATSAPP_MODE", "self-chat")
 
-        assert adapter._outgoing_chunk_limit() == (
-            adapter.MAX_MESSAGE_LENGTH - len(adapter.DEFAULT_REPLY_PREFIX)
-        )
+        assert adapter.DEFAULT_REPLY_PREFIX == ""
+        assert adapter._outgoing_chunk_limit() == adapter.MAX_MESSAGE_LENGTH
 
     def test_chunk_limit_does_not_reserve_prefix_in_bot_mode(self, monkeypatch):
         adapter = _make_adapter()

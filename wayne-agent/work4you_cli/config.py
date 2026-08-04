@@ -2413,10 +2413,9 @@ DEFAULT_CONFIG = {
 
     # WhatsApp platform settings (gateway mode)
     "whatsapp": {
-        # Reply prefix prepended to every outgoing WhatsApp message.
-        # Default (None) uses the built-in "⚕ *Work4You*" header.
-        # Set to "" (empty string) to disable the header entirely.
-        # Supports \n for newlines, e.g. "🤖 *My Bot*\n──────\n"
+        # Optional prefix prepended to every outgoing WhatsApp message in self-chat
+        # mode. Default (None) sends plain replies with no header.
+        # Set e.g. "🤖 *My Bot*\n──────\n" or "" to override explicitly.
     },
 
     # Telegram platform settings (gateway mode)
