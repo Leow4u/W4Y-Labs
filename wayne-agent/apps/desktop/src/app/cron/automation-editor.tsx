@@ -516,7 +516,7 @@ export function AutomationEditor({
       </header>
 
       {job?.last_error ? (
-        jobHasInferenceDrift(job.last_error) && onResolveInferenceDrift ? (
+        jobHasInferenceDrift(job) && onResolveInferenceDrift ? (
           <InferenceDriftBanner
             busy={driftResolving || busy}
             details={parseInferenceDrift(job.last_error)}

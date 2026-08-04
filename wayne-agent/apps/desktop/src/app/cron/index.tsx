@@ -604,7 +604,7 @@ export function CronView({
             onSave={handleEditorSave}
             onResolveInferenceDrift={
               editor.mode === 'edit'
-                ? action => void handleResolveInferenceDrift(editor.job, action)
+                ? action => handleResolveInferenceDrift(editor.job, action)
                 : undefined
             }
             onTrigger={editor.mode === 'edit' ? () => void handleTrigger(editor.job) : undefined}
