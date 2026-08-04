@@ -575,6 +575,9 @@ export const pt = defineLocale({
     noJobToolsetsSelected: 'Sem restrição — usa os defaults do perfil.',
     toolAdded: 'Adicionado',
     deliverHint: 'Para onde enviar o resultado quando a automação terminar.',
+    deliveryNeedsHomeChannel: 'defina um canal principal primeiro',
+    deliveryNoneConfigured:
+      'Nenhuma plataforma de mensagens configurada — os resultados ficam neste desktop até ligar um canal.',
     sendToChannel: channel => `Enviar para ${channel}`,
     connectChannel: 'Ligar',
     noFolder: 'Sem pasta',

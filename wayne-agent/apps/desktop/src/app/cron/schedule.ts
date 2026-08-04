@@ -4,8 +4,6 @@ import { asText } from '@/lib/text'
 
 export const DEFAULT_DELIVER = 'local'
 
-export const DELIVERY_VALUES: readonly string[] = ['local', 'telegram', 'discord', 'slack', 'email']
-
 export interface ScheduleOption {
   expr?: string
   value: string

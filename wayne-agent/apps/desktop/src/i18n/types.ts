@@ -1663,6 +1663,10 @@ export interface Translations {
     noJobToolsetsSelected: string
     toolAdded: string
     deliverHint: string
+    /** Appended when a platform is listed but has no home channel configured. */
+    deliveryNeedsHomeChannel: string
+    /** Shown when only the local (save-only) delivery target is available. */
+    deliveryNoneConfigured: string
     /** Tool-row label: "Send to Slack" / "Enviar para Slack". */
     sendToChannel: (channel: string) => string
     connectChannel: string

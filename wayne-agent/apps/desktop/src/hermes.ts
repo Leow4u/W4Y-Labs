@@ -14,6 +14,7 @@ import type {
   CronJobCreatePayload,
   CronJobUpdates,
   CronComposioTrigger,
+  CronDeliveryTarget,
   CronWebhookRoute,
   CuratorStatusResponse,
   DebugShareResponse,
@@ -108,6 +109,7 @@ export type {
   CronJobSchedule,
   CronJobUpdates,
   CronComposioTrigger,
+  CronDeliveryTarget,
   CronWebhookRoute,
   CuratorStatusResponse,
   DebugShareResponse,
@@ -870,6 +872,12 @@ export async function getCronJobRuns(jobId: string, limit = 20): Promise<Session
   })
 
   return runs ?? []
+}
+
+export function getCronDeliveryTargets(): Promise<{ targets: CronDeliveryTarget[] }> {
+  return window.hermesDesktop.api<{ targets: CronDeliveryTarget[] }>({
+    path: '/api/cron/delivery-targets'
+  })
 }
 
 export function createCronJob(body: CronJobCreatePayload): Promise<CronJob> {

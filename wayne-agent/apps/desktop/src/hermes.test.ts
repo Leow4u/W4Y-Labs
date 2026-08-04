@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  getCronDeliveryTargets,
   getCronJobs,
   getGlobalModelInfo,
   getGlobalModelOptions,
@@ -153,5 +154,21 @@ describe('Hermes REST session helpers', () => {
         path: '/api/model/options?refresh=1&include_unconfigured=1'
       })
     )
+  })
+
+  it('loads cron delivery targets from the gateway', async () => {
+    api.mockResolvedValue({
+      targets: [{ home_env_var: null, home_target_set: true, id: 'local', name: 'Local (save only)' }]
+    })
+
+    const result = await getCronDeliveryTargets()
+
+    expect(api).toHaveBeenCalledWith(
+      expect.objectContaining({
+        path: '/api/cron/delivery-targets'
+      })
+    )
+    expect(result.targets).toHaveLength(1)
+    expect(result.targets[0]?.id).toBe('local')
   })
 })

@@ -2379,6 +2379,8 @@ export const zh: Translations = {
     noJobToolsetsSelected: '无 toolset 限制 — 使用配置默认值。',
     toolAdded: '已添加',
     deliverHint: '自动化完成后将结果发送到哪里。',
+    deliveryNeedsHomeChannel: '请先设置主频道',
+    deliveryNoneConfigured: '未配置消息平台 — 结果将保存在本桌面，直到连接频道。',
     sendToChannel: channel => `发送到 ${channel}`,
     connectChannel: '连接',
     noFolder: '无文件夹',

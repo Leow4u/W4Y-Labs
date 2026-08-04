@@ -621,6 +621,13 @@ export interface CronJobSchedule {
   kind?: string
 }
 
+export interface CronDeliveryTarget {
+  home_env_var?: null | string
+  home_target_set: boolean
+  id: string
+  name: string
+}
+
 export interface CronJobUpdates {
   composio_triggers?: CronComposioTrigger[] | null
   deliver?: string

@@ -11,12 +11,18 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getSkills, getToolsets } from '@/hermes'
+import { getCronDeliveryTargets, getSkills, getToolsets } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { ManageMemoryDialog } from '@/app/settings/memory/manage-dialog'
 import { cn } from '@/lib/utils'
 
-import { DELIVERY_VALUES } from './schedule'
+import {
+  deliveryLabelForId,
+  deliveryTargetLabel,
+  fallbackDeliveryTargets,
+  mergeDeliveryTargets,
+  onlyLocalDeliveryAvailable
+} from './delivery-targets'
 
 interface ToolsPanelProps {
   deliver: string
@@ -79,8 +85,22 @@ export function ToolsPanel({
   const [memoryOpen, setMemoryOpen] = useState(false)
   const [skillQuery, setSkillQuery] = useState('')
   const [toolsetQuery, setToolsetQuery] = useState('')
-  const channelLabel = c.deliveryLabels[deliver] ?? deliver
-  const needsConnect = deliver !== 'local'
+
+  const deliveryQuery = useQuery({
+    queryFn: async () => (await getCronDeliveryTargets()).targets,
+    queryKey: ['cron-delivery-targets']
+  })
+
+  const deliveryTargets = useMemo(
+    () => mergeDeliveryTargets(deliveryQuery.data, deliver),
+    [deliver, deliveryQuery.data]
+  )
+
+  const selectedTarget = deliveryTargets.find(target => target.id === deliver)
+  const channelLabel = deliveryLabelForId(deliver, deliveryTargets, c)
+  const needsHomeChannel =
+    selectedTarget != null && selectedTarget.id !== 'local' && !selectedTarget.home_target_set
+  const onlyLocal = onlyLocalDeliveryAvailable(deliveryTargets)
 
   const skillsQuery = useQuery({
     queryFn: getSkills,
@@ -234,30 +254,34 @@ export function ToolsPanel({
           />
         </div>
 
-        <div className="flex items-center justify-between gap-2 border-b border-(--ui-stroke-tertiary)/60 px-3 py-2.5">
-          <div className="flex min-w-0 items-center gap-1.5 text-[0.8rem] font-medium text-foreground">
-            <Codicon className="shrink-0 text-foreground/65" name="export" size="0.85rem" />
-            <span className="truncate">{c.sendToChannel(channelLabel)}</span>
+        <div className="space-y-2 border-b border-(--ui-stroke-tertiary)/60 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-1.5 text-[0.8rem] font-medium text-foreground">
+              <Codicon className="shrink-0 text-foreground/65" name="export" size="0.85rem" />
+              <span className="truncate">{c.sendToChannel(channelLabel)}</span>
+            </div>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <Select onValueChange={onDeliverChange} value={deliver}>
+                <SelectTrigger className="h-7 w-[11rem] rounded-md border-(--ui-stroke-tertiary)/70 text-[0.75rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {deliveryTargets.map(target => (
+                    <SelectItem key={target.id} value={target.id}>
+                      {deliveryTargetLabel(target, c)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {needsHomeChannel ? (
+                <Button onClick={onOpenChannels} size="sm" type="button" variant="outline">
+                  {c.connectChannel}
+                </Button>
+              ) : null}
+            </div>
           </div>
-          <div className="flex shrink-0 items-center gap-1.5">
-            <Select onValueChange={onDeliverChange} value={deliver}>
-              <SelectTrigger className="h-7 w-[9.5rem] rounded-md border-(--ui-stroke-tertiary)/70 text-[0.75rem]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DELIVERY_VALUES.map(value => (
-                  <SelectItem key={value} value={value}>
-                    {c.deliveryLabels[value] ?? value}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {needsConnect ? (
-              <Button onClick={onOpenChannels} size="sm" type="button" variant="outline">
-                {c.connectChannel}
-              </Button>
-            ) : null}
-          </div>
+          {onlyLocal ? <p className="text-[0.65rem] text-foreground/65">{c.deliveryNoneConfigured}</p> : null}
+          {needsHomeChannel ? <p className="text-[0.65rem] text-foreground/65">{c.deliverHint}</p> : null}
         </div>
 
         <DropdownMenu>

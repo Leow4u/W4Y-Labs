@@ -2422,6 +2422,9 @@ export const en: Translations = {
     noJobToolsetsSelected: 'No toolset restriction — profile defaults apply.',
     toolAdded: 'Added',
     deliverHint: 'Where to send the result when the automation finishes.',
+    deliveryNeedsHomeChannel: 'set a home channel first',
+    deliveryNoneConfigured:
+      'No messaging platforms configured — results stay on this desktop until you connect a channel.',
     sendToChannel: channel => `Send to ${channel}`,
     connectChannel: 'Connect',
     noFolder: 'No folder',

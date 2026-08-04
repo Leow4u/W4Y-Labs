@@ -1,6 +1,7 @@
 import { useStore } from '@nanostores/react'
 import type * as React from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@tanstack/react-query'
 
 import { PageLoader } from '@/components/page-loader'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import {
   deleteCronJob,
   deleteWebhook,
   enableWebhooks,
+  getCronDeliveryTargets,
   getCronJobs,
   pauseCronJob,
   resumeCronJob,
@@ -43,6 +45,7 @@ import {
   getScheduleSiblings,
   setScheduleSiblings
 } from './automation-triggers'
+import { deliveryLabelForId, mergeDeliveryTargets } from './delivery-targets'
 import { AutomationEditor, type EditorMode, type EditorValues } from './automation-editor'
 import { jobState, jobTitle } from './job-state'
 import {
@@ -159,6 +162,16 @@ export function CronView({
   const [runStats, setRunStats] = useState<RunStats>(() => emptyRunStats())
   const [statsLoading, setStatsLoading] = useState(false)
   const focusJobId = useStore($cronFocusJobId)
+
+  const deliveryTargetsQuery = useQuery({
+    queryFn: async () => (await getCronDeliveryTargets()).targets,
+    queryKey: ['cron-delivery-targets']
+  })
+
+  const deliveryTargets = useMemo(
+    () => mergeDeliveryTargets(deliveryTargetsQuery.data),
+    [deliveryTargetsQuery.data]
+  )
 
   const [editor, setEditor] = useState<EditorMode | { mode: 'closed' }>({ mode: 'closed' })
   const [pendingDelete, setPendingDelete] = useState<CronJob | null>(null)
@@ -734,7 +747,9 @@ export function CronView({
                           <td className="hidden px-4 py-3.5 lg:table-cell">
                             <span className="inline-flex items-center gap-1.5 text-foreground/70">
                               <DeliveryIcon deliver={deliver} />
-                              <span className="truncate">{c.deliveryLabels[deliver] ?? deliver}</span>
+                              <span className="truncate">
+                                {deliveryLabelForId(deliver, deliveryTargets, c)}
+                              </span>
                             </span>
                           </td>
                           <td className="px-2 py-3.5" onClick={event => event.stopPropagation()}>
