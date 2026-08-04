@@ -7,6 +7,7 @@ import { ActivityTimerText } from '@/components/chat/activity-timer-text'
 import { Codicon } from '@/components/ui/codicon'
 import { Loader } from '@/components/ui/loader'
 import { useI18n } from '@/i18n'
+import { messageIsPlanningNext } from '@/components/assistant-ui/tool/fallback-model'
 import { cn } from '@/lib/utils'
 import { $backgroundResume } from '@/store/background-delegation'
 import { $compactionActive } from '@/store/compaction'
@@ -54,6 +55,32 @@ export const CenteredThreadSpinner: FC = () => {
         type="rose-curve"
       />
     </div>
+  )
+}
+
+export const PlanningNextMoves: FC = () => {
+  const { t } = useI18n()
+  const show = useAuiState(s =>
+    messageIsPlanningNext(
+      s.message.parts,
+      s.thread.isRunning && s.message.status?.type === 'running'
+    )
+  )
+
+  if (!show) {
+    return null
+  }
+
+  return (
+    <StatusRow
+      className="mt-0.5"
+      data-slot="aui_planning-next"
+      label={t.assistant.thread.planningNextMoves}
+    >
+      <span className="shimmer text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+        {t.assistant.thread.planningNextMoves}
+      </span>
+    </StatusRow>
   )
 }
 
@@ -121,6 +148,12 @@ export const StreamStallIndicator: FC = () => {
   // Gate on the live thread too — a stale assistant status:running after the
   // turn settled must not keep a shimmering "Thinking" under the message.
   const threadRunning = useAuiState(s => s.thread.isRunning)
+  const planning = useAuiState(s =>
+    messageIsPlanningNext(
+      s.message.parts,
+      s.thread.isRunning && s.message.status?.type === 'running'
+    )
+  )
   const activity = useAuiState(s => {
     let textLength = 0
 
@@ -150,7 +183,7 @@ export const StreamStallIndicator: FC = () => {
     return () => window.clearTimeout(id)
   }, [activity, threadRunning])
 
-  const active = threadRunning && (stalled || compacting) && !awaitingInput
+  const active = threadRunning && (stalled || compacting) && !awaitingInput && !planning
   const elapsed = useElapsedSeconds(active)
 
   if (!active) {

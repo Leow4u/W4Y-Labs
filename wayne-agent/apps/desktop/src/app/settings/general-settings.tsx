@@ -20,8 +20,12 @@ import { disarmSessionYolo } from '@/lib/yolo-session'
 import { $completionSoundVariantId, setCompletionSoundVariantId } from '@/store/completion-sound'
 import {
   $showReasoning,
+  applyConversationDensityFromConfig,
   applyShowReasoningFromConfig,
-  setShowReasoning
+  $conversationDensity,
+  setConversationDensity,
+  setShowReasoning,
+  type ConversationDensity
 } from '@/store/display-prefs'
 import { $nativeNotifyPrefs, setNativeNotifyEnabled } from '@/store/native-notifications'
 import { notifyError } from '@/store/notifications'
@@ -67,6 +71,7 @@ export function GeneralSettings({ onOpenAbout, onOpenNotifications, onConfigSave
   const completionSoundVariantId = useStore($completionSoundVariantId)
   const autoSpeak = useStore($autoSpeakReplies)
   const showThinking = useStore($showReasoning)
+  const conversationDensity = useStore($conversationDensity)
   const version = useStore($desktopVersion)
   const status = useStore($updateStatus)
   const apply = useStore($updateApply)
@@ -84,6 +89,7 @@ export function GeneralSettings({ onOpenAbout, onOpenNotifications, onConfigSave
     if (config) {
       applyAutoSpeakFromConfig(config)
       applyShowReasoningFromConfig(config)
+      applyConversationDensityFromConfig(config)
     }
     // Seed-once prefs from cache peek; later edits own the draft.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -95,6 +101,7 @@ export function GeneralSettings({ onOpenAbout, onOpenNotifications, onConfigSave
     setConfig(loadedConfig)
     applyAutoSpeakFromConfig(loadedConfig)
     applyShowReasoningFromConfig(loadedConfig)
+    applyConversationDensityFromConfig(loadedConfig)
   }, [loadedConfig])
 
   const personality = String(getNested(config ?? {}, 'display.personality') ?? '')
@@ -205,6 +212,33 @@ export function GeneralSettings({ onOpenAbout, onOpenNotifications, onConfigSave
             description={g.readAloudDesc}
             inset
             title={g.readAloud}
+          />
+          <ListRow
+            action={
+              <Select
+                onValueChange={value => {
+                  triggerHaptic('selection')
+                  void setConversationDensity(value as ConversationDensity)
+                    .then(() => onConfigSaved?.())
+                    .catch(error => notifyError(error, t.settings.config.autosaveFailed))
+                }}
+                value={conversationDensity}
+              >
+                <SelectTrigger aria-label={g.conversationDensity} className="h-8 w-[8.5rem]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(g.conversationDensityOptions) as ConversationDensity[]).map(id => (
+                    <SelectItem key={id} value={id}>
+                      {g.conversationDensityOptions[id]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            }
+            description={g.conversationDensityDesc}
+            inset
+            title={g.conversationDensity}
           />
           <ListRow
             action={

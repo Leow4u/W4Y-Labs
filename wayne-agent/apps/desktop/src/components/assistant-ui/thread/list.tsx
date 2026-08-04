@@ -26,6 +26,8 @@ import { isSecondaryWindow } from '@/store/windows'
 
 import { MessageRenderBoundary } from '../message-render-boundary'
 
+import { TurnRenderer } from './turn-renderer'
+
 type ThreadMessageComponents = ComponentProps<typeof ThreadPrimitive.MessageByIndex>['components']
 
 type MessageGroup = { id: string; weight: number } & (
@@ -305,14 +307,16 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
               >
                 <MessageRenderBoundary resetKey={messageSignature}>
                   {group.kind === 'turn' ? (
-                    <div
-                      className="composer-human-ai-pair-container relative flex min-w-0 flex-col gap-(--conversation-turn-gap)"
-                      data-slot="aui_turn-pair"
-                    >
-                      {group.indices.map(index => (
-                        <ThreadPrimitive.MessageByIndex components={components} index={index} key={index} />
-                      ))}
-                    </div>
+                    <TurnRenderer indices={group.indices}>
+                      <div
+                        className="composer-human-ai-pair-container relative flex min-w-0 flex-col gap-(--conversation-turn-gap)"
+                        data-slot="aui_turn-pair"
+                      >
+                        {group.indices.map(index => (
+                          <ThreadPrimitive.MessageByIndex components={components} index={index} key={index} />
+                        ))}
+                      </div>
+                    </TurnRenderer>
                   ) : (
                     <ThreadPrimitive.MessageByIndex components={components} index={group.index} />
                   )}

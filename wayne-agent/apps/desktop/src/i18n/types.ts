@@ -293,6 +293,13 @@ export interface Translations {
       readAloudDesc: string
       showThinking: string
       showThinkingDesc: string
+      conversationDensity: string
+      conversationDensityDesc: string
+      conversationDensityOptions: {
+        compact: string
+        balanced: string
+        detailed: string
+      }
       alerts: string
       manageAlerts: string
       app: string
@@ -2504,6 +2511,7 @@ export interface Translations {
       loadingResponse: string
       resumeWhenBackgroundDone: (count: number) => string
       thinking: string
+      planningNextMoves: string
       today: (time: string) => string
       yesterday: (time: string) => string
       copy: string
@@ -2530,6 +2538,8 @@ export interface Translations {
       sendEdited: string
       attachingFile: string
       turnModel: (model: string) => string
+      deliveryStrip: (files: number) => string
+      fileHeroes: string
     }
     approval: {
       gatewayDisconnected: string
@@ -2578,6 +2588,17 @@ export interface Translations {
       statusError: string
       statusRecovered: string
       statusDone: string
+      stepGroup: (count: number) => string
+      workedFor: (duration: string) => string
+      exploredTools: (count: number) => string
+      mcp: {
+        connectDone: string
+        connectPending: string
+        categories: Record<
+          'connect' | 'search' | 'execute' | 'read' | 'write' | 'web' | 'generic',
+          { done: string; pending: string; pendingAction: string }
+        >
+      }
       actions: {
         read: string
         reading: string

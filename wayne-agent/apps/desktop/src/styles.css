@@ -1495,6 +1495,21 @@ text-* variant utilities. */ .btn-arc {
   mask-image: linear-gradient(to bottom, transparent 0, black 2rem, black 100%);
 }
 
+/* Turn Contract — ask-mode reading column for text-only turns. */
+.turn-renderer--ask [data-slot='aui_assistant-message-content'] {
+  margin-inline: auto;
+  max-width: 42rem;
+  width: 100%;
+}
+
+[data-slot='turn-file-heroes'] {
+  padding-inline: var(--message-text-indent, 0);
+}
+
+[data-slot='turn-delivery'] {
+  padding-inline: var(--message-text-indent, 0);
+}
+
 @keyframes code-card-stream-enter {
   from {
     opacity: 0.74;

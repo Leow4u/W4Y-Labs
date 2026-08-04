@@ -13,7 +13,7 @@ import {
   setCurrentServiceTier,
   setIntroPersonality
 } from '@/store/session'
-import { applyShowReasoningFromConfig } from '@/store/display-prefs'
+import { applyConversationDensityFromConfig, applyShowReasoningFromConfig } from '@/store/display-prefs'
 import { applyAutoSpeakFromConfig } from '@/store/voice-prefs'
 
 const DEFAULT_VOICE_SECONDS = 120
@@ -90,6 +90,7 @@ export function useHermesConfig({ activeSessionIdRef, refreshProjectBranch }: He
       setSttEnabled(config.stt?.enabled !== false)
       applyAutoSpeakFromConfig(config)
       applyShowReasoningFromConfig(config)
+      applyConversationDensityFromConfig(config)
     } catch {
       // Config is nice-to-have; chat still works without it.
     }

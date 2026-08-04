@@ -2298,7 +2298,9 @@ export const zhHant = defineLocale({
       goForward: '前進',
       sendEdited: '傳送編輯後的訊息',
       attachingFile: '正在附加…',
-      turnModel: (model: string) => `via ${model}`
+      turnModel: (model: string) => `via ${model}`,
+      deliveryStrip: (files: number) => (files === 1 ? '已編輯 1 個檔案' : `已編輯 ${files} 個檔案`),
+      fileHeroes: '已修改檔案'
     },
     approval: {
       gatewayDisconnected: 'Work4You 閘道未連線',
@@ -2348,6 +2350,21 @@ export const zhHant = defineLocale({
       statusError: '錯誤',
       statusRecovered: '已復原',
       statusDone: '完成',
+      stepGroup: (count: number) => (count === 1 ? '已處理 · 1 步' : `已處理 · ${count} 步`),
+      workedFor: (duration: string) => `已處理 ${duration}`,
+      mcp: {
+        connectDone: '已連接',
+        connectPending: '連接中',
+        categories: {
+          connect: { done: '已連接應用', pending: '正在連接應用', pendingAction: '連接中' },
+          search: { done: '已找到應用工具', pending: '正在查找應用工具', pendingAction: '查找中' },
+          execute: { done: '已執行應用操作', pending: '正在執行應用操作', pendingAction: '執行中' },
+          read: { done: '已從應用讀取', pending: '正在從應用讀取', pendingAction: '讀取中' },
+          write: { done: '已更新應用', pending: '正在更新應用', pendingAction: '更新中' },
+          web: { done: '已使用 Web 連接器', pending: '正在使用 Web 連接器', pendingAction: '使用中' },
+          generic: { done: '已使用連接器', pending: '正在使用連接器', pendingAction: '使用中' }
+        }
+      },
       actions: {
         read: '已讀取',
         reading: '正在讀取',

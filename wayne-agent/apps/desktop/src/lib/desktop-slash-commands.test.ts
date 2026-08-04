@@ -35,19 +35,21 @@ describe('desktop slash command curation', () => {
     expect(isDesktopSlashSuggestion('/redraw')).toBe(false)
     expect(isDesktopSlashSuggestion('/approve')).toBe(false)
     expect(isDesktopSlashSuggestion('/model')).toBe(false)
-    expect(isDesktopSlashSuggestion('/skills')).toBe(false)
     expect(isDesktopSlashSuggestion('/voice')).toBe(false)
     expect(isDesktopSlashSuggestion('/curator')).toBe(false)
   })
 
-  it('surfaces /tools, /save, and /personality on the desktop', () => {
+  it('surfaces /tools, /skills, /save, and /personality on the desktop', () => {
     expect(isDesktopSlashSuggestion('/tools')).toBe(true)
+    expect(isDesktopSlashSuggestion('/skills')).toBe(true)
     expect(isDesktopSlashSuggestion('/save')).toBe(true)
     expect(isDesktopSlashSuggestion('/personality')).toBe(true)
     expect(isDesktopSlashCommand('/tools')).toBe(true)
+    expect(isDesktopSlashCommand('/skills')).toBe(true)
     expect(isDesktopSlashCommand('/save')).toBe(true)
     expect(isDesktopSlashCommand('/personality')).toBe(true)
     expect(desktopSlashUnavailableMessage('/tools')).toBeNull()
+    expect(desktopSlashUnavailableMessage('/skills')).toBeNull()
     expect(desktopSlashUnavailableMessage('/save')).toBeNull()
     expect(desktopSlashUnavailableMessage('/personality')).toBeNull()
   })
@@ -178,7 +180,6 @@ describe('desktop slash command curation', () => {
 
   it('explains known commands that desktop owns elsewhere', () => {
     expect(desktopSlashUnavailableMessage('/model sonnet')).toContain('model picker')
-    expect(desktopSlashUnavailableMessage('/skills')).toContain('desktop sidebar')
     expect(desktopSlashUnavailableMessage('/clear')).toContain('terminal interface')
   })
 

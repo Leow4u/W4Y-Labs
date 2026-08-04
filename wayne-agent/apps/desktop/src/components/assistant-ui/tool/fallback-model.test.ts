@@ -5,10 +5,14 @@ import { setRuntimeI18nLocale } from '@/i18n'
 import {
   buildToolView,
   clampForDisplay,
+  classifyToolGroup,
   countDiffLineStats,
   inlineDiffFromResult,
+  isExplorationTool,
   MAX_TOOL_RENDER_CHARS,
-  type ToolPart
+  messageIsPlanningNext,
+  type ToolPart,
+  toolGroupHasPendingParts
 } from './fallback-model'
 
 const part = (overrides: Partial<ToolPart>): ToolPart => ({
@@ -148,6 +152,20 @@ describe('buildToolView file edit diffs', () => {
 })
 
 describe('buildToolView title actions', () => {
+  it('strips inherited Running prefix from terminal titles', () => {
+    const view = buildToolView(
+      part({
+        args: { command: 'git status', context: 'Running git status' },
+        result: { stdout: 'ok' },
+        toolName: 'terminal'
+      }),
+      ''
+    )
+
+    expect(view.title).toBe('Ran git status')
+    expect(view.title).not.toMatch(/Running/i)
+  })
+
   it('marks the pending action separately from the rest of the title', () => {
     const read = buildToolView(part({ args: { path: '/tmp/demo.txt' }, result: undefined, toolName: 'read_file' }), '')
 
@@ -358,5 +376,50 @@ describe('buildToolView caps serialized result size', () => {
 describe('countDiffLineStats', () => {
   it('counts added and removed lines', () => {
     expect(countDiffLineStats(`--- a/x\n+++ b/x\n@@\n-old\n+new\n context\n+another`)).toEqual({ added: 2, removed: 1 })
+  })
+})
+
+describe('toolGroupHasPendingParts', () => {
+  const parts = [
+    { type: 'tool-call', result: {} },
+    { type: 'tool-call', result: undefined },
+    { type: 'text', text: 'hello' }
+  ] as const
+
+  it('returns false when the message is not live', () => {
+    expect(toolGroupHasPendingParts(parts, 0, 2, false)).toBe(false)
+  })
+
+  it('detects pending tool calls inside the slice', () => {
+    expect(toolGroupHasPendingParts(parts, 0, 2, true)).toBe(true)
+    expect(toolGroupHasPendingParts(parts, 0, 0, true)).toBe(false)
+  })
+})
+
+describe('tool group kind (Cursor parity)', () => {
+  it('marks exploration tools', () => {
+    expect(isExplorationTool('read_file')).toBe(true)
+    expect(isExplorationTool('terminal')).toBe(false)
+  })
+
+  it('classifies homogeneous exploration runs', () => {
+    expect(classifyToolGroup(['read_file', 'search_files'])).toBe('explored')
+    expect(classifyToolGroup(['read_file'])).toBe('explored')
+  })
+
+  it('classifies action runs at two or more tools', () => {
+    expect(classifyToolGroup(['terminal', 'patch'])).toBe('worked')
+    expect(classifyToolGroup(['terminal'])).toBe('inline')
+  })
+
+  it('detects planning between tool rounds', () => {
+    const parts = [
+      { type: 'tool-call', result: {} },
+      { type: 'tool-call', result: { ok: true } }
+    ]
+
+    expect(messageIsPlanningNext(parts, true)).toBe(true)
+    expect(messageIsPlanningNext([{ type: 'tool-call', result: undefined }], true)).toBe(false)
+    expect(messageIsPlanningNext([...parts, { type: 'text', text: 'Done.' }], true)).toBe(false)
   })
 })

@@ -2421,7 +2421,9 @@ export const ja = defineLocale({
       goForward: '進む',
       sendEdited: '編集済みメッセージを送信',
       attachingFile: '添付中…',
-      turnModel: (model: string) => `via ${model}`
+      turnModel: (model: string) => `via ${model}`,
+      deliveryStrip: (files: number) => (files === 1 ? '1 ファイルを編集' : `${files} ファイルを編集`),
+      fileHeroes: '変更したファイル'
     },
     approval: {
       gatewayDisconnected: 'Work4You ゲートウェイが接続されていません',
@@ -2471,6 +2473,22 @@ export const ja = defineLocale({
       statusError: 'エラー',
       statusRecovered: '回復しました',
       statusDone: '完了',
+      stepGroup: (count: number) => (count === 1 ? '作業 · 1 ステップ' : `作業 · ${count} ステップ`),
+      workedFor: (duration: string) => `${duration} 作業しました`,
+      exploredTools: (count: number) => (count === 1 ? '1 件のツールを探索' : `${count} 件のツールを探索`),
+      mcp: {
+        connectDone: '接続済み',
+        connectPending: '接続中',
+        categories: {
+          connect: { done: 'アプリを接続', pending: 'アプリを接続中', pendingAction: '接続中' },
+          search: { done: 'アプリツールを発見', pending: 'アプリツールを検索中', pendingAction: '検索中' },
+          execute: { done: 'アプリ操作を実行', pending: 'アプリ操作を実行中', pendingAction: '実行中' },
+          read: { done: 'アプリから読み取り', pending: 'アプリから読み取り中', pendingAction: '読み取り中' },
+          write: { done: 'アプリを更新', pending: 'アプリを更新中', pendingAction: '更新中' },
+          web: { done: 'Web コネクタを使用', pending: 'Web コネクタを使用中', pendingAction: '使用中' },
+          generic: { done: 'コネクタを使用', pending: 'コネクタを使用中', pendingAction: '使用中' }
+        }
+      },
       actions: {
         read: '読み取り完了',
         reading: '読み取り中',

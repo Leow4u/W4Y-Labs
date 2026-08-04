@@ -923,6 +923,14 @@ export const pt = defineLocale({
       showThinking: 'Mostrar raciocínio',
       showThinkingDesc:
         'Mostra o pensamento do modelo quando ele partilha esses passos. Não afecta o estado a trabalhar, temporizadores nem o progresso das ferramentas.',
+      conversationDensity: 'Densidade da conversa',
+      conversationDensityDesc:
+        'Quanto detalhe de edições e terminal fica aberto no chat. Resumos ("Worked for", "Explored") ficam compactos de qualquer forma.',
+      conversationDensityOptions: {
+        compact: 'Compacto',
+        balanced: 'Equilibrado',
+        detailed: 'Detalhado'
+      },
       alerts: 'Avisos',
       manageAlerts: 'Gerir todos os avisos',
       app: 'Aplicação',

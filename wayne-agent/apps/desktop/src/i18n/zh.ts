@@ -338,6 +338,13 @@ export const zh: Translations = {
       readAloudDesc: '自动朗读助手回复。语音提供方在“语音”中配置。',
       showThinking: '显示思考过程',
       showThinkingDesc: '在模型提供推理步骤时显示出来。不影响工作状态、计时器或工具进度。',
+      conversationDensity: '对话密度',
+      conversationDensityDesc: '控制文件编辑和终端输出在聊天中的展开程度。"Worked for" 与 "Explored" 摘要始终紧凑。',
+      conversationDensityOptions: {
+        compact: '紧凑',
+        balanced: '均衡',
+        detailed: '详细'
+      },
       alerts: '提醒',
       manageAlerts: '管理全部提醒',
       app: '应用',
@@ -3304,6 +3311,7 @@ export const zh: Translations = {
       resumeWhenBackgroundDone: count =>
         count === 1 ? '后台任务完成后将自动继续' : `${count} 个后台任务完成后将自动继续`,
       thinking: '思考中',
+      planningNextMoves: '规划下一步',
       today: time => `今天，${time}`,
       yesterday: time => `昨天，${time}`,
       copy: '复制',
@@ -3329,7 +3337,9 @@ export const zh: Translations = {
       goForward: '前进',
       sendEdited: '发送编辑后的消息',
       attachingFile: '正在附加…',
-      turnModel: (model: string) => `via ${model}`
+      turnModel: (model: string) => `via ${model}`,
+      deliveryStrip: (files: number) => (files === 1 ? '已编辑 1 个文件' : `已编辑 ${files} 个文件`),
+      fileHeroes: '已修改文件'
     },
     approval: {
       gatewayDisconnected: 'Work4You 网关未连接',
@@ -3379,6 +3389,22 @@ export const zh: Translations = {
       statusError: '错误',
       statusRecovered: '已恢复',
       statusDone: '完成',
+      stepGroup: (count: number) => (count === 1 ? '已处理 · 1 步' : `已处理 · ${count} 步`),
+      workedFor: (duration: string) => `已处理 ${duration}`,
+      exploredTools: (count: number) => (count === 1 ? '探索了 1 个工具' : `探索了 ${count} 个工具`),
+      mcp: {
+        connectDone: '已连接',
+        connectPending: '连接中',
+        categories: {
+          connect: { done: '已连接应用', pending: '正在连接应用', pendingAction: '连接中' },
+          search: { done: '已找到应用工具', pending: '正在查找应用工具', pendingAction: '查找中' },
+          execute: { done: '已执行应用操作', pending: '正在执行应用操作', pendingAction: '执行中' },
+          read: { done: '已从应用读取', pending: '正在从应用读取', pendingAction: '读取中' },
+          write: { done: '已更新应用', pending: '正在更新应用', pendingAction: '更新中' },
+          web: { done: '已使用 Web 连接器', pending: '正在使用 Web 连接器', pendingAction: '使用中' },
+          generic: { done: '已使用连接器', pending: '正在使用连接器', pendingAction: '使用中' }
+        }
+      },
       actions: {
         read: '已读取',
         reading: '正在读取',

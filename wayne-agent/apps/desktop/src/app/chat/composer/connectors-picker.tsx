@@ -20,7 +20,7 @@ import { resolveFeaturedConnectors } from '@/lib/connector-curation'
 import { getConnectorsCatalog, getConnectorsStatus } from '@/lib/connectors-api'
 import type { ConnectorToolkit } from '@/lib/connectors-types'
 import { ensureComposioMcpReady } from '@/lib/ensure-composio-mcp'
-import { iconSize, Link2 } from '@/lib/icons'
+import { ChevronDown, iconSize, Link2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { $connectorsRevision, $lastConnectedToolkit } from '@/store/connectors'
 
@@ -138,8 +138,14 @@ export function ConnectorsPicker({
     return featured.filter(tk => !on.has(tk.slug.toLowerCase()))
   }, [connected, featured])
 
-  // Still loading — avoid flicker.
-  if (connected === null) return null
+  // Still loading — keep chip footprint so the toolbar doesn't jump.
+  if (connected === null) {
+    return (
+      <span aria-hidden className={cn(CHIP, 'pointer-events-none opacity-40')}>
+        <Link2 className={iconSize.sm} />
+      </span>
+    )
+  }
 
   // No apps connected yet → chip opens connect-by-chat suggestions (+ marketplace).
   if (connected.length === 0) {
@@ -193,8 +199,6 @@ export function ConnectorsPicker({
 
   const off = new Set(disabled.map(s => s.toLowerCase()))
   const enabledToolkits = connected.filter(tk => !off.has(tk.slug.toLowerCase()))
-  const shown = enabledToolkits.slice(0, 3)
-  const plusN = Math.max(0, CURATED_CONNECTOR_COUNT - shown.length)
 
   const toggle = (slug: string) => {
     const key = slug.toLowerCase()
@@ -212,11 +216,11 @@ export function ConnectorsPicker({
         title={t.composer.connectorsSession}
         type="button"
       >
-        {shown.length > 0 ? (
+        {enabledToolkits.length > 0 ? (
           <span className="flex items-center -space-x-1">
-            {shown.map(tk => (
+            {enabledToolkits.slice(0, 3).map(tk => (
               <LogoTile
-                className="h-[16px] w-[16px] rounded-full border border-border p-px text-[0.55rem]"
+                className="h-[18px] w-[18px] rounded-full border border-border p-px text-[0.55rem]"
                 key={tk.slug}
                 toolkit={tk}
               />
@@ -225,7 +229,10 @@ export function ConnectorsPicker({
         ) : (
           <Link2 className={iconSize.sm} />
         )}
-        {plusN > 0 && <span className="tabular-nums text-(--ui-text-tertiary)">+{plusN}</span>}
+        {enabledToolkits.length > 3 && (
+          <span className="tabular-nums text-(--ui-text-tertiary)">+{enabledToolkits.length - 3}</span>
+        )}
+        <ChevronDown className={cn(iconSize.sm, 'opacity-60')} />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72 p-1.5" side="top" sideOffset={8}>
         <DropdownMenuLabel className="text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">

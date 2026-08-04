@@ -17,7 +17,7 @@ import {
 } from 'react'
 
 import { AnsiText } from '@/components/assistant-ui/ansi-text'
-import { useElapsedSeconds } from '@/components/chat/activity-timer'
+import { formatElapsed, useElapsedSeconds } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
 import { CompactMarkdown } from '@/components/chat/compact-markdown'
 import { FileDiffPanel } from '@/components/chat/diff-lines'
@@ -39,6 +39,7 @@ import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
 import { recordPreviewArtifact } from '@/store/preview-status'
 import { $activeSessionId, $currentCwd } from '@/store/session'
+import { $conversationDensity, toolDisclosureDefaultOpen } from '@/store/display-prefs'
 import { $toolInlineDiffs } from '@/store/tool-diffs'
 import { $toolRowDismissed, dismissToolRow } from '@/store/tool-dismiss'
 import { $toolDisclosureOpen, $toolViewMode, setToolDisclosureOpen } from '@/store/tool-view'
@@ -55,6 +56,9 @@ import {
   looksRedundant,
   type SearchResultRow,
   selectMessageRunning,
+  classifyToolGroup,
+  toolGroupHasPendingParts,
+  toolNamesInPartRange,
   stripInlineDiffChrome,
   toolCopyPayload,
   type ToolPart,
@@ -287,7 +291,13 @@ function ToolEntry({ part }: ToolEntryProps) {
   const sideDiff = toolCallId ? liveDiffs[toolCallId] || '' : ''
   const inlineDiff = stripInlineDiffChrome(sideDiff) || inlineDiffFromResult(result)
   const isFileEdit = isFileEditTool(toolName)
-  const defaultOpen = Boolean(inlineDiff)
+  const isShellTool = toolName === 'terminal' || toolName === 'execute_code'
+  const conversationDensity = useStore($conversationDensity)
+  const defaultOpen = toolDisclosureDefaultOpen(conversationDensity, {
+    hasInlineDiff: Boolean(inlineDiff),
+    isFileEdit,
+    isShellTool
+  })
   const open = useDisclosureOpen(disclosureId, defaultOpen)
   const canDismiss = !isPending && !embedded
   // Only animate entries that mount while their message is actively
@@ -530,30 +540,29 @@ function ToolEntry({ part }: ToolEntryProps) {
                 </div>
               ) : null
             ) : view.stdout || view.stderr ? (
-              // Stdout + stderr split: render both as labeled blocks. stderr
-              // is intentionally NOT painted destructive — many CLIs log
-              // informational output there.
+              // Stdout + stderr: nested collapsibles so a completed row stays compact
+              // until the user explicitly opens output (P2).
               <div className="max-w-full text-xs leading-relaxed text-(--ui-text-secondary)">
                 {view.detailLabel && <p className={TOOL_SECTION_LABEL_CLASS}>{view.detailLabel}</p>}
                 {view.stdout && (
-                  <div className="space-y-0.5">
-                    {view.stderr && <p className={TOOL_SECTION_LABEL_CLASS}>stdout</p>}
-                    <pre className={cn(TOOL_SECTION_PRE_CLASS, 'whitespace-pre-wrap wrap-anywhere')}>
+                  <details className="space-y-0.5">
+                    <summary className={cn(TOOL_SECTION_LABEL_CLASS, 'mb-0 cursor-pointer')}>stdout</summary>
+                    <pre className={cn(TOOL_SECTION_PRE_CLASS, 'mt-1 whitespace-pre-wrap wrap-anywhere')}>
                       {view.rendersAnsi ? (
                         <AnsiText text={clampForDisplay(view.stdout)} />
                       ) : (
                         clampForDisplay(view.stdout)
                       )}
                     </pre>
-                  </div>
+                  </details>
                 )}
                 {view.stderr && (
-                  <div className={cn('space-y-0.5', view.stdout && 'mt-1.5')}>
-                    <p className={TOOL_SECTION_LABEL_CLASS}>stderr</p>
+                  <details className={cn('space-y-0.5', view.stdout && 'mt-1.5')}>
+                    <summary className={cn(TOOL_SECTION_LABEL_CLASS, 'mb-0 cursor-pointer')}>stderr</summary>
                     <pre
                       className={cn(
                         TOOL_SECTION_PRE_CLASS,
-                        'whitespace-pre-wrap wrap-anywhere text-(--ui-text-tertiary)'
+                        'mt-1 whitespace-pre-wrap wrap-anywhere text-(--ui-text-tertiary)'
                       )}
                     >
                       {view.rendersAnsi ? (
@@ -562,7 +571,7 @@ function ToolEntry({ part }: ToolEntryProps) {
                         clampForDisplay(view.stderr)
                       )}
                     </pre>
-                  </div>
+                  </details>
                 )}
               </div>
             ) : (
@@ -607,10 +616,8 @@ function ToolEntry({ part }: ToolEntryProps) {
   )
 }
 
-// A back-to-back run of this many tool calls collapses into the bounded,
-// auto-scrolling window; fewer than this stays a plain inline stack.
-const TOOL_GROUP_SCROLL_THRESHOLD = 3
-
+// A back-to-back run of exploration tools collapses into "Explored N tools"
+// (always collapsed). Two or more action tools use the "Worked" work-group.
 // Pin-to-bottom + top-fade for the bounded tool window. Pins the newest row on
 // growth (a call lands or a row expands) unless the user scrolled up, and fades
 // the top edge once anything sits above it. Mirrors ThinkingDisclosure's live
@@ -620,8 +627,19 @@ function useToolWindow(enabled: boolean) {
   const contentRef = useRef<HTMLDivElement | null>(null)
   const stickRef = useRef(true)
   const [faded, setFaded] = useState(false)
+  const fadedRef = useRef(false)
+  const frameRef = useRef<number | null>(null)
 
-  const syncFade = useCallback(() => setFaded((scrollRef.current?.scrollTop ?? 0) > 4), [])
+  const syncFade = useCallback(() => {
+    const next = (scrollRef.current?.scrollTop ?? 0) > 4
+
+    if (fadedRef.current === next) {
+      return
+    }
+
+    fadedRef.current = next
+    setFaded(next)
+  }, [])
 
   const onScroll = useCallback(() => {
     const el = scrollRef.current
@@ -644,17 +662,39 @@ function useToolWindow(enabled: boolean) {
 
     const pin = () => {
       if (stickRef.current) {
-        el.scrollTop = el.scrollHeight
+        const target = el.scrollHeight - el.clientHeight
+
+        if (Math.abs(el.scrollTop - target) > 1) {
+          el.scrollTop = el.scrollHeight
+        }
       }
 
       syncFade()
     }
 
-    pin()
-    const observer = new ResizeObserver(pin)
+    const schedulePin = () => {
+      if (frameRef.current !== null) {
+        return
+      }
+
+      frameRef.current = requestAnimationFrame(() => {
+        frameRef.current = null
+        pin()
+      })
+    }
+
+    schedulePin()
+    const observer = new ResizeObserver(schedulePin)
     observer.observe(content)
 
-    return () => observer.disconnect()
+    return () => {
+      observer.disconnect()
+
+      if (frameRef.current !== null) {
+        cancelAnimationFrame(frameRef.current)
+        frameRef.current = null
+      }
+    }
   }, [enabled, syncFade])
 
   return { contentRef, faded, onScroll, scrollRef }
@@ -662,40 +702,91 @@ function useToolWindow(enabled: boolean) {
 
 /**
  * Flat, Cursor-style tool list. assistant-ui hands us a *range* of
- * consecutive tool-call parts, but how that range is sliced is unstable: a
- * live stream interleaves narration/reasoning between calls (many tiny
- * ranges), while the settled message reconstructs every tool_call back-to-back
- * (one big range). Rendering a "Tool actions · N steps" group off that range
- * therefore reshuffled the whole turn the instant it settled.
- *
- * So we still never *label* the group: each tool is a standalone row on the
- * tight `--tool-row-gap` rhythm. Once a run reaches `TOOL_GROUP_SCROLL_THRESHOLD`
- * rows it collapses into a fixed-height, auto-scrolling window so a long run
- * doesn't shove the reply off screen; shorter runs are byte-identical to before.
- * The DOM shape is the same either way — only classes flip — so a run that
- * crosses the threshold mid-stream never remounts a row. `ToolEmbedContext` is
- * false so every row owns its own chrome (timer / preview / copy / approval).
+ * consecutive tool-call parts. Exploration-only runs → "Explored N tools"
+ * (always collapsed). Action runs (2+) → "Worked" work-group; single action
+ * tools stay inline.
  */
 export const ToolGroupSlot: FC<PropsWithChildren<{ endIndex: number; startIndex: number }>> = ({
   children,
+  endIndex,
   startIndex
 }) => {
+  const { t } = useI18n()
   const messageId = useAuiState(s => s.message.id)
-  const messageRunning = useAuiState(selectMessageRunning)
-  const enterRef = useEnterAnimation(messageRunning, `tool-group:${messageId}:${startIndex}`)
+  const live = useAuiState(s => s.thread.isRunning && s.message.status?.type === 'running')
+  const groupKind = useAuiState(s =>
+    classifyToolGroup(toolNamesInPartRange(s.message.parts, startIndex, endIndex))
+  )
+  const groupPending = useAuiState(s =>
+    toolGroupHasPendingParts(s.message.parts, startIndex, endIndex, live)
+  )
+  const enterRef = useEnterAnimation(groupPending && groupKind === 'worked', `tool-group:${messageId}:${startIndex}`)
+  const childCount = Children.count(children)
+  const grouped = groupKind !== 'inline'
+  const [userOpen, setUserOpen] = useState<boolean | null>(null)
+  const timerKey = `tool-group:${messageId}:${startIndex}`
+  const isExplored = groupKind === 'explored'
+  const defaultOpen = isExplored ? false : groupPending
+  const open = userOpen ?? defaultOpen
+  const bounded = grouped && open && groupKind === 'worked'
+  const elapsed = useElapsedSeconds(groupPending && grouped && groupKind === 'worked', timerKey)
+  const { contentRef, faded, onScroll, scrollRef } = useToolWindow(bounded && groupPending)
+  const headerTitle =
+    groupKind === 'explored'
+      ? t.assistant.tool.exploredTools(childCount)
+      : groupPending
+        ? t.assistant.tool.stepGroup(childCount)
+        : t.assistant.tool.workedFor(formatElapsed(elapsed))
+  const toggleDefault = isExplored ? false : groupPending
 
-  const bounded = Children.count(children) >= TOOL_GROUP_SCROLL_THRESHOLD
-  const { contentRef, faded, onScroll, scrollRef } = useToolWindow(bounded)
+  if (!grouped) {
+    return (
+      <ToolEmbedContext.Provider value={false}>
+        <div className="min-w-0 max-w-full overflow-hidden" data-slot="tool-block" data-tool-group="" ref={enterRef}>
+          <div className="grid min-w-0 max-w-full gap-(--tool-row-gap)">{children}</div>
+        </div>
+      </ToolEmbedContext.Provider>
+    )
+  }
 
   return (
     <ToolEmbedContext.Provider value={false}>
-      <div className="min-w-0 max-w-full overflow-hidden" data-slot="tool-block" data-tool-group="" ref={enterRef}>
+      <div
+        className="min-w-0 max-w-full overflow-hidden"
+        data-slot="tool-block"
+        data-tool-group=""
+        data-tool-group-kind={groupKind}
+        ref={enterRef}
+      >
+        <DisclosureRow onToggle={() => setUserOpen(current => !(current ?? toggleDefault))} open={open}>
+          <span className="flex min-w-0 items-baseline gap-1.5">
+            <span
+              className={cn(
+                TOOL_HEADER_TITLE_CLASS,
+                groupPending && groupKind === 'worked' && 'shimmer text-foreground/55',
+                groupPending && isExplored && 'shimmer text-foreground/55',
+                !groupPending && !open && groupKind === 'worked' &&
+                  'text-[length:var(--conversation-caption-font-size)] font-normal'
+              )}
+            >
+              {headerTitle}
+            </span>
+            {groupPending && groupKind === 'worked' && (
+              <ActivityTimerText
+                className="text-[length:var(--conversation-caption-font-size)] tabular-nums text-(--ui-text-tertiary)"
+                seconds={elapsed}
+              />
+            )}
+          </span>
+        </DisclosureRow>
         <div
           className={cn(
+            'mt-0.5',
+            !open && 'hidden',
             bounded && 'tool-group-scroll max-h-(--tool-group-scroll-max-h) overflow-y-auto',
-            bounded && faded && 'tool-group-scroll--faded'
+            bounded && faded && groupPending && 'tool-group-scroll--faded'
           )}
-          onScroll={bounded ? onScroll : undefined}
+          onScroll={bounded && groupPending ? onScroll : undefined}
           ref={scrollRef}
         >
           <div className="grid min-w-0 max-w-full gap-(--tool-row-gap)" ref={contentRef}>

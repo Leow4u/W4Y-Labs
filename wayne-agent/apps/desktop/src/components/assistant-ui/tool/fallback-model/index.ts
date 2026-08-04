@@ -7,13 +7,21 @@ import { extractToolErrorMessage, formatToolResultSummary } from '@/lib/tool-res
 import {
   compactPreview,
   contextValue,
-  formatDurationSeconds,
   isRecord,
-  numberValue,
   parseMaybeObject,
+  stripToolActionPrefix,
+  formatDurationSeconds,
+  numberValue,
   prettyJson,
   unwrapToolPayload
 } from './format'
+import {
+  isMcpToolName,
+  mcpConnectorAppLabel,
+  mcpTitleVerb,
+  mcpToolCategory,
+  mcpToolMeta
+} from './mcp-labels'
 import { findFirstUrl, hostnameOf, isPreviewableTarget, looksLikePath, looksLikeUrl } from './targets'
 import type {
   CountMetric,
@@ -30,6 +38,7 @@ import type {
 
 export * from './format'
 export * from './targets'
+export * from './tool-group-kind'
 export * from './types'
 
 const FILE_EDIT_TOOL_NAMES = new Set(['edit_file', 'patch', 'write_file'])
@@ -210,6 +219,21 @@ const BACKTICK_NOISE_RE = /`{3,}/g
 export const selectMessageRunning = (state: MessageRunningStateSlice) =>
   state.thread.isRunning && state.message.status?.type === 'running'
 
+export function toolGroupHasPendingParts(
+  parts: ReadonlyArray<{ type?: string; result?: unknown }>,
+  startIndex: number,
+  endIndex: number,
+  live: boolean
+): boolean {
+  if (!live) {
+    return false
+  }
+
+  return parts
+    .slice(Math.max(0, startIndex), endIndex + 1)
+    .some(part => part?.type === 'tool-call' && part.result === undefined)
+}
+
 function titleForTool(name: string): string {
   const normalized = name.replace(/^browser_/, '').replace(/^web_/, '')
 
@@ -232,6 +256,12 @@ function toolMeta(name: string): ToolMeta {
       icon: meta.icon,
       tone: meta.tone
     }
+  }
+
+  const mcpMeta = mcpToolMeta(name)
+
+  if (mcpMeta) {
+    return mcpMeta
   }
 
   const action = titleForTool(name)
@@ -1225,6 +1255,20 @@ interface ToolTitleParts {
   title: string
 }
 
+function shellCommandForTitle(args: Record<string, unknown>): string {
+  const raw =
+    firstStringField(args, ['command', 'code']) ||
+    firstStringField(args, ['preview']) ||
+    firstStringField(args, ['context']) ||
+    contextValue(args)
+
+  if (!raw) {
+    return ''
+  }
+
+  return stripToolActionPrefix(summarizeShellCommand(raw))
+}
+
 function titlePartsFromAction(title: string, action?: string): ToolTitleParts {
   if (!action) {
     return { title }
@@ -1256,6 +1300,21 @@ function dynamicTitle(
 
   const titledAction = (action: string, title: string): ToolTitleParts =>
     titlePartsFromAction(title, part.result === undefined ? action : undefined)
+
+  if (isMcpToolName(part.toolName)) {
+    const meta = mcpToolMeta(part.toolName)
+    const app = mcpConnectorAppLabel(args, part.toolName)
+
+    if (meta && app) {
+      const action = part.result === undefined ? meta.pendingAction : meta.done.split(' ')[0]!
+
+      return titledAction(action, translateNow('assistant.tool.titleTemplates.actionTarget', action, app))
+    }
+
+    if (meta) {
+      return { title: part.result === undefined ? meta.pending : meta.done }
+    }
+  }
 
   if (part.toolName === 'web_extract') {
     const url = findFirstUrl(args, result)
@@ -1316,10 +1375,7 @@ function dynamicTitle(
   }
 
   if (part.toolName === 'terminal' || part.toolName === 'execute_code') {
-    const command =
-      firstStringField(args, ['context', 'preview']) ||
-      firstStringField(args, ['command', 'code']) ||
-      contextValue(args)
+    const command = shellCommandForTitle(args)
 
     if (command) {
       const action =
@@ -1332,7 +1388,7 @@ function dynamicTitle(
         translateNow(
           'assistant.tool.titleTemplates.actionCommand',
           action,
-          compactPreview(summarizeShellCommand(command), 160)
+          compactPreview(command, 160)
         )
       )
     }

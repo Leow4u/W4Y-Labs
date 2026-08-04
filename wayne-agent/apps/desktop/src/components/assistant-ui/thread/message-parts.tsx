@@ -4,6 +4,7 @@ import { type ComponentProps, type FC, type ReactNode, useEffect, useRef, useSta
 
 import { ClarifyTool } from '@/components/assistant-ui/clarify-tool'
 import { MarkdownText, MarkdownTextContent } from '@/components/assistant-ui/markdown-text'
+import { useTurnLayoutMode } from '@/components/assistant-ui/thread/turn-context'
 import { ToolFallback, ToolGroupSlot } from '@/components/assistant-ui/tool/fallback'
 import { useElapsedSeconds } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
@@ -197,6 +198,23 @@ const ReasoningTextPart: FC<{ text: string; status?: { type: string } }> = ({ te
   )
 }
 
+/** Ask-mode turns use a tighter reading column (driven by TurnRenderer). */
+const AskModeTextPart: FC = () => {
+  const turnMode = useTurnLayoutMode()
+  const messageRunning = useAuiState(s => s.message.status?.type === 'running')
+  const askMode = !messageRunning && turnMode === 'ask'
+
+  if (!askMode) {
+    return <MarkdownText />
+  }
+
+  return (
+    <div className="mx-auto w-full max-w-[42rem]" data-slot="ask-mode-text">
+      <MarkdownText />
+    </div>
+  )
+}
+
 // Module-level constant so the `components` prop on `MessagePrimitive.Parts`
 // has a stable identity across renders. Without this every AssistantMessage
 // render would create a fresh `components` object, invalidating the memo on
@@ -207,7 +225,7 @@ const ReasoningTextPart: FC<{ text: string; status?: { type: string } }> = ({ te
 export const MESSAGE_PARTS_COMPONENTS = {
   Reasoning: ReasoningTextPart,
   ReasoningGroup: ReasoningAccordionGroup,
-  Text: MarkdownText,
+  Text: AskModeTextPart,
   ToolGroup: ToolGroupSlot,
   tools: { Fallback: ChainToolFallback }
 } as const

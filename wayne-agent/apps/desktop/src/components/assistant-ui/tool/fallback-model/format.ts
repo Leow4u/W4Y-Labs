@@ -42,6 +42,14 @@ export function contextValue(value: unknown): string {
   return typeof value === 'string' ? value : ''
 }
 
+/** Strip UI-inherited verb prefixes so titles don't read "Ran Running …". */
+export function stripToolActionPrefix(command: string): string {
+  const trimmed = command.trim()
+  const match = trimmed.match(/^(?:Running|Ran|Scripting|Reading|Read|Searched|Searching)\s+(.*)$/i)
+
+  return match ? match[1]!.trim() : trimmed
+}
+
 // Each tool result is server-capped (~100KB), but a turn over a big directory
 // stacks many rows; painting/serializing them all floods the renderer (freeze,
 // then OOM). Clamp every inline-painted payload to a bounded slice — the row's

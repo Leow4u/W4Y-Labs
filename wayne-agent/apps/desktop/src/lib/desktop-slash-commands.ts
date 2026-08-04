@@ -172,6 +172,7 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
   { name: '/steer', description: 'Steer the current run after the next tool call', surface: exec() },
   { name: '/stop', description: 'Stop running background processes', surface: exec() },
   { name: '/tools', description: 'List or toggle tools available to the agent', surface: exec(), args: true },
+  { name: '/skills', description: 'List or manage skills', surface: exec(), args: true },
   { name: '/undo', description: 'Remove the last user/assistant exchange', surface: exec() },
   { name: '/usage', description: 'Show token usage for this session', surface: exec() },
   { name: '/version', description: 'Show Work4You version', surface: exec() },
@@ -218,7 +219,7 @@ const NO_DESKTOP_SURFACE: Record<DesktopUnavailableReason, readonly string[]> = 
     '/verbose'
   ],
   messaging: ['/approve', '/deny'],
-  settings: ['/skills', '/pets'],
+  settings: ['/pets'],
   advanced: ['/curator', '/fast', '/insights', '/kanban', '/reasoning', '/voice']
 }
 

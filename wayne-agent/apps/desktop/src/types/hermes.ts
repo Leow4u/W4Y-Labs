@@ -216,6 +216,7 @@ export interface HermesConfig {
     personality?: string
     skin?: string
     show_reasoning?: boolean
+    conversation_density?: string
   }
   terminal?: {
     cwd?: string

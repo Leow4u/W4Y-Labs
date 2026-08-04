@@ -97,8 +97,17 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
           .filter(Boolean)
           .join('\n')
 
+        const filePathRefs = present
+          .map(a => a.refText)
+          .filter((ref): ref is string => Boolean(ref?.startsWith('@file:')))
+
+        const attachHint =
+          filePathRefs.length > 0
+            ? `[Attached file path(s) — read with read_file before search_files: ${filePathRefs.join(', ')}]`
+            : ''
+
         return (
-          [contextRefs, terminalContextBlocks, visibleText].filter(Boolean).join('\n\n') ||
+          [attachHint, contextRefs, terminalContextBlocks, visibleText].filter(Boolean).join('\n\n') ||
           (present.some(a => a.kind === 'image') ? 'What do you see in this image?' : '')
         )
       }

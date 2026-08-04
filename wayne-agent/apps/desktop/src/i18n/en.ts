@@ -347,6 +347,14 @@ export const en: Translations = {
       showThinking: 'Show thinking',
       showThinkingDesc:
         "Show the model's chain-of-thought when it shares it. Does not affect the working status, timers, or tool progress.",
+      conversationDensity: 'Conversation density',
+      conversationDensityDesc:
+        'How much file-edit and terminal detail stays open in chat. Work-group summaries ("Worked for", "Explored") stay compact either way.',
+      conversationDensityOptions: {
+        compact: 'Compact',
+        balanced: 'Balanced',
+        detailed: 'Detailed'
+      },
       alerts: 'Alerts',
       manageAlerts: 'Manage all alerts',
       app: 'App',
@@ -3371,6 +3379,7 @@ export const en: Translations = {
           ? 'Will resume when the background task finishes'
           : `Will resume when ${count} background tasks finish`,
       thinking: 'Thinking',
+      planningNextMoves: 'Planning next moves',
       today: time => `Today, ${time}`,
       yesterday: time => `Yesterday, ${time}`,
       copy: 'Copy',
@@ -3397,7 +3406,9 @@ export const en: Translations = {
       goForward: 'Go forward',
       sendEdited: 'Send edited message',
       attachingFile: 'Attaching…',
-      turnModel: (model: string) => `via ${model}`
+      turnModel: (model: string) => `via ${model}`,
+      deliveryStrip: (files: number) => (files === 1 ? '1 file edited' : `${files} files edited`),
+      fileHeroes: 'Files changed'
     },
     approval: {
       gatewayDisconnected: 'Work4You gateway is not connected',
@@ -3447,6 +3458,50 @@ export const en: Translations = {
       statusError: 'Error',
       statusRecovered: 'Recovered',
       statusDone: 'Done',
+      stepGroup: (count: number) => (count === 1 ? 'Worked · 1 step' : `Worked · ${count} steps`),
+      workedFor: (duration: string) => `Worked for ${duration}`,
+      exploredTools: (count: number) => (count === 1 ? 'Explored 1 tool' : `Explored ${count} tools`),
+      mcp: {
+        connectDone: 'Connected',
+        connectPending: 'Connecting',
+        categories: {
+          connect: {
+            done: 'Connected app',
+            pending: 'Connecting app',
+            pendingAction: 'Connecting'
+          },
+          search: {
+            done: 'Found app tools',
+            pending: 'Finding app tools',
+            pendingAction: 'Finding'
+          },
+          execute: {
+            done: 'Ran app action',
+            pending: 'Running app action',
+            pendingAction: 'Running'
+          },
+          read: {
+            done: 'Read from app',
+            pending: 'Reading from app',
+            pendingAction: 'Reading'
+          },
+          write: {
+            done: 'Updated app',
+            pending: 'Updating app',
+            pendingAction: 'Updating'
+          },
+          web: {
+            done: 'Used web connector',
+            pending: 'Using web connector',
+            pendingAction: 'Using'
+          },
+          generic: {
+            done: 'Used connector',
+            pending: 'Using connector',
+            pendingAction: 'Using'
+          }
+        }
+      },
       actions: {
         read: 'Read',
         reading: 'Reading',
