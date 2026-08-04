@@ -29,7 +29,7 @@ import { requestModelOptions } from '@/lib/model-options'
 import { modelLabel, prepareW4yPickerProviders } from '@/lib/w4y-featured-models'
 import { $cronJobs } from '@/store/cron'
 import { pickProjectFolder } from '@/store/projects'
-import { notifyError } from '@/store/notifications'
+import { notify, notifyError } from '@/store/notifications'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import { MESSAGING_ROUTE, SKILLS_ROUTE } from '../routes'
@@ -64,32 +64,29 @@ import {
 import { ToolsPanel } from './tools-panel'
 import { TriggersPanel } from './triggers-panel'
 import { jobHasInferenceDrift, parseInferenceDrift, type InferenceDriftDetails } from './inference-drift'
+import {
+  DEFAULT_SCHEDULE,
+  editorSnapshotFromJob,
+  editorSnapshotsEqual,
+  emptyEditorSnapshot,
+  exportAutomationDocument,
+  normalizeEditorValues,
+  type EditorValues
+} from './editor-snapshot'
 
 const WORKDIR_RECENTS_KEY = 'w4y.automations.workdir.recents'
 const DEFAULT_MODEL = '__default__'
-const DEFAULT_SCHEDULE = '0 9 * * *'
+
+export type { EditorValues }
 
 export type EditorMode = { mode: 'create' } | { job: CronJob; mode: 'edit' }
-
-export interface EditorValues {
-  composioTriggers: CronComposioTrigger[]
-  deliver: string
-  enabledToolsets: string[]
-  model: string
-  name: string
-  prompt: string
-  /** All schedule trigger exprs; index 0 is the primary cron job. */
-  schedules: ScheduleTriggerRow[]
-  skills: string[]
-  webhooks: WebhookTriggerRow[]
-  workdir: string
-}
 
 interface AutomationEditorProps {
   busy?: boolean
   editor: EditorMode
   onBack: () => void
   onDelete?: () => void
+  onDuplicate?: () => void
   onOpenSession?: (sessionId: string, run?: SessionInfo) => void
   onPauseResume?: () => void
   onSave: (values: EditorValues) => Promise<CronJob | void>
@@ -117,6 +114,7 @@ export function AutomationEditor({
   editor,
   onBack,
   onDelete,
+  onDuplicate,
   onOpenSession,
   onPauseResume,
   onSave,
@@ -313,6 +311,59 @@ export function AutomationEditor({
   const title = name.trim() || (job ? jobTitle(job) : c.createTitle)
   const folderLabel = workdir ? workdir.split(/[/\\]/).filter(Boolean).pop() : c.noFolder
 
+  const baselineSnapshot = useMemo(
+    () => (job ? editorSnapshotFromJob(job) : emptyEditorSnapshot()),
+    [job]
+  )
+
+  const currentValues = useMemo(
+    (): EditorValues => ({
+      composioTriggers,
+      deliver,
+      enabledToolsets,
+      model,
+      name,
+      prompt,
+      schedules,
+      skills,
+      webhooks,
+      workdir
+    }),
+    [
+      composioTriggers,
+      deliver,
+      enabledToolsets,
+      model,
+      name,
+      prompt,
+      schedules,
+      skills,
+      webhooks,
+      workdir
+    ]
+  )
+
+  const currentSnapshot = useMemo(() => normalizeEditorValues(currentValues), [currentValues])
+  const isDirty = !editorSnapshotsEqual(baselineSnapshot, currentSnapshot)
+  const canSave = isDirty && !saving && !busy && !driftResolving
+
+  function downloadExport() {
+    if (!job) {
+      return
+    }
+
+    const slug = (name.trim() || job.id).replace(/[^\w.-]+/g, '-').slice(0, 48)
+    const doc = exportAutomationDocument(job, currentValues)
+    const blob = new Blob([`${JSON.stringify(doc, null, 2)}\n`], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+    anchor.href = url
+    anchor.download = `${slug || 'automation'}.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+    notify({ kind: 'success', title: c.exportedAutomation, message: anchor.download })
+  }
+
   async function pickWorkdir() {
     try {
       const dir = await pickProjectFolder({ title: c.chooseFolder })
@@ -411,8 +462,8 @@ export function AutomationEditor({
 
         <div className="flex shrink-0 items-center gap-0.5">
           <Button
-            className="text-foreground/90 hover:text-foreground"
-            disabled={saving}
+            className="text-foreground/90 hover:text-foreground disabled:opacity-40"
+            disabled={!canSave}
             onClick={() => void handleSave()}
             size="sm"
             type="button"
@@ -431,7 +482,7 @@ export function AutomationEditor({
           >
             <Codicon name="play" size="0.9rem" />
           </Button>
-          {isEdit && onDelete ? (
+          {isEdit && job ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
@@ -444,10 +495,23 @@ export function AutomationEditor({
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={onDelete} variant="destructive">
-                  <Codicon name="trash" size="0.85rem" />
-                  {t.common.delete}
+                {onDuplicate ? (
+                  <DropdownMenuItem onSelect={onDuplicate}>
+                    <Codicon name="copy" size="0.85rem" />
+                    {c.duplicateAutomation}
+                  </DropdownMenuItem>
+                ) : null}
+                <DropdownMenuItem onSelect={downloadExport}>
+                  <Codicon name="export" size="0.85rem" />
+                  {c.exportAutomation}
                 </DropdownMenuItem>
+                {onDelete ? <DropdownMenuSeparator /> : null}
+                {onDelete ? (
+                  <DropdownMenuItem onSelect={onDelete} variant="destructive">
+                    <Codicon name="trash" size="0.85rem" />
+                    {t.common.delete}
+                  </DropdownMenuItem>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           ) : null}
@@ -456,7 +520,8 @@ export function AutomationEditor({
 
       <header className="mb-5 space-y-3">
         <Input
-          className="h-auto border-0 bg-transparent px-0 text-[1.75rem] font-semibold tracking-tight shadow-none focus-visible:ring-0"
+          aria-label={c.nameLabel}
+          className="h-auto min-h-[2.25rem] border-0 bg-transparent px-0 text-[1.75rem] font-semibold tracking-tight shadow-none placeholder:text-foreground/35 focus-visible:ring-0"
           onChange={event => setName(event.target.value)}
           placeholder={c.namePlaceholder}
           value={name}

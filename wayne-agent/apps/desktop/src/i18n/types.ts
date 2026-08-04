@@ -1610,6 +1610,15 @@ export interface Translations {
     driftKeepOriginal: string
     driftResolved: string
     failedDriftResolve: string
+    duplicateAutomation: string
+    duplicateName: (name: string) => string
+    duplicatedAutomation: string
+    failedDuplicate: string
+    exportAutomation: string
+    exportedAutomation: string
+    toolsSummaryDefault: string
+    toolsSummarySkills: (count: number) => string
+    toolsSummaryToolsets: (count: number) => string
     editTitle: string
     createTitle: string
     editDesc: string

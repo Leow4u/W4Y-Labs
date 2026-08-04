@@ -44,12 +44,15 @@ import {
   allSiblingJobIds,
   clearScheduleSiblings,
   getScheduleSiblings,
+  newTriggerId,
   setScheduleSiblings
 } from './automation-triggers'
 import { deliveryLabelForId, mergeDeliveryTargets } from './delivery-targets'
 import { jobAuthorLabel } from './job-profile'
 import { AutomationEditor, type EditorMode, type EditorValues } from './automation-editor'
+import { DEFAULT_SCHEDULE } from './editor-snapshot'
 import { buildKeepOriginalInferenceUpdates } from './inference-drift'
+import { jobToolsSummary } from './job-tools-summary'
 import { jobState, jobTitle } from './job-state'
 import {
   computeRunStats,
@@ -63,8 +66,13 @@ import {
   jobDeliver,
   jobPrompt,
   jobScheduleExpr,
+  jobSkills,
+  jobEnabledToolsets,
+  jobWorkdir,
+  jobModel,
   parseJobTimestamp,
-  prettyJobSchedule
+  prettyJobSchedule,
+  scheduleOptionForExpr
 } from './schedule'
 
 const truncate = (value: string, max = 80): string => (value.length > max ? `${value.slice(0, max)}…` : value)
@@ -335,6 +343,69 @@ export function CronView({
     }
   }
 
+  async function handleDuplicate(source: CronJob) {
+    setBusyJobId(source.id)
+
+    try {
+      const primaryExpr = jobScheduleExpr(source) || DEFAULT_SCHEDULE
+      const siblingExprs = getScheduleSiblings(source.id).map(row => row.expr)
+      const copyName = c.duplicateName(jobTitle(source))
+
+      const created = await createCronJob({
+        prompt: jobPrompt(source),
+        schedule: primaryExpr,
+        name: copyName,
+        deliver: jobDeliver(source),
+        model: jobModel(source) || undefined,
+        workdir: jobWorkdir(source) || undefined,
+        skills: jobSkills(source),
+        enabled_toolsets: jobEnabledToolsets(source)
+      })
+
+      const wantWebhook = Boolean(source.webhook_route?.url)
+      const webhookRoute = await syncAutomationWebhook(created.id, wantWebhook)
+      const composio = Array.isArray(source.composio_triggers)
+        ? source.composio_triggers.filter(
+            row => row && typeof row.id === 'string' && typeof row.slug === 'string'
+          )
+        : []
+
+      const withMeta = await updateCronJob(created.id, {
+        composio_triggers: composio,
+        webhook_route: webhookRoute
+      })
+
+      const scheduleRows = [primaryExpr, ...siblingExprs].map(expr => ({
+        custom: scheduleOptionForExpr(expr).value === 'custom',
+        expr,
+        id: newTriggerId()
+      }))
+
+      await syncScheduleSiblings(withMeta, scheduleRows, {
+        deliver: jobDeliver(source),
+        enabledToolsets: jobEnabledToolsets(source),
+        model: jobModel(source) || undefined,
+        name: copyName,
+        prompt: jobPrompt(source),
+        skills: jobSkills(source),
+        workdir: jobWorkdir(source) || null
+      })
+
+      const refreshed = (await getCronJobs()).find(job => job.id === withMeta.id) ?? withMeta
+      updateCronJobs(rows => [...rows.filter(row => row.id !== refreshed.id), refreshed])
+      setEditor({ mode: 'edit', job: refreshed })
+      notify({
+        kind: 'success',
+        title: c.duplicatedAutomation,
+        message: truncate(jobTitle(refreshed), 60)
+      })
+    } catch (err) {
+      notifyError(err, c.failedDuplicate)
+    } finally {
+      setBusyJobId(null)
+    }
+  }
+
   async function handleConfirmDelete() {
     if (!pendingDelete) {
       return
@@ -597,6 +668,9 @@ export function CronView({
             onDelete={
               editor.mode === 'edit' ? () => setPendingDelete(editor.job) : undefined
             }
+            onDuplicate={
+              editor.mode === 'edit' ? () => void handleDuplicate(editor.job) : undefined
+            }
             onOpenSession={onOpenSession}
             onPauseResume={
               editor.mode === 'edit' ? () => void handlePauseResume(editor.job) : undefined
@@ -756,6 +830,12 @@ export function CronView({
                                   {scheduleLabel}
                                 </div>
                               ) : null}
+                              {deliver ? (
+                                <div className="mt-0.5 flex items-center gap-1 truncate text-[0.65rem] text-foreground/55">
+                                  <DeliveryIcon deliver={deliver} />
+                                  <span>{deliveryLabelForId(deliver, deliveryTargets, c)}</span>
+                                </div>
+                              ) : null}
                             </div>
                           </td>
                           <td className="hidden px-4 py-3.5 text-foreground/70 sm:table-cell">
@@ -782,11 +862,8 @@ export function CronView({
                             </span>
                           </td>
                           <td className="hidden px-4 py-3.5 lg:table-cell">
-                            <span className="inline-flex items-center gap-1.5 text-foreground/70">
-                              <DeliveryIcon deliver={deliver} />
-                              <span className="truncate">
-                                {deliveryLabelForId(deliver, deliveryTargets, c)}
-                              </span>
+                            <span className="truncate text-[0.75rem] text-foreground/70">
+                              {jobToolsSummary(job, c)}
                             </span>
                           </td>
                           <td className="px-2 py-3.5" onClick={event => event.stopPropagation()}>
@@ -808,6 +885,12 @@ export function CronView({
                                   icon: 'edit',
                                   label: c.edit,
                                   onSelect: () => openJob(job)
+                                },
+                                {
+                                  icon: 'copy',
+                                  label: c.duplicateAutomation,
+                                  onSelect: () => void handleDuplicate(job),
+                                  disabled: busyJobId === job.id
                                 },
                                 {
                                   icon: 'trash',
