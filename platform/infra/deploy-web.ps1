@@ -31,10 +31,12 @@ $repoDigest = (docker inspect --format '{{index .RepoDigests 0}}' $image)
 Set-Content -Path "$PSScriptRoot\last-web-image.txt" -Value $repoDigest -NoNewline
 
 Write-Host "== [3/3] deploy (pinado por digest) ==" -ForegroundColor Cyan
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
 gcloud secrets add-iam-policy-binding w4y-web-database-url `
     --member="serviceAccount:$script:RUNTIME_SA" `
-    --role='roles/secretmanager.secretAccessor' --condition=None *> $null
-
+    --role='roles/secretmanager.secretAccessor' --condition=None 2>&1 | Out-Null
+$ErrorActionPreference = $prevEap
 $deployArgs = @(
     'run', 'deploy', $WEB_SERVICE,
     "--image=$repoDigest",
