@@ -4899,6 +4899,12 @@ def resolve_vision_provider_client(
         #   4. Stop
         main_provider = _read_main_provider()
         main_model = _read_main_model()
+        # When step 1 skips the main provider because its chat model is
+        # text-only (or lives on a no-vision endpoint), step 2 must still
+        # try that provider's dedicated vision backend — e.g. OpenRouter
+        # main + Nemotron chat should fall back to OpenRouter +
+        # ``_OPENROUTER_MODEL``, not skip OpenRouter entirely (#31179).
+        main_provider_deferred_to_aggregator = False
         if main_provider and main_provider not in {"auto", ""}:
             vision_model = _PROVIDER_VISION_MODELS.get(main_provider, main_model)
             if main_provider == "nous":
@@ -4919,6 +4925,7 @@ def resolve_vision_provider_client(
                 # Platform (api.moonshot.ai). Skip the main provider and fall
                 # through to the aggregator chain instead of returning a
                 # client that will 404 on every vision request (#17076).
+                main_provider_deferred_to_aggregator = True
                 logger.debug(
                     "Vision auto-detect: skipping main provider %s (no "
                     "vision support) — falling through to aggregator chain",
@@ -4935,6 +4942,7 @@ def resolve_vision_provider_client(
                 # sibling _PROVIDERS_WITHOUT_VISION branch above, and avoids
                 # CodeQL py/clear-text-logging-sensitive-data heuristic false
                 # positives on multi-value interpolations.
+                main_provider_deferred_to_aggregator = True
                 logger.debug(
                     "Vision auto-detect: skipping main provider %s "
                     "(reports no vision capability) — falling through to "
@@ -4983,8 +4991,8 @@ def resolve_vision_provider_client(
         # Fall back through aggregators (uses their dedicated vision model,
         # not the user's main model) when main provider has no client.
         for candidate in _VISION_AUTO_PROVIDER_ORDER:
-            if candidate == main_provider:
-                continue  # already tried above
+            if candidate == main_provider and not main_provider_deferred_to_aggregator:
+                continue  # already tried above with the main chat model
             sync_client, default_model = _resolve_strict_vision_backend(candidate)
             if sync_client is not None:
                 return _finalize(candidate, sync_client, default_model)

@@ -191,6 +191,38 @@ model:
         # Bogus provider/model — capability lookup returns None → permissive.
         assert _main_model_supports_vision("nonexistent-provider", "nonexistent-model") is True
 
+    def test_openrouter_text_only_main_uses_strict_openrouter_backend(
+        self, isolated_home, monkeypatch
+    ):
+        """OpenRouter chat model without vision must still resolve vision via OR.
+
+        Work4You default: Nemotron (text-only) on OpenRouter for chat; image
+        attachments should route through OpenRouter's dedicated vision model,
+        not disappear because ``candidate == main_provider`` skips the retry.
+        """
+        _write_config(isolated_home, """
+model:
+  provider: openrouter
+  default: nvidia/nemotron-3-ultra-550b-a55b:free
+""")
+        monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-test")
+        _fresh_modules()
+
+        from agent.auxiliary_client import (
+            _OPENROUTER_MODEL,
+            resolve_vision_provider_client,
+        )
+        from tools.vision_tools import check_vision_requirements
+
+        provider, client, model = resolve_vision_provider_client(provider="auto")
+        assert client is not None, (
+            "OpenRouter main + text-only chat model must fall back to the "
+            "strict OpenRouter vision backend"
+        )
+        assert provider == "openrouter"
+        assert model == _OPENROUTER_MODEL
+        assert check_vision_requirements() is True
+
 
 # ---------------------------------------------------------------------------
 # Fix 3: check_vision_requirements + check_browser_vision_requirements parity
