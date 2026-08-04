@@ -539,6 +539,32 @@ class TestSubprocessCompatHelpers:
         assert argv[0] == "zzz-definitely-not-on-path-xyzzy"
         assert argv[1:] == ["--help"]
 
+    def test_resolve_npm_argv_uses_node_cli_on_windows(self, tmp_path, monkeypatch):
+        from work4you_cli._subprocess_compat import resolve_npm_argv
+
+        node_dir = tmp_path / "nodejs"
+        node_dir.mkdir()
+        node_exe = node_dir / "node.exe"
+        node_exe.write_text("")
+        npm_cli_dir = node_dir / "node_modules" / "npm" / "bin"
+        npm_cli_dir.mkdir(parents=True)
+        npm_cli = npm_cli_dir / "npm-cli.js"
+        npm_cli.write_text("// npm")
+
+        monkeypatch.setattr("work4you_cli._subprocess_compat.IS_WINDOWS", True)
+
+        def fake_find_node(command: str):
+            if command == "node":
+                return str(node_exe)
+            return None
+
+        monkeypatch.setattr(
+            "work4you_constants.find_node_executable",
+            fake_find_node,
+        )
+        argv = resolve_npm_argv(["install", "--silent"])
+        assert argv == [str(node_exe), str(npm_cli), "install", "--silent"]
+
     def test_windows_flags_zero_on_posix(self):
         from work4you_cli._subprocess_compat import (
             windows_detach_flags,

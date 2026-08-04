@@ -29,11 +29,13 @@ from __future__ import annotations
 
 import shutil
 import sys
+from pathlib import Path
 from typing import Sequence
 
 __all__ = [
     "IS_WINDOWS",
     "resolve_node_command",
+    "resolve_npm_argv",
     "windows_detach_flags",
     "windows_detach_flags_without_breakaway",
     "windows_hide_flags",
@@ -85,6 +87,37 @@ def resolve_node_command(name: str, argv: Sequence[str]) -> list[str]:
     if resolved:
         return [resolved, *argv]
     return [name, *argv]
+
+
+def resolve_npm_argv(args: Sequence[str]) -> list[str]:
+    """Build argv for ``npm`` that avoids spawning ``cmd.exe`` on Windows.
+
+    ``npm`` / ``npm.cmd`` are batch shims.  Even with ``CREATE_NO_WINDOW`` on
+    the parent ``Popen``/``run``, Windows routes ``.cmd`` through ``cmd.exe``,
+    which can open its own console (the user-visible "npm install" window).
+
+    When we can locate ``npm-cli.js`` beside the resolved ``node.exe``, invoke
+    ``node npm-cli.js …`` instead — a native executable with no cmd
+    intermediary.
+    """
+    if not IS_WINDOWS:
+        return resolve_node_command("npm", args)
+
+    try:
+        from work4you_constants import find_node_executable
+    except ImportError:
+        find_node_executable = None  # type: ignore[assignment,misc]
+
+    node = find_node_executable("node") if find_node_executable else shutil.which("node")
+    if node:
+        npm_cli = Path(node).resolve().parent / "node_modules" / "npm" / "bin" / "npm-cli.js"
+        if npm_cli.is_file():
+            return [node, str(npm_cli), *args]
+
+    npm = find_node_executable("npm") if find_node_executable else shutil.which("npm")
+    if npm:
+        return [npm, *args]
+    return resolve_node_command("npm", args)
 
 
 # -----------------------------------------------------------------------------

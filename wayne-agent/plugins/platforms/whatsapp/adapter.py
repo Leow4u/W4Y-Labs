@@ -535,20 +535,21 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                     _deps_fresh = False
             if not _deps_fresh:
                 print(f"[{self.name}] Installing WhatsApp bridge dependencies...")
-                # Resolve npm path so Windows uses npm.cmd from the
-                # Wayne-managed portable Node before falling back to PATH.
-                _npm_bin = find_node_executable("npm") or "npm"
                 try:
                     # Read timeout from environment variable, default to 300 seconds (5 minutes)
                     # to accommodate slower systems like Unraid NAS
                     npm_install_timeout = env_int("WHATSAPP_NPM_INSTALL_TIMEOUT", 300)
+                    from work4you_cli._subprocess_compat import (
+                        resolve_npm_argv,
+                        windows_hide_flags,
+                    )
+
+                    npm_argv = resolve_npm_argv(["install", "--silent"])
                     npm_kwargs: dict = {}
                     if _IS_WINDOWS:
-                        from work4you_cli._subprocess_compat import windows_hide_flags
-
                         npm_kwargs["creationflags"] = windows_hide_flags()
                     install_result = subprocess.run(
-                        [_npm_bin, "install", "--silent"],
+                        npm_argv,
                         cwd=str(bridge_dir),
                         capture_output=True,
                         text=True,
