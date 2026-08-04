@@ -4,7 +4,7 @@ import { BrandMark } from '@/components/brand-mark'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { ErrorIcon } from '@/components/ui/error-state'
-import { Loader } from '@/components/ui/loader'
+import { AppSpinner } from '@/components/ui/app-spinner'
 import { LogView } from '@/components/ui/log-view'
 import type {
   DesktopBootstrapEvent,
@@ -112,7 +112,7 @@ function StageRow({ descriptor, result, now }: StageRowProps) {
   const icon = useMemo(() => {
     switch (state) {
       case 'running':
-        return <Loader className="size-6" type="fourier-flow" />
+        return <AppSpinner className="size-5" />
 
       case 'succeeded':
 
@@ -446,7 +446,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
 
           {totalCount === 0 && state.active && (
             <div className="mb-4 flex items-center gap-2.5 text-sm text-muted-foreground">
-              <Loader className="size-5" type="fourier-flow" />
+              <AppSpinner className="size-4" />
               <span>{copy.fetchingManifest}</span>
             </div>
           )}
@@ -520,7 +520,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
                 size="sm"
                 variant="ghost"
               >
-                {cancelling ? <Loader className="size-4" type="fourier-flow" /> : null}
+                {cancelling ? <AppSpinner className="size-3.5" /> : null}
                 {cancelling ? copy.cancelling : copy.cancelInstall}
               </Button>
             </div>
