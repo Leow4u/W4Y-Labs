@@ -151,7 +151,7 @@ export function AutomationPromptField({
     <div className="relative flex min-h-0 flex-1 flex-col">
       <Textarea
         className={cn(
-          'min-h-40 flex-1 resize-none border-0 bg-transparent px-3 py-3 pb-12 shadow-none placeholder:text-foreground/45 focus-visible:ring-0',
+          'min-h-36 flex-1 resize-none border-0 bg-transparent px-3 py-3 pb-12 text-foreground shadow-none placeholder:text-foreground/55 focus-visible:ring-0',
           className
         )}
         onChange={event => {

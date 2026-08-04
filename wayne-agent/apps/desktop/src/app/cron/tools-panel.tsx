@@ -21,6 +21,12 @@ import { ManageMemoryDialog } from '@/app/settings/memory/manage-dialog'
 import { cn } from '@/lib/utils'
 
 import {
+  cronCard,
+  cronCardRow,
+  cronSectionTitle,
+  cronSubtle
+} from './editor-ui'
+import {
   deliveryLabelForId,
   deliveryTargetLabel,
   mergeDeliveryTargets,
@@ -50,13 +56,16 @@ function ToolRow({
   title: string
 }) {
   return (
-    <div className="flex items-center gap-2 border-b border-(--ui-stroke-tertiary)/60 px-3 py-2.5 last:border-b-0">
-      <Codicon className="shrink-0 text-foreground/60" name={icon} size="0.9rem" />
+    <div className={cn('flex items-center gap-2', cronCardRow)}>
+      <Codicon className={cn('shrink-0', cronSubtle)} name={icon} size="0.9rem" />
       <div className="min-w-0 flex-1 truncate text-[0.8125rem] font-medium text-foreground">{title}</div>
       {children}
       {onRemove ? (
         <button
-          className="shrink-0 rounded p-1 text-foreground/55 hover:bg-(--chrome-action-hover) hover:text-foreground"
+          className={cn(
+            'shrink-0 rounded p-1 hover:bg-(--chrome-action-hover) hover:text-foreground',
+            cronSubtle
+          )}
           onClick={onRemove}
           type="button"
         >
@@ -224,9 +233,9 @@ export function ToolsPanel({
 
   return (
     <section className="space-y-2">
-      <h3 className="text-[0.8125rem] font-medium text-foreground/75">{c.toolsSection}</h3>
+      <h3 className={cronSectionTitle}>{c.toolsSection}</h3>
 
-      <div className="overflow-hidden rounded-lg border border-(--ui-stroke-tertiary)/60 bg-background">
+      <div className={cronCard}>
         <ToolRow icon="book" title={c.memoriesTool}>
           <Button onClick={() => setMemoryOpen(true)} size="sm" type="button" variant="outline">
             {c.manage}
@@ -277,7 +286,7 @@ export function ToolsPanel({
           <DropdownMenuTrigger asChild>
             <button
               className={cn(
-                'flex w-full items-center gap-1.5 px-3 py-2.5 text-left text-[0.8125rem] text-foreground/75 transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
+                'flex w-full items-center gap-1.5 px-3 py-2.5 text-left text-[0.8125rem] font-medium text-foreground transition-colors hover:bg-(--chrome-action-hover)'
               )}
               type="button"
             >
@@ -303,7 +312,7 @@ export function ToolsPanel({
       </div>
 
       {onlyLocal && deliver === 'local' ? (
-        <p className="text-[0.65rem] text-foreground/55">{c.deliveryNoneConfigured}</p>
+        <p className={cn('text-xs', cronSubtle)}>{c.deliveryNoneConfigured}</p>
       ) : null}
 
       <ManageMemoryDialog onOpenChange={setMemoryOpen} open={memoryOpen} />

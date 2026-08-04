@@ -34,6 +34,12 @@ import {
   newTriggerId
 } from './automation-triggers'
 import {
+  cronCard,
+  cronCardRow,
+  cronSectionTitle,
+  cronSubtle
+} from './editor-ui'
+import {
   clockSelectOptions,
   cronClockParts,
   formatNextRunLabel,
@@ -261,8 +267,8 @@ export function TriggersPanel({
       <DropdownMenuTrigger asChild>
         <button
           className={cn(
-            'flex items-center gap-1.5 text-left text-[0.8rem] text-foreground/80 transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground',
-            centered ? 'justify-center rounded-md px-3 py-2.5' : 'w-full px-3 py-2.5'
+            'flex items-center gap-1.5 text-left text-[0.8125rem] font-medium text-foreground transition-colors hover:bg-(--chrome-action-hover)',
+            centered ? 'justify-center rounded-md px-3 py-2' : 'w-full px-3 py-2.5'
           )}
           type="button"
         >
@@ -352,11 +358,11 @@ export function TriggersPanel({
 
   return (
     <section className="space-y-2">
-      <h3 className="text-[0.8125rem] font-medium text-foreground/75">{c.triggersSection}</h3>
+      <h3 className={cronSectionTitle}>{c.triggersSection}</h3>
 
-      <div className="overflow-hidden rounded-lg border border-(--ui-stroke-tertiary)/60 bg-background">
+      <div className={cronCard}>
         {!hasAnyTrigger ? (
-          <div className="flex justify-center px-3 py-10">{addTriggerMenu(true)}</div>
+          addTriggerMenu(false)
         ) : (
           <>
             {schedules.map(row => {
@@ -378,10 +384,10 @@ export function TriggersPanel({
 
               return (
                 <div key={row.id}>
-                  <div className="flex items-center gap-2 border-b border-(--ui-stroke-tertiary)/60 px-3 py-2.5">
-                    <Codicon className="shrink-0 text-foreground/65" name="watch" size="0.9rem" />
+                  <div className={cn('flex items-center gap-2', cronCardRow)}>
+                    <Codicon className={cn('shrink-0', cronSubtle)} name="watch" size="0.9rem" />
                     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-[0.8rem] text-foreground">{label}</span>
+                      <span className="text-[0.8125rem] font-medium text-foreground">{label}</span>
                       {showTimeSelect && clock ? (
                         <Select
                           onValueChange={value => {
@@ -406,14 +412,17 @@ export function TriggersPanel({
                         </Select>
                       ) : null}
                       {timezone ? (
-                        <span className="text-[0.7rem] text-foreground/65">{timezone}</span>
+                        <span className={cn('text-xs', cronSubtle)}>{timezone}</span>
                       ) : null}
                     </div>
                     {nextRunLabel ? (
-                      <span className="shrink-0 text-[0.7rem] text-foreground/65">{nextRunLabel}</span>
+                      <span className={cn('shrink-0 text-xs', cronSubtle)}>{nextRunLabel}</span>
                     ) : null}
                     <button
-                      className="shrink-0 rounded p-1 text-foreground/65 hover:bg-(--chrome-action-hover) hover:text-foreground"
+                      className={cn(
+                        'shrink-0 rounded p-1 hover:bg-(--chrome-action-hover) hover:text-foreground',
+                        cronSubtle
+                      )}
                       onClick={() => removeSchedule(row.id)}
                       type="button"
                     >

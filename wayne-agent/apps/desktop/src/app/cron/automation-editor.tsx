@@ -64,6 +64,7 @@ import {
 import { ToolsPanel } from './tools-panel'
 import { TriggersPanel } from './triggers-panel'
 import { jobHasInferenceDrift, parseInferenceDrift, type InferenceDriftDetails } from './inference-drift'
+import { cronCard, cronSectionTitle, cronSubtle } from './editor-ui'
 import {
   DEFAULT_SCHEDULE,
   editorSnapshotFromJob,
@@ -479,17 +480,17 @@ export function AutomationEditor({
   return (
     <div className="mx-auto max-w-3xl px-8 pb-16 pt-[calc(var(--titlebar-height)+1rem)]">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-        <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-[0.75rem] text-foreground/65">
-          <button className="hover:text-foreground" onClick={onBack} type="button">
+        <nav className={cn('flex min-w-0 flex-wrap items-center gap-1.5 text-[0.8125rem]', cronSubtle)}>
+          <button className="font-medium text-foreground hover:underline" onClick={onBack} type="button">
             {c.title}
           </button>
-          <Codicon className="text-foreground/45" name="chevron-right" size="0.7rem" />
-          <span className="truncate text-foreground/85">{title}</span>
+          <Codicon className="text-foreground/70" name="chevron-right" size="0.7rem" />
+          <span className="truncate font-medium text-foreground">{title}</span>
         </nav>
 
         <div className="flex shrink-0 items-center gap-0.5">
           <Button
-            className="text-foreground/85 hover:text-foreground disabled:opacity-35"
+            className="font-medium text-foreground hover:text-foreground disabled:opacity-45"
             disabled={!canSave}
             onClick={() => void handleSave()}
             size="sm"
@@ -499,7 +500,7 @@ export function AutomationEditor({
             {saving ? t.common.saving : isEdit ? t.common.save : c.createAction}
           </Button>
           <Button
-            className="text-foreground/75 hover:text-foreground"
+            className="text-foreground hover:text-foreground"
             disabled={!isEdit || busy || !onTrigger}
             onClick={handleTrigger}
             size="icon-sm"
@@ -548,13 +549,13 @@ export function AutomationEditor({
       <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Input
           aria-label={c.nameLabel}
-          className="h-auto min-h-0 w-auto min-w-[8rem] max-w-full flex-1 border-0 bg-transparent px-0 text-[1.625rem] font-semibold tracking-tight shadow-none placeholder:text-foreground/35 focus-visible:ring-0"
+          className="h-auto min-h-0 w-auto min-w-[8rem] max-w-full flex-1 border-0 bg-transparent px-0 text-[1.625rem] font-semibold tracking-tight text-foreground shadow-none placeholder:text-foreground/50 focus-visible:ring-0"
           onChange={event => setName(event.target.value)}
           placeholder={c.namePlaceholder}
           value={name}
         />
 
-        <label className="inline-flex shrink-0 items-center gap-2 text-xs text-foreground/65">
+        <label className="inline-flex shrink-0 items-center gap-2 text-sm font-medium text-foreground">
           <Switch
             checked={active}
             disabled={!isEdit || busy || !onPauseResume}
@@ -567,12 +568,12 @@ export function AutomationEditor({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
-              className="inline-flex max-w-[14rem] shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-foreground/65 transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground"
+              className="inline-flex max-w-[14rem] shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-sm font-medium text-foreground transition-colors hover:bg-(--chrome-action-hover)"
               type="button"
             >
               <Codicon name="folder" size="0.85rem" />
               <span className="truncate">{folderLabel}</span>
-              <Codicon className="text-foreground/45" name="chevron-down" size="0.7rem" />
+              <Codicon className="text-foreground/75" name="chevron-down" size="0.7rem" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-64">
@@ -606,7 +607,7 @@ export function AutomationEditor({
         </DropdownMenu>
 
         {authorLabel ? (
-          <span className="shrink-0 text-xs text-foreground/55">{c.byAuthor(authorLabel)}</span>
+          <span className={cn('shrink-0 text-sm', cronSubtle)}>{c.byAuthor(authorLabel)}</span>
         ) : null}
       </div>
 
@@ -633,7 +634,7 @@ export function AutomationEditor({
         )
       ) : null}
 
-      <div className="mb-7 flex gap-1 border-b border-(--ui-stroke-tertiary)/60">
+      <div className="mb-6 flex gap-1 border-b border-(--ui-stroke-secondary)">
         {(
           [
             { id: 'settings' as const, label: c.tabSettings },
@@ -642,8 +643,8 @@ export function AutomationEditor({
         ).map(item => (
           <button
             className={cn(
-              'relative px-3 py-2 text-[0.8125rem] font-medium transition-colors',
-              tab === item.id ? 'text-foreground' : 'text-foreground/60 hover:text-foreground'
+              'relative px-3 py-2 text-sm font-medium transition-colors',
+              tab === item.id ? 'text-foreground' : cn(cronSubtle, 'hover:text-foreground')
             )}
             key={item.id}
             onClick={() => setTab(item.id)}
@@ -658,7 +659,7 @@ export function AutomationEditor({
       </div>
 
       {tab === 'settings' ? (
-        <div className="space-y-7">
+        <div className="space-y-5">
           <TriggersPanel
             composioTriggers={composioTriggers}
             job={job}
@@ -674,8 +675,8 @@ export function AutomationEditor({
           />
 
           <section className="space-y-2">
-            <h3 className="text-[0.8125rem] font-medium text-foreground/75">{c.instructionsSection}</h3>
-            <div className="relative flex min-h-52 flex-col overflow-hidden rounded-lg border border-(--ui-stroke-tertiary)/60 bg-background">
+            <h3 className={cronSectionTitle}>{c.instructionsSection}</h3>
+            <div className={cn('relative flex min-h-44 flex-col', cronCard)}>
               <AutomationPromptField
                 onChange={setPrompt}
                 placeholder={c.promptPlaceholder}
@@ -684,7 +685,7 @@ export function AutomationEditor({
               />
               <div className="absolute bottom-2 left-2">
                 <Select onValueChange={setModel} value={model}>
-                  <SelectTrigger className="h-7 w-auto max-w-[15rem] gap-1 rounded-md border-(--ui-stroke-tertiary)/70 bg-background px-2 text-[0.75rem] text-foreground/80 shadow-sm">
+                  <SelectTrigger className="h-7 w-auto max-w-[15rem] gap-1 rounded-md border-(--ui-stroke-secondary) bg-background px-2 text-xs font-medium text-foreground shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
