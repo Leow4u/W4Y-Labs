@@ -605,8 +605,10 @@ export interface CronJob {
   skill?: null | string
   /** Restrict agent toolsets for this job (empty = profile default). */
   enabled_toolsets?: null | string[]
-  /** Composio toolkit slugs switched off for this job only. */
+  /** Composio toolkit slugs switched off for this job only (legacy opt-out). */
   connectors_disabled?: null | string[]
+  /** Explicit allowlist of Composio toolkit slugs for this job. */
+  connectors_enabled?: null | string[]
   /** Owning profile from gateway annotation (`_annotate_cron_job`). */
   profile?: null | string
   profile_name?: null | string
@@ -617,7 +619,8 @@ export interface CronJobCreatePayload {
   composio_triggers?: CronComposioTrigger[]
   deliver?: string
   enabled_toolsets?: string[]
-  connectors_disabled?: string[]
+  connectors_disabled?: null | string[]
+  connectors_enabled?: null | string[]
   model?: string
   name?: string
   prompt: string
@@ -647,6 +650,7 @@ export interface CronJobUpdates {
   enabled?: boolean
   enabled_toolsets?: null | string[]
   connectors_disabled?: null | string[]
+  connectors_enabled?: null | string[]
   last_error?: null | string
   model?: null | string
   name?: string

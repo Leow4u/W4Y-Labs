@@ -865,6 +865,7 @@ def create_job(
     script: Optional[str] = None,
     context_from: Optional[Union[str, List[str]]] = None,
     enabled_toolsets: Optional[List[str]] = None,
+    connectors_enabled: Optional[List[str]] = None,
     connectors_disabled: Optional[List[str]] = None,
     workdir: Optional[str] = None,
     no_agent: bool = False,
@@ -900,9 +901,11 @@ def create_job(
                           When set, only tools from these toolsets are loaded, reducing
                           token overhead. When omitted, all default tools are loaded.
                           Ignored when ``no_agent=True``.
-        connectors_disabled: Optional Composio toolkit slugs to switch OFF for this job
-                             only (e.g. ``["github"]``). Connected apps not listed here
-                             stay available. Omitted/empty = all connected apps on.
+        connectors_enabled: Optional explicit allowlist of Composio toolkit slugs for
+                             this job only. ``None`` (omitted) = legacy behaviour —
+                             all connected apps except ``connectors_disabled``.
+                             ``[]`` = no connector tools for this job.
+        connectors_disabled: Legacy opt-out list; ignored when ``connectors_enabled`` is set.
         workdir: Optional absolute path.  When set, the job runs as if launched
                 from that directory: AGENTS.md / CLAUDE.md / .cursorrules from
                 that directory are injected into the system prompt, and the
@@ -945,6 +948,13 @@ def create_job(
     normalized_script = normalized_script or None
     normalized_toolsets = [str(t).strip() for t in enabled_toolsets if str(t).strip()] if enabled_toolsets else None
     normalized_toolsets = normalized_toolsets or None
+    normalized_connectors_enabled = (
+        [str(s).strip().lower() for s in connectors_enabled if str(s).strip()]
+        if connectors_enabled is not None
+        else None
+    )
+    if normalized_connectors_enabled is not None and not normalized_connectors_enabled:
+        normalized_connectors_enabled = []
     normalized_connectors_disabled = (
         [str(s).strip().lower() for s in connectors_disabled if str(s).strip()]
         if connectors_disabled
@@ -1028,9 +1038,14 @@ def create_job(
         "deliver": deliver,
         "origin": origin,  # Tracks where job was created for "origin" delivery
         "enabled_toolsets": normalized_toolsets,
-        "connectors_disabled": normalized_connectors_disabled,
         "workdir": normalized_workdir,
     }
+    if normalized_connectors_enabled is not None:
+        job["connectors_enabled"] = normalized_connectors_enabled
+        job["connectors_disabled"] = None
+    elif normalized_connectors_disabled:
+        job["connectors_disabled"] = normalized_connectors_disabled
+
     # Only persist attach_to_session when explicitly set, so existing jobs and
     # the common case stay byte-identical (absent key => fall back to the
     # global cron.mirror_delivery config, default off).
@@ -1154,6 +1169,21 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
                     updated["connectors_disabled"] = slugs or None
                 else:
                     raise ValueError("connectors_disabled must be a list of toolkit slugs")
+
+            if "connectors_enabled" in updates:
+                raw_enabled = updates.get("connectors_enabled")
+                if raw_enabled is None:
+                    updated.pop("connectors_enabled", None)
+                elif isinstance(raw_enabled, (list, tuple)):
+                    slugs = [
+                        str(item).strip().lower()
+                        for item in raw_enabled
+                        if str(item).strip()
+                    ]
+                    updated["connectors_enabled"] = slugs
+                    updated["connectors_disabled"] = None
+                else:
+                    raise ValueError("connectors_enabled must be a list of toolkit slugs")
 
             if schedule_changed:
                 updated_schedule = updated["schedule"]

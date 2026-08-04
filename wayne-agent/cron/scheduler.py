@@ -2283,6 +2283,83 @@ def _guard_job_credential_exfil(job: dict) -> None:
         raise RuntimeError(f"Cron job '{job_id}' blocked for safety: {err}")
 
 
+def _active_composio_toolkit_slugs() -> frozenset[str]:
+    """ACTIVE Composio toolkit slugs for the global connector scope."""
+    import os
+    import re
+
+    import httpx
+
+    from work4you_cli.env_loader import load_wayne_dotenv
+    from work4you_constants import get_wayne_home
+
+    try:
+        load_wayne_dotenv(wayne_home=str(get_wayne_home()))
+    except Exception:
+        pass
+    raw = os.environ.get("COMPOSIO_API_KEY", "")
+    key = re.sub(r"[\s\u00a0\"']+", "", raw)
+    if not key:
+        return frozenset()
+
+    try:
+        resp = httpx.get(
+            "https://backend.composio.dev/api/v3/connected_accounts",
+            params={"user_ids": "global", "limit": 100},
+            headers={"x-api-key": key},
+            timeout=15.0,
+        )
+        if resp.status_code >= 400:
+            return frozenset()
+        data = resp.json() if resp.content else {}
+    except Exception:
+        logger.debug("Could not fetch Composio connected accounts for cron job", exc_info=True)
+        return frozenset()
+
+    slugs: set[str] = set()
+    for item in data.get("items") or []:
+        if str(item.get("status") or "").upper() != "ACTIVE":
+            continue
+        toolkit = item.get("toolkit") or {}
+        slug = (
+            toolkit.get("slug") if isinstance(toolkit, dict) else str(toolkit)
+        )
+        slug = str(slug or "").strip().lower()
+        if slug:
+            slugs.add(slug)
+    return frozenset(slugs)
+
+
+def _resolve_job_disabled_connectors(job: dict) -> Optional[List[str]]:
+    """Return connector slugs to disable for one cron run, or None to clear."""
+    if "connectors_enabled" in job:
+        raw_enabled = job.get("connectors_enabled")
+        enabled = (
+            {
+                str(item).strip().lower()
+                for item in raw_enabled
+                if isinstance(raw_enabled, (list, tuple)) and str(item).strip()
+            }
+            if isinstance(raw_enabled, (list, tuple))
+            else set()
+        )
+        active = _active_composio_toolkit_slugs()
+        if not active:
+            return None
+        disabled = sorted(active - enabled)
+        return disabled or None
+
+    raw_disabled = job.get("connectors_disabled")
+    if isinstance(raw_disabled, list) and raw_disabled:
+        slugs = [
+            str(item).strip().lower()
+            for item in raw_disabled
+            if str(item).strip()
+        ]
+        return slugs or None
+    return None
+
+
 def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     """
     Execute a single cron job.
@@ -2584,8 +2661,8 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
         )
 
         _approval_session_token = set_current_session_key(_cron_session_id)
-        _job_connectors_disabled = job.get("connectors_disabled")
-        if isinstance(_job_connectors_disabled, list) and _job_connectors_disabled:
+        _job_connectors_disabled = _resolve_job_disabled_connectors(job)
+        if _job_connectors_disabled:
             set_session_disabled_connectors(_cron_session_id, _job_connectors_disabled)
 
         if _job_workdir:

@@ -1479,7 +1479,10 @@ export const zhHant = defineLocale({
     searchJobConnectors: '搜尋連接器…',
     noJobConnectors: '尚無已連接的連接器',
     manageConnectorsLink: '管理連接器…',
-    jobConnectorsHint: '在此關閉僅影響此自動化。'
+    jobConnectorsHint: '僅在此新增的連接器可用於此自動化。',
+    jobConnectorsLegacyHint: '舊版自動化：在新增明確清單之前，所有已連線的應用均可用。',
+    jobConnectorAdded: '已新增',
+    browseConnectorsMarketplace: '瀏覽市集…',
   },
 
   connectors: {

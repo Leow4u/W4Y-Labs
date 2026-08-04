@@ -563,7 +563,11 @@ export const pt = defineLocale({
     searchJobConnectors: 'Procurar conectores…',
     noJobConnectors: 'Nenhum conector ligado',
     manageConnectorsLink: 'Gerir conectores…',
-    jobConnectorsHint: 'Desligado aqui só afecta esta automação.',
+    jobConnectorsHint: 'Só os conectores adicionados ficam disponíveis nesta automação.',
+    jobConnectorsLegacyHint:
+      'Automação antiga: todos os conectores ligados ficam disponíveis até adicionares uma lista explícita.',
+    jobConnectorAdded: 'Adicionado',
+    browseConnectorsMarketplace: 'Explorar marketplace…',
     tabSettings: 'Definições',
     tabHistory: 'Histórico',
     addTrigger: 'Adicionar gatilho',

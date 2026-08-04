@@ -1649,6 +1649,9 @@ export interface Translations {
     noJobConnectors: string
     manageConnectorsLink: string
     jobConnectorsHint: string
+    jobConnectorsLegacyHint: string
+    jobConnectorAdded: string
+    browseConnectorsMarketplace: string
     tabSettings: string
     tabHistory: string
     addTrigger: string

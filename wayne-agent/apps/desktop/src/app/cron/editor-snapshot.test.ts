@@ -20,7 +20,7 @@ describe('editor-snapshot', () => {
 
     const current = normalizeEditorValues({
       composioTriggers: [],
-      connectorsDisabled: [],
+      connectorsEnabled: [],
       deliver: 'local',
       enabledToolsets: [],
       model: '__default__',
@@ -39,7 +39,7 @@ describe('editor-snapshot', () => {
     const empty = emptyEditorSnapshot()
     const form = normalizeEditorValues({
       composioTriggers: [],
-      connectorsDisabled: [],
+      connectorsEnabled: [],
       deliver: 'local',
       enabledToolsets: [],
       model: '__default__',

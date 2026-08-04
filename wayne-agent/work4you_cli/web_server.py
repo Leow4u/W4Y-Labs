@@ -9804,6 +9804,7 @@ class CronJobCreate(BaseModel):
     script: Optional[str] = None
     context_from: Optional[Any] = None
     enabled_toolsets: Optional[List[str]] = None
+    connectors_enabled: Optional[List[str]] = None
     connectors_disabled: Optional[List[str]] = None
     workdir: Optional[str] = None
     no_agent: bool = False
@@ -9911,7 +9912,31 @@ def _normalize_dashboard_cron_updates(
         normalized["enabled_toolsets"] = _cron_string_list(normalized["enabled_toolsets"])
     if "connectors_disabled" in normalized:
         normalized["connectors_disabled"] = _cron_string_list(normalized["connectors_disabled"])
+    if "connectors_enabled" in normalized:
+        raw_enabled = normalized.get("connectors_enabled")
+        if raw_enabled is None:
+            normalized.pop("connectors_enabled", None)
+        elif isinstance(raw_enabled, (list, tuple)):
+            normalized["connectors_enabled"] = [
+                str(item).strip().lower()
+                for item in raw_enabled
+                if str(item).strip()
+            ]
+            normalized["connectors_disabled"] = None
+        else:
+            normalized["connectors_enabled"] = _cron_string_list(raw_enabled) or []
+            normalized["connectors_disabled"] = None
     return normalized
+
+
+def _cron_connectors_enabled_list(value: Any) -> Optional[List[str]]:
+    """Preserve explicit empty allowlists (``[]`` disables all connectors)."""
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        return [str(item).strip().lower() for item in value if str(item).strip()]
+    parsed = _cron_string_list(value)
+    return parsed if parsed is not None else []
 
 
 def _validate_dashboard_cron_context_from(
@@ -10124,6 +10149,7 @@ async def create_cron_job(body: CronJobCreate, profile: str = "default"):
             script=script,
             context_from=context_from,
             enabled_toolsets=_cron_string_list(body.enabled_toolsets),
+            connectors_enabled=_cron_connectors_enabled_list(body.connectors_enabled),
             connectors_disabled=_cron_string_list(body.connectors_disabled),
             workdir=_cron_optional_text(body.workdir),
             no_agent=no_agent,

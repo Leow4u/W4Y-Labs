@@ -1559,7 +1559,11 @@ export const ja = defineLocale({
     searchJobConnectors: 'コネクタを検索…',
     noJobConnectors: '接続済みコネクタがありません',
     manageConnectorsLink: 'コネクタを管理…',
-    jobConnectorsHint: 'ここでオフにしてもこの自動化にのみ適用されます。'
+    jobConnectorsHint: 'ここで追加したコネクタだけがこの自動化で使えます。',
+    jobConnectorsLegacyHint:
+      '旧形式の自動化: 明示的なリストを追加するまで、接続済みアプリはすべて利用可能です。',
+    jobConnectorAdded: '追加済み',
+    browseConnectorsMarketplace: 'マーケットプレイスを見る…',
   },
 
   connectors: {

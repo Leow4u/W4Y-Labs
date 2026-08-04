@@ -62,12 +62,15 @@ import {
 } from './run-stats'
 import { RunsTable } from './runs-table'
 import {
+  connectorsJobPayload,
+  connectorsPayloadFromJob,
   DEFAULT_DELIVER,
+  jobConnectorsEnabled,
   jobDeliver,
   jobPrompt,
   jobScheduleExpr,
   jobSkills,
-  jobConnectorsDisabled,
+  jobUsesConnectorsAllowlist,
   jobEnabledToolsets,
   jobWorkdir,
   jobModel,
@@ -361,7 +364,7 @@ export function CronView({
         workdir: jobWorkdir(source) || undefined,
         skills: jobSkills(source),
         enabled_toolsets: jobEnabledToolsets(source),
-        connectors_disabled: jobConnectorsDisabled(source)
+        ...connectorsPayloadFromJob(source)
       })
 
       const wantWebhook = Boolean(source.webhook_route?.url)
@@ -386,7 +389,7 @@ export function CronView({
       await syncScheduleSiblings(withMeta, scheduleRows, {
         deliver: jobDeliver(source),
         enabledToolsets: jobEnabledToolsets(source),
-        connectorsDisabled: jobConnectorsDisabled(source),
+        connectorsEnabled: jobUsesConnectorsAllowlist(source) ? jobConnectorsEnabled(source) : null,
         model: jobModel(source) || undefined,
         name: copyName,
         prompt: jobPrompt(source),
@@ -444,7 +447,7 @@ export function CronView({
     shared: {
       deliver: string
       enabledToolsets: string[]
-      connectorsDisabled: string[]
+      connectorsEnabled: string[] | null
       model?: string
       name?: string
       prompt: string
@@ -478,7 +481,7 @@ export function CronView({
           workdir: shared.workdir ?? null,
           skills: shared.skills,
           enabled_toolsets: shared.enabledToolsets,
-          connectors_disabled: shared.connectorsDisabled.length ? shared.connectorsDisabled : null
+          ...connectorsJobPayload({ connectorsEnabled: shared.connectorsEnabled })
         })
         nextSiblings.push({ expr, jobId: updated.id })
         nextJobs = nextJobs.map(job => (job.id === updated.id ? updated : job))
@@ -494,7 +497,7 @@ export function CronView({
         workdir: shared.workdir ?? undefined,
         skills: shared.skills,
         enabled_toolsets: shared.enabledToolsets,
-        connectors_disabled: shared.connectorsDisabled.length ? shared.connectorsDisabled : undefined
+        ...connectorsJobPayload({ connectorsEnabled: shared.connectorsEnabled })
       })
       nextSiblings.push({ expr, jobId: created.id })
       nextJobs = [...nextJobs, created]
@@ -558,13 +561,13 @@ export function CronView({
       composio_triggers: composioTriggers,
       skills: values.skills,
       enabled_toolsets: values.enabledToolsets,
-      connectors_disabled: values.connectorsDisabled.length ? values.connectorsDisabled : null
+      ...connectorsJobPayload({ connectorsEnabled: values.connectorsEnabled })
     }
 
     const shared = {
       deliver: payload.deliver,
       enabledToolsets: values.enabledToolsets,
-      connectorsDisabled: values.connectorsDisabled,
+      connectorsEnabled: values.connectorsEnabled,
       model: payload.model,
       name: payload.name,
       prompt: payload.prompt,
@@ -582,7 +585,7 @@ export function CronView({
         workdir: payload.workdir ?? undefined,
         skills: payload.skills,
         enabled_toolsets: payload.enabled_toolsets,
-        connectors_disabled: payload.connectors_disabled ?? undefined
+        ...connectorsJobPayload({ connectorsEnabled: values.connectorsEnabled })
       })
 
       const webhookRoute = await syncAutomationWebhook(created.id, values.webhooks.length > 0)
@@ -612,7 +615,7 @@ export function CronView({
         webhook_route: webhookRoute,
         skills: payload.skills,
         enabled_toolsets: payload.enabled_toolsets,
-        connectors_disabled: payload.connectors_disabled ?? undefined
+        ...connectorsJobPayload({ connectorsEnabled: values.connectorsEnabled })
       })
 
       updateCronJobs(rows => rows.map(row => (row.id === updated.id ? updated : row)))

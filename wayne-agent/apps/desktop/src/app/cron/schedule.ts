@@ -78,6 +78,49 @@ export function jobConnectorsDisabled(job: CronJob): string[] {
   return rows.map(slug => asText(slug).trim().toLowerCase()).filter(Boolean)
 }
 
+export function jobConnectorsEnabled(job: CronJob): string[] {
+  const rows = job.connectors_enabled
+
+  if (!Array.isArray(rows)) {
+    return []
+  }
+
+  return rows.map(slug => asText(slug).trim().toLowerCase()).filter(Boolean)
+}
+
+export function jobUsesConnectorsAllowlist(job: CronJob): boolean {
+  return Object.prototype.hasOwnProperty.call(job, 'connectors_enabled')
+}
+
+export function connectorsJobPayload(values: {
+  connectorsEnabled: string[] | null
+}): {
+  connectors_disabled?: null | string[]
+  connectors_enabled?: string[]
+} {
+  if (values.connectorsEnabled !== null) {
+    return {
+      connectors_enabled: values.connectorsEnabled,
+      connectors_disabled: null
+    }
+  }
+  return {}
+}
+
+export function connectorsPayloadFromJob(job: CronJob): {
+  connectors_disabled?: string[]
+  connectors_enabled?: string[]
+} {
+  if (jobUsesConnectorsAllowlist(job)) {
+    return { connectors_enabled: jobConnectorsEnabled(job), connectors_disabled: undefined }
+  }
+  const disabled = jobConnectorsDisabled(job)
+  if (disabled.length) {
+    return { connectors_disabled: disabled }
+  }
+  return {}
+}
+
 export function jobScheduleDisplay(job: CronJob): string {
   return asText(job.schedule_display) || asText(job.schedule?.display) || asText(job.schedule?.expr) || '—'
 }

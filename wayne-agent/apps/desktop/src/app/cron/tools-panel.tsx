@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import {
   DropdownMenu,
-  DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSearch,
@@ -40,10 +39,10 @@ import {
 } from './delivery-targets'
 
 interface ToolsPanelProps {
-  connectorsDisabled: string[]
+  connectorsEnabled: string[] | null
   deliver: string
   enabledToolsets: string[]
-  onConnectorsDisabledChange: (value: string[]) => void
+  onConnectorsEnabledChange: (value: string[] | null) => void
   onDeliverChange: (value: string) => void
   onEnabledToolsetsChange: (value: string[]) => void
   onOpenChannels: () => void
@@ -105,10 +104,10 @@ function fallbackToolkit(slug: string): ConnectorToolkit {
 }
 
 export function ToolsPanel({
-  connectorsDisabled,
+  connectorsEnabled,
   deliver,
   enabledToolsets,
-  onConnectorsDisabledChange,
+  onConnectorsEnabledChange,
   onDeliverChange,
   onEnabledToolsetsChange,
   onOpenChannels,
@@ -149,15 +148,19 @@ export function ToolsPanel({
     queryKey: ['cron-editor-connectors']
   })
 
-  const disabledSet = useMemo(
-    () => new Set(connectorsDisabled.map(slug => slug.toLowerCase())),
-    [connectorsDisabled]
+  const enabledSet = useMemo(
+    () => new Set((connectorsEnabled ?? []).map(slug => slug.toLowerCase())),
+    [connectorsEnabled]
   )
 
-  const enabledConnectors = useMemo(
-    () => (connectorsQuery.data ?? []).filter(row => !disabledSet.has(row.slug.toLowerCase())),
-    [connectorsQuery.data, disabledSet]
-  )
+  const listedConnectors = useMemo(() => {
+    if (connectorsEnabled === null) {
+      return []
+    }
+    const catalog = connectorsQuery.data ?? []
+    const bySlug = new Map(catalog.map(row => [row.slug.toLowerCase(), row]))
+    return connectorsEnabled.map(slug => bySlug.get(slug.toLowerCase()) ?? fallbackToolkit(slug))
+  }, [connectorsEnabled, connectorsQuery.data])
 
   const deliveryTargets = useMemo(
     () => mergeDeliveryTargets(deliveryQuery.data, deliver),
@@ -227,15 +230,24 @@ export function ToolsPanel({
     )
   }, [connectorQuery, connectorsQuery.data])
 
-  const setConnectorEnabled = (slug: string, enabled: boolean) => {
+  const addConnector = (slug: string) => {
     const key = slug.toLowerCase()
-    const next = new Set(connectorsDisabled.map(row => row.toLowerCase()))
-    if (enabled) {
-      next.delete(key)
-    } else {
-      next.add(key)
+    if (connectorsEnabled === null) {
+      onConnectorsEnabledChange([key])
+      return
     }
-    onConnectorsDisabledChange([...next].sort())
+    if (enabledSet.has(key)) {
+      return
+    }
+    onConnectorsEnabledChange([...connectorsEnabled, key].sort())
+  }
+
+  const removeConnector = (slug: string) => {
+    const key = slug.toLowerCase()
+    if (connectorsEnabled === null) {
+      return
+    }
+    onConnectorsEnabledChange(connectorsEnabled.filter(row => row.toLowerCase() !== key))
   }
 
   const skillPicker = (
@@ -323,24 +335,29 @@ export function ToolsPanel({
           ) : (
             connectorChoices.map(row => {
               const slug = row.slug.toLowerCase()
-              const enabled = !disabledSet.has(slug)
+              const added = enabledSet.has(slug)
               return (
-                <DropdownMenuCheckboxItem
-                  checked={enabled}
+                <DropdownMenuItem
+                  disabled={added}
                   key={slug}
-                  onCheckedChange={checked => setConnectorEnabled(slug, checked === true)}
-                  onSelect={event => event.preventDefault()}
+                  onSelect={() => addConnector(slug)}
                 >
-                  <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex min-w-0 flex-1 items-center gap-2">
                     <LogoTile className="h-5 w-5 shrink-0 rounded-md text-[0.65rem]" toolkit={row} />
                     <span className="truncate">{row.name}</span>
                   </span>
-                </DropdownMenuCheckboxItem>
+                  {added ? (
+                    <span className="ml-2 shrink-0 text-[0.65rem] text-muted-foreground">{c.jobConnectorAdded}</span>
+                  ) : null}
+                </DropdownMenuItem>
               )
             })
           )}
         </div>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onSelect={() => navigate(`${SKILLS_ROUTE}?view=marketplace`)}>
+          {c.browseConnectorsMarketplace}
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => navigate(`${SKILLS_ROUTE}?tab=connectors`)}>
           {c.manageConnectorsLink}
         </DropdownMenuItem>
@@ -376,11 +393,11 @@ export function ToolsPanel({
           </Button>
         </ToolRow>
 
-        {enabledConnectors.map(row => (
+        {listedConnectors.map(row => (
           <ToolRow
             key={row.slug}
             logo={row}
-            onRemove={() => setConnectorEnabled(row.slug, false)}
+            onRemove={() => removeConnector(row.slug)}
             title={row.name}
           />
         ))}
@@ -446,7 +463,9 @@ export function ToolsPanel({
         </DropdownMenu>
       </div>
 
-      {enabledConnectors.length > 0 ? (
+      {connectorsEnabled === null ? (
+        <p className={cn('text-xs', cronSubtle)}>{c.jobConnectorsLegacyHint}</p>
+      ) : listedConnectors.length > 0 ? (
         <p className={cn('text-xs', cronSubtle)}>{c.jobConnectorsHint}</p>
       ) : null}
 

@@ -2409,7 +2409,11 @@ export const en: Translations = {
     searchJobConnectors: 'Search connectors…',
     noJobConnectors: 'No connectors connected',
     manageConnectorsLink: 'Manage connectors…',
-    jobConnectorsHint: 'Turning off here only affects this automation.',
+    jobConnectorsHint: 'Only connectors you add here are available in this automation.',
+    jobConnectorsLegacyHint:
+      'Legacy automation: all connected apps stay available until you add an explicit list.',
+    jobConnectorAdded: 'Added',
+    browseConnectorsMarketplace: 'Browse marketplace…',
     tabSettings: 'Settings',
     tabHistory: 'Run History',
     addTrigger: 'Add trigger',

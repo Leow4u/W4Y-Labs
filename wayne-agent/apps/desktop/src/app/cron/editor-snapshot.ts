@@ -8,12 +8,13 @@ import {
 import {
   DEFAULT_DELIVER,
   jobDeliver,
-  jobConnectorsDisabled,
+  jobConnectorsEnabled,
   jobEnabledToolsets,
   jobModel,
   jobPrompt,
   jobScheduleExpr,
   jobSkills,
+  jobUsesConnectorsAllowlist,
   jobWorkdir,
   scheduleOptionForExpr
 } from './schedule'
@@ -23,7 +24,7 @@ export const DEFAULT_SCHEDULE = '0 9 * * *'
 
 export interface EditorValues {
   composioTriggers: CronComposioTrigger[]
-  connectorsDisabled: string[]
+  connectorsEnabled: string[] | null
   deliver: string
   enabledToolsets: string[]
   model: string
@@ -38,7 +39,7 @@ export interface EditorValues {
 
 export type NormalizedEditorSnapshot = {
   composioTriggers: Array<{ id: string; slug: string; toolkit: null | string }>
-  connectorsDisabled: string[]
+  connectorsEnabled: string[] | null
   deliver: string
   enabledToolsets: string[]
   model: string
@@ -78,7 +79,8 @@ function normalizeWebhooks(rows: WebhookTriggerRow[]): string[] {
 export function normalizeEditorValues(values: EditorValues): NormalizedEditorSnapshot {
   return {
     composioTriggers: normalizeComposio(values.composioTriggers),
-    connectorsDisabled: [...values.connectorsDisabled].sort(),
+    connectorsEnabled:
+      values.connectorsEnabled !== null ? [...values.connectorsEnabled].sort() : null,
     deliver: values.deliver.trim() || DEFAULT_DELIVER,
     enabledToolsets: [...values.enabledToolsets].sort(),
     model: values.model.trim() || DEFAULT_MODEL,
@@ -94,7 +96,7 @@ export function normalizeEditorValues(values: EditorValues): NormalizedEditorSna
 export function emptyEditorSnapshot(): NormalizedEditorSnapshot {
   return normalizeEditorValues({
     composioTriggers: [],
-    connectorsDisabled: [],
+    connectorsEnabled: [],
     deliver: DEFAULT_DELIVER,
     enabledToolsets: [],
     model: DEFAULT_MODEL,
@@ -139,7 +141,7 @@ export function editorSnapshotFromJob(job: CronJob): NormalizedEditorSnapshot {
 
   return normalizeEditorValues({
     composioTriggers: composio,
-    connectorsDisabled: jobConnectorsDisabled(job),
+    connectorsEnabled: jobUsesConnectorsAllowlist(job) ? jobConnectorsEnabled(job) : null,
     deliver: jobDeliver(job),
     enabledToolsets: jobEnabledToolsets(job),
     model: jobModel(job) || DEFAULT_MODEL,
@@ -166,7 +168,7 @@ export function exportAutomationDocument(
     exported_at: new Date().toISOString(),
     job: {
       composio_triggers: values.composioTriggers,
-      connectors_disabled: values.connectorsDisabled,
+      connectors_enabled: values.connectorsEnabled,
       deliver: values.deliver,
       enabled_toolsets: values.enabledToolsets,
       model: values.model === DEFAULT_MODEL ? null : values.model || null,
