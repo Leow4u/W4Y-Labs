@@ -1,6 +1,6 @@
 import type { ComponentProps } from 'react'
 
-import { Loader } from '@/components/ui/loader'
+import { AppSpinner } from '@/components/ui/app-spinner'
 import { cn } from '@/lib/utils'
 
 interface PageLoaderProps extends Omit<ComponentProps<'div'>, 'children'> {
@@ -21,14 +21,7 @@ export function PageLoader({
       className={cn('grid h-full place-items-center', className)}
       role={role}
     >
-      <Loader
-        aria-hidden="true"
-        className="size-10 text-primary/70"
-        pathSteps={220}
-        role="presentation"
-        strokeScale={0.72}
-        type="rose-curve"
-      />
+      <AppSpinner className="size-6" role="presentation" />
     </div>
   )
 }

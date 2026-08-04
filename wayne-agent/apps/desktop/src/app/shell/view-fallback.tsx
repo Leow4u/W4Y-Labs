@@ -1,4 +1,4 @@
-import { Loader } from '@/components/ui/loader'
+import { AppSpinner } from '@/components/ui/app-spinner'
 
 /**
  * Shown while a lazy route chunk loads. Replaces the blank `fallback={null}`
@@ -11,7 +11,7 @@ export function ViewFallback() {
       aria-hidden
       className="flex min-h-0 flex-1 items-center justify-center bg-(--ui-chat-surface-background)"
     >
-      <Loader className="size-10 opacity-60" type="lemniscate-bloom" />
+      <AppSpinner className="size-6 opacity-70" />
     </div>
   )
 }
@@ -26,7 +26,7 @@ export function OverlayFallback() {
       aria-hidden
       className="fixed inset-0 z-50 grid place-items-center bg-(--ui-chat-surface-background)"
     >
-      <Loader className="size-10 opacity-60" type="lemniscate-bloom" />
+      <AppSpinner className="size-6 opacity-70" />
     </div>
   )
 }

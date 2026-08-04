@@ -4,8 +4,8 @@ import { type FC, type ReactNode, useEffect, useState } from 'react'
 
 import { useElapsedSeconds } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
+import { AppSpinner } from '@/components/ui/app-spinner'
 import { Codicon } from '@/components/ui/codicon'
-import { Loader } from '@/components/ui/loader'
 import { useI18n } from '@/i18n'
 import { messageIsPlanningNext } from '@/components/assistant-ui/tool/fallback-model'
 import { cn } from '@/lib/utils'
@@ -42,14 +42,7 @@ export const CenteredThreadSpinner: FC = () => {
       className="pointer-events-none absolute inset-0 z-1 grid place-items-center"
       role="status"
     >
-      <Loader
-        aria-hidden="true"
-        className="size-12 text-midground/70"
-        pathSteps={220}
-        role="presentation"
-        strokeScale={0.72}
-        type="rose-curve"
-      />
+      <AppSpinner className="size-6 text-muted-foreground/45" role="presentation" />
     </div>
   )
 }
