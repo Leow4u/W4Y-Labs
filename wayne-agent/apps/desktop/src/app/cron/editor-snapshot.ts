@@ -8,6 +8,7 @@ import {
 import {
   DEFAULT_DELIVER,
   jobDeliver,
+  jobConnectorsDisabled,
   jobEnabledToolsets,
   jobModel,
   jobPrompt,
@@ -22,6 +23,7 @@ export const DEFAULT_SCHEDULE = '0 9 * * *'
 
 export interface EditorValues {
   composioTriggers: CronComposioTrigger[]
+  connectorsDisabled: string[]
   deliver: string
   enabledToolsets: string[]
   model: string
@@ -36,6 +38,7 @@ export interface EditorValues {
 
 export type NormalizedEditorSnapshot = {
   composioTriggers: Array<{ id: string; slug: string; toolkit: null | string }>
+  connectorsDisabled: string[]
   deliver: string
   enabledToolsets: string[]
   model: string
@@ -75,6 +78,7 @@ function normalizeWebhooks(rows: WebhookTriggerRow[]): string[] {
 export function normalizeEditorValues(values: EditorValues): NormalizedEditorSnapshot {
   return {
     composioTriggers: normalizeComposio(values.composioTriggers),
+    connectorsDisabled: [...values.connectorsDisabled].sort(),
     deliver: values.deliver.trim() || DEFAULT_DELIVER,
     enabledToolsets: [...values.enabledToolsets].sort(),
     model: values.model.trim() || DEFAULT_MODEL,
@@ -90,6 +94,7 @@ export function normalizeEditorValues(values: EditorValues): NormalizedEditorSna
 export function emptyEditorSnapshot(): NormalizedEditorSnapshot {
   return normalizeEditorValues({
     composioTriggers: [],
+    connectorsDisabled: [],
     deliver: DEFAULT_DELIVER,
     enabledToolsets: [],
     model: DEFAULT_MODEL,
@@ -134,6 +139,7 @@ export function editorSnapshotFromJob(job: CronJob): NormalizedEditorSnapshot {
 
   return normalizeEditorValues({
     composioTriggers: composio,
+    connectorsDisabled: jobConnectorsDisabled(job),
     deliver: jobDeliver(job),
     enabledToolsets: jobEnabledToolsets(job),
     model: jobModel(job) || DEFAULT_MODEL,
@@ -160,6 +166,7 @@ export function exportAutomationDocument(
     exported_at: new Date().toISOString(),
     job: {
       composio_triggers: values.composioTriggers,
+      connectors_disabled: values.connectorsDisabled,
       deliver: values.deliver,
       enabled_toolsets: values.enabledToolsets,
       model: values.model === DEFAULT_MODEL ? null : values.model || null,

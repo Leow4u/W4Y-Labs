@@ -68,6 +68,16 @@ export function jobEnabledToolsets(job: CronJob): string[] {
   return rows.map(name => asText(name).trim()).filter(Boolean)
 }
 
+export function jobConnectorsDisabled(job: CronJob): string[] {
+  const rows = job.connectors_disabled
+
+  if (!Array.isArray(rows)) {
+    return []
+  }
+
+  return rows.map(slug => asText(slug).trim().toLowerCase()).filter(Boolean)
+}
+
 export function jobScheduleDisplay(job: CronJob): string {
   return asText(job.schedule_display) || asText(job.schedule?.display) || asText(job.schedule?.expr) || '—'
 }

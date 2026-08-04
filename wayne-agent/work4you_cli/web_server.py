@@ -9804,6 +9804,7 @@ class CronJobCreate(BaseModel):
     script: Optional[str] = None
     context_from: Optional[Any] = None
     enabled_toolsets: Optional[List[str]] = None
+    connectors_disabled: Optional[List[str]] = None
     workdir: Optional[str] = None
     no_agent: bool = False
 
@@ -9908,6 +9909,8 @@ def _normalize_dashboard_cron_updates(
         normalized["context_from"] = _cron_string_list(normalized["context_from"])
     if "enabled_toolsets" in normalized:
         normalized["enabled_toolsets"] = _cron_string_list(normalized["enabled_toolsets"])
+    if "connectors_disabled" in normalized:
+        normalized["connectors_disabled"] = _cron_string_list(normalized["connectors_disabled"])
     return normalized
 
 
@@ -10121,6 +10124,7 @@ async def create_cron_job(body: CronJobCreate, profile: str = "default"):
             script=script,
             context_from=context_from,
             enabled_toolsets=_cron_string_list(body.enabled_toolsets),
+            connectors_disabled=_cron_string_list(body.connectors_disabled),
             workdir=_cron_optional_text(body.workdir),
             no_agent=no_agent,
         )

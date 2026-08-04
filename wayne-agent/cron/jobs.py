@@ -865,6 +865,7 @@ def create_job(
     script: Optional[str] = None,
     context_from: Optional[Union[str, List[str]]] = None,
     enabled_toolsets: Optional[List[str]] = None,
+    connectors_disabled: Optional[List[str]] = None,
     workdir: Optional[str] = None,
     no_agent: bool = False,
     attach_to_session: Optional[bool] = None,
@@ -899,6 +900,9 @@ def create_job(
                           When set, only tools from these toolsets are loaded, reducing
                           token overhead. When omitted, all default tools are loaded.
                           Ignored when ``no_agent=True``.
+        connectors_disabled: Optional Composio toolkit slugs to switch OFF for this job
+                             only (e.g. ``["github"]``). Connected apps not listed here
+                             stay available. Omitted/empty = all connected apps on.
         workdir: Optional absolute path.  When set, the job runs as if launched
                 from that directory: AGENTS.md / CLAUDE.md / .cursorrules from
                 that directory are injected into the system prompt, and the
@@ -941,6 +945,12 @@ def create_job(
     normalized_script = normalized_script or None
     normalized_toolsets = [str(t).strip() for t in enabled_toolsets if str(t).strip()] if enabled_toolsets else None
     normalized_toolsets = normalized_toolsets or None
+    normalized_connectors_disabled = (
+        [str(s).strip().lower() for s in connectors_disabled if str(s).strip()]
+        if connectors_disabled
+        else None
+    )
+    normalized_connectors_disabled = normalized_connectors_disabled or None
     normalized_workdir = _normalize_workdir(workdir)
     normalized_no_agent = bool(no_agent)
     normalized_attach = attach_to_session if isinstance(attach_to_session, bool) else None
@@ -1018,6 +1028,7 @@ def create_job(
         "deliver": deliver,
         "origin": origin,  # Tracks where job was created for "origin" delivery
         "enabled_toolsets": normalized_toolsets,
+        "connectors_disabled": normalized_connectors_disabled,
         "workdir": normalized_workdir,
     }
     # Only persist attach_to_session when explicitly set, so existing jobs and
@@ -1129,6 +1140,20 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
                 normalized_skills = _normalize_skill_list(updated.get("skill"), updated.get("skills"))
                 updated["skills"] = normalized_skills
                 updated["skill"] = normalized_skills[0] if normalized_skills else None
+
+            if "connectors_disabled" in updates:
+                raw_disabled = updates.get("connectors_disabled")
+                if raw_disabled in {None, False}:
+                    updated["connectors_disabled"] = None
+                elif isinstance(raw_disabled, (list, tuple)):
+                    slugs = [
+                        str(item).strip().lower()
+                        for item in raw_disabled
+                        if str(item).strip()
+                    ]
+                    updated["connectors_disabled"] = slugs or None
+                else:
+                    raise ValueError("connectors_disabled must be a list of toolkit slugs")
 
             if schedule_changed:
                 updated_schedule = updated["schedule"]

@@ -32,7 +32,7 @@ import { pickProjectFolder } from '@/store/projects'
 import { notify, notifyError } from '@/store/notifications'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import { MESSAGING_ROUTE, SKILLS_ROUTE } from '../routes'
+import { MESSAGING_ROUTE } from '../routes'
 
 import {
   type ScheduleTriggerRow,
@@ -52,6 +52,7 @@ import {
 import { RunsTable } from './runs-table'
 import {
   DEFAULT_DELIVER,
+  jobConnectorsDisabled,
   jobDeliver,
   jobEnabledToolsets,
   jobModel,
@@ -144,6 +145,7 @@ export function AutomationEditor({
   const [workdir, setWorkdir] = useState('')
   const [skills, setSkills] = useState<string[]>([])
   const [enabledToolsets, setEnabledToolsets] = useState<string[]>([])
+  const [connectorsDisabled, setConnectorsDisabled] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [driftResolving, setDriftResolving] = useState(false)
   const [error, setError] = useState<null | string>(null)
@@ -208,6 +210,7 @@ export function AutomationEditor({
     setWorkdir(job ? jobWorkdir(job) : '')
     setSkills(job ? jobSkills(job) : [])
     setEnabledToolsets(job ? jobEnabledToolsets(job) : [])
+    setConnectorsDisabled(job ? jobConnectorsDisabled(job) : [])
     setError(null)
     setSaving(false)
     setTab('settings')
@@ -347,6 +350,7 @@ export function AutomationEditor({
   const currentValues = useMemo(
     (): EditorValues => ({
       composioTriggers,
+      connectorsDisabled,
       deliver,
       enabledToolsets,
       model,
@@ -359,6 +363,7 @@ export function AutomationEditor({
     }),
     [
       composioTriggers,
+      connectorsDisabled,
       deliver,
       enabledToolsets,
       model,
@@ -421,6 +426,7 @@ export function AutomationEditor({
     try {
       const saved = await onSave({
         composioTriggers,
+        connectorsDisabled,
         deliver,
         enabledToolsets,
         model: model === DEFAULT_MODEL ? '' : model,
@@ -701,12 +707,13 @@ export function AutomationEditor({
           </section>
 
           <ToolsPanel
+            connectorsDisabled={connectorsDisabled}
             deliver={deliver}
             enabledToolsets={enabledToolsets}
+            onConnectorsDisabledChange={setConnectorsDisabled}
             onDeliverChange={setDeliver}
             onEnabledToolsetsChange={setEnabledToolsets}
             onOpenChannels={() => navigate(MESSAGING_ROUTE)}
-            onOpenConnectors={() => navigate(`${SKILLS_ROUTE}?tab=connectors`)}
             onSkillsChange={setSkills}
             skills={skills}
           />

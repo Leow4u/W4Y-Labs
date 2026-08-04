@@ -1644,6 +1644,11 @@ export interface Translations {
     toolsHint: string
     openConnectors: string
     openChannels: string
+    addJobConnector: string
+    searchJobConnectors: string
+    noJobConnectors: string
+    manageConnectorsLink: string
+    jobConnectorsHint: string
     tabSettings: string
     tabHistory: string
     addTrigger: string

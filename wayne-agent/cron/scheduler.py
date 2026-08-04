@@ -2483,6 +2483,7 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
         return True, "", SILENT_MARKER, None
     origin = _resolve_origin(job)
     _cron_session_id = f"cron_{job_id}_{_wayne_now().strftime('%Y%m%d_%H%M%S')}"
+    _approval_session_token = None
 
     logger.info("Running job '%s' (ID: %s)", job_name, job_id)
     logger.info("Prompt: %s", prompt[:100])
@@ -2576,6 +2577,17 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     # (every future job blocks on acquire_*); a leaked reader blocks all
     # future writers.  Acquire itself can't leak (it either blocks or returns).
     try:
+        from tools.approval import (
+            reset_current_session_key,
+            set_current_session_key,
+            set_session_disabled_connectors,
+        )
+
+        _approval_session_token = set_current_session_key(_cron_session_id)
+        _job_connectors_disabled = job.get("connectors_disabled")
+        if isinstance(_job_connectors_disabled, list) and _job_connectors_disabled:
+            set_session_disabled_connectors(_cron_session_id, _job_connectors_disabled)
+
         if _job_workdir:
             os.environ["TERMINAL_CWD"] = _job_workdir
             logger.info("Job '%s': using workdir %s", job_id, _job_workdir)
@@ -3076,6 +3088,17 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
         return False, output, "", error_msg
 
     finally:
+        try:
+            from tools.approval import (
+                reset_current_session_key,
+                set_session_disabled_connectors,
+            )
+
+            set_session_disabled_connectors(_cron_session_id, None)
+            if _approval_session_token is not None:
+                reset_current_session_key(_approval_session_token)
+        except Exception as e:
+            logger.debug("Job '%s': failed to reset connector session scope: %s", job_id, e)
         # Restore TERMINAL_CWD to whatever it was before this job ran.  We
         # only ever mutate it when the job has a workdir; see the setup block
         # at the top of run_job for the serialization guarantee.
