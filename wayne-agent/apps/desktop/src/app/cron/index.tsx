@@ -27,7 +27,8 @@ import {
   pauseCronJob,
   resumeCronJob,
   triggerCronJob,
-  updateCronJob
+  updateCronJob,
+  type SessionInfo
 } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { relativeTime } from '@/lib/time'
@@ -144,7 +145,7 @@ function matchesQuery(job: CronJob, q: string): boolean {
 }
 
 interface CronViewProps extends React.ComponentProps<'section'> {
-  onOpenSession?: (sessionId: string) => void
+  onOpenSession?: (sessionId: string, run?: SessionInfo) => void
   setStatusbarItemGroup?: SetStatusbarItemGroup
 }
 

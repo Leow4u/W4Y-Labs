@@ -88,7 +88,7 @@ interface AutomationEditorProps {
   editor: EditorMode
   onBack: () => void
   onDelete?: () => void
-  onOpenSession?: (sessionId: string) => void
+  onOpenSession?: (sessionId: string, run?: SessionInfo) => void
   onPauseResume?: () => void
   onSave: (values: EditorValues) => Promise<CronJob | void>
   onTrigger?: () => void

@@ -68,7 +68,7 @@ interface RunsTableProps {
   emptyLabel: string
   loading?: boolean
   nowMs: number
-  onOpenSession?: (sessionId: string) => void
+  onOpenSession?: (sessionId: string, run?: SessionInfo) => void
   rows: AutomationRunRow[]
   showAutomationColumn?: boolean
 }
@@ -124,7 +124,7 @@ export function RunsTable({
                 <tr
                   className="group/row cursor-pointer border-b border-(--ui-stroke-tertiary)/60 last:border-b-0 transition-colors hover:bg-(--chrome-action-hover)"
                   key={`${row.jobId}:${row.run.id}`}
-                  onClick={() => onOpenSession?.(row.run.id)}
+                  onClick={() => onOpenSession?.(row.run.id, row.run)}
                   title={c.openRunStory}
                 >
                   {showAutomationColumn ? (

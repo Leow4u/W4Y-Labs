@@ -98,6 +98,7 @@ import { RemoteFolderPicker } from './right-sidebar/files/remote-picker'
 import { ReviewPane } from './right-sidebar/review'
 import { PersistentTerminal } from './right-sidebar/terminal/persistent'
 import { closeActiveTerminal } from './right-sidebar/terminal/terminals'
+import { seedCronRunSession } from './cron/open-run-session'
 import { NEW_CHAT_ROUTE, routeSessionId, sessionRoute, SETTINGS_ROUTE } from './routes'
 import { SessionPickerOverlay } from './session-picker-overlay'
 import { SessionSwitcher } from './session-switcher'
@@ -1275,7 +1276,13 @@ export function DesktopController() {
             element={
               <Suspense fallback={<ViewFallback />}>
                 <CronView
-                  onOpenSession={sessionId => void resumeSession(sessionId, true)}
+                  onOpenSession={(sessionId, run) => {
+                    if (run) {
+                      seedCronRunSession(run)
+                    }
+
+                    navigate(sessionRoute(sessionId))
+                  }}
                   setStatusbarItemGroup={setStatusbarItemGroup}
                 />
               </Suspense>
