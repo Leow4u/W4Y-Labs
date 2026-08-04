@@ -542,6 +542,11 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                     # Read timeout from environment variable, default to 300 seconds (5 minutes)
                     # to accommodate slower systems like Unraid NAS
                     npm_install_timeout = env_int("WHATSAPP_NPM_INSTALL_TIMEOUT", 300)
+                    npm_kwargs: dict = {}
+                    if _IS_WINDOWS:
+                        from work4you_cli._subprocess_compat import windows_hide_flags
+
+                        npm_kwargs["creationflags"] = windows_hide_flags()
                     install_result = subprocess.run(
                         [_npm_bin, "install", "--silent"],
                         cwd=str(bridge_dir),
@@ -549,6 +554,7 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                         text=True,
                         timeout=npm_install_timeout,
                         env=with_wayne_node_path(),
+                        **npm_kwargs,
                     )
                     if install_result.returncode != 0:
                         print(f"[{self.name}] npm install failed: {install_result.stderr}")
@@ -639,6 +645,12 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
             bridge_env["WAYNE_AUDIO_CACHE_DIR"] = str(_get_audio_dir())
             bridge_env["WAYNE_DOCUMENT_CACHE_DIR"] = str(_get_doc_dir())
 
+            popen_kwargs: dict = {}
+            if _IS_WINDOWS:
+                from work4you_cli._subprocess_compat import windows_hide_flags
+
+                popen_kwargs["creationflags"] = windows_hide_flags()
+
             self._bridge_process = subprocess.Popen(
                 [
                     find_node_executable("node") or "node",
@@ -651,6 +663,7 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                 stderr=bridge_log_fh,
                 start_new_session=True,
                 env=bridge_env,
+                **popen_kwargs,
             )
             _write_bridge_pidfile(self._session_path, self._bridge_process.pid)
             

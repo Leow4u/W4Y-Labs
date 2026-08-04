@@ -146,6 +146,51 @@ class TestCloseBridgeLog:
         assert adapter._bridge_log_fh is None
 
 
+class TestBridgeSpawnWindowsFlags:
+    """Bridge node.exe must not flash a console on Windows."""
+
+    @pytest.mark.asyncio
+    async def test_bridge_popen_uses_windows_hide_flags(self, monkeypatch):
+        adapter = _make_adapter()
+        captured: list[dict] = []
+
+        def fake_popen(*args, **kwargs):
+            captured.append(kwargs)
+            mock_proc = MagicMock()
+            mock_proc.poll.return_value = None
+            return mock_proc
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        mock_client_cls = _mock_aiohttp(
+            status=200, json_data={"status": "connected"},
+        )
+        mock_fh = MagicMock()
+
+        monkeypatch.setattr("plugins.platforms.whatsapp.adapter._IS_WINDOWS", True)
+        monkeypatch.setattr(
+            "work4you_cli._subprocess_compat.windows_hide_flags",
+            lambda: 0x08000000,
+        )
+
+        with patch("plugins.platforms.whatsapp.adapter.check_whatsapp_requirements", return_value=True), \
+             patch.object(Path, "exists", return_value=True), \
+             patch.object(Path, "mkdir", return_value=None), \
+             patch("subprocess.run", return_value=MagicMock(returncode=0)), \
+             patch("subprocess.Popen", side_effect=fake_popen), \
+             patch("builtins.open", return_value=mock_fh), \
+             patch("plugins.platforms.whatsapp.adapter.asyncio.sleep", new_callable=AsyncMock), \
+             patch("plugins.platforms.whatsapp.adapter.asyncio.create_task"), \
+             patch("aiohttp.ClientSession", mock_client_cls), \
+             patch.object(type(adapter), "_poll_messages", return_value=MagicMock()), \
+             patch("gateway.status.acquire_scoped_lock", return_value=(True, None)):
+            result = await adapter.connect()
+
+        assert result is True
+        assert captured
+        assert captured[0].get("creationflags") == 0x08000000
+
+
 # ---------------------------------------------------------------------------
 # data variable initialization
 # ---------------------------------------------------------------------------
