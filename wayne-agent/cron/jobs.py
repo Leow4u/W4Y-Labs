@@ -1091,10 +1091,13 @@ def list_jobs(include_disabled: bool = False) -> List[Dict[str, Any]]:
 
 def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update a job by ID, refreshing derived schedule fields when needed."""
+    updates = dict(updates or {})
+    rebaseline_snapshots = bool(updates.pop("rebaseline_inference_snapshots", False))
+
     # Block mutation of immutable fields. ``id`` in particular is a filesystem
     # path component under OUTPUT_DIR — letting an update change it leaks
     # path-escape values into output writes/deletes.
-    bad_fields = _IMMUTABLE_JOB_FIELDS.intersection(updates or {})
+    bad_fields = _IMMUTABLE_JOB_FIELDS.intersection(updates)
     if bad_fields:
         raise ValueError(
             f"Cron job field(s) cannot be updated: {', '.join(sorted(bad_fields))}"
@@ -1142,7 +1145,7 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
                 if updated.get("state") != "paused":
                     updated["next_run_at"] = compute_next_run(updated_schedule)
 
-            if inference_fields_changed:
+            if inference_fields_changed or rebaseline_snapshots:
                 provider_snapshot, model_snapshot = _compute_provider_model_snapshots(
                     provider=updated.get("provider"),
                     model=updated.get("model"),

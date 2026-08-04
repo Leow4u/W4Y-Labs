@@ -583,10 +583,14 @@ export interface CronJob {
   last_status?: null | string
   /** Per-job model override (provider/model or bare model id). */
   model?: null | string
+  /** Snapshot of unpinned model at job creation (#44585 drift guard). */
+  model_snapshot?: null | string
   name?: null | string
   next_run_at?: null | string
   prompt?: null | string
   provider?: null | string
+  /** Snapshot of unpinned provider at job creation (#44585 drift guard). */
+  provider_snapshot?: null | string
   schedule?: CronJobSchedule
   schedule_display?: null | string
   script?: null | string
@@ -639,10 +643,13 @@ export interface CronJobUpdates {
   deliver?: string
   enabled?: boolean
   enabled_toolsets?: null | string[]
+  last_error?: null | string
   model?: null | string
   name?: string
   prompt?: string
   provider?: null | string
+  /** Refresh unpinned provider/model snapshots to current global config without pinning. */
+  rebaseline_inference_snapshots?: boolean
   schedule?: string
   skills?: null | string[]
   webhook_route?: CronWebhookRoute | null

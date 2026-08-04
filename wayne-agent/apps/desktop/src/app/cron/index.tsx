@@ -49,6 +49,7 @@ import {
 import { deliveryLabelForId, mergeDeliveryTargets } from './delivery-targets'
 import { jobAuthorLabel } from './job-profile'
 import { AutomationEditor, type EditorMode, type EditorValues } from './automation-editor'
+import { buildKeepOriginalInferenceUpdates } from './inference-drift'
 import { jobState, jobTitle } from './job-state'
 import {
   computeRunStats,
@@ -289,6 +290,32 @@ export function CronView({
       })
     } catch (err) {
       notifyError(err, c.failedUpdate)
+    } finally {
+      setBusyJobId(null)
+    }
+  }
+
+  async function handleResolveInferenceDrift(job: CronJob, action: 'accept-current' | 'keep-original') {
+    setBusyJobId(job.id)
+
+    try {
+      const updated =
+        action === 'accept-current'
+          ? await updateCronJob(job.id, {
+              last_error: null,
+              rebaseline_inference_snapshots: true
+            })
+          : await updateCronJob(job.id, buildKeepOriginalInferenceUpdates(job))
+
+      updateCronJobs(rows => rows.map(row => (row.id === updated.id ? updated : row)))
+      setEditor(current => (current.mode === 'edit' && current.job.id === updated.id ? { mode: 'edit', job: updated } : current))
+      notify({
+        kind: 'success',
+        title: c.driftResolved,
+        message: truncate(jobTitle(job), 60)
+      })
+    } catch (err) {
+      notifyError(err, c.failedDriftResolve)
     } finally {
       setBusyJobId(null)
     }
@@ -575,6 +602,11 @@ export function CronView({
               editor.mode === 'edit' ? () => void handlePauseResume(editor.job) : undefined
             }
             onSave={handleEditorSave}
+            onResolveInferenceDrift={
+              editor.mode === 'edit'
+                ? action => void handleResolveInferenceDrift(editor.job, action)
+                : undefined
+            }
             onTrigger={editor.mode === 'edit' ? () => void handleTrigger(editor.job) : undefined}
           />
         </div>

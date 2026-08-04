@@ -23,6 +23,7 @@ import {
   type SessionInfo
 } from '@/hermes'
 import { useI18n } from '@/i18n'
+import type { Translations } from '@/i18n/types'
 import { AlertTriangle } from '@/lib/icons'
 import { requestModelOptions } from '@/lib/model-options'
 import { modelLabel, prepareW4yPickerProviders } from '@/lib/w4y-featured-models'
@@ -62,6 +63,7 @@ import {
 } from './schedule'
 import { ToolsPanel } from './tools-panel'
 import { TriggersPanel } from './triggers-panel'
+import { jobHasInferenceDrift, parseInferenceDrift, type InferenceDriftDetails } from './inference-drift'
 
 const WORKDIR_RECENTS_KEY = 'w4y.automations.workdir.recents'
 const DEFAULT_MODEL = '__default__'
@@ -91,6 +93,7 @@ interface AutomationEditorProps {
   onOpenSession?: (sessionId: string, run?: SessionInfo) => void
   onPauseResume?: () => void
   onSave: (values: EditorValues) => Promise<CronJob | void>
+  onResolveInferenceDrift?: (action: 'accept-current' | 'keep-original') => Promise<void>
   onTrigger?: () => void
 }
 
@@ -117,6 +120,7 @@ export function AutomationEditor({
   onOpenSession,
   onPauseResume,
   onSave,
+  onResolveInferenceDrift,
   onTrigger
 }: AutomationEditorProps) {
   const { t } = useI18n()
@@ -137,6 +141,7 @@ export function AutomationEditor({
   const [skills, setSkills] = useState<string[]>([])
   const [enabledToolsets, setEnabledToolsets] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [driftResolving, setDriftResolving] = useState(false)
   const [error, setError] = useState<null | string>(null)
   const [webhookUrlHint, setWebhookUrlHint] = useState('')
   const [nowMs, setNowMs] = useState(() => Date.now())
@@ -511,10 +516,26 @@ export function AutomationEditor({
       </header>
 
       {job?.last_error ? (
-        <div className="mb-4 flex items-start gap-1.5 rounded bg-destructive/10 p-2 text-[0.7rem] text-destructive">
-          <AlertTriangle className="mt-px size-3 shrink-0" />
-          <span className="min-w-0 break-words">{job.last_error}</span>
-        </div>
+        jobHasInferenceDrift(job.last_error) && onResolveInferenceDrift ? (
+          <InferenceDriftBanner
+            busy={driftResolving || busy}
+            details={parseInferenceDrift(job.last_error)}
+            labels={c}
+            onAcceptCurrent={() => {
+              setDriftResolving(true)
+              void onResolveInferenceDrift('accept-current').finally(() => setDriftResolving(false))
+            }}
+            onKeepOriginal={() => {
+              setDriftResolving(true)
+              void onResolveInferenceDrift('keep-original').finally(() => setDriftResolving(false))
+            }}
+          />
+        ) : (
+          <div className="mb-4 flex items-start gap-1.5 rounded bg-destructive/10 p-2 text-[0.7rem] text-destructive">
+            <AlertTriangle className="mt-px size-3 shrink-0" />
+            <span className="min-w-0 break-words">{job.last_error}</span>
+          </div>
+        )
       ) : null}
 
       <div className="mb-8 flex gap-1 border-b border-(--ui-stroke-tertiary)/70">
@@ -621,6 +642,47 @@ export function AutomationEditor({
           )}
         </div>
       )}
+    </div>
+  )
+}
+
+function InferenceDriftBanner({
+  busy,
+  details,
+  labels,
+  onAcceptCurrent,
+  onKeepOriginal
+}: {
+  busy?: boolean
+  details: InferenceDriftDetails | null
+  labels: Translations['cron']
+  onAcceptCurrent: () => void
+  onKeepOriginal: () => void
+}) {
+  const summary = details?.model
+    ? labels.driftModelChange(details.model.from, details.model.to)
+    : details?.provider
+      ? labels.driftProviderChange(details.provider.from, details.provider.to)
+      : labels.driftGeneric
+
+  return (
+    <div className="mb-4 space-y-3 rounded-md border border-destructive/30 bg-destructive/10 p-3">
+      <div className="flex items-start gap-2 text-[0.75rem] text-destructive">
+        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+        <div className="min-w-0 space-y-1">
+          <p className="font-medium text-foreground">{labels.driftTitle}</p>
+          <p className="text-foreground/80">{summary}</p>
+          <p className="text-foreground/65">{labels.driftHint}</p>
+        </div>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <Button disabled={busy} onClick={onAcceptCurrent} size="sm" type="button" variant="default">
+          {labels.driftAcceptCurrent}
+        </Button>
+        <Button disabled={busy} onClick={onKeepOriginal} size="sm" type="button" variant="outline">
+          {labels.driftKeepOriginal}
+        </Button>
+      </div>
     </div>
   )
 }

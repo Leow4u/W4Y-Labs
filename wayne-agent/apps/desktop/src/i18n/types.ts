@@ -1601,6 +1601,15 @@ export interface Translations {
     failedTrigger: string
     failedDelete: string
     failedSave: string
+    driftTitle: string
+    driftGeneric: string
+    driftModelChange: (from: string, to: string) => string
+    driftProviderChange: (from: string, to: string) => string
+    driftHint: string
+    driftAcceptCurrent: string
+    driftKeepOriginal: string
+    driftResolved: string
+    failedDriftResolve: string
     editTitle: string
     createTitle: string
     editDesc: string

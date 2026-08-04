@@ -429,6 +429,17 @@ export const pt = defineLocale({
     failedTrigger: 'Falha ao disparar automação',
     failedDelete: 'Falha ao eliminar automação',
     failedSave: 'Falha ao guardar automação',
+    driftTitle: 'O modelo ou provider padrão mudou desde que criou esta automação',
+    driftGeneric:
+      'A configuração global de inferência já não coincide com a de quando a automação foi criada.',
+    driftModelChange: (from, to) => `Modelo: ${from} → ${to}.`,
+    driftProviderChange: (from, to) => `Provider: ${from} → ${to}.`,
+    driftHint:
+      'Por segurança, a execução foi bloqueada para evitar custo inesperado. Escolha como continuar.',
+    driftAcceptCurrent: 'Usar configuração atual',
+    driftKeepOriginal: 'Manter modelo original',
+    driftResolved: 'Configuração de inferência atualizada',
+    failedDriftResolve: 'Falha ao actualizar configuração de inferência',
     search: 'Buscar automações…',
     loading: 'A carregar automações…',
     count: count => `${count} ${count === 1 ? 'automação' : 'automações'}`,

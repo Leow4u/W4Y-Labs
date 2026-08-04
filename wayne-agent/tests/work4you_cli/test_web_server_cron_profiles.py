@@ -431,6 +431,55 @@ async def test_dashboard_cron_noop_inference_fields_keep_existing_snapshots(
 
 
 @pytest.mark.asyncio
+async def test_dashboard_cron_rebaseline_inference_snapshots(
+    isolated_profiles,
+    monkeypatch,
+):
+    from work4you_cli import runtime_provider, web_server
+
+    current_provider = {"name": "initial-provider"}
+    monkeypatch.setattr(
+        runtime_provider,
+        "resolve_runtime_provider",
+        lambda **kwargs: {"provider": current_provider["name"]},
+    )
+
+    job = web_server._call_cron_for_profile(
+        "worker_alpha",
+        "create_job",
+        prompt="managed by named profile",
+        schedule="every 1h",
+        name="drift-rebaseline-job",
+    )
+
+    assert job["provider_snapshot"] == "initial-provider"
+    assert job["model_snapshot"] == "test-model"
+
+    current_provider["name"] = "changed-provider"
+    (isolated_profiles["worker_alpha"] / "config.yaml").write_text(
+        "model:\n  default: changed-model\n",
+        encoding="utf-8",
+    )
+
+    updated = await web_server.update_cron_job(
+        job["id"],
+        web_server.CronJobUpdate(
+            updates={
+                "rebaseline_inference_snapshots": True,
+                "last_error": None,
+            }
+        ),
+        profile="worker_alpha",
+    )
+
+    assert updated["provider"] is None
+    assert updated["model"] is None
+    assert updated["provider_snapshot"] == "changed-provider"
+    assert updated["model_snapshot"] == "changed-model"
+    assert updated["last_error"] is None
+
+
+@pytest.mark.asyncio
 async def test_update_cron_job_clears_snapshots_for_no_agent(
     isolated_profiles,
     monkeypatch,
