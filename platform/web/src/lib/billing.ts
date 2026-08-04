@@ -1,10 +1,9 @@
 // Núcleo de billing (reuse-first): Stripe (assinatura) + OpenRouter
-// Provisioning (crédito por tenant). Nada de infra própria — orquestração.
+// provisioning por tenant. Nada de infra própria — orquestração.
 //
-// Modelo de negócio (igual ao Hermes hospedado): tiers com créditos mensais.
-// Ao ativar uma assinatura, provisionamos uma runtime key OpenRouter com
-// `limit` em USD = crédito do plano; o corte de saldo é o 402 do OpenRouter,
-// que o Wayne já trata nativamente.
+// Modelo de negócio (face UI = Cursor): plano com uso incluído por ciclo;
+// opcional on-demand com limite de gasto. Internamente, `creditsUsd` é o teto
+// USD da runtime key OpenRouter; o corte de saldo é o 402, que o motor trata.
 
 import "server-only";
 
@@ -19,15 +18,14 @@ export interface PlanDef {
   label: string;
   priceUsdMonth: number; // exibição (US$/mês)
   priceUsdYear: number; // cobrança anual (≈ 10× mensal = ~2 meses grátis)
-  creditsUsd: number; // limite da runtime key OpenRouter (custo/teto real)
+  creditsUsd: number; // teto USD da runtime key OpenRouter (uso incluído + on-demand)
   stripePriceIdMonth: string | null; // null = sem checkout (Free ou price não configurado)
   stripePriceIdYear: string | null;
   rolloverUsd: number;
   trialDays: number; // dias de trial grátis na 1ª assinatura (0 = sem trial)
 }
 
-// Unidade "créditos" exibida ao usuário: 1 crédito = US$ 0,01. Esconde o custo
-// financeiro real (US$) atrás de uma contagem de créditos (estilo Manus/Grok).
+// Legado: conversão USD → contagem (não expor na UI pública — modelo Cursor).
 export const CREDIT_USD = 0.01;
 export function creditsForDisplay(usd: number): number {
   return Math.round(usd / CREDIT_USD);
@@ -115,7 +113,7 @@ export function isOverageMeteredConfigured(): boolean {
 }
 
 // Regime da máquina Fly por plano: Pro/Max = sempre-acesa (canais persistentes/
-// "funcionário 24h"); Free/Starter = dorme ociosa (suspend).
+// "agente 24/7 na nuvem"); Free/Starter = dorme ociosa (suspend).
 export function planRegime(plan: Plan): "base" | "premium" {
   return plan === "pro" || plan === "max" ? "premium" : "base";
 }

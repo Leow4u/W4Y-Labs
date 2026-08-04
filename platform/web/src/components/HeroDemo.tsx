@@ -116,8 +116,8 @@ const SCENARIOS: Record<SiteLocale, Scenario[]> = {
           user: "Toda sexta às 17h, manda as cobranças da semana pros clientes.",
           items: [
             { kind: "line", text: "Thinking" },
-            { kind: "line", text: "Agenda · rotina criada" },
-            { kind: "reply", text: "Rotina no ar — toda sexta, às 17h:" },
+            { kind: "line", text: "Automações · automação criada" },
+            { kind: "reply", text: "Automação no ar — toda sexta, às 17h:" },
             { kind: "routine" },
           ],
         },
@@ -214,8 +214,8 @@ const SCENARIOS: Record<SiteLocale, Scenario[]> = {
           user: "Every Friday at 5pm, send the week's invoices to my clients.",
           items: [
             { kind: "line", text: "Thinking" },
-            { kind: "line", text: "Agenda · routine created" },
-            { kind: "reply", text: "Routine is live — every Friday at 5pm:" },
+            { kind: "line", text: "Automations · automation created" },
+            { kind: "reply", text: "Automation is live — every Friday at 5pm:" },
             { kind: "routine" },
           ],
         },
@@ -231,7 +231,9 @@ const T = {
     windowTitle: "work4you.ai — seu agente",
     live: "no ar",
     newSession: "Nova sessão",
-    menu: ["Agent Studio", "Agenda", "Habilidades", "Canais", "Entregas"],
+    menu: ["Automações", "Personalizar", "Canais", "Artefatos"],
+    projectsLabel: "Projetos",
+    projects: ["Marketing", "Financeiro"],
     sessionsLabel: "Sessões",
     sessions: ["Post pro Instagram", "Proposta de junho", "Cobranças da semana"],
     emptyTitle: "No que vamos trabalhar?",
@@ -242,7 +244,7 @@ const T = {
     composerPlaceholder: "Descreva o que precisa",
     askApproval: "Pedir aprovação ▾",
     pdfName: "proposta-junho.pdf",
-    pdfSub: "Salvo em Entregas — pronto pra revisar",
+    pdfSub: "Salvo em Artefatos — pronto pra revisar",
     pdfDone: "feito ✓",
     authSub: "Autorização segura",
     authorize: "Autorizar",
@@ -266,7 +268,9 @@ const T = {
     windowTitle: "work4you.ai — your agent",
     live: "live",
     newSession: "New session",
-    menu: ["Agent Studio", "Agenda", "Skills", "Channels", "Deliveries"],
+    menu: ["Automations", "Customize", "Channels", "Artifacts"],
+    projectsLabel: "Projects",
+    projects: ["Marketing", "Finance"],
     sessionsLabel: "Sessions",
     sessions: ["Instagram post", "June proposal", "This week's invoices"],
     emptyTitle: "What are we working on?",
@@ -277,7 +281,7 @@ const T = {
     composerPlaceholder: "Describe what you need",
     askApproval: "Ask for approval ▾",
     pdfName: "june-proposal.pdf",
-    pdfSub: "Saved to Deliveries — ready to review",
+    pdfSub: "Saved to Artifacts — ready to review",
     pdfDone: "done ✓",
     authSub: "Secure authorization",
     authorize: "Authorize",
@@ -555,6 +559,14 @@ export default function HeroDemo({ locale }: { locale: SiteLocale }) {
             ))}
           </div>
           <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
+            {t.projectsLabel}
+          </p>
+          <div className="mt-2.5 space-y-2 text-[12px] text-ink-soft">
+            {t.projects.map((p) => (
+              <p key={p} className="truncate">{p}</p>
+            ))}
+          </div>
+          <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
             {t.sessionsLabel}
           </p>
           <div className="mt-2.5 space-y-2 text-[12px] text-ink-soft">

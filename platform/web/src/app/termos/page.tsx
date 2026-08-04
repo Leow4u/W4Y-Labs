@@ -62,13 +62,14 @@ export default function TermosPage() {
           </p>
         </div>
         <div>
-          <h2 className="font-bold text-ink">5. Planos, créditos e cobrança</h2>
+          <h2 className="font-bold text-ink">5. Planos e cobrança</h2>
           <p className="mt-1">
-            Recursos podem ser oferecidos em planos gratuitos e pagos, com créditos de consumo.
-            Valores, limites e condições de cada plano são apresentados no momento da
-            contratação, processada por meio do provedor de pagamentos Stripe. Créditos de
-            assinatura podem expirar conforme as regras do plano; créditos avulsos (top-up) não
-            expiram, salvo indicação em contrário.
+            Recursos podem ser oferecidos em planos gratuitos e pagos. Cada plano inclui uso
+            que reinicia a cada ciclo de cobrança; planos pagos podem oferecer uso on-demand
+            opcional, sujeito a um limite de gasto definido por você. Valores, limites e
+            condições de cada plano são apresentados no momento da contratação, processada
+            por meio do provedor de pagamentos Stripe. O uso além do incluído é reportado no
+            fim do ciclo e cobrado na fatura seguinte, conforme as regras do plano.
           </p>
         </div>
         <div>

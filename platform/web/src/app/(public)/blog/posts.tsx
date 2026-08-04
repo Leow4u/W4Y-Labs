@@ -48,7 +48,7 @@ export const POSTS: BlogPost[] = [
   {
     slug: "da-tarefa-a-rotina",
     category: "Como usar",
-    title: "Da primeira tarefa à rotina que roda sozinha",
+    title: "Da primeira tarefa à automação que roda sozinha",
     description:
       "O caminho que os nossos melhores usuários percorrem na primeira semana — em quatro passos.",
     date: "25 de julho de 2026",
@@ -58,7 +58,7 @@ export const POSTS: BlogPost[] = [
       <>
         <P>
           Tem um padrão em quem mais extrai valor da Work4You: começa pequeno,
-          conecta o essencial e transforma o que funciona em rotina. O caminho
+          conecta o essencial e transforma o que funciona em automação. O caminho
           inteiro cabe numa semana. Aqui está ele, em quatro passos.
         </P>
         <H2>1. Uma tarefa de pesquisa</H2>
@@ -70,11 +70,11 @@ export const POSTS: BlogPost[] = [
         </P>
         <H2>2. Conecte 2 ou 3 aplicativos</H2>
         <P>
-          Agora dê acesso ao que você usa todo dia: Gmail, Google Drive, o CRM, o
-          Instagram. A autorização é feita com o próprio aplicativo (o mesmo padrão
-          de “Entrar com Google”) e pode ser revogada quando quiser. Com acesso, o
-          agente deixa de só produzir — ele passa a <B>agir</B>: enviar, atualizar,
-          publicar.
+          Em <B>Personalizar › Conectores</B>, dê acesso ao que você usa todo dia:
+          Gmail, Google Drive, o CRM, o Instagram. A autorização é feita com o
+          próprio aplicativo (o mesmo padrão de “Entrar com Google”) e pode ser
+          revogada quando quiser. Com acesso, o agente deixa de só produzir — ele
+          passa a <B>agir</B>: enviar, atualizar, publicar.
         </P>
         <H2>3. Aprove — e ajuste o rumo</H2>
         <P>
@@ -83,10 +83,11 @@ export const POSTS: BlogPost[] = [
           preferências, mandando instruções no meio do trabalho. Em pouco tempo
           você sabe exatamente quanta autonomia dar.
         </P>
-        <H2>4. Transforme em rotina</H2>
+        <H2>4. Transforme em automação</H2>
         <P>
           A tarefa deu certo? Diga: “faz isso toda segunda às 8h”. Pronto — ela
-          entra na <PostLink href="/documentacao/agenda">Agenda</PostLink> e passa a
+          entra nas{" "}
+          <PostLink href="/documentacao/automacoes">Automações</PostLink> e passa a
           acontecer sem você, com a entrega chegando onde você pediu: na
           plataforma, no e-mail, no WhatsApp.
         </P>
@@ -102,46 +103,51 @@ export const POSTS: BlogPost[] = [
     ),
   },
   {
-    slug: "agent-studio-funcionarios-digitais",
+    slug: "personalizar-o-seu-agente",
     category: "Produto",
-    title: "Agent Studio: monte funcionários digitais com papel definido",
+    title: "Personalizar: um agente só, do seu jeito",
     description:
-      "Chega de “uma IA pra tudo”. Agora você monta agentes sob medida — com conhecimento, limites e até time de apoio.",
+      "Skills, Conectores e MCPs — as capacidades que o seu trabalho pede, escolhidas por você.",
     date: "18 de junho de 2026",
     dateISO: "2026-06-18",
-    readingMinutes: 4,
+    readingMinutes: 3,
     body: (
       <>
         <P>
-          Desde o início, a Work4You é sobre delegar de verdade. Mas delegar bem
-          exige algo que “uma IA genérica” não tem: <B>papel definido</B>. Uma
-          empresa não contrata uma pessoa pra fazer tudo — contrata um vendedor, um
-          atendente, um analista. A partir de agora, seus agentes funcionam assim
-          também.
+          Desde o início, a Work4You é sobre delegar de verdade. E delegar bem
+          depende menos de ter “uma IA pra cada coisa” e mais de ter{" "}
+          <B>um agente que sabe o que você precisa</B>. É pra isso que existe a
+          tela <B>Personalizar</B>: o lugar onde você molda o seu agente — o
+          mesmo de sempre, com as capacidades que o seu trabalho pede.
         </P>
-        <H2>O Agent Studio</H2>
+        <H2>Skills: o que ele sabe fazer</H2>
         <P>
-          No <B>Agent Studio</B>, você monta agentes sob medida <B>conversando</B>:
-          descreve o papel — “quero um agente que cuida do meu Instagram: responde
-          comentários e prepara 3 posts por semana” — e o Studio transforma isso num
-          rascunho com campos editáveis. Tem pressa? Parta de um template pronto.
+          <B>Skills</B> são habilidades que o agente ganha: montar apresentação,
+          tratar planilha, editar imagem, escrever num formato específico. Ligue
+          as que interessam, desligue as que não. No <B>Marketplace</B> você
+          navega pelo catálogo por categoria e ativa com um clique — sem
+          configurar nada.
         </P>
-        <H2>Cada agente com o que é seu</H2>
+        <H2>Conectores: onde ele age</H2>
         <P>
-          <B>Conhecimento próprio:</B> envie documentos — catálogo, política de
-          preços, histórico — e o agente passa a consultar e citar esse material em
-          qualquer tarefa. <B>Teto de créditos:</B> defina quanto cada agente pode
-          gastar por mês; chegou no teto, ele para. <B>Canais e aplicativos
-          próprios:</B> o agente de atendimento no WhatsApp da empresa, o de
-          relatórios com acesso ao Drive — cada um só enxerga o que você deu a ele.
+          <B>Conectores</B> dão ao agente acesso autorizado aos aplicativos que
+          você já usa — Gmail, Drive, o CRM, o Instagram e mais de mil outros.
+          Com eles, o agente deixa de só produzir e passa a agir: manda o e-mail,
+          atualiza a planilha, publica o post. A autorização é feita com o
+          próprio aplicativo e pode ser revogada quando quiser.
         </P>
-        <H2>E pra trabalhos grandes, um objetivo</H2>
+        <H2>MCPs: conexões avançadas</H2>
         <P>
-          Entregue um objetivo — “lança a campanha do produto X” — e o agente propõe
-          o plano: etapas, ordem, quem faz o quê. Você revisa, aprova, e o
-          trabalho anda com aprovações centralizadas num só lugar. O guia completo
-          está na{" "}
-          <PostLink href="/documentacao/agent-studio">documentação</PostLink>.
+          A novidade da vez. Os <B>MCPs</B> são conexões avançadas para
+          ferramentas externas: se o sistema que você usa oferece uma conexão
+          desse tipo, basta apontar o agente pra ela e as ferramentas de lá
+          passam a ficar disponíveis. É a porta aberta pro que ainda não está no
+          catálogo.
+        </P>
+        <P>
+          Um agente só, ajustado ao seu trabalho — e reajustável amanhã, quando o
+          trabalho mudar. O guia completo está em{" "}
+          <PostLink href="/documentacao/personalizar">Personalizar</PostLink>.
         </P>
       </>
     ),
@@ -176,13 +182,12 @@ export const POSTS: BlogPost[] = [
           Rotinas rodam no computador do agente, na nuvem — o seu pode estar
           desligado. Cada execução fica registrada com o resultado, e a entrega
           chega onde você pedir: na plataforma, no e-mail, no WhatsApp. O{" "}
-          <B>Calendário</B> mostra tudo que está agendado, inclusive quando você
-          tem mais de um agente.
+          <B>Calendário</B> mostra tudo que está agendado — rotinas, gatilhos e
+          próximas execuções.
         </P>
         <P>
-          É a peça que faltava pro “funcionário 24 horas” deixar de ser figura de
-          linguagem. Detalhes em{" "}
-          <PostLink href="/documentacao/agenda">Agenda e rotinas</PostLink>.
+          É o que faz o agente continuar depois que você sai. Detalhes em{" "}
+          <PostLink href="/documentacao/automacoes">Automações</PostLink>.
         </P>
       </>
     ),
@@ -249,10 +254,10 @@ export const POSTS: BlogPost[] = [
         </P>
         <H2>E os seus clientes também</H2>
         <P>
-          O uso que mais nos animou nos testes: um agente de <B>atendimento</B> no
-          WhatsApp da empresa, respondendo com o conhecimento que você deu a ele.
-          Canais podem ser da conta toda ou de um agente específico — o atendente
-          tem o número dele, o seu agente pessoal tem o seu.
+          O uso que mais nos animou nos testes: <B>atendimento</B> no WhatsApp da
+          empresa — o mesmo agente, respondendo com o conhecimento e o tom que
+          você configurou. Configure cada canal na tela Canais: WhatsApp da
+          empresa para clientes, o seu Telegram ou e-mail para mandar tarefas.
         </P>
         <P>
           Como conectar, o que funciona em cada plano e as boas práticas:{" "}
@@ -298,7 +303,7 @@ export const POSTS: BlogPost[] = [
           na hora de delegar. Transparência total: você sempre sabe qual modelo
           trabalhou. Detalhes em{" "}
           <PostLink href="/documentacao/planos-e-creditos">
-            Planos e créditos
+            Planos e uso
           </PostLink>
           .
         </P>

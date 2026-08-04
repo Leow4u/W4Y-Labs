@@ -9,7 +9,7 @@ type Plan = {
   name: string;
   tagline: string;
   price: string;
-  credits: string;
+  usageNote: string;
   ladder?: string;
   features: string[];
   cta: string;
@@ -32,20 +32,20 @@ const CONTENT: Record<
 > = {
   pt: {
     h1: "Comece grátis. Cresça quando fizer sentido.",
-    sub: "Créditos que viram trabalho entregue. Teste os planos pagos por 7 dias sem pagar nada — e cancele quando quiser.",
+    sub: "Uso incluído por plano — como no Cursor. Teste os planos pagos por 7 dias sem pagar nada; cancele quando quiser.",
     mostPopular: "Mais popular",
     perMonth: "/mês",
     footerNote:
-      "Cobrança anual com desconto disponível ao assinar. Pagamento processado com segurança pela Stripe — cancele quando quiser.",
+      "Cada plano inclui uso que reinicia a cada ciclo. Depois disso, ative on-demand na Conta (com limite de gasto). O overage entra na próxima fatura — sem cobrança surpresa. Cobrança anual com desconto ao assinar; pagamento pela Stripe.",
     teamsTitle: "Precisa de mais? Times e empresas",
-    teamsBody: "Vários agentes, várias pessoas, limites sob medida. Fale com a gente: ",
+    teamsBody: "Várias pessoas, limites sob medida e SSO — fale com a gente: ",
     teamsEmail: "contato@work4you.ai",
     plans: [
       {
         name: "Grátis",
         tagline: "Pra conhecer o seu agente",
         price: "US$ 0",
-        credits: "créditos de boas-vindas",
+        usageNote: "Uso de boas-vindas",
         features: [
           "Sem necessidade de cartão de crédito",
           "Seu agente pessoal na nuvem",
@@ -58,11 +58,13 @@ const CONTENT: Record<
         name: "Starter",
         tagline: "Pro trabalho de todo dia",
         price: "US$ 19",
-        credits: "600 créditos/mês",
+        usageNote: "Uso incluído no plano",
         ladder: "Tudo do Grátis, mais:",
         features: [
+          "Uso incluído que reinicia a cada ciclo",
           "Modelos essenciais (Flash e Auto)",
           "Chat e habilidades sem limite de recursos",
+          "On-demand opcional com limite de gasto",
           "Rotinas e automações",
           "Suporte por e-mail",
         ],
@@ -72,7 +74,7 @@ const CONTENT: Record<
         name: "Pro",
         tagline: "Pra quem quer o 24/7",
         price: "US$ 49",
-        credits: "1.600 créditos/mês",
+        usageNote: "Mais uso incluído · agente 24/7",
         ladder: "Tudo do Starter, mais:",
         features: [
           "Modo Expert — modelos de ponta pra tarefas difíceis",
@@ -86,10 +88,11 @@ const CONTENT: Record<
         name: "Max",
         tagline: "Pra operações inteiras",
         price: "US$ 99",
-        credits: "3.800 créditos/mês",
+        usageNote: "Pool incluído ampliado",
         ladder: "Tudo do Pro, mais:",
         features: [
-          "Modo Crew — time de agentes em paralelo",
+          "Pool incluído ampliado",
+          "On-demand com teto de gasto mais alto",
           "Limites de uso mais altos",
           "Suporte prioritário",
         ],
@@ -99,20 +102,20 @@ const CONTENT: Record<
   },
   en: {
     h1: "Start free. Grow when it makes sense.",
-    sub: "Credits that turn into delivered work. Try any paid plan free for 7 days — and cancel whenever you want.",
+    sub: "Included usage per plan — Cursor-style. Try any paid plan free for 7 days; cancel whenever you want.",
     mostPopular: "Most popular",
     perMonth: "/month",
     footerNote:
-      "Discounted annual billing available at checkout. Payments securely processed by Stripe — cancel anytime.",
+      "Each plan includes usage that resets every billing cycle. After that, enable on-demand in Account (with a spend limit). Overage is billed on your next invoice — no surprise charges. Discounted annual billing at checkout; payments via Stripe.",
     teamsTitle: "Need more? Teams and companies",
-    teamsBody: "Multiple agents, multiple people, limits built to fit. Talk to us: ",
+    teamsBody: "Multiple people, custom limits, and SSO — talk to us: ",
     teamsEmail: "contato@work4you.ai",
     plans: [
       {
         name: "Free",
         tagline: "Get to know your agent",
         price: "$0",
-        credits: "welcome credits",
+        usageNote: "Welcome usage",
         features: [
           "No credit card required",
           "Your personal agent in the cloud",
@@ -125,11 +128,13 @@ const CONTENT: Record<
         name: "Starter",
         tagline: "For everyday work",
         price: "$19",
-        credits: "600 credits/month",
+        usageNote: "Included usage in your plan",
         ladder: "Everything in Free, plus:",
         features: [
+          "Included usage that resets each cycle",
           "Essential models (Flash and Auto)",
           "Chat and skills with no feature limits",
+          "Optional on-demand with spend limit",
           "Routines and automations",
           "Email support",
         ],
@@ -139,7 +144,7 @@ const CONTENT: Record<
         name: "Pro",
         tagline: "For those who want 24/7",
         price: "$49",
-        credits: "1,600 credits/month",
+        usageNote: "More included usage · always-on agent",
         ladder: "Everything in Starter, plus:",
         features: [
           "Expert mode — frontier models for hard tasks",
@@ -153,10 +158,11 @@ const CONTENT: Record<
         name: "Max",
         tagline: "For entire operations",
         price: "$99",
-        credits: "3,800 credits/month",
+        usageNote: "Larger included usage pool",
         ladder: "Everything in Pro, plus:",
         features: [
-          "Crew mode — a team of agents in parallel",
+          "Larger included usage pool",
+          "Higher on-demand spend ceiling",
           "Higher usage limits",
           "Priority support",
         ],
@@ -203,7 +209,7 @@ export default async function PrecosPage() {
                   <span className="ml-1 text-sm text-ink-faint">{t.perMonth}</span>
                 </p>
                 <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-faint">
-                  {p.credits}
+                  {p.usageNote}
                 </p>
                 <Link
                   href="/login"

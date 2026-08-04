@@ -6,7 +6,7 @@ export default function SolucoesPage() {
   return (
     <PublicPage
       kicker="Soluções"
-      title="Um funcionário digital para cada área"
+      title="Seu agente em cada área"
       intro="Cada área tem trabalho que se repete. A Work4You assume a repetição — e o seu time fica com o que exige gente."
       cards={[
         { title: "Vendas", copy: "Qualificação de leads, follow-ups no prazo e propostas montadas a partir do seu material." },

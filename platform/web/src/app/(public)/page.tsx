@@ -45,7 +45,7 @@ const CONNECTORS = {
   ],
 } as const;
 
-const DELIVERABLES = [
+const ARTIFACTS = [
   { name: "Excel", icon: "/brand/apps/excel.svg" },
   { name: "PowerPoint", icon: "/brand/apps/powerpoint.svg" },
   { name: "Word", icon: "/brand/apps/word.svg" },
@@ -77,32 +77,35 @@ const CONTENT = {
         more: "+ de 1.400 apps",
         quote: "“Lê o meu Gmail e atualiza o Notion.”",
       },
-      deliverables: {
-        label: "Entregas",
-        title: "O que ele produz e devolve pronto",
-        quote: "“Gera o fluxo de caixa em Excel e deixa em Entregas.”",
+      artifacts: {
+        label: "Artefatos",
+        title: "O que ele cria e devolve pronto",
+        quote: "“Gera o fluxo de caixa em Excel e deixa em Artefatos.”",
       },
     },
     statement: {
       t1: "Chat responde.",
       tu: "O seu agente executa",
       t2: "— e continua depois que você sai.",
-      p: "Aqui você não usa um “agente pronto” de marketing. Você constrói um de verdade — foco, estilo, ferramentas, modelo — e deixa ele ligado.",
+      p: "Aqui você não usa um “agente pronto” de prateleira. Você personaliza o seu — foco, estilo, Skills, conectores e modelo — e deixa ele ligado.",
     },
     build: {
-      label: "01 · Construa",
+      label: "01 · Personalize",
       title: "Do zero ao seu agente",
       titleFaint: "em minutos, não semanas.",
-      p: "Diga o foco, o estilo, as ferramentas e o modelo. Construa um. Construa vários no Agent Studio — independentes, que se consultam e trabalham juntos quando a tarefa pede.",
-      cta: "Conhecer o Agent Studio →",
-      agents: [
-        { name: "Agente principal", focus: "Coordena, delega e entrega", model: "modelo à sua escolha", on: true },
-        { name: "Vendas", focus: "Leads, propostas e follow-ups", model: "foco próprio", on: true },
-        { name: "Financeiro", focus: "Cobranças e conciliação", model: "rotinas 24/7", on: true },
-        { name: "Atendimento", focus: "Respostas no tom da empresa", model: "em construção", on: false },
+      p: "Diga o foco e o estilo. Ative as Skills que ele usa, ligue as suas contas nos conectores e escolha o modelo — tudo na tela Personalizar.",
+      cta: "Ver como personalizar →",
+      frame: "Personalizar",
+      tabs: ["Skills", "Conectores", "MCPs"],
+      marketplace: "Navegar Marketplace →",
+      rows: [
+        { name: "Planilhas e relatórios", focus: "Números organizados, gráficos e Excel pronto", on: true },
+        { name: "Apresentações", focus: "Monta o deck e exporta em PowerPoint", on: true },
+        { name: "Pesquisa na web", focus: "Busca, lê e resume — com as fontes", on: true },
+        { name: "Edição de imagens", focus: "Corta, ajusta e prepara pra publicar", on: false },
       ],
-      statusOn: "no ar",
-      statusOff: "pausado",
+      statusOn: "ativa",
+      statusOff: "desativada",
     },
     use: {
       label: "02 · Use",
@@ -186,7 +189,7 @@ const CONTENT = {
     trust: [
       { title: "Aprovação humana", copy: "Ações sensíveis esperam o seu OK." },
       { title: "Histórico completo", copy: "Cada tarefa e decisão registrada." },
-      { title: "Controle de uso", copy: "Consumo e custo por agente." },
+      { title: "Controle de uso", copy: "Uso incluído e on-demand na Conta." },
       { title: "Acesso por equipe", copy: "Cada pessoa vê o que deve ver." },
     ],
     final: {
@@ -218,32 +221,35 @@ const CONTENT = {
         more: "1,400+ apps",
         quote: "“It reads my Gmail and updates Notion.”",
       },
-      deliverables: {
-        label: "Deliveries",
+      artifacts: {
+        label: "Artifacts",
         title: "What it produces and hands back, done",
-        quote: "“It builds the cash flow in Excel and drops it in Deliveries.”",
+        quote: "“It builds the cash flow in Excel and drops it in Artifacts.”",
       },
     },
     statement: {
       t1: "Chat answers.",
       tu: "Your agent executes",
       t2: "— and keeps going after you leave.",
-      p: "This isn't a prepackaged “agent” from a marketing page. You build a real one — focus, style, tools, model — and leave it running.",
+      p: "This isn't a prepackaged “agent” from a marketing page. You customize yours — focus, style, Skills, connectors, model — and leave it running.",
     },
     build: {
-      label: "01 · Build",
+      label: "01 · Customize",
       title: "From zero to your agent",
       titleFaint: "in minutes, not weeks.",
-      p: "Set the focus, the style, the tools, and the model. Build one. Build several in Agent Studio — independent agents that consult each other and work together when the task calls for it.",
-      cta: "Meet Agent Studio →",
-      agents: [
-        { name: "Main agent", focus: "Coordinates, delegates, delivers", model: "model of your choice", on: true },
-        { name: "Sales", focus: "Leads, proposals, follow-ups", model: "own focus", on: true },
-        { name: "Finance", focus: "Invoicing and reconciliation", model: "24/7 routines", on: true },
-        { name: "Support", focus: "Replies in your company's tone", model: "in progress", on: false },
+      p: "Set focus and style. Enable the Skills it uses, connect your accounts, pick the model — all on the Customize screen.",
+      cta: "See how to customize →",
+      frame: "Customize",
+      tabs: ["Skills", "Connectors", "MCPs"],
+      marketplace: "Browse Marketplace →",
+      rows: [
+        { name: "Spreadsheets and reports", focus: "Numbers organized, charts, Excel ready", on: true },
+        { name: "Presentations", focus: "Builds the deck and exports to PowerPoint", on: true },
+        { name: "Web research", focus: "Search, read, summarize — with sources", on: true },
+        { name: "Image editing", focus: "Crop, adjust, and prep for publishing", on: false },
       ],
-      statusOn: "live",
-      statusOff: "paused",
+      statusOn: "active",
+      statusOff: "off",
     },
     use: {
       label: "02 · Use",
@@ -327,7 +333,7 @@ const CONTENT = {
     trust: [
       { title: "Human approval", copy: "Sensitive actions wait for your OK." },
       { title: "Full history", copy: "Every task and decision on record." },
-      { title: "Usage control", copy: "Consumption and cost per agent." },
+      { title: "Usage control", copy: "Included usage and on-demand in Account." },
       { title: "Team access", copy: "Each person sees only what they should." },
     ],
     final: {
@@ -458,16 +464,16 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            {/* Deliverables: what the agent produces */}
+            {/* Artifacts: what the agent produces */}
             <div className="rounded-2xl border border-line bg-white p-7">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-                {t.explainer.deliverables.label}
+                {t.explainer.artifacts.label}
               </p>
               <h3 className="mt-2 text-lg font-bold text-ink">
-                {t.explainer.deliverables.title}
+                {t.explainer.artifacts.title}
               </h3>
               <div className="mt-5 flex flex-wrap gap-2">
-                {DELIVERABLES.map((d) => (
+                {ARTIFACTS.map((d) => (
                   <span
                     key={d.name}
                     className="flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink-soft"
@@ -479,7 +485,7 @@ export default async function LandingPage() {
                 ))}
               </div>
               <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
-                {t.explainer.deliverables.quote}
+                {t.explainer.artifacts.quote}
               </p>
             </div>
           </div>
@@ -502,7 +508,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── S4 · Build: text rail × Studio frame ────────────────────── */}
+      {/* ── S4 · Customize: text rail × Personalizar frame ──────────── */}
       <section className="px-6 py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div>
@@ -524,7 +530,7 @@ export default async function LandingPage() {
             </Link>
           </div>
 
-          {/* Studio frame over the misty pines */}
+          {/* Personalizar frame over the misty pines */}
           <div className="relative overflow-hidden rounded-3xl p-4 sm:p-8">
             <Image
               src="/media/studio-mist.jpg"
@@ -539,33 +545,45 @@ export default async function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-line" />
                 <span className="h-2.5 w-2.5 rounded-full bg-line" />
                 <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
-                  Agent Studio
+                  {t.build.frame}
                 </span>
               </div>
-              {t.build.agents.map((a, i) => (
+              <div className="flex gap-1 border-b border-line bg-paper px-4 py-2">
+                {t.build.tabs.map((tab, i) => (
+                  <span
+                    key={tab}
+                    className={`rounded-full px-3 py-1 text-[11px] font-medium ${
+                      i === 0 ? "bg-ink text-paper" : "text-ink-soft"
+                    }`}
+                  >
+                    {tab}
+                  </span>
+                ))}
+              </div>
+              {t.build.rows.map((r, i) => (
                 <div
-                  key={a.name}
+                  key={r.name}
                   className={`flex items-center gap-4 px-5 py-4 ${i > 0 ? "border-t border-line" : ""}`}
                 >
                   <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${a.on ? "w4y-live-dot bg-salvia" : "bg-line"}`}
+                    className={`h-2 w-2 shrink-0 rounded-full ${r.on ? "w4y-live-dot bg-salvia" : "bg-line"}`}
                   />
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink">{a.name}</p>
-                    <p className="truncate text-[13px] text-ink-soft">{a.focus}</p>
+                    <p className="text-sm font-semibold text-ink">{r.name}</p>
+                    <p className="truncate text-[13px] text-ink-soft">{r.focus}</p>
                   </div>
-                  <span className="ml-auto hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint sm:block">
-                    {a.model}
-                  </span>
                   <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${
-                      a.on ? "bg-salvia-soft text-mata" : "bg-paper text-ink-faint"
+                    className={`ml-auto shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${
+                      r.on ? "bg-salvia-soft text-mata" : "bg-paper text-ink-faint"
                     }`}
                   >
-                    {a.on ? t.build.statusOn : t.build.statusOff}
+                    {r.on ? t.build.statusOn : t.build.statusOff}
                   </span>
                 </div>
               ))}
+              <div className="border-t border-line px-5 py-3">
+                <span className="text-[13px] font-semibold text-mata">{t.build.marketplace}</span>
+              </div>
             </div>
           </div>
         </div>

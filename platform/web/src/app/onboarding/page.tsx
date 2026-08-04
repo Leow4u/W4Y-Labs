@@ -15,7 +15,7 @@ export default async function OnboardingPage() {
     <main className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-6 px-6 text-center">
       <div className="h-10 w-10 animate-spin rounded-full border-2 border-neutral-300 border-t-neutral-900 dark:border-neutral-700 dark:border-t-white" />
       <div>
-        <h1 className="font-brand text-2xl font-semibold">Preparando o seu funcionário digital</h1>
+        <h1 className="font-brand text-2xl font-semibold">Preparando o seu agente</h1>
         <p className="mt-2 text-sm text-neutral-500">
           Estamos criando a sua instância dedicada do Work4You na nuvem — memória, arquivos e
           ferramentas só suas. Leva cerca de um minuto.

@@ -87,7 +87,7 @@ export const POSTS: BlogPost[] = [
         <H2>4. Turn it into a routine</H2>
         <P>
           Task went well? Say: “do this every Monday at 8 a.m.” Done — it goes
-          into the <PostLink href="/documentacao/agenda">Agenda</PostLink> and
+          into <PostLink href="/documentacao/automacoes">Automations</PostLink> and
           starts happening without you, with the delivery arriving wherever you
           asked: on the platform, by email, on WhatsApp.
         </P>
@@ -103,47 +103,50 @@ export const POSTS: BlogPost[] = [
     ),
   },
   {
-    slug: "agent-studio-funcionarios-digitais",
+    slug: "personalizar-o-seu-agente",
     category: "Product",
-    title: "Agent Studio: build digital employees with a defined role",
+    title: "Customize: one agent, your way",
     description:
-      "No more “one AI for everything.” Now you build agents made to measure — with knowledge, limits, and even a support team.",
+      "Skills, Connectors, and MCPs — the capabilities your work needs, chosen by you.",
     date: "June 18, 2026",
     dateISO: "2026-06-18",
-    readingMinutes: 4,
+    readingMinutes: 3,
     body: (
       <>
         <P>
-          From day one, Work4You has been about real delegation. But delegating
-          well requires something a “generic AI” doesn't have: <B>a defined
-          role</B>. A company doesn't hire one person to do everything — it hires
-          a salesperson, a support rep, an analyst. Starting now, your agents
-          work that way too.
+          From day one, Work4You has been about real delegation. Delegating well
+          depends less on having “one AI for each job” and more on having{" "}
+          <B>one agent that knows what you need</B>. That is what the{" "}
+          <B>Customize</B> screen is for: where you shape your agent — the same
+          one as always, with the capabilities your work calls for.
         </P>
-        <H2>The Agent Studio</H2>
+        <H2>Skills: what it knows how to do</H2>
         <P>
-          In the <B>Agent Studio</B>, you build made-to-measure agents{" "}
-          <B>by talking</B>: describe the role — “I want an agent that runs my
-          Instagram: replies to comments and preps 3 posts a week” — and the
-          Studio turns that into a draft with editable fields. In a hurry? Start
-          from a ready-made template.
+          <B>Skills</B> are capabilities the agent gains: build a deck, work a
+          spreadsheet, edit an image, write in a specific format. Turn on what
+          matters, turn off what does not. In the <B>Marketplace</B> you browse
+          the catalog by category and activate with one click — no setup
+          required.
         </P>
-        <H2>Each agent gets its own</H2>
+        <H2>Connectors: where it acts</H2>
         <P>
-          <B>Its own knowledge:</B> upload documents — catalog, pricing policy,
-          history — and the agent starts consulting and citing that material in
-          any task. <B>A credit cap:</B> set how much each agent can spend per
-          month; when it hits the cap, it stops. <B>Its own channels and
-          apps:</B> the support agent on the company WhatsApp, the reports agent
-          with access to Drive — each one only sees what you gave it.
+          <B>Connectors</B> give the agent authorized access to the apps you
+          already use — Gmail, Drive, your CRM, Instagram, and more than a
+          thousand others. With them, the agent stops only producing and starts
+          acting: sends the email, updates the spreadsheet, publishes the post.
+          Authorization goes through the app itself and can be revoked anytime.
         </P>
-        <H2>And for big jobs, a goal</H2>
+        <H2>MCPs: advanced connections</H2>
         <P>
-          Hand over a goal — “launch the campaign for product X” — and the agent
-          proposes the plan: steps, order, who does what. You review, approve,
-          and the work moves forward with approvals centralized in one place. The
-          full guide is in the{" "}
-          <PostLink href="/documentacao/agent-studio">documentation</PostLink>.
+          The newest piece. <B>MCPs</B> are advanced connections to external
+          tools: if a system you use offers this kind of hook, point the agent
+          at it and that tool’s capabilities become available. It is the open
+          door for what is not in the catalog yet.
+        </P>
+        <P>
+          One agent, tuned to your work — and retunable tomorrow when the work
+          changes. The full guide is in{" "}
+          <PostLink href="/documentacao/personalizar">Customize</PostLink>.
         </P>
       </>
     ),
@@ -178,13 +181,12 @@ export const POSTS: BlogPost[] = [
           Routines run on the agent's computer, in the cloud — yours can be off.
           Every run is logged with its result, and the delivery arrives wherever
           you ask: on the platform, by email, on WhatsApp. The{" "}
-          <B>Calendar</B> shows everything that's scheduled, including when you
-          have more than one agent.
+          <B>Calendar</B> shows everything scheduled — routines, triggers, and
+          upcoming runs.
         </P>
         <P>
-          It's the piece that was missing for “24-hour employee” to stop being a
-          figure of speech. Details in{" "}
-          <PostLink href="/documentacao/agenda">Agenda and routines</PostLink>.
+          It is what keeps your agent going after you leave. Details in{" "}
+          <PostLink href="/documentacao/automacoes">Automations</PostLink>.
         </P>
       </>
     ),
@@ -251,11 +253,11 @@ export const POSTS: BlogPost[] = [
         </P>
         <H2>And your customers too</H2>
         <P>
-          The use case that excited us most in testing: a <B>customer support</B>{" "}
-          agent on your company&apos;s WhatsApp, answering with the knowledge you
-          gave it. Channels can belong to the whole account or to a specific
-          agent — the support agent has its own number, your personal agent has
-          yours.
+          The use case that excited us most in testing: <B>customer support</B> on
+          your company&apos;s WhatsApp — the same agent, answering with the
+          knowledge and tone you configured. Set up each channel on the Channels
+          screen: company WhatsApp for customers, your Telegram or email for
+          sending tasks.
         </P>
         <P>
           How to connect, what works on each plan, and best practices:{" "}
@@ -302,7 +304,7 @@ export const POSTS: BlogPost[] = [
           when you delegate. Full transparency: you always know which model did
           the work. Details in{" "}
           <PostLink href="/documentacao/planos-e-creditos">
-            Plans and credits
+            Plans and usage
           </PostLink>
           .
         </P>

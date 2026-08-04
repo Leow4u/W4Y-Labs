@@ -6,7 +6,7 @@ export default function RecursosPage() {
   return (
     <PublicPage
       kicker="Recursos"
-      title="Aprenda a trabalhar com funcionários digitais"
+      title="Aprenda a trabalhar com o seu agente"
       intro="Guias curtos e diretos para tirar o máximo do seu agente — do primeiro pedido às rotinas que rodam sozinhas."
       cards={[
         { title: "Primeiros passos", copy: "Como delegar bem: o que dizer ao agente para receber o trabalho do jeito certo." },

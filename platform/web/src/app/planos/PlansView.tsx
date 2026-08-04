@@ -13,7 +13,7 @@ export interface PlanCard {
   label: string;
   priceMonth: number;
   priceYear: number;
-  credits: number;
+  usageTagline: string;
   trialDays: number;
 }
 
@@ -27,23 +27,27 @@ interface PlansViewProps {
   initialInterval?: BillingInterval;
 }
 
-// Copy das features (estático, client-side). Créditos aparecem em destaque à parte.
+// Copy das features (estático, client-side). Modelo Cursor: uso incluído + on-demand.
 const FEATURES: Record<string, string[]> = {
   starter: [
-    "Todos os modelos essenciais (Flash e Auto)",
-    "Chat e habilidades sem limite de recursos",
+    "Uso incluído que reinicia a cada ciclo",
+    "Modelos essenciais (Flash e Auto)",
+    "Chat, Skills e Conectores sem limite de recursos",
     "Sua instância pessoal na nuvem",
+    "On-demand opcional com limite de gasto",
     "Suporte por e-mail",
   ],
   pro: [
     "Tudo do Starter",
     "Modo Expert (Claude) para tarefas difíceis",
-    "Instância sempre-ativa — funcionário 24h",
+    "Instância sempre-ativa — agente 24/7 na nuvem",
+    "Mais uso incluído por ciclo",
     "Respostas com prioridade",
   ],
   max: [
     "Tudo do Pro",
-    "Modo Crew — time de agentes em paralelo",
+    "Pool incluído ampliado",
+    "On-demand com teto de gasto mais alto",
     "Limites de uso mais altos",
     "Suporte prioritário",
   ],
@@ -221,12 +225,10 @@ export function PlansView({
                     <p className="mt-0.5 text-xs text-neutral-400">
                       {interval === "year"
                         ? `${priceEquivMonth(card)}/mês · 2 meses grátis`
-                        : `${card.credits.toLocaleString("pt-BR")} créditos/mês`}
+                        : card.usageTagline}
                     </p>
                     {interval === "year" && (
-                      <p className="text-xs text-neutral-400">
-                        {card.credits.toLocaleString("pt-BR")} créditos/mês
-                      </p>
+                      <p className="text-xs text-neutral-400">{card.usageTagline}</p>
                     )}
 
                     <button
@@ -242,12 +244,6 @@ export function PlansView({
                     </button>
 
                     <ul className="mt-6 flex flex-1 flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300">
-                      <li className="flex items-start gap-2">
-                        <Check />
-                        <span>
-                          <strong>{card.credits.toLocaleString("pt-BR")}</strong> créditos por mês
-                        </span>
-                      </li>
                       {(FEATURES[card.key] ?? []).map((f) => (
                         <li key={f} className="flex items-start gap-2">
                           <Check />
@@ -390,7 +386,9 @@ export function PlansView({
         )}
 
         <p className="mt-10 text-center text-xs text-neutral-400">
-          Pagamento processado com segurança pela Stripe. Você pode cancelar quando quiser.
+          Pagamento processado com segurança pela Stripe. Cada plano inclui uso que reinicia a
+          cada ciclo; depois disso, ative on-demand na Conta (com limite de gasto). O overage
+          entra na próxima fatura — sem cobrança surpresa. Cancele quando quiser.
         </p>
       </main>
     </>

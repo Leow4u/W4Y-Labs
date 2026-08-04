@@ -23,7 +23,7 @@ REGISTRY (Cloud SQL): instances (+ runs/agents/artifacts históricos)
 executa LLM — salva o prompt em sessionStorage → `/login?next=/chat` → `/chat`
 reabre com o prompt preenchido e o botão "Continuar no meu workspace".
 
-**Linguagem pública**: funcionário digital, agente, trabalho, rotina,
+**Linguagem pública**: agente, trabalho, rotina, delegar — tom direto para
 conectores, arquivos, aprovação humana, histórico, controle. NUNCA na landing:
 MCP, OpenRouter, Cloud Run, runtime, fork, Hermes, stack técnica.
 

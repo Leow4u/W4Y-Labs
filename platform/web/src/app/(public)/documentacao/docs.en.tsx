@@ -81,7 +81,7 @@ export interface DocPage {
 export const CATEGORIES = [
   "Start here",
   "Day to day",
-  "Build",
+  "Customize",
   "Connections",
   "Platforms",
 ] as const;
@@ -97,8 +97,8 @@ export const DOCS: DocPage[] = [
     body: (
       <>
         <P>
-          Work4You is a platform where you <B>build your own AI agent</B> and put
-          it to work. Unlike a regular chat, your agent has a{" "}
+          Work4You is a platform where you <B>customize your own AI agent</B> and
+          put it to work. Unlike a regular chat, your agent has a{" "}
           <B>computer of its own in the cloud</B>: it browses the web, works on
           spreadsheets, writes documents, uses the apps you authorize, and hands
           the work back finished — not just an answer.
@@ -122,9 +122,9 @@ export const DOCS: DocPage[] = [
         <P>
           Your agent lives in the cloud, not in your browser. You can close the
           tab or shut down your computer — it keeps working and lets you know
-          when it’s done. With the{" "}
-          <DocLink href="/documentacao/agenda">Agenda</DocLink>, it also runs
-          recurring routines without anyone having to ask.
+          when it’s done. With{" "}
+          <DocLink href="/documentacao/automacoes">Automations</DocLink>, it also
+          handles recurring work without anyone having to ask.
         </P>
         <Note>
           Every customer gets a <B>dedicated instance</B>: your agent, your
@@ -151,8 +151,7 @@ export const DOCS: DocPage[] = [
             </>,
             <>
               <B>Describe your first task</B> in the message box. Be specific,
-              like you would with a new hire: what you want, by when, in what
-              format. Example: “Research the 10 biggest competitors in [your
+              specific — context, deadline, and format. Example: “Research the 10 biggest competitors in [your
               industry] and build a spreadsheet comparing pricing and value
               propositions.”
             </>,
@@ -185,9 +184,9 @@ export const DOCS: DocPage[] = [
               screen.
             </>,
             <>
-              When a task works out, turn it into a routine in the{" "}
-              <DocLink href="/documentacao/agenda">Agenda</DocLink> — the agent
-              starts doing it on its own, at the time you set.
+              When a task works out, turn it into an{" "}
+              <DocLink href="/documentacao/automacoes">automation</DocLink> — the
+              agent starts doing it on its own, at the time you set.
             </>,
           ]}
         />
@@ -197,17 +196,18 @@ export const DOCS: DocPage[] = [
   {
     slug: "planos-e-creditos",
     category: "Start here",
-    nav: "Plans and credits",
-    title: "Plans and credits",
-    description: "How billing works: monthly credits, no surprises at the end of the month.",
+    nav: "Plans and usage",
+    title: "Plans and usage",
+    description: "How billing works: included usage per plan, optional on-demand, no surprises.",
     body: (
       <>
         <P>
-          Every plan includes an amount of <B>credits per month</B>. Credits are
-          the agent’s working currency: each task consumes them based on effort —
-          a quick question costs little; a long research job with a spreadsheet
-          at the end costs more. Out of credits for the month? The agent stops
-          and lets you know. <B>There’s never a surprise charge.</B>
+          Each plan includes an <B>included usage pool</B> that resets every billing cycle.
+          Simple tasks use less; long research or Expert mode uses more. When included usage
+          runs out, the agent stops and lets you know — or you enable{" "}
+          <B>on-demand</B> in Settings → Account, with a per-cycle <B>spend limit</B>.
+          Overage is reported at cycle end and billed on your next invoice.{" "}
+          <B>There’s never a surprise charge.</B>
         </P>
         <H2>The plans</H2>
         <UL
@@ -216,16 +216,16 @@ export const DOCS: DocPage[] = [
               <B>Free</B> — to get to know the platform. No credit card.
             </>,
             <>
-              <B>Starter ($19/month)</B> — 600 credits, the essential modes
+              <B>Starter ($19/month)</B> — included usage in your plan, essential modes
               (Flash and Auto), and your personal cloud instance.
             </>,
             <>
-              <B>Pro ($49/month)</B> — 1,600 credits, <B>Expert</B> mode for hard
-              tasks, and an always-on instance: your 24-hour employee.
+              <B>Pro ($49/month)</B> — more included usage, <B>Expert</B> mode for hard
+              tasks, and an always-on instance — your agent stays on 24/7 in the cloud.
             </>,
             <>
-              <B>Max ($99/month)</B> — 3,800 credits and <B>Crew</B> mode: a team
-              of agents working in parallel on the same goal.
+              <B>Max ($99/month)</B> — larger included pool, higher on-demand spend
+              ceiling, and higher limits for heavy operations.
             </>,
           ]}
         />
@@ -233,6 +233,13 @@ export const DOCS: DocPage[] = [
           Paid plans start with <B>7 days free</B>, and annual billing gets you 2
           months off. Details and sign-up at{" "}
           <DocLink href="/precos">work4you.ai/precos</DocLink>.
+        </P>
+        <H2>On-demand and spend limit</H2>
+        <P>
+          With an active paid plan and a card on file, you can turn on on-demand usage
+          in Account. Set a cap per cycle (up to your plan’s maximum); the agent keeps
+          working after included runs out, without changing the monthly fee. Track{" "}
+          <B>included usage</B> and estimated on-demand spend on the same screen.
         </P>
         <H2>The work modes</H2>
         <UL
@@ -249,15 +256,11 @@ export const DOCS: DocPage[] = [
               <B>Expert</B> — the strongest models, for hard problems (on the Pro
               and Max plans).
             </>,
-            <>
-              <B>Crew</B> — several agents in parallel, coordinated (on the Max
-              plan).
-            </>,
           ]}
         />
         <Note>
-          You can track the month’s usage inside the platform, and you get a
-          heads-up when you cross 50%, 75%, and 90% of your credits.
+          You can track cycle usage in Settings → Account, and you get a
+          heads-up when you cross 50%, 75%, and 90% of included usage.
         </Note>
       </>
     ),
@@ -350,68 +353,70 @@ export const DOCS: DocPage[] = [
     ),
   },
   {
-    slug: "agenda",
+    slug: "automacoes",
     category: "Day to day",
-    nav: "Agenda and routines",
-    title: "Agenda and routines",
-    description: "Recurring work that happens on its own — without depending on you.",
+    nav: "Automations",
+    title: "Automations",
+    description: "Repetitive work that runs on its own — by schedule or by trigger.",
     body: (
       <>
         <P>
-          The <B>Agenda</B> is where your agent takes on commitments. A routine
-          is a task with a schedule: “every Monday at 8 a.m., summarize the
-          week’s emails,” “every day at 6 p.m., check the CRM for new leads and
-          message me on WhatsApp.” You set it once; the agent delivers every
-          time.
+          <B>Automations</B> are the repetitive tasks your agent takes on and
+          runs in the cloud, always on. Two things can set one off: a{" "}
+          <B>time</B> — “every day at 7 a.m., send me the AI news by email” — or
+          a <B>trigger</B> in the environment, like an email landing in a
+          specific inbox or a new file showing up in a folder. You set it up
+          once; it delivers every time.
         </P>
-        <H2>How to create a routine</H2>
+        <H2>How to create one</H2>
         <UL
           items={[
             <>
               <B>By talking:</B> ask right in the session — “do this every Friday
-              at 5 p.m.” — and the agent schedules it.
+              at 5 p.m.” — and the agent sets the automation up.
             </>,
             <>
-              <B>From the Agenda:</B> build the routine on screen, choosing the
-              frequency, time, and instructions.
+              <B>On the Automations screen:</B> build it there, choosing the
+              schedule or the trigger, and the instructions to follow.
             </>,
             <>
-              <B>From the template gallery:</B> ready-made routines to adapt —
-              daily digest, monitoring, client follow-up.
+              <B>From the template gallery:</B> ready-made automations to
+              adapt — daily digest, monitoring, client follow-up.
             </>,
           ]}
         />
         <H2>Keeping track</H2>
         <P>
-          The <B>Calendar</B> shows everything that’s scheduled, including when
-          you have more than one agent. Every run is logged with its result — and
-          deliveries arrive wherever you asked: on the platform, in your email,
-          or on your WhatsApp, via{" "}
+          The screen shows <B>total automations</B>, how many <B>succeeded</B>{" "}
+          and <B>failed</B> in the last 7 days, and the full{" "}
+          <B>run history</B> — each run with its result, so you can see what
+          happened without opening a session. Deliveries arrive wherever you
+          asked: on the platform, in your email, or on your WhatsApp, via{" "}
           <DocLink href="/documentacao/canais">Channels</DocLink>.
         </P>
         <Note>
-          Routines run in the cloud — your computer can be off. On the Pro plan
-          and up, your agent’s computer stays <B>always on</B> — ideal for a full
-          schedule.
+          Automations run in the cloud — your computer can be off. On the Pro
+          plan and up, your agent’s computer stays <B>always on</B> — ideal for a
+          full schedule.
         </Note>
       </>
     ),
   },
 {
-    slug: "entregas-e-arquivos",
+    slug: "artefatos",
     category: "Day to day",
-    nav: "Deliveries and files",
-    title: "Deliveries and files",
-    description: "Where everything your agent produces lives — and the material you give it.",
+    nav: "Artifacts",
+    title: "Artifacts",
+    description: "The files, images, and links your agent creates — all in one place.",
     body: (
       <>
         <P>
-          Your agent’s work comes back as <B>real files</B>: spreadsheets,
-          documents, presentations, reports, pages. Every delivery shows up in the
-          conversation right away, with a preview in the side panel — a spreadsheet
-          opens as a spreadsheet, a page opens as a page.
+          <B>Artifacts</B> are everything your agent creates: spreadsheets,
+          documents, presentations, reports, images, pages, and links. Each one
+          shows up in the conversation right away, with a preview in the side
+          panel — a spreadsheet opens as a spreadsheet, a page opens as a page.
         </P>
-        <H2>The Deliveries screen</H2>
+        <H2>The Artifacts screen</H2>
         <UL
           items={[
             <>
@@ -422,78 +427,72 @@ export const DOCS: DocPage[] = [
               Preview, download, rename, and move files without leaving the platform.
             </>,
             <>
-              Files live on your agent’s cloud computer — available from any
+              Artifacts live on your agent’s cloud computer — available from any
               device, at any time.
             </>,
           ]}
         />
         <H2>Your material, for the agent to use</H2>
         <P>
-          It works the other way too: send files for your agent to work
-          with — a customer database, a contract to review, your sales
-          history. And in{" "}
-          <DocLink href="/documentacao/agent-studio">Agent Studio</DocLink>, you
-          build your agent’s permanent <B>knowledge</B> base: documents it
-          consults and cites in any task.
+          It works the other way too: send files for your agent to work with — a
+          customer database, a contract to review, your sales history. Attach
+          them in the session or drop them into a{" "}
+          <DocLink href="/documentacao/projetos">project</DocLink>, and the agent
+          reads and writes them directly.
         </P>
       </>
     ),
   },
   {
-    slug: "agent-studio",
-    category: "Build",
-    nav: "Agent Studio",
-    title: "Agent Studio",
-    description: "Build agents to spec: role, knowledge, limits, and team.",
+    slug: "personalizar",
+    category: "Customize",
+    nav: "Customize",
+    title: "Customize",
+    description: "The screen where you shape your agent: Skills, Connectors, and MCPs.",
     body: (
       <>
         <P>
-          <B>Agent Studio</B> is where you stop having “an AI” and start having{" "}
-          <B>digital employees with defined roles</B>: a prospecting agent,
-          a customer service agent, a reporting agent — each with its own
-          instructions, knowledge, and limits.
+          You have <B>one agent</B> — and <B>Customize</B> is where you shape it
+          into yours. It’s a single screen with three tabs:{" "}
+          <B>Skills</B>, <B>Connectors</B>, and <B>MCPs</B>. Everything you turn
+          on here is available to your agent in any session, on any{" "}
+          <DocLink href="/documentacao/canais">channel</DocLink>, and inside any{" "}
+          <DocLink href="/documentacao/automacoes">automation</DocLink>.
         </P>
-        <H2>Creating an agent</H2>
+        <H2>Skills</H2>
         <P>
-          Start by <B>talking</B>: describe the role — “I want an agent that runs
-          my Instagram: replies to comments and preps 3 posts a week” — and the
-          Studio drafts it with editable fields. Or start from a{" "}
-          <B>ready-made template</B> and adjust.
+          Ready-to-install capabilities: presentation generation, image editing,
+          data analysis, collecting information from websites. Browse the
+          Marketplace, install what fits how you work, and your agent knows how
+          to use it right away. More on the{" "}
+          <DocLink href="/documentacao/skills">Skills</DocLink> page.
         </P>
-        <H2>What each agent can have</H2>
-        <UL
-          items={[
-            <>
-              <B>Its own knowledge</B> — upload documents (PDF, Word, Excel,
-              spreadsheets, text) and the agent starts consulting and citing that material.
-            </>,
-            <>
-              <B>A credit cap</B> — set how much each agent can spend per
-              month. When it hits the cap, it stops. You control what each one spends.
-            </>,
-            <>
-              <B>Its own Channels and apps</B> — the customer service agent on
-              WhatsApp; the reporting agent with Drive access. Each with its own.
-            </>,
-            <>
-              <B>A support team</B> — an agent can get supporting roles
-              working alongside it, like a small team.
-            </>,
-          ]}
-        />
-        <H2>Delegating a goal</H2>
+        <H2>Connectors</H2>
         <P>
-          For big jobs, hand over a <B>goal</B> — “launch the campaign for
-          product X” — and the agent proposes the plan: the steps, the order, who does what.
-          You review, you approve, and the team executes. Progress stays visible in real
-          time, with approvals centralized in one place.
+          Access to the apps you already use — Gmail, Drive, Sheets, Calendar,
+          Notion, HubSpot, and over a thousand others. Authorize once, and your
+          agent acts in those apps for you. More on the{" "}
+          <DocLink href="/documentacao/conectores">Connectors</DocLink> page.
         </P>
+        <H2>MCPs</H2>
+        <P>
+          Advanced connections to external tools. If a tool you use publishes an{" "}
+          <B>MCP server</B>, you can point your agent at it here and it gains
+          that tool’s abilities directly — useful for in-house systems and
+          specialized software that isn’t in the connector catalog.
+        </P>
+        <Note>
+          You don’t need to set everything up on day one. Start with the two or
+          three apps you touch daily, and add more as tasks ask for them — the
+          agent shows the connection card right in the conversation when
+          something is missing.
+        </Note>
       </>
     ),
   },
   {
-    slug: "habilidades",
-    category: "Build",
+    slug: "skills",
+    category: "Customize",
     nav: "Skills",
     title: "Skills",
     description: "Ready-to-install capabilities — your agent learns them on the spot.",
@@ -503,14 +502,16 @@ export const DOCS: DocPage[] = [
           <B>Skills</B> are ready-to-use capabilities: presentation
           generation, image editing, data analysis, automatic collection of
           information from websites — install one, and your agent already knows how to use it.
-          It’s the fastest way to expand what your agent can do.
+          It’s the fastest way to expand what your agent can do. You’ll find them
+          under the Skills tab in{" "}
+          <DocLink href="/documentacao/personalizar">Customize</DocLink>.
         </P>
-        <H2>The marketplace</H2>
+        <H2>The Marketplace</H2>
         <UL
           items={[
             <>
-              An official catalog organized by category, with search and a description of what
-              each skill does.
+              <B>Browse Marketplace</B> opens the official catalog, organized by
+              category, with search and a description of what each skill does.
             </>,
             <>
               One-click install — and every skill goes through a{" "}
@@ -526,7 +527,7 @@ export const DOCS: DocPage[] = [
           A skill is different from a{" "}
           <DocLink href="/documentacao/conectores">connector</DocLink>: a skill
           teaches your agent to <B>do</B> something new; a connector gives it <B>access</B> to an
-          app of yours. A complete agent usually combines both.
+          app of yours. A well-set-up agent usually combines both.
         </Note>
       </>
     ),
@@ -566,16 +567,14 @@ export const DOCS: DocPage[] = [
               files.
             </>,
             <>
-              <B>Your customers talking to your agent</B> — a customer
-              service agent on your company’s WhatsApp, answering 24/7 with the
-              knowledge you gave it.
+              <B>Your customers on the company WhatsApp</B> — 24/7 support with
+              the knowledge and tone you configured for your agent.
             </>,
           ]}
         />
         <Note>
-          Channels can be global (covering your whole instance) or per agent — the
-          customer service agent has its own number, your personal agent has yours.
-          Set it up on the <B>Channels</B> screen.
+          Set up each channel on the <B>Channels</B> screen — company WhatsApp for
+          customers, Telegram or email for sending tasks from wherever you are.
         </Note>
       </>
     ),
@@ -621,7 +620,8 @@ export const DOCS: DocPage[] = [
               make sure that one task doesn’t touch your email, for example.
             </>,
             <>
-              <B>Per agent:</B> each agent only sees the apps you gave it.
+              <B>Instance-wide:</B> connect once and your agent uses it in any
+              session — or turn it off only in the open conversation to isolate.
             </>,
             <>
               <B>Revocable any time:</B> disconnect, and access dies on the spot.

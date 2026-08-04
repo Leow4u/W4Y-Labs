@@ -21,7 +21,7 @@ const CONTENT = {
     heading: "A gente constrói o novo jeito de trabalhar.",
     manifesto: [
       "A Work4You existe pra dar a cada empreendedor o que só as grandes empresas tinham: um time que trabalha por ele. Agentes de IA com computador próprio, entregando trabalho de verdade, 24 horas por dia.",
-      "Aqui a gente trabalha do jeito que prega: cada pessoa comanda um time de agentes e entrega o que antes exigia um departamento inteiro. Não existe engrenagem na Work4You — existe dono. Quem entra molda o produto, a cultura e o rumo da empresa.",
+      "Aqui a gente trabalha do jeito que prega: cada pessoa comanda o agente na plataforma e entrega o que antes exigia um departamento inteiro. Não existe engrenagem na Work4You — existe dono. Quem entra molda o produto, a cultura e o rumo da empresa.",
       "Se isso soa como o lugar onde você faria o melhor trabalho da sua vida, a gente quer te conhecer.",
     ],
     values: [
@@ -73,7 +73,7 @@ const CONTENT = {
     heading: "We're building the new way of working.",
     manifesto: [
       "Work4You exists to give every entrepreneur what only big companies used to have: a team that works for them. AI agents with their own computers, delivering real work, 24 hours a day.",
-      "We work the way we preach: every person here runs a team of agents and delivers what used to take a whole department. There are no cogs at Work4You — only owners. Everyone who joins shapes the product, the culture, and the direction of the company.",
+      "We work the way we preach: everyone here runs their agent on the platform and delivers what used to take a whole department. There are no cogs at Work4You — only owners. Everyone who joins shapes the product, the culture, and the direction of the company.",
       "If this sounds like the place where you'd do the best work of your life, we want to meet you.",
     ],
     values: [

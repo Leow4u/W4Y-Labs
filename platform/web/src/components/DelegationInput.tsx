@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 // as the login — submitting routes the user to /login (unchanged behavior).
 // No LLM runs here and the prompt is not preserved past the gesture.
 const SUGGESTIONS = [
-  "Criar um agente de vendas",
+  "Qualificar leads e mandar follow-ups",
   "Automatizar meu atendimento",
   "Analisar contratos e apontar riscos",
   "Relatório pronto toda manhã às 7h",
@@ -23,7 +23,7 @@ const DEMO_TASKS = [
   "Qualifique os leads da planilha e escreva os follow-ups…",
 ];
 const STATIC_PLACEHOLDER =
-  "Descreva a tarefa como você explicaria a um funcionário…";
+  "Descreva a tarefa — contexto, prazo e formato…";
 
 function useTypewriterPlaceholder(enabled: boolean) {
   const [text, setText] = useState("");
