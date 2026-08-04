@@ -1551,9 +1551,15 @@ export const ja = defineLocale({
     instructionsSection: 'エージェントの指示',
     instructionsHint: 'この自動化が起動するたびにエージェントが行うこと。',
     toolsSection: 'ツール',
-    toolsHint: 'エージェントは接続済みのアプリとツールを使います。下でコネクタとチャンネルを管理できます。',
+    toolsHint:
+      'この自動化で使えるアプリとツールを選びます。コネクタと配信は自動化ごと — プロファイル全体は変わりません。',
     openConnectors: 'コネクタ',
-    openChannels: 'チャンネル'
+    openChannels: 'チャンネル',
+    addJobConnector: 'コネクタ',
+    searchJobConnectors: 'コネクタを検索…',
+    noJobConnectors: '接続済みコネクタがありません',
+    manageConnectorsLink: 'コネクタを管理…',
+    jobConnectorsHint: 'ここでオフにしてもこの自動化にのみ適用されます。'
   },
 
   connectors: {

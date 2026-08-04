@@ -1471,9 +1471,15 @@ export const zhHant = defineLocale({
     instructionsSection: '代理說明',
     instructionsHint: '每次自動化觸發時代理應執行的操作。',
     toolsSection: '工具',
-    toolsHint: '代理會使用你已連線的應用與工具。可在下方管理連接器與頻道。',
+    toolsHint:
+      '選擇此自動化可使用的應用與工具。連接器與投遞按自動化設定 — 不會變更全域設定。',
     openConnectors: '連接器',
-    openChannels: '頻道'
+    openChannels: '頻道',
+    addJobConnector: '連接器',
+    searchJobConnectors: '搜尋連接器…',
+    noJobConnectors: '尚無已連接的連接器',
+    manageConnectorsLink: '管理連接器…',
+    jobConnectorsHint: '在此關閉僅影響此自動化。'
   },
 
   connectors: {
