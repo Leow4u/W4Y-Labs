@@ -465,5 +465,16 @@ export function formatToolResultSummary(value: unknown): string {
 }
 
 export function extractToolErrorMessage(value: unknown): string {
+  const root = norm(value)
+
+  if (isRecord(root) && (root.success === true || root.ok === true)) {
+    return ''
+  }
+
   return findNestedError(value, 0, new Set())
+}
+
+/** True when a string error field is real — not "", "none", "ok", etc. */
+export function hasMeaningfulErrorText(value: string): boolean {
+  return hasMeaningfulErrorValue(value)
 }

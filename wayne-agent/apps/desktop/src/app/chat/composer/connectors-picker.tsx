@@ -23,8 +23,13 @@ import { ensureComposioMcpReady } from '@/lib/ensure-composio-mcp'
 import { ChevronDown, iconSize, Link2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { $connectorsRevision, $lastConnectedToolkit } from '@/store/connectors'
+import { $busy } from '@/store/session'
 
 import { SKILLS_ROUTE } from '../../routes'
+
+/** Mute brand reds (Gmail etc.) while the agent is working — avoids "error badge" read. */
+const CONNECTOR_LOGO_BUSY_CLASS =
+  'grayscale-[0.85] opacity-55 saturate-50 transition-[filter,opacity] duration-200'
 
 const CHIP =
   'flex h-6 max-w-[14rem] items-center gap-1 rounded-md px-1.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
@@ -60,6 +65,7 @@ export function ConnectorsPicker({
   const { t } = useI18n()
   const navigate = useNavigate()
   const revision = useStore($connectorsRevision)
+  const agentBusy = useStore($busy)
   const lastConnected = useStore($lastConnectedToolkit)
   const [open, setOpen] = useState(false)
   const [connected, setConnected] = useState<ConnectorToolkit[] | null>(null)
@@ -233,7 +239,10 @@ export function ConnectorsPicker({
           <span className="flex items-center -space-x-1">
             {enabledToolkits.slice(0, 3).map(tk => (
               <LogoTile
-                className="h-[18px] w-[18px] rounded-full border border-border p-px text-[0.55rem]"
+                className={cn(
+                  'h-[18px] w-[18px] rounded-full border border-border p-px text-[0.55rem]',
+                  agentBusy && CONNECTOR_LOGO_BUSY_CLASS
+                )}
                 key={tk.slug}
                 toolkit={tk}
               />

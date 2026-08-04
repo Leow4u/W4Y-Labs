@@ -2,7 +2,11 @@ import { type ToolTitleKey, translateNow } from '@/i18n'
 import { normalizeExternalUrl } from '@/lib/external-link'
 import { summarizeShellCommand } from '@/lib/summarize-command'
 import { capitalize, normalize } from '@/lib/text'
-import { extractToolErrorMessage, formatToolResultSummary } from '@/lib/tool-result-summary'
+import {
+  extractToolErrorMessage,
+  formatToolResultSummary,
+  hasMeaningfulErrorText
+} from '@/lib/tool-result-summary'
 
 import {
   compactPreview,
@@ -22,6 +26,7 @@ import {
   mcpToolCategory,
   mcpToolMeta
 } from './mcp-labels'
+import { isExplorationTool } from './tool-group-kind'
 import { findFirstUrl, hostnameOf, isPreviewableTarget, looksLikePath, looksLikeUrl } from './targets'
 import type {
   CountMetric,
@@ -670,14 +675,22 @@ function extractSearchResults(result: unknown, limit = 6): SearchResultRow[] {
 }
 
 function toolErrorText(part: ToolPart, result: Record<string, unknown>): string {
+  if (result.success === true || result.ok === true) {
+    return ''
+  }
+
   const extractedError = extractToolErrorMessage(part.result)
 
   if (part.isError) {
     return extractedError || (typeof part.result === 'string' && part.result.trim()) || 'Tool returned an error.'
   }
 
-  if (typeof result.error === 'string' && result.error.trim()) {
-    return result.error.trim()
+  if (typeof result.error === 'string') {
+    const directError = result.error.trim()
+
+    if (directError && hasMeaningfulErrorText(directError)) {
+      return directError
+    }
   }
 
   if (extractedError) {
@@ -713,7 +726,18 @@ function toolStatus(part: ToolPart, resultRecord: Record<string, unknown>): Tool
     return 'running'
   }
 
-  return toolErrorText(part, resultRecord) ? 'error' : 'success'
+  const errorText = toolErrorText(part, resultRecord)
+
+  if (!errorText) {
+    return 'success'
+  }
+
+  // Exploration / skill reads often miss or probe — amber, not destructive red.
+  if (isExplorationTool(part.toolName)) {
+    return 'warning'
+  }
+
+  return 'error'
 }
 
 function durationLabel(resultRecord: Record<string, unknown>): string | undefined {

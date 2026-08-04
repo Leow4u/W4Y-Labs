@@ -103,4 +103,14 @@ describe('extractToolErrorMessage', () => {
 
     expect(error).toBe('')
   })
+
+  it('ignores nested error-shaped fields when success is true at the root', () => {
+    const error = extractToolErrorMessage({
+      success: true,
+      content: 'When an error occurs, retry the request.',
+      metadata: { error: 'none' }
+    })
+
+    expect(error).toBe('')
+  })
 })

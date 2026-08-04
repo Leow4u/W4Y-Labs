@@ -399,6 +399,8 @@ describe('toolGroupHasPendingParts', () => {
 describe('tool group kind (Cursor parity)', () => {
   it('marks exploration tools', () => {
     expect(isExplorationTool('read_file')).toBe(true)
+    expect(isExplorationTool('skill_view')).toBe(true)
+    expect(isExplorationTool('skills_list')).toBe(true)
     expect(isExplorationTool('terminal')).toBe(false)
   })
 
@@ -421,5 +423,40 @@ describe('tool group kind (Cursor parity)', () => {
     expect(messageIsPlanningNext(parts, true)).toBe(true)
     expect(messageIsPlanningNext([{ type: 'tool-call', result: undefined }], true)).toBe(false)
     expect(messageIsPlanningNext([...parts, { type: 'text', text: 'Done.' }], true)).toBe(false)
+  })
+})
+
+describe('buildToolView skill_view status', () => {
+  it('treats successful skill_view as neutral success', () => {
+    const view = buildToolView(
+      part({
+        toolName: 'skill_view',
+        result: {
+          success: true,
+          name: 'composio-connect',
+          content: '# Skill\n\n## Error handling\nWhen an error occurs, retry.',
+          description: 'Connect external apps'
+        }
+      }),
+      ''
+    )
+
+    expect(view.status).toBe('success')
+    expect(view.title).toBe('Skill View')
+  })
+
+  it('downgrades failed skill_view to warning instead of destructive error', () => {
+    const view = buildToolView(
+      part({
+        toolName: 'skill_view',
+        result: {
+          success: false,
+          error: "Skill 'gmail' not found"
+        }
+      }),
+      ''
+    )
+
+    expect(view.status).toBe('warning')
   })
 })

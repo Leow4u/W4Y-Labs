@@ -4,6 +4,8 @@ import { mcpToolCategory } from './mcp-labels'
 const EXPLORATION_CORE_TOOLS = new Set([
   'read_file',
   'search_files',
+  'skills_list',
+  'skill_view',
   'web_search',
   'web_extract',
   'session_search'
