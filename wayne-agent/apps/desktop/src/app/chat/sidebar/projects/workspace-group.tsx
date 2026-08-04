@@ -47,7 +47,6 @@ export function SidebarWorkspaceGroup({
 }: SidebarWorkspaceGroupProps) {
   const { t } = useI18n()
   const s = t.sidebar
-  const p = s.projects
   const isProfileGroup = group.mode === 'profile'
   const repoStatus = useStore($repoStatus)
   const currentCwd = useStore($currentCwd)
@@ -64,17 +63,7 @@ export function SidebarWorkspaceGroup({
     !isProfileGroup && samePath(group.path, currentCwd) && repoStatus
       ? { added: repoStatus.added, removed: repoStatus.removed }
       : null
-  const hoverCard =
-    !isProfileGroup && (group.path || group.label)
-      ? {
-          title: group.label,
-          note: group.isHome ? p.homeCheckout : undefined,
-          branch: group.label,
-          repo: folderLabel,
-          path: group.path ?? undefined,
-          sessionsLabel: p.sessionsCount(loadedCount)
-        }
-      : null
+  const hoverCard = null
   // Profile groups know their on-disk total (children excluded); workspace
   // groups only ever page within what's already loaded.
   const totalCount = isProfileGroup ? Math.max(group.totalCount ?? loadedCount, loadedCount) : loadedCount

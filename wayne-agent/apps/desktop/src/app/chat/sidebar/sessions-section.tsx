@@ -13,7 +13,6 @@ import { sessionPinId } from '@/store/session'
 
 import { SidebarCount } from './chrome'
 import {
-  EnteredProjectContent,
   ProjectOverviewRow,
   type SidebarProjectTree,
   type SidebarSessionGroup,
@@ -102,23 +101,15 @@ interface SidebarSessionsSectionProps {
   footer?: React.ReactNode
   groups?: SidebarSessionGroup[]
   tree?: SidebarWorkspaceTree[]
-  // Project overview: when present, render a drill-in list of project rows
-  // instead of sessions. Clicking a row enters that project (onEnterProject),
-  // which then passes `projectContent` on the next render. Takes precedence
-  // over `tree` / `groups`.
+  // Project overview: expandable project folders (Cursor-style tree).
   projectOverview?: SidebarProjectTree[]
-  // Per-project preview rows (from the backend tree), keyed by project path.
-  projectOverviewPreviews?: Record<string, SessionInfo[]>
   // True while the backend project tree is loading (overview skeleton).
   projectsLoading?: boolean
-  onEnterProject?: (id: string) => void
-  // The entered project's flattened content: main-checkout sessions render
-  // directly (no redundant repo/branch header); only linked worktrees nest.
-  projectContent?: SidebarProjectTree
-  // Live git lanes (`git worktree list`) for repos in the entered project —
-  // a VISUAL enhancer only (empty lanes), never session membership.
+  onToggleProject?: (id: string, open: boolean) => void
+  projectExpandedContent?: (id: string) => SidebarProjectTree | undefined
+  // Live git lanes (`git worktree list`) for expanded projects — visual only.
   projectRepoWorktrees?: Record<string, HermesGitWorktree[]>
-  // Live session cache used for optimistic placement inside entered-project lanes.
+  // Live session cache used for optimistic placement inside project lanes.
   liveSessions?: SessionInfo[]
   // Client-side optimistic eviction layer (deleted/archived ids).
   removedSessionIds?: ReadonlySet<string>
@@ -133,8 +124,6 @@ interface SidebarSessionsSectionProps {
   onReorderSessions?: (ids: string[]) => void
   // Drag-to-reorder for the project overview list (top-level projects).
   onReorderProjects?: (ids: string[]) => void
-  // Rendered atop the entered-project body (a "back to overview" row).
-  projectBackRow?: React.ReactNode
   dndSensors?: ReturnType<typeof useSensors>
 }
 
@@ -161,10 +150,9 @@ export function SidebarSessionsSection({
   footer,
   groups,
   projectOverview,
-  projectOverviewPreviews,
   projectsLoading = false,
-  onEnterProject,
-  projectContent,
+  onToggleProject,
+  projectExpandedContent,
   projectRepoWorktrees,
   liveSessions,
   removedSessionIds,
@@ -175,18 +163,14 @@ export function SidebarSessionsSection({
   sortable = false,
   onReorderSessions,
   onReorderProjects,
-  projectBackRow,
   dndSensors
 }: SidebarSessionsSectionProps) {
   const sectionOpen = collapsible ? open : true
   const hasGroupedSessions = Boolean(groups?.some(group => group.sessions.length > 0))
-  // A defined project list is itself content (even an empty project should
-  // render as a drill-in row so the user can see it exists).
   const hasProjectOverview = Boolean(projectOverview?.length)
-  const hasProjectContent = Boolean(projectContent && projectContent.sessionCount > 0)
 
   const showEmptyState =
-    forceEmptyState || (!hasGroupedSessions && !hasProjectOverview && !hasProjectContent && sessions.length === 0)
+    forceEmptyState || (!hasGroupedSessions && !hasProjectOverview && sessions.length === 0)
 
   // The flat recents/pinned list is the only place sessions reorder by hand;
   // grouped/tree views always sort by creation date and never drag.
@@ -228,41 +212,18 @@ export function SidebarSessionsSection({
     !showEmptyState &&
     !groups?.length &&
     !projectOverview?.length &&
-    !projectContent &&
     sessions.length >= VIRTUALIZE_THRESHOLD
 
   // First paint into the grouped view (e.g. the app restoring the Projects tab)
   // has flat recents in `sessions` but no tree yet. Show skeletons rather than
-  // flashing the flat session list until the overview/content/groups resolve. A
+  // flashing the flat session list until the overview/groups resolve. A
   // background refresh keeps the prior tree, so this only fires when empty.
-  const showProjectsSkeleton =
-    projectsLoading && !hasProjectOverview && !hasProjectContent && !projectContent && !groups?.length
+  const showProjectsSkeleton = projectsLoading && !hasProjectOverview && !groups?.length
 
   let inner: React.ReactNode
 
   if (showProjectsSkeleton) {
     inner = <SidebarSessionSkeletons />
-  } else if (projectContent) {
-    // Entered a project: the back row is always present, then either the
-    // (overlay-aware) content or a clean empty state — never a bare spinner or a
-    // blank pane while lanes hydrate.
-    inner = (
-      <>
-        {projectBackRow}
-        {hasProjectContent ? (
-          <EnteredProjectContent
-            liveSessions={liveSessions}
-            onNewSession={onNewSessionInWorkspace}
-            project={projectContent}
-            removedSessionIds={removedSessionIds}
-            renderRows={renderRows}
-            repoWorktrees={projectRepoWorktrees}
-          />
-        ) : (
-          emptyState
-        )}
-      </>
-    )
   } else if (showEmptyState) {
     inner = emptyState
   } else if (projectOverview?.length) {
@@ -275,12 +236,15 @@ export function SidebarSessionsSection({
     const rows = projectOverview.map(project => (
       <Row
         activeProjectId={activeProjectId}
+        expandedContent={projectExpandedContent?.(project.id)}
         key={project.id}
-        onEnter={onEnterProject}
+        liveSessions={liveSessions}
         onNewSession={onNewSessionInWorkspace}
-        previewSessions={project.path ? projectOverviewPreviews?.[project.path] : undefined}
+        onToggleProject={onToggleProject}
         project={project}
+        removedSessionIds={removedSessionIds}
         renderRows={renderRows}
+        repoWorktrees={projectRepoWorktrees}
       />
     ))
 

@@ -117,17 +117,12 @@ import { orderByIds, reconcileOrderIds, resolveManualSessionOrderIds, sameIds } 
 import { ProjectDialog } from './project-dialog'
 import {
   overlayLiveLanes,
-  overlayLivePreviews,
-  PROJECT_PREVIEW_COUNT,
-  ProjectBackRow,
-  ProjectMenu,
   projectTreeCwd,
   sessionRecency as sessionTime,
   type SidebarProjectTree,
   type SidebarSessionGroup,
   type SidebarWorkspaceTree,
   sortProjectsForOverview,
-  StartWorkButton,
   useRepoWorktreeMap
 } from './projects'
 import { SidebarBlankState, SidebarSessionSkeletons } from './section-states'
@@ -600,116 +595,12 @@ export function ChatSidebar({
   // so scoping is consistent across views.
   const agentProjectTree = worktreeGroupingActive ? projectModel : undefined
 
-  // ── Project switcher (drill-in) ────────────────────────────────────────────
-  // Dual sidebar: Projetos (overview or entered) always sits above Sessões.
-  // ALL_PROJECTS shows the overview; a concrete scope means you've entered a
-  // project (Sessões stays visible below).
+  // ── Project tree (Cursor-style inline expand) ───────────────────────────────
   const projectsActive = worktreeGroupingActive
+  const projectOverview = projectsActive ? (agentProjectTree ?? []) : undefined
 
-  // The overview node for the entered project (structure + counts, empty lanes).
-  const overviewEnteredProject =
-    projectsActive && projectScope !== ALL_PROJECTS
-      ? agentProjectTree?.find(node => node.id === projectScope)
-      : undefined
-
-  const inProject = Boolean(overviewEnteredProject)
-  const enteredProjectId = overviewEnteredProject?.id
-
-  // Entering a project lazily hydrates its full lanes (repo -> lane -> sessions)
-  // from the backend — same grouping/ids as the overview, just with rows.
-  const [enteredProjectTree, setEnteredProjectTree] = useState<SidebarProjectTree | null>(null)
-
-  useEffect(() => {
-    if (!enteredProjectId || !gatewayReady) {
-      setEnteredProjectTree(null)
-
-      return
-    }
-
-    let cancelled = false
-
-    void fetchProjectSessions(enteredProjectId).then(project => {
-      if (!cancelled) {
-        setEnteredProjectTree(project)
-      }
-    })
-
-    return () => {
-      cancelled = true
-    }
-    // `projectTree` in deps: re-hydrate after a tree refresh so the entered view
-    // stays current with new/ended sessions.
-  }, [enteredProjectId, gatewayReady, projectTree])
-
-  // Prefer the hydrated tree; fall back to the overview node (empty lanes) while
-  // the drill-in fetch is in flight, so the header/structure render immediately.
-  const enteredProject = useMemo<SidebarProjectTree | undefined>(() => {
-    if (!overviewEnteredProject) {
-      return undefined
-    }
-
-    const hydrated =
-      enteredProjectTree && enteredProjectTree.id === overviewEnteredProject.id
-        ? enteredProjectTree
-        : overviewEnteredProject
-
-    // The live-session overlay (creates/evictions) is applied per-repo in
-    // RepoFlatSection, AFTER the visual git-worktree lanes are merged in (so
-    // out-of-tree worktrees can be placed). Here we just order the snapshot.
-    return { ...hydrated, repos: orderRepos(hydrated.repos) }
-  }, [overviewEnteredProject, enteredProjectTree, orderRepos])
-
-  // Overlay live `$sessions` onto the entered project so a just-created session
-  // (which the backend snapshot hasn't folded in yet) counts as content and
-  // renders immediately — same optimistic layer as the overview previews. The
-  // backend now seeds each project folder as an (empty) repo, so the overlay
-  // always has a lane to place a new in-project session into.
-  const enteredProjectContent = useMemo(
-    () => (enteredProject ? overlayLiveLanes(enteredProject, agentSessions, removedSessionIds) : undefined),
-    [enteredProject, agentSessions, removedSessionIds]
-  )
-
-  const scopedRepoPaths = useMemo(
-    () =>
-      enteredProject ? enteredProject.repos.map(repo => repo.path).filter((path): path is string => Boolean(path)) : [],
-    [enteredProject]
-  )
-
-  // git worktree list is a VISUAL-only enhancer (empty lanes); never membership.
-  const inEnteredProject = Boolean(enteredProject && !showAllProfiles)
-  const [scopedRepoWorktrees] = useRepoWorktreeMap(scopedRepoPaths, inEnteredProject)
-
-  // Re-probe worktree lanes on out-of-band git changes the renderer can't see.
-  // A turn can `git worktree add/remove` in the terminal (e.g. you ask Hermes to
-  // "remove that worktree"), and the window never blurs during an in-app chat,
-  // so nothing would otherwise re-run the visual probe. Re-sync when a working
-  // session settles (its turn finished) or the window refocuses (an external
-  // terminal may have changed things) — only while a project is entered, and
-  // only the cheap per-repo `git worktree list`, never the heavy tree scan.
-  const prevWorkingIdsRef = useRef<string[]>(workingSessionIds)
-
-  useEffect(() => {
-    const prev = prevWorkingIdsRef.current
-    prevWorkingIdsRef.current = workingSessionIds
-
-    // A session leaving the working set means its turn just completed.
-    const aTurnSettled = prev.some(id => !workingSessionIds.includes(id))
-
-    if (inEnteredProject && aTurnSettled) {
-      refreshWorktrees()
-    }
-  }, [workingSessionIds, inEnteredProject])
-
-  useEffect(() => {
-    if (!inEnteredProject) {
-      return
-    }
-
-    const onFocus = () => refreshWorktrees()
-    window.addEventListener('focus', onFocus)
-
-    return () => window.removeEventListener('focus', onFocus)
-  }, [inEnteredProject])
+  const [hydratedProjects, setHydratedProjects] = useState<Record<string, SidebarProjectTree>>({})
+  const [expandedProjectIds, setExpandedProjectIds] = useState<Set<string>>(() => new Set())
 
   const lastProjectCwdSyncRef = useRef<null | string>(null)
 
@@ -723,12 +614,10 @@ export function ChatSidebar({
 
       const cwd = currentCwd?.trim()
 
-      // Live session cwd is SoT for Review/Changes (agent writes there).
       if ($activeSessionId.get()) {
         return
       }
 
-      // Already probing this project's root or a known worktree lane.
       if (cwd && projectIdForCwd(cwd) === project.id) {
         return
       }
@@ -740,84 +629,158 @@ export function ChatSidebar({
     [currentCwd]
   )
 
-  useEffect(() => {
-    if (!inProject || !enteredProject) {
-      lastProjectCwdSyncRef.current = null
+  const projectExpandedContent = useCallback(
+    (id: string): SidebarProjectTree | undefined => {
+      const base = hydratedProjects[id] ?? projectModel.find(node => node.id === id)
 
-      return
-    }
+      if (!base) {
+        return undefined
+      }
 
-    // Wait until the tree node has a real path — marking "synced" too early
-    // (empty path on first paint) permanently skips attaching the project cwd,
-    // so Review/Changes keep probing a stale folder and show NO DIFFS / Limpo.
-    const target = projectTreeCwd(enteredProject)
-
-    if (!target) {
-      return
-    }
-
-    if (lastProjectCwdSyncRef.current === enteredProject.id) {
-      return
-    }
-
-    syncProjectCwd(enteredProject)
-    lastProjectCwdSyncRef.current = enteredProject.id
-  }, [inProject, enteredProject, syncProjectCwd])
-
-  // A persisted scope can go stale (project archived/removed, or a profile
-  // switch swapped the whole catalog). Once projects have loaded, drop back to
-  // the overview if the scoped id is gone. Never clear while the tree is still
-  // loading — that raced resume/reopen and wiped a valid scope to ALL_PROJECTS
-  // ("Choose a folder" with File system still on the project).
-  useEffect(() => {
-    if (projectTreeLoading) {
-      return
-    }
-
-    if (projectScope !== ALL_PROJECTS && projectsActive && !enteredProject) {
-      exitProjectScope()
-    }
-  }, [projectScope, projectsActive, enteredProject, projectTreeLoading])
-
-  // The project overview (drill-in list) vs. the entered project's content.
-  // Empty tree still yields [] so the Projetos section can show its empty state.
-  const projectOverview = projectsActive && !inProject ? (agentProjectTree ?? []) : undefined
-
-  // Preview rows come from the backend tree (each project carries its
-  // most-recent sessions), overlaid with live $sessions so a just-created
-  // session shows under its project instantly (and with its working arc),
-  // matching the flat Recents list. Keyed by project path for the rows.
-  const overviewPreviews = useMemo<Record<string, SessionInfo[]>>(
-    () => overlayLivePreviews(projectOverview ?? [], agentSessions, projects, PROJECT_PREVIEW_COUNT, removedSessionIds),
-    [projectOverview, agentSessions, projects, removedSessionIds]
+      return overlayLiveLanes({ ...base, repos: orderRepos(base.repos) }, agentSessions, removedSessionIds)
+    },
+    [hydratedProjects, projectModel, agentSessions, removedSessionIds, orderRepos]
   )
 
-  const onEnterProject = useCallback(
-    (id: string) => {
+  const onToggleProject = useCallback(
+    (id: string, open: boolean) => {
+      setExpandedProjectIds(prev => {
+        const next = new Set(prev)
+
+        if (open) {
+          next.add(id)
+        } else {
+          next.delete(id)
+        }
+
+        return next
+      })
+
+      if (!open) {
+        return
+      }
+
       const project = projectModel.find(node => node.id === id)
 
       if (project) {
         syncProjectCwd(project)
       }
 
-      // attachCwd so Review / $repoStatus always probe this project's tree —
-      // view-only enter left a stale $currentCwd and the Changes chip lied "Clean".
       enterProject(id, { attachCwd: true })
+
+      if (hydratedProjects[id]) {
+        return
+      }
+
+      void fetchProjectSessions(id).then(tree => {
+        if (tree) {
+          setHydratedProjects(prev => ({ ...prev, [id]: tree }))
+        }
+      })
     },
-    [projectModel, syncProjectCwd]
+    [projectModel, syncProjectCwd, hydratedProjects]
   )
 
-  // Projetos header: project name when drilled in, else "Projects".
-  // Sessões is always the unbound bucket label (our Home equivalent).
-  const projectsLabel = inProject && enteredProject ? enteredProject.label : s.projects.sectionLabel
+  const expandedRepoPaths = useMemo(
+    () =>
+      projectModel
+        .filter(project => expandedProjectIds.has(project.id))
+        .flatMap(project => project.repos.map(repo => repo.path).filter((path): path is string => Boolean(path))),
+    [projectModel, expandedProjectIds]
+  )
 
-  // Mirror the section's skeleton gate (projectsLoading + nothing to show yet):
-  // while the skeleton is up there's no point also spinning the header count.
+  const projectsExpanded = projectsActive && expandedProjectIds.size > 0
+  const [expandedRepoWorktrees] = useRepoWorktreeMap(expandedRepoPaths, projectsExpanded)
+
+  const scopedProject = useMemo(
+    () => (projectScope !== ALL_PROJECTS ? projectModel.find(node => node.id === projectScope) : undefined),
+    [projectScope, projectModel]
+  )
+
+  useEffect(() => {
+    if (!scopedProject) {
+      lastProjectCwdSyncRef.current = null
+
+      return
+    }
+
+    const target = projectTreeCwd(scopedProject)
+
+    if (!target) {
+      return
+    }
+
+    if (lastProjectCwdSyncRef.current === scopedProject.id) {
+      return
+    }
+
+    syncProjectCwd(scopedProject)
+    lastProjectCwdSyncRef.current = scopedProject.id
+  }, [scopedProject, syncProjectCwd])
+
+  useEffect(() => {
+    if (projectTreeLoading) {
+      return
+    }
+
+    if (projectScope !== ALL_PROJECTS && projectsActive && !projectModel.some(node => node.id === projectScope)) {
+      exitProjectScope()
+    }
+  }, [projectScope, projectsActive, projectModel, projectTreeLoading])
+
+  useEffect(() => {
+    if (projectScope === ALL_PROJECTS || !projectsActive || !gatewayReady) {
+      return
+    }
+
+    setExpandedProjectIds(prev => {
+      if (prev.has(projectScope)) {
+        return prev
+      }
+
+      return new Set(prev).add(projectScope)
+    })
+
+    if (hydratedProjects[projectScope]) {
+      return
+    }
+
+    void fetchProjectSessions(projectScope).then(tree => {
+      if (tree) {
+        setHydratedProjects(prev => ({ ...prev, [projectScope]: tree }))
+      }
+    })
+  }, [projectScope, projectsActive, gatewayReady, hydratedProjects])
+
+  const projectsLabel = s.projects.sectionLabel
+
   const projectsSkeletonVisible =
-    worktreeGroupingActive &&
-    projectTreeLoading &&
-    !projectOverview?.length &&
-    !(inProject && (enteredProject?.sessionCount ?? 0) > 0)
+    worktreeGroupingActive && projectTreeLoading && !projectOverview?.length
+
+  // Re-probe worktree lanes when a working session settles or the window refocuses.
+  const prevWorkingIdsRef = useRef<string[]>(workingSessionIds)
+
+  useEffect(() => {
+    const prev = prevWorkingIdsRef.current
+    prevWorkingIdsRef.current = workingSessionIds
+
+    const aTurnSettled = prev.some(id => !workingSessionIds.includes(id))
+
+    if (projectsExpanded && aTurnSettled) {
+      refreshWorktrees()
+    }
+  }, [workingSessionIds, projectsExpanded])
+
+  useEffect(() => {
+    if (!projectsExpanded) {
+      return
+    }
+
+    const onFocus = () => refreshWorktrees()
+    window.addEventListener('focus', onFocus)
+
+    return () => window.removeEventListener('focus', onFocus)
+  }, [projectsExpanded])
 
   // Hold Sessões empty until the first tree lands so bound chats don't flash
   // under Sessões then jump to Projetos.
@@ -985,7 +948,6 @@ export function ChatSidebar({
 
   const hasMoreSessions = knownSessionTotal > loadedSessionCount
 
-  const recentsMeta = countLabel(displayAgentSessions.length, knownSessionTotal)
   const displayRecentsCountRef = useRef(0)
   const loadedRecentsCountRef = useRef(0)
   displayRecentsCountRef.current = displayAgentSessions.length
@@ -1258,7 +1220,6 @@ export function ChatSidebar({
               <SidebarSessionsSection
                 activeProjectId={activeProjectId}
                 activeSessionId={activeSidebarSessionId}
-                collapsible={!inProject}
                 contentClassName={cn(
                   // Cap Projetos — it must not flex-1 and shove Sessões to the bottom.
                   'flex max-h-64 flex-col gap-px pb-1.75',
@@ -1271,54 +1232,26 @@ export function ChatSidebar({
                     <SidebarSessionSkeletons />
                   ) : (
                     <div className="grid min-h-16 place-items-center rounded-lg px-2 text-center text-xs text-(--ui-text-tertiary)">
-                      {inProject ? s.projectEmpty : s.projects.emptyOverview}
+                      {s.projects.emptyOverview}
                     </div>
                   )
                 }
                 forceEmptyState={showSessionSkeletons || projectsTreePending}
                 headerAction={
-                  inProject && enteredProject ? (
-                    <div className="group/workspace flex shrink-0 items-center gap-0.5">
-                      {enteredProject.path && (
-                        <StartWorkButton onStarted={onNewSessionInWorkspace} repoPath={enteredProject.path} />
-                      )}
-                      <ProjectMenu
-                        isActive={enteredProject.id === activeProjectId}
-                        onExitScope={exitProjectScope}
-                        project={enteredProject}
-                        scoped
-                      />
-                      <div className="grid size-6 place-items-center">
-                        <Button
-                          aria-label={s.showProjects}
-                          className={HEADER_NAV_BTN}
-                          onClick={event => {
-                            event.stopPropagation()
-                            exitProjectScope()
-                          }}
-                          size="icon-xs"
-                          variant="ghost"
-                        >
-                          <Codicon name="list-unordered" size="0.75rem" />
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex shrink-0 items-center gap-0.5">
-                      <Button
-                        aria-label={s.projects.newButton}
-                        className={HEADER_ACTION_BTN}
-                        onClick={event => {
-                          event.stopPropagation()
-                          openProjectCreate()
-                        }}
-                        size="icon-xs"
-                        variant="ghost"
-                      >
-                        <Codicon name="add" size="0.75rem" />
-                      </Button>
-                    </div>
-                  )
+                  <div className="flex shrink-0 items-center gap-0.5">
+                    <Button
+                      aria-label={s.projects.newButton}
+                      className={HEADER_ACTION_BTN}
+                      onClick={event => {
+                        event.stopPropagation()
+                        openProjectCreate()
+                      }}
+                      size="icon-xs"
+                      variant="ghost"
+                    >
+                      <Codicon name="add" size="0.75rem" />
+                    </Button>
+                  </div>
                 }
                 label={projectsLabel}
                 labelMeta={
@@ -1326,27 +1259,23 @@ export function ChatSidebar({
                     <GlyphSpinner ariaLabel={s.loading} className="text-[0.6875rem] text-(--ui-text-quaternary)" />
                   ) : undefined
                 }
-                liveSessions={inProject ? agentSessions : undefined}
+                liveSessions={agentSessions}
                 onArchiveSession={onArchiveSession}
                 onBranchSession={onBranchSession}
                 onDeleteSession={onDeleteSession}
-                onEnterProject={onEnterProject}
                 onNewSessionInWorkspace={onNewSessionInWorkspace}
                 onReorderProjects={reorderProjects}
                 onResumeSession={onResumeSession}
                 onToggle={() => setSidebarProjectsOpen(!projectsOpen)}
                 onTogglePin={pinSession}
+                onToggleProject={onToggleProject}
                 open={projectsOpen}
                 pinned={false}
-                projectBackRow={
-                  inProject ? <ProjectBackRow label={s.projects.back} onClick={exitProjectScope} /> : undefined
-                }
-                projectContent={inProject ? enteredProjectContent : undefined}
+                projectExpandedContent={projectExpandedContent}
                 projectOverview={projectOverview}
-                projectOverviewPreviews={overviewPreviews}
-                projectRepoWorktrees={inProject ? scopedRepoWorktrees : undefined}
+                projectRepoWorktrees={expandedRepoWorktrees}
                 projectsLoading={projectTreeLoading}
-                removedSessionIds={inProject ? removedSessionIds : undefined}
+                removedSessionIds={removedSessionIds}
                 rootClassName={cn(
                   'shrink-0 overflow-hidden p-0',
                   !recentsVirtualizes && 'compact:min-h-0 compact:flex-none compact:overflow-visible'
@@ -1416,7 +1345,6 @@ export function ChatSidebar({
                   ) : null
                 }
                 label={s.sessions}
-                labelMeta={recentsMeta}
                 onArchiveSession={onArchiveSession}
                 onBranchSession={onBranchSession}
                 onDeleteSession={onDeleteSession}

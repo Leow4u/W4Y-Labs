@@ -3,6 +3,7 @@ import { useRef } from 'react'
 
 import { Codicon } from '@/components/ui/codicon'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
+import type { HermesGitWorktree } from '@/global'
 import type { SessionInfo } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
@@ -15,12 +16,12 @@ import {
   SidebarRowLabel,
   SidebarRowLead,
   SidebarRowLeadGlyph,
-  SidebarRowLink,
   SidebarRowNest,
   SidebarRowShell
 } from '../chrome'
 
-import { latestProjectSessions, PROJECT_PREVIEW_COUNT, useWorkspaceNodeOpen } from './model'
+import { EnteredProjectContent } from './entered-content'
+import { useWorkspaceNodeOpen } from './model'
 import { ProjectMenu } from './project-menu'
 import type { SidebarProjectTree } from './workspace-groups'
 import { WorkspaceAddButton } from './workspace-header'
@@ -63,11 +64,14 @@ export function ProjectBackRow({ label, onClick }: { label: string; onClick: () 
 
 interface ProjectOverviewRowProps {
   project: SidebarProjectTree
-  onEnter?: (id: string) => void
+  onToggleProject?: (id: string, open: boolean) => void
   onNewSession?: (path: null | string) => void
   renderRows?: (sessions: SessionInfo[]) => React.ReactNode
   activeProjectId?: null | string
-  previewSessions?: SessionInfo[]
+  expandedContent?: SidebarProjectTree
+  repoWorktrees?: Record<string, HermesGitWorktree[]>
+  liveSessions?: SessionInfo[]
+  removedSessionIds?: ReadonlySet<string>
   reorderable?: boolean
   dragging?: boolean
   dragHandleProps?: React.HTMLAttributes<HTMLElement>
@@ -77,11 +81,14 @@ interface ProjectOverviewRowProps {
 
 export function ProjectOverviewRow({
   project,
-  onEnter,
+  onToggleProject,
   onNewSession,
   renderRows,
   activeProjectId,
-  previewSessions,
+  expandedContent,
+  repoWorktrees,
+  liveSessions,
+  removedSessionIds,
   reorderable = false,
   dragging = false,
   dragHandleProps,
@@ -91,12 +98,16 @@ export function ProjectOverviewRow({
   const { t } = useI18n()
   const s = t.sidebar
   const isActive = project.id === activeProjectId
-  const [open, toggleOpen] = useWorkspaceNodeOpen(project.id)
-  // The appearance popover anchors here (the full row) so it opens flush with
-  // the sidebar's content edge regardless of which side the sidebar is on.
+  const defaultOpen = isActive
+  const [open, toggleOpen] = useWorkspaceNodeOpen(project.id, defaultOpen)
   const rowRef = useRef<HTMLDivElement>(null)
-  const fetched = (previewSessions ?? []).slice(0, PROJECT_PREVIEW_COUNT)
-  const preview = renderRows ? (fetched.length ? fetched : latestProjectSessions(project, PROJECT_PREVIEW_COUNT)) : []
+
+  const handleToggle = () => {
+    const next = !open
+
+    toggleOpen()
+    onToggleProject?.(project.id, next)
+  }
 
   const lead = reorderable ? (
     <SidebarRowGrab
@@ -110,6 +121,8 @@ export function ProjectOverviewRow({
   ) : (
     <SidebarRowLead>{projectIcon(project)}</SidebarRowLead>
   )
+
+  const bodyProject = expandedContent ?? project
 
   return (
     <div className={cn(dragging && 'relative z-10')} ref={ref} style={style}>
@@ -127,31 +140,37 @@ export function ProjectOverviewRow({
       >
         <SidebarRowCluster className="min-w-0 flex-1">
           {lead}
-          <SidebarRowLink
-            aria-label={s.projects.enter(project.label)}
-            labelClassName={cn('hover:text-foreground hover:underline', isActive && 'text-foreground')}
-            onClick={() => onEnter?.(project.id)}
+          <button
+            aria-expanded={open}
+            aria-label={s.projects.toggle(project.label)}
+            className="flex min-w-0 flex-1 items-center gap-1 bg-transparent p-0 text-left"
+            onClick={handleToggle}
+            type="button"
           >
-            {project.label}
-          </SidebarRowLink>
-          {preview.length > 0 ? (
-            <button
-              aria-label={s.projects.toggle(project.label)}
-              className="flex flex-1 items-center self-stretch bg-transparent p-0"
-              onClick={toggleOpen}
-              type="button"
+            <SidebarRowLabel
+              className={cn('min-w-0 flex-1 hover:text-foreground hover:underline', isActive && 'text-foreground')}
             >
-              <DisclosureCaret
-                className="shrink-0 text-(--ui-text-tertiary) opacity-0 transition group-hover/workspace:opacity-100"
-                open={open}
-              />
-            </button>
-          ) : (
-            <span className="flex-1" />
-          )}
+              {project.label}
+            </SidebarRowLabel>
+            <DisclosureCaret
+              className="shrink-0 text-(--ui-text-tertiary) opacity-0 transition group-hover/workspace:opacity-100"
+              open={open}
+            />
+          </button>
         </SidebarRowCluster>
       </SidebarRowShell>
-      {open && preview.length > 0 && <SidebarRowNest>{renderRows?.(preview)}</SidebarRowNest>}
+      {open && renderRows && bodyProject.repos.length > 0 ? (
+        <SidebarRowNest>
+          <EnteredProjectContent
+            liveSessions={liveSessions}
+            onNewSession={onNewSession}
+            project={bodyProject}
+            removedSessionIds={removedSessionIds}
+            renderRows={renderRows}
+            repoWorktrees={repoWorktrees}
+          />
+        </SidebarRowNest>
+      ) : null}
     </div>
   )
 }

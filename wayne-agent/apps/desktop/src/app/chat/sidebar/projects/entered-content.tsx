@@ -255,6 +255,21 @@ function RepoFlatSection({
   )
 
   if (!showHeader) {
+    if (ordered.length === 1) {
+      const lone = ordered[0]
+
+      return (
+        <>
+          {lone.sessions.length === 0 ? (
+            <div className="min-h-7 pl-2 text-[0.75rem] leading-7 text-(--ui-text-quaternary)">{s.noSessionsInCheckout}</div>
+          ) : (
+            renderRows(lone.sessions)
+          )}
+          {removeDialog}
+        </>
+      )
+    }
+
     return (
       <>
         {body}
