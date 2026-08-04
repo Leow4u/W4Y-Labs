@@ -1,7 +1,7 @@
 /**
  * Settings → Memory — view/edit USER.md + status sizes + reset entry points.
  */
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -39,35 +39,34 @@ export function ManageMemoryDialog({ open, onOpenChange }: ManageMemoryDialogPro
   const [content, setContent] = useState('')
   const [charLimit, setCharLimit] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setLoadError(null)
+    try {
+      const [nextStatus, profile] = await Promise.all([getMemoryStatus(), getUserProfile()])
+      setStatus(nextStatus)
+      setContent(profile.content)
+      setCharLimit(profile.char_limit)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : copy.manageLoadFailed
+      setLoadError(message)
+      notifyError(error, copy.manageLoadFailed)
+    } finally {
+      setLoading(false)
+    }
+  }, [copy.manageLoadFailed])
 
   useEffect(() => {
-    if (!open) return
-
-    let cancelled = false
-    setLoading(true)
-
-    void (async () => {
-      try {
-        const [nextStatus, profile] = await Promise.all([getMemoryStatus(), getUserProfile()])
-        if (cancelled) return
-        setStatus(nextStatus)
-        setContent(profile.content)
-        setCharLimit(profile.char_limit)
-      } catch (error) {
-        if (!cancelled) {
-          notifyError(error, copy.manageLoadFailed)
-          onOpenChange(false)
-        }
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-
-    return () => {
-      cancelled = true
+    if (!open) {
+      setLoadError(null)
+      return
     }
-  }, [copy.manageLoadFailed, onOpenChange, open])
+    void load()
+  }, [load, open, reloadKey])
 
   const save = async () => {
     setSaving(true)
@@ -101,6 +100,17 @@ export function ManageMemoryDialog({ open, onOpenChange }: ManageMemoryDialogPro
             <div className="flex items-center gap-2 py-8 text-(--ui-text-tertiary)">
               <Loader2 className="size-4 animate-spin" />
               {t.common.loading}
+            </div>
+          ) : loadError ? (
+            <div className="grid gap-3 py-6">
+              <p className="text-sm text-destructive">{loadError}</p>
+              <Button
+                onClick={() => setReloadKey(key => key + 1)}
+                type="button"
+                variant="outline"
+              >
+                {t.common.retry}
+              </Button>
             </div>
           ) : (
             <div className="grid gap-4">
@@ -139,7 +149,11 @@ export function ManageMemoryDialog({ open, onOpenChange }: ManageMemoryDialogPro
           <Button onClick={() => onOpenChange(false)} type="button" variant="ghost">
             {t.common.cancel}
           </Button>
-          <Button disabled={loading || saving} onClick={() => void save()} type="button">
+          <Button
+            disabled={loading || saving || Boolean(loadError)}
+            onClick={() => void save()}
+            type="button"
+          >
             {saving ? <Loader2 className="size-3.5 animate-spin" /> : null}
             {saving ? t.common.saving : t.common.save}
           </Button>

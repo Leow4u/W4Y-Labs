@@ -11397,12 +11397,12 @@ async def get_user_profile():
     inherits. USER.md is the native store for "what the assistant knows about
     you" and is injected into every system prompt (agent/system_prompt.py:432).
     """
-    from tools.memory_tool import load_memory_store
+    from tools.memory_tool import load_on_disk_store
 
     try:
-        store = load_memory_store()
+        store = load_on_disk_store()
     except Exception:
-        _log.exception("load_memory_store failed")
+        _log.exception("load_on_disk_store failed")
         raise HTTPException(status_code=500, detail="Could not read the user profile")
     return {
         "content": "\n\n".join(store.user_entries),
@@ -11422,14 +11422,14 @@ async def set_user_profile(body: UserProfileBody):
     from tools.memory_tool import (
         MemoryStore,
         _scan_memory_content,
-        load_memory_store,
+        load_on_disk_store,
     )
 
     text = (body.content or "").strip()
     try:
-        store = load_memory_store()
+        store = load_on_disk_store()
     except Exception:
-        _log.exception("load_memory_store failed")
+        _log.exception("load_on_disk_store failed")
         raise HTTPException(status_code=500, detail="Could not read the user profile")
 
     if len(text) > store.user_char_limit:
