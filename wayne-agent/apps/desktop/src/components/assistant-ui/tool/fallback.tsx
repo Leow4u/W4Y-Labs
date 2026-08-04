@@ -96,7 +96,8 @@ const TOOL_SECTION_LABEL_CLASS = 'mb-1 text-[0.65rem] font-medium uppercase trac
 const TOOL_SECTION_SURFACE_CLASS =
   'max-h-20 max-w-full overflow-auto bg-transparent px-2 py-1.5 text-(--ui-text-secondary)'
 
-const TOOL_EXPANDED_SHELL_CLASS = 'rounded-[0.3125rem] border border-(--ui-stroke-tertiary)'
+const TOOL_EXPANDED_SHELL_CLASS =
+  'rounded-md border border-[color-mix(in_srgb,var(--ui-stroke-secondary)_55%,transparent)] bg-[color-mix(in_srgb,var(--ui-bg-elevated)_35%,transparent)]'
 
 const TOOL_SECTION_PRE_CLASS = cn(TOOL_SECTION_SURFACE_CLASS, 'font-mono text-[0.7rem] leading-relaxed')
 

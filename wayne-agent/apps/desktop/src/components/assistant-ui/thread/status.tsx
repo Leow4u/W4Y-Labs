@@ -73,11 +73,11 @@ export const PlanningNextMoves: FC = () => {
 
   return (
     <StatusRow
-      className="mt-0.5"
+      className="mt-0.5 pl-(--message-text-indent) text-[length:var(--conversation-caption-font-size)]"
       data-slot="aui_planning-next"
       label={t.assistant.thread.planningNextMoves}
     >
-      <span className="shimmer text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+      <span className="shimmer text-(--ui-text-tertiary)">
         {t.assistant.thread.planningNextMoves}
       </span>
     </StatusRow>

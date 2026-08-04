@@ -1,4 +1,5 @@
 import { ThreadPrimitive, useAuiEvent, useAuiState } from '@assistant-ui/react'
+import { useStore } from '@nanostores/react'
 import {
   type ComponentProps,
   type CSSProperties,
@@ -14,6 +15,7 @@ import {
 import { useStickToBottom } from 'use-stick-to-bottom'
 
 import { useI18n } from '@/i18n'
+import { $conversationDensity } from '@/store/display-prefs'
 import { cn } from '@/lib/utils'
 import {
   onScrollToBottomRequest,
@@ -105,6 +107,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
   )
 
   const { t } = useI18n()
+  const conversationDensity = useStore($conversationDensity)
   const groups = buildGroups(messageSignature)
   const renderEmpty = groups.length === 0 && Boolean(emptyPlaceholder)
 
@@ -274,6 +277,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
       )}
       <div
         className="size-full overflow-x-hidden overflow-y-auto overscroll-contain"
+        data-conversation-density={conversationDensity}
         data-following={isAtBottom ? 'true' : 'false'}
         data-slot="aui_thread-viewport"
         ref={scrollRef as React.RefCallback<HTMLDivElement>}

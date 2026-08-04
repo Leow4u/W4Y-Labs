@@ -125,7 +125,7 @@ export const AssistantMessage: FC<{
       ref={enterRef}
     >
       <div
-        className="wrap-anywhere min-w-0 max-w-full overflow-hidden text-pretty text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground"
+        className="wrap-anywhere min-w-0 max-w-full overflow-hidden text-pretty text-[length:var(--conversation-text-font-size)] leading-(--conversation-prose-line-height) text-foreground"
         data-slot="aui_assistant-message-content"
       >
         {/* Leaf provider so ConnectLinkCard can read live text without this
