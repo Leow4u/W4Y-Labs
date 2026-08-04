@@ -1692,6 +1692,8 @@ export interface Translations {
     connectChannel: string
     noFolder: string
     chooseFolder: string
+    byAuthor: (who: string) => string
+    selectRepository: string
     failedPickFolder: string
     historySaveFirst: string
     webhookSavedPartial: string

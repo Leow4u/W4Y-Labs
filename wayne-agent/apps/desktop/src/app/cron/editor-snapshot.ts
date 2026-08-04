@@ -95,13 +95,7 @@ export function emptyEditorSnapshot(): NormalizedEditorSnapshot {
     model: DEFAULT_MODEL,
     name: '',
     prompt: '',
-    schedules: [
-      {
-        custom: scheduleOptionForExpr(DEFAULT_SCHEDULE).value === 'custom',
-        expr: DEFAULT_SCHEDULE,
-        id: 'baseline'
-      }
-    ],
+    schedules: [],
     skills: [],
     webhooks: [],
     workdir: ''

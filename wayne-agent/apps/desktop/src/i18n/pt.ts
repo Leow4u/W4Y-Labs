@@ -402,7 +402,7 @@ export const pt = defineLocale({
     editDesc:
       'Atualize o gatilho, as instruções ou a entrega. As alterações aplicam-se na próxima execução.',
     nameLabel: 'Nome',
-    namePlaceholder: 'Briefing matinal',
+    namePlaceholder: 'Sem título',
     promptLabel: 'Instruções',
     promptPlaceholder: 'Escreva @ para tools…',
     frequencyLabel: 'Agendamento',
@@ -604,6 +604,8 @@ export const pt = defineLocale({
     connectChannel: 'Ligar',
     noFolder: 'Sem pasta',
     chooseFolder: 'Escolher pasta…',
+    byAuthor: who => `Por ${who}`,
+    selectRepository: 'Selecionar repositório',
     failedPickFolder: 'Não foi possível escolher a pasta',
     historySaveFirst: 'Guarde a automação para ver o histórico de execuções.',
     webhookSavedPartial: 'Webhook não registado por completo',

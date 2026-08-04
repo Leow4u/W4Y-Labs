@@ -77,6 +77,11 @@ import {
 const WORKDIR_RECENTS_KEY = 'w4y.automations.workdir.recents'
 const DEFAULT_MODEL = '__default__'
 
+interface AuthMe {
+  display_name?: null | string
+  email?: null | string
+}
+
 export type { EditorValues }
 
 export type EditorMode = { mode: 'create' } | { job: CronJob; mode: 'edit' }
@@ -146,6 +151,7 @@ export function AutomationEditor({
   const [historyRows, setHistoryRows] = useState<AutomationRunRow[]>([])
   const [historyLoading, setHistoryLoading] = useState(false)
   const [recents, setRecents] = useState<string[]>(() => readWorkdirRecents())
+  const [authorLabel, setAuthorLabel] = useState<null | string>(null)
   const allJobs = useStore($cronJobs)
 
   const nextRunByJobId = useMemo(() => {
@@ -176,13 +182,7 @@ export function AutomationEditor({
         ...siblingRows
       ])
     } else {
-      setSchedules([
-        {
-          id: newTriggerId(),
-          expr: DEFAULT_SCHEDULE,
-          custom: scheduleOptionForExpr(DEFAULT_SCHEDULE).value === 'custom'
-        }
-      ])
+      setSchedules([])
     }
     const bound = job?.composio_triggers
     setComposioTriggers(
@@ -231,6 +231,31 @@ export function AutomationEditor({
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 60_000)
     return () => window.clearInterval(id)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    const api = window.work4youDesktop?.cloud?.api
+    if (!api) {
+      return
+    }
+
+    void api({ method: 'GET', path: '/api/auth/me' })
+      .then(res => {
+        if (cancelled || !res.ok || !res.json || typeof res.json !== 'object') {
+          return
+        }
+
+        const me = res.json as AuthMe
+        const email = (me.email || '').trim()
+        const displayName = (me.display_name || '').trim()
+        setAuthorLabel(email || displayName || null)
+      })
+      .catch(() => undefined)
+
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
@@ -307,9 +332,11 @@ export function AutomationEditor({
     }
   }, [job, tab])
 
-  const active = job ? isJobActive(job) : true
-  const title = name.trim() || (job ? jobTitle(job) : c.createTitle)
-  const folderLabel = workdir ? workdir.split(/[/\\]/).filter(Boolean).pop() : c.noFolder
+  const active = job ? isJobActive(job) : false
+  const title = name.trim() || (job ? jobTitle(job) : c.namePlaceholder)
+  const folderLabel = workdir
+    ? workdir.split(/[/\\]/).filter(Boolean).pop() || c.selectRepository
+    : c.selectRepository
 
   const baselineSnapshot = useMemo(
     () => (job ? editorSnapshotFromJob(job) : emptyEditorSnapshot()),
@@ -450,19 +477,19 @@ export function AutomationEditor({
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-6 pb-12 pt-[calc(var(--titlebar-height)+1.5rem)]">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-[0.75rem] text-foreground/70">
+    <div className="mx-auto max-w-3xl px-8 pb-16 pt-[calc(var(--titlebar-height)+1rem)]">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
+        <nav className="flex min-w-0 flex-wrap items-center gap-1.5 text-[0.75rem] text-foreground/65">
           <button className="hover:text-foreground" onClick={onBack} type="button">
             {c.title}
           </button>
-          <Codicon className="text-foreground/50" name="chevron-right" size="0.7rem" />
-          <span className="truncate text-foreground">{title}</span>
+          <Codicon className="text-foreground/45" name="chevron-right" size="0.7rem" />
+          <span className="truncate text-foreground/85">{title}</span>
         </nav>
 
         <div className="flex shrink-0 items-center gap-0.5">
           <Button
-            className="text-foreground/90 hover:text-foreground disabled:opacity-40"
+            className="text-foreground/85 hover:text-foreground disabled:opacity-35"
             disabled={!canSave}
             onClick={() => void handleSave()}
             size="sm"
@@ -472,7 +499,7 @@ export function AutomationEditor({
             {saving ? t.common.saving : isEdit ? t.common.save : c.createAction}
           </Button>
           <Button
-            className="text-foreground/80 hover:text-foreground"
+            className="text-foreground/75 hover:text-foreground"
             disabled={!isEdit || busy || !onTrigger}
             onClick={handleTrigger}
             size="icon-sm"
@@ -486,7 +513,7 @@ export function AutomationEditor({
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  className="text-foreground/80 hover:text-foreground"
+                  className="text-foreground/75 hover:text-foreground"
                   size="icon-sm"
                   type="button"
                   variant="ghost"
@@ -518,67 +545,70 @@ export function AutomationEditor({
         </div>
       </div>
 
-      <header className="mb-5 space-y-3">
+      <div className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-2">
         <Input
           aria-label={c.nameLabel}
-          className="h-auto min-h-[2.25rem] border-0 bg-transparent px-0 text-[1.75rem] font-semibold tracking-tight shadow-none placeholder:text-foreground/35 focus-visible:ring-0"
+          className="h-auto min-h-0 w-auto min-w-[8rem] max-w-full flex-1 border-0 bg-transparent px-0 text-[1.625rem] font-semibold tracking-tight shadow-none placeholder:text-foreground/35 focus-visible:ring-0"
           onChange={event => setName(event.target.value)}
           placeholder={c.namePlaceholder}
           value={name}
         />
-        <div className="flex flex-wrap items-center gap-4">
-          <label className="inline-flex items-center gap-2 text-xs text-foreground/70">
-            <Switch
-              checked={active}
-              disabled={!isEdit || busy || !onPauseResume}
-              onCheckedChange={() => onPauseResume?.()}
-              size="xs"
-            />
-            {active ? c.statusActive : c.statusInactive}
-          </label>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                className="inline-flex max-w-[16rem] items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-foreground/70 transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground"
-                type="button"
-              >
-                <Codicon name="folder" size="0.85rem" />
-                <span className="truncate">{folderLabel}</span>
-                <Codicon className="text-foreground/50" name="chevron-down" size="0.7rem" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-64">
-              <DropdownMenuItem onSelect={() => void pickWorkdir()}>
-                <Codicon name="folder-opened" size="0.85rem" />
-                {c.chooseFolder}
-              </DropdownMenuItem>
-              {recents.map(path => (
-                <DropdownMenuItem
-                  key={path}
-                  onSelect={() => {
-                    setWorkdir(path)
-                    pushWorkdirRecent(path)
-                    setRecents(readWorkdirRecents())
-                  }}
-                >
-                  <Codicon name="history" size="0.85rem" />
-                  <span className="truncate">{path}</span>
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
+        <label className="inline-flex shrink-0 items-center gap-2 text-xs text-foreground/65">
+          <Switch
+            checked={active}
+            disabled={!isEdit || busy || !onPauseResume}
+            onCheckedChange={() => onPauseResume?.()}
+            size="xs"
+          />
+          {active ? c.statusActive : c.statusInactive}
+        </label>
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="inline-flex max-w-[14rem] shrink-0 items-center gap-1.5 rounded-md px-1.5 py-1 text-xs text-foreground/65 transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground"
+              type="button"
+            >
+              <Codicon name="folder" size="0.85rem" />
+              <span className="truncate">{folderLabel}</span>
+              <Codicon className="text-foreground/45" name="chevron-down" size="0.7rem" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-64">
+            <DropdownMenuItem onSelect={() => void pickWorkdir()}>
+              <Codicon name="folder-opened" size="0.85rem" />
+              {c.chooseFolder}
+            </DropdownMenuItem>
+            {recents.map(path => (
               <DropdownMenuItem
+                key={path}
                 onSelect={() => {
-                  setWorkdir('')
+                  setWorkdir(path)
+                  pushWorkdirRecent(path)
+                  setRecents(readWorkdirRecents())
                 }}
               >
-                <Codicon name="close" size="0.85rem" />
-                {c.noFolder}
+                <Codicon name="history" size="0.85rem" />
+                <span className="truncate">{path}</span>
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </header>
+            ))}
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => {
+                setWorkdir('')
+              }}
+            >
+              <Codicon name="close" size="0.85rem" />
+              {c.noFolder}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        {authorLabel ? (
+          <span className="shrink-0 text-xs text-foreground/55">{c.byAuthor(authorLabel)}</span>
+        ) : null}
+      </div>
 
       {job?.last_error ? (
         jobHasInferenceDrift(job) && onResolveInferenceDrift ? (
@@ -603,7 +633,7 @@ export function AutomationEditor({
         )
       ) : null}
 
-      <div className="mb-8 flex gap-1 border-b border-(--ui-stroke-tertiary)/70">
+      <div className="mb-7 flex gap-1 border-b border-(--ui-stroke-tertiary)/60">
         {(
           [
             { id: 'settings' as const, label: c.tabSettings },
@@ -612,8 +642,8 @@ export function AutomationEditor({
         ).map(item => (
           <button
             className={cn(
-              'relative px-3 py-2 text-[0.8rem] font-medium transition-colors',
-              tab === item.id ? 'text-foreground' : 'text-foreground/65 hover:text-foreground'
+              'relative px-3 py-2 text-[0.8125rem] font-medium transition-colors',
+              tab === item.id ? 'text-foreground' : 'text-foreground/60 hover:text-foreground'
             )}
             key={item.id}
             onClick={() => setTab(item.id)}
@@ -621,14 +651,14 @@ export function AutomationEditor({
           >
             {item.label}
             {tab === item.id ? (
-              <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-foreground" />
+              <span className="absolute inset-x-1 -bottom-px h-0.5 rounded-full bg-foreground" />
             ) : null}
           </button>
         ))}
       </div>
 
       {tab === 'settings' ? (
-        <div className="space-y-8">
+        <div className="space-y-7">
           <TriggersPanel
             composioTriggers={composioTriggers}
             job={job}
@@ -644,11 +674,8 @@ export function AutomationEditor({
           />
 
           <section className="space-y-2">
-            <div>
-              <h3 className="text-[0.75rem] font-medium text-foreground/70">{c.instructionsSection}</h3>
-              <p className="mt-0.5 text-[0.65rem] text-foreground/65">{c.instructionsHint}</p>
-            </div>
-            <div className="relative flex min-h-48 flex-col overflow-hidden rounded-xl border border-(--ui-stroke-tertiary)/70 bg-(--ui-bg-quinary)/15">
+            <h3 className="text-[0.8125rem] font-medium text-foreground/75">{c.instructionsSection}</h3>
+            <div className="relative flex min-h-52 flex-col overflow-hidden rounded-lg border border-(--ui-stroke-tertiary)/60 bg-background">
               <AutomationPromptField
                 onChange={setPrompt}
                 placeholder={c.promptPlaceholder}
@@ -657,7 +684,7 @@ export function AutomationEditor({
               />
               <div className="absolute bottom-2 left-2">
                 <Select onValueChange={setModel} value={model}>
-                  <SelectTrigger className="h-7 w-auto max-w-[14rem] gap-1 rounded-md border-(--ui-stroke-tertiary)/70 bg-background/80 px-2 text-[0.75rem] text-foreground/80 backdrop-blur-sm">
+                  <SelectTrigger className="h-7 w-auto max-w-[15rem] gap-1 rounded-md border-(--ui-stroke-tertiary)/70 bg-background px-2 text-[0.75rem] text-foreground/80 shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>

@@ -43,7 +43,7 @@ describe('editor-snapshot', () => {
       model: '__default__',
       name: '',
       prompt: '',
-      schedules: [{ custom: false, expr: '0 9 * * *', id: 'x' }],
+      schedules: [],
       skills: [],
       webhooks: [],
       workdir: ''
