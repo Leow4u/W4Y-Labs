@@ -33,10 +33,6 @@ const StatusRow: FC<{ children: ReactNode; label: string } & React.ComponentProp
 // Fixed label while auto-compaction runs — decoupled from backend status text.
 const COMPACTION_LABEL = 'Summarizing thread'
 
-const CompactionHint: FC = () => (
-  <span className="shimmer min-w-0 truncate text-muted-foreground/55">{COMPACTION_LABEL}</span>
-)
-
 export const CenteredThreadSpinner: FC = () => {
   const { t } = useI18n()
 
@@ -91,11 +87,14 @@ export const ResponseLoadingIndicator: FC = () => {
 
   return (
     <StatusRow
+      className="mt-1.5 pl-(--message-text-indent) text-[length:var(--conversation-caption-font-size)]"
       data-slot="aui_response-loading"
       label={compacting ? COMPACTION_LABEL : t.assistant.thread.loadingResponse}
     >
       <span aria-hidden="true" className="dither inline-block size-3 rounded-[2px] text-midground/80 animate-pulse" />
-      {compacting && <CompactionHint />}
+      <span className="shimmer min-w-0 truncate text-(--ui-text-tertiary)">
+        {compacting ? COMPACTION_LABEL : t.assistant.thread.loadingResponse}
+      </span>
       <ActivityTimerText seconds={elapsed} />
     </StatusRow>
   )
@@ -145,6 +144,7 @@ const STREAM_STALL_S = 2
 // so that per-token updates re-render only this leaf, not the whole
 // AssistantMessage subtree.
 export const StreamStallIndicator: FC = () => {
+  const { t } = useI18n()
   // Gate on the live thread too — a stale assistant status:running after the
   // turn settled must not keep a shimmering "Thinking" under the message.
   const threadRunning = useAuiState(s => s.thread.isRunning)
@@ -192,12 +192,14 @@ export const StreamStallIndicator: FC = () => {
 
   return (
     <StatusRow
-      className="mt-1.5"
+      className="mt-1.5 pl-(--message-text-indent) text-[length:var(--conversation-caption-font-size)]"
       data-slot="aui_stream-stall"
-      label={compacting ? COMPACTION_LABEL : 'Work4You is thinking'}
+      label={compacting ? COMPACTION_LABEL : t.assistant.thread.thinking}
     >
       <span aria-hidden="true" className="dither inline-block size-3 rounded-[2px] text-midground/80 animate-pulse" />
-      {compacting && <CompactionHint />}
+      <span className="shimmer text-(--ui-text-tertiary)">
+        {compacting ? COMPACTION_LABEL : t.assistant.thread.thinking}
+      </span>
       <ActivityTimerText seconds={elapsed} />
     </StatusRow>
   )

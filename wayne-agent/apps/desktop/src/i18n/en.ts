@@ -1708,6 +1708,12 @@ export const en: Translations = {
       'Bring the code, question, or stuck part. I’ll read the room before making changes.',
       'Send the task, failing path, or half-formed plan. I’ll help turn it into action.',
       'Bring the problem, goal, or file. I’ll inspect first and keep the next step concrete.'
+    ],
+    emptySuggestions: [
+      'Map how this repo is structured',
+      'Fix the failing tests',
+      'Refactor the module I point at',
+      'Draft a PR for the last change'
     ]
   },
   agents: {

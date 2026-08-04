@@ -24,6 +24,12 @@ export const pt = defineLocale({
       'Traz o código, a dúvida ou o ponto onde estás preso. Eu leio o contexto antes de mudar algo.',
       'Envia a tarefa, o caminho a falhar ou o plano a meio. Eu ajudo a transformar em acção.',
       'Traz o problema, o objectivo ou o ficheiro. Eu inspecciono primeiro e mantenho o próximo passo concreto.'
+    ],
+    emptySuggestions: [
+      'Mapeia a estrutura deste repositório',
+      'Corrige os testes a falhar',
+      'Refatora o módulo que eu indicar',
+      'Prepara um PR com a última alteração'
     ]
   },
 

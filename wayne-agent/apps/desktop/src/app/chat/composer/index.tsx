@@ -869,9 +869,11 @@ export function ChatBar({
                 ? // Empty session: composer only — hero stays at 38%.
                   'absolute left-1/2 top-[var(--composer-elevated-top)] w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2'
                 : 'absolute bottom-0 left-1/2 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 pt-2 pb-[var(--composer-shell-pad-block-end)]',
-            dragging && 'cursor-grabbing select-none touch-none'
+            dragging && 'cursor-grabbing select-none touch-none',
+            elevateComposer && !poppedOut && 'composer-root--elevated'
           )}
           data-drag-active={dragActive ? '' : undefined}
+          data-elevated={elevateComposer && !poppedOut ? '' : undefined}
           data-popped-out={poppedOut ? '' : undefined}
           data-slot="composer-root"
           data-status-stack={statusStackVisible ? '' : undefined}
@@ -1054,8 +1056,9 @@ export function ChatBar({
                     {contextMenu}
                     <ModeChip gateway={gateway} sessionId={sessionId} />
                   </div>
-                  <div className="flex items-center justify-end gap-0.5 [grid-area:controls]">
+                  <div className="flex min-w-0 items-center justify-end gap-1 self-center [grid-area:controls]">
                     <ConnectorsPicker disabled={connectorsOff} onChange={setConnectorsOff} />
+                    <span aria-hidden className="composer-toolbar-divider hidden sm:block" />
                     {controls}
                   </div>
                 </div>

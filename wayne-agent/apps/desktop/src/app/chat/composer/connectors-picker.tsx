@@ -157,8 +157,21 @@ export function ConnectorsPicker({
           title={t.composer.connectorsAdd}
           type="button"
         >
-          <Link2 className={iconSize.sm} />
+          {featured.length > 0 ? (
+            <span className="flex items-center -space-x-1">
+              {featured.slice(0, 3).map(tk => (
+                <LogoTile
+                  className="h-[18px] w-[18px] rounded-full border border-border p-px text-[0.55rem]"
+                  key={tk.slug}
+                  toolkit={tk}
+                />
+              ))}
+            </span>
+          ) : (
+            <Link2 className={iconSize.sm} />
+          )}
           <span className="tabular-nums text-(--ui-text-tertiary)">+{CURATED_CONNECTOR_COUNT}</span>
+          <ChevronDown className={cn(iconSize.sm, 'opacity-60')} />
         </DropdownMenuTrigger>
         <DropdownMenuContent align="start" className="w-72 p-1.5" side="top" sideOffset={8}>
           <DropdownMenuLabel className="text-[0.65rem] uppercase tracking-[0.06em] text-muted-foreground">

@@ -1157,6 +1157,8 @@ export interface Translations {
     emptyTitle: string
     /** Rotating subtitle bodies for the empty-session hero (locale-aware). */
     emptyBodies: readonly string[]
+    /** One-click starter prompts shown under the empty-session hero. */
+    emptySuggestions: readonly string[]
   }
 
   agents: {

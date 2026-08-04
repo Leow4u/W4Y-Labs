@@ -27,7 +27,7 @@ const TurnDeliveryFooter: FC<{ added: number; files: number; removed: number }> 
   return (
     <div
       className={cn(
-        'mt-2 flex flex-wrap items-center gap-2 border-t border-(--ui-stroke-tertiary) pt-2',
+        'turn-delivery-strip mt-2 flex flex-wrap items-center gap-2 border-t border-[color-mix(in_srgb,var(--ui-stroke-tertiary)_55%,transparent)] pt-2 pl-(--message-text-indent)',
         'text-[0.68rem] leading-snug text-(--ui-text-tertiary)'
       )}
       data-slot="turn-delivery"

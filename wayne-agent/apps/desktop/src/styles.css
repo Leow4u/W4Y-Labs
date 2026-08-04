@@ -395,7 +395,7 @@
 
     --composer-width: 48.75rem;
     /* Empty-session composer only (hero stays at 38%). */
-    --composer-elevated-top: calc(38% + 4rem);
+    --composer-elevated-top: calc(36% + 4.5rem);
     --composer-control-size: 1.5rem;
     --composer-control-primary-size: 1.625rem;
     --composer-control-gap: 0.25rem;
@@ -1061,20 +1061,61 @@ text-* variant utilities. */ .btn-arc {
 [data-slot='aui_intro'] {
   align-items: center;
   justify-content: center;
-  padding-bottom: var(--composer-measured-height);
+  padding-bottom: calc(var(--composer-measured-height) + 1rem);
   text-align: center;
+}
+
+.intro-hero-title {
+  font-size: clamp(1.55rem, 2.6vw, 1.95rem);
+  letter-spacing: -0.02em;
+}
+
+.intro-hero-body {
+  color: var(--ui-text-tertiary);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.intro-suggestion-chip {
+  border-color: color-mix(in srgb, var(--ui-stroke-secondary) 55%, transparent);
+  background: color-mix(in srgb, var(--composer-fill) 55%, transparent);
+}
+
+[data-slot='composer-root'][data-elevated] {
+  filter: drop-shadow(0 0.75rem 1.75rem color-mix(in srgb, #000 8%, transparent));
+}
+
+.composer-toolbar-divider {
+  width: 0.0625rem;
+  height: 1rem;
+  flex-shrink: 0;
+  background: color-mix(in srgb, var(--ui-stroke-tertiary) 75%, transparent);
+}
+
+[data-slot='composer-root'] [data-slot='composer-surface'] {
+  box-shadow: 0 0.0625rem 0.125rem color-mix(in srgb, #000 4%, transparent);
+}
+
+.composer-status-stack {
+  font-size: 0.75rem;
+}
+
+.composer-status-stack [class*='group/status-row'] {
+  min-height: 1.625rem;
+}
+
+[data-slot='composer-root'][data-status-stack] .composer-toolbar-divider {
+  opacity: 0.85;
 }
 
 [data-slot='aui_intro'] > div {
   max-width: min(var(--composer-width), 82vw);
 }
 
-[data-slot='aui_intro'] p:last-child {
+[data-slot='aui_intro'] p:last-child,
+.intro-hero-body {
   max-width: 34rem;
   margin-inline: auto;
-  color: var(--ui-text-tertiary);
-  font-size: 0.875rem;
-  line-height: 1.45;
 }
 
 .fit-text {

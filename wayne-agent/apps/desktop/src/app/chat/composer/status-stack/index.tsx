@@ -235,7 +235,7 @@ export function ComposerStatusStack({ queue, sessionId }: ComposerStatusStackPro
           composerDockCard('top'),
           // Inset (mx-2) so the stack reads slightly narrower than the composer
           // surface below it — the original look.
-          'mx-2 overflow-hidden rounded-b-none border-b border-b-transparent pt-0.5'
+          'composer-status-stack mx-2 overflow-hidden rounded-b-none border-b border-b-transparent pt-0.5'
         )}
       >
         {sections.map(section => (
