@@ -20,13 +20,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem
 } from '@/components/ui/sidebar'
-import { searchSessions, type SessionInfo, type SessionSearchResult } from '@/hermes'
+import { searchSessions, triggerCronJob, type SessionInfo, type SessionSearchResult } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { comboTokens } from '@/lib/keybinds/combo'
 import { profileColor } from '@/lib/profile-color'
 import { sessionMatchesSearch } from '@/lib/session-search'
 import { normalizeSessionSource, sessionSourceLabel } from '@/lib/session-source'
 import { cn } from '@/lib/utils'
+import { notify, notifyError } from '@/store/notifications'
+import { $cronJobs, setCronFocusJobId, updateCronJobs } from '@/store/cron'
 import {
   $dismissedAutoProjectIds,
   $panesFlipped,
@@ -35,6 +37,7 @@ import {
   $sidebarOpen,
   $sidebarOverlayMounted,
   $sidebarArchivedOpen,
+  $sidebarCronOpen,
   $sidebarPinsOpen,
   $sidebarProjectOrderIds,
   $sidebarProjectsOpen,
@@ -51,6 +54,7 @@ import {
   setSidebarProjectOrderIds,
   setSidebarProjectsOpen,
   setSidebarRecentsOpen,
+  setSidebarCronOpen,
   setSidebarSessionOrderIds,
   setSidebarSessionOrderManual,
   setSidebarWorkspaceOrderIds,
@@ -126,7 +130,10 @@ import {
   useRepoWorktreeMap
 } from './projects'
 import { SidebarBlankState, SidebarSessionSkeletons } from './section-states'
+import { SidebarCronJobsSection } from './cron-jobs-section'
 import { SidebarSessionsSection, VIRTUALIZE_THRESHOLD } from './sessions-section'
+
+import { allSiblingJobIds } from '../../cron/automation-triggers'
 
 // Non-session groups (messaging platforms) stay compact: show a few rows up
 // front, reveal more in larger steps on demand. Keeps a busy platform from
@@ -244,6 +251,7 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const { t } = useI18n()
   const s = t.sidebar
+  const c = t.cron
   const sidebarOpen = useStore($sidebarOpen)
   // Collapsed-but-overlay-mounted → render the full sidebar, not just the nav rail.
   const overlayMounted = useStore($sidebarOverlayMounted)
@@ -254,6 +262,8 @@ export function ChatSidebar({
   const projectsOpen = useStore($sidebarProjectsOpen)
   const agentsOpen = useStore($sidebarRecentsOpen)
   const archivedOpen = useStore($sidebarArchivedOpen)
+  const cronOpen = useStore($sidebarCronOpen)
+  const cronJobs = useStore($cronJobs)
   const selectedSessionId = useStore($selectedStoredSessionId)
   const sessions = useStore($sessions)
   const archivedSessions = useStore($archivedSessions)
@@ -882,6 +892,37 @@ export function ChatSidebar({
       .sort((a, b) => sessionTime(b.sessions[0]) - sessionTime(a.sessions[0]))
   }, [messagingSessions, messagingPlatformTotals, messagingTruncated])
 
+  const sidebarCronJobs = useMemo(() => {
+    const siblingIds = allSiblingJobIds()
+
+    return cronJobs.filter(job => !siblingIds.has(job.id))
+  }, [cronJobs])
+
+  const openCronJob = useCallback(
+    (jobId: string) => {
+      setCronFocusJobId(jobId)
+      const item = SIDEBAR_NAV.find(row => row.id === 'cron')
+
+      if (item) {
+        onNavigate(item)
+      }
+    },
+    [onNavigate]
+  )
+
+  const triggerSidebarCronJob = useCallback(
+    async (jobId: string) => {
+      try {
+        const updated = await triggerCronJob(jobId)
+        updateCronJobs(rows => rows.map(row => (row.id === jobId ? updated : row)))
+        notify({ kind: 'success', title: c.triggered, message: c.triggerSoonHint })
+      } catch (err) {
+        notifyError(err, c.failedTrigger)
+      }
+    },
+    [c.failedTrigger, c.triggerSoonHint, c.triggered]
+  )
+
   // ALL-profiles view: one collapsible group per profile, color on the header
   // (not on every row). Default profile floats to the top, the rest alpha.
   // Only unbound sessions — project-bound ones live under Projetos.
@@ -1410,6 +1451,18 @@ export function ChatSidebar({
                   />
                 )
               })}
+
+            {!trimmedQuery && sidebarCronJobs.length > 0 && (
+              <SidebarCronJobsSection
+                jobs={sidebarCronJobs}
+                label={s.cronJobs}
+                onManageJob={openCronJob}
+                onOpenRun={onResumeSession}
+                onTriggerJob={jobId => void triggerSidebarCronJob(jobId)}
+                onToggle={() => setSidebarCronOpen(!cronOpen)}
+                open={cronOpen}
+              />
+            )}
 
             {!trimmedQuery && archivedSessions.length > 0 && (
               <SidebarSessionsSection

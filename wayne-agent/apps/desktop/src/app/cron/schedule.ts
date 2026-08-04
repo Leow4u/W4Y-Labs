@@ -48,6 +48,28 @@ export function jobWorkdir(job: CronJob): string {
   return asText(job.workdir).trim()
 }
 
+export function jobSkills(job: CronJob): string[] {
+  const rows = job.skills
+
+  if (Array.isArray(rows)) {
+    return rows.map(name => asText(name).trim()).filter(Boolean)
+  }
+
+  const legacy = asText(job.skill).trim()
+
+  return legacy ? [legacy] : []
+}
+
+export function jobEnabledToolsets(job: CronJob): string[] {
+  const rows = job.enabled_toolsets
+
+  if (!Array.isArray(rows)) {
+    return []
+  }
+
+  return rows.map(name => asText(name).trim()).filter(Boolean)
+}
+
 export function jobScheduleDisplay(job: CronJob): string {
   return asText(job.schedule_display) || asText(job.schedule?.display) || asText(job.schedule?.expr) || '—'
 }

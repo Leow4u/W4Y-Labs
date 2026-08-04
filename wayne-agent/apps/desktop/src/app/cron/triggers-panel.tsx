@@ -352,9 +352,12 @@ export function TriggersPanel({
 
   return (
     <section className="space-y-2">
-      <h3 className="text-[0.75rem] font-medium text-foreground/70">{c.triggersSection}</h3>
+      <div>
+        <h3 className="text-[0.75rem] font-medium text-foreground/70">{c.triggersSection}</h3>
+        <p className="mt-0.5 text-[0.65rem] text-foreground/65">{c.triggersHint}</p>
+      </div>
 
-      <div className="overflow-hidden rounded-lg border border-(--ui-stroke-tertiary)/70">
+      <div className="overflow-hidden rounded-xl border border-(--ui-stroke-tertiary)/70 bg-(--ui-bg-quinary)/15">
         {!hasAnyTrigger ? (
           <div className="flex justify-center px-3 py-8">{addTriggerMenu(true)}</div>
         ) : (

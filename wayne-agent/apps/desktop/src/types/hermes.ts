@@ -593,16 +593,24 @@ export interface CronJob {
   webhook_route?: CronWebhookRoute | null
   /** Absolute working directory for the job run. */
   workdir?: null | string
+  /** Skills loaded before the prompt runs (ordered). */
+  skills?: null | string[]
+  /** Legacy single-skill field; kept in sync with `skills[0]`. */
+  skill?: null | string
+  /** Restrict agent toolsets for this job (empty = profile default). */
+  enabled_toolsets?: null | string[]
 }
 
 export interface CronJobCreatePayload {
   composio_triggers?: CronComposioTrigger[]
   deliver?: string
+  enabled_toolsets?: string[]
   model?: string
   name?: string
   prompt: string
   provider?: string
   schedule: string
+  skills?: string[]
   webhook_route?: CronWebhookRoute | null
   workdir?: null | string
 }
@@ -617,11 +625,13 @@ export interface CronJobUpdates {
   composio_triggers?: CronComposioTrigger[] | null
   deliver?: string
   enabled?: boolean
+  enabled_toolsets?: null | string[]
   model?: null | string
   name?: string
   prompt?: string
   provider?: null | string
   schedule?: string
+  skills?: null | string[]
   webhook_route?: CronWebhookRoute | null
   workdir?: null | string
 }

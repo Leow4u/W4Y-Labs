@@ -327,9 +327,11 @@ export function CronView({
     schedules: EditorValues['schedules'],
     shared: {
       deliver: string
+      enabledToolsets: string[]
       model?: string
       name?: string
       prompt: string
+      skills: string[]
       workdir?: null | string
     }
   ) {
@@ -356,7 +358,9 @@ export function CronView({
           name: siblingName,
           deliver: shared.deliver,
           model: shared.model ?? null,
-          workdir: shared.workdir ?? null
+          workdir: shared.workdir ?? null,
+          skills: shared.skills,
+          enabled_toolsets: shared.enabledToolsets
         })
         nextSiblings.push({ expr, jobId: updated.id })
         nextJobs = nextJobs.map(job => (job.id === updated.id ? updated : job))
@@ -369,7 +373,9 @@ export function CronView({
         name: siblingName,
         deliver: shared.deliver,
         model: shared.model,
-        workdir: shared.workdir ?? undefined
+        workdir: shared.workdir ?? undefined,
+        skills: shared.skills,
+        enabled_toolsets: shared.enabledToolsets
       })
       nextSiblings.push({ expr, jobId: created.id })
       nextJobs = [...nextJobs, created]
@@ -430,7 +436,19 @@ export function CronView({
       deliver: values.deliver || DEFAULT_DELIVER,
       model: values.model || undefined,
       workdir: values.workdir || null,
-      composio_triggers: composioTriggers
+      composio_triggers: composioTriggers,
+      skills: values.skills,
+      enabled_toolsets: values.enabledToolsets
+    }
+
+    const shared = {
+      deliver: payload.deliver,
+      enabledToolsets: values.enabledToolsets,
+      model: payload.model,
+      name: payload.name,
+      prompt: payload.prompt,
+      skills: values.skills,
+      workdir: payload.workdir
     }
 
     if (editor.mode === 'create') {
@@ -440,7 +458,9 @@ export function CronView({
         name: payload.name,
         deliver: payload.deliver,
         model: payload.model,
-        workdir: payload.workdir ?? undefined
+        workdir: payload.workdir ?? undefined,
+        skills: payload.skills,
+        enabled_toolsets: payload.enabled_toolsets
       })
 
       const webhookRoute = await syncAutomationWebhook(created.id, values.webhooks.length > 0)
@@ -450,7 +470,7 @@ export function CronView({
       })
 
       updateCronJobs(rows => [...rows.filter(row => row.id !== created.id), withMeta])
-      await syncScheduleSiblings(withMeta, schedules, payload)
+      await syncScheduleSiblings(withMeta, schedules, shared)
       const refreshed = (await getCronJobs()).find(job => job.id === withMeta.id) ?? withMeta
       setEditor({ mode: 'edit', job: refreshed })
       notify({ kind: 'success', title: c.created, message: truncate(jobTitle(withMeta), 60) })
@@ -467,11 +487,13 @@ export function CronView({
         model: payload.model ?? null,
         workdir: payload.workdir,
         composio_triggers: composioTriggers,
-        webhook_route: webhookRoute
+        webhook_route: webhookRoute,
+        skills: payload.skills,
+        enabled_toolsets: payload.enabled_toolsets
       })
 
       updateCronJobs(rows => rows.map(row => (row.id === updated.id ? updated : row)))
-      await syncScheduleSiblings(updated, schedules, payload)
+      await syncScheduleSiblings(updated, schedules, shared)
       const refreshed = (await getCronJobs()).find(job => job.id === updated.id) ?? updated
       setEditor({ mode: 'edit', job: refreshed })
       notify({ kind: 'success', title: c.updated, message: truncate(jobTitle(updated), 60) })

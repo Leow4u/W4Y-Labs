@@ -1649,6 +1649,18 @@ export interface Translations {
     memoriesHint: string
     /** Profile memory notes are editable; cron runs always skip session memory. */
     memoriesManageHint: string
+    jobSkillsLabel: string
+    jobSkillsHint: string
+    addJobSkill: string
+    searchJobSkills: string
+    noJobSkills: string
+    noJobSkillsSelected: string
+    jobToolsetsLabel: string
+    jobToolsetsHint: string
+    addJobToolset: string
+    searchJobToolsets: string
+    noJobToolsets: string
+    noJobToolsetsSelected: string
     toolAdded: string
     deliverHint: string
     /** Tool-row label: "Send to Slack" / "Enviar para Slack". */

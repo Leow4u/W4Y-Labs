@@ -14,8 +14,14 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
-import { getCronJobRuns, getStatus, listWebhooks, type CronComposioTrigger, type CronJob, type SessionInfo } from '@/hermes'
+import {
+  getCronJobRuns,
+  getStatus,
+  listWebhooks,
+  type CronComposioTrigger,
+  type CronJob,
+  type SessionInfo
+} from '@/hermes'
 import { useI18n } from '@/i18n'
 import { AlertTriangle } from '@/lib/icons'
 import { requestModelOptions } from '@/lib/model-options'
@@ -33,6 +39,7 @@ import {
   getScheduleSiblings,
   newTriggerId
 } from './automation-triggers'
+import { AutomationPromptField } from './automation-prompt-field'
 import { jobTitle } from './job-state'
 import {
   type AutomationRunRow,
@@ -45,9 +52,11 @@ import { RunsTable } from './runs-table'
 import {
   DEFAULT_DELIVER,
   jobDeliver,
+  jobEnabledToolsets,
   jobModel,
   jobPrompt,
   jobScheduleExpr,
+  jobSkills,
   jobWorkdir,
   scheduleOptionForExpr
 } from './schedule'
@@ -63,11 +72,13 @@ export type EditorMode = { mode: 'create' } | { job: CronJob; mode: 'edit' }
 export interface EditorValues {
   composioTriggers: CronComposioTrigger[]
   deliver: string
+  enabledToolsets: string[]
   model: string
   name: string
   prompt: string
   /** All schedule trigger exprs; index 0 is the primary cron job. */
   schedules: ScheduleTriggerRow[]
+  skills: string[]
   webhooks: WebhookTriggerRow[]
   workdir: string
 }
@@ -123,6 +134,8 @@ export function AutomationEditor({
   const [deliver, setDeliver] = useState(DEFAULT_DELIVER)
   const [model, setModel] = useState(DEFAULT_MODEL)
   const [workdir, setWorkdir] = useState('')
+  const [skills, setSkills] = useState<string[]>([])
+  const [enabledToolsets, setEnabledToolsets] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<null | string>(null)
   const [webhookUrlHint, setWebhookUrlHint] = useState('')
@@ -160,7 +173,13 @@ export function AutomationEditor({
         ...siblingRows
       ])
     } else {
-      setSchedules([])
+      setSchedules([
+        {
+          id: newTriggerId(),
+          expr: DEFAULT_SCHEDULE,
+          custom: scheduleOptionForExpr(DEFAULT_SCHEDULE).value === 'custom'
+        }
+      ])
     }
     const bound = job?.composio_triggers
     setComposioTriggers(
@@ -183,6 +202,8 @@ export function AutomationEditor({
     setDeliver(job ? jobDeliver(job) : DEFAULT_DELIVER)
     setModel(job ? jobModel(job) || DEFAULT_MODEL : DEFAULT_MODEL)
     setWorkdir(job ? jobWorkdir(job) : '')
+    setSkills(job ? jobSkills(job) : [])
+    setEnabledToolsets(job ? jobEnabledToolsets(job) : [])
     setError(null)
     setSaving(false)
     setTab('settings')
@@ -317,10 +338,12 @@ export function AutomationEditor({
       const saved = await onSave({
         composioTriggers,
         deliver,
+        enabledToolsets,
         model: model === DEFAULT_MODEL ? '' : model,
         name: name.trim(),
         prompt: trimmedPrompt,
         schedules: cleanedSchedules,
+        skills,
         webhooks,
         workdir: workdir.trim()
       })
@@ -535,13 +558,16 @@ export function AutomationEditor({
           />
 
           <section className="space-y-2">
-            <h3 className="text-[0.75rem] font-medium text-foreground/70">{c.instructionsSection}</h3>
-            <div className="relative flex min-h-48 flex-col overflow-hidden rounded-lg border border-(--ui-stroke-tertiary)/70">
-              <Textarea
-                className="min-h-40 flex-1 resize-none border-0 bg-transparent px-3 py-3 pb-12 shadow-none placeholder:text-foreground/45 focus-visible:ring-0"
-                onChange={event => setPrompt(event.target.value)}
+            <div>
+              <h3 className="text-[0.75rem] font-medium text-foreground/70">{c.instructionsSection}</h3>
+              <p className="mt-0.5 text-[0.65rem] text-foreground/65">{c.instructionsHint}</p>
+            </div>
+            <div className="relative flex min-h-48 flex-col overflow-hidden rounded-xl border border-(--ui-stroke-tertiary)/70 bg-(--ui-bg-quinary)/15">
+              <AutomationPromptField
+                onChange={setPrompt}
                 placeholder={c.promptPlaceholder}
                 value={prompt}
+                workdir={workdir}
               />
               <div className="absolute bottom-2 left-2">
                 <Select onValueChange={setModel} value={model}>
@@ -562,9 +588,13 @@ export function AutomationEditor({
 
           <ToolsPanel
             deliver={deliver}
+            enabledToolsets={enabledToolsets}
             onDeliverChange={setDeliver}
+            onEnabledToolsetsChange={setEnabledToolsets}
             onOpenChannels={() => navigate(MESSAGING_ROUTE)}
             onOpenConnectors={() => navigate(`${SKILLS_ROUTE}?tab=connectors`)}
+            onSkillsChange={setSkills}
+            skills={skills}
           />
 
           {error ? (
