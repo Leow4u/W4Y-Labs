@@ -1,5 +1,9 @@
 # Inventário de superfícies — motor, ACP, gateway, desktop
 
+> **Migração app única (ago/2026):** destino = **uma** UI React (`apps/desktop`) no
+> browser e no Electron. `wayne-agent/web` é legado até remoção — ver
+> [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
+
 Levantamento só-leitura de **o que existe** e **o que está ligado**, superfície a superfície.
 
 **Data:** 2026-07-29 · **Árvore:** `wayne-agent/` (pós-porte do desktop Hermes para `apps/desktop/`)
@@ -13,7 +17,7 @@ Levantamento só-leitura de **o que existe** e **o que está ligado**, superfíc
 | Contratos do motor, gotchas, incidentes (validade longa) | [`BACKEND-MAP.md`](BACKEND-MAP.md) |
 | O que o produto é e para quem | [`PRODUTO.md`](PRODUTO.md) |
 | Fórmula vs Conectores (destino UI Habilidades) | [`PRODUTO.md` — Fórmula vs Conectores](PRODUTO.md#fórmula-vs-conectores) |
-| Nativo × construído, desperdício em dias (22/07) | [`arquivo/NATIVO-VS-CONSTRUIDO.md`](arquivo/NATIVO-VS-CONSTRUIDO.md) |
+| Plano app única (web + desktop) | [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md) |
 
 Se descobrires um **contrato** do motor em vez de um buraco na UI, escreve-o no `BACKEND-MAP.md`, não aqui.
 
@@ -104,7 +108,8 @@ Na prática nunca chegou a colidir, porque a shell nunca foi publicada — o `la
 
 Apagada a 29/07; o histórico do git guarda-a. Foram com ela os dez ficheiros vitest em `web/src/lib/` que faziam `require()` de módulos da shell — viviam ali, como um deles explicava, porque *"the shell has no test runner of its own"* — e o `web/src/lib/boot-preview.ts`, cuja flag só era carimbada pela shell: sem ela `isBootPreview()` era permanentemente `false`, pelo que o seu único consumidor em `NativeChatPage.tsx` perdeu a condição sem alteração de comportamento. Os comentários *"ported from desktop-shell"* que restam em `w4y-cloud.cjs`, `w4y-composio.cjs` e `preload.cjs` são proveniência, não dependência. Depois da remoção: `web` com 153 testes em 11 ficheiros a passar, typecheck limpo em `web` e em `apps/desktop`.
 
-**Resto por limpar, sem urgência:** o bucket tem três canais e a app viva só lê dois — `latest.yml` (casca, via electron-updater) e `latest.json` (motor). O terceiro, `ui-latest.json`, era o canal `web_dist` da shell e continua a ser servido por `platform/wayne-fly/publish-ui.ps1`. Do lado da app sobra `w4y-deltas.cjs`, que ainda o declara em `DEFAULT_UI_LATEST` e o devolve pelo IPC `w4y:distribution:get`; o handler está tipado em `global.d.ts` e **nenhum ecrã o chama**. Anuncia um canal que a app nunca vai buscar.
+**Canal `ui-latest.json` (legado):** removido do desktop (`w4y-deltas.cjs`, A4). Pipeline
+`publish-ui.ps1` será apagado na trilha D — substituído por `app_dist` único.
 
 **Risco residual, que apagar a árvore não resolve:** uma instalação antiga de `com.work4you.desktop` que ainda exista numa máquina continua a ler este mesmo `latest.yml`, vê `1.0.19` como mais recente que `0.3.18` e, se atualizar, instala a app nova ao lado em vez de substituir a velha. Não há migração entre `appId` — teria de ser desinstalação manual da antiga. Assumido como aceitável enquanto não houver notícia de instalações legadas em uso.
 

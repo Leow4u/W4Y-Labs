@@ -69,6 +69,7 @@ environments/benchmarks/evals/
 
 # Web UI build output
 work4you_cli/web_dist/
+work4you_cli/app_dist/
 apps/desktop/build/
 apps/desktop/dist/
 apps/desktop/release/

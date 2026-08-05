@@ -26,7 +26,6 @@ declare global {
         login: () => Promise<{ ok: boolean; got?: string; reason?: string }>
         loginCancel: () => Promise<{ ok: boolean }>
         hasKey: () => Promise<{ ok: boolean; hasKey: boolean }>
-        distribution: () => Promise<unknown>
         updatePolicy: () => Promise<unknown>
       }
     }

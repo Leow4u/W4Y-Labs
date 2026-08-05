@@ -9,11 +9,11 @@
       "port": 3000
     },
     {
-      "name": "wayne-web",
+      "name": "work4you-desktop-renderer",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "cwd": "wayne-agent/web",
-      "port": 5173,
+      "runtimeArgs": ["run", "dev:renderer"],
+      "cwd": "wayne-agent/apps/desktop",
+      "port": 5174,
       "autoPort": true
     }
   ]

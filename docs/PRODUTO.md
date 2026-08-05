@@ -6,9 +6,8 @@
 >
 > **Regra de manutenção:** um novo alinhamento **actualiza este ficheiro**. Não
 > se cria um documento novo ao lado. Se um alinhamento substituir outro
-> documento por inteiro, esse documento vai para `docs/arquivo/` no mesmo
-> momento — não fica em `docs/` com um aviso no cabeçalho. Já provámos que
-> avisos no topo não impedem ninguém de ler e absorver.
+> documento por inteiro, esse documento **substitui** o anterior no mesmo path —
+> não se mantém cópias paralelas. Histórico fica no git.
 
 ---
 
@@ -43,7 +42,7 @@ redefinir o produto Work.
 Não servimos PME nem "empreendedores não-técnicos". Esta premissa esteve
 escrita em vários documentos, foi revertida, e continuou a ressuscitar porque
 ficou escrita em sítios que os agentes liam como verdade. Está morta. Os
-documentos que a continham estão em `docs/arquivo/`.
+> documentos que a continham foram removidos — histórico só no git.
 
 ---
 
@@ -78,6 +77,18 @@ A extensão do Work no sentido Cursor (“o utilizador define especialistas a qu
 o agente delega”) é **Personalizar → Subagentes**: templates leves
 (`delegate_task`), não ilhas de profile. Ver estudo de desenho em curso; a
 decisão de produto aqui é só: **Studio fora; Subagentes = caminho correcto**.
+
+### Superfícies (v1)
+
+| Onde | O quê |
+|------|--------|
+| **Browser** (`app.work4you.ai`) | Mesma app visual que o desktop — runtime na nuvem (tenant Fly) |
+| **Desktop** (Electron instalado) | Mesma app visual + motor local, terminal, git, ficheiros offline |
+| **CLI / TUI** | Mesmo motor — power users; não substituem a app visual |
+| **Canais** (Telegram, …) | Gateway na VM cloud — 24/7 conforme plano |
+| **Site** (`work4you.ai`) | Login, billing, marketing — não é a app de trabalho |
+
+Detalhe técnico: [`PLATAFORMA.md`](./PLATAFORMA.md). Execução: [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
 
 ---
 
@@ -120,9 +131,8 @@ Alinhamento **30/07/2026:** Agent Studio **não** é produto. Não há:
 - Lista + connected de “agentes Hermes-class” como segundo produto
 - Canvas, times nomeados, marketplace de agentes, workflow visual
 
-Specs antigas (`docs/arquivo/AGENT-STUDIO.md`, planos com Fase Studio) são
-arquivo. Se `PLATAFORMA.md` / `LINGUAGEM.md` / `BRIEF-SITE-*` ainda falarem em
-Studio, estão caducos nesta parte até limpeza — **manda este ficheiro**.
+Specs antigas de Agent Studio foram removidas do repo. Se algum doc ainda falar
+em Studio como produto, está caduco — **manda este ficheiro**.
 
 ---
 
@@ -229,19 +239,18 @@ vivos e mandam cada um na sua área técnica:
 
 | Área | Documento |
 |---|---|
-| Superfícies (cloud, web, desktop) | `docs/PLATAFORMA.md` |
+| Superfícies (cloud, web, desktop, CLI) | `docs/PLATAFORMA.md` |
 | Infra e stack | `docs/ARQUITETURA.md` |
 | Contratos de backend verificados | `docs/BACKEND-MAP.md` |
 | O que existe vs o que está ligado | `docs/INVENTARIO-SUPERFICIES.md` |
-| Plano de reparação do desktop | `docs/PLANO-REPARO.md` |
+| Plano app única (web + desktop) | `docs/PLANO-APP-UNICA.md` |
 | Planos, preços, faturação | `docs/BILLING-ARQUITETURA.md` |
 | Copy do site público | `docs/BRIEF-SITE-WORK4YOU.md` |
 | Linguagem e glossário da app | `docs/LINGUAGEM.md` |
 | Curadoria do ecrã de configuração | `docs/CONFIG-CURADORIA.md` |
 | Skills operacionais no contentor | `docs/SKILLS-AUDITORIA.md` |
 
-**`docs/arquivo/`** é registo histórico. Nunca é instrução. Não se tira uma
-decisão de produto de lá.
+**`docs/arquivo/`** foi removido — histórico só no git. Não usar docs obsoletos fora da lista acima.
 
 Experimentos como `w4y-studio/` e `model-experience-poc/` não são caminho
 oficial.

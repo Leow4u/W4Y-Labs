@@ -7875,7 +7875,6 @@ app.whenReady().then(() => {
   }
 
   // Work4You Fase 3: real cloud bridge + login IPC; Wayne motor via resolver.
-  ipcMain.handle('w4y:distribution:get', () => w4yDeltas.getW4YDistributionConfig())
   ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
   w4yCloud.registerCloudIpc(ipcMain)
   w4yLogin.registerLoginIpc(ipcMain, {

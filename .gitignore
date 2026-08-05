@@ -18,3 +18,10 @@ w4y-studio/
 dist/
 .next/
 out/
+
+# App única — artefactos (não commitar)
+**/web_dist/
+**/app_dist/
+wayne-agent/apps/desktop/release/
+wayne-agent/apps/desktop/release-build-*/
+platform/wayne-fly/wayne-engine-*.zip

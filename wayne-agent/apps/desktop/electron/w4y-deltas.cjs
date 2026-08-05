@@ -11,15 +11,11 @@ const wayne = require("./w4y-wayne-resolve.cjs");
 const DEFAULT_ENGINE_LATEST =
   process.env.WAYNE_SOURCE_ZIP_URL ||
   "https://storage.googleapis.com/w4y-engine-dist/latest.json";
-const DEFAULT_UI_LATEST =
-  process.env.W4Y_UI_LATEST_URL ||
-  "https://storage.googleapis.com/w4y-engine-dist/ui-latest.json";
 
 function getW4YDistributionConfig() {
   return {
     platformOrigin: cloud.platformOrigin(),
     engineLatestUrl: DEFAULT_ENGINE_LATEST,
-    uiLatestUrl: DEFAULT_UI_LATEST,
     wayneHome: login.resolveWayneHome(),
   };
 }
@@ -39,7 +35,6 @@ function getUpdatePolicy() {
     mode: "gcs",
     shellFeed: "electron-updater → gs://w4y-engine-dist",
     engineFeed: DEFAULT_ENGINE_LATEST,
-    uiFeed: DEFAULT_UI_LATEST,
     forbidNewStateMachine: true,
   };
 }

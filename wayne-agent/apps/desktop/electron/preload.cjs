@@ -244,7 +244,6 @@ contextBridge.exposeInMainWorld('work4youDesktop', {
     login: () => ipcRenderer.invoke('w4y:login:run'),
     loginCancel: () => ipcRenderer.invoke('w4y:login:cancel'),
     hasKey: () => ipcRenderer.invoke('w4y:login:hasKey'),
-    distribution: () => ipcRenderer.invoke('w4y:distribution:get'),
     updatePolicy: () => ipcRenderer.invoke('w4y:update:policy')
   }
 })

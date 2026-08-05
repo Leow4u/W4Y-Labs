@@ -17,11 +17,10 @@
 > Não abras um ficheiro novo para nenhum dos três. Lê o código uma vez e escreve
 > no sítio certo.
 >
-> Linhas marcadas ✅ foram verificadas em código, com ficheiro:linha, na data
-> indicada na secção. As secções sobre a SPA web antiga (`web/src`,
-> `RightDock.tsx`) e sobre a casca fina `apps/desktop-shell` saíram para
-> [`arquivo/BACKEND-MAP-legado-web-shell.md`](./arquivo/BACKEND-MAP-legado-web-shell.md)
-> — descreviam arquitecturas que já não são o produto.
+> Linhas marcadas ✅ foram verificadas em código, na data indicada na secção.
+> **App única (ago/2026):** UI de produto converge para `apps/desktop` (browser +
+> Electron); `wayne-agent/web` será removida — ver [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
+> Canais legados `ui-latest.json` / `desktop-shell` estão mortos.
 
 ## Contratos verificados (a "física" do sistema)
 
