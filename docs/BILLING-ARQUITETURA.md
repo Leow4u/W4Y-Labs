@@ -36,7 +36,7 @@ Plano **Grátis** (padrão Cursor Hobby): o utilizador vê **só** o modelo de c
 | **Provider** | `openrouter` (chave capada da plataforma) |
 | **Reasoning** | `medium` |
 
-Fonte única de slugs: `wayne-agent/web/src/lib/relay-free-model.ts` (UI) e `wayne-agent/work4you_cli/relay_free_model.py` (motor). Seed cloud: `platform/wayne-cloudrun/config.yaml`.
+Fonte única de slugs: `wayne-agent/apps/shared/src/relay-free-model.ts` (UI) e `wayne-agent/work4you_cli/relay_free_model.py` (motor). Seed cloud: `platform/wayne-cloudrun/config.yaml`.
 
 **UI modes (composer + Config → Modelos):**
 - **Relay 2.5 Fast** — plano Grátis (preset `gratis`).
