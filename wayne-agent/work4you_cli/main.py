@@ -1798,7 +1798,7 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
         if not os.environ.get("WAYNE_QUIET"):
             print("Installing TUI dependencies…")
         npm_cwd = _workspace_root(tui_dir)
-        # --workspace ui-tui avoids resolving apps/desktop (Electron + node-pty).
+        # --workspace ui-tui avoids resolving apps/work4you (Electron + node-pty).
         # See #38772.
         # When ui-tui/ has its own package-lock.json (e.g. curl install),
         # _workspace_root() returns tui_dir itself.  Passing --workspace in
@@ -4575,25 +4575,20 @@ def _gateway_prompt(prompt_text: str, default: str = "", timeout: float = 300.0)
 
 
 def _web_ui_build_needed(web_dir: Path) -> bool:
-    """Return True if the web UI dist is missing or stale.
+    """Return True if the product UI dist is missing or stale.
 
-    Mirrors the staleness logic used by ``_tui_build_needed()`` for the TUI.
-    The dashboard source lives under ``web/``, but the Vite build
-    still outputs to ``work4you_cli/web_dist/`` (per vite.config.ts
-    outDir: "../work4you_cli/web_dist"), NOT to ``web/dist/``, so Python
-    packaging can continue serving the same static asset directory. Uses the
-    Vite manifest as the sentinel because it is written last and therefore
-    has the newest mtime of any build output.
+    Source: ``apps/work4you/``. Output: ``work4you_cli/app_dist/`` (``npm run
+    build:web``). Uses index.html as sentinel when Vite manifest is absent.
     """
     project_root = web_dir.parent.parent if web_dir.parent.name == "apps" else web_dir.parent
-    dist_dir = project_root / "work4you_cli" / "web_dist"
+    dist_dir = project_root / "work4you_cli" / "app_dist"
     sentinel = dist_dir / ".vite" / "manifest.json"
     if not sentinel.exists():
         sentinel = dist_dir / "index.html"
     if not sentinel.exists():
         return True
     dist_mtime = sentinel.stat().st_mtime
-    skip = frozenset({"node_modules", "dist"})
+    skip = frozenset({"node_modules", "dist", "out", "release-build"})
     for dirpath, dirnames, filenames in os.walk(web_dir, topdown=True):
         dirnames[:] = [d for d in dirnames if d not in skip]
         for fn in filenames:
@@ -4605,6 +4600,7 @@ def _web_ui_build_needed(web_dir: Path) -> bool:
         "yarn.lock",
         "pnpm-lock.yaml",
         "vite.config.ts",
+        "vite.config.web.ts",
         "vite.config.js",
     ):
         mp = web_dir / meta
@@ -4823,10 +4819,10 @@ def _run_npm_install_deterministic(
 
 
 def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
-    """Build the web UI frontend if npm is available.
+    """Build the product UI frontend if npm is available.
 
     Args:
-        web_dir: Path to the dashboard frontend source directory.
+        web_dir: Path to ``apps/work4you`` (product SPA source).
         fatal: If True, print error guidance and return False on failure
                instead of a soft warning (used by ``work4you web``).
 
@@ -4855,11 +4851,11 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     npm = find_node_executable("npm")
     if not npm:
         if fatal:
-            _say("Web UI frontend not built and npm is not available.")
-            _say("Install Node.js, then run:  cd web && npm install && npm run build")
+            _say("Product UI not built and npm is not available.")
+            _say("Install Node.js, then run:  cd apps/work4you && npm run build:web")
         return not fatal
     build_env = with_wayne_node_path()
-    _say("→ Building web UI...")
+    _say("→ Building product UI (apps/work4you → app_dist)...")
 
     def _relay(result: "subprocess.CompletedProcess") -> None:
         """Print captured npm output so users can see *why* a step failed.
@@ -4877,13 +4873,7 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
                 _say(text)
 
     npm_cwd = _workspace_root(web_dir)
-    # Scope the install to the web workspace only so that the full workspace
-    # graph (including apps/desktop with its Electron + node-pty deps) is never
-    # resolved here.  Without --workspace the root package.json's apps/* glob
-    # would pull in desktop on every web build. See #38772.
-    # When web/ has its own package-lock.json, _workspace_root() returns
-    # web_dir itself and --workspace would fail.  See #42973.
-    npm_workspace_args: tuple[str, ...] = () if npm_cwd == web_dir else ("--workspace", "web")
+    npm_workspace_args: tuple[str, ...] = ("--workspace", "work4you")
     if _is_termux_startup_environment():
         npm_cwd, npm_workspace_args = _termux_workspace_install_context(web_dir)
     r1 = _run_npm_install_deterministic(
@@ -4894,25 +4884,21 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     )
     if r1.returncode != 0:
         _say(
-            f"  {'✗' if fatal else '⚠'} Web UI npm install failed"
+            f"  {'✗' if fatal else '⚠'} Product UI npm install failed"
             + ("" if fatal else " (work4you dashboard will not be available)")
         )
         _relay(r1)
         if fatal:
-            _say("  Run manually:  npm install --workspace web && npm run build -w web")
+            _say("  Run manually:  npm install --workspace work4you && npm run build:web -w work4you")
         return False
     # First attempt — stream output via idle-timeout helper (issue #33788).
-    # capture_output=True on a long Vite build looks identical to a hang;
-    # users react by rebooting, which leaves the editable install in a
-    # half-state. Streaming + idle-kill makes failures observable AND
-    # recoverable (the stale-dist fallback below handles the kill path).
-    r2 = _run_with_idle_timeout([npm, "run", "build"], cwd=web_dir, env=build_env)
+    r2 = _run_with_idle_timeout([npm, "run", "build:web", "-w", "work4you"], cwd=npm_cwd, env=build_env)
     if r2.returncode != 0:
         # Retry once after a short delay — covers boot-time races on Windows
         # (antivirus scanning Node.js binaries, npm cache not ready, transient
         # I/O when launched via Scheduled Task at logon). See issue #23817.
         _time.sleep(3)
-        r2 = _run_with_idle_timeout([npm, "run", "build"], cwd=web_dir, env=build_env)
+        r2 = _run_with_idle_timeout([npm, "run", "build:web", "-w", "work4you"], cwd=npm_cwd, env=build_env)
 
     if r2.returncode != 0:
         # _run_with_idle_timeout merges stderr into stdout; older callers
@@ -4923,27 +4909,27 @@ def _build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
         stderr_preview = build_output.strip()
         stderr_tail = "\n  ".join(stderr_preview.splitlines()[-10:]) if stderr_preview else ""
         project_root = web_dir.parent.parent if web_dir.parent.name == "apps" else web_dir.parent
-        dist_dir = project_root / "work4you_cli" / "web_dist"
+        dist_dir = project_root / "work4you_cli" / "app_dist"
         dist_index = dist_dir / "index.html"
 
         # If a stale dist exists, serve it as a fallback instead of failing.
         # A stale UI is far better than no UI for non-interactive callers
         # (Windows Scheduled Tasks, CI) — issue #23817.
         if dist_index.exists():
-            _say("  ⚠ Web UI build failed — serving stale dist as fallback")
+            _say("  ⚠ Product UI build failed — serving stale dist as fallback")
             if stderr_tail:
                 _say(f"  Build error:\n  {stderr_tail}")
             return True
 
         _say(
-            f"  {'✗' if fatal else '⚠'} Web UI build failed"
+            f"  {'✗' if fatal else '⚠'} Product UI build failed"
             + ("" if fatal else " (work4you dashboard will not be available)")
         )
         _relay(r2)
         if fatal:
-            _say("  Run manually:  npm install --workspace web && npm run build -w web")
+            _say("  Run manually:  npm install --workspace work4you && npm run build:web -w work4you")
         return False
-    _say("  ✓ Web UI built")
+    _say("  ✓ Product UI built")
     return True
 
 
@@ -4976,7 +4962,7 @@ def _desktop_dist_exists(desktop_dir: Path) -> bool:
 def _compute_desktop_content_hash(project_root: Path) -> str:
     """Return a SHA-256 hex digest of all source files that feed the desktop build.
 
-    Covers ``apps/desktop/`` (excluding anything matched by .gitignore)
+    Covers ``apps/work4you/`` (excluding anything matched by .gitignore)
     plus the root ``package.json`` / ``package-lock.json`` (workspace config
     that determines dependency resolution for the desktop workspace).
 
@@ -5015,7 +5001,7 @@ def _compute_desktop_content_hash(project_root: Path) -> str:
             if not spec.match_file(rel):
                 _hash_file(p)
 
-    # Walk apps/desktop/ — prune ignored directories in-place
+    # Walk apps/work4you/ — prune ignored directories in-place
     desktop_dir = project_root / "apps" / "desktop"
     for dirpath, dirnames, filenames in os.walk(desktop_dir, topdown=True):
         # Prune ignored directories so we never descend into them
@@ -5223,10 +5209,10 @@ def _electron_dir(project_root: Path) -> Path:
     """Return the Electron package directory the desktop workspace installs.
 
     npm may keep workspace-only dev dependencies under
-    ``apps/desktop/node_modules`` instead of hoisting them to the repo root.
+    ``apps/work4you/node_modules`` instead of hoisting them to the repo root.
     Which layout you get depends on the npm version and what else is installed,
     so a build path that assumes one or the other breaks intermittently across
-    machines. ``apps/desktop/package.json`` points electron-builder's
+    machines. ``apps/work4you/package.json`` points electron-builder's
     ``electronDist`` at ``node_modules/electron/dist`` relative to the desktop
     project, so prefer the workspace-local package and fall back to the root
     hoist when that's where npm landed it.
@@ -5630,7 +5616,7 @@ def cmd_gui(args: argparse.Namespace):
         if source_mode:
             if not _desktop_dist_exists(desktop_dir):
                 print(f"✗ --skip-build --source was passed but no desktop dist found at: {desktop_dir / 'dist'}")
-                print("  Pre-build first:  cd apps/desktop && npm run build")
+                print("  Pre-build first:  cd apps/work4you && npm run build")
                 print("  Or drop --skip-build to install dependencies and build automatically.")
                 sys.exit(1)
             if not (_electron_dir(PROJECT_ROOT) / "package.json").exists():
@@ -5641,7 +5627,7 @@ def cmd_gui(args: argparse.Namespace):
             print(f"→ Skipping desktop source build (--skip-build --source); using dist at {desktop_dir / 'dist'}")
         elif packaged_executable is None:
             print(f"✗ --skip-build was passed but no packaged desktop app was found at: {desktop_dir / 'release'}")
-            print("  Pre-build first:  cd apps/desktop && npm run pack")
+            print("  Pre-build first:  cd apps/work4you && npm run pack")
             print("  Or drop --skip-build to package automatically.")
             sys.exit(1)
         else:
@@ -5736,7 +5722,7 @@ def cmd_gui(args: argparse.Namespace):
                 build_result = subprocess.run([npm, "run", build_script], cwd=desktop_dir, env=mirror_env, check=False)
             if build_result.returncode != 0:
                 print("✗ Desktop GUI build failed")
-                print(f"  Run manually:  cd apps/desktop && npm run {build_script}")
+                print(f"  Run manually:  cd apps/work4you && npm run {build_script}")
                 if sys.platform == "win32":
                     print("  If this says \"Access is denied\" on Wayne.exe, close any")
                     print("  running Work4You desktop window and retry.")
@@ -7806,7 +7792,7 @@ def _update_node_dependencies() -> None:
         return
 
     # With a single workspace lockfile the root install would cover ALL
-    # workspaces — but apps/desktop pulls in Electron as a devDependency,
+    # workspaces — but apps/work4you pulls in Electron as a devDependency,
     # and its postinstall downloads a ~200MB binary.  Most users don't
     # need desktop during `work4you update`, so we install root-only first
     # then add just the workspaces the CLI/TUI/web build actually requires.
@@ -7838,9 +7824,8 @@ def _update_node_dependencies() -> None:
             print(f"    {stderr.splitlines()[-1]}")
         return
 
-    # Step 2: install only the workspaces update needs (ui-tui, web).
-    # --workspace selects specific workspaces; the rest (desktop) are skipped.
-    ws_args = [*extra_args, "--workspace", "ui-tui", "--workspace", "web"]
+    # Step 2: install only the workspaces update needs (ui-tui).
+    ws_args = [*extra_args, "--workspace", "ui-tui"]
     ws_result = _run_npm_install_deterministic(
         npm,
         PROJECT_ROOT,
@@ -7849,7 +7834,7 @@ def _update_node_dependencies() -> None:
         env=nixos_env,
     )
     if ws_result.returncode == 0:
-        print("  ✓ repo root + ui-tui, web workspaces (desktop skipped)")
+        print("  ✓ repo root + ui-tui workspace (desktop skipped)")
     else:
         print("  ⚠ npm workspace install failed")
         stderr = (ws_result.stderr or "").strip() if ws_result.stderr else ""
@@ -9399,7 +9384,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         _refresh_active_lazy_features()
 
         _update_node_dependencies()
-        _build_web_ui(PROJECT_ROOT / "web")
+        _build_web_ui(PROJECT_ROOT / "apps" / "desktop")
 
         # Rebuild the desktop app if the source tree changed since the last
         # build.  ``work4you desktop --build-only`` uses the content-hash stamp
@@ -11518,23 +11503,27 @@ def cmd_dashboard(args):
     _sync_bundled_skills_quietly()
 
     if "WAYNE_WEB_DIST" not in os.environ and not getattr(args, "skip_build", False):
-        if not _build_web_ui(PROJECT_ROOT / "web", fatal=True):
+        if not _build_web_ui(PROJECT_ROOT / "apps" / "desktop", fatal=True):
             sys.exit(1)
     elif getattr(args, "skip_build", False):
-        # --build-mode skip trusts the caller to have pre-built the web UI.
+        # --build-mode skip trusts the caller to have pre-built the product UI.
         # Verify the dist actually exists; otherwise the server will start
         # and serve 404s with no obvious cause (issue #23817).
         _dist_root = (
             Path(os.environ["WAYNE_WEB_DIST"])
             if "WAYNE_WEB_DIST" in os.environ
-            else PROJECT_ROOT / "work4you_cli" / "web_dist"
+            else PROJECT_ROOT / "work4you_cli" / "app_dist"
         )
         if not (_dist_root / "index.html").exists():
-            print(f"✗ --skip-build was passed but no web dist found at: {_dist_root}")
-            print("  Pre-build first:  npm install --workspace web && npm run build -w web")
-            print("  Or drop --skip-build to build automatically.")
-            sys.exit(1)
-        print(f"→ Skipping web UI build (--skip-build); using dist at {_dist_root}")
+            legacy = PROJECT_ROOT / "work4you_cli" / "web_dist" / "index.html"
+            if legacy.exists():
+                _dist_root = legacy.parent
+            else:
+                print(f"✗ --skip-build was passed but no product UI dist found at: {_dist_root}")
+                print("  Pre-build first:  npm run build:web -w work4you")
+                print("  Or drop --skip-build to build automatically.")
+                sys.exit(1)
+        print(f"→ Skipping product UI build (--skip-build); using dist at {_dist_root}")
 
     # Discover and load plugins so any DashboardAuthProvider plugin
     # (e.g. plugins/dashboard_auth/nous) registers BEFORE start_server's

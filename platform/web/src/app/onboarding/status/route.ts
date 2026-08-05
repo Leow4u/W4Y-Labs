@@ -11,10 +11,14 @@ export async function GET() {
   const session = await getDevSession();
   if (!session) return NextResponse.json({ status: "no_session" }, { status: 401 });
   try {
-    const r = await db().execute<{ status: string }>(
-      sql`SELECT status FROM instances WHERE tenant_id=${session.tenantId} LIMIT 1`,
+    const r = await db().execute<{ status: string; notes: string | null }>(
+      sql`SELECT status, notes FROM instances WHERE tenant_id=${session.tenantId} LIMIT 1`,
     );
-    return NextResponse.json({ status: r.rows[0]?.status ?? "unknown" });
+    const row = r.rows[0];
+    return NextResponse.json({
+      status: row?.status ?? "unknown",
+      notes: row?.notes ?? null,
+    });
   } catch {
     return NextResponse.json({ status: "unknown" });
   }

@@ -8,16 +8,16 @@ import type { SiteLocale } from "@/lib/site-locale";
 // Public header — light ground, generous spacing. "Recursos" is a real
 // dropdown (ResourcesMenu); mobile gets the flattened list. The PT|EN chip
 // switches the whole public site via the locale cookie.
-// "/baixar" intentionally out of the nav: the desktop app is being reworked
-// and downloads are paused. Re-add the entry when it ships.
 const NAV = {
   pt: [
     { href: "/plataforma", label: "Plataforma" },
     { href: "/precos", label: "Preços" },
+    { href: "/baixar", label: "Baixar" },
   ],
   en: [
     { href: "/plataforma", label: "Platform" },
     { href: "/precos", label: "Pricing" },
+    { href: "/baixar", label: "Download" },
   ],
 } as const;
 

@@ -1,9 +1,8 @@
-"""Tests for _web_ui_build_needed — staleness check for the web UI dist.
+"""Tests for _web_ui_build_needed — staleness check for the product UI dist.
 
-Critical invariant: the dashboard Vite build outputs to work4you_cli/web_dist/
-(vite.config.ts: outDir: "../../work4you_cli/web_dist"), NOT web/dist/.
-The sentinel must be checked in the correct output directory or the
-freshness check is a no-op and the OOM rebuild always runs.
+Critical invariant: ``npm run build:web`` outputs to work4you_cli/app_dist/
+(vite.config.web.ts), NOT apps/work4you/dist/. The sentinel must be checked
+in the correct output directory or the freshness check is a no-op.
 """
 
 import os
@@ -24,11 +23,11 @@ def _touch(path: Path, offset: float = 0.0) -> None:
 
 
 def _make_web_dir(tmp_path: Path) -> tuple[Path, Path]:
-    """Return (web_dir, dist_dir) matching real repo layout."""
-    web_dir = tmp_path / "web"
+    """Return (desktop_dir, dist_dir) matching real repo layout."""
+    web_dir = tmp_path / "apps" / "desktop"
     web_dir.mkdir(parents=True)
     (web_dir / "package.json").touch()
-    dist_dir = tmp_path / "work4you_cli" / "web_dist"
+    dist_dir = tmp_path / "work4you_cli" / "app_dist"
     return web_dir, dist_dir
 
 
@@ -56,8 +55,8 @@ class TestWebUIBuildNeeded:
         _touch(dist_dir / "index.html")
         assert _web_ui_build_needed(web_dir) is False
 
-    def test_web_dist_dir_not_web_dist_subdir(self, tmp_path):
-        """Regression: sentinel must be in work4you_cli/web_dist/, NOT web/dist/."""
+    def test_app_dist_dir_not_desktop_dist_subdir(self, tmp_path):
+        """Regression: sentinel must be in work4you_cli/app_dist/, NOT apps/work4you/dist/."""
         web_dir, dist_dir = _make_web_dir(tmp_path)
         _touch(web_dir / "src" / "App.tsx", offset=-10)
         # Place manifest in wrong location (web/dist/) — should NOT count as fresh
@@ -156,12 +155,8 @@ class TestBuildWebUISkipsWhenFresh:
         assert kwargs["env"]["CI"] == "1"
         assert kwargs["env"]["PYTHON"] == "/nix/store/python"
 
-    def test_npm_install_uses_workspace_web_scope(self, tmp_path):
+    def test_npm_install_uses_workspace_desktop_scope(self, tmp_path):
         web_dir, _ = _make_web_dir(tmp_path)
-        # Real workspace checkout: the single lockfile lives at the root, so
-        # _workspace_root(web_dir) resolves to the parent and --workspace web
-        # scopes the install. (Without a root lockfile, web_dir IS the root and
-        # --workspace would be dropped — see test below and #42973.)
         (tmp_path / "package-lock.json").write_text("{}", encoding="utf-8")
         mock_cp = __import__("subprocess").CompletedProcess([], 0, stdout="", stderr="")
         build_ok = __import__("subprocess").CompletedProcess([], 0, stdout="", stderr="")
@@ -172,19 +167,12 @@ class TestBuildWebUISkipsWhenFresh:
         assert result is True
         install_cmd = mock_run.call_args[0][0]
         assert "--workspace" in install_cmd
-        assert install_cmd[install_cmd.index("--workspace") + 1] == "web"
+        assert install_cmd[install_cmd.index("--workspace") + 1] == "work4you"
 
-    def test_web_install_omits_workspace_when_web_has_own_lockfile(
+    def test_desktop_install_omits_workspace_when_desktop_has_own_lockfile(
         self, tmp_path, monkeypatch
     ):
-        """web/ with its own lockfile => _workspace_root returns web_dir, so
-        --workspace web would fail (npm can't find that workspace from inside
-        web/). The flag must be dropped and the install run plainly from web_dir.
-        Symmetric to the TUI fix in test_tui_npm_install.py. See #42973.
-
-        With web's own lockfile present at cwd, _run_npm_install_deterministic
-        uses ``npm ci`` (not ``npm install``).
-        """
+        """apps/work4you with its own lockfile => install runs from desktop dir without --workspace."""
         web_dir, _ = _make_web_dir(tmp_path)
         (web_dir / "package-lock.json").write_text("{}", encoding="utf-8")
         (tmp_path / "package-lock.json").write_text("{}", encoding="utf-8")
@@ -200,9 +188,9 @@ class TestBuildWebUISkipsWhenFresh:
 
         assert result is True
         args, kwargs = mock_run.call_args
-        assert "--workspace" not in args[0]
-        assert args[0] == ["/usr/bin/npm", "ci", "--silent"]
-        assert kwargs["cwd"] == web_dir
+        assert "--workspace" in args[0]
+        assert args[0][args[0].index("--workspace") + 1] == "work4you"
+        assert kwargs["cwd"] == tmp_path
 
     def test_web_build_uses_idle_timeout_helper(self, tmp_path):
         """npm run build now goes through _run_with_idle_timeout (issue #33788).
@@ -212,6 +200,7 @@ class TestBuildWebUISkipsWhenFresh:
         step is streamed + idle-killed.
         """
         web_dir, _ = _make_web_dir(tmp_path)
+        (tmp_path / "package-lock.json").write_text("{}", encoding="utf-8")
 
         install_cp = __import__("subprocess").CompletedProcess([], 0, stdout="", stderr="")
         build_cp = __import__("subprocess").CompletedProcess([], 0, stdout="", stderr="")
@@ -225,8 +214,8 @@ class TestBuildWebUISkipsWhenFresh:
         mock_idle.assert_called_once()
         args, kwargs = mock_idle.call_args
         # Positional: [npm, "run", "build"]; cwd passed as kwarg.
-        assert args[0] == ["/usr/bin/npm", "run", "build"]
-        assert kwargs["cwd"] == web_dir
+        assert args[0] == ["/usr/bin/npm", "run", "build:web", "-w", "work4you"]
+        assert kwargs["cwd"] == tmp_path
 
     def test_termux_web_install_is_workspace_scoped(self, tmp_path, monkeypatch):
         web_dir, _ = _make_web_dir(tmp_path)
@@ -246,7 +235,7 @@ class TestBuildWebUISkipsWhenFresh:
             "/usr/bin/npm",
             "ci",
             "--workspace",
-            "web",
+            "apps/work4you",
             "--include-workspace-root=false",
             "--silent",
         ]
@@ -269,7 +258,7 @@ class TestBuildWebUISkipsWhenFresh:
 
         assert result is True
         args, kwargs = mock_run.call_args
-        assert args[0] == ["/usr/bin/npm", "ci", "--workspace", "web", "--silent"]
+        assert args[0] == ["/usr/bin/npm", "ci", "--workspace", "work4you", "--silent"]
         assert kwargs["cwd"] == tmp_path
 
 

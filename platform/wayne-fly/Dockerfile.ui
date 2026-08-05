@@ -1,8 +1,8 @@
-# Overlay FINO de UI — só troca o SPA do dashboard (web_dist) sobre a imagem
+# Overlay FINO de UI — só troca o SPA do dashboard (app_dist) sobre a imagem
 # fly já pronta, sem reconstruir a base de 3.7GB. Usado para iterar rápido em
 # ajustes de frontend do Wayne (reorganização de UX). Contexto de build =
-# wayne-agent/ (onde vive wayne_cli/web_dist, gerado por `npm run build` em
-# wayne-agent/web).
+# wayne-agent/ (onde vive work4you_cli/app_dist, gerado por `npm run build:web`
+# em apps/work4you).
 ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly229
 FROM ${BASE_IMAGE}
 # APAGA antes de copiar: o COPY do Docker MESCLA na pasta destino, ele não a
@@ -10,7 +10,7 @@ FROM ${BASE_IMAGE}
 # anteriores — chegamos a 82 bundles mortos no fly193. Eles são inertes (o
 # index.html referencia só o atual), mas incham a imagem e ENGANAM diagnóstico:
 # um grep por string antiga acha nos bundles mortos e finge que o deploy falhou.
-RUN rm -rf /opt/wayne/wayne_cli/web_dist
-COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+RUN rm -rf /opt/work4you/work4you_cli/web_dist /opt/work4you/work4you_cli/app_dist
+COPY work4you_cli/app_dist /opt/work4you/work4you_cli/app_dist
 # Plan chip (desktop bridge): /api/account/plan proxies platform /planos/plan.
-COPY wayne_cli/dashboard_auth/routes.py /opt/wayne/wayne_cli/dashboard_auth/routes.py
+COPY work4you_cli/dashboard_auth/routes.py /opt/work4you/work4you_cli/dashboard_auth/routes.py

@@ -198,7 +198,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Work4You.app)"
+            echo "  --include-desktop  Also build the desktop app (apps/work4you -> Work4You.app)"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.work4you/work4you-agent"
             echo "                   default (root, Linux): /usr/local/lib/work4you-agent"
@@ -2808,7 +2808,7 @@ EOF
     printf '%s' "$removed"
 }
 
-# Run the desktop pack in $1 (the apps/desktop dir). `npm run pack` = tsc +
+# Run the desktop pack in $1 (the apps/work4you dir). `npm run pack` = tsc +
 # vite build + electron-builder --dir, producing an unpacked app for the
 # current OS. Signing auto-discovery is disabled so electron-builder falls back
 # to an ad-hoc signature instead of grabbing an unrelated Developer ID from the
@@ -2843,8 +2843,8 @@ NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
 # Electron package dir — workspace-local nest first, then root hoist.
 _electron_dir() {
     local install_dir="$1"
-    if [ -d "$install_dir/apps/desktop/node_modules/electron" ]; then
-        printf '%s\n' "$install_dir/apps/desktop/node_modules/electron"
+    if [ -d "$install_dir/apps/work4you/node_modules/electron" ]; then
+        printf '%s\n' "$install_dir/apps/work4you/node_modules/electron"
     else
         printf '%s\n' "$install_dir/node_modules/electron"
     fi
@@ -2897,14 +2897,14 @@ _restore_electron_dist_with_fallback() {
         || { [ -z "${ELECTRON_MIRROR:-}" ] && _restore_electron_dist "$install_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; }
 }
 
-# Build apps/desktop into a launchable native app. Mirrors install.ps1's
+# Build apps/work4you into a launchable native app. Mirrors install.ps1's
 # Install-Desktop: a root-level npm install so the apps/* workspace resolves
 # the desktop's own deps (Electron ~150MB), then `npm run pack`
 # (electron-builder --dir) which emits an unpacked app for the current OS. Only invoked
 # via the 'desktop' stage / --include-desktop, which the Electron app's own
 # first-launch bootstrap never requests (it must not rebuild itself).
 install_desktop() {
-    local desktop_dir="$INSTALL_DIR/apps/desktop"
+    local desktop_dir="$INSTALL_DIR/apps/work4you"
 
     # The desktop stage only runs when a build is explicitly requested
     # (--include-desktop / 'desktop' stage), so a missing toolchain is a hard
@@ -2922,11 +2922,11 @@ install_desktop() {
         return 1
     fi
     if [ ! -f "$desktop_dir/package.json" ]; then
-        log_warn "Skipping desktop build (apps/desktop not present in checkout)"
+        log_warn "Skipping desktop build (apps/work4you not present in checkout)"
         return 0
     fi
 
-    # 1. Root workspace install so apps/desktop's deps (Electron, Vite,
+    # 1. Root workspace install so apps/work4you's deps (Electron, Vite,
     #    node-pty prebuilds) resolve. The browser-tools install runs in the
     #    repo-root package workspace, which does not pull apps/* deps.
     #
@@ -2974,7 +2974,7 @@ install_desktop() {
         log_info "earlier 'sudo npm' or 'sudo npx'. Reclaim ownership and retry:"
         log_info "  sudo chown -R \"\$(id -un)\" ~/.npm && npm cache verify"
         log_info "Then re-run this installer, or build manually:"
-        log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/desktop && npm run pack"
+        log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/work4you && npm run pack"
         return 1
     fi
 
@@ -3028,7 +3028,7 @@ install_desktop() {
         return 1
     fi
 
-    # apps/desktop's productName is now Work4You; the old names are kept as
+    # apps/work4you's productName is now Work4You; the old names are kept as
     # fallbacks so a checkout from before the desktop rename still validates.
     local app=""
     if [ "$OS" = "linux" ]; then

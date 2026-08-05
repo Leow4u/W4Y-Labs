@@ -1,7 +1,7 @@
 ---
 description: User-visible copy must say Work4You, never Wayne/Hermes as product names.
 globs:
-  - wayne-agent/apps/desktop/src/i18n/**
+  - wayne-agent/apps/work4you/src/i18n/**
   - wayne-agent/web/src/i18n/**
   - platform/web/src/app/(public)/**
   - platform/web/src/app/planos/**

@@ -1116,7 +1116,7 @@ class TestWebServerEndpoints:
     def test_desktop_audio_routes_registered(self):
         """All three desktop voice endpoints must exist.
 
-        The renderer (apps/desktop) calls /api/audio/transcribe, /speak, and
+        The renderer (apps/work4you) calls /api/audio/transcribe, /speak, and
         /elevenlabs/voices. /speak + /voices were silently dropped in a merge
         once; this guards the contract so a future merge can't lose them
         without failing CI.

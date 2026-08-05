@@ -10,7 +10,7 @@ URLs de crédito upstream (`github.com/NousResearch/hermes-agent`,
 | Upstream | Motivo |
 |---|---|
 | `website/` | Site de docs Docusaurus da Nous (o gerador do skills-index vive lá: `website/scripts/extract-skills.py` — portar se hospedarmos índice próprio) |
-| `apps/desktop` (Electron), `apps/bootstrap-installer` | Distribuição/UX da Nous; a UX da W4Y é a plataforma web proprietária |
+| `apps/work4you` (Electron), `apps/bootstrap-installer` | Distribuição/UX da Nous; a UX da W4Y é a plataforma web proprietária |
 | `.github/` | CI da Nous (gates em `github.repository == NousResearch/hermes-agent`, upload a PyPI, contributor-check) — CI da W4Y será própria |
 | `packaging/` (homebrew), `nix/`, `flake.*`, `.envrc` | Canais de distribuição da Nous / dev-shell Nix |
 | `acp_registry/` | Registro do agente para o ecossistema ACP/Zed da Nous |
@@ -66,11 +66,11 @@ URLs de crédito upstream (`github.com/NousResearch/hermes-agent`,
    (`file:../apps/shared`) para o cliente WebSocket/JSON-RPC de baixo nível
    (`websocket-url.ts`, `json-rpc-gateway.ts`) — é a peça que faltava para o
    dashboard nativo (e a UI própria da W4Y) falarem com o gateway. Só o pacote
-   `shared`; `apps/desktop` e `apps/bootstrap-installer` continuam de fora.
+   `shared`; `apps/work4you` e `apps/bootstrap-installer` continuam de fora.
    **Dois ajustes de build por causa disso:** (a) o `Dockerfile` precisou de
    `COPY apps/shared/ apps/shared/` antes do `npm install` (senão o build do `web`
    dentro da imagem falha com `Cannot find module '@wayne/shared'`); (b) o
-   `.dockerignore`/`.gcloudignore` passaram a excluir só `apps/desktop/` e
+   `.dockerignore`/`.gcloudignore` passaram a excluir só `apps/work4you/` e
    `apps/bootstrap-installer/`, não `apps/` inteiro.
 
 ## Adaptação #5 — Estado externalizado para Cloud Run (planejada, M0)

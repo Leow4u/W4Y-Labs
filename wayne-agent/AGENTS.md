@@ -501,7 +501,7 @@ The dashboard embeds the real `work4you --tui` — **not** a rewrite.  See `work
 > never hide a capability to make a screen look simpler. Jargon may be
 > softened or regrouped under Advanced; power is never removed.
 >
-> **Product UI:** `apps/desktop/` is the **canonical** React app — ships as
+> **Product UI:** `apps/work4you/` is the **canonical** React app — ships as
 > Electron and (via `build:web`) as browser SPA on the tenant Fly app.
 > Do **not** add product features to `wayne-agent/web/` (legacy, being removed).
 > CLI, TUI, and gateway remain separate entry points to the same motor.

@@ -57,6 +57,7 @@ $deployArgs = @(
         'PROVISIONER_SHARED_SECRET=provisioner-shared-secret:latest',
         'RECYCLE_SECRET=recycle-secret:latest',
         'RECONCILE_SECRET=reconcile-secret:latest',
+        'WAKE_SECRET=wake-secret:latest',
         # Chave publica da Stripe (pk_test) — nao e segredo, mas fica no SM p/ consistencia.
         'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=stripe-publishable-key:latest',
         # Turnstile (Cloudflare): anti-robô no registro/auto-provisionamento.
@@ -69,6 +70,11 @@ $deployArgs = @(
         'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev',
         'PROVISIONER_URL=https://provisioner-w4y.fly.dev',
         'FREE_OPEN=1',
+        'NEXT_PUBLIC_PLATFORM_ORIGIN=https://work4you.ai',
+        'NEXT_PUBLIC_APP_ORIGIN=https://app.work4you.ai',
+        'W4Y_APP_SUBDOMAIN=1',
+        'W4Y_COOKIE_DOMAIN=.work4you.ai',
+        'TENANT_WAYNE_IMAGE=registry.fly.io/wayne-w4y:fly229',
         'STRIPE_PRICE_STARTER=price_1TqadkCn608ngT3WOPRy6FXx',
         'STRIPE_PRICE_STARTER_YEAR=price_1TqadkCn608ngT3WfLm7zvbk',
         'STRIPE_PRICE_PRO=price_1TqadlCn608ngT3WHgbjXtP8',

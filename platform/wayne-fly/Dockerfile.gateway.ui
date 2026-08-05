@@ -1,6 +1,6 @@
 # Overlay FINO de UI + backend do gateway — sobre a imagem fly pronta, sem
 # rebuild da base de 3.7GB (mesmo padrão do Dockerfile.chat, mas pra
-# tui_gateway/server.py em vez de wayne_cli/web_server.py). Usado quando um
+# tui_gateway/server.py em vez de work4you_cli/web_server.py). Usado quando um
 # fix precisa tocar em código Python do gateway (RPCs) além do SPA.
 #
 # GOTCHA (aprendido ao vivo): um hot-patch via SSH direto no container NÃO
@@ -9,8 +9,9 @@
 # Fly reciclar a MÁQUINA inteira, remontando a imagem original e apagando o
 # patch. A única forma de fixar de verdade é assar no overlay e dar deploy.
 #
-# Contexto de build = wayne-agent/ (onde vivem web_dist e tui_gateway/).
+# Contexto de build = wayne-agent/ (onde vivem app_dist e tui_gateway/).
 ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly2
 FROM ${BASE_IMAGE}
-COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+RUN rm -rf /opt/work4you/work4you_cli/web_dist /opt/work4you/work4you_cli/app_dist
+COPY work4you_cli/app_dist /opt/work4you/work4you_cli/app_dist
 COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py

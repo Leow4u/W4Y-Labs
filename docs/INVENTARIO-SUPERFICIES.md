@@ -1,12 +1,12 @@
 # Inventário de superfícies — motor, ACP, gateway, desktop
 
-> **Migração app única (ago/2026):** destino = **uma** UI React (`apps/desktop`) no
-> browser e no Electron. `wayne-agent/web` é legado até remoção — ver
-> [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
+> **Migração app única (ago/2026):** destino = **uma** UI React (`apps/work4you`) no
+> browser e no Electron. `wayne-agent/web` foi removida — ver
+> [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md) e §8 abaixo.
 
 Levantamento só-leitura de **o que existe** e **o que está ligado**, superfície a superfície.
 
-**Data:** 2026-07-29 · **Árvore:** `wayne-agent/` (pós-porte do desktop Hermes para `apps/desktop/`)
+**Data:** 2026-07-29 · **Árvore:** `wayne-agent/` (pós-porte do desktop Hermes para `apps/work4you/`)
 
 **Objetivo:** responder, por capacidade, se o buraco é *UI que falta*, *método que ninguém chama*, ou *coisa feita duas vezes* — para parar de reconstruir o que já existe.
 
@@ -28,7 +28,7 @@ fórmula nativa no motor + Conectores como única porta para contas/BYO + Skills
 = learned/Hub — ver `PRODUTO.md`. Não tratar essas abas como spec ao planear
 UI.
 
-**Método:** três varreduras paralelas sobre `tools/`, `toolsets.py`, `work4you_cli/` (à data da auditoria ainda `wayne_cli/`), `acp_adapter/`, `tui_gateway/`, `work4you_cli/web_server.py`, `apps/desktop/{src,electron}`. "CHAMADO" = referência literal encontrada no cliente. Métodos montados dinamicamente escapariam à deteção.
+**Método:** três varreduras paralelas sobre `tools/`, `toolsets.py`, `work4you_cli/` (à data da auditoria ainda `wayne_cli/`), `acp_adapter/`, `tui_gateway/`, `work4you_cli/web_server.py`, `apps/work4you/{src,electron}`. "CHAMADO" = referência literal encontrada no cliente. Métodos montados dinamicamente escapariam à deteção.
 
 ---
 
@@ -57,7 +57,7 @@ About e Settings → General **ficaram**: chamam `startActiveUpdate()`, a mesma 
 
 | | |
 |---|---|
-| **Função** | `getConnectorEventRuns()` — `apps/desktop/src/lib/connectors-api.ts:210` |
+| **Função** | `getConnectorEventRuns()` — `apps/work4you/src/lib/connectors-api.ts:210` |
 | **Rota** | `GET /api/connectors/events/recent` — **não existe** em nenhum ficheiro da árvore |
 | **Callers** | **Nenhum.** Função exportada, zero utilizações |
 | **Falha** | `try/catch` devolve `[]` em silêncio (`:217-219`) |
@@ -100,16 +100,16 @@ O ACP passou a consumir a mesma função em vez da sua cópia. A cópia enumerav
 
 ### 1.5 Duas apps Electron a disputar o mesmo feed de atualização — RESOLVIDO 29/07
 
-Havia duas árvores Electron: `apps/desktop` (`com.work4you.app`, 1.0.19) e `apps/desktop-shell` (`com.work4you.desktop`, 0.3.18). As duas apontavam `build.publish` para `https://storage.googleapis.com/w4y-engine-dist/` com o mesmo `artifactName` (`Work4You-${version}-${os}-${arch}.${ext}`). O provider `generic` do electron-updater mantém **um** `latest.yml` na raiz do bucket, portanto as duas partilhavam o mesmo feed.
+Havia duas árvores Electron: `apps/work4you` (`com.work4you.app`, 1.0.19) e `apps/work4you-shell` (`com.work4you.desktop`, 0.3.18). As duas apontavam `build.publish` para `https://storage.googleapis.com/w4y-engine-dist/` com o mesmo `artifactName` (`Work4You-${version}-${os}-${arch}.${ext}`). O provider `generic` do electron-updater mantém **um** `latest.yml` na raiz do bucket, portanto as duas partilhavam o mesmo feed.
 
 Duas consequências, e a segunda é a séria. Quem publicasse por último passava a mandar na atualização das duas. E como o `appId` difere, o NSIS não substitui: uma atualização "bem-sucedida" instalava uma **segunda** Work4You ao lado da primeira em vez de atualizar a que estava.
 
-Na prática nunca chegou a colidir, porque a shell nunca foi publicada — o `latest.yml` lido a 29/07 dava `1.0.19` / `Work4You-1.0.19-win-x64.exe` / `2026-07-29T03:22Z`, ou seja `apps/desktop`. A shell já estava congelada pelo seu próprio `STOP-SHIP.md` (*"frozen permanently"*, *"Never publish this shell as Work4You"*), estava fora dos `workspaces` do monorepo e nenhum workflow de CI lhe tocava. O que ela produzia não era risco de build: era a pergunta recorrente *"qual das apps é que eu estou a testar?"* a cada sessão.
+Na prática nunca chegou a colidir, porque a shell nunca foi publicada — o `latest.yml` lido a 29/07 dava `1.0.19` / `Work4You-1.0.19-win-x64.exe` / `2026-07-29T03:22Z`, ou seja `apps/work4you`. A shell já estava congelada pelo seu próprio `STOP-SHIP.md` (*"frozen permanently"*, *"Never publish this shell as Work4You"*), estava fora dos `workspaces` do monorepo e nenhum workflow de CI lhe tocava. O que ela produzia não era risco de build: era a pergunta recorrente *"qual das apps é que eu estou a testar?"* a cada sessão.
 
-Apagada a 29/07; o histórico do git guarda-a. Foram com ela os dez ficheiros vitest em `web/src/lib/` que faziam `require()` de módulos da shell — viviam ali, como um deles explicava, porque *"the shell has no test runner of its own"* — e o `web/src/lib/boot-preview.ts`, cuja flag só era carimbada pela shell: sem ela `isBootPreview()` era permanentemente `false`, pelo que o seu único consumidor em `NativeChatPage.tsx` perdeu a condição sem alteração de comportamento. Os comentários *"ported from desktop-shell"* que restam em `w4y-cloud.cjs`, `w4y-composio.cjs` e `preload.cjs` são proveniência, não dependência. Depois da remoção: `web` com 153 testes em 11 ficheiros a passar, typecheck limpo em `web` e em `apps/desktop`.
+Apagada a 29/07; o histórico do git guarda-a. Foram com ela os dez ficheiros vitest em `web/src/lib/` que faziam `require()` de módulos da shell — viviam ali, como um deles explicava, porque *"the shell has no test runner of its own"* — e o `web/src/lib/boot-preview.ts`, cuja flag só era carimbada pela shell: sem ela `isBootPreview()` era permanentemente `false`, pelo que o seu único consumidor em `NativeChatPage.tsx` perdeu a condição sem alteração de comportamento. Os comentários *"ported from desktop-shell"* que restam em `w4y-cloud.cjs`, `w4y-composio.cjs` e `preload.cjs` são proveniência, não dependência. Depois da remoção: `web` com 153 testes em 11 ficheiros a passar, typecheck limpo em `web` e em `apps/work4you`.
 
 **Canal `ui-latest.json` (legado):** removido do desktop (`w4y-deltas.cjs`, A4). Pipeline
-`publish-ui.ps1` será apagado na trilha D — substituído por `app_dist` único.
+`publish-ui.ps1` apagado na trilha D — substituído por `app_dist` único servido pelo motor.
 
 **Risco residual, que apagar a árvore não resolve:** uma instalação antiga de `com.work4you.desktop` que ainda exista numa máquina continua a ler este mesmo `latest.yml`, vê `1.0.19` como mais recente que `0.3.18` e, se atualizar, instala a app nova ao lado em vez de substituir a velha. Não há migração entre `appId` — teria de ser desinstalação manual da antiga. Assumido como aceitável enquanto não houver notícia de instalações legadas em uso.
 
@@ -379,6 +379,44 @@ Chaves do motor sem UI nenhuma: `display.tool_progress`, `display.tool_progress_
 **Resíduo motor (não é UI):** providers Nous/BYO e toolsets activos no `config.yaml` / runtime — a fórmula ainda não força defaults de plataforma no backend; só a face deixou de expô-los.
 
 **Gates (29/07):** `web.backend` / `image_gen.provider` / `video_gen.provider` configurados mas **sem credencial** já não são escolhidos no dispatch — caem para backend disponível (ex. OpenRouter, Parallel) ou a tool some do schema. Erros deixam de pedir `work4you tools` / `FAL_KEY` ao agente.
+
+---
+
+## 8. Paridade web legado ↔ apps/work4you (C2, ago/2026)
+
+> **`wayne-agent/web/` removida (ago/2026).** Destino único:
+> `apps/work4you` (`npm run build:web` → `work4you_cli/app_dist/`).
+
+Legenda: **✅** equivalente no desktop · **⚙️** overlay / painel lateral (não rota URL) · **❌** ausente (aceite ou adiado) · **N/A** morto / só admin interno · **🌐** browser-only (sem PTY local).
+
+| Rota web (`wayne-agent/web`) | Superfície desktop | Estado |
+|---|---|---|
+| `/`, `/chat` | Chat nativo Hermes (`/`, `/:sessionId`) | ✅ Desktop é **strict superset** — chat HTML bubbles, não TUI embebido |
+| `/sessions` | Sidebar sessões + picker | ⚙️ |
+| `/files` | Ambiente → Files + preview rail | ⚙️ |
+| `/analytics` | Command Center → Usage | ⚙️ |
+| `/models` | Model picker + Settings → Models | ⚙️ |
+| `/logs` | Command Center → Logs | ⚙️ |
+| `/cron` | `/cron` + overlay | ✅ |
+| `/integrations`, `/skills`, `/mcp`, `/channels` | `/skills` (Skills + Conectores + Canais) | ✅ |
+| `/webhooks` | Cron editor (webhook trigger) + API | ⚙️ Sem página dedicada; capacidade via automations |
+| `/pairing` | Messaging onboarding por canal | ⚙️ QR/steps dentro de Canais |
+| `/profiles`, `/profiles/*` | Profiles overlay + Agents | ⚙️ Agent Studio routes → **N/A** (morto) |
+| `/config`, `/env` | Settings overlay (General, Keys, Advanced) | ⚙️ |
+| `/system` | Command Center → System | ⚙️ |
+| `/docs` | `openExternal` / site docs | ❌ Sem página in-app; link externo |
+| `/achievements` | — | ❌ Plugin wayne-achievements; adiar pós-M2 |
+| `/journey` | Onboarding overlay | ⚙️ |
+| `/plugins` | Settings / hub técnico | ⚙️ |
+| TUI `/api/pty` chat | Chat nativo + gateway `/api/ws` | ✅ Browser usa **mesmo bundle**; PTY TUI legado substituído |
+| Terminal shell local | Ambiente → Terminal (Electron PTY) | 🌐 Browser: agent tools no tenant; shell local só desktop |
+| Plugin addon tabs | — | ❌ Adiar; deep-links de plugins morrem com web |
+
+**C3–C4 (port):** nenhuma página web obrigatória a portar — desktop já cobre produto. Únicos gaps aceites: Achievements nativo, Docs in-app, plugin tabs.
+
+**C5:** terminal local gated por `ProductRuntime.capabilities.localTerminal`; browser mostra placeholder + agent terminal mirrors.
+
+**C6:** `installBrowserShell()` — cookie/ticket WS + REST `api()` same-origin; motor injeta `__WAYNE_*` no `index.html`.
 
 ---
 

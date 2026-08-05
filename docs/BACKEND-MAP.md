@@ -18,8 +18,8 @@
 > no sítio certo.
 >
 > Linhas marcadas ✅ foram verificadas em código, na data indicada na secção.
-> **App única (ago/2026):** UI de produto converge para `apps/desktop` (browser +
-> Electron); `wayne-agent/web` será removida — ver [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
+> **App única (ago/2026):** UI de produto converge para `apps/work4you` (browser +
+> Electron); UI única em `apps/work4you` → `work4you_cli/app_dist` — ver [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
 > Canais legados `ui-latest.json` / `desktop-shell` estão mortos.
 
 ## Contratos verificados (a "física" do sistema)
@@ -37,7 +37,7 @@
 | Veredito: critical→dangerous, high→caution, **medium/low sozinhos→safe** | `skills_guard.py:1064` (`_determine_verdict`) | ✅ |
 | Install do dashboard roda `skills install --yes` SEM `--force` → `policy: "block"` do scan é previsão verdadeira | `web_server.py:11142`, `skills_hub.py:655` | ✅ |
 | `_heal_dead_cwd` sonda o disco e REESCREVE `session["cwd"]`; pasta Windows em host Linux só sobrevive porque `dirname` POSIX quebra na 1ª volta — **sorte, não projeto; não "melhorar" esse loop** | `server.py:1428-1465` | ✅ |
-| `COPY` do Docker MESCLA `web_dist` (não substitui) — sem `rm -rf` antes, bundles acumulam (82 no fly193) e enganam grep | `platform/wayne-fly/Dockerfile.ui` e `.projects` (já corrigidos) | ✅ |
+| `COPY` do Docker MESCLA `app_dist` (não substitui) — sem `rm -rf` antes, bundles acumulam (82 no fly193) e enganam grep | `platform/wayne-fly/Dockerfile.ui` e `.projects` (já corrigidos) | ✅ |
 | Gateway aparece no `ps` como `wayne gateway run` (NÃO "tui_gateway"; grafia legada da imagem actual — com o CLI rebrandado passa a `work4you gateway run`); traceback `gateway-default.tmp` no boot é benigno | diagnóstico fly189 | ✅ |
 
 ## Segurança / multi-tenant — o que foi verificado (16/07)
@@ -168,10 +168,10 @@ rebenta em `U+FEFF` — `Unexpected token '\ufeff'`. Resultado: **toda a verific
 motor falhava**, com um ficheiro que a olho nu é JSON perfeitamente válido. Reproduzido com o código
 exacto da app antes de corrigir; `charCodeAt(0)` dava `65279`.
 
-Causa de raiz: não há script de publicação para este canal (só existe `publish-ui.ps1`, para o canal
-`web_dist`), por isso o `latest.json` é escrito à mão — e o `Set-Content`/`Out-File` do PowerShell 5.1
-mete BOM por omissão. Escrever sempre com `New-Object System.Text.UTF8Encoding $false`, como o
-`publish-ui.ps1` já faz e documenta (*"Electron JSON.parse is picky about BOM"*).
+Causa de raiz: não havia script de publicação dedicado para o canal do motor — o
+`latest.json` era escrito à mão — e o `Set-Content`/`Out-File` do PowerShell 5.1
+mete BOM por omissão. Escrever sempre com `New-Object System.Text.UTF8Encoding $false`
+(*"Electron JSON.parse is picky about BOM"*).
 
 Dois lados corrigidos: o manifesto publicado passou a ser BOM-less, e o leitor passa a tolerar um BOM
 à cabeça (`parseManifestJson`, contratos em `electron/engine-manifest-parse.test.cjs`) — um BOM no
@@ -181,14 +181,13 @@ meio do corpo continua a falhar, para um corpo corrompido nunca ser reinterpreta
 `Cache-Control: public, max-age=3600`, por isso a borda continuou a servir a versão com BOM durante o
 resto do TTL mesmo depois de a origem estar corrigida (`gsutil stat` mostrava o objecto novo;
 `Invoke-WebRequest` devolvia `Age: 1315` e o `Content-Length` antigo). Manifestos vão com
-`Cache-Control: no-store`; artefactos com `max-age=3600`. É a mesma falha que o cabeçalho do
-`publish-ui.ps1` descreve.
+`Cache-Control: no-store`; artefactos com `max-age=3600`.
 
 ## Toggle de conectores por sessão — o gate é nosso, não é nativo (19/07)
 
 > O **motor** desta secção continua válido. As referências de **UI**
 > (`useChatSession`, `NativeChatPage`, `ConnectorsPicker.tsx`) são da SPA antiga:
-> o `apps/desktop` tem de re-implementar a persistência e o reenvio no resume,
+> o `apps/work4you` tem de re-implementar a persistência e o reenvio no resume,
 > porque o registo do motor vive em memória e morre com o processo.
 
 O composer ganhou o controle "Conectores" com switch on/off por app,
@@ -212,7 +211,7 @@ toolkit (a API só tem catalog/status/connect/attach/DELETE account) — então 
   é aceite como fallback) NÃO aceita `file:///` ("scheme not supported") —
   refresh in-place usa a URL https do bucket. Após refresh manual, atualizar TAMBÉM o marcador
   `%LOCALAPPDATA%\wayne\engine-version.json` (senão o chip oferece o mesmo update de novo;
-  nome verificado em `apps/desktop/electron/w4y-wayne-resolve.cjs` — o doc dizia
+  nome verificado em `apps/work4you/electron/w4y-wayne-resolve.cjs` — o doc dizia
   `engine-source.json`, ficheiro que não existe em código nenhum).
   Nota: este é o root de CÓDIGO, que fica no caminho legado por agora — a migração de home
   para `%LOCALAPPDATA%\work4you` move só os DADOS.
@@ -278,7 +277,7 @@ bucket. Depois de um refresh manual, actualizar também o marcador
 e parte o unzip POSIX — sempre pwsh 7.
 
 **Refresh in-place mescla, não substitui.** O `robocopy` sem `/MIR` deixa órfãos:
-bundles antigos acumulam-se em `web_dist` na máquina do utilizador, tal como o
+bundles antigos acumulam-se em `app_dist` na máquina do utilizador, tal como o
 `COPY` do Docker os acumulava na imagem. Inertes, mas enganam qualquer grep.
 
 ## ⚠️ 24/7 agendado — wake PARTIAL (atualizado 22/07)
@@ -292,10 +291,13 @@ bundles antigos acumulam-se em `web_dist` na máquina do utilizador, tal como o
 não máquina sempre ligada. Provisioner já espelha: premium → `min=1` / autostop off
 (`platform/provisioner/server.js`).
 
-**Wake verificado (GCP, 22/07):** job `wayne-cron-wake` **ENABLED**, cron `*/15`,
+**Wake verificado (GCP, 22/07):** job legacy `wayne-cron-wake` **ENABLED**, cron `*/15`,
 `GET https://wayne-w4y.fly.dev/api/auth/providers` → acorda Fly → ticker catch-up.
-**LIVE**, mas **não pontual** (até ~15 min late). IaC: `platform/infra/wake-cron.ps1`
-(idempotente create-or-update; **não** re-aplica no deploy — só DR/recreate).
+**Multi-tenant (ago/2026, Trilha H):** `POST /internal/wake-tenants` + job
+`w4y-wake-tenants` (`setup-wake-tenants-cron.ps1`, */5) acorda todos os tenants
+**base** (free/starter). Premium (pro/max) ignora — `min=1`. Provisioner injecta
+`GATEWAY_RELAY_WAKE_URL` + `WAYNE_SCALE_TO_ZERO=1` em base; `/reconfigure` no
+upgrade/downgrade Stripe. Ver `platform/infra/wake-tenants-integration.md`.
 
 → Produto “24/7 agendado barato” = **PARTIAL**, não pronto. Ver [`PLATAFORMA.md`](./PLATAFORMA.md).
 
@@ -308,6 +310,9 @@ Ver memória `desktop-parity-checklist` (upstream em `C:/DEV/hermes-upstream`).
 - #103 — bundles acumulados: **corrigido** nos 2 Dockerfiles, provado no fly194 (1 bundle).
 - **Wake cron** — `platform/infra/wake-cron.ps1` captura o job vivo; apertar intervalo
   (hoje `*/15`) se quiser pontualidade = PARTIAL → mais perto de “na hora”.
+- **ui-latest.json (I3, ago/2026):** feed legado de UI separada — **deprecado**. O
+  bucket `gs://w4y-engine-dist/` serve só `latest.yml` (casca Electron) +
+  `latest.json` (motor ZIP). Não publicar nem consumir `ui-latest.json`.
 
 ## Residuais da migração de marca Wayne→Work4You (01/08/2026)
 

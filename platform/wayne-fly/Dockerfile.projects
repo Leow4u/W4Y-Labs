@@ -15,15 +15,15 @@
 #   web_server.py   — ponte REST /api/projects (GET+POST). A sidebar é global,
 #                     vive fora de sessão WS, então não alcança as RPCs
 #                     projects.* do gateway.
-#   web_dist        — SPA: fila por conversa, watchdog de turno, "Principal",
+#   app_dist        — SPA: fila por conversa, watchdog de turno, "Principal",
 #                     sidebar no modelo de linha + backfill, PT→EN.
 #
 # Contexto de build = wayne-agent/.
 ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly221
 FROM ${BASE_IMAGE}
 COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py
-COPY wayne_cli/projects_db.py /opt/wayne/wayne_cli/projects_db.py
-COPY wayne_cli/web_server.py /opt/wayne/wayne_cli/web_server.py
+COPY work4you_cli/projects_db.py /opt/work4you/work4you_cli/projects_db.py
+COPY work4you_cli/web_server.py /opt/work4you/work4you_cli/web_server.py
 # Per-session connector gate (composer "Conectores" toggles): registry lives
 # in approval.py, enforcement at the MCP call door in mcp_tool.py.
 COPY tools/approval.py /opt/wayne/tools/approval.py
@@ -31,13 +31,13 @@ COPY tools/mcp_tool.py /opt/wayne/tools/mcp_tool.py
 # Agentes v3 backend: per-agent credit cap (budget.py + hooks in kanban/cron),
 # per-agent knowledge base (knowledge.py), team sidecar + pulse + approvals
 # inbox + knowledge REST (web_server.py, already copied above).
-COPY wayne_cli/budget.py /opt/wayne/wayne_cli/budget.py
-COPY wayne_cli/knowledge.py /opt/wayne/wayne_cli/knowledge.py
-COPY wayne_cli/kanban_db.py /opt/wayne/wayne_cli/kanban_db.py
+COPY work4you_cli/budget.py /opt/work4you/work4you_cli/budget.py
+COPY work4you_cli/knowledge.py /opt/work4you/work4you_cli/knowledge.py
+COPY work4you_cli/kanban_db.py /opt/work4you/work4you_cli/kanban_db.py
 # UX audit 20/07: the installation ("default") is not an agent. The engine-side
 # floor lives in these two — decompose keeps it out of the roster / off the
 # default-assignee slot, kanban_db refuses to spawn it with a visible reason.
-COPY wayne_cli/kanban_decompose.py /opt/wayne/wayne_cli/kanban_decompose.py
+COPY work4you_cli/kanban_decompose.py /opt/work4you/work4you_cli/kanban_decompose.py
 COPY cron/scheduler.py /opt/wayne/cron/scheduler.py
 # Knowledge K1: PDF extraction dep (lazy import in knowledge.py). The base
 # image venv predates the pyproject bump; it has NO pip (uv-built), so
@@ -46,8 +46,8 @@ RUN uv pip install --python /opt/wayne/.venv/bin/python pypdf==6.1.3
 # APAGA antes de copiar — ver a mesma nota no Dockerfile.ui: o COPY MESCLA, não
 # substitui, e sem isto os bundles antigos se acumulam (82 no fly193) e enganam
 # qualquer grep de diagnóstico.
-RUN rm -rf /opt/wayne/wayne_cli/web_dist
-COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+RUN rm -rf /opt/work4you/work4you_cli/web_dist /opt/work4you/work4you_cli/app_dist
+COPY work4you_cli/app_dist /opt/work4you/work4you_cli/app_dist
 # Curadoria de skills: 4 nativas movidas p/ bundled (skills/) + catálogo enxuto
 # (optional-skills/). rm antes p/ o COPY substituir de verdade (não mesclar) —
 # senão as skills movidas ficam duplicadas nas duas pastas.

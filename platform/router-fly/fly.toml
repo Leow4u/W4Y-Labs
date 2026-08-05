@@ -1,5 +1,5 @@
-# Roteador de sessão da Work4You — porta de entrada de todas as instâncias
-# Wayne atrás de work4you.ai. Sempre-aceso (é o front door; ~US$3/mês).
+# Roteador de sessão da Work4You — front door de app.work4you.ai (trilha E2).
+# Sempre-aceso (é o front door; ~US$3/mês).
 app = "router-w4y"
 primary_region = "gru"
 

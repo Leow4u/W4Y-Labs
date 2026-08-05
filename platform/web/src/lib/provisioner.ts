@@ -38,9 +38,14 @@ export async function requestProvision(opts: {
   email: string;
   plan: "base" | "premium";
   trialUsd: number;
+  wayneImage?: string;
 }): Promise<boolean> {
+  const wayneImage =
+    opts.wayneImage?.trim() ||
+    process.env.TENANT_WAYNE_IMAGE?.trim() ||
+    undefined;
   try {
-    const r = await call("/provision", opts);
+    const r = await call("/provision", { ...opts, ...(wayneImage ? { wayneImage } : {}) });
     return r.status === 202;
   } catch {
     return false;
@@ -58,10 +63,18 @@ export async function requestArchive(app: string): Promise<boolean> {
 }
 
 // Troca o regime da máquina do tenant (upgrade/downgrade de plano):
-// base = dorme ociosa; premium = sempre-acesa. Re-deploy do app (~30s).
-export async function requestReconfigure(app: string, plan: "base" | "premium"): Promise<boolean> {
+// re-deploy com imagem pinada quando TENANT_WAYNE_IMAGE está definido.
+export async function requestReconfigure(
+  app: string,
+  plan: "base" | "premium",
+  wayneImage?: string,
+): Promise<boolean> {
   try {
-    const r = await call("/reconfigure", { app, plan });
+    const image =
+      wayneImage?.trim() ||
+      process.env.TENANT_WAYNE_IMAGE?.trim() ||
+      undefined;
+    const r = await call("/reconfigure", { app, plan, ...(image ? { wayneImage: image } : {}) });
     return r.ok;
   } catch {
     return false;

@@ -16,7 +16,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Email,
     [ValidateSet('base', 'premium')][string]$Plan = 'base',
     [double]$TrialUsd = 1,
-    [string]$Image = 'registry.fly.io/wayne-w4y:fly2',
+    [string]$Image = 'registry.fly.io/wayne-w4y:fly229',
     [int]$ProxyPort = 5434,
     # Retomar um provisionamento interrompido (pula recursos já criados).
     [switch]$Reconcile
@@ -77,7 +77,9 @@ Write-Host "runtime key OpenRouter: limite US`$$TrialUsd (hash $($orHash.Substri
     "API_SERVER_KEY=$apiKey" `
     "WAYNE_DASHBOARD_BASIC_AUTH_USERNAME=$dashUser" `
     "WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD=$dashPass" `
-    "WAYNE_DASHBOARD_BASIC_AUTH_SECRET=$dashSecret" | Out-Null
+    "WAYNE_DASHBOARD_BASIC_AUTH_SECRET=$dashSecret" `
+    "GATEWAY_RELAY_WAKE_URL=https://$APP.fly.dev/api/auth/providers" `
+    $(if ($Plan -eq 'premium') { @() } else { @("WAYNE_SCALE_TO_ZERO=1") }) | Out-Null
 Write-Host "secrets do tenant staged"
 
 # Conectores (Composio, projeto compartilhado — Onda 5): mesma project key em

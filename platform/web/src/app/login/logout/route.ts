@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { DEV_SESSION_COOKIE } from "@/lib/dev-auth";
+import { cookieDomain } from "@/lib/site-origins";
 
 // Cookies de sessão do Wayne. Sob HTTPS (produção, atrás do Load Balancer)
 // o Wayne emite os nomes com prefixo __Host- (hardening de browser: exige
@@ -20,7 +21,15 @@ export async function POST(req: NextRequest) {
   // para fora do domínio. Relativo o browser resolve contra work4you.ai.
   const res = new NextResponse(null, { status: 303, headers: { Location: "/" } });
   res.cookies.delete(DEV_SESSION_COOKIE);
-  res.cookies.set(ROUTE_COOKIE, "", { path: "/", maxAge: 0, httpOnly: true, sameSite: "lax", secure: true });
+  const domain = cookieDomain();
+  res.cookies.set(ROUTE_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    ...(domain ? { domain } : {}),
+  });
 
   // Em produção (LB) o tráfego é sempre HTTPS; o header X-Forwarded-Proto
   // pode não chegar ao req.url, então marcamos Secure quando o protocolo

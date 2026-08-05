@@ -5,6 +5,7 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { BillingInterval, Plan } from "@/lib/billing";
+import { publicAppOrigin } from "@/lib/site-origins";
 
 // Dado de exibição de um plano individual (montado no server a partir de PLANS —
 // billing.ts é server-only, não pode ser importado aqui).
@@ -133,7 +134,7 @@ export function PlansView({
         <a href="/" className="font-brand text-xl font-semibold">Work4You</a>
         {loggedIn ? (
           <a
-            href="/chat"
+            href={`${publicAppOrigin()}/chat`}
             className="text-sm font-medium text-neutral-500 transition hover:text-neutral-800 dark:hover:text-neutral-200"
           >
             Ir para o app →

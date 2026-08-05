@@ -402,6 +402,74 @@ def _validate_post_login_target(raw: str) -> str:
     return decoded
 
 
+@router.get("/auth/platform-sso", name="auth_platform_sso")
+async def auth_platform_sso(request: Request, ticket: str = ""):
+    """Exchange a platform HMAC ticket for a Wayne session (app subdomain E1)."""
+    from work4you_cli.dashboard_auth.platform_sso import verify_platform_sso_ticket
+
+    ip = _client_ip(request)
+    tid = verify_platform_sso_ticket(ticket)
+    if not tid:
+        audit_log(
+            AuditEvent.LOGIN_FAILURE,
+            provider="platform-sso",
+            reason="bad_ticket",
+            ip=ip,
+        )
+        raise HTTPException(status_code=401, detail="Invalid or expired ticket")
+
+    p = get_provider("basic")
+    if p is None or not getattr(p, "supports_password", False):
+        raise HTTPException(status_code=503, detail="Password auth unavailable")
+
+    username = (
+        os.environ.get("WAYNE_DASHBOARD_BASIC_AUTH_USERNAME")
+        or os.environ.get("WAYNE_DASHBOARD_USERNAME")
+        or ""
+    ).strip()
+    password = (
+        os.environ.get("WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD")
+        or os.environ.get("WAYNE_DASHBOARD_PASSWORD")
+        or ""
+    ).strip()
+    if not username or not password:
+        raise HTTPException(status_code=503, detail="Dashboard credentials not configured")
+
+    try:
+        session = p.complete_password_login(username=username, password=password)
+    except InvalidCredentialsError:
+        audit_log(
+            AuditEvent.LOGIN_FAILURE,
+            provider="platform-sso",
+            reason="invalid_credentials",
+            ip=ip,
+        )
+        raise HTTPException(status_code=503, detail="Dashboard credentials mismatch")
+    except ProviderError as e:
+        raise HTTPException(status_code=503, detail=f"Provider unreachable: {e}")
+
+    audit_log(
+        AuditEvent.LOGIN_SUCCESS,
+        provider="platform-sso",
+        user_id=session.user_id,
+        email=session.email,
+        org_id=session.org_id,
+        ip=ip,
+    )
+
+    expires_in = max(60, session.expires_at - int(time.time()))
+    resp = RedirectResponse(url="/chat", status_code=302)
+    set_session_cookies(
+        resp,
+        access_token=session.access_token,
+        refresh_token=session.refresh_token,
+        access_token_expires_in=expires_in,
+        use_https=detect_https(request),
+        prefix=_prefix(request),
+    )
+    return resp
+
+
 # ---------------------------------------------------------------------------
 # Public: password (non-redirect) login
 # ---------------------------------------------------------------------------

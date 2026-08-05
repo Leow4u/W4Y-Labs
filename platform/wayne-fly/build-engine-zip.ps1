@@ -6,7 +6,7 @@
 # WORK4YOU_SOURCE_ZIP_URL (legacy WAYNE_SOURCE_ZIP_URL still accepted; see
 # Get-EngineSourceFromZip there -- keep the layout contract in lockstep)
 # and that the desktop in-app updater downloads via
-# latest.json's zipUrl (apps/desktop/electron/w4y-wayne-resolve.cjs).
+# latest.json's zipUrl (apps/work4you/electron/w4y-wayne-resolve.cjs).
 #
 # Layout contract produced here:
 #   work4you-engine-<date>.zip
@@ -43,7 +43,7 @@
 #                                  the field reads only the old name, so the
 #                                  produced file keeps it until those cascas
 #                                  are gone.
-#       agent/ tools/ work4you_cli/ (incl. web_dist) wayne_cli/ (compat stub)
+#       agent/ tools/ work4you_cli/ (incl. app_dist) wayne_cli/ (compat stub)
 #       gateway/ tui_gateway/ ...
 #
 # Feed-cut compatibility (verified 01/08 against the published field state):
@@ -113,13 +113,12 @@ $xdTopLevel = @(
     (Join-Path $RepoRoot "apps"),
     (Join-Path $RepoRoot "tests"),
     (Join-Path $RepoRoot "release"),
-    # UI SOURCES must not ship: the engine serves the prebuilt web_dist, and if
-    # web/ sources are present the serve startup's mtime staleness check
-    # triggers an npm rebuild that fails on a user machine (no workspace shared
-    # package — apps/ is excluded — and no dev deps). Real incident: first
-    # 0.3.0 install timed out on boot exactly this way. ui-tui/ ships out for
-    # the same reason.
-    (Join-Path $RepoRoot "web"),
+    # UI SOURCES must not ship: the engine serves the prebuilt app_dist, and if
+    # apps/work4you sources are present the serve startup's mtime staleness check
+    # triggers an npm rebuild that fails on a user machine (apps/ is excluded
+    # wholesale — no workspace shared package — and no dev deps). Real incident:
+    # first 0.3.0 install timed out on boot exactly this way. ui-tui/ ships out
+    # for the same reason.
     (Join-Path $RepoRoot "ui-tui")
 )
 $xdAnyDepth = @(

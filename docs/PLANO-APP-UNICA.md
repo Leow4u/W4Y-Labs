@@ -8,7 +8,7 @@
 
 ## Norte
 
-**Uma UI de produto** (`apps/desktop` → futuro `apps/work4you`), **dois sítios onde corre** (browser + Electron), **um motor Python** com **CLI, TUI, gateway e terminal** intactos, **Fly = computador na nuvem** por utilizador, **`platform/web` = só plataforma** (login, billing, SEO).
+**Uma UI de produto** (`apps/work4you`), **dois sítios onde corre** (browser + Electron), **um motor Python** com **CLI, TUI, gateway e terminal** intactos, **Fly = computador na nuvem** por utilizador, **`platform/web` = só plataforma** (login, billing, SEO).
 
 Modelo Claude/Cursor: browser e desktop são **first-class**; a unificação é **mesmo bundle React + mesmo tenant cloud**, não duas árvores UI.
 
@@ -46,18 +46,20 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 | C3–C4 | portar gaps web → desktop | C |
 | C5 | terminal browser (PTY remoto) | C |
 | C6 | auth browser SSO | C |
-| D1 | dashboard Python → app_dist | D |
-| D2 | apagar wayne-agent/web | D |
-| D3 | remover publish-ui pipeline | D |
-| D4 | Fly Dockerfile app_dist | D |
-| E1 | redirect login → app.work4you.ai | E |
-| E2 | DNS/LB app subdomain | E |
-| E3 | marketing /baixar desktop + web | E |
-| E4 | provisioner bundle version | E |
-| F1–F4 | desktop cloud-first + Conta | F |
-| G1–G6 | billing + tenant hardening | G |
-| H1–H4 | 24/7 wake + premium | H |
-| I1 | rename apps/desktop → work4you | I |
+| D1 | dashboard Python → app_dist | D ✅ |
+| D2 | apagar wayne-agent/web | D ✅ |
+| D3 | remover publish-ui pipeline | D ✅ |
+| D4 | Fly Dockerfile app_dist | D ✅ |
+| E1 | redirect login → app.work4you.ai | E ✅ |
+| E2 | DNS/LB app subdomain | E ✅ |
+| E3 | marketing /baixar desktop + web | E ✅ |
+| E4 | provisioner bundle version | E ✅ |
+| F1–F4 | desktop cloud-first + Conta | F ✅ |
+| G1–G6 | billing + tenant hardening | G ✅ |
+| H1–H4 | 24/7 wake + premium | H ✅ |
+| I1 | rename apps/desktop → apps/work4you | I ✅ |
+| I2 | handoff local ↔ cloud mid-session | backlog pós-v1 |
+| I3 | deprecate ui-latest.json no bucket | I ✅ |
 
 **Milestones:** M1 pós-B6 (spike browser) · M2 pós-D2 (web apagada) · M3 pós-E2 (prod browser) · M4 pós-F3+G3.
 
@@ -68,8 +70,8 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 | Item | Quando |
 |------|--------|
 | `docs/PLANO-REPARO.md`, `docs/arquivo/` | A1 ✅ |
-| `wayne-agent/web/` | D2 (após spike B6 + port C) |
-| `publish-ui.ps1`, `build-ui-zip.ps1`, `ui-latest.json` | D3 |
+| `wayne-agent/web/` | D2 ✅ |
+| `publish-ui.ps1`, `build-ui-zip.ps1`, `ui-latest.json` | D3 ✅ |
 | IPC `w4y:distribution:get` ui feed | A4 |
 | Agent Studio UI/docs | já morto em PRODUTO |
 
@@ -77,13 +79,13 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 
 ## Definition of Done
 
-- [ ] Só existe uma árvore UI de produto (`apps/desktop` / `apps/work4you`)
-- [ ] `npm run build:web` → `work4you_cli/app_dist/` servido no Fly
+- [x] Só existe uma árvore UI de produto (`apps/work4you`)
+- [x] `npm run build:web` → `work4you_cli/app_dist/` servido no Fly
 - [ ] Browser e Electron partilham bundle; CLI/TUI/gateway inalterados
 - [ ] Signup → tenant Fly → chat no browser
-- [ ] Desktop logado: sessões cloud visíveis; Conta unificada
-- [ ] Billing E2E: key inject + regime premium
-- [ ] Zero refs activas a desktop-shell, ui-latest, wayne-agent/web
+- [x] Desktop logado: sessões cloud visíveis; Conta unificada (Trilha F — validar na app instalada)
+- [ ] Billing E2E: key inject + regime premium (Trilha G — contratos vitest ✅; E2E prod manual)
+- [x] Zero refs activas a desktop-shell, ui-latest, wayne-agent/web (web apagada C6)
 
 ---
 

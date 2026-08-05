@@ -12,14 +12,14 @@
 | Superfície | Onde | Papel |
 |------------|------|--------|
 | **App browser** | `app.work4you.ai` (SPA no tenant Fly) | Produto completo na nuvem — **first-class** |
-| **App desktop** | Electron `apps/desktop` | **Mesma SPA** + motor local, PTY, git, fs, update GCS |
+| **App desktop** | Electron `apps/work4you` | **Mesma SPA** + motor local, PTY, git, fs, update GCS |
 | **Runtime cloud** | Fly `wayne-{slug}` + volume | Computador na nuvem 24/7 (cron, gateway, sessões) |
 | **Plataforma** | `platform/web` (Cloud Run) | Login, Stripe, onboarding — **sem chat** |
 | **CLI** | `work4you` | Power user, scripting, CI |
 | **TUI** | `work4you --tui` | Terminal full-screen; embed no dashboard PTY |
 | **Gateway** | `gateway run` | Telegram, Discord, Slack, … na VM cloud |
 
-Browser e desktop partilham **o mesmo bundle React** (`apps/desktop`, futuro rename `apps/work4you`).  
+Browser e desktop partilham **o mesmo bundle React** (`apps/work4you`, futuro rename `apps/work4you`).  
 CLI, TUI e gateway **mantêm-se** — não competem com a app visual; ligam ao **mesmo motor**.
 
 ---
@@ -67,7 +67,7 @@ Detalhe billing: [`BILLING-ARQUITETURA.md`](./BILLING-ARQUITETURA.md).
 
 ## O que não fazer
 
-- Duas árvores React de produto (`wayne-agent/web` + `apps/desktop`).  
+- Duas árvores React de produto (`wayne-agent/web` removida + `apps/work4you` única).  
 - Chat no Next.js `platform/web`.  
 - Desktop como `loadURL` de site externo por defeito.  
 - Segunda app Electron ou segundo feed GCS.  

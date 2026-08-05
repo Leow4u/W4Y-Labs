@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { cookieDomain } from "@/lib/site-origins";
 
 /**
  * TEMPORARY stand-in for Identity Platform (docs/ARQUITETURA.md §7 — no
@@ -44,13 +45,14 @@ export const DEV_TENANT_ID = "dev-tenant";
 
 export async function setDevSession(email: string, tenantId?: string): Promise<void> {
   const store = await cookies();
-  // role NÃO vai no cookie — é derivado do e-mail em getDevSession().
   const session = { email, tenantId: tenantId || DEV_TENANT_ID };
+  const domain = cookieDomain();
   store.set(DEV_SESSION_COOKIE, JSON.stringify(session), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
     maxAge: 60 * 60 * 24 * 7,
+    ...(domain ? { domain } : {}),
   });
 }
 

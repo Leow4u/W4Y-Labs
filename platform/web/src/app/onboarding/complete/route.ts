@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { verifyProvisionerSig } from "@/lib/provisioner";
+import { storeTenantDashboardCreds } from "@/lib/tenant-secrets";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,18 @@ export async function POST(req: NextRequest) {
       status='ready', last_active=now()
     WHERE tenant_id=${body.tenantId}
   `);
+
+  if (body.dashboardUsername && body.dashboardPassword) {
+    const stored = await storeTenantDashboardCreds(body.tenantId, {
+      username: body.dashboardUsername,
+      password: body.dashboardPassword,
+    });
+    if (stored) {
+      await database.execute(
+        sql`UPDATE instances SET dashboard_password=NULL WHERE tenant_id=${body.tenantId}`,
+      );
+    }
+  }
   if (body.openrouterKeyHash) {
     // Grava o hash da chave de trial do onboarding — MAS só se a ativação de
     // plano ainda não injetou uma chave paga (key_injected_at NULL). Sem isso, o

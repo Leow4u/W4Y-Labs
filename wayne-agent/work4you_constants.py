@@ -316,7 +316,7 @@ def iter_wayne_node_dirs(home: Path | None = None) -> list[Path]:
     dirs = [root / "node"]
     bin_dir = root / "node" / "bin"
     # NOTE: keep this ordering in sync with wayneManagedNodePathEntries() in
-    # apps/desktop/electron/main.cjs — the Electron main process is Node and
+    # apps/work4you/electron/main.cjs — the Electron main process is Node and
     # cannot import this module, so the platform-ordering rule is mirrored there.
     if sys.platform == "win32":
         return dirs + [bin_dir]

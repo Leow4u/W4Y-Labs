@@ -5,7 +5,7 @@
 # aqui fazemos igual às camadas gh/UI: só copiamos os arquivos alterados.
 #
 # Conteúdo: a RPC `usage.account` (medidor da aba Plano — server.py, delta = só
-# esse método sobre o que já roda) + o web_dist novo (card do medidor + taxa
+# esse método sobre o que já roda) + o app_dist novo (card do medidor + taxa
 # de crédito 1cr=$0,01). Os avisos 50/75/90 (openrouter_credits.py + run_agent)
 # JÁ estão na base há tempos — confirmado extraindo do fly127 (0 diff).
 #
@@ -15,5 +15,6 @@
 ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly127
 FROM ${BASE_IMAGE}
 
-COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+RUN rm -rf /opt/work4you/work4you_cli/web_dist /opt/work4you/work4you_cli/app_dist
+COPY work4you_cli/app_dist /opt/work4you/work4you_cli/app_dist
 COPY tui_gateway/server.py /opt/wayne/tui_gateway/server.py

@@ -1,6 +1,6 @@
 # Linguagem — desktop Work4You
 
-> Passada contínua sobre `wayne-agent/apps/desktop`.
+> Passada contínua sobre `wayne-agent/apps/work4you`.
 > Não reinventar telas — **renomear, esconder, reordenar**.
 
 ## Princípio
@@ -35,7 +35,7 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 
 ## Já aplicado
 
-- Labels EN em `apps/desktop/src/i18n/en.ts` (cron, artifacts, sidebar, statusbar, command center).
+- Labels EN em `apps/work4you/src/i18n/en.ts` (cron, artifacts, sidebar, statusbar, command center).
 - **Agent Studio removido** da app (rota, view, palette) — 30/07/2026.
 - **Banho de marca (UI):** wordmark Work4You no empty state; tema default `work4you` (oliva/carvão); títulos Electron/`en.ts` sem “Hermes” na cara do utilizador. Favicon/ícones de app aguardam asset final.
 
@@ -66,7 +66,7 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 | Hermes Agent, “the Hermes assistant” | Work4You |
 | Wayne (como nome do produto) | Work4You |
 
-**Onde aplicar:** `apps/desktop/src/i18n`, `web/src/i18n`, `platform/web` páginas públicas, toasts/erros que mostram texto do motor.
+**Onde aplicar:** `apps/work4you/src/i18n`, `web/src/i18n`, `platform/web` páginas públicas, toasts/erros que mostram texto do motor.
 
 **Sanitizer:** texto cru do backend/plugin passa por `sanitizeProductCopy()` (`@hermes/shared` / `@wayne/shared`) na borda da UI — notificações, slash output, WhatsApp, achievements.
 

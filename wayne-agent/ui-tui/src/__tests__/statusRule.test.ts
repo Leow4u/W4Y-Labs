@@ -31,7 +31,7 @@ describe('statusRuleWidths', () => {
   })
 
   it('reserves the high-priority left content so the cwd/branch yields first', () => {
-    const cwd = '~/src/wayne-agent/apps/desktop (bb/tui-statusbar-responsive)'
+    const cwd = '~/src/wayne-agent/apps/work4you (bb/tui-statusbar-responsive)'
 
     const greedy = statusRuleWidths(70, cwd) // legacy behaviour: cwd hogs the row
     const reserved = statusRuleWidths(70, cwd, 40) // reserve indicator+model+ctx

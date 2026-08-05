@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Regra
 
-Mudanças em `wayne-agent/apps/desktop` (renderer ou Electron) e no motor Python que o desktop consome **só se validam na app instalada** (`com.work4you.app`), via o **chip de atualização** (conta / nome).
+Mudanças em `wayne-agent/apps/work4you` (renderer ou Electron) e no motor Python que o desktop consome **só se validam na app instalada** (`com.work4you.app`), via o **chip de atualização** (conta / nome).
 
 **Nunca** digas ao utilizador para testar produto com `npm run dev`, `electron .`, ou um segundo checkout “de engenharia”. Isso partiu a regra várias vezes e cria a confusão das duas apps.
 
@@ -30,7 +30,7 @@ Quando o background terminar, confirma no chat: versão no `latest.yml` / `lates
 
 ```
 # ❌ Nunca como caminho de teste de produto
-cd apps/desktop && npm run dev
+cd apps/work4you && npm run dev
 ```
 
 `npm run dev` / typecheck / vitest locais são só para o agente iterar **código** antes de publicar — nunca a instrução de validação ao utilizador.

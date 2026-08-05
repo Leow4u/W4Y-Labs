@@ -63,7 +63,7 @@ def test_session_create_rejects_at_active_session_limit(monkeypatch, tmp_path):
 def test_session_context_uses_session_cwd(monkeypatch, tmp_path):
     """Desktop/TUI sessions must pin the agent cwd per session.
 
-    The gateway process itself is often launched from apps/desktop in dev, so
+    The gateway process itself is often launched from apps/work4you in dev, so
     falling back to os.getcwd() makes agents answer from the desktop app folder
     even when the sidebar/session cwd is a real project.
     """

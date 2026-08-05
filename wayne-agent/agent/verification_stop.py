@@ -79,7 +79,7 @@ def _filter_verifiable_paths(paths: Iterable[str]) -> list[str]:
 # platform is a conversational messaging surface (Telegram, Discord, WhatsApp,
 # Signal, Slack, etc.) where the verification narrative would reach a human as
 # chat noise, so it defaults OFF. Mirrors LOCAL_SESSION_SOURCE_IDS in
-# apps/desktop/src/lib/session-source.ts; keep roughly in sync when adding a
+# apps/work4you/src/lib/session-source.ts; keep roughly in sync when adding a
 # local or programmatic surface. Default-deny by design: an unrecognized
 # identity is treated as messaging (OFF) so a new chat platform never leaks the
 # verification receipt before this set is updated.

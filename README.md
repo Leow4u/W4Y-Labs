@@ -6,9 +6,9 @@ mantêm memória de longo prazo, executam tarefas em múltiplos ambientes e se
 integram a dezenas de ferramentas e modelos — um assistente operacional sempre
 ativo.
 
-> **Desktop oficial:** [`wayne-agent/apps/desktop`](wayne-agent/apps/desktop) (Electron + React).  
+> **Desktop oficial:** [`wayne-agent/apps/work4you`](wayne-agent/apps/work4you) (Electron + React).  
 > Validar: publicar GCS → chip de atualização na **app instalada** (`npm run dist:win:nsis`).  
-> `appId`: `com.work4you.app`. Uma app só — `apps/desktop-shell` foi apagada.
+> `appId`: `com.work4you.app`. Uma app só — `apps/work4you-shell` foi apagada.
 
 > Princípio inegociável: **não construímos infraestrutura própria**. Reusamos e
 > orquestramos o que já existe no mercado. Ver [docs/ARQUITETURA.md](docs/ARQUITETURA.md).

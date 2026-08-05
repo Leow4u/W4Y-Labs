@@ -11,14 +11,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = path.resolve(__dirname, '..')
 
 const SCAN_ROOTS = [
-  path.join(REPO_ROOT, 'wayne-agent/apps/desktop/src/i18n'),
-  path.join(REPO_ROOT, 'wayne-agent/web/src/i18n'),
+  path.join(REPO_ROOT, 'wayne-agent/apps/work4you/src/i18n'),
   path.join(REPO_ROOT, 'platform/web/src/app/(public)'),
   path.join(REPO_ROOT, 'platform/web/src/app/planos')
 ]
 
 const SCAN_FILES = [
-  path.join(REPO_ROOT, 'wayne-agent/apps/desktop/index.html'),
+  path.join(REPO_ROOT, 'wayne-agent/apps/work4you/index.html'),
   path.join(REPO_ROOT, 'platform/web/src/app/onboarding/OnboardingClient.tsx')
 ]
 

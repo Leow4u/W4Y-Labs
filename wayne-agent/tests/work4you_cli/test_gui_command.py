@@ -359,7 +359,7 @@ def test_compute_desktop_content_hash_stable(tmp_path, monkeypatch):
 
 
 def test_compute_desktop_content_hash_changes_on_edit(tmp_path, monkeypatch):
-    """Editing a file under apps/desktop/ changes the hash."""
+    """Editing a file under apps/work4you/ changes the hash."""
     root = _make_desktop_tree(tmp_path)
     (root / "apps" / "desktop" / "main.js").write_text("v1", encoding="utf-8")
     (root / "package.json").write_text("{}", encoding="utf-8")
@@ -792,7 +792,7 @@ def test_electron_dist_ok_per_platform(tmp_path, monkeypatch, platform, rel):
 
 
 def test_electron_dir_prefers_workspace_local_package(tmp_path):
-    """npm may nest electron under apps/desktop; resolve there over the root hoist."""
+    """npm may nest electron under apps/work4you; resolve there over the root hoist."""
     root_electron = tmp_path / "node_modules" / "electron"
     local_electron = tmp_path / "apps" / "desktop" / "node_modules" / "electron"
     root_electron.mkdir(parents=True)
@@ -810,7 +810,7 @@ def test_electron_dir_falls_back_to_root_hoist(tmp_path):
 
 
 def test_electron_dist_ok_finds_workspace_local_binary(tmp_path, monkeypatch):
-    """A nested apps/desktop electron with a valid binary counts as ok."""
+    """A nested apps/work4you electron with a valid binary counts as ok."""
     monkeypatch.setattr(cli_main.sys, "platform", "linux")
     binp = tmp_path / "apps" / "desktop" / "node_modules" / "electron" / "dist" / "electron"
     binp.parent.mkdir(parents=True)

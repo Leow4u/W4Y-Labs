@@ -127,13 +127,13 @@ RUN ln -s /opt/work4you /opt/wayne
 # ui-tui/package.json.  Copying the tree up front lets npm resolve the
 # workspace to real content instead of stopping at a bare package.json.
 COPY package.json ./
-COPY web/package.json web/
+COPY apps/work4you/package.json apps/work4you/
 COPY ui-tui/package.json ui-tui/
 COPY ui-tui/packages/work4you-ink/ ui-tui/packages/work4you-ink/
 # apps/shared (@wayne/shared) is copied IN FULL for the same reason as
-# work4you-ink above: web/ references it as a `file:../apps/shared` workspace
+# work4you-ink above: apps/work4you references it as a `file:../shared` workspace
 # dependency (it re-exports ./src/index.ts directly, no build step). Without
-# it, `npm install` can't resolve the workspace symlink and the web build
+# it, `npm install` can't resolve the workspace symlink and the product UI build
 # below fails with "Cannot find module '@wayne/shared'". W4Y fork addition:
 # apps/shared was recovered after the initial apps/ prune (see FORK-NOTES.md).
 COPY apps/shared/ apps/shared/
@@ -199,11 +199,11 @@ RUN uv sync --frozen --no-install-project --extra all --extra messaging --extra 
 
 # ---------- Frontend build (cached independently from Python source) ----------
 # Copy only the frontend source trees first so that Python-only changes don't
-# invalidate the (relatively slow) web + ui-tui build layer.
-COPY web/ web/
+# invalidate the (relatively slow) product UI + ui-tui build layer.
+COPY apps/work4you/ apps/work4you/
 COPY ui-tui/ ui-tui/
-RUN cd web && npm run build && \
-    cd ../ui-tui && npm run build
+RUN npm run build:web -w work4you && \
+    cd ui-tui && npm run build
 
 # ---------- Source code ----------
 # .dockerignore excludes node_modules, so the installs above survive.
@@ -304,7 +304,7 @@ COPY --chmod=0755 docker/cont-init.d/02-reconcile-profiles /etc/cont-init.d/02-r
 # WORK4YOU_* user-facing spellings are bridged onto WAYNE_* at process
 # start by work4you_constants.apply_work4you_env_aliases, legacy wins).
 # Only the path VALUES move to /opt/work4you here; the names stay.
-ENV WAYNE_WEB_DIST=/opt/work4you/work4you_cli/web_dist
+ENV WAYNE_WEB_DIST=/opt/work4you/work4you_cli/app_dist
 # Point the TUI launcher at the prebuilt bundle baked at build time (Layer 8:
 # `ui-tui && npm run build`). This makes _make_tui_argv take the prebuilt-bundle
 # fast path (`node --expose-gc /opt/work4you/ui-tui/dist/entry.js`) and skip the

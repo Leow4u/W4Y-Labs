@@ -97,7 +97,7 @@ export default async function InstanciasPage() {
               </div>
             ))}
             <p className="text-xs text-neutral-400">
-              A entrada usa login unificado e abre o Work4You em /chat na mesma origem.
+              A entrada usa login unificado e abre o Work4You em app.work4you.ai.
             </p>
           </div>
         )}

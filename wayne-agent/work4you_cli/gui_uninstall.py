@@ -7,9 +7,9 @@ the Python agent or the user's config/data:
 
   1. Source-built GUI (``wayne desktop`` / ``wayne gui``)
      Built inside the agent checkout under ``$WAYNE_HOME/wayne-agent/``:
-       - ``apps/desktop/dist``      (compiled renderer)
-       - ``apps/desktop/release``   (electron-builder unpacked app + installers)
-       - ``apps/desktop/node_modules`` and the workspace-root ``node_modules``
+       - ``apps/work4you/dist``      (compiled renderer)
+       - ``apps/work4you/release``   (electron-builder unpacked app + installers)
+       - ``apps/work4you/node_modules`` and the workspace-root ``node_modules``
          (Electron itself, ~200MB) — only removed on a GUI uninstall because
          the agent does not need them.
        - ``$WAYNE_HOME/desktop-build-stamp.json`` (the build freshness stamp)
@@ -116,7 +116,7 @@ def packaged_gui_app_paths() -> "list[Path]":
     electron-builder output locations for the product.
 
     electron-builder derives these directory/bundle names from `productName`
-    (apps/desktop/package.json), which the rebrand moved from Wayne to
+    (apps/work4you/package.json), which the rebrand moved from Wayne to
     Work4You. Both names are probed so an install made before the rename is
     still found and removed.
     """
@@ -155,7 +155,7 @@ def packaged_gui_app_paths() -> "list[Path]":
         data = os.environ.get("XDG_DATA_HOME")
         data_base = Path(data) if data else (home / ".local" / "share")
         # electron-builder names the entry after `executableName`, which
-        # apps/desktop/package.json now sets to Work4You. The pre-rename
+        # apps/work4you/package.json now sets to Work4You. The pre-rename
         # Wayne names stay so upgrading installs still get cleaned up —
         # same both-names approach install.ps1 uses for the .lnk shortcuts.
         paths += [
