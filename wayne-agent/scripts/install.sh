@@ -1703,7 +1703,7 @@ try:
     specs = data["project"]["optional-dependencies"]["all"]
     extras = []
     for s in specs:
-        m = re.search(r"wayne-agent\[([\w-]+)\]", s)
+        m = re.search(r"(?:work4you-agent|wayne-agent)\[([\w-]+)\]", s)
         if m:
             extras.append(m.group(1))
     print(",".join(extras))
