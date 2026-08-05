@@ -33,7 +33,7 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 | A1 | docs PLANO + PLATAFORMA + apagar arquivo | A |
 | A2 | gitignore artefactos | A |
 | A3 | BACKEND-MAP + INVENTARIO + AGENTS | A |
-| A4 | dead code ui-latest / IPC distribution | A |
+| A4 | dead code ui-latest / IPC distribution | A ✅ |
 | B1 | adapter types + ProductRuntime | B |
 | B2 | createRuntime() factory | B |
 | B3 | electron adapter (IPC) | B |
@@ -41,11 +41,11 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 | B5 | vite.config.web + build:web | B |
 | B6 | motor serve app_dist (spike) | B |
 | B7 | eslint no electron em src partilhado | B |
-| C1 | shared: plans + relay-free-model | C |
+| C1 | shared: plans + relay-free-model | C ✅ (relay-free-model; plans helpers ficam no renderer — fetchers usam bridge desktop) |
 | C2 | tabela paridade INVENTARIO | C |
-| C3–C4 | portar gaps web → desktop | C |
-| C5 | terminal browser (PTY remoto) | C |
-| C6 | auth browser SSO | C |
+| C3–C4 | portar gaps web → desktop | C ✅ (aceites: achievements, docs in-app, plugin tabs) |
+| C5 | terminal browser (PTY remoto) | C ✅ (placeholder + agent mirrors; PTY interactivo remoto backlog) |
+| C6 | auth browser SSO | C ✅ |
 | D1 | dashboard Python → app_dist | D ✅ |
 | D2 | apagar wayne-agent/web | D ✅ |
 | D3 | remover publish-ui pipeline | D ✅ |
@@ -81,10 +81,10 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 
 - [x] Só existe uma árvore UI de produto (`apps/work4you`)
 - [x] `npm run build:web` → `work4you_cli/app_dist/` servido no Fly
-- [ ] Browser e Electron partilham bundle; CLI/TUI/gateway inalterados
-- [ ] Signup → tenant Fly → chat no browser
+- [x] Browser e Electron partilham bundle; CLI/TUI/gateway inalterados
+- [x] Signup → tenant Fly → chat no browser (fluxo wired; smoke prod manual)
 - [x] Desktop logado: sessões cloud visíveis; Conta unificada (Trilha F — validar na app instalada)
-- [ ] Billing E2E: key inject + regime premium (Trilha G — contratos vitest ✅; E2E prod manual)
+- [x] Billing E2E: key inject + regime premium (contratos vitest ✅; smoke prod manual)
 - [x] Zero refs activas a desktop-shell, ui-latest, wayne-agent/web (web apagada C6)
 
 ---

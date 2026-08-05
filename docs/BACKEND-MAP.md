@@ -22,7 +22,10 @@
 > Electron); UI única em `apps/work4you` → `work4you_cli/app_dist` — ver [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
 > Canais legados `ui-latest.json` / `desktop-shell` estão mortos.
 
-## Contratos verificados (a "física" do sistema)
+### Paridade de releases (ago/2026)
+
+Mudança de UI/UX/motor → publicar **todos** os artefactos do mesmo commit: `build:web` → motor ZIP (`latest.json`) → overlay Fly (`wayne-w4y:flyN`) → casca (`latest.yml`) → `deploy-web.ps1` se plataforma mudou. Regra completa: `.cursor/rules/update-parity.mdc`. Script Fly: `platform/infra/publish-fly.ps1` (requer `fly auth login`).
+
 
 | Contrato | Onde | Verificado |
 |---|---|---|

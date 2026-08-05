@@ -31,6 +31,7 @@ Alvo de plataforma: **linux/amd64**.
 | `setup-reconcile-cron.ps1` | Cloud Scheduler `w4y-reconcile-keys` (POST `/internal/reconcile-keys`, */5 UTC). Ver G1. |
 | `setup-wake-tenants-cron.ps1` | Cloud Scheduler `w4y-wake-tenants` (POST `/internal/wake-tenants`, */5 UTC). Ver H1 + `wake-tenants-integration.md`. |
 | `migrate-legacy-wayne-w4y.ps1` | One-off: `dev-tenant` → tenant próprio. Ver `legacy-tenant-migration.md`. |
+| `publish-fly.ps1` | Provisioner (`p4`) + overlay UI tenant (`fly230`) no Fly. Requer `fly auth login`. |
 
 ## Passos
 ```powershell

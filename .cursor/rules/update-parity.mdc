@@ -1,0 +1,41 @@
+---
+description: Paridade de updates — UI/UX/motor devem subir em casca, motor ZIP, tenant Fly e web juntos
+alwaysApply: true
+---
+
+# Paridade de updates (web + desktop + motor + cloud)
+
+## Regra
+
+Toda mudança de **UI, UX ou backend (motor Python)** que afecte o produto agente deve ser publicada **em todos os canais** que servem essa superfície, salvo excepções explícitas (capability só Electron: PTY local, fs nativo, git IPC, etc.).
+
+| Superfície | O que publicar | Feed / destino |
+|------------|----------------|----------------|
+| **Renderer** (React) | `npm run build:web` → `work4you_cli/app_dist/` | Incluído no motor ZIP **e** overlay Fly `Dockerfile.ui` |
+| **Casca Electron** | bump versão + `npm run dist:win:nsis` | GCS `latest.yml` + `.exe` |
+| **Motor** (Python) | `platform/wayne-fly/build-engine-zip.ps1` | GCS `latest.json` + zip (`Cache-Control: no-store`) |
+| **Tenant Fly** | `Dockerfile.ui` → `registry.fly.io/wayne-w4y:flyN+1` | `TENANT_WAYNE_IMAGE` + `WAYNE_IMAGE` no provisioner |
+| **Plataforma** | `platform/infra/deploy-web.ps1` | Cloud Run `w4y-web` (só billing/login/SEO) |
+
+## Ordem canónica (uma release de produto)
+
+1. Commit na branch de trabalho.
+2. `cd wayne-agent/apps/work4you && npm run build:web` (gera `app_dist` partilhado).
+3. Motor: build-engine-zip → upload zip + `latest.json` (UTF-8 sem BOM).
+4. Tenant: build/push imagem `wayne-w4y:flyN+1` com `Dockerfile.ui`; actualizar pins (`fly.toml`, `deploy-web.ps1`, `provisioner`).
+5. Casca: bump + `dist:win:nsis` → upload GCS `latest.yml`.
+6. Web plataforma: `deploy-web.ps1` se mudou `platform/web`.
+7. Provisioner: rebuild imagem se mudou `platform/provisioner/server.js`.
+8. Validar **só na app instalada** (chip casca + chip motor) e smoke em `app.work4you.ai`.
+
+## Excepções (não exigem paridade)
+
+- PTY local, preview filesystem, git review IPC, auto-update Electron, notificações OS.
+- Páginas só plataforma: `/planos`, onboarding Stripe, `/baixar`, crons internos.
+- Achievements / plugin tabs / docs in-app — backlog até port explicito.
+
+## Proibido
+
+- Publicar só casca quando `app_dist` ou Python mudou (utilizador cloud fica desalinhado).
+- Publicar motor ZIP sem `build:web` prévio quando houve diff em `apps/work4you/src`.
+- Apontar `latest.json` a um zip cujo `app_dist` não corresponde ao renderer da casca em GCS.

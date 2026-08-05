@@ -1,0 +1,67 @@
+# Publica imagens Fly (provisioner + tenant UI overlay) após build:web.
+# Requer: fly auth login, docker, gcloud (para nada aqui — só fly registry).
+#
+# Usage:
+#   cd platform/infra
+#   .\publish-fly.ps1 [-TenantTag fly230] [-ProvisionerTag p4] [-SkipTenant] [-SkipProvisioner]
+#
+# Ordem: build:web (apps/work4you) → este script → deploy-web.ps1 (se TENANT_WAYNE_IMAGE mudou).
+
+[CmdletBinding()]
+param(
+  [string]$TenantTag = "fly230",
+  [string]$ProvisionerTag = "p4",
+  [string]$BaseTenantTag = "fly229",
+  [switch]$SkipTenant,
+  [switch]$SkipProvisioner
+)
+
+$ErrorActionPreference = "Stop"
+. "$PSScriptRoot\_env.ps1"
+
+$fly = (Get-Command fly -ErrorAction SilentlyContinue).Source
+if (-not $fly) { throw "fly CLI not found" }
+& $fly auth whoami | Out-Null
+if ($LASTEXITCODE -ne 0) { throw "fly not authenticated — run: fly auth login" }
+
+$engineRoot = Join-Path $script:REPO_ROOT "wayne-agent"
+$appDist = Join-Path $engineRoot "work4you_cli\app_dist\index.html"
+if (-not (Test-Path $appDist)) {
+  throw "app_dist missing — run: cd wayne-agent/apps/work4you && npm run build:web"
+}
+
+if (-not $SkipProvisioner) {
+  Write-Host "== Provisioner $ProvisionerTag ==" -ForegroundColor Cyan
+  Push-Location (Join-Path $script:REPO_ROOT "platform\provisioner")
+  try {
+    docker build -t "registry.fly.io/provisioner-w4y:$ProvisionerTag" .
+    if ($LASTEXITCODE -ne 0) { throw "provisioner docker build failed" }
+    & $fly auth docker
+    docker push "registry.fly.io/provisioner-w4y:$ProvisionerTag"
+    if ($LASTEXITCODE -ne 0) { throw "provisioner push failed" }
+    & $fly deploy --image "registry.fly.io/provisioner-w4y:$ProvisionerTag" -a provisioner-w4y --remote-only
+    if ($LASTEXITCODE -ne 0) { throw "provisioner deploy failed" }
+    Write-Host "OK provisioner-w4y:$ProvisionerTag" -ForegroundColor Green
+  } finally { Pop-Location }
+}
+
+if (-not $SkipTenant) {
+  Write-Host "== Tenant UI overlay wayne-w4y:$TenantTag (base $BaseTenantTag) ==" -ForegroundColor Cyan
+  Push-Location $engineRoot
+  try {
+    docker build -f (Join-Path $script:REPO_ROOT "platform\wayne-fly\Dockerfile.ui") `
+      --build-arg "BASE_IMAGE=registry.fly.io/wayne-w4y:$BaseTenantTag" `
+      -t "registry.fly.io/wayne-w4y:$TenantTag" .
+    if ($LASTEXITCODE -ne 0) { throw "tenant ui docker build failed" }
+    & $fly auth docker
+    docker push "registry.fly.io/wayne-w4y:$TenantTag"
+    if ($LASTEXITCODE -ne 0) { throw "tenant push failed" }
+    & $fly deploy --image "registry.fly.io/wayne-w4y:$TenantTag" `
+      -c (Join-Path $script:REPO_ROOT "platform\wayne-fly\fly.wayne-w4y.toml") --remote-only
+    if ($LASTEXITCODE -ne 0) { throw "wayne-w4y deploy failed" }
+    Write-Host "OK wayne-w4y:$TenantTag" -ForegroundColor Green
+    Write-Host "Actualize TENANT_WAYNE_IMAGE / WAYNE_IMAGE para registry.fly.io/wayne-w4y:$TenantTag e corra deploy-web.ps1" -ForegroundColor Yellow
+  } finally { Pop-Location }
+}
+
+Write-Host "Done." -ForegroundColor Green
