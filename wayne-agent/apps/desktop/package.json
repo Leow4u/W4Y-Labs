@@ -45,6 +45,9 @@
     "fix": "npm run lint:fix && npm run fmt",
     "test:ui": "vitest run",
     "preview": "node scripts/assert-root-install.cjs && vite preview --host 127.0.0.1 --port 4174",
+    "dev:web": "node scripts/assert-root-install.cjs && vite --config vite.config.web.ts --host 127.0.0.1 --port 5175",
+    "build:web": "node scripts/assert-root-install.cjs && tsc -b && vite build --config vite.config.web.ts",
+    "preview:web": "vite preview --config vite.config.web.ts --host 127.0.0.1 --port 4175",
     "make-icon": "electron scripts/make-icon.cjs"
   },
   "dependencies": {

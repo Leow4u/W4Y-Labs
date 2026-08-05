@@ -8,6 +8,7 @@ import { createRoot } from 'react-dom/client'
 import { HashRouter } from 'react-router-dom'
 
 import App from './app'
+import { ProductRuntimeProvider } from './adapters'
 import { ErrorBoundary } from './components/error-boundary'
 import { HapticsProvider } from './components/haptics-provider'
 import { I18nProvider } from './i18n'
@@ -39,9 +40,11 @@ if (new URLSearchParams(window.location.search).get('win') === 'overlay') {
           <I18nProvider>
             <ThemeProvider>
               <HapticsProvider>
-                <HashRouter>
-                  <App />
-                </HashRouter>
+                <ProductRuntimeProvider>
+                  <HashRouter>
+                    <App />
+                  </HashRouter>
+                </ProductRuntimeProvider>
               </HapticsProvider>
             </ThemeProvider>
           </I18nProvider>

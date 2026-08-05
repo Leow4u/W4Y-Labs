@@ -119,8 +119,22 @@ except ImportError:
             f"Install with: {sys.executable} -m pip install 'fastapi' 'uvicorn[standard]'"
         )
 
-WEB_DIST = Path(os.environ["WAYNE_WEB_DIST"]) if "WAYNE_WEB_DIST" in os.environ else Path(__file__).parent / "web_dist"
+WEB_DIST = (
+    Path(os.environ["WAYNE_WEB_DIST"])
+    if "WAYNE_WEB_DIST" in os.environ
+    else _default_product_ui_dist()
+)
 _log = logging.getLogger(__name__)
+
+
+def _default_product_ui_dist() -> Path:
+    """Prefer unified app bundle (app_dist); fall back to legacy web_dist."""
+    parent = Path(__file__).parent
+    for name in ("app_dist", "web_dist"):
+        candidate = parent / name
+        if (candidate / "index.html").is_file():
+            return candidate
+    return parent / "web_dist"
 
 # ---------------------------------------------------------------------------
 # Per-channel subscriber registry used by /api/pub (PTY-side gateway → dashboard)
