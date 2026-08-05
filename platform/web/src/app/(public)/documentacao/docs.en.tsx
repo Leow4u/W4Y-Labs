@@ -203,7 +203,7 @@ export const DOCS: DocPage[] = [
       <>
         <P>
           Each plan includes an <B>included usage pool</B> that resets every billing cycle.
-          Simple tasks use less; long research or Expert mode uses more. When included usage
+          Simple tasks use less; long research or MAX mode uses more. When included usage
           runs out, the agent stops and lets you know — or you enable{" "}
           <B>on-demand</B> in Settings → Account, with a per-cycle <B>spend limit</B>.
           Overage is reported at cycle end and billed on your next invoice.{" "}
@@ -213,25 +213,25 @@ export const DOCS: DocPage[] = [
         <UL
           items={[
             <>
-              <B>Free</B> — to get to know the platform. No credit card.
+              <B>Free</B> — Relay 2.5 Fast (house model). No credit card. Rest of the
+              catalog locked until upgrade.
             </>,
             <>
-              <B>Starter ($19/month)</B> — included usage in your plan, essential modes
-              (Flash and Auto), and your personal cloud instance.
+              <B>Essencial ($20/month)</B> — $20 included usage per cycle, full catalog,
+              and your personal cloud instance.
             </>,
             <>
-              <B>Pro ($49/month)</B> — more included usage, <B>Expert</B> mode for hard
+              <B>Plus ($60/month)</B> — $70 included usage, <B>MAX</B> mode for hard
               tasks, and an always-on instance — your agent stays on 24/7 in the cloud.
             </>,
             <>
-              <B>Max ($99/month)</B> — larger included pool, higher on-demand spend
+              <B>Max ($200/month)</B> — $400 included usage, higher on-demand spend
               ceiling, and higher limits for heavy operations.
             </>,
           ]}
         />
         <P>
-          Paid plans start with <B>7 days free</B>, and annual billing gets you 2
-          months off. Details and sign-up at{" "}
+          Annual billing saves 2 months. Details and sign-up at{" "}
           <DocLink href="/precos">work4you.ai/precos</DocLink>.
         </P>
         <H2>On-demand and spend limit</H2>
@@ -245,16 +245,13 @@ export const DOCS: DocPage[] = [
         <UL
           items={[
             <>
-              <B>Flash</B> — fast answers, minimal cost. Great for everyday
-              tasks.
+              <B>Relay 2.5 Fast</B> — house model on the Free plan. Fast and economical.
             </>,
             <>
-              <B>Auto</B> — the smart default: routes each task to the best
-              model, balancing quality and cost.
+              <B>Relay</B> — smart router on paid plans (Essencial+).
             </>,
             <>
-              <B>Expert</B> — the strongest models, for hard problems (on the Pro
-              and Max plans).
+              <B>MAX</B> — the strongest models, for hard problems (Plus and Max).
             </>,
           ]}
         />

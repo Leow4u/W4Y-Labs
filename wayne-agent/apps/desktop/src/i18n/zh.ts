@@ -3086,6 +3086,8 @@ export const zh: Translations = {
     noAuthenticatedProviders: '没有已认证的提供方。',
     pro: 'Pro',
     proNeedsSubscription: 'Pro 模型需要付费 Nous 订阅。',
+    upgrade: '升级',
+    planGatedHint: '免费计划仅含 Relay 2.5 Fast。升级至 Essencial 解锁完整目录。',
     free: '免费',
     freeTier: '免费层',
     priceTitle: '每百万 token 的输入/输出价格'

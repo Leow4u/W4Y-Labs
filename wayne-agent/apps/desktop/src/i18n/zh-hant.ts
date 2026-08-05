@@ -2040,6 +2040,8 @@ export const zhHant = defineLocale({
     noAuthenticatedProviders: '沒有已驗證的提供方。',
     pro: 'Pro',
     proNeedsSubscription: 'Pro 模型需要付費 Nous 訂閱。',
+    upgrade: '升級',
+    planGatedHint: '免費方案僅含 Relay 2.5 Fast。升級至 Essencial 解鎖完整目錄。',
     free: '免費',
     freeTier: '免費層',
     priceTitle: '每百萬 Token 的輸入/輸出價格'

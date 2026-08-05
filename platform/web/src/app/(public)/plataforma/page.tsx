@@ -1,5 +1,11 @@
 import Image from "next/image";
 import Link from "next/link";
+import {
+  AutomationsTableMock,
+  ChannelsGridMock,
+  PersonalizeConnectorsMock,
+  PersonalizeSkillsMock,
+} from "@/components/ProductMocks";
 import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = { title: "Plataforma — Work4You" };
@@ -38,7 +44,7 @@ const CONTENT = {
         "Entregas: planilhas, decks, PDFs prontos",
         "Aprovação humana no que importa",
       ],
-      windowLabel: "Agenda — rotinas",
+      windowLabel: "Automações",
       rows: [
         { when: "Toda manhã · 07h00", what: "Resumo dos e-mails e do que vence hoje", on: true },
         { when: "Toda sexta · 17h00", what: "Cobranças e follow-ups da semana", on: true },
@@ -129,7 +135,7 @@ const CONTENT = {
         "Deliveries: finished spreadsheets, decks, and PDFs",
         "Human approval where it matters",
       ],
-      windowLabel: "Agenda — routines",
+      windowLabel: "Automations",
       rows: [
         { when: "Every morning · 7:00 AM", what: "Summary of your email and what's due today", on: true },
         { when: "Every Friday · 5:00 PM", what: "Payment reminders and the week's follow-ups", on: true },
@@ -272,26 +278,11 @@ export default async function PlataformaPage() {
             </ul>
           </div>
 
-          {/* Agenda mock */}
+          {/* Automações mock */}
           <div className="rounded-3xl bg-white/60 p-4 sm:p-8">
             <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_24px_80px_-40px_rgba(41,51,31,0.35)]">
               <WindowChrome label={t.operate.windowLabel} />
-              <div className="divide-y divide-line">
-                {t.operate.rows.map((r) => (
-                  <div key={r.when} className="flex items-center gap-4 px-5 py-3.5">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${r.on ? "w4y-live-dot bg-salvia" : "bg-line"}`} />
-                    <div className="min-w-0">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-salvia">
-                        {r.when}
-                      </p>
-                      <p className="mt-0.5 truncate text-sm text-ink">{r.what}</p>
-                    </div>
-                    <span className="ml-auto shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-                      {r.on ? t.operate.statusOn : t.operate.statusOff}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <AutomationsTableMock locale={locale} />
             </div>
           </div>
         </div>
@@ -399,38 +390,8 @@ export default async function PlataformaPage() {
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
               {t.personalize.body}
             </p>
-            <div className="mt-5 overflow-hidden rounded-xl border border-line">
-              <div className="flex gap-1 border-b border-line bg-paper px-3 py-2">
-                {t.personalize.tabs.map((tab, i) => (
-                  <span
-                    key={tab}
-                    className={`rounded-full px-2.5 py-0.5 text-[10px] font-medium ${
-                      i === 0 ? "bg-ink text-paper" : "text-ink-soft"
-                    }`}
-                  >
-                    {tab}
-                  </span>
-                ))}
-              </div>
-              {t.personalize.rows.map((r, i) => (
-                <div key={r.name} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-line" : ""}`}>
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${r.on ? "w4y-live-dot bg-salvia" : "bg-line"}`} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink">{r.name}</p>
-                    <p className="truncate text-[12.5px] text-ink-soft">{r.focus}</p>
-                  </div>
-                  <span
-                    className={`ml-auto shrink-0 rounded-full px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] ${
-                      r.on ? "bg-salvia-soft text-mata" : "bg-paper text-ink-faint"
-                    }`}
-                  >
-                    {r.on ? t.personalize.statusOn : t.personalize.statusOff}
-                  </span>
-                </div>
-              ))}
-              <div className="border-t border-line px-4 py-2.5">
-                <span className="text-[12px] font-semibold text-mata">{t.personalize.marketplace}</span>
-              </div>
+            <div className="mt-5">
+              <PersonalizeSkillsMock locale={locale} />
             </div>
           </div>
 
@@ -460,6 +421,14 @@ export default async function PlataformaPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Canais + Conectores ─────────────────────────────────────── */}
+      <section className="border-t border-line bg-paper-deep px-6 py-20">
+        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
+          <ChannelsGridMock locale={locale} />
+          <PersonalizeConnectorsMock locale={locale} />
         </div>
       </section>
 

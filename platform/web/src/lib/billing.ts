@@ -22,7 +22,6 @@ export interface PlanDef {
   stripePriceIdMonth: string | null; // null = sem checkout (Free ou price não configurado)
   stripePriceIdYear: string | null;
   rolloverUsd: number;
-  trialDays: number; // dias de trial grátis na 1ª assinatura (0 = sem trial)
 }
 
 // Legado: conversão USD → contagem (não expor na UI pública — modelo Cursor).
@@ -31,42 +30,39 @@ export function creditsForDisplay(usd: number): number {
   return Math.round(usd / CREDIT_USD);
 }
 
-// Allowance do trial gratuito (Free): um "gostinho" com teto pequeno na chave
-// OpenRouter, dado no onboarding antes de assinar um plano pago.
-export const FREE_TRIAL_USD = 3;
+/** Subsidized welcome allowance on plan Free (Relay 2.5 Fast · OpenRouter key ceiling). */
+export const FREE_ALLOWANCE_USD = 1.5;
 
-// Trial de lançamento: 7 dias por US$ 0 na 1ª assinatura paga (isca de entrada,
-// modelo Grok "Experimente por $0.00"). Vai em subscription_data.trial_period_days.
-export const DEFAULT_TRIAL_DAYS = 7;
+/** @deprecated Use FREE_ALLOWANCE_USD — kept for imports during rename. */
+export const FREE_TRIAL_USD = FREE_ALLOWANCE_USD;
 
 // price ID de env (criado como price de teste na Stripe no go-live); "" → null.
 function envPrice(name: string): string | null {
   return process.env[name]?.trim() || null;
 }
 
-// Catálogo de planos INDIVIDUAIS (preço em US$ — decisão do Leonardo 2026-07-07).
-// creditsUsd = teto de gasto da runtime key (custo máximo); crédito exibido =
-// creditsForDisplay(creditsUsd). Anual ≈ 10× mensal (2 meses grátis). Price IDs
-// vêm do ambiente — null desabilita o checkout até configurá-los no go-live.
+// Catálogo Cursor-like (ago/2026): preço = mensalidade; creditsUsd = pool
+// "Other Models" incluído por ciclo. Chaves internas (starter/pro/max) mantidas
+// no registry — labels Work4You na UI.
 export const PLANS: Record<Plan, PlanDef> = {
   free: {
-    key: "free", label: "Free", priceUsdMonth: 0, priceUsdYear: 0, creditsUsd: 0,
-    stripePriceIdMonth: null, stripePriceIdYear: null, rolloverUsd: 0, trialDays: 0,
+    key: "free", label: "Grátis", priceUsdMonth: 0, priceUsdYear: 0, creditsUsd: 0,
+    stripePriceIdMonth: null, stripePriceIdYear: null, rolloverUsd: 0,
   },
   starter: {
-    key: "starter", label: "Starter", priceUsdMonth: 19, priceUsdYear: 190, creditsUsd: 6,
+    key: "starter", label: "Essencial", priceUsdMonth: 20, priceUsdYear: 200, creditsUsd: 20,
     stripePriceIdMonth: envPrice("STRIPE_PRICE_STARTER"), stripePriceIdYear: envPrice("STRIPE_PRICE_STARTER_YEAR"),
-    rolloverUsd: 3, trialDays: DEFAULT_TRIAL_DAYS,
+    rolloverUsd: 10,
   },
   pro: {
-    key: "pro", label: "Pro", priceUsdMonth: 49, priceUsdYear: 490, creditsUsd: 16,
+    key: "pro", label: "Plus", priceUsdMonth: 60, priceUsdYear: 600, creditsUsd: 70,
     stripePriceIdMonth: envPrice("STRIPE_PRICE_PRO"), stripePriceIdYear: envPrice("STRIPE_PRICE_PRO_YEAR"),
-    rolloverUsd: 8, trialDays: DEFAULT_TRIAL_DAYS,
+    rolloverUsd: 35,
   },
   max: {
-    key: "max", label: "Max", priceUsdMonth: 99, priceUsdYear: 990, creditsUsd: 38,
+    key: "max", label: "Max", priceUsdMonth: 200, priceUsdYear: 2000, creditsUsd: 400,
     stripePriceIdMonth: envPrice("STRIPE_PRICE_MAX"), stripePriceIdYear: envPrice("STRIPE_PRICE_MAX_YEAR"),
-    rolloverUsd: 19, trialDays: DEFAULT_TRIAL_DAYS,
+    rolloverUsd: 100,
   },
 };
 
@@ -179,7 +175,6 @@ function checkoutBase(opts: {
     "metadata[interval]": opts.interval,
     "subscription_data[metadata][tenant_id]": opts.tenantId,
     "subscription_data[metadata][plan]": opts.plan,
-    ...(def.trialDays ? { "subscription_data[trial_period_days]": String(def.trialDays) } : {}),
   };
   // Metered overage is attached after checkout via ensureOverageSubscriptionItem
   // (activate / spend-limit) so a misconfigured STRIPE_PRICE_OVERAGE cannot break signup.
@@ -283,11 +278,11 @@ async function openrouter(path: string, method: string, body?: unknown) {
 export function maxOndemandSpendLimitUsd(plan: Plan): number {
   switch (plan) {
     case "starter":
-      return 20;
-    case "pro":
       return 50;
-    case "max":
+    case "pro":
       return 100;
+    case "max":
+      return 200;
     default:
       return 0;
   }

@@ -10,6 +10,11 @@
  */
 
 import type { Translations } from "@/i18n/types";
+import { isGratisPlan } from "@/lib/plans";
+import {
+  RELAY_FREE_PRIMARY_MODEL,
+  RELAY_FREE_REASONING,
+} from "@/lib/relay-free-model";
 
 export type TierKey = "gratis" | "flash" | "auto" | "expert" | "crew";
 
@@ -36,11 +41,9 @@ export const TIER_PRESETS: Record<TierKey, TierPreset> = {
     // tierLabel/tierSubtitle below, which localize this tier (×16).
     label: "Grátis",
     subtitle: "Sem custo",
-    // Zero-cost tier: OpenRouter ":free" variant, served by NVIDIA (1M ctx,
-    // tool calling). SINGLE source of truth for the slug — if OpenRouter ever
-    // drops the model, swapping it is an operational change made here only.
-    model: "nvidia/nemotron-3-ultra-550b-a55b:free",
-    reasoning: "medium",
+    // Relay 2.5 Fast backend — see relay-free-model.ts (single slug source).
+    model: RELAY_FREE_PRIMARY_MODEL,
+    reasoning: RELAY_FREE_REASONING,
     delegationModel: "",
     delegationReasoning: "",
   },
@@ -115,6 +118,17 @@ export function uiModeFromConfig(model: string, reasoning: string): UiMode {
 /** The tier preset a UI mode applies. */
 export function uiModePreset(mode: UiMode): TierPreset {
   return TIER_PRESETS[UI_MODE_TIER[mode]];
+}
+
+/** Plan-aware preset: Grátis keeps Relay 2.5 Fast (qwen), not the paid router. */
+export function uiModePresetForPlan(
+  mode: UiMode,
+  plan: string | null | undefined,
+): TierPreset {
+  if (mode === "relay" && isGratisPlan(plan)) {
+    return TIER_PRESETS.gratis;
+  }
+  return uiModePreset(mode);
 }
 
 /**

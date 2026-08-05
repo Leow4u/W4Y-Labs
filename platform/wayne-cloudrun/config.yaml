@@ -10,8 +10,15 @@
 #     /v1/runs). Loopback-only: the dashboard and in-container tools reach it;
 #     the platform reaches the dashboard.
 model:
-  default: "anthropic/claude-sonnet-4.6"
+  default: "qwen/qwen3.7-flash"
   provider: openrouter
+
+agent:
+  reasoning_effort: medium
+
+fallback_model:
+  - provider: openrouter
+    model: "openai/gpt-oss-20b"
 
 # Geração de imagem roteia pela chave OpenRouter do tenant (nano-banana) por
 # padrão — imagem no chat sem GPU, cobrando do crédito capado. Só afeta tenants

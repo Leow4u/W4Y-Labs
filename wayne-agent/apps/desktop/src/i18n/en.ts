@@ -3148,6 +3148,8 @@ export const en: Translations = {
     noAuthenticatedProviders: 'No authenticated providers.',
     pro: 'Pro',
     proNeedsSubscription: 'Pro models need a paid Nous subscription.',
+    upgrade: 'Upgrade',
+    planGatedHint: 'Free plan includes Relay 2.5 Fast only. Upgrade to Essencial for the full catalog.',
     free: 'Free',
     freeTier: 'Free tier',
     priceTitle: 'Input / Output price per million tokens'

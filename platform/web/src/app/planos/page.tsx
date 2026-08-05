@@ -16,9 +16,9 @@ export const metadata = { title: "Assine — Work4You" };
 const ORDER = ["starter", "pro", "max"] as const;
 
 const USAGE_TAGLINE: Record<(typeof ORDER)[number], string> = {
-  starter: "Uso incluído no plano",
-  pro: "Mais uso incluído · agente 24/7",
-  max: "Pool incluído ampliado",
+  starter: "US$ 20 de uso incluído / ciclo",
+  pro: "US$ 70 de uso incluído · agente 24/7",
+  max: "US$ 400 de uso incluído / ciclo",
 };
 
 // Página PÚBLICA de preços (também é o /precos da landing). Deslogado → vê os
@@ -52,7 +52,6 @@ export default async function PlanosPage({
       priceMonth: p.priceUsdMonth,
       priceYear: p.priceUsdYear,
       usageTagline: USAGE_TAGLINE[k],
-      trialDays: p.trialDays,
     };
   });
 

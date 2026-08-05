@@ -9,20 +9,20 @@ describe('desktop plans helpers', () => {
     vi.restoreAllMocks()
   })
 
-  it('normalizes platform keys onto Hobby · Pro · Business · Trial', () => {
-    expect(normalizePlan('free')).toBe('hobby')
-    expect(normalizePlan('starter')).toBe('hobby')
-    expect(normalizePlan('pro')).toBe('pro')
-    expect(normalizePlan('max')).toBe('business')
-    expect(normalizePlan('business')).toBe('business')
-    expect(normalizePlan('trial')).toBe('trial')
-    expect(normalizePlan(undefined)).toBe('hobby')
+  it('normalizes platform keys onto Grátis · Essencial · Plus · Max', () => {
+    expect(normalizePlan('free')).toBe('gratis')
+    expect(normalizePlan('starter')).toBe('essencial')
+    expect(normalizePlan('pro')).toBe('plus')
+    expect(normalizePlan('max')).toBe('max')
+    expect(normalizePlan('business')).toBe('max')
+    expect(normalizePlan(undefined)).toBe('gratis')
   })
 
   it('exposes brand labels', () => {
-    expect(planLabel('max')).toBe('Business')
-    expect(planLabel('pro')).toBe('Pro')
-    expect(planLabel('starter')).toBe('Hobby')
+    expect(planLabel('max')).toBe('Max')
+    expect(planLabel('pro')).toBe('Plus')
+    expect(planLabel('starter')).toBe('Essencial')
+    expect(planLabel('free')).toBe('Grátis')
   })
 
   it('parses on-demand fields from /api/account/plan', async () => {

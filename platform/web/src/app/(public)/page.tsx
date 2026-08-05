@@ -2,6 +2,11 @@ import Image from "next/image";
 import Link from "next/link";
 import HeroDemo from "@/components/HeroDemo";
 import DelegationInput from "@/components/DelegationInput";
+import {
+  AutomationsTableMock,
+  PersonalizeSkillsMock,
+  WhatsAppAgentMock,
+} from "@/components/ProductMocks";
 import { getSiteLocale } from "@/lib/site-locale";
 
 // Work4You landing — new architecture, benchmark-informed:
@@ -96,16 +101,6 @@ const CONTENT = {
       p: "Diga o foco e o estilo. Ative as Skills que ele usa, ligue as suas contas nos conectores e escolha o modelo — tudo na tela Personalizar.",
       cta: "Ver como personalizar →",
       frame: "Personalizar",
-      tabs: ["Skills", "Conectores", "MCPs"],
-      marketplace: "Navegar Marketplace →",
-      rows: [
-        { name: "Planilhas e relatórios", focus: "Números organizados, gráficos e Excel pronto", on: true },
-        { name: "Apresentações", focus: "Monta o deck e exporta em PowerPoint", on: true },
-        { name: "Pesquisa na web", focus: "Busca, lê e resume — com as fontes", on: true },
-        { name: "Edição de imagens", focus: "Corta, ajusta e prepara pra publicar", on: false },
-      ],
-      statusOn: "ativa",
-      statusOff: "desativada",
     },
     use: {
       label: "02 · Use",
@@ -163,14 +158,9 @@ const CONTENT = {
         done: "✓ testes passando · commit enviado",
       },
       whatsapp: {
-        title: "Outras plataformas",
-        copy: "Inicie agentes pelo WhatsApp, Telegram, Slack e muito mais.",
-        cta: "Adicionar ao WhatsApp ↗",
-        agentName: "Agente Work4You",
-        online: "online",
-        msg: "Vê no CRM se entrou lead novo",
-        reply: "3 leads novos! O mais quente pediu proposta — já preparei: 📎",
-        file: "proposta-marina.pdf 📄",
+        title: "WhatsApp e canais",
+        copy: "Peça no WhatsApp — o agente lê Gmail, roda ferramentas e devolve estruturado.",
+        cta: "Conectar WhatsApp ↗",
       },
       web: {
         title: "Web e celular",
@@ -240,16 +230,6 @@ const CONTENT = {
       p: "Set focus and style. Enable the Skills it uses, connect your accounts, pick the model — all on the Customize screen.",
       cta: "See how to customize →",
       frame: "Customize",
-      tabs: ["Skills", "Connectors", "MCPs"],
-      marketplace: "Browse Marketplace →",
-      rows: [
-        { name: "Spreadsheets and reports", focus: "Numbers organized, charts, Excel ready", on: true },
-        { name: "Presentations", focus: "Builds the deck and exports to PowerPoint", on: true },
-        { name: "Web research", focus: "Search, read, summarize — with sources", on: true },
-        { name: "Image editing", focus: "Crop, adjust, and prep for publishing", on: false },
-      ],
-      statusOn: "active",
-      statusOff: "off",
     },
     use: {
       label: "02 · Use",
@@ -307,14 +287,9 @@ const CONTENT = {
         done: "✓ tests passing · commit pushed",
       },
       whatsapp: {
-        title: "Other platforms",
-        copy: "Start agents from WhatsApp, Telegram, Slack, and more.",
-        cta: "Add to WhatsApp ↗",
-        agentName: "Work4You Agent",
-        online: "online",
-        msg: "Check the CRM for new leads",
-        reply: "3 new leads! The hottest one asked for a proposal — already done: 📎",
-        file: "marina-proposal.pdf 📄",
+        title: "WhatsApp and channels",
+        copy: "Ask on WhatsApp — the agent reads Gmail, runs tools, and replies in structure.",
+        cta: "Connect WhatsApp ↗",
       },
       web: {
         title: "Web and mobile",
@@ -548,42 +523,7 @@ export default async function LandingPage() {
                   {t.build.frame}
                 </span>
               </div>
-              <div className="flex gap-1 border-b border-line bg-paper px-4 py-2">
-                {t.build.tabs.map((tab, i) => (
-                  <span
-                    key={tab}
-                    className={`rounded-full px-3 py-1 text-[11px] font-medium ${
-                      i === 0 ? "bg-ink text-paper" : "text-ink-soft"
-                    }`}
-                  >
-                    {tab}
-                  </span>
-                ))}
-              </div>
-              {t.build.rows.map((r, i) => (
-                <div
-                  key={r.name}
-                  className={`flex items-center gap-4 px-5 py-4 ${i > 0 ? "border-t border-line" : ""}`}
-                >
-                  <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${r.on ? "w4y-live-dot bg-salvia" : "bg-line"}`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink">{r.name}</p>
-                    <p className="truncate text-[13px] text-ink-soft">{r.focus}</p>
-                  </div>
-                  <span
-                    className={`ml-auto shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${
-                      r.on ? "bg-salvia-soft text-mata" : "bg-paper text-ink-faint"
-                    }`}
-                  >
-                    {r.on ? t.build.statusOn : t.build.statusOff}
-                  </span>
-                </div>
-              ))}
-              <div className="border-t border-line px-5 py-3">
-                <span className="text-[13px] font-semibold text-mata">{t.build.marketplace}</span>
-              </div>
+              <PersonalizeSkillsMock locale={locale} />
             </div>
           </div>
         </div>
@@ -651,25 +591,7 @@ export default async function LandingPage() {
                 {t.always.cta}
               </Link>
             </div>
-            <div className="space-y-3">
-              {t.always.routines.map((r) => (
-                <div
-                  key={r.when}
-                  className="flex items-center gap-4 rounded-2xl border border-paper/15 bg-paper/5 px-5 py-4"
-                >
-                  <span className="w4y-live-dot h-2 w-2 shrink-0 rounded-full bg-salvia" />
-                  <div className="min-w-0">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-salvia">
-                      {r.when}
-                    </p>
-                    <p className="mt-1 truncate text-sm text-paper/90">{r.what}</p>
-                  </div>
-                  <span className="ml-auto shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-paper/50">
-                    {t.always.live}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <AutomationsTableMock locale={locale} />
           </div>
         </div>
       </section>
@@ -770,25 +692,8 @@ export default async function LandingPage() {
               <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.whatsapp.cta}
               </Link>
-              <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-[#ece5dd]">
-                <div className="flex items-center gap-2 border-b border-line bg-white px-3 py-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/brand/apps/whatsapp.svg" alt="" width={14} height={14} className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-semibold text-ink">{t.platforms.whatsapp.agentName}</span>
-                  <span className="text-[10px] text-[#25a05a]">{t.platforms.whatsapp.online}</span>
-                </div>
-                <div className="space-y-2 px-3 py-3">
-                  <div className="ml-auto w-fit max-w-[85%] rounded-lg rounded-tr-sm bg-[#d9fdd3] px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
-                    {t.platforms.whatsapp.msg}
-                    <span className="ml-1 text-[9px] text-[#53bdeb]">✓✓</span>
-                  </div>
-                  <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
-                    {t.platforms.whatsapp.reply}
-                  </div>
-                  <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] font-medium text-ink shadow-sm">
-                    {t.platforms.whatsapp.file}
-                  </div>
-                </div>
+              <div className="mt-5 flex-1">
+                <WhatsAppAgentMock locale={locale} />
               </div>
             </div>
 

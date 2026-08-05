@@ -14,7 +14,6 @@ export interface PlanCard {
   priceMonth: number;
   priceYear: number;
   usageTagline: string;
-  trialDays: number;
 }
 
 interface PlansViewProps {
@@ -30,23 +29,23 @@ interface PlansViewProps {
 // Copy das features (estático, client-side). Modelo Cursor: uso incluído + on-demand.
 const FEATURES: Record<string, string[]> = {
   starter: [
-    "Uso incluído que reinicia a cada ciclo",
-    "Modelos essenciais (Flash e Auto)",
+    "US$ 20 de uso incluído por ciclo",
+    "Catálogo completo de modelos",
     "Chat, Skills e Conectores sem limite de recursos",
     "Sua instância pessoal na nuvem",
     "On-demand opcional com limite de gasto",
     "Suporte por e-mail",
   ],
   pro: [
-    "Tudo do Starter",
-    "Modo Expert (Claude) para tarefas difíceis",
+    "Tudo do Essencial",
+    "US$ 70 de uso incluído por ciclo",
+    "Modo MAX — modelos de ponta",
     "Instância sempre-ativa — agente 24/7 na nuvem",
-    "Mais uso incluído por ciclo",
     "Respostas com prioridade",
   ],
   max: [
-    "Tudo do Pro",
-    "Pool incluído ampliado",
+    "Tudo do Plus",
+    "US$ 400 de uso incluído por ciclo",
     "On-demand com teto de gasto mais alto",
     "Limites de uso mais altos",
     "Suporte prioritário",
@@ -155,8 +154,7 @@ export function PlansView({
         <div className="text-center">
           <h1 className="font-brand text-3xl font-semibold sm:text-4xl">Assine o Work4You</h1>
           <p className="mt-2 text-sm text-neutral-500">
-            Experimente <span className="font-semibold text-neutral-800 dark:text-neutral-200">7 dias por US$ 0</span>.
-            Cancele quando quiser
+            Uso incluído por ciclo — modelo Cursor. Cancele quando quiser
             {loggedIn && (
               <>
                 {" "}· plano atual: <strong className="font-brand uppercase">{current.plan}</strong>
@@ -198,9 +196,7 @@ export function PlansView({
                   ? "Plano atual"
                   : loggedIn && !checkoutEnabled
                     ? "Em breve"
-                    : card.trialDays
-                      ? `Começar — ${card.trialDays} dias por US$ 0`
-                      : `Assinar ${card.label}`;
+                    : `Assinar ${card.label}`;
                 return (
                   <div
                     key={card.key}

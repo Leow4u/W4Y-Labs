@@ -17,7 +17,37 @@ Infra por baixo (chave OpenRouter por tenant com teto, Stripe) **permanece**. Se
 
 **On-demand + spend limit (v1 + metered MVP):** Conta liga on-demand e define teto \$/ciclo (\PATCH /planos/spend-limit\ → ceiling OpenRouter). Caps: starter \ · pro \ · max \. No \invoice.paid\, o overage do ciclo anterior é reportado via Stripe Billing Meter (\w4y_ondemand_overage_cent\, price \price_1Twvq8Cn608ngT3WHeZov3BZ\ a \.01/unidade) e aparece na **próxima fatura**. Env: \STRIPE_PRICE_OVERAGE\. Conta diz: reportado no fim do ciclo, cobrado na próxima fatura. Command Center → Usage = telemetria Hermes (não billing).
 
-## ⚠️ Atualização v2 — vocabulário UI (jul/2026) — legado
+## ⚠️ Atualização v4 — Relay 2.5 Fast + planos Cursor (04/08/2026)
+
+Plano **Grátis** (padrão Cursor Hobby): o utilizador vê **só** o modelo de casa **Relay 2.5 Fast**; o resto do catálogo aparece com cadeado até **Essencial**. Sem trial de 7 dias — assina quando quiser.
+
+| Plano UI | Key DB | Preço/mês | Pool incluído (USD) | On-demand cap |
+|----------|--------|-----------|---------------------|---------------|
+| **Grátis** | `free` | $0 | ~$1,50 allowance | — |
+| **Essencial** | `starter` | $20 | $20 | $50 |
+| **Plus** | `pro` | $60 | $70 | $100 |
+| **Max** | `max` | $200 | $400 | $200 |
+
+| Camada Relay 2.5 Fast | Valor |
+|--------|--------|
+| **Nome produto** | Relay 2.5 Fast |
+| **Primary** | `qwen/qwen3.7-flash` (~$0,03 / $0,13 por M, tools, 1M ctx) |
+| **Fallback** | `openai/gpt-oss-20b` (~$0,03 / $0,14 por M, tools) |
+| **Provider** | `openrouter` (chave capada da plataforma) |
+| **Reasoning** | `medium` |
+
+Fonte única de slugs: `wayne-agent/web/src/lib/relay-free-model.ts` (UI) e `wayne-agent/work4you_cli/relay_free_model.py` (motor). Seed cloud: `platform/wayne-cloudrun/config.yaml`.
+
+**UI modes (composer + Config → Modelos):**
+- **Relay 2.5 Fast** — plano Grátis (preset `gratis`).
+- **Relay** — roteador nos planos pagos (preset `auto`).
+- **MAX** — reasoning premium (preset `expert`; Plus+).
+
+**Implementado (ago/2026):** gating desktop picker, web RelayPicker + ConfigModelsSection, `platform/web` billing + `/precos` + `/planos` + docs/ajuda.
+
+---
+
+> **Legado abaixo (§1–§3):** referência histórica Manus/créditos/R$ — **não** usar para copy pública. A face viva é Cursor-like (v3 + v4 acima).
 
 A auditoria produto (**Fase 10**) substitui na **interface**:
 

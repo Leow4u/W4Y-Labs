@@ -2159,6 +2159,8 @@ export const ja = defineLocale({
     noAuthenticatedProviders: '認証済みプロバイダーがありません。',
     pro: 'Pro',
     proNeedsSubscription: 'Pro モデルには有料の Nous サブスクリプションが必要です。',
+    upgrade: 'アップグレード',
+    planGatedHint: '無料プランは Relay 2.5 Fast のみ。Essencial にアップグレードで全カタログ。',
     free: '無料',
     freeTier: '無料プラン',
     priceTitle: '100 万トークンあたりの入力/出力価格'

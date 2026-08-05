@@ -124,7 +124,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
     faqs: [
       {
         q: "Preciso de cartão de crédito pra testar?",
-        a: "Não. O plano Grátis não pede cartão. Nos planos pagos, os primeiros 7 dias são grátis e você pode cancelar antes de qualquer cobrança.",
+        a: "Não. O plano Grátis não pede cartão. Nos planos pagos, você assina direto — cancele quando quiser, sem trial de 7 dias.",
       },
       {
         q: "O que acontece quando esgota o uso incluído?",
@@ -248,7 +248,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
     faqs: [
       {
         q: "Do I need a credit card to try it?",
-        a: "No. The Free plan doesn't ask for a card. On paid plans, the first 7 days are free and you can cancel before any charge.",
+        a: "No. The Free plan doesn't ask for a card. Paid plans bill when you subscribe — cancel anytime, no 7-day trial.",
       },
       {
         q: "What happens when included usage runs out?",

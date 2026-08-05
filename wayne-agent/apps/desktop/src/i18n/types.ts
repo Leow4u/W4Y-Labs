@@ -2284,6 +2284,8 @@ export interface Translations {
     noAuthenticatedProviders: string
     pro: string
     proNeedsSubscription: string
+    upgrade: string
+    planGatedHint: string
     free: string
     freeTier: string
     priceTitle: string

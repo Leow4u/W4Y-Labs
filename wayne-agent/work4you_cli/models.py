@@ -77,7 +77,10 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     # Qwen
     ("qwen/qwen3.7-max",                       ""),
     ("qwen/qwen3.7-plus",                      ""),
+    ("qwen/qwen3.7-flash",                     ""),
     ("qwen/qwen3.6-35b-a3b",                   ""),
+    # OpenAI open-weight (Relay 2.5 Fast fallback)
+    ("openai/gpt-oss-20b",                     ""),
     # MoonshotAI
     ("moonshotai/kimi-k2.7-code",              ""),
     ("moonshotai/kimi-k2.6",                   "recommended"),
@@ -221,7 +224,10 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         # Qwen
         "qwen/qwen3.7-max",
         "qwen/qwen3.7-plus",
+        "qwen/qwen3.7-flash",
         "qwen/qwen3.6-35b-a3b",
+        # OpenAI open-weight (Relay 2.5 Fast fallback)
+        "openai/gpt-oss-20b",
         # MoonshotAI
         "moonshotai/kimi-k2.6",
         "moonshotai/kimi-k2.7-code",

@@ -134,7 +134,7 @@ export function DeliverablesPanel({
   // E7: zip of the current Entregas list (session-filtered when applicable).
   const exportPack = async () => {
     if (!canShare) {
-      openUpgrade("business");
+      openUpgrade("plus");
       return;
     }
     if (!filtered.length) return;
@@ -173,7 +173,7 @@ export function DeliverablesPanel({
   // E7: in-product deep link (same tenant) — not a public CDN URL.
   const copyShareLink = async () => {
     if (!canShare) {
-      openUpgrade("business");
+      openUpgrade("plus");
       return;
     }
     if (!sessionId) return;

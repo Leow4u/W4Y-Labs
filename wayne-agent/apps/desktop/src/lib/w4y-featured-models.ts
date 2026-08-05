@@ -7,6 +7,7 @@
 import type { ModelOptionProvider } from '@/types/hermes'
 
 import { displayModelName } from './model-status-label'
+import { isRelayFreeModel, RELAY_25_FAST_LABEL } from './relay-free-model'
 
 export type FeaturedVersionKey = 'highEffort' | 'fast'
 
@@ -447,6 +448,7 @@ export function featuredModelLabel(modelId: string): string | undefined {
 
 /** How every picker renders a model id: curated label first, prettified id otherwise. */
 export function modelLabel(modelId: string): string {
+  if (isRelayFreeModel(modelId)) return RELAY_25_FAST_LABEL
   return featuredModelLabel(modelId) ?? displayModelName(modelId)
 }
 

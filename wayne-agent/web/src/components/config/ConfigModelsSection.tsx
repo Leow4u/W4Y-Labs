@@ -2,7 +2,7 @@
  * Config → Modelos (Fase 10 · PR-3 / Onda A5c · PR-8 C5).
  * Relay/MAX defaults · explore subagent · ~12 featured toggles curados.
  */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ChevronDown, Cpu, Lock, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
@@ -14,7 +14,7 @@ import { api } from "@/lib/api";
 import { inventory } from "@/lib/inventoryApi";
 import {
   uiModeFromConfig,
-  uiModePreset,
+  uiModePresetForPlan,
   type UiMode,
 } from "@/lib/tier-presets";
 import {
@@ -23,6 +23,14 @@ import {
   FEATURED_MODEL_SLUGS,
 } from "@/lib/featured-models";
 import { modelCommercialName } from "@/components/agents/ModelCatalogPicker";
+import {
+  fetchPlan,
+  isGratisPlan,
+  openUpgrade,
+  planUnlocksCatalogModels,
+  planUnlocksMax,
+} from "@/lib/plans";
+import { isRelayFreeModel, RELAY_25_FAST_LABEL } from "@/lib/relay-free-model";
 
 export function ConfigModelsSection({
   config,
@@ -37,6 +45,20 @@ export function ConfigModelsSection({
   const cu = t.configUser;
   const [tierBusy, setTierBusy] = useState(false);
   const [byokOpen, setByokOpen] = useState(false);
+  const [plan, setPlan] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetchPlan().then((p) => {
+      if (!cancelled && p) setPlan(p);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const gratis = isGratisPlan(plan);
+  const catalogUnlocked = plan == null || planUnlocksCatalogModels(plan);
 
   const model = String(config.model ?? "");
   const reasoning = String(
@@ -61,10 +83,22 @@ export function ConfigModelsSection({
       : DEFAULT_FEATURED_ENABLED,
   );
 
+  const modeLocked = (mode: UiMode) =>
+    !!plan && mode === "max" && !planUnlocksMax(plan);
+
+  const modelSlugLocked = (slug: string) =>
+    !!plan && !catalogUnlocked && !isRelayFreeModel(slug);
+
+  const relayLabel = gratis ? RELAY_25_FAST_LABEL : "Relay";
+
   const applyMode = async (mode: UiMode) => {
     if (tierBusy || activeMode === mode) return;
+    if (modeLocked(mode)) {
+      openUpgrade("plus");
+      return;
+    }
     setTierBusy(true);
-    const preset = uiModePreset(mode);
+    const preset = uiModePresetForPlan(mode, plan);
     try {
       await api.setModelAssignment({
         confirm_expensive_model: true,
@@ -97,6 +131,10 @@ export function ConfigModelsSection({
   };
 
   const persistFeatured = async (slug: string, on: boolean) => {
+    if (modelSlugLocked(slug)) {
+      openUpgrade("essencial");
+      return;
+    }
     const nextSet = new Set(enabledFeatured);
     if (on) nextSet.add(slug);
     else nextSet.delete(slug);
@@ -116,6 +154,10 @@ export function ConfigModelsSection({
   };
 
   const persistExplore = async (value: string) => {
+    if (value && modelSlugLocked(value)) {
+      openUpgrade("essencial");
+      return;
+    }
     const del =
       config.delegation && typeof config.delegation === "object"
         ? { ...(config.delegation as Record<string, unknown>) }
@@ -141,6 +183,19 @@ export function ConfigModelsSection({
         </CardHeader>
         <CardContent className="flex flex-col gap-3 px-5 pb-5">
           <span className="text-xs text-text-secondary">{cu.modelsDefaultHint}</span>
+          {gratis && (
+            <p className="text-xs text-muted-foreground">
+              Plano Grátis: só {RELAY_25_FAST_LABEL} incluído.{" "}
+              <button
+                type="button"
+                className="font-medium text-live hover:underline"
+                onClick={() => openUpgrade("essencial")}
+              >
+                Assinar Essencial
+              </button>{" "}
+              para o catálogo completo.
+            </p>
+          )}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <button
               type="button"
@@ -154,7 +209,7 @@ export function ConfigModelsSection({
                   : "border-border hover:border-foreground/30",
               )}
             >
-              <span className="text-sm font-semibold">Relay</span>
+              <span className="text-sm font-semibold">{relayLabel}</span>
               <span className="text-xs text-text-secondary">{cu.relaySubtitle}</span>
             </button>
             <button
@@ -167,11 +222,12 @@ export function ConfigModelsSection({
                 activeMode === "max"
                   ? "border-live bg-live/5 ring-1 ring-live/40"
                   : "border-border hover:border-foreground/30",
+                modeLocked("max") && "opacity-80",
               )}
             >
               <span className="flex items-center gap-1.5 text-sm font-semibold">
                 MAX
-                {activeMode !== "max" && (
+                {modeLocked("max") && (
                   <Lock className="h-3 w-3 text-muted-foreground" aria-hidden />
                 )}
               </span>
@@ -200,11 +256,15 @@ export function ConfigModelsSection({
             onChange={(e) => void persistExplore(e.target.value)}
           >
             <option value="">{cu.exploreSubagentAuto}</option>
-            {EXPLORE_SUBAGENT_SLUGS.map((slug) => (
-              <option key={slug} value={slug}>
-                {modelCommercialName(slug)}
-              </option>
-            ))}
+            {EXPLORE_SUBAGENT_SLUGS.map((slug) => {
+              const locked = modelSlugLocked(slug);
+              return (
+                <option key={slug} value={slug} disabled={locked}>
+                  {modelCommercialName(slug)}
+                  {locked ? " · Essencial+" : ""}
+                </option>
+              );
+            })}
           </select>
         </CardContent>
       </Card>
@@ -222,15 +282,22 @@ export function ConfigModelsSection({
         <CardContent className="flex flex-col gap-3 px-5 pb-5">
           <span className="text-xs text-text-secondary">{cu.featuredModelsHint}</span>
           <ul className="divide-y divide-border rounded-lg border border-border">
-            {FEATURED_MODEL_SLUGS.map((slug) => (
-              <li key={slug} className="flex items-center justify-between gap-3 px-4 py-3">
-                <span className="text-sm">{modelCommercialName(slug)}</span>
-                <Switch
-                  checked={enabledFeatured.has(slug)}
-                  onCheckedChange={(v) => void persistFeatured(slug, v)}
-                />
-              </li>
-            ))}
+            {FEATURED_MODEL_SLUGS.map((slug) => {
+              const locked = modelSlugLocked(slug);
+              return (
+                <li key={slug} className="flex items-center justify-between gap-3 px-4 py-3">
+                  <span className="flex items-center gap-1.5 text-sm">
+                    {modelCommercialName(slug)}
+                    {locked && <Lock className="h-3 w-3 text-muted-foreground" aria-hidden />}
+                  </span>
+                  <Switch
+                    checked={enabledFeatured.has(slug)}
+                    disabled={locked}
+                    onCheckedChange={(v) => void persistFeatured(slug, v)}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </CardContent>
       </Card>

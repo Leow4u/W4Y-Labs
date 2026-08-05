@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { setDevSession } from "@/lib/dev-auth";
 import { isEmailAllowed } from "@/lib/allowlist";
 import { requestProvision, slugFor } from "@/lib/provisioner";
-import { FREE_TRIAL_USD } from "@/lib/billing";
+import { FREE_ALLOWANCE_USD } from "@/lib/billing";
 import { verifyTurnstile } from "@/lib/turnstile";
 
 export const dynamic = "force-dynamic";
@@ -112,7 +112,7 @@ async function autoProvision(email: string): Promise<string | null> {
     const database = db();
     const slug = slugFor(email);
     const tenantId = `t-${slug}`;
-    const trialCredits = FREE_TRIAL_USD; // trial de entrada gratuito (Free)
+    const trialCredits = FREE_ALLOWANCE_USD; // allowance Relay 2.5 Fast (Free)
     await database.execute(sql`INSERT INTO users (email, tenant_id, role) VALUES (${email}, ${tenantId}, 'admin') ON CONFLICT (email) DO NOTHING`);
     await database.execute(sql`
       INSERT INTO instances (tenant_id, name, url, fly_app, status, notes)

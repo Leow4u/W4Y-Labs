@@ -3,13 +3,13 @@
  * Mirrors wayne-agent/web/src/lib/plans.ts for the Electron shell (bridge is
  * `/api/*` only; portal/checkout open as external work4you.ai pages).
  */
-export type PlanKey = 'hobby' | 'pro' | 'business' | 'trial'
+export type PlanKey = 'gratis' | 'essencial' | 'plus' | 'max'
 
 export const PLAN_LABEL: Record<PlanKey, string> = {
-  hobby: 'Hobby',
-  pro: 'Pro',
-  business: 'Business',
-  trial: 'Trial'
+  gratis: 'Grátis',
+  essencial: 'Essencial',
+  plus: 'Plus',
+  max: 'Max'
 }
 
 export interface OndemandState {
@@ -31,27 +31,38 @@ export interface AccountPlan {
   status: string
 }
 
-export interface AccountUsageMeter {
-  configured: boolean
-  depleted: boolean
-  usedPercent: number | null
-}
-
 const PLANS_ORIGIN = 'https://work4you.ai'
 export const PLANS_URL = `${PLANS_ORIGIN}/planos`
 export const BILLING_PORTAL_URL = `${PLANS_ORIGIN}/planos/portal`
 
-/** Platform plan key (free/starter/pro/max/…) → UI PlanKey. Unknown → hobby. */
+/** Platform plan key (free/starter/pro/max/…) → UI PlanKey. Unknown → gratis. */
 export function normalizePlan(raw: string | null | undefined): PlanKey {
   const p = (raw || '').toLowerCase().trim()
-  if (p === 'pro') return 'pro'
-  if (p === 'max' || p === 'business') return 'business'
-  if (p === 'trial') return 'trial'
-  return 'hobby'
+  if (p === 'starter' || p === 'essencial') return 'essencial'
+  if (p === 'pro' || p === 'plus') return 'plus'
+  if (p === 'max' || p === 'business') return 'max'
+  if (p === 'free' || p === 'gratis') return 'gratis'
+  return 'gratis'
 }
 
 export function planLabel(raw: string | null | undefined): string {
   return PLAN_LABEL[normalizePlan(raw)]
+}
+
+/** True when the tenant is on the subsidized Free tier (Relay 2.5 Fast only). */
+export function isGratisPlan(raw: string | null | undefined): boolean {
+  return normalizePlan(raw) === 'gratis'
+}
+
+/** Full catalog unlocks on Essencial and above. */
+export function planUnlocksCatalogModels(raw: string | null | undefined): boolean {
+  return !isGratisPlan(raw)
+}
+
+/** MAX mode requires Plus or Max. */
+export function planUnlocksMax(raw: string | null | undefined): boolean {
+  const k = normalizePlan(raw)
+  return k === 'plus' || k === 'max'
 }
 
 export function openPlans(query?: string): void {
@@ -60,7 +71,15 @@ export function openPlans(query?: string): void {
 }
 
 export function openUpgrade(planHint?: PlanKey): void {
-  openPlans(planHint ? `plan=${planHint}` : undefined)
+  const platformKey =
+    planHint === 'essencial'
+      ? 'starter'
+      : planHint === 'plus'
+        ? 'pro'
+        : planHint === 'max'
+          ? 'max'
+          : undefined
+  openPlans(platformKey ? `plan=${platformKey}` : undefined)
 }
 
 export function openBillingPortal(): void {
@@ -146,7 +165,6 @@ export async function saveSpendLimit(opts: {
     throw new Error(err)
   }
 
-  // Prefer fresh GET so Conta stays in sync with plan + meter fields.
   return (await fetchAccountPlan()) ?? null
 }
 
@@ -168,4 +186,10 @@ export async function fetchAccountUsageMeter(
   } catch {
     return { configured: false, depleted: false, usedPercent: null }
   }
+}
+
+export interface AccountUsageMeter {
+  configured: boolean
+  depleted: boolean
+  usedPercent: number | null
 }

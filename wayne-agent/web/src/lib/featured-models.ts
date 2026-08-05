@@ -14,7 +14,8 @@ export const FEATURED_MODEL_SLUGS = [
   "mistralai/mistral-large",
   "x-ai/grok-3",
   "qwen/qwen3-coder",
-  "nvidia/nemotron-3-ultra-550b-a55b:free",
+  "qwen/qwen3.7-flash",
+  "openai/gpt-oss-20b",
 ] as const;
 
 /** Subagent / explore delegation dropdown (Cursor parity). Empty = inherit. */

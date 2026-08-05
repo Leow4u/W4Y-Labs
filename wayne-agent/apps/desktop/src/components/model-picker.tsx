@@ -12,6 +12,8 @@ import {
   prepareW4yPickerProviders,
   W4Y_CATALOG_PROVIDER
 } from '@/lib/w4y-featured-models'
+import { fetchAccountPlan, isGratisPlan, openUpgrade } from '@/lib/plans'
+import { isRelayFreeModel } from '@/lib/relay-free-model'
 import { $visibleModels, effectiveVisibleKeys, filterActiveModels } from '@/store/model-visibility'
 import type { ModelOptionProvider, ModelPricing } from '@/types/hermes'
 
@@ -67,6 +69,15 @@ export function ModelPickerDialog({
     queryFn: () => requestModelOptions({ gateway: gw, sessionId }),
     enabled: open
   })
+
+  const accountPlan = useQuery({
+    queryKey: ['account-plan'],
+    queryFn: () => fetchAccountPlan(),
+    enabled: open,
+    staleTime: 60_000
+  })
+
+  const gratisGating = isGratisPlan(accountPlan.data?.plan)
 
   const pickerProviders = useMemo(
     () => prepareW4yPickerProviders(modelOptions.data?.providers).filter(p => (p.models ?? []).length > 0),
@@ -126,6 +137,7 @@ export function ModelPickerDialog({
               currentModel={optionsModel || currentModel}
               currentProvider={optionsProvider || currentProvider}
               error={error}
+              gratisGating={gratisGating}
               loading={loading}
               onSelectModel={selectModel}
               providers={pickerProviders}
@@ -156,7 +168,8 @@ function ModelResults({
   currentProvider,
   onSelectModel,
   search,
-  visible
+  visible,
+  gratisGating
 }: {
   loading: boolean
   error: string | null
@@ -166,6 +179,7 @@ function ModelResults({
   onSelectModel: (provider: ModelOptionProvider, model: string) => void
   search: string
   visible: Set<string>
+  gratisGating: boolean
 }) {
   const { t } = useI18n()
   const copy = t.modelPicker
@@ -225,7 +239,8 @@ function ModelResults({
             {models.map(model => {
               const isCurrent = model === currentModel && provider.slug === currentProvider
               const price = provider.pricing?.[model]
-              const locked = unavailable.has(model)
+              const planLocked = gratisGating && !isRelayFreeModel(model)
+              const locked = unavailable.has(model) || planLocked
               const label = modelLabel(model)
 
               return (
@@ -239,6 +254,10 @@ function ModelResults({
                   disabled={locked}
                   key={`${provider.slug}:${model}`}
                   onSelect={() => {
+                    if (planLocked) {
+                      openUpgrade('essencial')
+                      return
+                    }
                     if (!locked) {
                       onSelectModel(provider, model)
                     }
@@ -246,16 +265,21 @@ function ModelResults({
                   value={`${provider.slug}:${model}`}
                 >
                   <span className="min-w-0 flex-1 truncate">{label}</span>
-                  {locked && (
+                  {planLocked && (
+                    <span className="shrink-0 text-[0.62rem] uppercase tracking-wide opacity-80">
+                      {copy.upgrade ?? 'Upgrade'}
+                    </span>
+                  )}
+                  {!planLocked && locked && (
                     <span className="shrink-0 text-[0.62rem] uppercase tracking-wide opacity-80">{copy.pro}</span>
                   )}
                   <ModelPrice isCurrent={isCurrent} price={price} />
                 </CommandItem>
               )
             })}
-            {unavailable.size > 0 && (
+            {(unavailable.size > 0 || gratisGating) && (
               <div className="px-6 pb-2 pt-1 text-[0.62rem] leading-relaxed text-muted-foreground">
-                {copy.proNeedsSubscription}
+                {gratisGating ? copy.planGatedHint : copy.proNeedsSubscription}
               </div>
             )}
           </CommandGroup>

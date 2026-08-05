@@ -19,12 +19,13 @@ import { api } from "@/lib/api";
 import { inventory } from "@/lib/inventoryApi";
 import { useI18n } from "@/i18n";
 import { useMenuDismiss } from "@/hooks/useMenuDismiss";
-import { fetchPlan, openUpgrade, planUnlocksMax } from "@/lib/plans";
+import { fetchPlan, isGratisPlan, openUpgrade, planUnlocksMax } from "@/lib/plans";
+import { RELAY_25_FAST_LABEL } from "@/lib/relay-free-model";
 import {
   UI_MODE_LABEL,
   UI_MODE_ORDER,
   uiModeFromConfig,
-  uiModePreset,
+  uiModePresetForPlan,
   type UiMode,
 } from "@/lib/tier-presets";
 
@@ -94,10 +95,10 @@ export function RelayPicker({
       if (next === mode) return;
       // Mode locked by the plan → send to upgrade instead of applying (D7).
       if (modeLocked(plan, next)) {
-        openUpgrade("pro");
+        openUpgrade("plus");
         return;
       }
-      const preset = uiModePreset(next);
+      const preset = uiModePresetForPlan(next, plan);
       const prev = mode;
       setMode(next); // optimistic
       setSaving(true);
@@ -137,6 +138,9 @@ export function RelayPicker({
 
   const subtitle = (m: UiMode) => (m === "max" ? cu.maxSubtitle : cu.relaySubtitle);
 
+  const modeLabel = (m: UiMode) =>
+    m === "relay" && isGratisPlan(plan) ? RELAY_25_FAST_LABEL : UI_MODE_LABEL[m];
+
   return (
     <div className="relative">
       <button
@@ -146,7 +150,7 @@ export function RelayPicker({
         aria-expanded={open}
         className="flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
       >
-        {UI_MODE_LABEL[mode]}
+        {modeLabel(mode)}
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
@@ -178,7 +182,7 @@ export function RelayPicker({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-                      {UI_MODE_LABEL[m]}
+                      {modeLabel(m)}
                       {locked && <Lock className="h-3 w-3 text-muted-foreground" aria-hidden />}
                     </span>
                     <span className="block truncate text-xs text-muted-foreground">

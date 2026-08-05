@@ -124,7 +124,7 @@ export function AccountSettings() {
         ? a.includedUsageUnavailable
         : '…'
   const canManage = Boolean(accountPlan?.hasCustomer)
-  const showUpgrade = !accountPlan || normalizePlan(accountPlan.plan) !== 'business'
+  const showUpgrade = !accountPlan || normalizePlan(accountPlan.plan) !== 'max'
   const canOndemand = Boolean(
     accountPlan?.hasCustomer && accountPlan.ondemand.maxSpendLimitUsd > 0 && (status === 'active' || status === 'trialing')
   )

@@ -203,7 +203,7 @@ export const DOCS: DocPage[] = [
       <>
         <P>
           Cada plano inclui um <B>pool de uso</B> que reinicia a cada ciclo de cobrança.
-          Tarefas simples consomem menos; pesquisas longas ou modo Expert consomem mais.
+          Tarefas simples consomem menos; pesquisas longas ou modo MAX consomem mais.
           Quando o uso incluído acaba, o agente para e avisa — ou você ativa{" "}
           <B>on-demand</B> em Configurações → Conta, com um <B>limite de gasto</B> por
           ciclo. O overage é reportado no fim do ciclo e cobrado na próxima fatura.{" "}
@@ -213,25 +213,25 @@ export const DOCS: DocPage[] = [
         <UL
           items={[
             <>
-              <B>Grátis</B> — pra conhecer a plataforma. Sem cartão de crédito.
+              <B>Grátis</B> — Relay 2.5 Fast (modelo de casa). Sem cartão de crédito.
+              Resto do catálogo com cadeado até upgrade.
             </>,
             <>
-              <B>Starter (US$ 19/mês)</B> — uso incluído no plano, modos essenciais
-              (Flash e Auto) e sua instância pessoal na nuvem.
+              <B>Essencial (US$ 20/mês)</B> — US$ 20 de uso incluído por ciclo,
+              catálogo completo e sua instância pessoal na nuvem.
             </>,
             <>
-              <B>Pro (US$ 49/mês)</B> — mais uso incluído, modo <B>Expert</B> pra tarefas
-              difíceis e instância sempre ativa — agente 24/7 na nuvem.
+              <B>Plus (US$ 60/mês)</B> — US$ 70 de uso incluído, modo <B>MAX</B> pra
+              tarefas difíceis e instância sempre ativa — agente 24/7 na nuvem.
             </>,
             <>
-              <B>Max (US$ 99/mês)</B> — pool incluído ampliado, teto de on-demand mais
-              alto e limites maiores pra operações pesadas.
+              <B>Max (US$ 200/mês)</B> — US$ 400 de uso incluído, teto de on-demand
+              mais alto e limites maiores pra operações pesadas.
             </>,
           ]}
         />
         <P>
-          Planos pagos começam com <B>7 dias grátis</B>, e a cobrança anual dá 2 meses
-          de desconto. Detalhes e assinatura em{" "}
+          A cobrança anual dá 2 meses de desconto. Detalhes e assinatura em{" "}
           <DocLink href="/precos">work4you.ai/precos</DocLink>.
         </P>
         <H2>On-demand e limite de gasto</H2>
@@ -245,16 +245,14 @@ export const DOCS: DocPage[] = [
         <UL
           items={[
             <>
-              <B>Flash</B> — respostas rápidas, custo mínimo. Ideal pra tarefas do
-              dia a dia.
+              <B>Relay 2.5 Fast</B> — modelo de casa no plano Grátis. Rápido e
+              económico.
             </>,
             <>
-              <B>Auto</B> — o padrão inteligente: direciona cada tarefa pro melhor
-              modelo, equilibrando qualidade e custo.
+              <B>Relay</B> — roteador inteligente nos planos pagos (Essencial+).
             </>,
             <>
-              <B>Expert</B> — os modelos mais fortes, pra problemas difíceis (nos
-              planos Pro e Max).
+              <B>MAX</B> — modelos mais fortes, pra problemas difíceis (Plus e Max).
             </>,
           ]}
         />
