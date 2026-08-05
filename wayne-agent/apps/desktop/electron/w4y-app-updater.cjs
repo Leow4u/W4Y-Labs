@@ -362,7 +362,14 @@ async function apply(emitProgress, opts = {}) {
     try {
       await w4yWayne.applyEngineUpdate(engineRoot, wayneHome, {
         remote: motorRemote,
-        onProgress: (msg, pct) => emit('fetch', msg, pct)
+        onProgress: (msg, pct) => {
+          let stage = 'fetch'
+          if (pct === null) {
+            if (/uv sync|dependências Python/i.test(msg)) stage = 'pydeps'
+            else if (/Extraindo|Aplicando ficheiros|extraí/i.test(msg)) stage = 'update'
+          }
+          emit(stage, msg, pct)
+        }
       })
     } catch (err) {
       const message = err && err.message ? err.message : String(err)
