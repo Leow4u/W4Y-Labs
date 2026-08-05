@@ -199,7 +199,7 @@ export function AccountSettings() {
                   </span>
                 ) : null}
                 {showUpgrade ? (
-                  <Button onClick={() => openUpgrade('pro')} size="sm" type="button" variant="secondary">
+                  <Button onClick={() => openUpgrade('plus')} size="sm" type="button" variant="secondary">
                     {a.upgrade}
                   </Button>
                 ) : null}

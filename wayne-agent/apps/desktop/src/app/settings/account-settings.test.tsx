@@ -88,7 +88,7 @@ describe('AccountSettings wired', () => {
     expect(screen.getByText('Off')).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'Upgrade' }))
-    expect(openUpgrade).toHaveBeenCalledWith('pro')
+    expect(openUpgrade).toHaveBeenCalledWith('plus')
 
     fireEvent.click(screen.getByRole('button', { name: 'Manage subscription' }))
     expect(openBillingPortal).toHaveBeenCalled()
