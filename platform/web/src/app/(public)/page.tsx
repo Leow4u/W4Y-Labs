@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import HeroDemo from "@/components/HeroDemo";
+import HeroInstallCtas from "@/components/HeroInstallCtas";
 import HomeInstallPanel from "@/components/HomeInstallPanel";
 import DelegationInput from "@/components/DelegationInput";
 import {
@@ -62,10 +63,9 @@ const ARTIFACTS = [
 const CONTENT = {
   pt: {
     hero: {
-      title: "Agente de IA que executa de verdade.",
-      sub: "Terminal, código, WhatsApp e nuvem — Skills, Conectores e o modelo que você escolher.",
-      ctaBuild: "Abrir no navegador",
-      ctaHow: "Ver como funciona →",
+      title: "Agente de IA que cresce com você.",
+      ctaDownload: "Download para Windows",
+      ctaTerminal: "Instalar via terminal",
     },
     explainer: {
       heading: "Fala onde você fala. Usa o que você usa. Entrega pronto.",
@@ -190,10 +190,9 @@ const CONTENT = {
   },
   en: {
     hero: {
-      title: "The AI agent that actually executes.",
-      sub: "Terminal, code, WhatsApp, and the cloud — Skills, Connectors, and whichever model you pick.",
-      ctaBuild: "Open in browser",
-      ctaHow: "See how it works →",
+      title: "An AI agent that grows with you.",
+      ctaDownload: "Download for Windows",
+      ctaTerminal: "Install via terminal",
     },
     explainer: {
       heading: "Talks where you talk. Uses what you use. Delivers finished work.",
@@ -327,24 +326,13 @@ export default async function LandingPage() {
       {/* ── S1 · Hero: quiet two-tone statement, product as the star ── */}
       <section className="px-6 pb-20 pt-20 md:pt-28">
         <div className="mx-auto max-w-6xl">
-          <h1 className="max-w-3xl text-3xl font-bold leading-[1.18] tracking-[-0.02em] md:text-[2.6rem]">
-            <span className="text-ink">{t.hero.title}</span>{" "}
-            <span className="font-semibold text-ink-faint">{t.hero.sub}</span>
+          <h1 className="max-w-3xl text-3xl font-bold leading-[1.18] tracking-[-0.02em] text-ink md:text-[2.6rem]">
+            {t.hero.title}
           </h1>
-          <div className="mt-8 flex flex-wrap items-center gap-5">
-            <Link
-              href={BROWSER_ENTER}
-              className="rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
-            >
-              {t.hero.ctaBuild}
-            </Link>
-            <Link
-              href="/plataforma"
-              className="text-[15px] font-semibold text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
-            >
-              {t.hero.ctaHow}
-            </Link>
-          </div>
+          <HeroInstallCtas
+            downloadLabel={t.hero.ctaDownload}
+            terminalLabel={t.hero.ctaTerminal}
+          />
         </div>
 
         {/* the product, floating over the landscape (Unsplash, free license) */}
