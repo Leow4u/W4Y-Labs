@@ -7,14 +7,12 @@ import Link from "next/link";
 // e o CTA. Fecha ao navegar.
 export default function MobileNav({
   items,
-  authenticated,
+  openHref,
   ctaOpen = "Abrir o Work4You",
-  ctaSignIn = "Conecte-se",
 }: {
   items: { href: string; label: string }[];
-  authenticated: boolean;
+  openHref: string;
   ctaOpen?: string;
-  ctaSignIn?: string;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -44,11 +42,11 @@ export default function MobileNav({
             ))}
           </nav>
           <Link
-            href={authenticated ? "/abrir" : "/login"}
+            href={openHref}
             onClick={() => setOpen(false)}
             className="mt-5 block rounded-full bg-mata px-5 py-3 text-center text-sm font-semibold text-paper"
           >
-            {authenticated ? ctaOpen : ctaSignIn}
+            {ctaOpen}
           </Link>
         </div>
       )}

@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import HeroDemo from "@/components/HeroDemo";
+import HomeInstallPanel from "@/components/HomeInstallPanel";
 import DelegationInput from "@/components/DelegationInput";
 import {
   AutomationsTableMock,
@@ -8,6 +9,7 @@ import {
   WhatsAppAgentMock,
 } from "@/components/ProductMocks";
 import { getSiteLocale } from "@/lib/site-locale";
+import { BROWSER_ENTER } from "@/lib/product-download";
 
 // Work4You landing — new architecture, benchmark-informed:
 // centered display hero with the LIVE product window bleeding into the fold,
@@ -62,7 +64,7 @@ const CONTENT = {
     hero: {
       title: "Agente de IA que executa de verdade.",
       sub: "Terminal, código, WhatsApp e nuvem — Skills, Conectores e o modelo que você escolher.",
-      ctaBuild: "Começar agora",
+      ctaBuild: "Abrir no navegador",
       ctaHow: "Ver como funciona →",
     },
     explainer: {
@@ -140,7 +142,7 @@ const CONTENT = {
       desktop: {
         title: "Desktop",
         copy: "Do dia a dia às pastas e ao código — direto no seu computador.",
-        cta: "Baixar →",
+        cta: "Download →",
         prompt: "adiciona o filtro de junho na planilha",
         reading: "Lendo",
         file: "vendas.xlsx",
@@ -190,7 +192,7 @@ const CONTENT = {
     hero: {
       title: "The AI agent that actually executes.",
       sub: "Terminal, code, WhatsApp, and the cloud — Skills, Connectors, and whichever model you pick.",
-      ctaBuild: "Get started",
+      ctaBuild: "Open in browser",
       ctaHow: "See how it works →",
     },
     explainer: {
@@ -331,7 +333,7 @@ export default async function LandingPage() {
           </h1>
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <Link
-              href="/login"
+              href={BROWSER_ENTER}
               className="rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
             >
               {t.hero.ctaBuild}
@@ -607,7 +609,7 @@ export default async function LandingPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
                 {t.platforms.desktop.copy}
               </p>
-              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+              <Link href="#install" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.desktop.cta}
               </Link>
               <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-white">
@@ -639,7 +641,7 @@ export default async function LandingPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
                 {t.platforms.cli.copy}
               </p>
-              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+              <Link href="#install-terminal" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.cli.cta}
               </Link>
               <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-ink/60 bg-[#1b1d19]">
@@ -697,7 +699,7 @@ export default async function LandingPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
                 {t.platforms.web.copy}
               </p>
-              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+              <Link href={BROWSER_ENTER} className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.web.cta}
               </Link>
               <div className="mx-auto mt-5 w-[82%] flex-1 overflow-hidden rounded-t-[1.6rem] border-4 border-b-0 border-ink bg-white">
@@ -731,6 +733,8 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      <HomeInstallPanel locale={locale} />
 
       {/* ── S8 · Trust hairlines ────────────────────────────────────── */}
       <section className="px-6 pb-8 pt-4">

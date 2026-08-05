@@ -4,6 +4,7 @@ import { getDevSession } from "@/lib/dev-auth";
 import MobileNav from "@/components/MobileNav";
 import ResourcesMenu from "@/components/ResourcesMenu";
 import type { SiteLocale } from "@/lib/site-locale";
+import { BROWSER_ENTER, BROWSER_ENTER_AUTHED } from "@/lib/product-download";
 
 // Public header — light ground, generous spacing. "Recursos" is a real
 // dropdown (ResourcesMenu); mobile gets the flattened list. The PT|EN chip
@@ -12,12 +13,10 @@ const NAV = {
   pt: [
     { href: "/plataforma", label: "Plataforma" },
     { href: "/precos", label: "Preços" },
-    { href: "/baixar", label: "Baixar" },
   ],
   en: [
     { href: "/plataforma", label: "Platform" },
     { href: "/precos", label: "Pricing" },
-    { href: "/baixar", label: "Download" },
   ],
 } as const;
 
@@ -41,8 +40,8 @@ const RESOURCES = {
 } as const;
 
 const LABELS = {
-  pt: { resources: "Recursos", open: "Abrir o Work4You", signIn: "Conecte-se" },
-  en: { resources: "Resources", open: "Open Work4You", signIn: "Sign in" },
+  pt: { resources: "Recursos", open: "Abrir o Work4You" },
+  en: { resources: "Resources", open: "Open Work4You" },
 } as const;
 
 export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
@@ -84,27 +83,17 @@ export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
 
         <div className="flex items-center gap-3">
           <div className="hidden md:block">
-            {session ? (
-              <Link
-                href="/abrir"
-                className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
-              >
-                {t.open}
-              </Link>
-            ) : (
-              <Link
-                href="/login"
-                className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
-              >
-                {t.signIn}
-              </Link>
-            )}
+            <Link
+              href={session ? BROWSER_ENTER_AUTHED : BROWSER_ENTER}
+              className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
+            >
+              {t.open}
+            </Link>
           </div>
           <MobileNav
             items={[...nav, ...resources]}
-            authenticated={!!session}
+            openHref={session ? BROWSER_ENTER_AUTHED : BROWSER_ENTER}
             ctaOpen={t.open}
-            ctaSignIn={t.signIn}
           />
         </div>
       </div>
