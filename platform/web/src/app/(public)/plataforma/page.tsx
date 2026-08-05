@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
+  ArtifactsMock,
   AutomationsTableMock,
   ChannelsGridMock,
   PersonalizeConnectorsMock,
@@ -112,8 +113,8 @@ const CONTENT = {
       { title: "Acesso por equipe", copy: "Cada pessoa vê o que deve ver." },
     ],
     cta: {
-      h2: "Construa o seu. Leva minutos.",
-      button: "Construir meu agente",
+      h2: "Entre. Personalize. Trabalhe.",
+      button: "Começar agora",
     },
   },
   en: {
@@ -203,8 +204,8 @@ const CONTENT = {
       { title: "Team access", copy: "Each person sees only what they should." },
     ],
     cta: {
-      h2: "Build yours. It takes minutes.",
-      button: "Build my agent",
+      h2: "Sign in. Customize. Work.",
+      button: "Get started",
     },
   },
 };
@@ -426,9 +427,10 @@ export default async function PlataformaPage() {
 
       {/* ── Canais + Conectores ─────────────────────────────────────── */}
       <section className="border-t border-line bg-paper-deep px-6 py-20">
-        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
+        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-3">
           <ChannelsGridMock locale={locale} />
           <PersonalizeConnectorsMock locale={locale} />
+          <ArtifactsMock locale={locale} />
         </div>
       </section>
 

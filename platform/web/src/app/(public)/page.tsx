@@ -12,8 +12,8 @@ import { getSiteLocale } from "@/lib/site-locale";
 // Work4You landing — new architecture, benchmark-informed:
 // centered display hero with the LIVE product window bleeding into the fold,
 // alternating text-rail × product-frame sections, one dark statement canvas,
-// editorial meta-cards, the 24/7 forest section, final CTA.
-// Narrative order from the site brief: build → talk & execute → run 24/7.
+// editorial meta-cards, cloud automations section, final CTA.
+// Narrative order from the site brief: personalize → talk & execute → cloud runtime.
 // All visible copy is bilingual (pt/en) via the site-locale cookie.
 
 // Real brand logos (Simple Icons, /brand/apps). Brazil-first ordering.
@@ -60,10 +60,9 @@ const ARTIFACTS = [
 const CONTENT = {
   pt: {
     hero: {
-      title: "Construa o seu agente de IA.",
-      sub1: "Coloque ele pra rodar",
-      sub2: " — conversa, executa e continua depois que você sai.",
-      ctaBuild: "Construir meu agente",
+      title: "Agente de IA que executa de verdade.",
+      sub: "Terminal, código, WhatsApp e nuvem — Skills, Conectores e o modelo que você escolher.",
+      ctaBuild: "Começar agora",
       ctaHow: "Ver como funciona →",
     },
     explainer: {
@@ -90,15 +89,15 @@ const CONTENT = {
     },
     statement: {
       t1: "Chat responde.",
-      tu: "O seu agente executa",
-      t2: "— e continua depois que você sai.",
-      p: "Aqui você não usa um “agente pronto” de prateleira. Você personaliza o seu — foco, estilo, Skills, conectores e modelo — e deixa ele ligado.",
+      tu: "Work executa",
+      t2: "— ficheiros, terminal e automações na nuvem.",
+      p: "Um agente Default, no espírito do Cursor. Personalize Skills e Conectores; use no desktop, browser ou WhatsApp.",
     },
     build: {
       label: "01 · Personalize",
-      title: "Do zero ao seu agente",
-      titleFaint: "em minutos, não semanas.",
-      p: "Diga o foco e o estilo. Ative as Skills que ele usa, ligue as suas contas nos conectores e escolha o modelo — tudo na tela Personalizar.",
+      title: "Amplie com Personalizar",
+      titleFaint: "Skills, Conectores e MCPs.",
+      p: "Ligue as suas contas, instale Skills e escolha o modelo — sem montar outro agente do zero.",
       cta: "Ver como personalizar →",
       frame: "Personalizar",
     },
@@ -124,9 +123,9 @@ const CONTENT = {
       ],
     },
     always: {
-      label: "03 · Ligue o 24/7",
-      title: "Depois de construído, ele não depende do seu notebook.",
-      p: "Agenda, rotinas e trabalhos longos rodam na nuvem. Desktop e web são entradas — a nuvem é onde o seu agente fica ligado.",
+      label: "03 · Automações",
+      title: "Rotinas e runtime na nuvem.",
+      p: "Automações, gateway e trabalhos longos continuam com o agente ligado. Desktop e web são entradas — a nuvem mantém tudo a correr.",
       cta: "Conhecer a plataforma →",
       routines: [
         { when: "Toda manhã · 07h00", what: "Resumo dos e-mails e do que vence hoje" },
@@ -183,16 +182,15 @@ const CONTENT = {
       { title: "Acesso por equipe", copy: "Cada pessoa vê o que deve ver." },
     ],
     final: {
-      title: "Monte. Ligue. Ele continua.",
-      p: "Leva minutos — e o agente que você construiu começa a trabalhar.",
+      title: "Entre. Personalize. Trabalhe.",
+      p: "O mesmo agente no desktop, no browser e nos canais — com uso incluído e on-demand na Conta.",
     },
   },
   en: {
     hero: {
-      title: "Build your AI agent.",
-      sub1: "Put it to work",
-      sub2: " — it talks, executes, and keeps going after you leave.",
-      ctaBuild: "Build my agent",
+      title: "The AI agent that actually executes.",
+      sub: "Terminal, code, WhatsApp, and the cloud — Skills, Connectors, and whichever model you pick.",
+      ctaBuild: "Get started",
       ctaHow: "See how it works →",
     },
     explainer: {
@@ -219,15 +217,15 @@ const CONTENT = {
     },
     statement: {
       t1: "Chat answers.",
-      tu: "Your agent executes",
-      t2: "— and keeps going after you leave.",
-      p: "This isn't a prepackaged “agent” from a marketing page. You customize yours — focus, style, Skills, connectors, model — and leave it running.",
+      tu: "Work executes",
+      t2: "— files, terminal, and cloud automations.",
+      p: "One Default agent, Cursor-style. Customize Skills and Connectors; use it on desktop, browser, or WhatsApp.",
     },
     build: {
       label: "01 · Customize",
-      title: "From zero to your agent",
-      titleFaint: "in minutes, not weeks.",
-      p: "Set focus and style. Enable the Skills it uses, connect your accounts, pick the model — all on the Customize screen.",
+      title: "Extend with Customize",
+      titleFaint: "Skills, Connectors, and MCPs.",
+      p: "Connect your accounts, install Skills, pick the model — without building a separate agent from scratch.",
       cta: "See how to customize →",
       frame: "Customize",
     },
@@ -253,9 +251,9 @@ const CONTENT = {
       ],
     },
     always: {
-      label: "03 · Turn on 24/7",
-      title: "Once it's built, it doesn't depend on your laptop.",
-      p: "Agenda, routines, and long-running work run in the cloud. Desktop and web are entry points — the cloud is where your agent stays on.",
+      label: "03 · Automations",
+      title: "Routines and cloud runtime.",
+      p: "Automations, gateway, and long-running work keep going with the agent online. Desktop and web are entry points — the cloud keeps it running.",
       cta: "Explore the platform →",
       routines: [
         { when: "Every morning · 7:00 am", what: "Summary of emails and what's due today" },
@@ -312,8 +310,8 @@ const CONTENT = {
       { title: "Team access", copy: "Each person sees only what they should." },
     ],
     final: {
-      title: "Build it. Turn it on. It keeps going.",
-      p: "It takes minutes — and the agent you built gets to work.",
+      title: "Sign in. Customize. Work.",
+      p: "The same agent on desktop, browser, and channels — with included usage and on-demand in Account.",
     },
   },
 } as const;
@@ -329,11 +327,7 @@ export default async function LandingPage() {
         <div className="mx-auto max-w-6xl">
           <h1 className="max-w-3xl text-3xl font-bold leading-[1.18] tracking-[-0.02em] md:text-[2.6rem]">
             <span className="text-ink">{t.hero.title}</span>{" "}
-            <span className="font-semibold text-ink-faint">
-              {t.hero.sub1}{" "}
-              <span className="whitespace-nowrap text-mata">24/7</span>
-              {t.hero.sub2}
-            </span>
+            <span className="font-semibold text-ink-faint">{t.hero.sub}</span>
           </h1>
           <div className="mt-8 flex flex-wrap items-center gap-5">
             <Link
@@ -562,7 +556,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── S6 · 24/7 — the dark forest (real one) ──────────────────── */}
+      {/* ── S6 · Automações — the dark forest (real one) ─────────────── */}
       <section className="relative overflow-hidden bg-mata-deep px-6 py-24 text-paper">
         <Image
           src="/media/night-forest.jpg"

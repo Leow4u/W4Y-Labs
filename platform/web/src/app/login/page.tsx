@@ -77,11 +77,11 @@ export default async function LoginPage({
           <div className="absolute inset-0 bg-mata-deep/10" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-mata-deep/70 to-transparent px-8 pb-7 pt-20">
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/90">
-              Monte · Ligue · Ele continua
+              Entre · Personalize · Trabalhe
             </p>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-paper/75">
-              O agente que você construiu, trabalhando 24/7 — mesmo quando você
-              não está olhando.
+              Agente de IA que executa de verdade — terminal, canais e nuvem, com
+              o mesmo Work em todo o lado.
             </p>
           </div>
         </div>
