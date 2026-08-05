@@ -21,3 +21,4 @@ export {
   type ResolveGatewayWsUrlDeps,
   type WebSocketAuthParam
 } from './websocket-url'
+export { sanitizeProductCopy } from './product-copy'

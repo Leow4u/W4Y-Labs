@@ -18,6 +18,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { sanitizeProductCopy } from "@wayne/shared";
 import {
   AlertTriangle,
   AudioLines,
@@ -98,12 +99,6 @@ import { cn } from "@/lib/utils";
  * a user who clones or updates it there shadows the bundled catalog and this
  * is the only thing between that copy and the screen.
  */
-function sanitize(text: string): string {
-  return text
-    .replace(/\bWayne Agent\b/g, "Work4You")
-    .replace(/\bWayne\b/g, "Work4You");
-}
-
 /** Plugin icon slug → lucide glyph. Unknown slugs fall back to a medal. */
 const ICONS: Record<string, LucideIcon> = {
   antenna: Radio,
@@ -185,8 +180,8 @@ function AchievementCard({ item }: { item: AchievementItem }) {
   const earned = item.unlocked;
   const secret = item.state === "secret";
 
-  const name = secret ? tt.secretTitle : sanitize(item.name);
-  const description = secret ? tt.secretBody : sanitize(item.description);
+  const name = secret ? tt.secretTitle : sanitizeProductCopy(item.name);
+  const description = secret ? tt.secretBody : sanitizeProductCopy(item.description);
 
   const earnedLabel = (() => {
     if (!item.unlocked_at) return tt.earnedNoDate;
@@ -483,7 +478,7 @@ export default function AchievementsPage() {
                 groups.map(([category, bucket]) => (
                   <section className="mt-8" key={category}>
                     <h2 className="text-xs uppercase tracking-wider text-muted-foreground">
-                      {sanitize(category)}
+                      {sanitizeProductCopy(category)}
                     </h2>
                     <div className="mt-3 grid gap-3 sm:grid-cols-2">
                       {bucket.map((item) => (

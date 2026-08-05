@@ -1,0 +1,23 @@
+---
+description: User-visible copy must say Work4You, never Wayne/Hermes as product names.
+globs:
+  - wayne-agent/apps/desktop/src/i18n/**
+  - wayne-agent/web/src/i18n/**
+  - platform/web/src/app/(public)/**
+  - platform/web/src/app/planos/**
+  - docs/LINGUAGEM.md
+alwaysApply: true
+---
+
+# Work4You — copy visível ao utilizador
+
+Read `docs/LINGUAGEM.md` and `docs/PRODUTO.md` (Analogia).
+
+When writing **user-facing** text (UI, i18n, site, toasts, errors shown in chat):
+
+- Say **Work4You** — not Wayne, Wayne Agent, Motor Wayne, or Hermes as the product.
+- Engine/API text shown to users must pass through `sanitizeProductCopy()` from `@hermes/shared` / `@wayne/shared`.
+
+Internal paths (`wayne-agent/`, `WAYNE_HOME`, Fly `wayne-*`) are fine in code — never surface them as the product name.
+
+Before shipping i18n or public copy, run: `node scripts/check-user-facing-brand.mjs`

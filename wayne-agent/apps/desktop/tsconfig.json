@@ -21,5 +21,6 @@
     }
   },
   "include": ["src", "../shared/src"],
+  "exclude": ["../shared/src/**/*.test.ts"],
   "references": []
 }

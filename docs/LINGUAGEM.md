@@ -53,3 +53,25 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 - Reescrever o chat React do zero.  
 - Reabrir Agent Studio / agentes-por-profile.
 - Renomear APIs internas (`hermesDesktop`, IPC `hermes:*`).
+
+---
+
+## Copy visível ao utilizador (obrigatório)
+
+**Regra:** Wayne e Hermes **não** são marca de produto. O utilizador vê **Work4You** (ou *Work*, *agente*, *instância na nuvem*).
+
+| ❌ Nunca na UI / i18n / site público | ✅ Usar |
+|---|---|
+| Wayne Agent, Motor Wayne | Work4You |
+| Hermes Agent, “the Hermes assistant” | Work4You |
+| Wayne (como nome do produto) | Work4You |
+
+**Onde aplicar:** `apps/desktop/src/i18n`, `web/src/i18n`, `platform/web` páginas públicas, toasts/erros que mostram texto do motor.
+
+**Sanitizer:** texto cru do backend/plugin passa por `sanitizeProductCopy()` (`@hermes/shared` / `@wayne/shared`) na borda da UI — notificações, slash output, WhatsApp, achievements.
+
+**CI:** `node scripts/check-user-facing-brand.mjs` na raiz do repo.
+
+**Fora deste scope (legado técnico, OK):** paths `~/.wayne`, env `WAYNE_*`, repo `wayne-agent/`, apps Fly `wayne-*`, chaves i18n internas (`updateWayne`).
+
+**Agentes Cursor:** não escrever “Motor Wayne” ou “Wayne Agent” ao falar com o utilizador — dizer *runtime Work4You* ou *motor na nuvem*.

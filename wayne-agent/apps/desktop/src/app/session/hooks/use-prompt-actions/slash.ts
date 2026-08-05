@@ -1,3 +1,4 @@
+import { sanitizeProductCopy } from '@hermes/shared'
 import { type MutableRefObject, useCallback } from 'react'
 
 import { getProfiles } from '@/hermes'
@@ -103,8 +104,14 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           return null
         }
 
-        const render = (text: string) =>
-          appendSessionTextMessage(sessionId, 'system', ctx.recordInput ? slashStatusText(ctx.command, text) : text)
+        const render = (text: string) => {
+          const body = sanitizeProductCopy(text)
+          appendSessionTextMessage(
+            sessionId,
+            'system',
+            ctx.recordInput ? slashStatusText(ctx.command, body) : body
+          )
+        }
 
         return { render, sessionId }
       }

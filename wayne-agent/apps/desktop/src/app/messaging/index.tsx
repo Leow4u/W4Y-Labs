@@ -1,3 +1,4 @@
+import { sanitizeProductCopy } from '@hermes/shared'
 import { useStore } from '@nanostores/react'
 import type * as React from 'react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
@@ -1036,7 +1037,7 @@ function sanitizeWhatsAppMessage(message: null | string | undefined, m: Translat
     return m.whatsappUnpairedError
   }
 
-  return message.replace(/\bwayne\b/gi, 'Work4You').replace(/\bHermes\b/g, 'Work4You')
+  return sanitizeProductCopy(message)
 }
 
 function setupDocsFor(platform: MessagingPlatformInfo): { href: string; labelKey: 'openProductDocs' | 'openSetupGuide' } | null {

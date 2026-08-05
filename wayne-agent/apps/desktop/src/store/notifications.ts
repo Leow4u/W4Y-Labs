@@ -1,5 +1,7 @@
 import { atom } from 'nanostores'
 
+import { sanitizeProductCopy } from '@hermes/shared'
+
 import { translateNow } from '@/i18n'
 
 export type NotificationKind = 'error' | 'warning' | 'info' | 'success'
@@ -67,7 +69,7 @@ function defaultPlacement(kind: NotificationKind, action?: NotificationAction): 
 }
 
 function cleanErrorText(value: string) {
-  return value.replace(/^Error:\s*/, '').trim()
+  return sanitizeProductCopy(value.replace(/^Error:\s*/, '').trim())
 }
 
 const ERROR_SUMMARIES: { test: (msg: string) => boolean; summarize: (msg: string) => string }[] = [
@@ -138,9 +140,9 @@ export function notify(input: NotificationInput): string {
     id,
     kind,
     icon: input.icon,
-    title: input.title,
-    message: input.message,
-    detail: input.detail,
+    title: input.title ? sanitizeProductCopy(input.title) : undefined,
+    message: sanitizeProductCopy(input.message),
+    detail: input.detail ? sanitizeProductCopy(input.detail) : undefined,
     action: input.action,
     onDismiss: input.onDismiss,
     createdAt: Date.now(),
