@@ -217,16 +217,16 @@ export const DOCS: DocPage[] = [
               catalog locked until upgrade.
             </>,
             <>
-              <B>Essencial ($20/month)</B> — $20 included usage per cycle, full catalog,
-              and your personal cloud instance.
+              <B>Essencial ($20/month)</B> — full catalog, extended limits, and your
+              personal cloud instance.
             </>,
             <>
-              <B>Plus ($60/month)</B> — $70 included usage, <B>MAX</B> mode for hard
-              tasks, and an always-on instance — your agent stays on 24/7 in the cloud.
+              <B>Plus ($60/month)</B> — <B>MAX</B> mode, always-on 24/7 agent, and
+              generous limits.
             </>,
             <>
-              <B>Max ($200/month)</B> — $400 included usage, higher on-demand spend
-              ceiling, and higher limits for heavy operations.
+              <B>Max ($200/month)</B> — expanded limits and priority support for heavy
+              operations.
             </>,
           ]}
         />

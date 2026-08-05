@@ -217,16 +217,16 @@ export const DOCS: DocPage[] = [
               Resto do catálogo com cadeado até upgrade.
             </>,
             <>
-              <B>Essencial (US$ 20/mês)</B> — US$ 20 de uso incluído por ciclo,
-              catálogo completo e sua instância pessoal na nuvem.
+              <B>Essencial (US$ 20/mês)</B> — catálogo completo, limites estendidos e sua
+              instância pessoal na nuvem.
             </>,
             <>
-              <B>Plus (US$ 60/mês)</B> — US$ 70 de uso incluído, modo <B>MAX</B> pra
-              tarefas difíceis e instância sempre ativa — agente 24/7 na nuvem.
+              <B>Plus (US$ 60/mês)</B> — modo <B>MAX</B>, agente 24/7 na nuvem e limites
+              generosos.
             </>,
             <>
-              <B>Max (US$ 200/mês)</B> — US$ 400 de uso incluído, teto de on-demand
-              mais alto e limites maiores pra operações pesadas.
+              <B>Max (US$ 200/mês)</B> — limites ampliados e suporte prioritário pra
+              operações pesadas.
             </>,
           ]}
         />

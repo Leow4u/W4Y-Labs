@@ -3,13 +3,12 @@ import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = { title: "Preços — Work4You" };
 
-// Public pricing page (Cursor-inspired grammar): 4 plans, ladder features,
-// CTAs route to /login. No billing code here — checkout lives in the app.
+// Public pricing — Cursor grammar: price + feature ladder only. Pool/on-demand
+// mechanics live in-app (Conta → Plan & Usage), not on the marketing page.
 type Plan = {
   name: string;
   tagline: string;
   price: string;
-  usageNote: string;
   ladder?: string;
   features: string[];
   cta: string;
@@ -32,11 +31,10 @@ const CONTENT: Record<
 > = {
   pt: {
     h1: "Comece grátis. Cresça quando fizer sentido.",
-    sub: "Modelo Cursor: uso incluído por ciclo, on-demand opcional com limite de gasto. Sem trial — assine quando quiser.",
+    sub: "Sem cartão no Grátis. Cancele quando quiser.",
     mostPopular: "Mais popular",
     perMonth: "/mês",
-    footerNote:
-      "Cada plano pago inclui um pool de uso que reinicia a cada ciclo (Other Models). Depois disso, ative on-demand na Conta (com limite de gasto). O overage entra na próxima fatura — sem cobrança surpresa. Cobrança anual com desconto ao assinar; pagamento pela Stripe.",
+    footerNote: "Pagamento seguro pela Stripe. Cobrança anual com desconto ao assinar.",
     teamsTitle: "Precisa de mais? Times e empresas",
     teamsBody: "Várias pessoas, limites sob medida e SSO — fale com a gente: ",
     teamsEmail: "contato@work4you.ai",
@@ -45,11 +43,10 @@ const CONTENT: Record<
         name: "Grátis",
         tagline: "Relay 2.5 Fast — modelo de casa",
         price: "US$ 0",
-        usageNote: "Limites Grátis · sem cartão",
         features: [
           "Sem necessidade de cartão de crédito",
           "Relay 2.5 Fast — rápido e económico",
-          "Resto do catálogo com cadeado até upgrade",
+          "Limites de agente para começar",
           "Seu agente pessoal na nuvem",
           "Conectores e habilidades essenciais",
         ],
@@ -59,13 +56,12 @@ const CONTENT: Record<
         name: "Essencial",
         tagline: "Pro trabalho de todo dia",
         price: "US$ 20",
-        usageNote: "US$ 20 de uso incluído / ciclo",
         ladder: "Tudo do Grátis, mais:",
         features: [
-          "Catálogo completo de modelos (Other Models)",
-          "Pool incluído que reinicia a cada ciclo",
-          "On-demand opcional com limite de gasto",
+          "Catálogo completo de modelos",
+          "Limites de agente estendidos",
           "Rotinas e automações",
+          "MCPs, skills e conectores",
           "Suporte por e-mail",
         ],
         cta: "Assinar Essencial",
@@ -74,12 +70,11 @@ const CONTENT: Record<
         name: "Plus",
         tagline: "Pra quem quer o 24/7",
         price: "US$ 60",
-        usageNote: "US$ 70 de uso incluído · agente 24/7",
         ladder: "Tudo do Essencial, mais:",
         features: [
           "Modo MAX — modelos de ponta pra tarefas difíceis",
           "Agente sempre ativo — trabalhando 24/7",
-          "Mais pool incluído por ciclo",
+          "Limites generosos de agente",
           "Respostas com prioridade",
         ],
         cta: "Assinar Plus",
@@ -89,13 +84,12 @@ const CONTENT: Record<
         name: "Max",
         tagline: "Pra operações inteiras",
         price: "US$ 200",
-        usageNote: "US$ 400 de uso incluído / ciclo",
         ladder: "Tudo do Plus, mais:",
         features: [
-          "Pool incluído ampliado",
-          "On-demand com teto de gasto mais alto",
-          "Limites de uso mais altos",
+          "Limites ampliados de agente",
+          "Prioridade máxima",
           "Suporte prioritário",
+          "Feito pra equipes e volume alto",
         ],
         cta: "Assinar Max",
       },
@@ -103,11 +97,10 @@ const CONTENT: Record<
   },
   en: {
     h1: "Start free. Grow when it makes sense.",
-    sub: "Cursor-style: included usage per cycle, optional on-demand with a spend limit. No trial — subscribe when you're ready.",
+    sub: "No card on Free. Cancel anytime.",
     mostPopular: "Most popular",
     perMonth: "/month",
-    footerNote:
-      "Each paid plan includes an included usage pool that resets every billing cycle (Other Models). After that, enable on-demand in Account (with a spend limit). Overage is billed on your next invoice — no surprise charges. Discounted annual billing at checkout; payments via Stripe.",
+    footerNote: "Secure payments via Stripe. Discounted annual billing at checkout.",
     teamsTitle: "Need more? Teams and companies",
     teamsBody: "Multiple people, custom limits, and SSO — talk to us: ",
     teamsEmail: "contato@work4you.ai",
@@ -116,11 +109,10 @@ const CONTENT: Record<
         name: "Free",
         tagline: "Relay 2.5 Fast — house model",
         price: "$0",
-        usageNote: "Free limits · no card",
         features: [
           "No credit card required",
           "Relay 2.5 Fast — fast and economical",
-          "Rest of the catalog locked until upgrade",
+          "Agent limits to get started",
           "Your personal agent in the cloud",
           "Essential connectors and skills",
         ],
@@ -130,13 +122,12 @@ const CONTENT: Record<
         name: "Essencial",
         tagline: "For everyday work",
         price: "$20",
-        usageNote: "$20 included usage / cycle",
         ladder: "Everything in Free, plus:",
         features: [
-          "Full model catalog (Other Models)",
-          "Included pool that resets each cycle",
-          "Optional on-demand with spend limit",
+          "Full model catalog",
+          "Extended agent limits",
           "Routines and automations",
+          "MCPs, skills, and connectors",
           "Email support",
         ],
         cta: "Subscribe to Essencial",
@@ -145,12 +136,11 @@ const CONTENT: Record<
         name: "Plus",
         tagline: "For those who want 24/7",
         price: "$60",
-        usageNote: "$70 included usage · always-on agent",
         ladder: "Everything in Essencial, plus:",
         features: [
           "MAX mode — frontier models for hard tasks",
           "Always-on agent — working 24/7",
-          "Larger included pool per cycle",
+          "Generous agent limits",
           "Priority responses",
         ],
         cta: "Subscribe to Plus",
@@ -160,13 +150,12 @@ const CONTENT: Record<
         name: "Max",
         tagline: "For entire operations",
         price: "$200",
-        usageNote: "$400 included usage / cycle",
         ladder: "Everything in Plus, plus:",
         features: [
-          "Largest included usage pool",
-          "Higher on-demand spend ceiling",
-          "Higher usage limits",
+          "Expanded agent limits",
+          "Highest priority",
           "Priority support",
+          "Built for teams and high volume",
         ],
         cta: "Subscribe to Max",
       },
@@ -188,7 +177,6 @@ export default async function PrecosPage() {
             <p className="mt-4 text-ink-soft">{t.sub}</p>
           </div>
 
-          {/* the four plans */}
           <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {t.plans.map((p) => (
               <div
@@ -209,9 +197,6 @@ export default async function PrecosPage() {
                 <p className="mt-5 text-ink">
                   <span className="text-4xl font-extrabold tracking-[-0.02em]">{p.price}</span>
                   <span className="ml-1 text-sm text-ink-faint">{t.perMonth}</span>
-                </p>
-                <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-faint">
-                  {p.usageNote}
                 </p>
                 <Link
                   href="/login"
@@ -244,12 +229,9 @@ export default async function PrecosPage() {
         </div>
       </section>
 
-      {/* teams / enterprise strip */}
       <section className="px-6 pb-24">
         <div className="mx-auto max-w-3xl rounded-3xl border border-line bg-cream px-8 py-10 text-center">
-          <h2 className="text-xl font-bold tracking-tight text-ink">
-            {t.teamsTitle}
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">{t.teamsTitle}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
             {t.teamsBody}
             <span className="font-semibold text-ink">{t.teamsEmail}</span>

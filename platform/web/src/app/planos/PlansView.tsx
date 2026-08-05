@@ -11,9 +11,9 @@ import type { BillingInterval, Plan } from "@/lib/billing";
 export interface PlanCard {
   key: Plan;
   label: string;
+  tagline: string;
   priceMonth: number;
   priceYear: number;
-  usageTagline: string;
 }
 
 interface PlansViewProps {
@@ -26,28 +26,27 @@ interface PlansViewProps {
   initialInterval?: BillingInterval;
 }
 
-// Copy das features (estático, client-side). Modelo Cursor: uso incluído + on-demand.
+// Copy das features — vitrine Cursor: preço + capacidades, sem pool em US$.
 const FEATURES: Record<string, string[]> = {
   starter: [
-    "US$ 20 de uso incluído por ciclo",
     "Catálogo completo de modelos",
-    "Chat, Skills e Conectores sem limite de recursos",
+    "Limites de agente estendidos",
+    "Chat, Skills e Conectores",
     "Sua instância pessoal na nuvem",
-    "On-demand opcional com limite de gasto",
+    "Rotinas e automações",
     "Suporte por e-mail",
   ],
   pro: [
     "Tudo do Essencial",
-    "US$ 70 de uso incluído por ciclo",
     "Modo MAX — modelos de ponta",
     "Instância sempre-ativa — agente 24/7 na nuvem",
+    "Limites generosos de agente",
     "Respostas com prioridade",
   ],
   max: [
     "Tudo do Plus",
-    "US$ 400 de uso incluído por ciclo",
-    "On-demand com teto de gasto mais alto",
-    "Limites de uso mais altos",
+    "Limites ampliados de agente",
+    "Prioridade máxima",
     "Suporte prioritário",
   ],
 };
@@ -154,7 +153,7 @@ export function PlansView({
         <div className="text-center">
           <h1 className="font-brand text-3xl font-semibold sm:text-4xl">Assine o Work4You</h1>
           <p className="mt-2 text-sm text-neutral-500">
-            Uso incluído por ciclo — modelo Cursor. Cancele quando quiser
+            Cancele quando quiser
             {loggedIn && (
               <>
                 {" "}· plano atual: <strong className="font-brand uppercase">{current.plan}</strong>
@@ -212,19 +211,17 @@ export function PlansView({
                       </span>
                     )}
                     <h2 className="font-brand text-lg font-semibold">{card.label}</h2>
-                    <div className="mt-1 flex items-baseline gap-1">
+                    <p className="mt-0.5 text-sm text-neutral-500">{card.tagline}</p>
+                    <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-3xl font-semibold">US$ {price}</span>
                       <span className="text-sm text-neutral-500">
                         /{interval === "year" ? "ano" : "mês"}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-neutral-400">
-                      {interval === "year"
-                        ? `${priceEquivMonth(card)}/mês · 2 meses grátis`
-                        : card.usageTagline}
-                    </p>
                     {interval === "year" && (
-                      <p className="text-xs text-neutral-400">{card.usageTagline}</p>
+                      <p className="mt-0.5 text-xs text-neutral-400">
+                        {priceEquivMonth(card)}/mês · 2 meses grátis
+                      </p>
                     )}
 
                     <button
@@ -382,9 +379,7 @@ export function PlansView({
         )}
 
         <p className="mt-10 text-center text-xs text-neutral-400">
-          Pagamento processado com segurança pela Stripe. Cada plano inclui uso que reinicia a
-          cada ciclo; depois disso, ative on-demand na Conta (com limite de gasto). O overage
-          entra na próxima fatura — sem cobrança surpresa. Cancele quando quiser.
+          Pagamento processado com segurança pela Stripe. Cancele quando quiser.
         </p>
       </main>
     </>
