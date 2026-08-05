@@ -4,9 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { type CommandCenterSection } from '@/app/command-center'
 import {
   AGENTS_ROUTE,
+  ACHIEVEMENTS_ROUTE,
   appViewForPath,
   COMMAND_CENTER_ROUTE,
+  DOCS_ROUTE,
   isOverlayView,
+  KANBAN_ROUTE,
   NEW_CHAT_ROUTE,
   STARMAP_ROUTE
 } from '@/app/routes'
@@ -22,6 +25,9 @@ export function useOverlayRouting() {
   const commandCenterOpen = currentView === 'command-center'
   const agentsOpen = currentView === 'agents'
   const starmapOpen = currentView === 'starmap'
+  const achievementsOpen = currentView === 'achievements'
+  const kanbanOpen = currentView === 'kanban'
+  const docsOpen = currentView === 'docs'
   const profilesOpen = currentView === 'profiles'
   const chatOpen = currentView === 'chat'
   const overlayOpen = isOverlayView(currentView)
@@ -61,16 +67,25 @@ export function useOverlayRouting() {
 
   const openAgents = useCallback(() => navigate(AGENTS_ROUTE), [navigate])
   const openStarmap = useCallback(() => navigate(STARMAP_ROUTE), [navigate])
+  const openAchievements = useCallback(() => navigate(ACHIEVEMENTS_ROUTE), [navigate])
+  const openKanban = useCallback(() => navigate(KANBAN_ROUTE), [navigate])
+  const openDocs = useCallback(() => navigate(DOCS_ROUTE), [navigate])
 
   return {
+    achievementsOpen,
     agentsOpen,
     chatOpen,
     closeOverlayToPreviousRoute,
     commandCenterInitialSection,
     commandCenterOpen,
     currentView,
+    docsOpen,
+    kanbanOpen,
+    openAchievements,
     openAgents,
     openCommandCenterSection,
+    openDocs,
+    openKanban,
     openStarmap,
     profilesOpen,
     settingsOpen,

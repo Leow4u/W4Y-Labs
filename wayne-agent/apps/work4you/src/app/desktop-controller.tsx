@@ -131,6 +131,9 @@ const ArtifactsView = lazy(async () => ({ default: (await import('./artifacts'))
 const CommandCenterView = lazy(async () => ({ default: (await import('./command-center')).CommandCenterView }))
 const CronView = lazy(async () => ({ default: (await import('./cron')).CronView }))
 const StarmapView = lazy(async () => ({ default: (await import('./starmap')).StarmapView }))
+const AchievementsView = lazy(async () => ({ default: (await import('./achievements')).AchievementsView }))
+const KanbanView = lazy(async () => ({ default: (await import('./kanban')).KanbanView }))
+const DocsView = lazy(async () => ({ default: (await import('./docs')).DocsView }))
 const MessagingView = lazy(async () => ({ default: (await import('./messaging')).MessagingView }))
 const ProfilesView = lazy(async () => ({ default: (await import('./profiles')).ProfilesView }))
 const SettingsView = lazy(async () => ({ default: (await import('./settings')).SettingsView }))
@@ -212,12 +215,15 @@ export function DesktopController() {
   const getRouteToken = useCallback(() => routeTokenRef.current, [])
 
   const {
+    achievementsOpen,
     agentsOpen,
     chatOpen,
     closeOverlayToPreviousRoute,
     commandCenterInitialSection,
     commandCenterOpen,
     currentView,
+    docsOpen,
+    kanbanOpen,
     openAgents,
     openCommandCenterSection,
     openStarmap,
@@ -1121,6 +1127,24 @@ export function DesktopController() {
           <StarmapView onClose={closeOverlayToPreviousRoute} />
         </Suspense>
       )}
+
+      {achievementsOpen && (
+        <Suspense fallback={<OverlayFallback />}>
+          <AchievementsView onClose={closeOverlayToPreviousRoute} />
+        </Suspense>
+      )}
+
+      {kanbanOpen && (
+        <Suspense fallback={<OverlayFallback />}>
+          <KanbanView onClose={closeOverlayToPreviousRoute} />
+        </Suspense>
+      )}
+
+      {docsOpen && (
+        <Suspense fallback={<OverlayFallback />}>
+          <DocsView onClose={closeOverlayToPreviousRoute} />
+        </Suspense>
+      )}
     </>
   )
 
@@ -1308,6 +1332,10 @@ export function DesktopController() {
           <Route element={null} path="settings" />
           <Route element={null} path="command-center" />
           <Route element={null} path="agents" />
+          <Route element={null} path="achievements" />
+          <Route element={null} path="kanban" />
+          <Route element={null} path="docs" />
+          <Route element={null} path="starmap" />
           <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="new" />
           <Route element={<LegacySessionRedirect />} path="sessions/:sessionId" />
           <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="*" />

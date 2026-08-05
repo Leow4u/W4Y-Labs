@@ -2780,6 +2780,11 @@ export const en: Translations = {
     runCloudSignIn: 'Sign in with your account to use the cloud',
     runCloudUnavailable: 'Cloud is unavailable right now',
     runLockedHint: 'This chat already started here',
+    brainHandoffToCloud: 'Continue in the cloud',
+    brainHandoffToLocal: 'Continue on this PC',
+    brainHandoffHint: 'Copies the thread into a new session on the other brain.',
+    brainHandoffNote: 'Starts a fresh session with transcript context (cache-safe handoff).',
+    brainHandoffFailed: 'Could not move this chat',
     repoModalTitle: 'Connect a repository',
     repoConnected: 'GitHub CLI connected',
     repoUrlPlaceholder: 'https://github.com/org/repo.git',
@@ -3681,6 +3686,9 @@ export const en: Translations = {
     cwdStagedMessage: 'Restart the desktop backend to apply cwd changes to this active session.',
     modelSwitchFailed: 'Model switch failed',
     sessionExported: 'Session exported',
+    brainHandoffSuccess: (target: 'local' | 'cloud') =>
+      target === 'cloud' ? 'Chat continued in the cloud' : 'Chat continued on this PC',
+    brainHandoffFailed: 'Could not move this chat',
     sessionExportFailed: 'Could not export session',
     imageSaved: 'Image saved',
     downloadStarted: 'Download started',
@@ -3709,9 +3717,42 @@ export const en: Translations = {
   },
 
   browserShell: {
-    terminalUnavailableTitle: 'Local terminal requires the desktop app',
+    terminalUnavailableTitle: 'Cloud terminal',
     terminalUnavailableBody:
-      'In the browser, agent tools still run on your cloud computer. Install Work4You for an interactive shell on this machine.'
+      'Open the terminal pane for an interactive shell on your cloud computer. Install the desktop app for a local PTY on this PC.'
+  },
+
+  achievements: {
+    title: 'Achievements',
+    subtitle: (unlocked: number, total: number) => `${unlocked} / ${total} unlocked`,
+    close: 'Close achievements',
+    loading: 'Loading achievements',
+    loadFailed: 'Could not load achievements',
+    emptyTitle: 'No achievements yet',
+    emptyDesc: 'Run a few sessions and badges will appear here.',
+    unlocked: 'Unlocked',
+    locked: 'Locked',
+    secret: 'Secret',
+    progress: (pct: number) => `${Math.round(pct)}% progress`
+  },
+
+  kanbanView: {
+    title: 'Kanban',
+    subtitle: 'Multi-agent board on this runtime',
+    close: 'Close kanban',
+    loading: 'Loading board',
+    loadFailed: 'Could not load kanban board',
+    emptyTitle: 'Board is empty',
+    emptyDesc: 'Create tasks with work4you kanban or from the agent.',
+    column: (name: string) => name.replace(/_/g, ' '),
+    cliHint: 'Full board controls:',
+    docsLink: 'documentation'
+  },
+
+  docsView: {
+    title: 'Documentation',
+    subtitle: 'Work4You guides and reference',
+    close: 'Close documentation'
   },
 
   errors: {

@@ -2727,6 +2727,11 @@ export const zh: Translations = {
     runCloudSignIn: '登录账户以使用云端',
     runCloudUnavailable: '云端暂时不可用',
     runLockedHint: '此对话已在此处开始',
+    brainHandoffToCloud: '在云端继续',
+    brainHandoffToLocal: '在本机继续',
+    brainHandoffHint: '将对话复制到另一运行环境的新会话中。',
+    brainHandoffNote: '以 transcript 上下文开启新会话（缓存安全交接）。',
+    brainHandoffFailed: '无法移动此对话',
     repoModalTitle: '连接仓库',
     repoConnected: '已连接 GitHub CLI',
     repoUrlPlaceholder: 'https://github.com/org/repo.git',
@@ -3567,6 +3572,9 @@ export const zh: Translations = {
     cwdStagedMessage: '重启桌面后端后，工作目录更改才会应用到当前活跃会话。',
     modelSwitchFailed: '模型切换失败',
     sessionExported: '会话已导出',
+    brainHandoffSuccess: (target: 'local' | 'cloud') =>
+      target === 'cloud' ? '对话已在云端继续' : '对话已在本机继续',
+    brainHandoffFailed: '无法移动此对话',
     sessionExportFailed: '无法导出会话',
     imageSaved: '图片已保存',
     downloadStarted: '下载已开始',
@@ -3595,8 +3603,42 @@ export const zh: Translations = {
   },
 
   browserShell: {
-    terminalUnavailableTitle: '本地终端需要桌面版应用',
-    terminalUnavailableBody: '在浏览器中，代理工具仍会在云端计算机上运行。安装 Work4You 以在本机使用交互式 shell。'
+    terminalUnavailableTitle: '云端终端',
+    terminalUnavailableBody:
+      '打开终端面板即可在云端计算机上使用交互式 shell。安装桌面版应用可在本机使用本地 PTY。'
+  },
+
+  achievements: {
+    title: '成就',
+    subtitle: (unlocked: number, total: number) => `${unlocked} / ${total} 已解锁`,
+    close: '关闭成就',
+    loading: '正在加载成就',
+    loadFailed: '无法加载成就',
+    emptyTitle: '暂无成就',
+    emptyDesc: '多运行几次会话，徽章会显示在这里。',
+    unlocked: '已解锁',
+    locked: '未解锁',
+    secret: '隐藏',
+    progress: (pct: number) => `${Math.round(pct)}% 进度`
+  },
+
+  kanbanView: {
+    title: '看板',
+    subtitle: '此运行环境上的多智能体看板',
+    close: '关闭看板',
+    loading: '正在加载看板',
+    loadFailed: '无法加载看板',
+    emptyTitle: '看板为空',
+    emptyDesc: '使用 work4you kanban 或由 agent 创建任务。',
+    column: (name: string) => name.replace(/_/g, ' '),
+    cliHint: '完整看板控制：',
+    docsLink: '文档'
+  },
+
+  docsView: {
+    title: '文档',
+    subtitle: 'Work4You 指南与参考',
+    close: '关闭文档'
   },
 
   errors: {

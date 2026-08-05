@@ -8,6 +8,9 @@
  */
 import { useStore } from '@nanostores/react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import { DOCS_ROUTE } from '@/app/routes'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -26,6 +29,7 @@ import {
   Check,
   Command,
   Download,
+  FileText,
   Globe,
   HelpCircle,
   Loader2,
@@ -75,6 +79,7 @@ interface AccountMenuProps {
 }
 
 export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenuProps) {
+  const navigate = useNavigate()
   const { t, locale, setLocale, isSavingLocale } = useI18n()
   const a = t.sidebar.account
   const [me, setMe] = useState<AuthMe | null>(null)
@@ -305,6 +310,14 @@ export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenu
             >
               <Command className="size-3.5" />
               {t.titlebar.openKeybinds}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={() => {
+                navigate(DOCS_ROUTE)
+              }}
+            >
+              <FileText className="size-3.5" />
+              {t.docsView.title}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={() => openExternal(HELP_URL)}>
               <HelpCircle className="size-3.5" />

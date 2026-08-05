@@ -51,9 +51,30 @@ export function consumeCloudAgentPrompt(): null | string {
   return next
 }
 
-/** True while the live conversation already settled on a brain (chip locks). */
+/** True while the live conversation already settled on a brain (chip locks picker). */
 export function isRunTargetLocked(hasActiveSession: boolean): boolean {
   return hasActiveSession
+}
+
+export type BrainTransferHandler = (
+  storedSessionId: string,
+  target: RunTarget
+) => Promise<{ ok: boolean; error?: string }>
+
+let brainTransferHandler: BrainTransferHandler | null = null
+
+export function registerBrainTransferHandler(handler: BrainTransferHandler | null): void {
+  brainTransferHandler = handler
+}
+
+export async function transferSessionBrain(
+  storedSessionId: string,
+  target: RunTarget
+): Promise<{ ok: boolean; error?: string }> {
+  if (!brainTransferHandler) {
+    return { ok: false, error: 'unavailable' }
+  }
+  return brainTransferHandler(storedSessionId, target)
 }
 
 /**

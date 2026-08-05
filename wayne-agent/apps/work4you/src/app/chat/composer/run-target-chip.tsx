@@ -1,6 +1,6 @@
 /**
  * Composer chip: where the NEXT (or live) session runs — Local vs cloud 24/7.
- * Mirrors web RunTargetPicker behaviour; Hermes skin.
+ * When a session is active, the picker locks but I2 brain handoff stays available.
  */
 import { useStore } from '@nanostores/react'
 import { useEffect, useState } from 'react'
@@ -10,14 +10,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 import { useI18n } from '@/i18n'
 import { Check, Cloud, iconSize, Monitor } from '@/lib/icons'
 import { cloudRunAvailable, probeCloudLogin } from '@/lib/w4y-cloud-projects'
 import { cn } from '@/lib/utils'
+import { isCloudBrainSession } from '@/lib/cloud-sessions'
 import { ensureCloudBrainActive, ensureLocalBrainActive } from '@/store/gateway'
 import { notifyError } from '@/store/notifications'
+import { $sessions } from '@/store/session'
 import {
   $runTarget,
   $sessionRunTarget,
@@ -26,7 +29,8 @@ import {
   resolveCwdForPreferredTarget,
   type RunTarget,
   setRunTarget,
-  setSessionRunTarget
+  setSessionRunTarget,
+  transferSessionBrain
 } from '@/store/run-target'
 import { setCurrentCwd } from '@/store/session'
 
@@ -49,11 +53,17 @@ export function RunTargetChip({ sessionId }: { sessionId?: null | string }) {
   const c = t.composer
   const preferred = useStore($runTarget)
   const live = useStore($sessionRunTarget)
+  const sessions = useStore($sessions)
   const locked = isRunTargetLocked(Boolean(sessionId))
   const value: RunTarget = locked ? live : preferred
   const available = cloudRunAvailable()
   const [open, setOpen] = useState(false)
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null)
+  const [transferring, setTransferring] = useState(false)
+
+  const storedSession = sessionId ? sessions.find(s => s.id === sessionId) : undefined
+  const onCloud = isCloudBrainSession(storedSession) || live === 'cloud'
+  const handoffTarget: RunTarget = onCloud ? 'local' : 'cloud'
 
   useEffect(() => {
     if (!open || !available) return
@@ -66,6 +76,18 @@ export function RunTargetChip({ sessionId }: { sessionId?: null | string }) {
       alive = false
     }
   }, [open, available])
+
+  const applyTarget = (target: RunTarget) => {
+    markRunTargetUserChoice(target)
+    setRunTarget(target)
+    setSessionRunTarget(target)
+    setCurrentCwd(resolveCwdForPreferredTarget())
+    if (target === 'cloud') {
+      void ensureCloudBrainActive().catch(err => notifyError(err, c.runCloudUnavailable))
+    } else {
+      void ensureLocalBrainActive()
+    }
+  }
 
   const pick = (target: RunTarget) => {
     if (locked) return
@@ -88,22 +110,39 @@ export function RunTargetChip({ sessionId }: { sessionId?: null | string }) {
     setOpen(false)
   }
 
-  const applyTarget = (target: RunTarget) => {
-    markRunTargetUserChoice(target)
-    setRunTarget(target)
-    setSessionRunTarget(target)
-    setCurrentCwd(resolveCwdForPreferredTarget())
-    if (target === 'cloud') {
-      void ensureCloudBrainActive().catch(err => notifyError(err, c.runCloudUnavailable))
-    } else {
-      void ensureLocalBrainActive()
+  const moveSession = () => {
+    if (!sessionId || transferring) return
+
+    if (handoffTarget === 'cloud' && loggedIn !== true) {
+      void signInW4Y()
+        .then(() => probeCloudLogin())
+        .then(ok => {
+          if (ok === true) {
+            setLoggedIn(true)
+            void runTransfer()
+          }
+        })
+        .catch(err => notifyError(err, c.runCloudSignIn))
+      return
     }
+
+    void runTransfer()
+  }
+
+  const runTransfer = () => {
+    if (!sessionId) return
+    setTransferring(true)
+    void transferSessionBrain(sessionId, handoffTarget)
+      .catch(err => notifyError(err, c.brainHandoffFailed))
+      .finally(() => {
+        setTransferring(false)
+        setOpen(false)
+      })
   }
 
   const label = value === 'cloud' ? c.runCloudOption : c.runLocalOption
   const Icon = value === 'cloud' ? Cloud : Monitor
 
-  // Cloud unavailable → still show Local (Codex), without a menu.
   if (!available) {
     return (
       <span aria-label={c.runWhereTooltip} className={cn(CHIP, 'cursor-default')} title={c.runWhereTooltip}>
@@ -114,16 +153,10 @@ export function RunTargetChip({ sessionId }: { sessionId?: null | string }) {
   }
 
   return (
-    <DropdownMenu
-      onOpenChange={next => {
-        if (!locked) setOpen(next)
-      }}
-      open={open && !locked}
-    >
+    <DropdownMenu onOpenChange={setOpen} open={open}>
       <DropdownMenuTrigger
         aria-label={c.runWhereTooltip}
-        className={cn(CHIP, locked && 'cursor-default opacity-90')}
-        disabled={locked}
+        className={cn(CHIP, locked && 'opacity-95')}
         title={locked ? c.runLockedHint : c.runWhereTooltip}
         type="button"
       >
@@ -131,38 +164,67 @@ export function RunTargetChip({ sessionId }: { sessionId?: null | string }) {
         <span className="truncate">{label}</span>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-72" side="bottom" sideOffset={6}>
-        <DropdownMenuLabel className="px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)">
-          {c.continueOn}
-        </DropdownMenuLabel>
-        <DropdownMenuItem
-          onSelect={e => {
-            e.preventDefault()
-            pick('local')
-          }}
-        >
-          <Monitor className={iconSize.sm} />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-medium text-foreground">{c.runLocalOption}</span>
-            <span className="block text-[0.65rem] text-muted-foreground">{c.runLocalHint}</span>
-          </span>
-          {value === 'local' && <Check className={cn(iconSize.sm, 'shrink-0')} />}
-        </DropdownMenuItem>
-        <DropdownMenuItem
-          className={cn(loggedIn === false && 'opacity-80')}
-          onSelect={e => {
-            e.preventDefault()
-            pick('cloud')
-          }}
-        >
-          <Cloud className={iconSize.sm} />
-          <span className="min-w-0 flex-1">
-            <span className="block truncate font-medium text-foreground">{c.runCloudOption}</span>
-            <span className="block text-[0.65rem] text-muted-foreground">
-              {loggedIn === false ? c.runCloudSignIn : c.runCloudHint}
-            </span>
-          </span>
-          {value === 'cloud' && <Check className={cn(iconSize.sm, 'shrink-0')} />}
-        </DropdownMenuItem>
+        {!locked ? (
+          <>
+            <DropdownMenuLabel className="px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)">
+              {c.continueOn}
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              onSelect={e => {
+                e.preventDefault()
+                pick('local')
+              }}
+            >
+              <Monitor className={iconSize.sm} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium text-foreground">{c.runLocalOption}</span>
+                <span className="block text-[0.65rem] text-muted-foreground">{c.runLocalHint}</span>
+              </span>
+              {value === 'local' && <Check className={cn(iconSize.sm, 'shrink-0')} />}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className={cn(loggedIn === false && 'opacity-80')}
+              onSelect={e => {
+                e.preventDefault()
+                pick('cloud')
+              }}
+            >
+              <Cloud className={iconSize.sm} />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium text-foreground">{c.runCloudOption}</span>
+                <span className="block text-[0.65rem] text-muted-foreground">
+                  {loggedIn === false ? c.runCloudSignIn : c.runCloudHint}
+                </span>
+              </span>
+              {value === 'cloud' && <Check className={cn(iconSize.sm, 'shrink-0')} />}
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuLabel className="px-2 py-1 text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)">
+              {c.runLockedHint}
+            </DropdownMenuLabel>
+            <DropdownMenuItem
+              disabled={transferring}
+              onSelect={e => {
+                e.preventDefault()
+                moveSession()
+              }}
+            >
+              {handoffTarget === 'cloud' ? <Cloud className={iconSize.sm} /> : <Monitor className={iconSize.sm} />}
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium text-foreground">
+                  {handoffTarget === 'cloud' ? c.brainHandoffToCloud : c.brainHandoffToLocal}
+                </span>
+                <span className="block text-[0.65rem] text-muted-foreground">{c.brainHandoffHint}</span>
+              </span>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem className="text-[0.65rem] text-muted-foreground" disabled>
+              {c.brainHandoffNote}
+            </DropdownMenuItem>
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )

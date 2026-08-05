@@ -16,7 +16,10 @@ import { $terminals } from './terminals'
 export function TerminalPaneChrome() {
   const terminals = useStore($terminals)
   const runtime = useProductRuntime()
-  const showBrowserPlaceholder = !runtime.capabilities.localTerminal && terminals.length === 0
+  const showBrowserPlaceholder =
+    !runtime.capabilities.localTerminal &&
+    runtime.capabilities.remoteTerminal &&
+    terminals.length === 0
 
   return (
     <div className="flex min-h-0 min-w-0 flex-1">

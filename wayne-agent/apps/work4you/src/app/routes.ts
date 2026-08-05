@@ -9,13 +9,19 @@ export const CRON_ROUTE = '/cron'
 export const PROFILES_ROUTE = '/profiles'
 export const AGENTS_ROUTE = '/agents'
 export const STARMAP_ROUTE = '/starmap'
+export const ACHIEVEMENTS_ROUTE = '/achievements'
+export const KANBAN_ROUTE = '/kanban'
+export const DOCS_ROUTE = '/docs'
 
 export type AppView =
+  | 'achievements'
   | 'agents'
   | 'artifacts'
   | 'chat'
   | 'command-center'
   | 'cron'
+  | 'docs'
+  | 'kanban'
   | 'messaging'
   | 'profiles'
   | 'settings'
@@ -23,10 +29,13 @@ export type AppView =
   | 'starmap'
 
 export type AppRouteId =
+  | 'achievements'
   | 'agents'
   | 'artifacts'
   | 'command-center'
   | 'cron'
+  | 'docs'
+  | 'kanban'
   | 'messaging'
   | 'new'
   | 'profiles'
@@ -50,7 +59,10 @@ export const APP_ROUTES = [
   { id: 'cron', path: CRON_ROUTE, view: 'cron' },
   { id: 'profiles', path: PROFILES_ROUTE, view: 'profiles' },
   { id: 'agents', path: AGENTS_ROUTE, view: 'agents' },
-  { id: 'starmap', path: STARMAP_ROUTE, view: 'starmap' }
+  { id: 'starmap', path: STARMAP_ROUTE, view: 'starmap' },
+  { id: 'achievements', path: ACHIEVEMENTS_ROUTE, view: 'achievements' },
+  { id: 'kanban', path: KANBAN_ROUTE, view: 'kanban' },
+  { id: 'docs', path: DOCS_ROUTE, view: 'docs' }
 ] as const satisfies readonly AppRoute[]
 
 const APP_VIEW_BY_PATH = new Map<string, AppView>(APP_ROUTES.map(route => [route.path, route.view]))
@@ -60,8 +72,11 @@ const RESERVED_PATHS: ReadonlySet<string> = new Set(APP_ROUTES.map(route => rout
 // While one is open the app's titlebar control clusters must hide so they don't
 // bleed over the overlay (they sit at a higher z-index than the overlay card).
 export const OVERLAY_VIEWS: ReadonlySet<AppView> = new Set([
+  'achievements',
   'agents',
   'command-center',
+  'docs',
+  'kanban',
   'profiles',
   'settings',
   'starmap'

@@ -44,7 +44,7 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 | C1 | shared: plans + relay-free-model | C ✅ (relay-free-model; plans helpers ficam no renderer — fetchers usam bridge desktop) |
 | C2 | tabela paridade INVENTARIO | C |
 | C3–C4 | portar gaps web → desktop | C ✅ (aceites: achievements, docs in-app, plugin tabs) |
-| C5 | terminal browser (PTY remoto) | C ✅ (placeholder + agent mirrors; PTY interactivo remoto backlog) |
+| C5 | terminal browser (PTY remoto) | C ✅ (`/api/pty` WS no browser + pane terminal) |
 | C6 | auth browser SSO | C ✅ |
 | D1 | dashboard Python → app_dist | D ✅ |
 | D2 | apagar wayne-agent/web | D ✅ |
@@ -58,7 +58,7 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 | G1–G6 | billing + tenant hardening | G ✅ |
 | H1–H4 | 24/7 wake + premium | H ✅ |
 | I1 | rename apps/desktop → apps/work4you | I ✅ |
-| I2 | handoff local ↔ cloud mid-session | backlog pós-v1 |
+| I2 | handoff local ↔ cloud mid-session | I ✅ (nova sessão + transcript; chip run-target) |
 | I3 | deprecate ui-latest.json no bucket | I ✅ |
 
 **Milestones:** M1 pós-B6 (spike browser) · M2 pós-D2 (web apagada) · M3 pós-E2 (prod browser) · M4 pós-F3+G3.

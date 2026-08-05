@@ -317,6 +317,8 @@ async function applyRegimeSecrets(app, plan) {
     await fly("secrets", "set", "-a", app, ...set);
   }
 }
+
+function tenantToml(app, plan, image) {
   const autostop = plan === "premium" ? '"off"' : '"suspend"';
   const minRun = plan === "premium" ? 1 : 0;
   return `app = "${app}"

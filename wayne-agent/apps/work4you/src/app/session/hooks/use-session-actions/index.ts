@@ -1,5 +1,5 @@
 import type { MutableRefObject } from 'react'
-import { useCallback, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 
 import { deleteSession, getSession, getSessionMessages, setSessionArchived } from '@/hermes'
@@ -10,6 +10,11 @@ import {
   isCloudBrainSession,
   patchCloudSession
 } from '@/lib/cloud-sessions'
+import {
+  buildBrainHandoffPrompt,
+  fetchSessionMessagesForBrain,
+  sourceBrainForSession
+} from '@/lib/brain-handoff'
 import { preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { clearQueuedPrompts } from '@/store/composer-queue'
@@ -20,9 +25,13 @@ import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile, normalize
 import { tombstoneSessions, untombstoneSessions, syncProjectScopeFromCwd } from '@/store/projects'
 import {
   $runTarget,
+  markRunTargetUserChoice,
   resolveCwdForPreferredTarget,
   resolveSessionCreateCwd,
-  setSessionRunTarget
+  registerBrainTransferHandler,
+  setRunTarget,
+  setSessionRunTarget,
+  type RunTarget
 } from '@/store/run-target'
 import {
   $archivedSessions,
@@ -1038,6 +1047,59 @@ export function useSessionActions({
     },
     [copy]
   )
+
+  const transferSessionBrain = useCallback(
+    async (storedSessionId: string, target: RunTarget) => {
+      const row = $sessions.get().find(session => sessionMatchesStoredId(session, storedSessionId))
+      if (!row) {
+        return { ok: false, error: 'session-missing' }
+      }
+
+      const fromTarget: RunTarget = sourceBrainForSession(row) === 'cloud' ? 'cloud' : 'local'
+      if (fromTarget === target) {
+        return { ok: false, error: 'same-brain' }
+      }
+
+      try {
+        const messages = await fetchSessionMessagesForBrain(storedSessionId, row)
+        const handoff = buildBrainHandoffPrompt(messages, {
+          title: row.title,
+          from: fromTarget,
+          to: target
+        })
+
+        markRunTargetUserChoice(target)
+        setRunTarget(target)
+        setSessionRunTarget(target)
+        setCurrentCwd(resolveCwdForPreferredTarget())
+
+        if (target === 'cloud') {
+          await ensureCloudBrainActive()
+        } else {
+          await ensureLocalBrainActive()
+        }
+
+        const runtimeId = await createBackendSessionForSend(handoff.slice(0, 160))
+        if (!runtimeId) {
+          return { ok: false, error: 'create-failed' }
+        }
+
+        await requestGateway('prompt.submit', { session_id: runtimeId, message: handoff })
+        notify({ kind: 'success', message: copy.brainHandoffSuccess(target), durationMs: 3_000 })
+
+        return { ok: true }
+      } catch (err) {
+        notifyError(err, copy.brainHandoffFailed)
+        return { ok: false, error: err instanceof Error ? err.message : String(err) }
+      }
+    },
+    [copy, createBackendSessionForSend, requestGateway]
+  )
+
+  useEffect(() => {
+    registerBrainTransferHandler(transferSessionBrain)
+    return () => registerBrainTransferHandler(null)
+  }, [transferSessionBrain])
 
   return {
     archiveSession,

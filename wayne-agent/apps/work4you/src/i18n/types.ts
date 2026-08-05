@@ -1990,6 +1990,11 @@ export interface Translations {
     runCloudSignIn: string
     runCloudUnavailable: string
     runLockedHint: string
+    brainHandoffToCloud: string
+    brainHandoffToLocal: string
+    brainHandoffHint: string
+    brainHandoffNote: string
+    brainHandoffFailed: string
     repoModalTitle: string
     repoConnected: string
     repoUrlPlaceholder: string
@@ -2735,6 +2740,8 @@ export interface Translations {
     cwdStagedMessage: string
     modelSwitchFailed: string
     sessionExported: string
+    brainHandoffSuccess: (target: 'local' | 'cloud') => string
+    brainHandoffFailed: string
     sessionExportFailed: string
     imageSaved: string
     downloadStarted: string
@@ -2765,6 +2772,39 @@ export interface Translations {
   browserShell: {
     terminalUnavailableTitle: string
     terminalUnavailableBody: string
+  }
+
+  achievements: {
+    title: string
+    subtitle: (unlocked: number, total: number) => string
+    close: string
+    loading: string
+    loadFailed: string
+    emptyTitle: string
+    emptyDesc: string
+    unlocked: string
+    locked: string
+    secret: string
+    progress: (pct: number) => string
+  }
+
+  kanbanView: {
+    title: string
+    subtitle: string
+    close: string
+    loading: string
+    loadFailed: string
+    emptyTitle: string
+    emptyDesc: string
+    column: (name: string) => string
+    cliHint: string
+    docsLink: string
+  }
+
+  docsView: {
+    title: string
+    subtitle: string
+    close: string
   }
 
   errors: {

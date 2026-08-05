@@ -15,16 +15,19 @@ import {
   Activity,
   Archive,
   BarChart3,
+  Bookmark,
   ChevronLeft,
   ChevronRight,
   Clock,
   Cpu,
   Download,
   Egg,
+  FileText,
   GitBranch,
   type IconComponent,
   Info,
   KeyRound,
+  LayoutDashboard,
   Link2,
   MessageCircle,
   Monitor,
@@ -62,8 +65,11 @@ import { isUserTheme, resolveTheme } from '@/themes/user-themes'
 import {
   AGENTS_ROUTE,
   ARTIFACTS_ROUTE,
+  ACHIEVEMENTS_ROUTE,
   COMMAND_CENTER_ROUTE,
   CRON_ROUTE,
+  DOCS_ROUTE,
+  KANBAN_ROUTE,
   MESSAGING_ROUTE,
   NEW_CHAT_ROUTE,
   PROFILES_ROUTE,
@@ -462,6 +468,27 @@ export function CommandPalette() {
             keywords: ['star map', 'memory', 'memories', 'skills', 'graph', 'learning', 'constellation'],
             label: t.starmap.title,
             run: go(STARMAP_ROUTE)
+          },
+          {
+            icon: Bookmark,
+            id: 'nav-achievements',
+            keywords: ['achievements', 'badges', 'gamification', 'rewards'],
+            label: t.achievements.title,
+            run: go(ACHIEVEMENTS_ROUTE)
+          },
+          {
+            icon: LayoutDashboard,
+            id: 'nav-kanban',
+            keywords: ['kanban', 'board', 'tasks', 'multi-agent', 'queue'],
+            label: t.kanbanView.title,
+            run: go(KANBAN_ROUTE)
+          },
+          {
+            icon: FileText,
+            id: 'nav-docs',
+            keywords: ['docs', 'documentation', 'help', 'guide', 'reference'],
+            label: t.docsView.title,
+            run: go(DOCS_ROUTE)
           }
         ]
       },

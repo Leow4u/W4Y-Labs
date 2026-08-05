@@ -149,6 +149,11 @@ export const $activeTerminal = computed(
 const newId = () =>
   globalThis.crypto?.randomUUID?.() ?? `term-${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`
 
+function interactiveTerminalEnabled(): boolean {
+  const caps = getProductRuntime().capabilities
+  return caps.localTerminal || caps.remoteTerminal
+}
+
 function localTerminalEnabled(): boolean {
   return getProductRuntime().capabilities.localTerminal
 }
@@ -156,7 +161,7 @@ function localTerminalEnabled(): boolean {
 /** Append a fresh terminal and focus it. Captures the current cwd once (its only
  *  tie to session/project state); pass an explicit cwd to override. Returns the id. */
 export function createTerminal(cwd: string = $currentCwd.get()): string {
-  if (!localTerminalEnabled()) {
+  if (!interactiveTerminalEnabled()) {
     openTerminalPanel()
 
     return ''
@@ -215,7 +220,7 @@ export function openAgentTerminal(procId: string, title: string): void {
  *  If a status-stack click already opened an agent tab, don't create a
  *  second, unrelated user shell just because the pane became visible. */
 export function ensureTerminal(): void {
-  if ($terminals.get().length === 0 && localTerminalEnabled()) {
+  if ($terminals.get().length === 0 && interactiveTerminalEnabled()) {
     createTerminal()
   }
 }

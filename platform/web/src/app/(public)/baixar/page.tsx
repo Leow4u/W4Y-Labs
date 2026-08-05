@@ -4,8 +4,8 @@ import { appUrl, platformUrl } from "@/lib/site-origins";
 // Download page: desktop app + browser entry (first-class peers).
 
 const WINDOWS_DOWNLOAD_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/Work4You-1.0.86-win-x64.exe";
-const VERSION = "1.0.86";
+  "https://storage.googleapis.com/w4y-engine-dist/Work4You-1.0.87-win-x64.exe";
+const VERSION = "1.0.87";
 const WINDOWS_SIZE = "~104 MB";
 
 const PLATFORMS = [

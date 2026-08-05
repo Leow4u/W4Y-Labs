@@ -8,6 +8,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CSSProperties } from 'react'
 
 import { triggerHaptic } from '@/lib/haptics'
+import { connectRemotePty, type RemotePtyHandle } from '@/lib/remote-pty'
+import { getProductRuntime } from '@/adapters/runtime'
 import { $filePreviewTarget, $previewTarget } from '@/store/preview'
 import { useTheme } from '@/themes/context'
 
@@ -344,6 +346,7 @@ export function useTerminalSession({
   // Re-fit on activation: a tab hidden via display:none has a 0×0 host, so its
   // last fit is stale by the time it's shown again.
   const fitRef = useRef<(() => void) | null>(null)
+  const remotePtyRef = useRef<RemotePtyHandle | null>(null)
   const [status, setStatus] = useState<TerminalStatus>('starting')
   const [selection, setSelection] = useState('')
   const [selectionStyle, setSelectionStyle] = useState<CSSProperties | null>(null)
@@ -409,8 +412,9 @@ export function useTerminalSession({
   useEffect(() => {
     const host = hostRef.current
     const terminalApi = window.hermesDesktop?.terminal
+    const useRemotePty = !terminalApi && getProductRuntime().capabilities.remoteTerminal
 
-    if (!host || !terminalApi) {
+    if (!host || (!terminalApi && !useRemotePty)) {
       setStatus('closed')
 
       return
@@ -419,6 +423,7 @@ export function useTerminalSession({
     let disposed = false
     const cleanup: Array<() => void> = []
     let lastSentSize: { cols: number; rows: number } | null = null
+    let remotePty: RemotePtyHandle | null = null
 
     const term = new Terminal({
       allowProposedApi: true,
@@ -530,9 +535,11 @@ export function useTerminalSession({
     }
 
     const onDrop = (e: DragEvent) => {
-      const id = sessionIdRef.current
+      if (!sessionIdRef.current && !remotePty) {
+        return
+      }
 
-      if (!id || !e.dataTransfer || !transferHasDropCandidates(e.dataTransfer)) {
+      if (!e.dataTransfer || !transferHasDropCandidates(e.dataTransfer)) {
         return
       }
 
@@ -544,7 +551,12 @@ export function useTerminalSession({
         return
       }
 
-      void terminalApi.write(id, `${paths.map(p => quotePathForShell(p, shellNameRef.current)).join(' ')} `)
+      const payload = `${paths.map(p => quotePathForShell(p, shellNameRef.current)).join(' ')} `
+      if (remotePty) {
+        remotePty.write(payload)
+      } else if (terminalApi && sessionIdRef.current) {
+        void terminalApi.write(sessionIdRef.current, payload)
+      }
       term.focus()
       triggerHaptic('selection')
     }
@@ -604,7 +616,11 @@ export function useTerminalSession({
 
       if (id && (lastSentSize?.cols !== term.cols || lastSentSize?.rows !== term.rows)) {
         lastSentSize = { cols: term.cols, rows: term.rows }
-        void terminalApi.resize(id, { cols: term.cols, rows: term.rows })
+        if (remotePty) {
+          remotePty.resize(term.cols, term.rows)
+        } else if (terminalApi) {
+          void terminalApi.resize(id, { cols: term.cols, rows: term.rows })
+        }
       }
     }
 
@@ -640,9 +656,14 @@ export function useTerminalSession({
     })
 
     const dataDisposable = term.onData(data => {
+      if (remotePty) {
+        remotePty.write(data)
+        return
+      }
+
       const id = sessionIdRef.current
 
-      if (id) {
+      if (id && terminalApi) {
         void terminalApi.write(id, data)
       }
     })
@@ -659,12 +680,63 @@ export function useTerminalSession({
 
     cleanup.push(() => selectionDisposable.dispose())
 
-    const startSession = () =>
-      void terminalApi
+    const startSession = () => {
+      if (useRemotePty) {
+        void connectRemotePty()
+          .then(handle => {
+            if (disposed) {
+              handle.dispose()
+              return
+            }
+
+            remotePty = handle
+            remotePtyRef.current = handle
+            sessionIdRef.current = id
+            lastSentSize = { cols: term.cols, rows: term.rows }
+            shellNameRef.current = 'cloud'
+            setShellName('cloud')
+            onShellRef.current?.('cloud')
+            handle.resize(term.cols, term.rows)
+
+            const initial = term.hasSelection() ? term.getSelection() : ''
+            selectionRef.current = initial
+            selectionLabelRef.current = initial ? terminalSelectionLabel(term, shellNameRef.current, initial) : ''
+
+            setStatus('open')
+
+            cleanup.push(
+              handle.onData(data => {
+                armedWrite(data)
+                scheduleSnapshot()
+              }),
+              handle.onExit(() => {
+                if (!disposed && !appTearingDown) {
+                  closeTerminal(id)
+                }
+              })
+            )
+
+            window.requestAnimationFrame(() => {
+              fitAndResize()
+              term.clearSelection()
+              term.focus()
+            })
+          })
+          .catch(error => {
+            setStatus('closed')
+            term.write(
+              `Remote terminal failed to start: ${error instanceof Error ? error.message : String(error)}\r\n`
+            )
+          })
+
+        return
+      }
+
+      void terminalApi!
         .start({ cols: term.cols, cwd, rows: term.rows })
         .then(session => {
           if (disposed) {
-            void terminalApi.dispose(session.id)
+            void terminalApi!.dispose(session.id)
 
             return
           }
@@ -682,18 +754,11 @@ export function useTerminalSession({
           setStatus('open')
 
           cleanup.push(
-            terminalApi.onData(session.id, data => {
+            terminalApi!.onData(session.id, data => {
               armedWrite(data)
               scheduleSnapshot()
             }),
-            terminalApi.onExit(session.id, () => {
-              // Shell exited (`exit` / Ctrl-D / crash) — drop the tab like a real
-              // terminal. closeTerminal hides the pane when it's the last one.
-              // Skip if we're tearing down (cleanup disposes the PTY) OR the app
-              // is quitting/reloading: on quit the main process kills every PTY,
-              // firing this exit, but React skips the cleanup so `disposed` stays
-              // false — running closeTerminal here would wipe the persisted tabs
-              // right before relaunch restores them.
+            terminalApi!.onExit(session.id, () => {
               if (!disposed && !appTearingDown) {
                 closeTerminal(id)
               }
@@ -702,7 +767,7 @@ export function useTerminalSession({
 
           window.requestAnimationFrame(() => {
             fitAndResize()
-            term.clearSelection() // drop any selection painted over transient boot rows
+            term.clearSelection()
             term.focus()
           })
         })
@@ -710,6 +775,7 @@ export function useTerminalSession({
           setStatus('closed')
           term.write(`Terminal failed to start: ${error instanceof Error ? error.message : String(error)}\r\n`)
         })
+    }
 
     // Open + fit + start only once webfonts settle. Fitting with fallback metrics
     // picks the wrong row count, the shell boots at that size, then the real font
@@ -759,9 +825,13 @@ export function useTerminalSession({
       const id = sessionIdRef.current
       sessionIdRef.current = null
 
-      if (id) {
+      if (id && terminalApi) {
         void terminalApi.dispose(id)
       }
+
+      remotePty?.dispose()
+      remotePty = null
+      remotePtyRef.current = null
 
       term.dispose()
       termRef.current = null
@@ -842,11 +912,15 @@ export function useTerminalSession({
     return $terminalInjection.subscribe(command => {
       const sessionId = sessionIdRef.current
 
-      if (!command || !sessionId) {
+      if (!command || !sessionIdRef.current) {
         return
       }
 
-      void window.hermesDesktop?.terminal?.write(sessionId, `${command}\r`)
+      if (remotePtyRef.current) {
+        remotePtyRef.current.write(`${command}\r`)
+      } else {
+        void window.hermesDesktop?.terminal?.write(sessionIdRef.current, `${command}\r`)
+      }
       $terminalInjection.set(null)
       termRef.current?.focus()
     })
