@@ -2,11 +2,9 @@
  * Writes build/engine-trust.json for packaged desktop (Ed25519 engine verify).
  * Set W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 at build time (SPKI, base64).
  */
-import fs from 'node:fs'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
+const fs = require('node:fs')
+const path = require('node:path')
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const outDir = path.join(__dirname, '..', 'build')
 const outFile = path.join(outDir, 'engine-trust.json')
 
