@@ -12269,8 +12269,7 @@ def main():
         description=(
             "Manage the fallback provider chain.  Fallback providers are tried "
             "in order when the primary model fails with rate-limit, overload, or "
-            "connection errors.  See: "
-            W4Y_DOCS_BASE,
+            f"connection errors.  See: {W4Y_DOCS_BASE}"
         ),
     )
     fallback_subparsers = fallback_parser.add_subparsers(dest="fallback_command")
@@ -12303,8 +12302,7 @@ def main():
         description=(
             "Pull API keys from an external secret manager at process startup "
             f"instead of storing them in {display_wayne_home()}/.env.  Currently supports "
-            "Bitwarden Secrets Manager.  See: "
-            W4Y_DOCS_BASE,
+            f"Bitwarden Secrets Manager.  See: {W4Y_DOCS_BASE}"
         ),
     )
     secrets_subparsers = secrets_parser.add_subparsers(dest="secrets_command")
