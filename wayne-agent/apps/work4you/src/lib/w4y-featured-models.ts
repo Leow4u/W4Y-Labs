@@ -7,7 +7,7 @@
 import type { ModelOptionProvider } from '@/types/hermes'
 
 import { displayModelName } from './model-status-label'
-import { isRelayFreeModel, RELAY_25_FAST_LABEL } from './relay-free-model'
+import { isRelayFreeModel, RELAY_25_FAST_LABEL, RELAY_FREE_PRIMARY_MODEL } from './relay-free-model'
 
 export type FeaturedVersionKey = 'highEffort' | 'fast'
 
@@ -92,11 +92,42 @@ export function ensureW4yAutoModel(
   return list
 }
 
-/** Catalog providers with Auto forced in — shared prep for every picker. */
+/**
+ * Ensure Relay 2.5 Fast (`qwen/qwen3.7-flash`) is in the catalog row even when
+ * the live OpenRouter list or curated cache omitted it — Free plan users must
+ * always see their house model in Conta/Models and the composer picker.
+ */
+export function ensureRelayFreeModel(
+  providers: readonly ModelOptionProvider[] | null | undefined
+): ModelOptionProvider[] {
+  const list = [...(providers ?? [])]
+  const idx = list.findIndex(p => (p.slug || '').toLowerCase() === W4Y_CATALOG_PROVIDER)
+
+  if (idx < 0) {
+    list.unshift({
+      authenticated: true,
+      models: [RELAY_FREE_PRIMARY_MODEL, W4Y_AUTO_MODEL_ID],
+      name: 'Catalog',
+      slug: W4Y_CATALOG_PROVIDER
+    })
+    return list
+  }
+
+  const row = list[idx]!
+  const models = row.models ?? []
+  if (models.some(id => isRelayFreeModel(id))) {
+    return list
+  }
+
+  list[idx] = { ...row, models: [RELAY_FREE_PRIMARY_MODEL, ...models] }
+  return list
+}
+
+/** Catalog providers with Auto + Relay forced in — shared prep for every picker. */
 export function prepareW4yPickerProviders(
   providers: readonly ModelOptionProvider[] | null | undefined
 ): ModelOptionProvider[] {
-  return filterW4yProviders(ensureW4yAutoModel(providers))
+  return filterW4yProviders(ensureRelayFreeModel(ensureW4yAutoModel(providers)))
 }
 
 /**
@@ -105,6 +136,16 @@ export function prepareW4yPickerProviders(
  */
 export const W4Y_FEATURED_MODELS: readonly FeaturedModel[] = [
   // —— Pinned (main list) ——
+  {
+    id: RELAY_FREE_PRIMARY_MODEL,
+    label: RELAY_25_FAST_LABEL,
+    title: RELAY_25_FAST_LABEL,
+    description: 'Work4You house model on the Free plan — fast, tool-capable, 1M context.',
+    contextWindow: 1_000_000,
+    version: 'fast',
+    defaultOn: true,
+    section: 'pinned'
+  },
   {
     id: 'openrouter/auto',
     label: 'Auto',

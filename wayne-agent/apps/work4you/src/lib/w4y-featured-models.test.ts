@@ -4,12 +4,15 @@ import type { ModelOptionProvider } from '@/types/hermes'
 
 import {
   ensureW4yAutoModel,
+  ensureRelayFreeModel,
   filterW4yProviders,
   isW4yPickerProvider,
   prepareW4yPickerProviders,
   W4Y_AUTO_MODEL_ID,
-  W4Y_CATALOG_PROVIDER
+  W4Y_CATALOG_PROVIDER,
+  featuredDefaultOnIds
 } from './w4y-featured-models'
+import { RELAY_FREE_PRIMARY_MODEL } from './relay-free-model'
 
 const provider = (slug: string, models: string[], extra?: Partial<ModelOptionProvider>): ModelOptionProvider => ({
   models,
@@ -57,6 +60,16 @@ describe('W4Y picker provider filter', () => {
     ])
     expect(prepared).toHaveLength(1)
     expect(prepared[0]!.slug).toBe('openrouter')
-    expect(prepared[0]!.models![0]).toBe(W4Y_AUTO_MODEL_ID)
+    expect(prepared[0]!.models![0]).toBe(RELAY_FREE_PRIMARY_MODEL)
+    expect(prepared[0]!.models).toContain(W4Y_AUTO_MODEL_ID)
+  })
+
+  it('featuredDefaultOnIds includes Relay 2.5 Fast', () => {
+    expect(featuredDefaultOnIds()).toContain(RELAY_FREE_PRIMARY_MODEL)
+  })
+
+  it('ensureRelayFreeModel injects house model when missing', () => {
+    const ensured = ensureRelayFreeModel([provider('openrouter', ['x-ai/grok-4.5'])])
+    expect(ensured[0]!.models![0]).toBe(RELAY_FREE_PRIMARY_MODEL)
   })
 })

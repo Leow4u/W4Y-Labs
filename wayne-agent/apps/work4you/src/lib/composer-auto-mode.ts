@@ -8,6 +8,7 @@ import {
   W4Y_CATALOG_PROVIDER,
   W4Y_FEATURED_MODELS
 } from '@/lib/w4y-featured-models'
+import { RELAY_FREE_PRIMARY_MODEL } from '@/lib/relay-free-model'
 
 const MANUAL_MODEL_KEY = 'hermes.desktop.composer.manual-model'
 const MANUAL_PROVIDER_KEY = 'hermes.desktop.composer.manual-provider'
@@ -55,7 +56,7 @@ export function resolveComposerManualFallback(): { model: string; provider: stri
   const featured = W4Y_FEATURED_MODELS.find(entry => entry.id !== W4Y_AUTO_MODEL_ID && entry.defaultOn)
 
   return {
-    model: featured?.id ?? 'x-ai/grok-4.5',
+    model: featured?.id ?? RELAY_FREE_PRIMARY_MODEL,
     provider: W4Y_CATALOG_PROVIDER
   }
 }
