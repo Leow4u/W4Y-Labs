@@ -51,8 +51,7 @@ def build_setup_parser(subparsers, *, cmd_setup: Callable) -> None:
     setup_parser.add_argument(
         "--portal",
         action="store_true",
-        help="One-shot Nous Portal setup: log in via OAuth, pick a Nous "
-        "model, set Nous as the inference provider, and opt into the Tool "
-        "Gateway. Skips the rest of the wizard.",
+        help="One-shot Work4You model setup: Relay 2.5 Fast + platform "
+        "OpenRouter key. Skips the rest of the wizard.",
     )
     setup_parser.set_defaults(func=cmd_setup)

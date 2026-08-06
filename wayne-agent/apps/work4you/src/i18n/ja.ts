@@ -2087,7 +2087,7 @@ export const ja = defineLocale({
     chooseLater: '後でプロバイダーを選択します',
     recommended: '推奨',
     connected: '接続済み',
-    featuredPitch: '1 つのサブスクリプションで 300 以上の最先端モデル — Work4You を実行するための推奨方法',
+    featuredPitch: 'Relay 2.5 Fast（無料）— Work4You アカウントでサインイン',
     openRouterPitch: '1 つのキーで数百のモデル — 堅実なデフォルト',
     catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {

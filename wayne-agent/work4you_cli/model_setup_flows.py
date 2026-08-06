@@ -66,8 +66,26 @@ def _prompt_auth_credentials_choice(title: str) -> str:
     return "use"
 
 
+def _model_flow_w4y_relay(config, current_model=""):
+    """Work4You platform default: Relay 2.5 Fast on OpenRouter."""
+    from work4you_cli.config import load_config, save_config
+    from work4you_cli.w4y_platform_setup import run_w4y_relay_setup
+
+    if not run_w4y_relay_setup(config):
+        return
+
+    refreshed = load_config() or {}
+    if isinstance(refreshed, dict):
+        config.clear()
+        config.update(refreshed)
+    save_config(config)
+
+
 def _model_flow_openrouter(config, current_model=""):
-    """OpenRouter provider: ensure API key, then pick model."""
+    """OpenRouter / Work4You catalog: Relay defaults + optional model pick."""
+    from work4you_cli.relay_free_model import apply_relay_free_defaults, W4Y_LOGIN_URL
+
+    apply_relay_free_defaults(config)
     from work4you_cli.main import _prompt_api_key
     from work4you_constants import OPENROUTER_BASE_URL
     from work4you_cli.auth import (
@@ -85,13 +103,14 @@ def _model_flow_openrouter(config, current_model=""):
     # isn't in PROVIDER_REGISTRY so we synthesize a minimal pconfig.
     pconfig = ProviderConfig(
         id="openrouter",
-        name="Model catalog",
+        name="Work4You models",
         auth_type="api_key",
         api_key_env_vars=("OPENROUTER_API_KEY",),
     )
     existing_key = get_env_value("OPENROUTER_API_KEY") or ""
     if not existing_key:
-        print("Get one at: https://openrouter.ai/keys")
+        print(f"Sign in at {W4Y_LOGIN_URL} or paste an OpenRouter key.")
+        print("Get a BYO key at: https://openrouter.ai/keys")
         print()
     _resolved, abort = _prompt_api_key(pconfig, existing_key, provider_id="openrouter")
     if abort:

@@ -3081,7 +3081,7 @@ export const en: Translations = {
     chooseLater: "I'll choose a provider later",
     recommended: 'Recommended',
     connected: 'Connected',
-    featuredPitch: 'One subscription, 300+ frontier models — the recommended way to run Work4You',
+    featuredPitch: 'Relay 2.5 Fast on Free — sign in with your Work4You account',
     openRouterPitch: 'One key, hundreds of models — a solid default',
     catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {

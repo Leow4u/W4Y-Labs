@@ -3024,7 +3024,7 @@ export const zh: Translations = {
     chooseLater: '稍后再选择提供方',
     recommended: '推荐',
     connected: '已连接',
-    featuredPitch: '一个订阅，300+ 前沿模型 — 运行 Work4You 的推荐方式',
+    featuredPitch: 'Relay 2.5 Fast 免费版 — 使用 Work4You 账户登录',
     openRouterPitch: '一个密钥，数百个模型 — 稳妥的默认选择',
     catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {

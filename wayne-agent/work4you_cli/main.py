@@ -604,6 +604,7 @@ from work4you_cli import __version__, __release_date__
 from work4you_cli.model_setup_flows import (
     _prompt_auth_credentials_choice,
     _model_flow_openrouter,
+    _model_flow_w4y_relay,
     _model_flow_nous,
     _model_flow_openai_codex,
     _model_flow_xai_oauth,
@@ -3078,11 +3079,16 @@ def select_provider_and_model(args=None):
 
     # Step 2: Provider-specific setup + model selection
     if selected_provider == "openrouter":
-        _model_flow_openrouter(config, current_model)
+        _model_flow_w4y_relay(config, current_model)
     elif selected_provider == "moa":
         _model_flow_moa(config, current_model)
     elif selected_provider == "nous":
-        _model_flow_nous(config, current_model, args=args)
+        from work4you_cli.cli_output import print_warning
+
+        print_warning(
+            "Nous Portal is not part of Work4You. Setting up Relay 2.5 Fast instead."
+        )
+        _model_flow_w4y_relay(config, current_model)
     elif selected_provider == "openai-codex":
         _model_flow_openai_codex(config, current_model)
     elif selected_provider == "xai-oauth":

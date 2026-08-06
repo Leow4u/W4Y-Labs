@@ -5596,48 +5596,23 @@ def get_recommended_default_model(provider: str = ""):
     """
     slug = (provider or "").strip().lower()
 
-    if slug == "nous":
+    if slug in {"openrouter", "nous"}:
         try:
-            from work4you_cli.models import (
-                get_curated_nous_model_ids,
-                get_pricing_for_provider,
-                check_nous_free_tier,
-                partition_nous_models_by_tier,
-                union_with_portal_free_recommendations,
-                union_with_portal_paid_recommendations,
+            from work4you_cli.relay_free_model import (
+                RELAY_FREE_PRIMARY_MODEL,
+                RELAY_FREE_PROVIDER,
             )
-            from work4you_cli.auth import get_provider_auth_state
 
-            model_ids = get_curated_nous_model_ids()
-            pricing = get_pricing_for_provider("nous") or {}
-            free_tier = check_nous_free_tier(force_fresh=True)
-
-            portal_url = ""
-            try:
-                state = get_provider_auth_state("nous") or {}
-                portal_url = state.get("portal_base_url", "") or ""
-            except Exception:
-                portal_url = ""
-
-            if free_tier:
-                model_ids, pricing = union_with_portal_free_recommendations(
-                    model_ids, pricing, portal_url
-                )
-                model_ids, _unavailable = partition_nous_models_by_tier(
-                    model_ids, pricing, free_tier=True
-                )
-            else:
-                model_ids, pricing = union_with_portal_paid_recommendations(
-                    model_ids, pricing, portal_url
-                )
-
-            model = model_ids[0] if model_ids else ""
-            return {"provider": "nous", "model": model, "free_tier": bool(free_tier)}
+            return {
+                "provider": RELAY_FREE_PROVIDER,
+                "model": RELAY_FREE_PRIMARY_MODEL,
+                "free_tier": True,
+            }
         except Exception:
-            _log.exception("GET /api/model/recommended-default (nous) failed")
-            return {"provider": "nous", "model": "", "free_tier": None}
+            _log.exception("GET /api/model/recommended-default (relay) failed")
+            return {"provider": "openrouter", "model": "", "free_tier": None}
 
-    # Non-Nous: first curated model for the provider, matching prior behaviour.
+    # Other providers: first curated model for the provider.
     try:
         from work4you_cli.inventory import build_models_payload, load_picker_context
 
@@ -8056,14 +8031,6 @@ def _copilot_acp_status() -> Dict[str, Any]:
 # verification URL + poll, ``external`` = read-only (delegated to a third-party
 # CLI like Claude Code or Qwen).
 _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
-    {
-        "id": "nous",
-        "name": "Nous Portal",
-        "flow": "device_code",
-        "cli_command": "work4you auth add nous",
-        "docs_url": "https://portal.nousresearch.com",
-        "status_fn": None,  # dispatched via auth.get_nous_auth_status
-    },
     {
         "id": "openai-codex",
         "name": "OpenAI OAuth (ChatGPT)",

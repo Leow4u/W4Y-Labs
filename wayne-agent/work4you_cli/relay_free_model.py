@@ -34,3 +34,21 @@ def relay_free_model_config_patch() -> dict:
         "agent": {"reasoning_effort": RELAY_FREE_REASONING},
         "fallback_model": relay_free_fallback_chain(),
     }
+
+
+def apply_relay_free_defaults(config: dict) -> None:
+    """Merge Relay 2.5 Fast platform defaults into *config* in place."""
+    patch = relay_free_model_config_patch()
+    model_patch = patch.get("model") or {}
+    existing = config.get("model")
+    if not isinstance(existing, dict):
+        config["model"] = {}
+    config["model"].update(model_patch)
+    agent = config.setdefault("agent", {})
+    if isinstance(agent, dict):
+        agent["reasoning_effort"] = patch["agent"]["reasoning_effort"]
+    config["fallback_model"] = patch.get("fallback_model", relay_free_fallback_chain())
+
+
+W4Y_DOCS_BASE = "https://work4you.ai/documentacao"
+W4Y_LOGIN_URL = "https://work4you.ai/login"

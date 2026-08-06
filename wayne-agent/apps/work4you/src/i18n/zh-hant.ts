@@ -1974,7 +1974,7 @@ export const zhHant = defineLocale({
     chooseLater: '稍後再選擇提供方',
     recommended: '建議',
     connected: '已連線',
-    featuredPitch: '一個訂閱，300+ 前沿模型 — 執行 Work4You 的建議方式',
+    featuredPitch: 'Relay 2.5 Fast 免費版 — 使用 Work4You 帳戶登入',
     openRouterPitch: '一個金鑰，數百個模型 — 穩定的預設選擇',
     catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {

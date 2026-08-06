@@ -24,6 +24,17 @@ def test_relay_free_fallback_chain_openrouter():
     assert chain[0]["model"] == RELAY_FREE_FALLBACK_MODEL
 
 
+def test_apply_relay_free_defaults_merges_into_config():
+    from work4you_cli.relay_free_model import apply_relay_free_defaults
+
+    config: dict = {"model": {"default": "old/model"}, "agent": {}}
+    apply_relay_free_defaults(config)
+    assert config["model"]["default"] == RELAY_FREE_PRIMARY_MODEL
+    assert config["model"]["provider"] == RELAY_FREE_PROVIDER
+    assert config["agent"]["reasoning_effort"] == "medium"
+    assert config["fallback_model"] == relay_free_fallback_chain()
+
+
 def test_relay_free_config_patch_wires_primary_and_fallback():
     patch = relay_free_model_config_patch()
     assert patch["model"]["default"] == RELAY_FREE_PRIMARY_MODEL

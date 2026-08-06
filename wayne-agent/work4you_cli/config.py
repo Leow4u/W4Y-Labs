@@ -899,9 +899,13 @@ def _ensure_wayne_home_managed(home: Path):
 # =============================================================================
 
 DEFAULT_CONFIG = {
-    "model": "",
+    "model": {
+        "default": "qwen/qwen3.7-flash",
+        "provider": "openrouter",
+    },
     "providers": {},
     "fallback_providers": [],
+    "fallback_model": [{"provider": "openrouter", "model": "openai/gpt-oss-20b"}],
     "credential_pool_strategies": {},
     "toolsets": ["wayne-cli"],
     # Global active chat session cap across CLI, TUI/dashboard, and messaging.
@@ -1082,6 +1086,7 @@ DEFAULT_CONFIG = {
         # remains available as a tool regardless of this setting — the routing
         # only controls how inbound user images are presented.
         "image_input_mode": "auto",
+        "reasoning_effort": "medium",
         "disabled_toolsets": [],
     },
     
