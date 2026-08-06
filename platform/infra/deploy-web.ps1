@@ -36,6 +36,9 @@ $ErrorActionPreference = 'Continue'
 gcloud secrets add-iam-policy-binding w4y-web-database-url `
     --member="serviceAccount:$script:RUNTIME_SA" `
     --role='roles/secretmanager.secretAccessor' --condition=None 2>&1 | Out-Null
+gcloud secrets add-iam-policy-binding w4y-session-secret `
+    --member="serviceAccount:$script:RUNTIME_SA" `
+    --role='roles/secretmanager.secretAccessor' --condition=None 2>&1 | Out-Null
 $ErrorActionPreference = $prevEap
 $deployArgs = @(
     'run', 'deploy', $WEB_SERVICE,
