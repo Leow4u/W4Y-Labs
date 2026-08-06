@@ -20,13 +20,13 @@ import { useAccountPlanGating } from '@/hooks/use-account-plan-gating'
 import { getGlobalModelOptions } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { ChevronRight } from '@/lib/icons'
-import { displayModelName } from '@/lib/model-status-label'
 import { openUpgrade } from '@/lib/plans'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import {
   featuredBySection,
   formatContextWindow,
+  modelLabel,
   prepareW4yPickerProviders,
   W4Y_CATALOG_PROVIDER,
   W4Y_FEATURED_MODELS,
@@ -121,9 +121,12 @@ function ModelToggleRow({
     <ListRow
       action={
         <Switch
-          checked={checked}
-          disabled={locked && !checked}
-          onCheckedChange={() => onToggle()}
+          checked={locked ? false : checked}
+          disabled={locked}
+          onCheckedChange={() => {
+            if (locked) return
+            onToggle()
+          }}
         />
       }
       inset
@@ -171,9 +174,12 @@ function CatalogToggleRow({
     <ListRow
       action={
         <Switch
-          checked={checked}
-          disabled={locked && !checked}
-          onCheckedChange={() => onToggle()}
+          checked={locked ? false : checked}
+          disabled={locked}
+          onCheckedChange={() => {
+            if (locked) return
+            onToggle()
+          }}
         />
       }
       inset
@@ -289,6 +295,13 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
 
   const isOn = (modelId: string) => visible.has(modelVisibilityKey(providerSlug, modelId))
 
+  const rowChecked = (modelId: string) => {
+    if (isLocked(modelId)) {
+      return false
+    }
+    return isOn(modelId)
+  }
+
   const catalogFamilies = useMemo(() => {
     const families = collapseModelFamilies(catalogProvider?.models ?? [])
     const q = normalize(catalogSearch)
@@ -296,7 +309,7 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
       return families
     }
     return families.filter(family => {
-      const label = displayModelName(family.id)
+      const label = modelLabel(family.id)
       return `${family.id} ${label}`.toLowerCase().includes(q)
     })
   }, [catalogProvider, catalogSearch])
@@ -341,9 +354,9 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
             ) : (
               catalogFamilies.map(family => (
                 <CatalogToggleRow
-                  checked={isOn(family.id)}
+                  checked={rowChecked(family.id)}
                   key={family.id}
-                  label={displayModelName(family.id)}
+                  label={modelLabel(family.id)}
                   locked={isLocked(family.id)}
                   onToggle={() => toggle(family.id)}
                 />
@@ -376,7 +389,7 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
             ) : (
               pinnedModels.map(entry => (
                 <ModelToggleRow
-                  checked={isOn(entry.id)}
+                  checked={rowChecked(entry.id)}
                   key={entry.id}
                   locked={isLocked(entry.id)}
                   model={entry}
@@ -388,7 +401,7 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
             {moreOpen
               ? moreModels.map(entry => (
                   <ModelToggleRow
-                    checked={isOn(entry.id)}
+                    checked={rowChecked(entry.id)}
                     key={entry.id}
                     locked={isLocked(entry.id)}
                     model={entry}

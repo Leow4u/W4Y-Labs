@@ -22,6 +22,7 @@ export {
   type WebSocketAuthParam
 } from './websocket-url'
 export { sanitizeProductCopy } from './product-copy'
+export { W4Y_DOCS_BASE, W4Y_LOGIN_URL, W4Y_PLANS_URL, w4yDocsPath } from './product-urls'
 export {
   RELAY_25_FAST_LABEL,
   RELAY_FREE_FALLBACK_MODEL,

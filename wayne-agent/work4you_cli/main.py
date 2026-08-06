@@ -266,6 +266,7 @@ from typing import Optional
 
 
 from work4you_constants import display_default_wayne_root, display_wayne_home
+from work4you_cli.relay_free_model import W4Y_DOCS_BASE
 from work4you_cli.subcommands._shared import add_accept_hooks_flag as _add_accept_hooks_flag
 from work4you_cli.subcommands.cron import build_cron_parser
 from work4you_cli.subcommands.gateway import build_gateway_parser
@@ -4400,7 +4401,7 @@ def cmd_version(args):
 
 
 def cmd_uninstall(args):
-    """Uninstall Wayne Agent (or just the Chat GUI with --gui)."""
+    """Uninstall Work4You (or just the Chat GUI with --gui)."""
     # Machine-readable install snapshot for the desktop app's uninstall UI.
     # Must run before any TTY gate — it's called from a non-interactive child.
     if getattr(args, "gui_summary", False):
@@ -5944,9 +5945,7 @@ def _print_curator_first_run_notice() -> None:
     )
     print("  Preview now:  work4you curator run --dry-run")
     print("  Pause it:     work4you curator pause")
-    print(
-        "  Docs:         https://hermes-agent.nousresearch.com/docs/user-guide/features/curator"
-    )
+    print(f"  Docs:         {W4Y_DOCS_BASE}")
 
 
 def _print_curator_recent_run_notice() -> None:
@@ -11283,7 +11282,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     print()
     print("  How do you want to authenticate the dashboard?")
     print("    [1] Username & password (quickest; for a trusted LAN / VPN)")
-    print("    [2] OAuth via Nous Portal (run `work4you dashboard register`)")
+    print("    [2] OAuth via Work4You account (run `work4you dashboard register`)")
     print("    [3] Cancel")
     print()
 
@@ -11299,10 +11298,9 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
             "  Run this on the host where the dashboard lives, then start "
             "the dashboard again:\n"
             "    work4you dashboard register\n"
-            "  It provisions a Nous Portal OAuth client and writes "
+            "  It provisions a Work4You OAuth client and writes "
             f"WORK4YOU_DASHBOARD_OAUTH_CLIENT_ID into {display_wayne_home()}/.env for you.\n"
-            "  Docs: https://hermes-agent.nousresearch.com/docs/"
-            "user-guide/features/web-dashboard#authentication-gated-mode"
+            f"  Docs: {W4Y_DOCS_BASE}"
         )
         sys.exit(0)
 
@@ -12066,7 +12064,7 @@ def cmd_memory(args):
 
 
 def cmd_acp(args):
-    """Launch Wayne Agent as an ACP server."""
+    """Launch Work4You as an ACP server."""
     try:
         from acp_adapter.entry import main as acp_main
 
@@ -12272,7 +12270,7 @@ def main():
             "Manage the fallback provider chain.  Fallback providers are tried "
             "in order when the primary model fails with rate-limit, overload, or "
             "connection errors.  See: "
-            "https://hermes-agent.nousresearch.com/docs/user-guide/features/fallback-providers"
+            W4Y_DOCS_BASE,
         ),
     )
     fallback_subparsers = fallback_parser.add_subparsers(dest="fallback_command")
@@ -12306,7 +12304,7 @@ def main():
             "Pull API keys from an external secret manager at process startup "
             f"instead of storing them in {display_wayne_home()}/.env.  Currently supports "
             "Bitwarden Secrets Manager.  See: "
-            "https://hermes-agent.nousresearch.com/docs/user-guide/secrets/bitwarden"
+            W4Y_DOCS_BASE,
         ),
     )
     secrets_subparsers = secrets_parser.add_subparsers(dest="secrets_command")

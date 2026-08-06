@@ -62,11 +62,12 @@ $deployArgs = @(
         'NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=stripe-publishable-key:latest',
         # Turnstile (Cloudflare): anti-robô no registro/auto-provisionamento.
         'TURNSTILE_SITEKEY=turnstile-sitekey:latest',
-        'TURNSTILE_SECRET=turnstile-secret:latest'
+        'TURNSTILE_SECRET=turnstile-secret:latest',
+        'W4Y_SESSION_SECRET=w4y-session-secret:latest'
     ) -join ',')),
     ('--set-env-vars=' + (@(
         'ADMIN_EMAILS=leonardo@dutelog.com.br',
-        'ALLOWED_EMAILS=leonardo@dutelog.com.br',
+        'ALLOW_ALL_EMAILS=1',
         'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev',
         'PROVISIONER_URL=https://provisioner-w4y.fly.dev',
         'FREE_OPEN=1',

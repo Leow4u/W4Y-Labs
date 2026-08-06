@@ -1,7 +1,7 @@
 """
 Status command for wayne CLI.
 
-Shows the status of all Wayne Agent components.
+Shows the status of all Work4You agent components.
 """
 
 import os
@@ -103,7 +103,7 @@ from work4you_constants import is_termux as _is_termux
 
 
 def show_status(args):
-    """Show status of all Wayne Agent components."""
+    """Show status of all Work4You agent components."""
     deep = getattr(args, 'deep', False)
 
     print()
@@ -233,11 +233,11 @@ def show_status(args):
     if nous_logged_in:
         nous_label = "logged in"
     elif nous_inference_present:
-        nous_label = "not logged in (Nous inference key configured)"
+        nous_label = "not logged in (account inference key configured)"
     else:
         nous_label = "not logged in (run: work4you portal)"
     print(
-        f"  {'Nous Portal':<12}  {check_mark(nous_logged_in)} "
+        f"  {'Work4You account':<12}  {check_mark(nous_logged_in)} "
         f"{nous_label}"
     )
     portal_url = nous_status.get("portal_base_url") or "(unknown)"
@@ -326,19 +326,19 @@ def show_status(args):
         print(f"    Error:      {xai_oauth_status.get('error')}")
 
     # =========================================================================
-    # Nous Subscription Features
+    # Managed platform tools (Work4You account)
     # =========================================================================
     if managed_nous_tools_enabled():
         features = get_nous_subscription_features(config)
         print()
-        print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
+        print(color("◆ Work4You managed tools", Colors.CYAN, Colors.BOLD))
         if not features.nous_auth_present:
-            print("  Nous Portal   ✗ not logged in")
+            print("  Work4You account   ✗ not logged in")
         else:
-            print("  Nous Portal   ✓ managed tools available")
+            print("  Work4You account   ✓ managed tools available")
         for feature in features.items():
             if feature.managed_by_nous:
-                state = "active via Nous subscription"
+                state = "active via Work4You account"
             elif feature.active:
                 current = feature.current_provider or "configured provider"
                 state = f"active via {current}"
@@ -350,10 +350,8 @@ def show_status(args):
                 state = "not configured"
             print(f"  {feature.label:<15} {check_mark(feature.available or feature.active or feature.managed_by_nous)} {state}")
     elif nous_logged_in or nous_inference_present:
-        # Nous OAuth without entitlement, or an opaque inference key without
-        # Portal account information, cannot enable the Tool Gateway.
         print()
-        print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
+        print(color("◆ Work4You managed tools", Colors.CYAN, Colors.BOLD))
         message = format_nous_portal_entitlement_message(
             nous_account_info,
             capability="managed web, image, TTS, STT, browser, and Modal tools",

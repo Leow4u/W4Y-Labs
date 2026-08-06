@@ -25,4 +25,5 @@ out/
 wayne-agent/apps/work4you/release/
 wayne-agent/apps/work4you/release-build-*/
 wayne-agent/apps/desktop/release-build-*/
+platform/infra/.engine-signing/
 platform/wayne-fly/wayne-engine-*.zip

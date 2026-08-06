@@ -19,7 +19,7 @@ export default function TermosPage() {
         />
       </Link>
       <h1 className="mt-7 text-3xl font-extrabold tracking-[-0.02em] text-ink">Termos e Serviços</h1>
-      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Última atualização: 5 de julho de 2026 · Versão 1.0</p>
+      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Última atualização: 6 de agosto de 2026 · Versão 1.1</p>
 
       <section className="mt-8 space-y-6">
         <div>
@@ -107,7 +107,17 @@ export default function TermosPage() {
           </p>
         </div>
         <div>
-          <h2 className="font-bold text-ink">10. Lei aplicável e contato</h2>
+          <h2 className="font-bold text-ink">10. Software proprietário</h2>
+          <p className="mt-1">
+            O aplicativo desktop Work4You, o motor de agentes e demais componentes distribuídos
+            pela W4Y-Labs são <strong>software proprietário</strong>, licenciados — não vendidos —
+            para uso pessoal conforme estes Termos. É proibida engenharia reversa, descompilação,
+            redistribuição, sublicenciamento ou cópia não autorizada. Detalhes em{" "}
+            <Link href="/legal/licenca" className="underline">Licença de software</Link>.
+          </p>
+        </div>
+        <div>
+          <h2 className="font-bold text-ink">11. Lei aplicável e contato</h2>
           <p className="mt-1">
             Estes Termos são regidos pelas leis da República Federativa do Brasil, com foro na
             comarca de domicílio do usuário. Dúvidas: <strong>contato@work4you.ai</strong>.

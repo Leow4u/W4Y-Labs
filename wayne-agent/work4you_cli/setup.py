@@ -21,6 +21,7 @@ import copy
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+from work4you_cli.relay_free_model import W4Y_DOCS_BASE
 from work4you_cli.nous_subscription import get_nous_subscription_features
 from tools.tool_backend_helpers import managed_nous_tools_enabled
 from utils import base_url_hostname
@@ -1929,7 +1930,7 @@ def _setup_webhooks():
     print_warning("   internet. For security, run the gateway in a sandboxed environment")
     print_warning("   (Docker, VM, etc.) to limit blast radius from prompt injection.")
     print()
-    print_info("   Full guide: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/")
+    print_info(f"   Full guide: {W4Y_DOCS_BASE}/canais")
     print()
 
     port = prompt("Webhook port (default 8644)")
@@ -1956,7 +1957,7 @@ def _setup_webhooks():
     print_info("      http://your-server:8644/webhooks/<route-name>")
     print()
     print_info("   Route configuration guide:")
-    print_info("   https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes")
+    print_info(f"   {W4Y_DOCS_BASE}/canais")
     print()
     print_info("   Open config in your editor:  work4you config edit")
     print_info("   Open config in your editor:  work4you config edit")
@@ -2760,7 +2761,7 @@ def run_setup_wizard(args):
                         Colors.MAGENTA,
                     )
                 )
-                print(color(f"│     ⚕ Wayne Setup — {label:<34s} │", Colors.MAGENTA))
+                print(color(f"│     ⚕ Work4You Setup — {label:<34s} │", Colors.MAGENTA))
                 print(
                     color(
                         "└─────────────────────────────────────────────────────────┘",

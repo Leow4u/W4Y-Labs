@@ -137,6 +137,13 @@ export function ModeChip({
       if (key === 'yolo' || key === 'off') {
         if (armed !== key) {
           setArmed(key)
+          if (key === 'yolo') {
+            notify({
+              kind: 'warning',
+              title: t.composer.modeYolo,
+              message: t.composer.modeYoloHint
+            })
+          }
           return
         }
         setArmed(null)

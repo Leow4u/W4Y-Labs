@@ -62,9 +62,16 @@ export function ModelPill({
     <>
       {currentModel.trim() ? (
         <span className="truncate">
-          {isW4yAutoModel(currentModel)
-            ? modelLabel(currentModel)
-            : formatModelStatusLabel(currentModel, { fastMode, reasoningEffort })}
+          {(() => {
+            const branded = modelLabel(currentModel)
+            return isW4yAutoModel(currentModel)
+              ? branded
+              : formatModelStatusLabel(currentModel, {
+                  displayName: branded,
+                  fastMode,
+                  reasoningEffort
+                })
+          })()}
         </span>
       ) : (
         <GlyphSpinner className="opacity-50" spinner="braille" />

@@ -845,6 +845,37 @@ for _k, _v in CONFIG_SCHEMA.items():
         _ordered_schema["model_context_length"] = _mcl_entry
 CONFIG_SCHEMA = _ordered_schema
 
+# Fields that must never appear in the dashboard config editor (credentials).
+_SCHEMA_HIDDEN_EXACT: frozenset = frozenset({
+    "delegation.api_key",
+    "dashboard.basic_auth.username",
+    "dashboard.basic_auth.password",
+    "dashboard.basic_auth.password_hash",
+    "dashboard.basic_auth.secret",
+})
+_SCHEMA_HIDDEN_SUFFIXES: tuple = (
+    ".api_key",
+    ".password",
+    ".password_hash",
+)
+
+
+def _public_config_schema() -> Dict[str, Dict[str, Any]]:
+    """Dashboard-safe schema — strips tenant credentials and secrets."""
+    out: Dict[str, Dict[str, Any]] = {}
+    for key, entry in CONFIG_SCHEMA.items():
+        if key in _SCHEMA_HIDDEN_EXACT:
+            continue
+        if any(key.endswith(suffix) for suffix in _SCHEMA_HIDDEN_SUFFIXES):
+            continue
+        if key.startswith("dashboard.basic_auth."):
+            continue
+        out[key] = entry
+    return out
+
+
+PUBLIC_CONFIG_SCHEMA = _public_config_schema()
+
 
 class ConfigUpdate(BaseModel):
     config: dict
@@ -5408,7 +5439,7 @@ async def get_defaults():
 
 @app.get("/api/config/schema")
 async def get_schema():
-    return {"fields": CONFIG_SCHEMA, "category_order": _CATEGORY_ORDER}
+    return {"fields": PUBLIC_CONFIG_SCHEMA, "category_order": _CATEGORY_ORDER}
 
 
 _EMPTY_MODEL_INFO: dict = {

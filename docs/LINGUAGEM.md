@@ -65,6 +65,7 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 | Wayne Agent, Motor Wayne | Work4You |
 | Hermes Agent, “the Hermes assistant” | Work4You |
 | Wayne (como nome do produto) | Work4You |
+| Nous Research, Nous Portal | Work4You / Work4You account |
 
 **Onde aplicar:** `apps/work4you/src/i18n`, `web/src/i18n`, `platform/web` páginas públicas, toasts/erros que mostram texto do motor.
 

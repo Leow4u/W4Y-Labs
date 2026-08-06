@@ -27,7 +27,7 @@ import {
   resolveComposerManualFallback
 } from '@/lib/composer-auto-mode'
 import { requestModelOptions } from '@/lib/model-options'
-import { currentPickerSelection, displayModelName, reasoningEffortLabel } from '@/lib/model-status-label'
+import { currentPickerSelection, reasoningEffortLabel } from '@/lib/model-status-label'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import { openUpgrade } from '@/lib/plans'
@@ -474,7 +474,7 @@ function groupModels(
     }
 
     const matches = (family: ModelFamily) =>
-      `${family.id} ${family.fastId ?? ''} ${displayModelName(family.id)}`.toLowerCase().includes(q)
+      `${family.id} ${family.fastId ?? ''} ${modelLabel(family.id)}`.toLowerCase().includes(q)
 
     const isAutoRouterFamily = (family: ModelFamily) => isW4yAutoModel(family.id)
 

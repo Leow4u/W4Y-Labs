@@ -9,6 +9,8 @@ test('sanitizeProductCopy replaces legacy runtime brands', () => {
   assert.equal(sanitizeProductCopy('wayne whatsapp not paired'), 'Work4You whatsapp not paired')
   assert.equal(sanitizeProductCopy('Hermes Agent · v1'), 'Work4You · v1')
   assert.equal(sanitizeProductCopy('Wayne Console. Type help.'), 'Work4You Console. Type help.')
+  assert.equal(sanitizeProductCopy('Sign in to Nous Portal'), 'Sign in to Work4You account')
+  assert.equal(sanitizeProductCopy('Nous Research billing'), 'Work4You billing')
 })
 
 test('sanitizeProductCopy leaves env var names intact', () => {

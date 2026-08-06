@@ -27,6 +27,14 @@ image_gen:
   provider: openrouter
   model: "google/gemini-2.5-flash-image"
 
+# Cloud hardening defaults (v1 — 1 email = 1 tenant).
+security:
+  redact_secrets: true
+  tirith_fail_open: false
+
+approvals:
+  mode: manual
+
 platforms:
   api_server:
     enabled: true

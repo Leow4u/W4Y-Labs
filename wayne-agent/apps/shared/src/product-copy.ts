@@ -9,6 +9,10 @@ const BRAND_REPLACEMENTS: readonly [RegExp, string][] = [
   [/\bHermes Agent\b/gi, 'Work4You'],
   [/\bWayne Console\b/gi, 'Work4You Console'],
   [/\bWayne Dashboard\b/gi, 'Work4You'],
+  [/\bNous Research\b/gi, 'Work4You'],
+  [/\bNous Portal\b/gi, 'Work4You account'],
+  [/\bNous subscription\b/gi, 'Work4You subscription'],
+  [/\bNous credits\b/gi, 'Work4You credits'],
   [/\bWayne\b/gi, 'Work4You'],
   [/\bHermes\b/gi, 'Work4You']
 ]

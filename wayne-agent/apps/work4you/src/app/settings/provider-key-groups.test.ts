@@ -24,13 +24,13 @@ describe('buildByokProviderKeyGroups', () => {
     const vars = {
       OPENROUTER_API_KEY: keyVar({ provider_label: 'Model catalog' }),
       ANTHROPIC_API_KEY: keyVar({ provider_label: 'Anthropic' }),
-      NOUS_API_KEY: keyVar({ provider_label: 'Nous Portal' })
+      NOUS_API_KEY: keyVar({ provider_label: 'Work4You account' })
     }
 
     const all = buildProviderKeyGroups(vars)
     const byok = buildByokProviderKeyGroups(vars)
 
-    expect(all.map(g => g.name)).toEqual(expect.arrayContaining(['Model catalog', 'Anthropic', 'Nous Portal']))
+    expect(all.map(g => g.name)).toEqual(expect.arrayContaining(['Model catalog', 'Anthropic', 'Work4You account']))
     expect(byok.map(g => g.name)).toEqual(['Anthropic'])
     expect(byok.some(g => g.name === 'Model catalog')).toBe(false)
   })

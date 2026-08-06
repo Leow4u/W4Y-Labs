@@ -23,6 +23,40 @@ export function featuredDefaultOnIdsForPlan(plan: string | null | undefined): st
   return featuredDefaultOnIds()
 }
 
+/** Filter a visibility key set down to Free-tier allowed models (Relay only). */
+export function sanitizeVisibleKeysForPlan(
+  keys: Set<string>,
+  plan: string | null | undefined,
+  catalogProviderSlug: string
+): Set<string> | null {
+  if (!plan || !isGratisPlan(plan)) {
+    return null
+  }
+
+  const relayKey = `${catalogProviderSlug}::${RELAY_FREE_PRIMARY_MODEL}`
+  let dirty = false
+  const next = new Set<string>()
+
+  for (const key of keys) {
+    const model = key.split('::')[1] ?? ''
+    if (!model) {
+      continue
+    }
+    if (isPlanLockedModel(model, plan)) {
+      dirty = true
+      continue
+    }
+    next.add(key)
+  }
+
+  if (!next.has(relayKey)) {
+    next.add(relayKey)
+    dirty = true
+  }
+
+  return dirty ? next : null
+}
+
 /** Filter catalog model ids to those selectable on *plan*. */
 export function filterModelsForPlan(models: readonly string[], plan: string | null | undefined): string[] {
   if (!isGratisPlan(plan)) {

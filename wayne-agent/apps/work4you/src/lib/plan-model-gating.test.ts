@@ -3,9 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   featuredDefaultOnIdsForPlan,
   filterModelsForPlan,
-  isPlanLockedModel
+  isPlanLockedModel,
+  sanitizeVisibleKeysForPlan
 } from '@/lib/plan-model-gating'
-import { featuredDefaultOnIds } from '@/lib/w4y-featured-models'
+import { featuredDefaultOnIds, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
 import { RELAY_FREE_PRIMARY_MODEL } from '@/lib/relay-free-model'
 
 describe('plan-model-gating', () => {
@@ -26,5 +27,21 @@ describe('plan-model-gating', () => {
     const models = [RELAY_FREE_PRIMARY_MODEL, 'openrouter/auto', 'x-ai/grok-4.5']
     expect(filterModelsForPlan(models, 'free')).toEqual([RELAY_FREE_PRIMARY_MODEL])
     expect(filterModelsForPlan(models, 'pro')).toEqual(models)
+  })
+
+  it('sanitizeVisibleKeysForPlan strips locked keys and keeps Relay on Grátis', () => {
+    const relayKey = `${W4Y_CATALOG_PROVIDER}::${RELAY_FREE_PRIMARY_MODEL}`
+    const autoKey = `${W4Y_CATALOG_PROVIDER}::openrouter/auto`
+    const stored = new Set([relayKey, autoKey, `${W4Y_CATALOG_PROVIDER}::anthropic/claude-opus-5`])
+
+    const sanitized = sanitizeVisibleKeysForPlan(stored, 'free', W4Y_CATALOG_PROVIDER)
+
+    expect(sanitized).not.toBeNull()
+    expect(sanitized).toEqual(new Set([relayKey]))
+  })
+
+  it('sanitizeVisibleKeysForPlan is a no-op on paid plans', () => {
+    const stored = new Set([`${W4Y_CATALOG_PROVIDER}::openrouter/auto`])
+    expect(sanitizeVisibleKeysForPlan(stored, 'starter', W4Y_CATALOG_PROVIDER)).toBeNull()
   })
 })

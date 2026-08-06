@@ -10,11 +10,10 @@ import type { HermesGateway } from '@/hermes'
 import { useAccountPlanGating } from '@/hooks/use-account-plan-gating'
 import { useI18n } from '@/i18n'
 import { requestModelOptions } from '@/lib/model-options'
-import { displayModelName, modelDisplayParts } from '@/lib/model-status-label'
 import { openUpgrade } from '@/lib/plans'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
-import { prepareW4yPickerProviders, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
+import { modelLabel, prepareW4yPickerProviders, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
 import {
   $visibleModels,
   collapseModelFamilies,
@@ -71,7 +70,7 @@ export function ModelVisibilityDialog({
   const q = normalize(search)
 
   const matches = (provider: ModelOptionProvider, model: string) =>
-    !q || `${model} ${provider.name} ${provider.slug} ${displayModelName(model)}`.toLowerCase().includes(q)
+    !q || `${model} ${provider.name} ${provider.slug} ${modelLabel(model)}`.toLowerCase().includes(q)
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -114,10 +113,10 @@ export function ModelVisibilityDialog({
                     </div>
                   ) : null}
                   {models.map(family => {
-                    const { name, tag } = modelDisplayParts(family.id)
                     const key = modelVisibilityKey(provider.slug, family.id)
                     const locked = isLocked(family.id)
-                    const checked = visible.has(key)
+                    const checked = locked ? false : visible.has(key)
+                    const label = modelLabel(family.id)
 
                     return (
                       <label
@@ -128,8 +127,7 @@ export function ModelVisibilityDialog({
                         key={key}
                       >
                         <span className="min-w-0 flex-1 truncate">
-                          {name}
-                          {tag ? <span className="text-(--ui-text-tertiary)"> {tag}</span> : null}
+                          {label}
                           {locked ? (
                             <span className="ml-1 text-[0.62rem] uppercase tracking-wide text-(--ui-text-tertiary)">
                               {upgradeLabel}
@@ -138,8 +136,11 @@ export function ModelVisibilityDialog({
                         </span>
                         <Switch
                           checked={checked}
-                          disabled={locked && !checked}
-                          onCheckedChange={() => toggle(provider, family.id)}
+                          disabled={locked}
+                          onCheckedChange={() => {
+                            if (locked) return
+                            toggle(provider, family.id)
+                          }}
                         />
                       </label>
                     )

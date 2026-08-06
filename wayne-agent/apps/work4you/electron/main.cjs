@@ -29,6 +29,7 @@ const { execFileSync, spawn } = require('node:child_process')
 const w4yDeltas = require('./w4y-deltas.cjs')
 const w4yCloud = require('./w4y-cloud.cjs')
 const w4yLogin = require('./w4y-login.cjs')
+const { ensureEulaAccepted } = require('./eula-gate.cjs')
 const w4yWayne = require('./w4y-wayne-resolve.cjs')
 // Casca (shell) auto-updater — wraps electron-updater for packaged builds.
 const w4yAppUpdater = require('./w4y-app-updater.cjs')
@@ -7864,7 +7865,7 @@ app.on('open-url', (event, url) => {
   handleDeepLink(url)
 })
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   try {
     const policy = w4yDeltas.getUpdatePolicy()
     console.log(
@@ -7892,6 +7893,13 @@ app.whenReady().then(() => {
   ensureWslWindowsFonts()
   configureSpellChecker()
   registerPowerResumeListeners()
+
+  const eulaOk = await ensureEulaAccepted()
+  if (!eulaOk) {
+    app.quit()
+    return
+  }
+
   createWindow()
 
   // Win/Linux cold start: the launching hermes:// URL is in our own argv.

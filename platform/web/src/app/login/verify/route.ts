@@ -7,8 +7,11 @@ import { isEmailAllowed } from "@/lib/allowlist";
 import { requestProvision, slugFor } from "@/lib/provisioner";
 import { FREE_ALLOWANCE_USD } from "@/lib/billing";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+const LOGIN_RATE = { limit: 20, windowMs: 60_000 };
 
 // Porta de verificação do Identity Platform: o navegador autentica no
 // Firebase Auth (Google/Microsoft/e-mail) e nos envia o ID token; aqui o
@@ -35,6 +38,15 @@ export async function POST(req: NextRequest) {
   }
   if (!idToken) {
     return NextResponse.json({ ok: false, error: "missing_token" }, { status: 400 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rl = rateLimit(`login:${ip}`, LOGIN_RATE.limit, LOGIN_RATE.windowMs);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { ok: false, error: "rate_limited", retryAfterSec: rl.retryAfterSec },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
   }
 
   let email = "";
@@ -83,7 +95,11 @@ export async function POST(req: NextRequest) {
     }
     const created = await autoProvision(email);
     if (created) {
-      await setDevSession(email, created);
+      try {
+        await setDevSession(email, created);
+      } catch {
+        return NextResponse.json({ ok: false, error: "session_unavailable" }, { status: 503 });
+      }
       return NextResponse.json({ ok: true, next: "/onboarding" });
     }
     // provisionamento não pôde iniciar (registry/serviço fora) → nega educado
@@ -94,7 +110,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "denied" }, { status: 403 });
   }
 
-  await setDevSession(email, tenantId);
+  try {
+    await setDevSession(email, tenantId);
+  } catch {
+    return NextResponse.json({ ok: false, error: "session_unavailable" }, { status: 503 });
+  }
   // Whitelist de destinos pós-login: /admin, /instancias, ou /planos* (retoma o
   // checkout do funil público de preços — só paths relativos, sem open redirect);
   // qualquer outro cai no SSO do Wayne (/login/enter → /chat).

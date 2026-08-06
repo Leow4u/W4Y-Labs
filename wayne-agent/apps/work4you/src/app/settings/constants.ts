@@ -1,3 +1,5 @@
+import { W4Y_LOGIN_URL } from '@hermes/shared'
+
 import {
   Box,
   Brain,
@@ -39,9 +41,9 @@ export const CONTROL_TEXT = 'text-xs'
 export const PROVIDER_GROUPS: ProviderPrefix[] = [
   {
     prefix: 'NOUS_',
-    name: 'Nous Portal',
-    description: 'Hosted Hermes & Nous-trained models',
-    docsUrl: 'https://portal.nousresearch.com',
+    name: 'Work4You account',
+    description: 'Sign in with your Work4You account for hosted models',
+    docsUrl: W4Y_LOGIN_URL,
     priority: 0
   },
   {

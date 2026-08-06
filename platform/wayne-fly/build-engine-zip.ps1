@@ -195,6 +195,17 @@ Write-Host ""
 Write-Host "[OK] Engine package built: $OutputPath ($sizeMb MB)"
 Write-Host "     commit=$commit branch=$branch"
 
+# Optional Ed25519 signing for latest.json (see scripts/sign-engine-manifest.mjs)
+$manifestPath = Join-Path (Split-Path $OutputPath -Parent) "latest.json"
+if (Test-Path $manifestPath) {
+    $node = Get-Command node -ErrorAction SilentlyContinue
+    if ($node -and $env:W4Y_ENGINE_SIGNING_PRIVATE_KEY) {
+        & node (Join-Path (Split-Path $RepoRoot -Parent) "scripts/sign-engine-manifest.mjs") --zip $OutputPath --manifest $manifestPath
+    } else {
+        Write-Host "[i] Skipping engine manifest signature (set W4Y_ENGINE_SIGNING_PRIVATE_KEY to enable)"
+    }
+}
+
 # Publish-time guardrail for the field cut (see header): cascas <= 1.0.45
 # probe wayne_cli/main.py in the extracted tree. Warn loudly when this build
 # would be rejected by them so nobody points latest.json at it by accident.

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import { getDevSession } from "@/lib/dev-auth";
+import { rateLimit } from "@/lib/rate-limit";
 import { PLANS, type Plan } from "@/lib/billing";
 import { requestDeviceKey } from "@/lib/provisioner";
 
@@ -17,23 +18,20 @@ export const dynamic = "force-dynamic";
 // roteado ao Wayne (ver webhooks/stripe/route.ts); rotas da casca vivem
 // na raiz (/planos, /onboarding, /device/...).
 
-// Rate-limit por sessão (e-mail), janela deslizante em memória — mesmo
-// padrão de login/exists. Criar key é ação rara; 1/min segura retry-loop.
-const WINDOW_MS = 60_000;
-const lastHit = new Map<string, number>();
-
-function limited(who: string): boolean {
-  const now = Date.now();
-  const prev = lastHit.get(who) ?? 0;
-  if (now - prev < WINDOW_MS) return true;
-  lastHit.set(who, now);
-  return false;
-}
+// Rate-limit per session email — device key creation is rare (1/min).
+const DEVICE_KEY_RATE = { limit: 3, windowMs: 60_000 };
 
 export async function POST(req: NextRequest) {
   const session = await getDevSession();
   if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (limited(session.email)) return NextResponse.json({ error: "rate_limited" }, { status: 429 });
+
+  const rl = rateLimit(`device-key:${session.email}`, DEVICE_KEY_RATE.limit, DEVICE_KEY_RATE.windowMs);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: "rate_limited", retryAfterSec: rl.retryAfterSec },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
+  }
 
   // corpo opcional: {deviceLabel} — só para identificação humana no registro
   let deviceLabel = "";

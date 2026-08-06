@@ -8,6 +8,7 @@
 "use strict";
 
 const { execFileSync, spawn } = require("node:child_process");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const https = require("node:https");
 const http = require("node:http");
@@ -223,6 +224,62 @@ function parseManifestJson(buf) {
 }
 
 /**
+ * Packaged builds embed SPKI via build/engine-trust.json → resources/engine-trust.json.
+ */
+function loadEngineTrustPublicKeyB64() {
+  const candidates = [
+    process.resourcesPath ? path.join(process.resourcesPath, "engine-trust.json") : null,
+    path.join(__dirname, "..", "build", "engine-trust.json"),
+  ].filter(Boolean);
+  for (const p of candidates) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(p, "utf8"));
+      const key = parsed?.engineUpdatePublicKeyB64;
+      if (typeof key === "string" && key.length > 0) return key;
+    } catch {
+      // missing or invalid
+    }
+  }
+  return "";
+}
+
+/**
+ * Verify signed engine update when manifest includes sha256 + signature.
+ * Set W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 (SPKI, base64) in the packaged app.
+ * Legacy manifests without fields pass through unchanged.
+ */
+function verifyEngineManifest(manifest, zipPath) {
+  if (process.env.W4Y_SKIP_ENGINE_VERIFY === "1") return;
+  if (!manifest || !manifest.sha256 || !manifest.signature) return;
+
+  const digest = crypto.createHash("sha256").update(fs.readFileSync(zipPath)).digest("hex");
+  if (digest !== manifest.sha256) {
+    throw new Error("Engine ZIP integrity check failed (sha256 mismatch)");
+  }
+
+  const pubB64 =
+    process.env.W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 ||
+    loadEngineTrustPublicKeyB64() ||
+    "";
+  if (!pubB64) {
+    throw new Error(
+      "Engine update is signed but W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 is not configured in the desktop build",
+    );
+  }
+
+  const message = Buffer.from(`${manifest.version}|${manifest.builtAt}|${manifest.sha256}`, "utf8");
+  const key = crypto.createPublicKey({
+    key: Buffer.from(pubB64, "base64"),
+    format: "der",
+    type: "spki",
+  });
+  const ok = crypto.verify(null, message, key, Buffer.from(manifest.signature, "base64"));
+  if (!ok) {
+    throw new Error("Engine update signature verification failed");
+  }
+}
+
+/**
  * Fetch latest.json and return zipUrl (for future install.ps1 bootstrap).
  */
 async function fetchEngineZipUrl(https) {
@@ -427,6 +484,8 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
   } catch (err) {
     throw new Error(`Falha ao baixar o motor: ${err && err.message}`);
   }
+
+  verifyEngineManifest(remote, tmpZip);
 
   // Extract to a fresh temp dir, then merge into engineRoot. Extracting
   // straight into an existing install nests as engineRoot/wayne-agent/ when

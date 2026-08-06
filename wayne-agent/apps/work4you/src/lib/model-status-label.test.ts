@@ -45,6 +45,15 @@ describe('model-status-label', () => {
     expect(formatModelStatusLabel('openrouter/auto', { fastMode: true, reasoningEffort: 'high' })).toBe('Auto')
   })
 
+  it('uses displayName override for branded catalog ids (Relay 2.5 Fast)', () => {
+    expect(
+      formatModelStatusLabel('qwen/qwen3.7-flash', {
+        displayName: 'Relay 2.5 Fast',
+        reasoningEffort: 'medium'
+      })
+    ).toBe('Relay 2.5 Fast · Med')
+  })
+
   describe('currentPickerSelection', () => {
     const store = { model: 'opus', provider: 'anthropic' }
     const options = { model: 'hermes-4', provider: 'nous' }

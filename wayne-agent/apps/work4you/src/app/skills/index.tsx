@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Input } from '@/components/ui/input'
+import { w4yDocsPath } from '@hermes/shared'
 import { createSkill, editLearningNode, getLearningNode, getSkills, type HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { openExternalLink } from '@/lib/external-link'
@@ -48,7 +49,7 @@ import { CustomizeEmpty, CustomizeEmptyAction } from './customize-empty'
 import { McpTab } from './mcp-tab'
 import { $skillsSortDesc } from './store'
 
-const SKILLS_DOCS_URL = 'https://hermes-agent.nousresearch.com/docs/user-guide/features/skills'
+const SKILLS_DOCS_URL = w4yDocsPath('skills')
 
 const SKILLS_MODES = ['skills', 'connectors', 'mcp'] as const
 

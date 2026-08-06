@@ -36,6 +36,14 @@ $feedPath = Join-Path $env:TEMP 'latest.json'
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 [System.IO.File]::WriteAllText($feedPath, $feed, $utf8NoBom)
 
+$signScript = Join-Path $repoRoot 'scripts/sign-engine-manifest.mjs'
+if ($env:W4Y_ENGINE_SIGNING_PRIVATE_KEY -and (Test-Path $signScript)) {
+    Write-Host '-> Signing latest.json (Ed25519)'
+    & node $signScript --zip $ZipPath --manifest $feedPath
+    if ($LASTEXITCODE -ne 0) { throw 'Engine manifest signing failed' }
+    $feed = Get-Content $feedPath -Raw
+}
+
 Write-Host "-> $Bucket/$artifact"
 gsutil -h 'Cache-Control:no-store' cp $ZipPath "$Bucket/$artifact"
 

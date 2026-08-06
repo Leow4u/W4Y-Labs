@@ -48,11 +48,16 @@ ficou escrita em sítios que os agentes liam como verdade. Está morta. Os
 
 ## Analogia (não negociável)
 
-**Work4You está para o Hermes como o Cursor está para o VS Code.**
+**Work4You é um produto proprietário W4Y Labs** — agente local + runtime cloud
+unificados. O motor interno é desenvolvido e operado pela W4Y; nomes legados de
+runtime (**Wayne**, etc.) **não** aparecem ao utilizador.
 
-- Reutilizamos a infraestrutura e o backend que já funcionam (Hermes / runtime interno).
-- Construímos **características próprias de produto e UX** em cima — não reescrevemos o motor.
-- Nomes internos do motor (**Wayne**, **Hermes**) **não** são o produto para o utilizador.
+---
+
+## Modelo de conta (v1)
+
+**1 email = 1 tenant.** Cada conta recebe um runtime cloud isolado (app Fly
+dedicado). Multi-user por organização (Enterprise) fica para uma fase posterior.
 
 ---
 
