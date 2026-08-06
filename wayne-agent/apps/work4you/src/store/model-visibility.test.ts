@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
+import { RELAY_FREE_PRIMARY_MODEL } from '@/lib/relay-free-model'
+
 import type { ModelOptionProvider } from '@/types/hermes'
 
 import {
@@ -245,6 +247,18 @@ describe('resolveVisibleKeys', () => {
     expect(visible.has(modelVisibilityKey('openrouter', 'x-ai/grok-4.5'))).toBe(true)
     expect(visible.has(modelVisibilityKey('openrouter', 'anthropic/claude-opus-4.8'))).toBe(false)
     expect(visible.has(modelVisibilityKey('openrouter', 'openai/gpt-5.5'))).toBe(false)
+  })
+
+  it('defaults to Relay only on Grátis for the openrouter catalog', () => {
+    const providers = [
+      provider('openrouter', [RELAY_FREE_PRIMARY_MODEL, 'openrouter/auto', 'x-ai/grok-4.5'])
+    ]
+
+    const visible = defaultVisibleKeys(providers, 'free')
+
+    expect(visible.has(modelVisibilityKey('openrouter', RELAY_FREE_PRIMARY_MODEL))).toBe(true)
+    expect(visible.has(modelVisibilityKey('openrouter', 'openrouter/auto'))).toBe(false)
+    expect(visible.has(modelVisibilityKey('openrouter', 'x-ai/grok-4.5'))).toBe(false)
   })
 })
 

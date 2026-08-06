@@ -7,10 +7,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
 import { Switch } from '@/components/ui/switch'
 import type { HermesGateway } from '@/hermes'
+import { useAccountPlanGating } from '@/hooks/use-account-plan-gating'
 import { useI18n } from '@/i18n'
 import { requestModelOptions } from '@/lib/model-options'
 import { displayModelName, modelDisplayParts } from '@/lib/model-status-label'
+import { openUpgrade } from '@/lib/plans'
 import { normalize } from '@/lib/text'
+import { cn } from '@/lib/utils'
 import { prepareW4yPickerProviders, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
 import {
   $visibleModels,
@@ -39,8 +42,10 @@ export function ModelVisibilityDialog({
 }: ModelVisibilityDialogProps) {
   const { t } = useI18n()
   const copy = t.modelVisibility
+  const upgradeLabel = t.modelPicker.upgrade
   const [search, setSearch] = useState('')
   const stored = useStore($visibleModels)
+  const { plan, isLocked } = useAccountPlanGating(open)
 
   const modelOptions = useQuery({
     queryKey: ['model-options', sessionId || 'global'],
@@ -53,9 +58,13 @@ export function ModelVisibilityDialog({
     [modelOptions.data]
   )
 
-  const visible = effectiveVisibleKeys(stored, providers)
+  const visible = effectiveVisibleKeys(stored, providers, plan)
 
   const toggle = (provider: ModelOptionProvider, model: string) => {
+    if (isLocked(model)) {
+      openUpgrade('essencial')
+      return
+    }
     setVisibleModels(toggleModelVisibility($visibleModels.get(), providers, provider.slug, model))
   }
 
@@ -107,17 +116,31 @@ export function ModelVisibilityDialog({
                   {models.map(family => {
                     const { name, tag } = modelDisplayParts(family.id)
                     const key = modelVisibilityKey(provider.slug, family.id)
+                    const locked = isLocked(family.id)
+                    const checked = visible.has(key)
 
                     return (
                       <label
-                        className="flex cursor-pointer items-center gap-2 px-3 py-1 text-xs hover:bg-accent/50"
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-1 text-xs hover:bg-accent/50',
+                          locked ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                        )}
                         key={key}
                       >
                         <span className="min-w-0 flex-1 truncate">
                           {name}
                           {tag ? <span className="text-(--ui-text-tertiary)"> {tag}</span> : null}
+                          {locked ? (
+                            <span className="ml-1 text-[0.62rem] uppercase tracking-wide text-(--ui-text-tertiary)">
+                              {upgradeLabel}
+                            </span>
+                          ) : null}
                         </span>
-                        <Switch checked={visible.has(key)} onCheckedChange={() => toggle(provider, family.id)} />
+                        <Switch
+                          checked={checked}
+                          disabled={locked && !checked}
+                          onCheckedChange={() => toggle(provider, family.id)}
+                        />
                       </label>
                     )
                   })}

@@ -1,7 +1,8 @@
 import { atom } from 'nanostores'
 
 import { persistString, storedString } from '@/lib/storage'
-import { featuredDefaultOnIds, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
+import { featuredDefaultOnIdsForPlan } from '@/lib/plan-model-gating'
+import { W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
 import type { ModelOptionProvider } from '@/types/hermes'
 
 const STORAGE_KEY = 'hermes.desktop.visible-models'
@@ -102,11 +103,14 @@ export function setModelVisibilityOpen(open: boolean): void {
 
 /** The default-visible key set: the curated top-N per provider. Used both as
  *  the dropdown fallback and to seed the Edit Models dialog. */
-export function defaultVisibleKeys(providers: readonly ModelOptionProvider[]): Set<string> {
+export function defaultVisibleKeys(
+  providers: readonly ModelOptionProvider[],
+  plan?: string | null
+): Set<string> {
   const keys = new Set<string>()
 
   for (const provider of providers) {
-    expandProviderDefaults(provider, keys)
+    expandProviderDefaults(provider, keys, plan)
   }
 
   return keys
@@ -118,11 +122,15 @@ export function defaultVisibleKeys(providers: readonly ModelOptionProvider[]): S
  *
  *  Platform catalog (`openrouter`) uses the curated Models roster `defaultOn`
  *  set so Conta/Models toggles match the Cursor-style first-run list. */
-function expandProviderDefaults(provider: ModelOptionProvider, target: Set<string>): void {
+function expandProviderDefaults(
+  provider: ModelOptionProvider,
+  target: Set<string>,
+  plan?: string | null
+): void {
   const models = provider.models ?? []
   if (provider.slug === W4Y_CATALOG_PROVIDER) {
     const present = new Set(models)
-    const curated = featuredDefaultOnIds().filter(id => present.has(id))
+    const curated = featuredDefaultOnIdsForPlan(plan).filter(id => present.has(id))
     if (curated.length > 0) {
       for (const id of curated) {
         target.add(modelVisibilityKey(provider.slug, id))
@@ -143,9 +151,13 @@ function expandProviderDefaults(provider: ModelOptionProvider, target: Set<strin
  *  sentinels are PRESERVED here — this is the set the toggle handler mutates and
  *  persists, so dropping a sentinel would silently re-enable a provider the user
  *  emptied. Use `effectiveVisibleKeys` for display (sentinels stripped). */
-export function resolveVisibleKeys(stored: Set<string> | null, providers: readonly ModelOptionProvider[]): Set<string> {
+export function resolveVisibleKeys(
+  stored: Set<string> | null,
+  providers: readonly ModelOptionProvider[],
+  plan?: string | null
+): Set<string> {
   if (!stored) {
-    return defaultVisibleKeys(providers)
+    return defaultVisibleKeys(providers, plan)
   }
 
   if (stored.size === 0) {
@@ -165,7 +177,7 @@ export function resolveVisibleKeys(stored: Set<string> | null, providers: readon
       continue
     }
 
-    expandProviderDefaults(provider, next)
+    expandProviderDefaults(provider, next, plan)
   }
 
   return next
@@ -175,9 +187,10 @@ export function resolveVisibleKeys(stored: Set<string> | null, providers: readon
  *  set with bookkeeping sentinels stripped (they are not real models). */
 export function effectiveVisibleKeys(
   stored: Set<string> | null,
-  providers: readonly ModelOptionProvider[]
+  providers: readonly ModelOptionProvider[],
+  plan?: string | null
 ): Set<string> {
-  const next = resolveVisibleKeys(stored, providers)
+  const next = resolveVisibleKeys(stored, providers, plan)
 
   // Strip sentinel keys — they are bookkeeping, not real visibility entries.
   for (const key of [...next]) {

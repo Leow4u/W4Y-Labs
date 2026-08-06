@@ -1,9 +1,9 @@
 /** Desktop installer + CLI one-liners (marketing site). */
 
 export const WINDOWS_DESKTOP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/Work4You-1.0.90-win-x64.exe";
+  "https://storage.googleapis.com/w4y-engine-dist/Work4You-1.0.91-win-x64.exe";
 
-export const DESKTOP_VERSION = "1.0.90";
+export const DESKTOP_VERSION = "1.0.91";
 export const DESKTOP_SIZE = "~104 MB";
 
 const INSTALL_SCRIPT_BASE =

@@ -24,8 +24,10 @@ import {
 } from '@/hermes'
 import { useI18n } from '@/i18n'
 import type { Translations } from '@/i18n/types'
+import { useAccountPlanGating } from '@/hooks/use-account-plan-gating'
 import { AlertTriangle } from '@/lib/icons'
 import { requestModelOptions } from '@/lib/model-options'
+import { openUpgrade } from '@/lib/plans'
 import { modelLabel, prepareW4yPickerProviders } from '@/lib/w4y-featured-models'
 import { $cronJobs } from '@/store/cron'
 import { pickProjectFolder } from '@/store/projects'
@@ -132,6 +134,7 @@ export function AutomationEditor({
   const { t } = useI18n()
   const c = t.cron
   const navigate = useNavigate()
+  const { plan, isLocked } = useAccountPlanGating()
   const isEdit = editor.mode === 'edit'
   const job = isEdit ? editor.job : null
 
@@ -229,15 +232,19 @@ export function AutomationEditor({
   })
 
   const modelChoices = useMemo(() => {
-    const out: Array<{ id: string; label: string }> = [{ id: DEFAULT_MODEL, label: c.modelDefault }]
+    const out: Array<{ id: string; label: string; locked?: boolean }> = [
+      { id: DEFAULT_MODEL, label: c.modelDefault }
+    ]
     for (const provider of prepareW4yPickerProviders(modelOptions.data?.providers)) {
       for (const id of provider.models ?? []) {
         if (!id) continue
-        out.push({ id, label: modelLabel(id) })
+        const locked = isLocked(id)
+        if (locked && id !== model) continue
+        out.push({ id, label: modelLabel(id), locked })
       }
     }
     return out
-  }, [c.modelDefault, modelOptions.data])
+  }, [c.modelDefault, isLocked, model, modelOptions.data])
 
   useEffect(() => {
     const id = window.setInterval(() => setNowMs(Date.now()), 60_000)
@@ -697,13 +704,22 @@ export function AutomationEditor({
                 workdir={workdir}
               />
               <div className="absolute bottom-2 left-2">
-                <Select onValueChange={setModel} value={model}>
+                <Select
+                  onValueChange={next => {
+                    if (next !== DEFAULT_MODEL && isLocked(next)) {
+                      openUpgrade('essencial')
+                      return
+                    }
+                    setModel(next)
+                  }}
+                  value={model}
+                >
                   <SelectTrigger className="h-7 w-auto max-w-[15rem] gap-1 rounded-md border-(--ui-stroke-secondary) bg-background px-2 text-xs font-medium text-foreground shadow-sm">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {modelChoices.map(choice => (
-                      <SelectItem key={choice.id} value={choice.id}>
+                      <SelectItem disabled={choice.locked} key={choice.id} value={choice.id}>
                         {choice.label}
                       </SelectItem>
                     ))}

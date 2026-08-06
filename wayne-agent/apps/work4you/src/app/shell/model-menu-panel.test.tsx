@@ -22,6 +22,15 @@ vi.mock('@/hermes', () => ({
   getGlobalModelOptions: (...args: unknown[]) => getGlobalModelOptions(...args)
 }))
 
+vi.mock('@/hooks/use-account-plan-gating', () => ({
+  useAccountPlanGating: () => ({
+    accountPlan: { data: null },
+    plan: 'starter',
+    gratisGating: false,
+    isLocked: () => false
+  })
+}))
+
 // MoA presets now arrive as the catalog's virtual `moa` provider row (the same
 // payload a remote gateway's model.options returns), not the /api/model/moa
 // REST config.

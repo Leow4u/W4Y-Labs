@@ -10,7 +10,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getGlobalModelOptions } from '@/hermes'
+import { useAccountPlanGating } from '@/hooks/use-account-plan-gating'
 import { useI18n } from '@/i18n'
+import { filterModelsForPlan } from '@/lib/plan-model-gating'
+import { openUpgrade } from '@/lib/plans'
 import { X } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { modelLabel, prepareW4yPickerProviders } from '@/lib/w4y-featured-models'
@@ -83,6 +86,7 @@ function parseFallbackEntries(raw: unknown): FallbackEntry[] {
 
 function useActiveModels() {
   const stored = useStore($visibleModels)
+  const { plan, isLocked } = useAccountPlanGating()
   const modelOptions = useQuery({
     queryKey: ['model-options', 'settings-models'],
     queryFn: () => getGlobalModelOptions()
@@ -91,9 +95,9 @@ function useActiveModels() {
     () => prepareW4yPickerProviders(modelOptions.data?.providers).filter(p => (p.models ?? []).length > 0),
     [modelOptions.data]
   )
-  const visible = useMemo(() => effectiveVisibleKeys(stored, providers), [providers, stored])
+  const visible = useMemo(() => effectiveVisibleKeys(stored, providers, plan), [plan, providers, stored])
   const options = useMemo(() => activeModelOptions(providers, visible), [providers, visible])
-  return { options }
+  return { isLocked, options }
 }
 
 function SubagentModelPicker({
@@ -106,7 +110,7 @@ function SubagentModelPicker({
   const { t } = useI18n()
   const m = t.settings.model
   const fieldCopy = t.settings.advancedPage.fields['delegation.model']
-  const { options } = useActiveModels()
+  const { isLocked, options } = useActiveModels()
 
   const currentProvider = String(getNested(config, 'delegation.provider') ?? '').trim()
   const currentModel = String(getNested(config, 'delegation.model') ?? '').trim()
@@ -147,6 +151,10 @@ function SubagentModelPicker({
             }
             const picked = allOptions.find(o => o.key === next)
             if (!picked) return
+            if (isLocked(picked.model)) {
+              openUpgrade('essencial')
+              return
+            }
             let nextConfig = setNested(config, 'delegation.model', picked.model)
             nextConfig = setNested(nextConfig, 'delegation.provider', picked.provider)
             onChange(nextConfig)
@@ -159,7 +167,11 @@ function SubagentModelPicker({
           <SelectContent>
             <SelectItem value={EMPTY_SELECT_VALUE}>{m.inheritFromParent}</SelectItem>
             {allOptions.map(option => (
-              <SelectItem key={option.key} value={option.key}>
+              <SelectItem
+                disabled={isLocked(option.model) && option.key !== currentKey}
+                key={option.key}
+                value={option.key}
+              >
                 {option.label}
               </SelectItem>
             ))}

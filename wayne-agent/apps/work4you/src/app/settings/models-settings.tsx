@@ -16,10 +16,12 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/components/ui/tooltip'
+import { useAccountPlanGating } from '@/hooks/use-account-plan-gating'
 import { getGlobalModelOptions } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { ChevronRight } from '@/lib/icons'
 import { displayModelName } from '@/lib/model-status-label'
+import { openUpgrade } from '@/lib/plans'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import {
@@ -103,21 +105,39 @@ function ModelHoverCard({ model }: { model: FeaturedModel }) {
 
 function ModelToggleRow({
   checked,
+  locked,
   model,
   onToggle
 }: {
   checked: boolean
+  locked?: boolean
   model: FeaturedModel
   onToggle: () => void
 }) {
+  const { t } = useI18n()
+  const upgradeLabel = t.modelPicker.upgrade
+
   return (
     <ListRow
-      action={<Switch checked={checked} onCheckedChange={() => onToggle()} />}
+      action={
+        <Switch
+          checked={checked}
+          disabled={locked && !checked}
+          onCheckedChange={() => onToggle()}
+        />
+      }
       inset
       title={
         <Tooltip>
           <TooltipTrigger asChild>
-            <span className="cursor-default outline-none">{model.label}</span>
+            <span className={cn('cursor-default outline-none', locked && 'opacity-60')}>
+              {model.label}
+              {locked ? (
+                <span className="ml-2 text-[0.62rem] uppercase tracking-wide text-(--ui-text-tertiary)">
+                  {upgradeLabel}
+                </span>
+              ) : null}
+            </span>
           </TooltipTrigger>
           <TooltipContent
             align="start"
@@ -136,17 +156,37 @@ function ModelToggleRow({
 function CatalogToggleRow({
   checked,
   label,
+  locked,
   onToggle
 }: {
   checked: boolean
   label: string
+  locked?: boolean
   onToggle: () => void
 }) {
+  const { t } = useI18n()
+  const upgradeLabel = t.modelPicker.upgrade
+
   return (
     <ListRow
-      action={<Switch checked={checked} onCheckedChange={() => onToggle()} />}
+      action={
+        <Switch
+          checked={checked}
+          disabled={locked && !checked}
+          onCheckedChange={() => onToggle()}
+        />
+      }
       inset
-      title={label}
+      title={
+        <span className={cn(locked && 'opacity-60')}>
+          {label}
+          {locked ? (
+            <span className="ml-2 text-[0.62rem] uppercase tracking-wide text-(--ui-text-tertiary)">
+              {upgradeLabel}
+            </span>
+          ) : null}
+        </span>
+      }
     />
   )
 }
@@ -154,6 +194,7 @@ function CatalogToggleRow({
 export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSettingsProps) {
   const { t } = useI18n()
   const m = t.settings.model
+  const { plan, isLocked } = useAccountPlanGating()
   const { hash, pathname, search } = useLocation()
   const navigate = useNavigate()
   const stored = useStore($visibleModels)
@@ -225,10 +266,14 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
     return live.length > 0 ? live : more
   }, [availableIds])
 
-  const visible = effectiveVisibleKeys(stored, providersForVisibility)
+  const visible = effectiveVisibleKeys(stored, providersForVisibility, plan)
   const providerSlug = catalogProvider?.slug || W4Y_CATALOG_PROVIDER
 
   const toggle = (modelId: string) => {
+    if (isLocked(modelId)) {
+      openUpgrade('essencial')
+      return
+    }
     if (providersForVisibility.length === 0) {
       // Seed a synthetic provider so toggles still persist before catalog loads.
       const synthetic: ModelOptionProvider = {
@@ -299,6 +344,7 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
                   checked={isOn(family.id)}
                   key={family.id}
                   label={displayModelName(family.id)}
+                  locked={isLocked(family.id)}
                   onToggle={() => toggle(family.id)}
                 />
               ))
@@ -332,6 +378,7 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
                 <ModelToggleRow
                   checked={isOn(entry.id)}
                   key={entry.id}
+                  locked={isLocked(entry.id)}
                   model={entry}
                   onToggle={() => toggle(entry.id)}
                 />
@@ -343,6 +390,7 @@ export function ModelsSettings({ onConfigSaved, onMainModelChanged }: ModelsSett
                   <ModelToggleRow
                     checked={isOn(entry.id)}
                     key={entry.id}
+                    locked={isLocked(entry.id)}
                     model={entry}
                     onToggle={() => toggle(entry.id)}
                   />

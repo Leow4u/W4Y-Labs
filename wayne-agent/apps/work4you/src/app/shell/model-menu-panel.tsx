@@ -19,6 +19,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Switch } from '@/components/ui/switch'
 import type { HermesGateway } from '@/hermes'
+import { useAccountPlanGating } from '@/hooks/use-account-plan-gating'
 import { useI18n } from '@/i18n'
 import {
   isW4yAutoModel,
@@ -29,6 +30,7 @@ import { requestModelOptions } from '@/lib/model-options'
 import { currentPickerSelection, displayModelName, reasoningEffortLabel } from '@/lib/model-status-label'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
+import { openUpgrade } from '@/lib/plans'
 import {
   isW4yPickerProvider,
   modelLabel,
@@ -74,8 +76,10 @@ interface ProviderGroup {
 export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: ModelMenuPanelProps) {
   const { t } = useI18n()
   const copy = t.shell.modelMenu
+  const pickerCopy = t.modelPicker
   const closeMenu = useContext(ModelMenuCloseContext)
   const navigate = useNavigate()
+  const { plan, gratisGating, isLocked } = useAccountPlanGating()
   const [search, setSearch] = useState('')
   // Reactive session state is read from the stores here (not drilled in), so
   // toggling effort/fast/model re-renders this panel in place without forcing
@@ -123,8 +127,8 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
   const pickerProviders = useMemo(() => prepareW4yPickerProviders(providers), [providers])
 
   const effectiveVisibleModels = useMemo(
-    () => effectiveVisibleKeys(visibleModels, pickerProviders),
-    [visibleModels, pickerProviders]
+    () => effectiveVisibleKeys(visibleModels, pickerProviders, plan),
+    [visibleModels, pickerProviders, plan]
   )
 
   // Contract B: Composer sticky write-through. selectModel pins the live
@@ -194,6 +198,11 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
   // Cursor Auto toggle: ON → openrouter/auto; OFF → last manual / featured.
   // Keep the menu open so the switch feels like a control, not a commit.
   const setAutoMode = (on: boolean) => {
+    if (on && gratisGating) {
+      openUpgrade('essencial')
+      return
+    }
+
     if (on) {
       if (!isAutoMode) {
         rememberComposerManualModel(optionsModel, optionsProvider)
@@ -242,7 +251,8 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
               className={cn(
                 dropdownMenuRow,
                 'cursor-default',
-                isAutoMode ? 'h-auto items-start py-1.5' : 'items-center'
+                isAutoMode ? 'h-auto items-start py-1.5' : 'items-center',
+                gratisGating && !isAutoMode && 'opacity-60'
               )}
               onSelect={event => event.preventDefault()}
             >
@@ -252,12 +262,17 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
                   <div className="mt-0.5 text-[11px] leading-snug whitespace-normal text-(--ui-text-tertiary)">
                     {copy.autoModeHint}
                   </div>
+                ) : gratisGating ? (
+                  <div className="mt-0.5 text-[11px] leading-snug whitespace-normal text-(--ui-text-tertiary)">
+                    {pickerCopy.planGatedHint}
+                  </div>
                 ) : null}
               </div>
               <Switch
                 aria-label={copy.autoMode}
                 checked={isAutoMode}
                 className={cn('shrink-0', isAutoMode && 'mt-0.5')}
+                disabled={gratisGating && !isAutoMode}
                 onCheckedChange={checked => setAutoMode(checked)}
                 size="xs"
               />
@@ -309,8 +324,8 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
                     effFast
                   )
 
-                  // Auto-routing model: no effort/fast qualifiers to show.
                   const isAutoRouter = isW4yAutoModel(family.id)
+                  const planLocked = isLocked(family.id)
                   const meta = isAutoRouter
                     ? ''
                     : [
@@ -329,6 +344,12 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
                   // edit submenu (reasoning/fast) is reached by HOVER, so you can
                   // still tweak those without the click dismissing everything.
                   const activate = () => {
+                    if (planLocked) {
+                      openUpgrade('essencial')
+                      closeMenu()
+                      return
+                    }
+
                     if (!isCurrent) {
                       void selectFamily(family, group.provider)
                     }
@@ -339,7 +360,7 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
                   return (
                     <DropdownMenuSub key={`${group.provider.slug}:${family.id}`}>
                       <DropdownMenuSubTrigger
-                        className={dropdownMenuRow}
+                        className={cn(dropdownMenuRow, planLocked && 'cursor-not-allowed opacity-45')}
                         hideChevron
                         onClick={activate}
                         onKeyDown={event => {
@@ -352,7 +373,13 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
                           {name}
                           {meta ? <span className="text-(--ui-text-tertiary)"> {meta}</span> : null}
                         </span>
-                        {isCurrent ? <Codicon className="ml-auto text-foreground" name="check" size="0.75rem" /> : null}
+                        {planLocked ? (
+                          <span className="ml-auto shrink-0 text-[0.62rem] uppercase tracking-wide opacity-80">
+                            {pickerCopy.upgrade}
+                          </span>
+                        ) : isCurrent ? (
+                          <Codicon className="ml-auto text-foreground" name="check" size="0.75rem" />
+                        ) : null}
                       </DropdownMenuSubTrigger>
                       {/* Auto-routing models have no per-request effort/fast knobs. */}
                       {!isAutoRouter && (
@@ -384,18 +411,29 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
           <DropdownMenuLabel className={dropdownMenuSectionLabel}>MoA presets</DropdownMenuLabel>
           {moaPresets.map(preset => {
             const isCurrentMoa = optionsProvider === 'moa' && optionsModel === preset
+            const planLocked = gratisGating
 
             return (
               <DropdownMenuItem
-                className={dropdownMenuRow}
+                className={cn(dropdownMenuRow, planLocked && 'cursor-not-allowed opacity-45')}
                 key={`moa:${preset}`}
                 onSelect={event => {
                   event.preventDefault()
+                  if (planLocked) {
+                    openUpgrade('essencial')
+                    return
+                  }
                   void selectMoaPreset(preset)
                 }}
               >
                 <span className="min-w-0 flex-1 truncate">MoA: {preset}</span>
-                {isCurrentMoa ? <Codicon className="ml-auto text-foreground" name="check" size="0.75rem" /> : null}
+                {planLocked ? (
+                  <span className="ml-auto shrink-0 text-[0.62rem] uppercase tracking-wide opacity-80">
+                    {pickerCopy.upgrade}
+                  </span>
+                ) : isCurrentMoa ? (
+                  <Codicon className="ml-auto text-foreground" name="check" size="0.75rem" />
+                ) : null}
               </DropdownMenuItem>
             )
           })}

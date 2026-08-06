@@ -5739,7 +5739,7 @@ def set_moa_models(body: MoaConfigPayload, profile: Optional[str] = None):
 
 
 @app.post("/api/model/set")
-async def set_model_assignment(body: ModelAssignment, profile: Optional[str] = None):
+async def set_model_assignment(body: ModelAssignment, request: Request, profile: Optional[str] = None):
     """Assign a model to the main slot or an auxiliary task slot.
 
     Writes to ``~/.wayne/config.yaml`` — applies to **new** sessions only.
@@ -5757,6 +5757,26 @@ async def set_model_assignment(body: ModelAssignment, profile: Optional[str] = N
         raise HTTPException(status_code=400, detail="scope must be 'main' or 'auxiliary'")
 
     try:
+        # Free-tier gating: Relay 2.5 Fast only on the Work4You catalog.
+        if model:
+            cookie = (request.headers.get("cookie") or "").strip()
+            if cookie:
+                from work4you_cli.plan_model_gating import (
+                    assert_model_allowed_for_plan,
+                    fetch_tenant_plan,
+                )
+
+                plan = await asyncio.to_thread(fetch_tenant_plan, cookie)
+                try:
+                    assert_model_allowed_for_plan(
+                        provider=provider,
+                        model=model,
+                        plan=plan,
+                        scope=scope,
+                    )
+                except ValueError as exc:
+                    raise HTTPException(status_code=403, detail=str(exc)) from exc
+
         # Expensive-model warning runs BEFORE the profile scope is entered:
         # _profile_scope must never be held across an await (the RLock is
         # reentrant per-thread, so a second coroutine interleaving on the

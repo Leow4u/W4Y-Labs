@@ -120,6 +120,23 @@ def _model_flow_openrouter(config, current_model=""):
 
     openrouter_models = model_ids(force_refresh=True)
 
+    # Free-tier tenants: only Relay 2.5 Fast is selectable on the catalog.
+    try:
+        from work4you_cli.plan_model_gating import (
+            filter_models_for_plan,
+            resolve_tenant_plan_for_cli,
+        )
+        from work4you_cli.relay_free_model import RELAY_25_FAST_LABEL, RELAY_FREE_PRIMARY_MODEL, is_gratis_plan
+
+        plan = resolve_tenant_plan_for_cli()
+        if is_gratis_plan(plan):
+            openrouter_models = filter_models_for_plan(openrouter_models, plan)
+            if not openrouter_models:
+                openrouter_models = [RELAY_FREE_PRIMARY_MODEL]
+            print(f"Plano Grátis: catálogo limitado a {RELAY_25_FAST_LABEL}.")
+    except Exception:
+        pass
+
     # Fetch live pricing (non-blocking — returns empty dict on failure)
     pricing = get_pricing_for_provider("openrouter", force_refresh=True)
 

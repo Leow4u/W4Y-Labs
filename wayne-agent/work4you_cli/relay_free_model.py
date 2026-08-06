@@ -50,5 +50,55 @@ def apply_relay_free_defaults(config: dict) -> None:
     config["fallback_model"] = patch.get("fallback_model", relay_free_fallback_chain())
 
 
+def is_relay_free_model(model_id: str) -> bool:
+    """True for the subsidized house model (primary slug or qwen3.7-flash tail)."""
+    mid = (model_id or "").strip()
+    if not mid:
+        return False
+    if mid == RELAY_FREE_PRIMARY_MODEL:
+        return True
+    tail = mid.rsplit("/", 1)[-1]
+    return tail == "qwen3.7-flash"
+
+
+def is_catalog_auto_model(model_id: str) -> bool:
+    """True for the OpenRouter auto-router (paid-plan Relay preset)."""
+    mid = (model_id or "").strip()
+    if not mid:
+        return False
+    if mid == "openrouter/auto":
+        return True
+    tail = mid.rsplit("/", 1)[-1].lower()
+    return tail == "auto"
+
+
+def normalize_plan(raw: str | None) -> str:
+    """Platform plan key → canonical tier (free/starter/pro/max). Unknown → free."""
+    p = (raw or "").strip().lower()
+    if p in ("starter", "essencial"):
+        return "starter"
+    if p in ("pro", "plus"):
+        return "pro"
+    if p in ("max", "business"):
+        return "max"
+    if p in ("free", "gratis", ""):
+        return "free"
+    return "free"
+
+
+def is_gratis_plan(raw: str | None) -> bool:
+    """True when the tenant is on the subsidized Free tier."""
+    return normalize_plan(raw) == "free"
+
+
+def is_plan_locked_model(model_id: str, plan: str | None = None) -> bool:
+    """True when *model_id* is unavailable on the Free tier."""
+    if not is_gratis_plan(plan):
+        return False
+    if is_relay_free_model(model_id):
+        return False
+    return True
+
+
 W4Y_DOCS_BASE = "https://work4you.ai/documentacao"
 W4Y_LOGIN_URL = "https://work4you.ai/login"
