@@ -32,7 +32,11 @@ jobs:
         with:
           node-version: "22"
           cache: npm
-          cache-dependency-path: wayne-agent/apps/work4you/package-lock.json
+          cache-dependency-path: wayne-agent/package-lock.json
+
+      - name: Install dependencies
+        working-directory: wayne-agent
+        run: npm ci
 
       - name: Build DMG
         working-directory: wayne-agent/apps/work4you
@@ -40,7 +44,6 @@ jobs:
           W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64: ${{ secrets.W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          npm ci
           if [ "${{ inputs.unsigned }}" != "true" ]; then
             export CSC_LINK="${{ secrets.APPLE_CSC_LINK_BASE64 }}"
             export CSC_KEY_PASSWORD="${{ secrets.APPLE_CSC_KEY_PASSWORD }}"
@@ -81,3 +84,4 @@ jobs:
           gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg" "$BUCKET/"
           gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg.blockmap" "$BUCKET/"
           gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' cp release/latest-mac.yml "$BUCKET/latest-mac.yml"
+
