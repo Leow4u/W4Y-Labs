@@ -2,11 +2,11 @@
 
 import { useCallback, useState } from "react";
 
+import DesktopDownloadLink from "@/components/DesktopDownloadLink";
 import {
   DESKTOP_SIZE,
   DESKTOP_VERSION,
   INSTALL_CMD,
-  WINDOWS_DESKTOP_URL,
 } from "@/lib/product-download";
 import type { SiteLocale } from "@/lib/site-locale";
 
@@ -14,12 +14,12 @@ const COPY = {
   pt: {
     sectionTitle: "Instale ou abra onde preferir",
     sectionSub:
-      "App nativo no Windows, linha de comando leve, ou o mesmo produto no navegador — uma conta só.",
+      "App nativo no Windows e macOS, linha de comando leve, ou o mesmo produto no navegador — uma conta só.",
     desktopKicker: "Instalar app desktop",
-    desktopBtn: "Download para Windows",
-    desktopMeta: `Windows 10/11 · 64 bits · v${DESKTOP_VERSION} · ${DESKTOP_SIZE}`,
+    desktopBtn: "Baixar aplicativo para desktop",
+    desktopMeta: `Windows & macOS (Apple Silicon) · v${DESKTOP_VERSION} · ${DESKTOP_SIZE}`,
     desktopNote:
-      "Na primeira instalação o Windows pode pedir confirmação extra. Atualizações futuras chegam pelo chip dentro do app.",
+      "Detectamos o seu sistema automaticamente. Na primeira instalação, Windows ou macOS podem pedir confirmação extra (instalador ainda sem assinatura da editora). Depois, atualizações chegam pelo chip dentro do app. macOS: clique direito → Abrir se o Gatekeeper bloquear.",
     terminalKicker: "Instalar via terminal",
     tabUnix: "macOS / Linux",
     tabWindows: "Windows",
@@ -29,12 +29,12 @@ const COPY = {
   en: {
     sectionTitle: "Install or open where you work",
     sectionSub:
-      "Native Windows app, a light CLI, or the same product in your browser — one account.",
+      "Native Windows and macOS app, a light CLI, or the same product in your browser — one account.",
     desktopKicker: "Install desktop app",
-    desktopBtn: "Download for Windows",
-    desktopMeta: `Windows 10/11 · 64-bit · v${DESKTOP_VERSION} · ${DESKTOP_SIZE}`,
+    desktopBtn: "Download desktop app",
+    desktopMeta: `Windows & macOS (Apple Silicon) · v${DESKTOP_VERSION} · ${DESKTOP_SIZE}`,
     desktopNote:
-      "Windows may ask for an extra confirmation on first install. Later updates arrive via the in-app chip.",
+      "We detect your system automatically. Windows or macOS may ask for an extra confirmation on first install (unsigned publisher for now). Later updates arrive via the in-app chip. macOS: right-click → Open if Gatekeeper blocks.",
     terminalKicker: "Install via terminal",
     tabUnix: "macOS / Linux",
     tabWindows: "Windows",
@@ -42,19 +42,6 @@ const COPY = {
     copied: "Copied",
   },
 } as const;
-
-function WindowsMark({ className }: { className?: string }) {
-  return (
-    <svg
-      aria-hidden
-      className={className}
-      viewBox="0 0 24 24"
-      fill="currentColor"
-    >
-      <path d="M3 5.5 10.5 4.3V11H3V5.5zm0 7h7.5v6.7L3 18.5V12.5zm9-8.2L21 3v7.5h-9V4.3zm0 8.2H21V21l-9-1.5v-7z" />
-    </svg>
-  );
-}
 
 function CopyButton({
   value,
@@ -136,13 +123,10 @@ export default function HomeInstallPanel({ locale }: { locale: SiteLocale }) {
             <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
               {t.desktopKicker}
             </p>
-            <a
-              href={WINDOWS_DESKTOP_URL}
+            <DesktopDownloadLink
+              label={t.desktopBtn}
               className="mt-6 inline-flex w-full items-center justify-center gap-2.5 rounded-full bg-ink px-6 py-3.5 text-[15px] font-semibold text-paper transition-colors hover:bg-black sm:w-auto"
-            >
-              <WindowsMark className="h-5 w-5" />
-              {t.desktopBtn}
-            </a>
+            />
             <p className="mt-4 font-mono text-[11px] text-ink-faint">{t.desktopMeta}</p>
             <p className="mt-3 text-[13px] leading-relaxed text-ink-soft">{t.desktopNote}</p>
           </div>

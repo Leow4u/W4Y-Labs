@@ -6,6 +6,10 @@
 
 Guia completo: **`docs/SECURITY-SIGNING-SSLCOM.md`**
 
+## macOS desktop (Apple Developer)
+
+Guia completo: **`docs/SECURITY-SIGNING-APPLE.md`** — Organization, Developer ID, notarização, GitHub Actions, GCS.
+
 Resumo:
 
 ```powershell

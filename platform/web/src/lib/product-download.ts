@@ -1,18 +1,65 @@
 /** Desktop installer + CLI one-liners (marketing site). */
 
-export const WINDOWS_DESKTOP_URL =
-  "https://storage.googleapis.com/w4y-engine-dist/Work4You-1.0.95-win-x64.exe";
+const DOWNLOAD_BASE = "https://storage.googleapis.com/w4y-engine-dist";
 
 export const DESKTOP_VERSION = "1.0.95";
 export const DESKTOP_SIZE = "~104 MB";
 
-const INSTALL_SCRIPT_BASE =
-  "https://storage.googleapis.com/w4y-engine-dist";
+export const WINDOWS_DESKTOP_URL =
+  `${DOWNLOAD_BASE}/Work4You-${DESKTOP_VERSION}-win-x64.exe`;
+
+/** Apple Silicon (arm64) — first macOS release target. Flip available after CI publish. */
+export const MACOS_DESKTOP_URL =
+  `${DOWNLOAD_BASE}/Work4You-${DESKTOP_VERSION}-mac-arm64.dmg`;
+
+/**
+ * Set true after the first DMG is on GCS (`latest-mac.yml` + artefact).
+ * Can ship unsigned first (parity with Windows 1.0.95) — flip together with CI publish.
+ */
+export const MACOS_DESKTOP_AVAILABLE = false;
+
+/** False until Apple Developer ID signing + notarization are live. */
+export const MACOS_DESKTOP_SIGNED = false;
+
+export const DESKTOP_DOWNLOAD_PATH = "/download/desktop";
+
+export type DesktopDownloadPlatform = "windows" | "mac" | "linux" | "unknown";
+
+export type DesktopDownloadTarget = {
+  platform: DesktopDownloadPlatform;
+  /** Absolute installer URL, or site path for mac-not-ready landing. */
+  href: string;
+  direct: boolean;
+};
+
+/** Resolve desktop installer from a User-Agent string (server / API route). */
+export function resolveDesktopDownloadTarget(
+  userAgent: string,
+): DesktopDownloadTarget {
+  const ua = userAgent || "";
+
+  if (/Windows NT|Win64|WOW64|Windows/i.test(ua)) {
+    return { platform: "windows", href: WINDOWS_DESKTOP_URL, direct: true };
+  }
+
+  if (/Macintosh|Mac OS X|MacIntel/i.test(ua)) {
+    if (MACOS_DESKTOP_AVAILABLE) {
+      return { platform: "mac", href: MACOS_DESKTOP_URL, direct: true };
+    }
+    return { platform: "mac", href: "/download/desktop/mac", direct: false };
+  }
+
+  if (/Linux|X11|CrOS/i.test(ua)) {
+    return { platform: "linux", href: "/#install-terminal", direct: false };
+  }
+
+  return { platform: "unknown", href: DESKTOP_DOWNLOAD_PATH, direct: false };
+}
 
 /** Public bootstrap scripts on GCS (work4you.ai/install.* hits Fly auth). */
 export const INSTALL_CMD = {
-  windows: `irm ${INSTALL_SCRIPT_BASE}/install.ps1 | iex`,
-  unix: `curl -fsSL ${INSTALL_SCRIPT_BASE}/install.sh | bash`,
+  windows: `irm ${DOWNLOAD_BASE}/install.ps1 | iex`,
+  unix: `curl -fsSL ${DOWNLOAD_BASE}/install.sh | bash`,
 } as const;
 
 /** Login → SSO handoff → app SPA in the browser. */

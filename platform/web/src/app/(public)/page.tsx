@@ -64,7 +64,7 @@ const CONTENT = {
   pt: {
     hero: {
       title: "Agente de IA que cresce com você.",
-      ctaDownload: "Download para Windows",
+      ctaDownload: "Baixar aplicativo para desktop",
       ctaTerminal: "Instalar via terminal",
     },
     explainer: {
@@ -191,7 +191,7 @@ const CONTENT = {
   en: {
     hero: {
       title: "An AI agent that grows with you.",
-      ctaDownload: "Download for Windows",
+      ctaDownload: "Download desktop app",
       ctaTerminal: "Install via terminal",
     },
     explainer: {
