@@ -16,7 +16,7 @@ export const MACOS_DESKTOP_URL =
  * Set true after the first DMG is on GCS (`latest-mac.yml` + artefact).
  * Can ship unsigned first (parity with Windows 1.0.95) — flip together with CI publish.
  */
-export const MACOS_DESKTOP_AVAILABLE = false;
+export const MACOS_DESKTOP_AVAILABLE = true;
 
 /** False until Apple Developer ID signing + notarization are live. */
 export const MACOS_DESKTOP_SIGNED = false;
