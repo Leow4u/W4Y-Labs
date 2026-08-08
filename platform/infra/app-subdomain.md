@@ -22,10 +22,23 @@ O `router-w4y` lê o cookie `w4y_route` e emite `fly-replay: app=wayne-{slug}`.
 
 ## 2. GCP — manter work4you.ai na casca
 
-Cloud Run domain mapping continua em `work4you.ai` → `w4y-web` (us-east1).
+O tráfego de `work4you.ai` passa pelo **URL map GCP** `w4y-urlmap`: paths em whitelist vão para o backend **`w4y-web-backend`** (Cloud Run `w4y-web`, casca Next.js). Paths **não listados** caem no default (**Fly** / `wayne-fly-backend`, legado) — incluindo auth Wayne se a rota não estiver na whitelist.
 
-**Não** enviar tráfego de produto (`/chat`, `/api/*`) para Cloud Run — só paths da casca
-(`/`, `/login`, `/planos`, `/baixar`, …).
+Cloud Run domain mapping continua em work4you.ai → w4y-web (us-east1).
+
+**Não** enviar tráfego de produto (/chat, /api/*) para Cloud Run — só paths da casca
+(/, /login, /planos, /baixar, …).
+
+Depois de novas rotas públicas em `platform/web`, correr:
+
+```powershell
+cd platform/infra
+.\patch-url-map-web-paths.ps1
+```
+
+(O `-DryRun` exporta e mostra o YAML patched sem importar.)
+
+Paths extra na whitelist (além dos já existentes): /download/*, /device/*, /abrir, /legal/*.
 
 ## 3. Variáveis (casca Cloud Run)
 

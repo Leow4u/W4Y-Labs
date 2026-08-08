@@ -27,6 +27,7 @@ Alvo de plataforma: **linux/amd64**.
 |--------|--------|
 | `build-wayne-local.ps1` / `push-wayne-image.ps1` / `deploy-wayne-cloudrun.ps1` | Imagem Wayne → Artifact Registry → Cloud Run (legado M0) |
 | `deploy-web.ps1` | Casca pública Next.js → Cloud Run `w4y-web` |
+| `patch-url-map-web-paths.ps1` | Whitelist de paths `work4you.ai` no URL map `w4y-urlmap` → `w4y-web-backend` (correr após novas rotas em `platform/web`). |
 | `wake-cron.ps1` | **IaC do despertador** Cloud Scheduler `wayne-cron-wake` (`*/15` UTC → GET Fly). Idempotente; **não** re-aplica no fluxo de deploy — só DR/recreate. Ver docs/BACKEND-MAP.md. |
 | `setup-reconcile-cron.ps1` | Cloud Scheduler `w4y-reconcile-keys` (POST `/internal/reconcile-keys`, */5 UTC). Ver G1. |
 | `setup-wake-tenants-cron.ps1` | Cloud Scheduler `w4y-wake-tenants` (POST `/internal/wake-tenants`, */5 UTC). Ver H1 + `wake-tenants-integration.md`. |
