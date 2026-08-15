@@ -1,0 +1,97 @@
+# Measure the REAL install experience on a neutral machine.
+#
+# Every install timing so far came from one dev box running Windows Defender AND
+# McAfee together, where even a plain 104MB Electron app took 107s. Those numbers
+# may describe that machine rather than a user. This runs the PUBLISHED installer
+# — the exact bytes a user downloads — on a clean windows-latest runner with
+# stock Defender, and reports what it actually costs.
+#
+# It is also the clean-machine install test nobody had done: the runner has no
+# prior engine, so the NSIS macro has to materialize one from scratch.
+#
+# Disposable: triggered by pushing to the measure/install-time branch.
+
+name: Measure install time
+
+on:
+  push:
+    branches: [measure/install-time]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Published version to measure
+        type: string
+        default: "1.0.113"
+
+jobs:
+  measure:
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - name: Antivirus context
+        run: |
+          $av = (Get-CimInstance -Namespace 'root/SecurityCenter2' -ClassName AntiVirusProduct -ErrorAction SilentlyContinue).displayName
+          "AV instalado: $($av -join ', ')"
+          try { "Defender realtime: " + (Get-MpComputerStatus -ErrorAction Stop).RealTimeProtectionEnabled } catch { "Defender: nao consultavel" }
+          "CPU: " + (Get-CimInstance Win32_Processor).Name
+          $d = Get-PSDrive C
+          "Disco livre: " + [math]::Round($d.Free/1GB,1) + " GB"
+
+      - name: Download the published installer
+        run: |
+          $ver = "${{ inputs.version || '1.0.113' }}"
+          $url = "https://storage.googleapis.com/w4y-engine-dist/Work4You-$ver-win-x64.exe"
+          "Baixando $url"
+          $t0 = Get-Date
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\w4y-setup.exe" -UseBasicParsing
+          $dl = [math]::Round(((Get-Date) - $t0).TotalSeconds,1)
+          $mb = [math]::Round((Get-Item "$env:RUNNER_TEMP\w4y-setup.exe").Length/1MB,0)
+          "DOWNLOAD: ${dl}s para ${mb} MB"
+
+      # The engine must not already exist — this is the clean-machine path.
+      - name: Confirm the machine is clean
+        run: |
+          $eng = Join-Path $env:LOCALAPPDATA 'work4you\wayne-agent'
+          "motor pre-existente? " + (Test-Path $eng)
+
+      - name: Measure the install
+        run: |
+          $t0 = Get-Date
+          $p = Start-Process -FilePath "$env:RUNNER_TEMP\w4y-setup.exe" -PassThru -Wait
+          $secs = [math]::Round(((Get-Date) - $t0).TotalSeconds,1)
+          "=============================================="
+          "INSTALACAO: ${secs}s  (exit $($p.ExitCode))"
+          "=============================================="
+          if ($p.ExitCode -ne 0) { throw "installer exited $($p.ExitCode)" }
+
+      # oneClick NSIS launches the app; stop it so the job can finish cleanly.
+      - name: Stop the app
+        run: |
+          Start-Sleep -Seconds 5
+          $proc = Get-Process -Name 'Work4You' -ErrorAction SilentlyContinue
+          "app rodando apos instalar? " + [bool]$proc
+          if ($proc) { $proc | Stop-Process -Force }
+
+      - name: Verify the engine landed and runs
+        run: |
+          $eng = Join-Path $env:LOCALAPPDATA 'work4you\wayne-agent'
+          if (-not (Test-Path (Join-Path $eng 'runtime-ready.json'))) { throw "engine not materialized at $eng" }
+          Get-Content (Join-Path $eng 'runtime-ready.json')
+          $py = Join-Path $eng '.venv\Scripts\python.exe'
+          if (-not (Test-Path $py)) { throw "venv interpreter missing" }
+          # cwd matters: the project is installed editable, so the import
+          # resolves from the engine root the way main.cjs spawns it.
+          Push-Location $eng
+          & $py -c "import work4you_cli, sys; print('MOTOR OK - CPython ' + sys.version.split()[0])"
+          if ($LASTEXITCODE -ne 0) { Pop-Location; throw "engine import failed" }
+          Pop-Location
+
+      - name: Disk footprint
+        run: |
+          foreach ($p in @('Programs\Work4You','work4you\wayne-agent')) {
+            $full = Join-Path $env:LOCALAPPDATA $p
+            if (Test-Path $full) {
+              $mb = [math]::Round(((Get-ChildItem $full -Recurse -File -ErrorAction SilentlyContinue | Measure-Object Length -Sum).Sum/1MB),0)
+              "$p : $mb MB"
+            }
+          }
