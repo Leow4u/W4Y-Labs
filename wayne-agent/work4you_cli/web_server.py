@@ -2154,18 +2154,44 @@ def _connector_base_home() -> Path:
     return _get_default_wayne_home()
 
 
+def _connector_env_value(name: str) -> str:
+    """Read ``name`` for this request's tenant without leaking it to the next.
+
+    ``load_wayne_dotenv`` loads with ``override=True`` into ``os.environ``,
+    which is process-wide. On a shared motor that is a cross-tenant credential
+    leak: tenant A's key stays in the environment and the next request from
+    tenant B — whose own ``.env`` has none — reads A's. So on a shared motor we
+    parse the tenant's file into a local dict and never touch the process
+    environment; the environment is only the fallback, and there it holds the
+    platform-wide Fly secret that legitimately serves every tenant.
+
+    Off the shared motor the process serves exactly one tenant and surrounding
+    code depends on ``load_wayne_dotenv``'s side effect, so that path stands.
+    """
+    home = _shared_motor_home()
+    if home is None:
+        try:
+            from work4you_cli.env_loader import load_wayne_dotenv
+
+            load_wayne_dotenv(wayne_home=str(_connector_base_home()))
+        except Exception:
+            pass
+        return os.environ.get(name, "")
+
+    try:
+        from dotenv import dotenv_values
+
+        value = (dotenv_values(home / ".env") or {}).get(name)
+        if value:
+            return value
+    except Exception:
+        _log.exception("connector env read failed home=%s", home.name)
+    return os.environ.get(name, "")
+
+
 def _composio_key() -> str:
     """COMPOSIO_API_KEY do tenant, saneada (o POC pegou NBSP de copy-paste)."""
-    try:
-        from work4you_cli.env_loader import load_wayne_dotenv
-
-        # override=True, and only keys PRESENT in the file are set: a tenant
-        # that has its own key wins, one that does not falls back to the
-        # process env (the shared motor's Fly secret).
-        load_wayne_dotenv(wayne_home=str(_connector_base_home()))
-    except Exception:
-        pass
-    raw = os.environ.get("COMPOSIO_API_KEY", "")
+    raw = _connector_env_value("COMPOSIO_API_KEY")
     key = re.sub(r"[\s \"']+", "", raw)
     if not key:
         raise HTTPException(
@@ -2623,13 +2649,7 @@ async def device_connector_bootstrap():
     """
 
     def _run():
-        try:
-            from work4you_cli.env_loader import load_wayne_dotenv
-
-            load_wayne_dotenv(wayne_home=str(_connector_base_home()))
-        except Exception:
-            pass
-        key = re.sub(r"[\s \"']+", "", os.environ.get("COMPOSIO_API_KEY", ""))
+        key = re.sub(r"[\s \"']+", "", _connector_env_value("COMPOSIO_API_KEY"))
         if not key:
             # Deliberately NOT _composio_key(): its 503 reads as "broken";
             # an unconfigured tenant is a normal state → 404.
