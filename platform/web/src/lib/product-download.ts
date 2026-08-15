@@ -13,10 +13,10 @@ const DOWNLOAD_BASE = "https://storage.googleapis.com/w4y-engine-dist";
  */
 // Typed as string, not as their literals: these are release pointers that move
 // independently, and code that compares them must stay legal when they differ.
-export const WINDOWS_DESKTOP_VERSION: string = "1.0.111";
+export const WINDOWS_DESKTOP_VERSION: string = "1.0.112";
 export const MACOS_DESKTOP_VERSION: string = "1.0.112";
 
-export const DESKTOP_SIZE = "~190 MB";
+export const DESKTOP_SIZE = "~200 MB";
 
 export const WINDOWS_DESKTOP_URL =
   `${DOWNLOAD_BASE}/Work4You-${WINDOWS_DESKTOP_VERSION}-win-x64.exe`;
