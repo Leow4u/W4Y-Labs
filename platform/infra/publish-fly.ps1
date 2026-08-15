@@ -47,6 +47,22 @@ if (-not $SkipProvisioner) {
 
 if (-not $SkipTenant) {
   Write-Host "== Tenant UI overlay wayne-w4y:$TenantTag (base $BaseTenantTag) ==" -ForegroundColor Cyan
+
+  # Dockerfile.ui copies GENERATED `.wayne.py` variants (the base image still
+  # uses the pre-rebrand package names). Regenerate before the build: without
+  # this, editing work4you_cli/web_server.py fixes the desktop while the cloud
+  # keeps serving the stale copy, with nothing to signal the divergence.
+  $overlayGen = Join-Path $script:REPO_ROOT "platform\wayne-fly\prepare-fly-overlay.mjs"
+  & node $overlayGen | Out-Host
+  if ($LASTEXITCODE -ne 0) { throw "Fly overlay variant generation failed" }
+  # Plain `*.wayne.py`: git pathspec `**/` would miss the top-level
+  # wayne_state.wayne.py, and that is one of the variants Dockerfile.ui ships.
+  $drifted = (& git -C $script:REPO_ROOT status --porcelain -- "*.wayne.py")
+  if ($drifted) {
+    Write-Host "Variantes do overlay estavam DESACTUALIZADAS e foram regeneradas - faca commit:" -ForegroundColor Yellow
+    $drifted | ForEach-Object { Write-Host "  $_" -ForegroundColor Yellow }
+  }
+
   Push-Location $engineRoot
   try {
     $prevEap = $ErrorActionPreference

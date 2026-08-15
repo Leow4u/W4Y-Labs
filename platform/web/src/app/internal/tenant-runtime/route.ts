@@ -6,10 +6,16 @@ import {
   ensureOndemandColumns,
   isOverageMeteredConfigured,
   maxOndemandSpendLimitUsd,
+  provisionTenantKey,
   type Plan,
 } from "@/lib/billing";
 import { verifyProvisionerSig } from "@/lib/provisioner";
-import { loadTenantOpenRouterKey } from "@/lib/tenant-secrets";
+import { resolveTenantKey } from "@/lib/tenant-runtime-key";
+import {
+  loadTenantOpenRouterKey,
+  storeTenantOpenRouterKey,
+  tenantSecretsEnabled,
+} from "@/lib/tenant-secrets";
 
 export const dynamic = "force-dynamic";
 
@@ -55,11 +61,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "registry_unavailable" }, { status: 503 });
   }
 
-  const openrouterKey = (await loadTenantOpenRouterKey(tenantId)) ?? "";
-  if (!openrouterKey) {
-    return NextResponse.json({ ok: false, error: "key_unavailable" }, { status: 404 });
-  }
-
   let planPayload: Record<string, unknown> = {
     plan: "free",
     status: "inactive",
@@ -75,6 +76,7 @@ export async function POST(req: NextRequest) {
       billed_on: isOverageMeteredConfigured() ? "next_invoice" : "ceiling_only",
     },
   };
+  let creditsUsd = 0;
 
   try {
     await ensureOndemandColumns((q) => database.execute(q));
@@ -88,6 +90,7 @@ export async function POST(req: NextRequest) {
       const planKey = (TIER_PLAN[row.plan] ?? row.plan) as Plan;
       const catalog = PLANS[planKey] ?? PLANS.free;
       const includedUsd = Number(row.monthly_credits_usd ?? catalog.creditsUsd ?? 0);
+      creditsUsd = includedUsd;
       const enabled = Boolean(row.ondemand_enabled);
       const spendLimit = enabled ? Number(row.ondemand_spend_limit_usd ?? 0) : 0;
       planPayload = {
@@ -108,6 +111,27 @@ export async function POST(req: NextRequest) {
     }
   } catch {
     /* billing optional — motor still boots with key + default free plan */
+  }
+
+  const openrouterKey = await resolveTenantKey(tenantId, creditsUsd, {
+    load: loadTenantOpenRouterKey,
+    store: storeTenantOpenRouterKey,
+    mint: (id, limitUsd) => provisionTenantKey({ tenantId: id, creditsUsd: limitUsd }),
+    secretsEnabled: tenantSecretsEnabled,
+    log: (message) => console.error(message),
+    recordHash: async (id, hash) => {
+      try {
+        await database.execute(sql`
+          UPDATE billing SET openrouter_key_hash=${hash}, key_injected_at=now(), updated_at=now()
+          WHERE tenant_id=${id}
+        `);
+      } catch {
+        /* the key works regardless; the hash is for audit and re-limiting */
+      }
+    },
+  });
+  if (!openrouterKey) {
+    return NextResponse.json({ ok: false, error: "key_unavailable" }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true, openrouterKey, ...planPayload });

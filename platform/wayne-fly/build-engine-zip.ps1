@@ -67,6 +67,7 @@
 #   release/   -- build outputs (if present)
 #   .git, node_modules, __pycache__, checkout .venv/venv, caches, *.egg-info
 #   .env       -- real secrets live in the checkout root; NEVER ship them
+#   *.wayne.py -- Fly-overlay module copies; cloud-only, inert on the desktop
 #
 # Ready runtime (Windows, default):
 #   After staging source, this script copies a standalone CPython into
@@ -156,7 +157,10 @@ $xdAnyDepth = @(
 )
 # Files excluded at any depth. `.env` holds real secrets in the checkout root
 # and must never ship; `.env.example` is a different name and is kept.
-$xfAnyDepth = @(".env", "*.pyc", "*.pyo", ".DS_Store")
+# `*.wayne.py` are Fly-overlay artifacts (renamed module copies laid over the
+# cloud image by Dockerfile.ui); a dot in the stem makes them unimportable, so
+# shipping them only duplicates web_server.py for every desktop user.
+$xfAnyDepth = @(".env", "*.pyc", "*.pyo", ".DS_Store", "*.wayne.py")
 
 & robocopy $RepoRoot $stageDir /E /NFL /NDL /NJH /NJS /NP `
     /XD @($xdTopLevel + $xdAnyDepth) /XF @($xfAnyDepth) | Out-Null
