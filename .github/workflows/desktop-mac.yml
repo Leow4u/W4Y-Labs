@@ -72,6 +72,33 @@ jobs:
           fi
           npm run dist:mac:dmg
 
+      # Prove the PACKAGED app can actually start its engine. Building the
+      # runtime and packaging it successfully does not prove that: the venv
+      # interpreter was once linked by absolute path and dangled the moment the
+      # tree moved, which no build step notices. Nobody on this project owns a
+      # Mac, so this runner is the only place the macOS app is ever exercised.
+      - name: Verify packaged engine (darwin-arm64)
+        working-directory: wayne-agent/apps/work4you
+        run: |
+          set -euo pipefail
+          APP=$(find release -maxdepth 2 -name 'Work4You.app' -type d | head -1)
+          if [ -z "$APP" ]; then echo "No Work4You.app under release/" >&2; exit 1; fi
+          ENGINE="$APP/Contents/Resources/engine"
+          echo "app    : $APP"
+          echo "engine : $ENGINE"
+
+          test -f "$ENGINE/pyproject.toml" || { echo "engine tree missing" >&2; exit 1; }
+
+          PLATFORM=$(node -p "const m=require('$PWD/$ENGINE/runtime-ready.json'); m.platform+'-'+m.arch")
+          [ "$PLATFORM" = "darwin-arm64" ] || { echo "packaged runtime is $PLATFORM" >&2; exit 1; }
+
+          # -e, not -f: a dangling symlink exists but does not resolve, and that
+          # is exactly the failure this step is here to catch.
+          PY="$ENGINE/.venv/bin/python"
+          test -e "$PY" || { echo "venv interpreter does not resolve: $(readlink "$PY" || true)" >&2; exit 1; }
+
+          "$PY" -c 'import work4you_cli, sys; print("engine ok on CPython " + sys.version.split()[0])'
+
       - name: Upload build artefacts (CI retention)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
