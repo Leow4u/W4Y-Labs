@@ -36,8 +36,40 @@ const {
   shellQuote
 } = require('./update-relaunch.cjs')
 
-const ROOT = '/home/u/.hermes/hermes-agent'
-const UNPACKED = path.join(ROOT, 'apps', 'desktop', 'release', 'linux-unpacked')
+// `path.resolve` so the fixture root is absolute on the host running the test:
+// resolveUnpackedRelease resolves execPath before comparing, and on Windows a
+// bare POSIX root gains the current drive letter on only one side of that
+// comparison — which failed the match for reasons that had nothing to do with
+// the behavior under test.
+const ROOT = path.resolve('/home/u/.hermes/hermes-agent')
+const UNPACKED = path.join(ROOT, 'apps', 'work4you', 'release', 'linux-unpacked')
+
+// `bash -n` needs a working bash. On a Windows dev box `bash` is usually a WSL
+// shim that fails with ENOENT on /bin/bash when no distro is installed, which
+// says nothing about the generated script. Probe once, then skip that one
+// assertion loudly instead of reporting a failure the script didn't cause.
+const BASH_AVAILABLE = (() => {
+  try {
+    execFileSync('bash', ['-c', 'exit 0'], { stdio: 'pipe' })
+    return true
+  } catch {
+    return false
+  }
+})()
+
+function assertValidBash(t, script, name) {
+  if (!BASH_AVAILABLE) {
+    t.diagnostic('no working bash on this host — skipped the `bash -n` syntax check')
+    return
+  }
+  const tmp = path.join(os.tmpdir(), `${name}-${Date.now()}.sh`)
+  fs.writeFileSync(tmp, script)
+  try {
+    execFileSync('bash', ['-n', tmp], { stdio: 'pipe' })
+  } finally {
+    fs.rmSync(tmp, { force: true })
+  }
+}
 
 // ---------------------------------------------------------------------------
 // 1) The execPath split — the heart of the GUI/backend skew guard.
@@ -73,8 +105,16 @@ test('resolveUnpackedRelease is null for AppImage / .deb / .rpm / dev / unresolv
 
 test('resolveUnpackedRelease is not fooled by a sibling prefix dir', () => {
   // `.../release/linux-unpacked-evil` must NOT match `.../release/linux-unpacked`.
-  const sneaky = path.join(ROOT, 'apps', 'desktop', 'release', 'linux-unpacked-evil', 'hermes')
+  const sneaky = path.join(ROOT, 'apps', 'work4you', 'release', 'linux-unpacked-evil', 'hermes')
   assert.equal(resolveUnpackedRelease(sneaky, ROOT, 'linux'), null)
+})
+
+test('resolveUnpackedRelease still resolves a pre-rebrand apps/desktop checkout', () => {
+  // The app dir was renamed apps/desktop → apps/work4you. An in-app update can
+  // be driven from a checkout that predates the rename, and that binary must
+  // still be allowed to relaunch instead of being reported as GUI skew.
+  const legacy = path.join(ROOT, 'apps', 'desktop', 'release', 'linux-unpacked')
+  assert.equal(resolveUnpackedRelease(path.join(legacy, 'hermes'), ROOT, 'linux'), legacy)
 })
 
 test('decideRelaunchOutcome: only under-unpacked + sandbox-ok relaunches', () => {
@@ -184,7 +224,7 @@ test('shellQuote neutralizes single quotes and metacharacters', () => {
   assert.equal(shellQuote('$(rm -rf /)'), `'$(rm -rf /)'`)
 })
 
-test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () => {
+test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', t => {
   const script = buildRelaunchScript({
     pid: 4242,
     execPath: '/home/u/.hermes/hermes-agent/apps/work4you/release/linux-unpacked/Hermes',
@@ -204,17 +244,11 @@ test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () =>
   assert.match(script, /cd '\/home\/u\/work dir'/)
   assert.match(script, /exec '.*\/linux-unpacked\/Hermes' 'hermes:\/\/open\/agent\/42' '--note=it'\\''s fine'/)
 
-  // It must be syntactically valid bash (`bash -n`). Write to a temp file and lint.
-  const tmp = path.join(os.tmpdir(), `hermes-relaunch-test-${Date.now()}.sh`)
-  fs.writeFileSync(tmp, script)
-  try {
-    execFileSync('bash', ['-n', tmp], { stdio: 'pipe' })
-  } finally {
-    fs.rmSync(tmp, { force: true })
-  }
+  // It must be syntactically valid bash (`bash -n`).
+  assertValidBash(t, script, 'hermes-relaunch-test')
 })
 
-test('buildRelaunchScript with no args/env still lints clean', () => {
+test('buildRelaunchScript with no args/env still lints clean', t => {
   const script = buildRelaunchScript({
     pid: 1,
     execPath: '/opt/Hermes/Hermes',
@@ -222,13 +256,7 @@ test('buildRelaunchScript with no args/env still lints clean', () => {
     env: {},
     cwd: ''
   })
-  const tmp = path.join(os.tmpdir(), `hermes-relaunch-test2-${Date.now()}.sh`)
-  fs.writeFileSync(tmp, script)
-  try {
-    execFileSync('bash', ['-n', tmp], { stdio: 'pipe' })
-  } finally {
-    fs.rmSync(tmp, { force: true })
-  }
+  assertValidBash(t, script, 'hermes-relaunch-test2')
   // exec line has no trailing args.
   assert.match(script, /exec '\/opt\/Hermes\/Hermes'\n/)
 })

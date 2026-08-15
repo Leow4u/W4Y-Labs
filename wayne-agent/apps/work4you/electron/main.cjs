@@ -2682,7 +2682,11 @@ async function applyUpdatesPosixInApp() {
     }
   }
 
+  // Current layout first (apps/work4you + productName Work4You), pre-rebrand
+  // checkout second — an in-app update can be driven from either one.
   const rebuiltApp = [
+    path.join(updateRoot, 'apps', 'work4you', 'release', 'mac-arm64', 'Work4You.app'),
+    path.join(updateRoot, 'apps', 'work4you', 'release', 'mac', 'Work4You.app'),
     path.join(updateRoot, 'apps', 'desktop', 'release', 'mac-arm64', 'Hermes.app'),
     path.join(updateRoot, 'apps', 'desktop', 'release', 'mac', 'Hermes.app')
   ].find(directoryExists)

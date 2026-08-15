@@ -46,8 +46,13 @@ function unpackedDirName(platform) {
   return 'linux-unpacked'
 }
 
+// App directory inside the checkout, newest layout first. The rebrand renamed
+// apps/desktop → apps/work4you; an in-app update can still be driven from a
+// pre-rebrand checkout, so both layouts count.
+const APP_DIR_NAMES = ['work4you', 'desktop']
+
 /**
- * If `execPath` lives under `<updateRoot>/apps/work4you/release/<plat>-unpacked`,
+ * If `execPath` lives under `<updateRoot>/apps/<app>/release/<plat>-unpacked`,
  * return that unpacked dir; otherwise null. A null result means the running
  * binary is NOT the thing we just rebuilt (AppImage/.deb/.rpm/dev), so we must
  * not claim a GUI relaunch.
@@ -57,13 +62,15 @@ function unpackedDirName(platform) {
  */
 function resolveUnpackedRelease(execPath, updateRoot, platform) {
   if (!execPath || !updateRoot) return null
-  const releaseDir = path.join(updateRoot, 'apps', 'desktop', 'release')
-  const unpacked = path.join(releaseDir, unpackedDirName(platform))
   const normalizedExec = path.resolve(String(execPath))
-  // execPath must be the unpacked dir itself or a descendant of it.
-  const withSep = unpacked.endsWith(path.sep) ? unpacked : unpacked + path.sep
-  if (normalizedExec === unpacked || normalizedExec.startsWith(withSep)) {
-    return unpacked
+  for (const appDir of APP_DIR_NAMES) {
+    const releaseDir = path.join(updateRoot, 'apps', appDir, 'release')
+    const unpacked = path.join(releaseDir, unpackedDirName(platform))
+    // execPath must be the unpacked dir itself or a descendant of it.
+    const withSep = unpacked.endsWith(path.sep) ? unpacked : unpacked + path.sep
+    if (normalizedExec === unpacked || normalizedExec.startsWith(withSep)) {
+      return unpacked
+    }
   }
   return null
 }
