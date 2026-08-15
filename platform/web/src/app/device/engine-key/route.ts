@@ -92,8 +92,12 @@ export async function POST(req: NextRequest) {
   // toolEnv: Firecrawl / Langfuse shared platform secrets for the desktop .env.
   return NextResponse.json({
     key: dk.key,
+    openrouterApiKey: dk.key,
     limitUsd: dk.limitUsd,
     envVar: "OPENROUTER_API_KEY",
+    tenantId: session.tenantId,
+    email: session.email,
+    plan,
     ...(dk.composioKey ? { composioKey: dk.composioKey, composioEnvVar: "COMPOSIO_API_KEY" } : {}),
     ...(dk.toolEnv ? { toolEnv: dk.toolEnv } : {}),
   });

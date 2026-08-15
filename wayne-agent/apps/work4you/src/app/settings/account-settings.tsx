@@ -5,11 +5,15 @@
  */
 import { useStore } from '@nanostores/react'
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import { NEW_CHAT_ROUTE } from '@/app/routes'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useI18n } from '@/i18n'
+import { Loader2 } from '@/lib/icons'
 import {
   fetchAccountPlan,
   fetchAccountUsageMeter,
@@ -22,7 +26,8 @@ import {
   type AccountPlan,
   type AccountUsageMeter
 } from '@/lib/plans'
-import { notifyError } from '@/store/notifications'
+import { notify, notifyError } from '@/store/notifications'
+import { signOutFromWork4You } from '@/store/account-gate'
 import { $gateway } from '@/store/gateway'
 
 import { ListRow, SettingsContent, SettingsGroup, SettingsPageTitle } from './primitives'
@@ -34,6 +39,7 @@ interface AuthMe {
 }
 
 export function AccountSettings() {
+  const navigate = useNavigate()
   const { t } = useI18n()
   const a = t.settings.account
   const gateway = useStore($gateway)
@@ -41,6 +47,7 @@ export function AccountSettings() {
   const [accountPlan, setAccountPlan] = useState<AccountPlan | null>(null)
   const [meter, setMeter] = useState<AccountUsageMeter | null>(null)
   const [loaded, setLoaded] = useState(false)
+  const [signingOut, setSigningOut] = useState(false)
   const [ondemandEnabled, setOndemandEnabled] = useState(false)
   const [spendDraft, setSpendDraft] = useState('10')
   const [savingSpend, setSavingSpend] = useState(false)
@@ -131,6 +138,23 @@ export function AccountSettings() {
   const maxSpend = accountPlan?.ondemand.maxSpendLimitUsd ?? 0
   const ondemandUsed = accountPlan?.ondemand.usedUsd
   const spendLimit = accountPlan?.ondemand.spendLimitUsd ?? 0
+  const canSignOut = Boolean(window.work4youDesktop?.w4y?.logout)
+  const signedIn = Boolean(email || me?.user_id)
+
+  const signOut = async () => {
+    if (signingOut) {
+      return
+    }
+    setSigningOut(true)
+    try {
+      await signOutFromWork4You()
+      notify({ kind: 'success', title: a.signedOutTitle, message: a.signedOutMessage })
+      navigate(NEW_CHAT_ROUTE, { replace: true })
+    } catch (err) {
+      notifyError(err, a.signOutFailed)
+      setSigningOut(false)
+    }
+  }
 
   const applySpendLimit = async (enabled: boolean, spendLimitUsd: number) => {
     if (!canOndemand && enabled) {
@@ -179,6 +203,19 @@ export function AccountSettings() {
             inset
             title={a.email}
           />
+          {canSignOut && signedIn ? (
+            <ListRow
+              action={
+                <Button disabled={signingOut} onClick={() => void signOut()} size="sm" type="button" variant="outline">
+                  {signingOut ? <Loader2 className="animate-spin" /> : null}
+                  {a.signOut}
+                </Button>
+              }
+              description={a.signedOutMessage}
+              inset
+              title={a.signOut}
+            />
+          ) : null}
         </SettingsGroup>
 
         <SettingsGroup

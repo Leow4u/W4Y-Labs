@@ -6,9 +6,11 @@ import { mintPlatformSsoTicket } from "@/lib/platform-sso";
 import { loadTenantDashboardCreds } from "@/lib/tenant-secrets";
 import {
   appSubdomainEnabled,
-  appUrl,
+  appOrigin,
   cookieDomain,
 } from "@/lib/site-origins";
+import { pokeTenantWake } from "@/lib/wake-tenant";
+import { sharedMotorEnabled, sharedMotorUrl, sharedFlyApp, desktopLaunchMode, postLoginDestination } from "@/lib/shared-motor";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +23,19 @@ export const dynamic = "force-dynamic";
 const FALLBACK_URL = (process.env.WAYNE_INTERNAL_URL ?? "https://wayne-w4y.fly.dev").replace(/\/$/, "");
 const ROUTE_COOKIE = "w4y_route";
 const APP_RE = /^wayne-[a-z0-9-]{2,30}$/;
+
+function ssoAppBase(): string {
+  // Motor partilhado: app.work4you.ai quando DNS/router estiverem live;
+  // até lá, hostname Fly directo (wayne-w4y.fly.dev).
+  if (sharedMotorEnabled()) return sharedMotorUrl();
+  return appOrigin();
+}
+
+function ssoAppPath(path: string): string {
+  const base = ssoAppBase().replace(/\/$/, "");
+  const p = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${p}`;
+}
 
 function redirectTo(path: string): NextResponse {
   return new NextResponse(null, { status: 303, headers: { Location: path } });
@@ -56,7 +71,10 @@ async function resolveTarget(tenantId: string): Promise<Target | null> {
       };
     }
   } catch {
-    /* registry indisponível — cai no fallback abaixo p/ o tenant default */
+    /* registry indisponível — cai no fallback abaixo */
+  }
+  if (sharedMotorEnabled()) {
+    return { url: sharedMotorUrl(), flyApp: sharedFlyApp() };
   }
   if (tenantId === DEV_TENANT_ID) return { url: FALLBACK_URL, flyApp: "wayne-w4y" };
   return null;
@@ -79,32 +97,44 @@ export async function GET() {
   const session = await getDevSession();
   if (!session) return redirectTo("/login");
 
+  if (desktopLaunchMode()) {
+    return redirectTo(postLoginDestination());
+  }
+
   const target = await resolveTarget(session.tenantId);
   if (!target) {
     return redirectTo("/instancias");
   }
 
-  try {
-    await db().execute(sql`UPDATE instances SET last_active=now() WHERE tenant_id=${session.tenantId}`);
-  } catch {
-    /* não bloqueia o login se o registry oscilar */
-  }
+  void db()
+    .execute(sql`UPDATE instances SET last_active=now() WHERE tenant_id=${session.tenantId}`)
+    .catch(() => {
+      /* não bloqueia o login se o registry oscilar */
+    });
 
   const flyApp = target.flyApp ?? "";
+  if (flyApp) {
+    await pokeTenantWake(flyApp, target.url, { maxWaitMs: 25_000 });
+  }
+
   const useAppHost = appSubdomainEnabled() && cookieDomain();
-  const ticket = useAppHost ? mintPlatformSsoTicket(session.tenantId) : null;
+  const ticket = useAppHost ? mintPlatformSsoTicket(session.tenantId, session.email) : null;
 
   if (useAppHost && ticket) {
     const res = redirectTo(
-      appUrl(`/auth/platform-sso?ticket=${encodeURIComponent(ticket)}`),
+      ssoAppPath(`/auth/platform-sso?ticket=${encodeURIComponent(ticket)}`),
     );
-    setRouteCookie(res, flyApp);
+    setRouteCookie(res, sharedMotorEnabled() ? sharedFlyApp() : flyApp);
     return res;
+  }
+
+  if (useAppHost && !ticket) {
+    return redirectTo("/login?error=sso");
   }
 
   // Same-origin fallback (local dev ou W4Y_APP_SUBDOMAIN=0).
   const res = redirectTo("/chat");
-  setRouteCookie(res, flyApp);
+  setRouteCookie(res, sharedMotorEnabled() ? sharedFlyApp() : flyApp);
 
   const username = (target.username ?? process.env.WAYNE_DASHBOARD_USERNAME ?? "").trim();
   const password = (target.password ?? process.env.WAYNE_DASHBOARD_PASSWORD ?? "").trim();

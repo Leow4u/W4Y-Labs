@@ -9,7 +9,14 @@ function getPool(): Pool {
   if (!globalForDb.__w4yPool) {
     const url = process.env.DATABASE_URL;
     if (!url) throw new Error("DATABASE_URL não configurada (.env.local)");
-    globalForDb.__w4yPool = new Pool({ connectionString: url, max: 5 });
+    globalForDb.__w4yPool = new Pool({
+      connectionString: url,
+      max: 5,
+      // Evita /login/verify e /login/enter presos "Aguarde…" quando o Cloud SQL oscila.
+      connectionTimeoutMillis: 8_000,
+      idleTimeoutMillis: 30_000,
+      options: "-c statement_timeout=15000",
+    });
   }
   return globalForDb.__w4yPool;
 }

@@ -7,7 +7,13 @@
  */
 import { buildWayneWebSocketUrl } from '@hermes/shared'
 
-import type { HermesApiRequest, HermesConnection, HermesNotification } from '@/global'
+import type {
+  DesktopConnectionConfig,
+  DesktopConnectionConfigInput,
+  HermesApiRequest,
+  HermesConnection,
+  HermesNotification
+} from '@/global'
 
 const SESSION_HEADER = 'X-Wayne-Session-Token'
 
@@ -140,6 +146,150 @@ async function browserApi<T>(request: HermesApiRequest): Promise<T> {
   }
 }
 
+async function browserGetBootProgress() {
+  return {
+    phase: 'ready',
+    message: '',
+    progress: 100,
+    running: false,
+    visible: false
+  }
+}
+
+function noopUnsubscribe(): () => void {
+  return () => undefined
+}
+
+async function browserCloudApi(args: {
+  method?: string
+  path: string
+  body?: unknown
+}): Promise<{ ok: boolean; status?: number; json?: unknown; error?: string }> {
+  const methods = new Set(['GET', 'POST', 'PATCH', 'PUT', 'DELETE'])
+  const method = methods.has((args.method || 'GET').toUpperCase())
+    ? (args.method || 'GET').toUpperCase()
+    : 'GET'
+  const rawPath = args.path
+  if (!/^\/api\//.test(rawPath) || /[\s\\]/.test(rawPath)) {
+    return { ok: false, status: 0, error: 'bad-path' }
+  }
+
+  const base = apiBase()
+  const url = new URL(rawPath, `${base.replace(/\/$/, '')}/`)
+  const baseOrigin = new URL(base.includes('://') ? base : `https://${base}`).origin
+  if (url.origin !== baseOrigin || !url.pathname.startsWith('/api/')) {
+    return { ok: false, status: 0, error: 'bad-path' }
+  }
+
+  const headers = new Headers({ Accept: 'application/json' })
+  setSessionHeader(headers)
+  const init: RequestInit = { method, headers, credentials: 'include' }
+
+  if (args.body !== undefined && method !== 'GET' && method !== 'HEAD') {
+    headers.set('Content-Type', 'application/json')
+    init.body = JSON.stringify(args.body)
+  }
+
+  try {
+    const res = await fetch(url.toString(), init)
+    let json: unknown = null
+    const contentType = res.headers.get('content-type') ?? ''
+    if (contentType.includes('application/json')) {
+      json = await res.json().catch(() => null)
+    }
+    return {
+      ok: res.ok,
+      status: res.status,
+      json,
+      error: res.ok ? undefined : `HTTP ${res.status}`
+    }
+  } catch {
+    return { ok: false, status: 0, error: 'network' }
+  }
+}
+
+function platformOrigin(): string {
+  const env = import.meta.env.VITE_PLATFORM_ORIGIN
+  if (typeof env === 'string' && env.trim()) {
+    return env.replace(/\/$/, '')
+  }
+  return 'https://work4you.ai'
+}
+
+function submitPlatformLogoutForm(): void {
+  const form = document.createElement('form')
+  form.method = 'POST'
+  form.action = `${platformOrigin()}/login/logout`
+  form.style.display = 'none'
+  document.body.appendChild(form)
+  form.submit()
+}
+
+async function browserLogout(): Promise<{ ok: boolean }> {
+  try {
+    await fetch(`${apiBase()}/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+      redirect: 'manual'
+    })
+  } catch {
+    /* best effort — motor session may already be gone */
+  }
+  submitPlatformLogoutForm()
+  // Navigation in progress; keep spinner until unload.
+  await new Promise<void>(() => {})
+  return { ok: true }
+}
+
+async function browserCloudWsUrl(): Promise<{ ok: boolean; url?: string; error?: string }> {
+  try {
+    const url = await buildWsUrl('/api/ws')
+    return { ok: true, url }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (message.includes('401') || message.includes('unauthenticated')) {
+      return { ok: false, error: 'not-logged-in' }
+    }
+    return { ok: false, error: 'network' }
+  }
+}
+
+function installWork4YouDesktopBridge(): void {
+  window.work4youDesktop = {
+    isDesktop: false,
+    platform: 'browser',
+    cloud: {
+      wsUrl: browserCloudWsUrl,
+      api: browserCloudApi,
+      canMutate: async () => true
+    },
+    w4y: {
+      loginUrl: async () => `${window.location.origin}/login`,
+      login: async () => ({ ok: false, reason: 'browser-sso' }),
+      loginCancel: async () => ({ ok: true }),
+      logout: browserLogout,
+      hasKey: async () => ({ ok: true, hasKey: true }),
+      probeSession: async () => ({ ok: true, loggedIn: true }),
+      bootstrapApp: async () => ({ ok: true }),
+      ensureCredentials: async () => ({ ok: true, hasKey: true }),
+      updatePolicy: async () => ({})
+    }
+  }
+}
+
+function browserConnectionConfig(): DesktopConnectionConfig {
+  return {
+    envOverride: false,
+    mode: 'remote',
+    profile: null,
+    remoteAuthMode: window.__WAYNE_AUTH_REQUIRED__ ? 'oauth' : 'token',
+    remoteOauthConnected: true,
+    remoteTokenPreview: null,
+    remoteTokenSet: false,
+    remoteUrl: apiBase()
+  }
+}
+
 async function browserGetConnection(): Promise<HermesConnection> {
   const baseUrl = apiBase()
   const authMode = window.__WAYNE_AUTH_REQUIRED__ ? 'oauth' : 'token'
@@ -163,12 +313,14 @@ export function installBrowserShell(): boolean {
   if (typeof window === 'undefined') {
     return false
   }
-  if (window.hermesDesktop) {
+  if (window.hermesDesktop || window.work4youDesktop) {
     return false
   }
   if (import.meta.env.VITE_APP_SHELL !== 'browser') {
     return false
   }
+
+  installWork4YouDesktopBridge()
 
   window.hermesDesktop = {
     api: browserApi,
@@ -176,13 +328,9 @@ export function installBrowserShell(): boolean {
     getGatewayWsUrl: async () => buildWsUrl('/api/ws'),
     revalidateConnection: async () => ({ ok: true, rebuilt: false }),
     touchBackend: async () => ({ ok: true }),
-    getBootProgress: async () => ({
-      phase: 'ready',
-      message: '',
-      progress: 100,
-      running: false,
-      visible: false
-    }),
+    getBootProgress: browserGetBootProgress,
+    onBootProgress: () => noopUnsubscribe(),
+    onBackendExit: () => noopUnsubscribe(),
     profile: {
       get: async () => ({ profile: null }),
       set: async () => ({ profile: null })
@@ -212,6 +360,14 @@ export function installBrowserShell(): boolean {
       }
     },
     sanitizeWorkspaceCwd: async (cwd?: null | string) => ({ cwd: cwd?.trim() || '', sanitized: false }),
+    getRecentLogs: async () => ({ path: '', lines: [] }),
+    revealLogs: async () => ({ ok: false, path: '', error: 'browser-shell' }),
+    resetBootstrap: async () => ({ ok: true }),
+    repairBootstrap: async () => ({ ok: true }),
+    getConnectionConfig: async () => browserConnectionConfig(),
+    probeConnectionConfig: async () => ({ ok: true, providers: [] }),
+    oauthLoginConnectionConfig: async () => ({ connected: false }),
+    applyConnectionConfig: async (_payload: DesktopConnectionConfigInput) => browserConnectionConfig(),
     settings: {
       getDefaultProjectDir: async () => ({ defaultLabel: '', dir: null, resolvedCwd: '' }),
       pickDefaultProjectDir: async () => ({ canceled: true, dir: null }),

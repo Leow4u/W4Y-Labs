@@ -65,6 +65,53 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 
 ---
 
+## Fase L0 — Lançamento desktop-first (ago/2026)
+
+> **Objectivo:** primeiros ~50 utilizadores só na **app instalada**; site = conta + billing + download.  
+> **Flag:** `W4Y_LAUNCH_MODE=desktop` (+ `W4Y_SHARED_MOTOR=0`, `W4Y_APP_SUBDOMAIN=0`).  
+> **Deploy:** `platform/infra/deploy-web.ps1 -LaunchDesktop`
+
+### O que fica live (site)
+
+| Rota | Papel |
+|------|--------|
+| `work4you.ai` | Landing, `#install`, marketing |
+| `/login`, `/device` | Conta + handoff para app desktop (`/device/engine-key`) |
+| `/planos`, `/instancias`, Stripe | Billing e gestão |
+| `/baixar` | Redirect → `/#install` |
+
+### O que congela (não expor a utilizadores)
+
+| Item | Motivo |
+|------|--------|
+| `app.work4you.ai` → chat browser | Isolamento multi-tenant + paridade ainda instável |
+| Motor partilhado `wayne-w4y` para Free | Complexidade; desktop usa motor **local** |
+| SSO `/login/enter` → SPA cloud | Redirecciona para `/baixar` em L0 |
+| Provision Fly por signup Free | Registo cria conta + chave OR; `instances.status=desktop` |
+
+### Fluxo utilizador L0
+
+1. Registo/login no site → `/baixar` (ou `/device` se veio da app).
+2. Instala Work4You (GCS `latest.yml`).
+3. Login na app → browser em `work4you.ai/login?next=/device` → chave injectada.
+4. Motor local **já empacotado no instalador** (CPython + `.venv`); first-run
+   só extrai — sem `uv sync` na máquina do utilizador. Sessões em `~/.work4you/`.
+
+### Checklist — pronto para 50 utilizadores
+
+- [ ] `deploy-web.ps1 -LaunchDesktop` em produção
+- [ ] Casca publicada GCS (versão em `product-download.ts` + `/baixar`)
+- [ ] Motor ZIP + `latest.json` alinhados com renderer (`build:web` se UI mudou)
+- [ ] Smoke: signup novo → `/baixar` → instalar → login app → chat local
+- [ ] Smoke: plano pago Stripe → `/instancias` (sem botão browser em L0)
+- [ ] Suporte: `contato@work4you.ai` + playbook “só app desktop nesta fase”
+
+### Saída de L0 (Fase 2)
+
+Reactivar browser: `W4Y_LAUNCH_MODE=` vazio, `W4Y_SHARED_MOTOR=1`, validar isolamento fly249+ com duas contas **antes** de anunciar `app.work4you.ai`.
+
+---
+
 ## Apagar (lixo legado)
 
 | Item | Quando |

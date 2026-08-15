@@ -54,7 +54,7 @@ foreach ($email in $emails) {
   Write-Host "  $email -> $tenantId ($flyApp)" -ForegroundColor White
   if (-not $Apply) { continue }
 
-  Invoke-Sql "INSERT INTO users (email, tenant_id, role) VALUES ('$email', '$tenantId', 'admin') ON CONFLICT (email) DO UPDATE SET tenant_id=EXCLUDED.tenant_id"
+  Invoke-Sql "INSERT INTO users (email, tenant_id, role) VALUES ('$email', '$tenantId', 'owner') ON CONFLICT (email) DO UPDATE SET tenant_id=EXCLUDED.tenant_id"
   $exists = Invoke-Sql "SELECT 1 FROM instances WHERE tenant_id='$tenantId' LIMIT 1"
   if (-not $exists) {
     Invoke-Sql "INSERT INTO instances (tenant_id, name, url, fly_app, status, notes) VALUES ('$tenantId', 'Work4You — $slug', '', '$flyApp', 'provisioning', 'Migrado de $LegacyTenant')"

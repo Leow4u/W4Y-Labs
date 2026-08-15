@@ -1,0 +1,11 @@
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly244
+FROM ${BASE_IMAGE}
+
+COPY work4you_cli/platform_tenant.wayne.py /opt/wayne/wayne_cli/platform_tenant.py
+
+RUN rm -rf /opt/work4you/work4you_cli/app_dist /opt/wayne/wayne_cli/app_dist /opt/wayne/wayne_cli/web_dist
+
+COPY work4you_cli/app_dist /opt/work4you/work4you_cli/app_dist
+COPY work4you_cli/app_dist /opt/wayne/wayne_cli/app_dist
+
+RUN ln -sfn app_dist /opt/wayne/wayne_cli/web_dist && ln -sfn app_dist /opt/work4you/work4you_cli/web_dist

@@ -1,4 +1,4 @@
-import { defineFieldCopy } from '@/app/settings/field-copy'
+﻿import { defineFieldCopy } from '@/app/settings/field-copy'
 
 import { en } from './en'
 import type { Translations } from './types'
@@ -986,7 +986,11 @@ export const zh: Translations = {
       manageSubscriptionDesc: '在 Stripe 中更改方案、付款方式或取消。',
       manageSubscriptionNoCustomer: '尚无 Stripe 订阅 — 打开方案页以订阅。',
       planLogicHint:
-        '先使用包含额度，再按需直至支出上限。指挥中心 → 用量是代理遥测，不是账单。'
+        '先使用包含额度，再按需直至支出上限。指挥中心 → 用量是代理遥测，不是账单。',
+      signOut: '退出登录',
+      signOutFailed: '无法退出登录',
+      signedOutTitle: '已退出',
+      signedOutMessage: '已清除此设备上的 Work4You 账户会话。'
     },
     about: {
       heading: 'Work4You',
@@ -2543,7 +2547,9 @@ export const zh: Translations = {
       updateAvailable: '有可用更新',
       updateInstalling: '正在更新…',
       updateInstallingProgress: percent => `正在更新… ${percent}%`,
-      updateShort: '更新'
+      updateShort: '更新',
+      signOut: '退出登录',
+      signOutFailed: '无法退出登录'
     },
     searchAria: '搜索会话',
     searchPlaceholder: '搜索会话…',
@@ -3012,6 +3018,19 @@ export const zh: Translations = {
     reloadRetry: '重新加载并重试'
   },
 
+
+  accountGate: {
+    title: '登录 Work4You',
+    subtitle: '使用您的 Work4You 账户继续。模型访问已包含在您的套餐中。',
+    continueSignIn: '继续',
+    checking: '正在检查会话…',
+    signingIn: '正在登录…',
+    createAccount: '创建账户',
+    signInFailed: '登录未完成。请重试。',
+    updateAvailable: '有可用的应用更新。',
+    updateNow: '立即更新',
+    manualDownload: '在 work4you.ai/baixar 手动安装'
+  },
   onboarding: {
     headerTitle: '开始设置 Work4You',
     headerDesc: '连接模型提供方即可开始对话。大多数选项只需一次点击。',
@@ -3022,6 +3041,10 @@ export const zh: Translations = {
     otherProviders: '其他提供方',
     haveApiKey: '我有 API 密钥',
     chooseLater: '稍后再选择提供方',
+    w4ySignIn: '登录 Work4You',
+    w4ySignInDesc:
+      '使用您的 Work4You 账户——我们会为您配置模型密钥。除非您自带 API 密钥，否则无需浏览提供方列表。',
+    w4ySignInFailed: '无法登录 Work4You',
     recommended: '推荐',
     connected: '已连接',
     featuredPitch: 'Relay 2.5 Fast 免费版 — 使用 Work4You 账户登录',

@@ -182,6 +182,11 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     ipcRenderer.on('hermes:backend-exit', listener)
     return () => ipcRenderer.removeListener('hermes:backend-exit', listener)
   },
+  onGatewayOfflineSuppress: callback => {
+    const listener = () => callback()
+    ipcRenderer.on('hermes:gateway-offline-suppress', listener)
+    return () => ipcRenderer.removeListener('hermes:gateway-offline-suppress', listener)
+  },
   onPowerResume: callback => {
     const listener = () => callback()
     ipcRenderer.on('hermes:power-resume', listener)
@@ -243,7 +248,11 @@ contextBridge.exposeInMainWorld('work4youDesktop', {
     loginUrl: () => ipcRenderer.invoke('w4y:login:url'),
     login: () => ipcRenderer.invoke('w4y:login:run'),
     loginCancel: () => ipcRenderer.invoke('w4y:login:cancel'),
+    logout: () => ipcRenderer.invoke('w4y:login:logout'),
     hasKey: () => ipcRenderer.invoke('w4y:login:hasKey'),
+    probeSession: () => ipcRenderer.invoke('w4y:login:probeSession'),
+    bootstrapApp: () => ipcRenderer.invoke('w4y:login:bootstrapApp'),
+    ensureCredentials: () => ipcRenderer.invoke('w4y:login:ensureCredentials'),
     updatePolicy: () => ipcRenderer.invoke('w4y:update:policy')
   }
 })

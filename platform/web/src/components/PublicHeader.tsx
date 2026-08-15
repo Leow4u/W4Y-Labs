@@ -4,7 +4,8 @@ import { getDevSession } from "@/lib/dev-auth";
 import MobileNav from "@/components/MobileNav";
 import ResourcesMenu from "@/components/ResourcesMenu";
 import type { SiteLocale } from "@/lib/site-locale";
-import { BROWSER_ENTER, BROWSER_ENTER_AUTHED } from "@/lib/product-download";
+import { browserEnter, browserEnterAuthed } from "@/lib/product-download";
+import { postLoginCtaLabel } from "@/lib/shared-motor";
 
 // Public header — light ground, generous spacing. "Recursos" is a real
 // dropdown (ResourcesMenu); mobile gets the flattened list. The PT|EN chip
@@ -40,15 +41,15 @@ const RESOURCES = {
 } as const;
 
 const LABELS = {
-  pt: { resources: "Recursos", open: "Abrir o Work4You" },
-  en: { resources: "Resources", open: "Open Work4You" },
+  pt: { resources: "Recursos" },
+  en: { resources: "Resources" },
 } as const;
 
 export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
   const session = await getDevSession();
   const nav = NAV[locale];
   const resources = RESOURCES[locale];
-  const t = LABELS[locale];
+  const t = { ...LABELS[locale], open: postLoginCtaLabel(locale) };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/90 px-6 backdrop-blur">
@@ -83,16 +84,25 @@ export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
 
         <div className="flex items-center gap-3">
           <div className="hidden md:block">
-            <Link
-              href={session ? BROWSER_ENTER_AUTHED : BROWSER_ENTER}
-              className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
-            >
-              {t.open}
-            </Link>
+            {session ? (
+              <a
+                href={browserEnterAuthed()}
+                className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
+              >
+                {t.open}
+              </a>
+            ) : (
+              <Link
+                href={browserEnter()}
+                className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
+              >
+                {t.open}
+              </Link>
+            )}
           </div>
           <MobileNav
             items={[...nav, ...resources]}
-            openHref={session ? BROWSER_ENTER_AUTHED : BROWSER_ENTER}
+            openHref={session ? browserEnterAuthed() : browserEnter()}
             ctaOpen={t.open}
           />
         </div>

@@ -50,8 +50,33 @@ args.push(...process.argv.slice(2))
 const result = spawnSync(process.execPath, [electronBuilderCli(), ...args], {
   stdio: "inherit",
 })
+
 if (result.error) {
   console.error(`[run-electron-builder] spawn failed: ${result.error.message}`)
   process.exit(1)
 }
-process.exit(result.status == null ? 1 : result.status)
+
+const exitCode = result.status == null ? 1 : result.status
+if (exitCode !== 0) {
+  process.exit(exitCode)
+}
+
+if (process.platform === "win32") {
+  const { stampExeIdentity } = require("./set-exe-identity.cjs")
+  const desktopRoot = path.resolve(__dirname, "..")
+  const exe = path.join(desktopRoot, "release", "win-unpacked", "Work4You.exe")
+  if (fs.existsSync(exe)) {
+    stampExeIdentity(exe, desktopRoot)
+      .then(() => {
+        console.log(`[run-electron-builder] stamped ${exe}`)
+        process.exit(0)
+      })
+      .catch(err => {
+        console.error(`[run-electron-builder] icon stamp failed: ${err.message}`)
+        process.exit(1)
+      })
+    return
+  }
+}
+
+process.exit(0)

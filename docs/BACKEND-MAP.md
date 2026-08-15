@@ -385,6 +385,92 @@ Recuperação de uma máquina apanhada: recriar o alvo do junction
 (`%LOCALAPPDATA%\wayne\e\<id>`), extrair lá o conteúdo do zip, correr
 `uv sync` no checkout e alinhar `engine-version.json`.
 
+### ⚠️ GOTCHA first-run desktop — barra presa em 50% (ago/2026)
+
+Na casca **1.0.107**, o overlay ainda anunciava 3 passos e a barra usava
+`completed + 0.5` — com extract a correr isso lia-se como **50%** sem progresso
+real (`Expand-Archive` bloqueante, sem percentagem).
+
+**Correcção (casca ≥1.0.108):**
+- Manifest de **1 passo** (`engine-prepare`) quando existe `engine-runtime.zip`
+  bundled; sem teatro `engine-download` / `engine-deps`.
+- Extract com **progresso real** (ficheiros via `yauzl`); replace de motor
+  incompleto **silencioso**.
+- NSIS `build/installer.nsh` materializa o motor em
+  `%LOCALAPPDATA%\work4you\wayne-agent` **durante** o instalador → first-open
+  sem overlay quando `runtime-ready.json` + Python já existem.
+- Motor ready: CPython + `.venv` (`runtime-ready.json`). `uv sync` no PC do
+  utilizador só para ZIPs source-only legados.
+
+**Desktop data home (L0):** motor partilhado em `…\work4you\wayne-agent`;
+sessões/chaves em `…\work4you\accounts\<tenantId>` (pin `active-account.json`).
+Dois emails no mesmo utilizador Windows = duas pastas — não o mesmo `state.db`.
+Não reactivar `W4Y_SHARED_MOTOR` sem E2E de duas contas.
+
+### Gateway offline toast (desktop, ago/2026)
+
+Toast `Work4You inference gateway status / offline` só dispara em
+`open → closed|error`. Causas falsas no 1.º login: (1) cloud-first a
+promover socket cloud morto a active; (2) relaunch por `accounts/<tenantId>`.
+Fix: `ensureGatewayForProfile` só `setActive` se open (+ fallback local);
+suppress toast no relaunch/boot/update.
+
+### Model access / OpenRouter device key (desktop, ago/2026)
+
+Toast `Model access unavailable` / `No API key configured for provider ''` vinha
+do probe `_probe_credentials` quando o motor arrancava sem `OPENROUTER_API_KEY`
+no env do processo ou com `model.provider` vazio. Contrato produto: login
+`POST /device/engine-key` grava a key do tenant + `ensurePlatformModelConfig`
+(Relay/OpenRouter em `config.yaml`) e **sempre** reinicia o motor após mint
+da key (não só quando `accounts/<tenantId>` muda). Heal silencioso:
+`w4y:login:ensureCredentials` + reload de dotenv em `_make_agent` / probe.
+
+### Update chip missing when logged in (desktop, 14/08/2026)
+
+Feed GCS estava certo (`latest.yml` / `latest.json`), mas o chip não aparecia
+para utilizadores **já com conta ativa**: `checkEngineUpdate(resolveWayneHome())`
+olhava `accounts/<tenantId>/` (sem motor) → `notInstalled` → motor nunca
+“atrás”; e o check da casca confiava em `isUpdateAvailable === false` do
+electron-updater sem cair no fallback `latest.yml`. Fix (casca ≥ 1.0.111):
+marker + apply no **platform root** / `resolveSharedEngineRoot`; casca decide
+sempre por semver próprio + `latest.yml`.
+
+### Auth email (plataforma, ago/2026)
+
+Signup/reset **não** usam o template feio do Firebase. Fluxo:
+
+1. Cliente cria user Firebase (`createUserWithEmailAndPassword`).
+2. `POST /login/send-verification` (ou `/login/send-password-reset`) gera o
+   action link com **Firebase Admin**, emite OTP 6 dígitos (`auth_email_codes`),
+   e envia HTML Work4You via **Resend API** (`no-reply@work4you.ai`).
+3. O CTA no email aponta para `https://work4you.ai/login/action?mode=&oobCode=`
+   (nunca `*.firebaseapp.com` — M365/corporate costuma quarentenar esse host).
+4. Fallback: código de 6 dígitos no corpo do email → `POST /login/confirm-code`
+   → `adminAuth.updateUser({ emailVerified: true })`.
+5. SMTP Resend no Firebase Console pode continuar (legado); canónico = API
+   Resend + secret `resend-api-key`.
+
+**Deliverability (obrigatório para todos os tenants):**
+
+- Resend domain `work4you.ai`: DKIM `resend._domainkey` + SPF em `send`
+  (`include:amazonses.com`) — já verified.
+- Apex SPF hoje: só Hostinger (`include:_spf.mail.hostinger.com`). Ideal:
+  `v=spf1 include:_spf.mail.hostinger.com include:amazonses.com ~all`
+  (DNS Hostinger). Return-Path Resend já usa `send.work4you.ai` (alinhado).
+- DMARC: `p=none` — subir para `quarantine` só depois de reports limpos.
+- Se Resend marca `delivered` e o user não vê: spam/quarentena no lado do
+  destinatário (Message Trace M365). Produto já tem OTP + link no nosso domínio.
+
+Templates: `platform/web/src/lib/auth-email.ts`. UI: erros visíveis + campo OTP.
+
+
+**Smoke L0 (duas contas):** signup A e B → cada um no seu perfil Windows (ou
+logout+login com relaunch) → chats de A invisíveis em B; device-key grava em
+`accounts/<tenantId>/.env`.
+
+**Recuperação (motor a meio):** apagar `%LOCALAPPDATA%\work4you\wayne-agent`
+(ou `wayne\wayne-agent` legado) e reinstalar/reabrir ≥1.0.108.
+
 ### Decisões fechadas (02/08)
 
 1. **Perfis sobrevivem a `docker restart`** — corrigido de raiz. O

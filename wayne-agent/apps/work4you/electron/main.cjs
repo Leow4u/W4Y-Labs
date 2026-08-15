@@ -1142,7 +1142,8 @@ let bootstrapState = {
   log: [],
   startedAt: null,
   completedAt: null,
-  unsupportedPlatform: null
+  unsupportedPlatform: null,
+  progressPercent: null
 }
 
 function broadcastBootstrapEvent(ev) {
@@ -1150,6 +1151,7 @@ function broadcastBootstrapEvent(ev) {
     bootstrapState.manifest = ev
     bootstrapState.active = true
     bootstrapState.startedAt = bootstrapState.startedAt || Date.now()
+    bootstrapState.progressPercent = null
     bootstrapState.stages = {}
     for (const stage of ev.stages || []) {
       bootstrapState.stages[stage.name] = { state: 'pending', json: null, durationMs: null, error: null }
@@ -1161,6 +1163,10 @@ function broadcastBootstrapEvent(ev) {
       json: ev.json ?? null,
       error: ev.error ?? null
     }
+  } else if (ev.type === 'progress') {
+    if (typeof ev.percent === 'number' && Number.isFinite(ev.percent)) {
+      bootstrapState.progressPercent = Math.max(0, Math.min(100, Math.round(ev.percent)))
+    }
   } else if (ev.type === 'log') {
     bootstrapState.log.push({ ts: Date.now(), stage: ev.stage || null, line: ev.line, stream: ev.stream || 'stdout' })
     if (bootstrapState.log.length > BOOTSTRAP_LOG_RING_MAX) {
@@ -1171,6 +1177,7 @@ function broadcastBootstrapEvent(ev) {
     bootstrapState.completedAt = Date.now()
     bootstrapState.error = null
     bootstrapState.unsupportedPlatform = null
+    bootstrapState.progressPercent = 100
   } else if (ev.type === 'failed') {
     bootstrapState.active = false
     bootstrapState.error = ev.error || 'unknown error'
@@ -3020,7 +3027,8 @@ function resolveHermesBackend(backendArgs) {
     const wayneBackend = w4yWayne.tryResolveWayneBackend(backendArgs, {
       findPythonForRoot,
       buildDesktopBackendEnv,
-      devSourceRoot: SOURCE_REPO_ROOT
+      devSourceRoot: SOURCE_REPO_ROOT,
+      requireReadyRuntime: Boolean(IS_PACKAGED)
     })
     if (wayneBackend) {
       rememberLog(`Using Work4You Wayne backend: ${wayneBackend.label}`)
@@ -3215,39 +3223,68 @@ async function ensureRuntime(backend) {
   if (backend.kind === 'bootstrap-needed') {
     if (backend.w4yWayneRequired) {
       // Phase B (first-run): packaged app, no Wayne engine on disk yet.
-      // Attempt to download + extract the engine ZIP before falling back to a hard error.
-      rememberLog('[w4y] Wayne motor não encontrado; iniciando download do engine ZIP (first-run).')
+      // Prefer the ready engine tree the installer wrote; otherwise download
+      // the engine ZIP before falling back to a hard error.
+      const bundledEngine = typeof w4yWayne.resolveBundledEngineDir === 'function'
+        ? w4yWayne.resolveBundledEngineDir()
+        : null
+      rememberLog(
+        bundledEngine
+          ? '[w4y] Motor incluído no instalador; a preparar (first-run, sem uv sync).'
+          : '[w4y] Wayne motor não encontrado; iniciando download do engine ZIP (first-run).'
+      )
 
-      try {
-        broadcastBootstrapEvent({
-          type: 'manifest',
-          stages: [
+      const stages = bundledEngine
+        ? [
+            {
+              name: 'engine-prepare',
+              title: 'A preparar o motor…',
+              category: 'engine',
+              needs_user_input: false
+            }
+          ]
+        : [
             {
               name: 'engine-download',
               title: 'Baixando motor Work4You…',
               category: 'engine',
               needs_user_input: false
+            },
+            {
+              name: 'engine-extract',
+              title: 'Extraindo motor…',
+              category: 'engine',
+              needs_user_input: false
+            },
+            {
+              name: 'engine-deps',
+              title: 'Instalando dependências Python…',
+              category: 'engine',
+              needs_user_input: false
             }
-          ],
+          ]
+
+      try {
+        broadcastBootstrapEvent({
+          type: 'manifest',
+          stages,
           protocolVersion: null
         })
       } catch {
         void 0
       }
 
-      const wayneHome = w4yLogin.resolveWayneHome()
-      const engineDest = path.join(wayneHome, 'wayne-agent')
+      const w4yHome = require('./w4y-home.cjs')
+      const platformRoot =
+        typeof w4yHome.resolvePlatformRoot === 'function'
+          ? w4yHome.resolvePlatformRoot()
+          : w4yLogin.resolveWayneHome()
+      const engineDest =
+        typeof w4yHome.resolveSharedEngineRoot === 'function'
+          ? w4yHome.resolveSharedEngineRoot(platformRoot)
+          : path.join(platformRoot, 'wayne-agent')
       const engineStageStarted = Date.now()
-
-      try {
-        broadcastBootstrapEvent({
-          type: 'stage',
-          name: 'engine-download',
-          state: 'running'
-        })
-      } catch {
-        void 0
-      }
+      let activeStage = bundledEngine ? 'engine-prepare' : 'engine-download'
 
       try {
         await w4yWayne.ensureWayneEngineForPackaged(engineDest, {
@@ -3256,9 +3293,32 @@ async function ensureRuntime(backend) {
             try {
               broadcastBootstrapEvent({
                 type: 'log',
-                stage: 'engine-download',
+                stage: activeStage,
                 line: msg,
                 stream: 'stdout'
+              })
+              if (typeof pct === 'number' && Number.isFinite(pct)) {
+                broadcastBootstrapEvent({
+                  type: 'progress',
+                  percent: Math.max(0, Math.min(100, Math.round(pct))),
+                  stage: activeStage
+                })
+              }
+            } catch {
+              void 0
+            }
+          },
+          onStage: (name, state, extra = {}) => {
+            activeStage = name
+            try {
+              broadcastBootstrapEvent({
+                type: 'stage',
+                name,
+                state,
+                ...(extra.error ? { error: String(extra.error) } : {}),
+                ...(state === 'succeeded' || state === 'failed'
+                  ? { durationMs: Date.now() - engineStageStarted }
+                  : {})
               })
             } catch {
               void 0
@@ -3267,13 +3327,7 @@ async function ensureRuntime(backend) {
         })
         rememberLog('[w4y] Motor Work4You instalado. Re-resolvendo backend.')
         try {
-          broadcastBootstrapEvent({
-            type: 'stage',
-            name: 'engine-download',
-            state: 'succeeded',
-            durationMs: Date.now() - engineStageStarted
-          })
-          broadcastBootstrapEvent({ type: 'complete', marker: { kind: 'engine-download' } })
+          broadcastBootstrapEvent({ type: 'complete', marker: { kind: 'engine-prepare' } })
         } catch {
           void 0
         }
@@ -3284,7 +3338,7 @@ async function ensureRuntime(backend) {
         try {
           broadcastBootstrapEvent({
             type: 'stage',
-            name: 'engine-download',
+            name: activeStage,
             state: 'failed',
             durationMs: Date.now() - engineStageStarted,
             error: engineErr && engineErr.message ? String(engineErr.message) : 'engine download failed'
@@ -7468,8 +7522,16 @@ ipcMain.handle('hermes:updates:check', async () => {
 ipcMain.handle('hermes:updates:apply', async (_event, payload) => {
   // Packaged builds: unified apply — motor (in-place) then casca (quitAndInstall).
   if (IS_PACKAGED && w4yAppUpdater.isAvailable()) {
-    const wayneHome = w4yLogin.resolveWayneHome()
-    const engineRoot = path.join(wayneHome, 'wayne-agent')
+    // Shared engine + marker at platform root — not accounts/<tenantId>.
+    const w4yHome = require('./w4y-home.cjs')
+    const platformRoot =
+      typeof w4yHome.resolvePlatformRoot === 'function'
+        ? w4yHome.resolvePlatformRoot()
+        : w4yLogin.resolveWayneHome()
+    const engineRoot =
+      typeof w4yHome.resolveSharedEngineRoot === 'function'
+        ? w4yHome.resolveSharedEngineRoot(platformRoot)
+        : path.join(platformRoot, 'wayne-agent')
     return w4yAppUpdater.apply(emitUpdateProgress, {
       // Stop the Python backend before overwriting engine files so Windows
       // file locks on .pyd / python.exe are released before extraction.
@@ -7482,7 +7544,7 @@ ipcMain.handle('hermes:updates:apply', async (_event, payload) => {
         await waitForBackendExit(dying)
       },
       engineRoot,
-      wayneHome
+      wayneHome: platformRoot
     })
   }
   // Unpackaged: git-based apply (engineering only).
@@ -7878,8 +7940,27 @@ app.whenReady().then(async () => {
   // Work4You Fase 3: real cloud bridge + login IPC; Wayne motor via resolver.
   ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
   w4yCloud.registerCloudIpc(ipcMain)
+  const relaunchForAccountHome = async () => {
+    // Per-tenant WAYNE_HOME only sticks for child processes after a clean restart.
+    // Tell the renderer first so open→closed is not toasted as "gateway offline".
+    try {
+      const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
+      win?.webContents?.send("hermes:gateway-offline-suppress")
+    } catch {
+      /* best effort */
+    }
+    try {
+      await teardownPrimaryBackendAndWait()
+    } catch {
+      /* best effort */
+    }
+    app.relaunch()
+    app.exit(0)
+  }
   w4yLogin.registerLoginIpc(ipcMain, {
-    getMainWindow: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null)
+    getMainWindow: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null),
+    onAccountSwitched: relaunchForAccountHome,
+    onLoggedOut: relaunchForAccountHome
   })
   if (IS_MAC) {
     Menu.setApplicationMenu(buildApplicationMenu())

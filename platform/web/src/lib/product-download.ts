@@ -2,8 +2,8 @@
 
 const DOWNLOAD_BASE = "https://storage.googleapis.com/w4y-engine-dist";
 
-export const DESKTOP_VERSION = "1.0.95";
-export const DESKTOP_SIZE = "~104 MB";
+export const DESKTOP_VERSION = "1.0.111";
+export const DESKTOP_SIZE = "~205 MB";
 
 export const WINDOWS_DESKTOP_URL =
   `${DOWNLOAD_BASE}/Work4You-${DESKTOP_VERSION}-win-x64.exe`;
@@ -62,8 +62,23 @@ export const INSTALL_CMD = {
   unix: `curl -fsSL ${DOWNLOAD_BASE}/install.sh | bash`,
 } as const;
 
-/** Login → SSO handoff → app SPA in the browser. */
+/** Login → SSO handoff → app SPA in the browser (or download in L0). */
 export const BROWSER_ENTER = "/login?next=/login/enter";
 
 /** Signed-in users skip the login form. */
 export const BROWSER_ENTER_AUTHED = "/login/enter";
+
+/** Client-safe mirror of W4Y_LAUNCH_MODE for static bundles. */
+export function desktopLaunchPublic(): boolean {
+  return (process.env.NEXT_PUBLIC_W4Y_LAUNCH_MODE ?? "").trim().toLowerCase() === "desktop";
+}
+
+export function browserEnterAuthed(): string {
+  return desktopLaunchPublic() ? "/baixar" : BROWSER_ENTER_AUTHED;
+}
+
+export function browserEnter(): string {
+  return desktopLaunchPublic()
+    ? "/login?next=/baixar"
+    : BROWSER_ENTER;
+}

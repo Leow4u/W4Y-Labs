@@ -143,7 +143,7 @@ const url=fs.readFileSync(".env.local","utf8").match(/DATABASE_URL=["']?([^"'\r\
 const {Pool}=require("pg"); const pool=new Pool({connectionString:url,connectionTimeoutMillis:8000});
 (async()=>{
   const t=process.env.PGTENANT, app=process.env.PGAPP;
-  await pool.query("INSERT INTO users (email,tenant_id,role) VALUES ($1,$2,'admin') ON CONFLICT (email) DO UPDATE SET tenant_id=EXCLUDED.tenant_id",[process.env.PGEMAIL,t]);
+  await pool.query("INSERT INTO users (email,tenant_id,role) VALUES ($1,$2,'owner') ON CONFLICT (email) DO UPDATE SET tenant_id=EXCLUDED.tenant_id",[process.env.PGEMAIL,t]);
   await pool.query(`INSERT INTO instances (tenant_id,name,url,fly_app,dashboard_username,dashboard_password,notes)
     VALUES ($1,$2,$3,$4,$5,$6,'Fly.io GRU · provisionado automaticamente')`,
     [t,`Work4You — ${process.env.PGSLUG}`,`https://${app}.fly.dev`,app,process.env.PGUSER2,process.env.PGPASS2]);

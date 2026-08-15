@@ -48,7 +48,7 @@ export function BootFailureOverlay() {
     }
 
     void window.hermesDesktop
-      ?.getRecentLogs()
+      ?.getRecentLogs?.()
       .then(res => setLogs(res.lines ?? []))
       .catch(() => undefined)
   }, [visible])

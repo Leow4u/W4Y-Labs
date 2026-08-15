@@ -10,7 +10,7 @@ import {
   WhatsAppAgentMock,
 } from "@/components/ProductMocks";
 import { getSiteLocale } from "@/lib/site-locale";
-import { BROWSER_ENTER } from "@/lib/product-download";
+import { browserEnter } from "@/lib/product-download";
 
 // Work4You landing — new architecture, benchmark-informed:
 // centered display hero with the LIVE product window bleeding into the fold,
@@ -687,7 +687,7 @@ export default async function LandingPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
                 {t.platforms.web.copy}
               </p>
-              <Link href={BROWSER_ENTER} className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+              <Link href={browserEnter()} className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.web.cta}
               </Link>
               <div className="mx-auto mt-5 w-[82%] flex-1 overflow-hidden rounded-t-[1.6rem] border-4 border-b-0 border-ink bg-white">

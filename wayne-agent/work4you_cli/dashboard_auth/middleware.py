@@ -360,34 +360,14 @@ async def gated_auth_middleware(
         refreshed = _attempt_refresh(request, refresh_token=_rt)
         if refreshed is not None:
             new_session, refreshing_provider = refreshed
-            request.state.session = new_session
-            response = await call_next(request)
-            # Persist the ROTATED tokens. Portal rotates the refresh token on
-            # every refresh and runs reuse-detection, so writing the new RT
-            # back is mandatory: a stale RT cookie would replay a rotated
-            # token on the next refresh and (outside Portal's grace) revoke
-            # the whole session. Bind cookie Secure/Path to the request shape.
-            from work4you_cli.dashboard_auth.cookies import (
-                detect_https,
-                set_session_cookies,
+            return await _serve_authenticated_request(
+                request,
+                call_next,
+                new_session,
+                on_response=lambda response: _attach_refreshed_session_cookies(
+                    request, response, new_session, refreshing_provider
+                ),
             )
-            from work4you_cli.dashboard_auth.prefix import prefix_from_request
-
-            set_session_cookies(
-                response,
-                access_token=new_session.access_token,
-                refresh_token=new_session.refresh_token,
-                access_token_expires_in=_expires_in_seconds(new_session),
-                use_https=detect_https(request),
-                prefix=prefix_from_request(request),
-            )
-            audit_log(
-                AuditEvent.REFRESH_SUCCESS,
-                provider=refreshing_provider,
-                user_id=new_session.user_id,
-                ip=_client_ip(request),
-            )
-            return response
 
         audit_log(
             AuditEvent.SESSION_VERIFY_FAILURE,
@@ -403,11 +383,61 @@ async def gated_auth_middleware(
         # the browser ignores it).
         from work4you_cli.dashboard_auth.cookies import clear_session_cookies
         from work4you_cli.dashboard_auth.prefix import prefix_from_request
-        clear_session_cookies(response, prefix=prefix_from_request(request))
+        clear_session_cookies(
+            response,
+            prefix=prefix_from_request(request),
+            use_https=detect_https(request),
+        )
         return response
 
+    return await _serve_authenticated_request(request, call_next, session)
+
+
+async def _serve_authenticated_request(
+    request: Request,
+    call_next,
+    session,
+    *,
+    on_response=None,
+):
+    """Attach session, enforce shared-motor tenant isolation, then serve."""
+    from work4you_cli.platform_tenant import (
+        platform_tenant_request_scope,
+        shared_motor_tenant_violation_response,
+    )
+
+    blocked = shared_motor_tenant_violation_response(request, session)
+    if blocked is not None:
+        return blocked
+
     request.state.session = session
-    return await call_next(request)
+    async with platform_tenant_request_scope(request):
+        response = await call_next(request)
+    if on_response is not None:
+        on_response(response)
+    return response
+
+
+def _attach_refreshed_session_cookies(
+    request: Request, response, new_session, refreshing_provider: str
+) -> None:
+    from work4you_cli.dashboard_auth.cookies import detect_https, set_session_cookies
+    from work4you_cli.dashboard_auth.prefix import prefix_from_request
+
+    set_session_cookies(
+        response,
+        access_token=new_session.access_token,
+        refresh_token=new_session.refresh_token,
+        access_token_expires_in=_expires_in_seconds(new_session),
+        use_https=detect_https(request),
+        prefix=prefix_from_request(request),
+    )
+    audit_log(
+        AuditEvent.REFRESH_SUCCESS,
+        provider=refreshing_provider,
+        user_id=new_session.user_id,
+        ip=_client_ip(request),
+    )
 
 
 def _expires_in_seconds(session) -> int:

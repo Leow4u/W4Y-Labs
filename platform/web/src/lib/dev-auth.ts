@@ -14,17 +14,17 @@ export const DEV_SESSION_COOKIE = SESSION_COOKIE;
 export interface DevSession {
   email: string;
   tenantId: string;
-  role: "admin" | "member";
+  /** Operador W4Y (frota cross-tenant). Vem de ADMIN_EMAILS — não confundir com users.role. */
+  isPlatformOperator: boolean;
 }
 
-// Platform operators. Role is derived at read time from email — never stored in
-// the signed token payload extensions (custom claims later with Identity Platform).
-function resolveRole(email: string): DevSession["role"] {
-  const admins = (process.env.ADMIN_EMAILS ?? "leonardo@dutelog.com.br")
+/** Operadores da plataforma Work4You (suporte/frota). Separado de users.role (tenant). */
+export function isPlatformOperatorEmail(email: string): boolean {
+  const operators = (process.env.ADMIN_EMAILS ?? "leonardo@dutelog.com.br")
     .split(",")
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
-  return admins.includes(email.toLowerCase()) ? "admin" : "member";
+  return operators.includes(email.toLowerCase());
 }
 
 export async function getDevSession(): Promise<DevSession | null> {
@@ -34,7 +34,7 @@ export async function getDevSession(): Promise<DevSession | null> {
 
   const verified = await verifySession(raw);
   if (verified) {
-    return { ...verified, role: resolveRole(verified.email) };
+    return { ...verified, isPlatformOperator: isPlatformOperatorEmail(verified.email) };
   }
 
   // Legacy unsigned cookie (dev migration only). Reject in production.
@@ -44,7 +44,11 @@ export async function getDevSession(): Promise<DevSession | null> {
   try {
     const parsed = JSON.parse(raw) as SessionPayload;
     if (!parsed.email || !parsed.tenantId) return null;
-    return { email: parsed.email, tenantId: parsed.tenantId, role: resolveRole(parsed.email) };
+    return {
+      email: parsed.email,
+      tenantId: parsed.tenantId,
+      isPlatformOperator: isPlatformOperatorEmail(parsed.email),
+    };
   } catch {
     return null;
   }

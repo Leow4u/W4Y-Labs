@@ -9,9 +9,9 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly230",
+  [string]$TenantTag = "fly238",
   [string]$ProvisionerTag = "p4",
-  [string]$BaseTenantTag = "fly229",
+  [string]$BaseTenantTag = "fly230",
   [switch]$SkipTenant,
   [switch]$SkipProvisioner
 )
@@ -22,12 +22,12 @@ $ErrorActionPreference = "Stop"
 $fly = (Get-Command fly -ErrorAction SilentlyContinue).Source
 if (-not $fly) { throw "fly CLI not found" }
 & $fly auth whoami | Out-Null
-if ($LASTEXITCODE -ne 0) { throw "fly not authenticated — run: fly auth login" }
+if ($LASTEXITCODE -ne 0) { throw "fly not authenticated - run fly auth login" }
 
 $engineRoot = Join-Path $script:REPO_ROOT "wayne-agent"
 $appDist = Join-Path $engineRoot "work4you_cli\app_dist\index.html"
 if (-not (Test-Path $appDist)) {
-  throw "app_dist missing — run: cd wayne-agent/apps/work4you && npm run build:web"
+  throw "app_dist missing - run: cd wayne-agent/apps/work4you; npm run build:web"
 }
 
 if (-not $SkipProvisioner) {
@@ -49,9 +49,12 @@ if (-not $SkipTenant) {
   Write-Host "== Tenant UI overlay wayne-w4y:$TenantTag (base $BaseTenantTag) ==" -ForegroundColor Cyan
   Push-Location $engineRoot
   try {
+    $prevEap = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
     docker build -f (Join-Path $script:REPO_ROOT "platform\wayne-fly\Dockerfile.ui") `
       --build-arg "BASE_IMAGE=registry.fly.io/wayne-w4y:$BaseTenantTag" `
-      -t "registry.fly.io/wayne-w4y:$TenantTag" .
+      -t "registry.fly.io/wayne-w4y:$TenantTag" . 2>&1 | Out-Host
+    $ErrorActionPreference = $prevEap
     if ($LASTEXITCODE -ne 0) { throw "tenant ui docker build failed" }
     & $fly auth docker
     docker push "registry.fly.io/wayne-w4y:$TenantTag"

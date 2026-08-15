@@ -25,7 +25,17 @@ declare global {
         loginUrl: () => Promise<string>
         login: () => Promise<{ ok: boolean; got?: string; reason?: string }>
         loginCancel: () => Promise<{ ok: boolean }>
+        logout: () => Promise<{ ok: boolean }>
         hasKey: () => Promise<{ ok: boolean; hasKey: boolean }>
+        probeSession: () => Promise<{ ok?: boolean; loggedIn?: boolean | null; noCredit?: boolean }>
+        bootstrapApp: () => Promise<{ ok?: boolean; error?: string }>
+        ensureCredentials: () => Promise<{
+          ok: boolean
+          hasKey: boolean
+          minted?: boolean
+          seeded?: boolean
+          home?: string
+        }>
         updatePolicy: () => Promise<unknown>
       }
     }
@@ -192,6 +202,7 @@ declare global {
       onNotificationAction?: (callback: (payload: { actionId: string; sessionId?: string }) => void) => () => void
       onPreviewFileChanged: (callback: (payload: HermesPreviewFileChanged) => void) => () => void
       onBackendExit: (callback: (payload: BackendExit) => void) => () => void
+      onGatewayOfflineSuppress?: (callback: () => void) => () => void
       onPowerResume?: (callback: () => void) => () => void
       onBootProgress: (callback: (payload: DesktopBootProgress) => void) => () => void
       getBootstrapState: () => Promise<DesktopBootstrapState>
@@ -515,6 +526,8 @@ export interface DesktopBootstrapState {
   startedAt: number | null
   completedAt: number | null
   unsupportedPlatform: DesktopBootstrapUnsupportedPlatform | null
+  /** Real extract/download percent from main when available (0–100). */
+  progressPercent?: number | null
 }
 
 export type DesktopBootstrapEvent =
@@ -527,6 +540,7 @@ export type DesktopBootstrapEvent =
       json?: DesktopBootstrapStageResult['json']
       error?: string | null
     }
+  | { type: 'progress'; percent: number; stage?: string | null }
   | { type: 'log'; stage?: string | null; line: string; stream?: 'stdout' | 'stderr' }
   | { type: 'complete'; marker: Record<string, unknown> }
   | { type: 'failed'; stage?: string | null; error: string }

@@ -4,7 +4,10 @@ import {
   featuredDefaultOnIdsForPlan,
   filterModelsForPlan,
   isPlanLockedModel,
-  sanitizeVisibleKeysForPlan
+  isStalePlatformDefaultModel,
+  platformDefaultModelSelection,
+  sanitizeVisibleKeysForPlan,
+  shouldReplaceComposerModel
 } from '@/lib/plan-model-gating'
 import { featuredDefaultOnIds, W4Y_CATALOG_PROVIDER } from '@/lib/w4y-featured-models'
 import { RELAY_FREE_PRIMARY_MODEL } from '@/lib/relay-free-model'
@@ -43,5 +46,29 @@ describe('plan-model-gating', () => {
   it('sanitizeVisibleKeysForPlan is a no-op on paid plans', () => {
     const stored = new Set([`${W4Y_CATALOG_PROVIDER}::openrouter/auto`])
     expect(sanitizeVisibleKeysForPlan(stored, 'starter', W4Y_CATALOG_PROVIDER)).toBeNull()
+  })
+
+  it('flags legacy Nemotron / :free slugs as stale platform defaults', () => {
+    expect(isStalePlatformDefaultModel('nvidia/nemotron-3-ultra-550b-a55b:free')).toBe(true)
+    expect(isStalePlatformDefaultModel(RELAY_FREE_PRIMARY_MODEL)).toBe(false)
+    expect(isStalePlatformDefaultModel('openrouter/auto')).toBe(false)
+  })
+
+  it('shouldReplaceComposerModel catches Nemotron on any plan', () => {
+    expect(shouldReplaceComposerModel('nvidia/nemotron-3-ultra-550b-a55b:free', 'starter')).toBe(
+      true
+    )
+    expect(shouldReplaceComposerModel(RELAY_FREE_PRIMARY_MODEL, 'free')).toBe(false)
+  })
+
+  it('platformDefaultModelSelection matches billing tier', () => {
+    expect(platformDefaultModelSelection('free')).toEqual({
+      model: RELAY_FREE_PRIMARY_MODEL,
+      provider: W4Y_CATALOG_PROVIDER
+    })
+    expect(platformDefaultModelSelection('starter')).toEqual({
+      model: 'openrouter/auto',
+      provider: W4Y_CATALOG_PROVIDER
+    })
   })
 })

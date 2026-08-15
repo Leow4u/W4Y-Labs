@@ -5,9 +5,12 @@
 # a landing é global e o Wayne continua em São Paulo). O serviço liga no
 # Cloud SQL de São Paulo via connector (--add-cloudsql-instances).
 #
-# Usage: .\deploy-web.ps1 [-Tag <tag>]
+# Usage: .\deploy-web.ps1 [-Tag <tag>] [-LaunchDesktop]
 [CmdletBinding()]
-param([string]$Tag)
+param(
+  [string]$Tag,
+  [switch]$LaunchDesktop
+)
 
 . "$PSScriptRoot\_env.ps1"
 if (-not $Tag) { $Tag = "web-" + (Get-ImageTag) }
@@ -18,14 +21,26 @@ $imageRepo   = "$script:AR_HOST/$script:PROJECT_ID/$script:REPO/w4y-web"
 $image       = "${imageRepo}:$Tag"
 $sqlConn     = "$script:PROJECT_ID`:southamerica-east1:w4y-registry"
 
+$launchMode = if ($LaunchDesktop) { 'desktop' } else { '' }
+$sharedMotor = if ($LaunchDesktop) { '0' } else { '1' }
+$appSubdomain = if ($LaunchDesktop) { '0' } else { '1' }
+if ($LaunchDesktop) {
+  Write-Host "== Launch mode: desktop (L0) - browser chat off, download handoff ==" -ForegroundColor Yellow
+}
+
 Write-Host "== [1/3] build (linux/amd64) -> $image ==" -ForegroundColor Cyan
-docker build --platform linux/amd64 -t $image "$script:REPO_ROOT\platform\web"
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+docker build --platform linux/amd64 -t $image "$script:REPO_ROOT\platform\web" 2>&1 | Out-Host
+$ErrorActionPreference = $prevEap
 if ($LASTEXITCODE -ne 0) { throw "build failed" }
 
 Write-Host "== [2/3] push ==" -ForegroundColor Cyan
 $token = (gcloud auth print-access-token).Trim()
 $token | docker login -u oauth2accesstoken --password-stdin "https://$script:AR_HOST" | Out-Null
-docker push $image
+$ErrorActionPreference = 'Continue'
+docker push $image 2>&1 | Out-Host
+$ErrorActionPreference = $prevEap
 if ($LASTEXITCODE -ne 0) { throw "push failed" }
 $repoDigest = (docker inspect --format '{{index .RepoDigests 0}}' $image)
 Set-Content -Path "$PSScriptRoot\last-web-image.txt" -Value $repoDigest -NoNewline
@@ -39,6 +54,13 @@ gcloud secrets add-iam-policy-binding w4y-web-database-url `
 gcloud secrets add-iam-policy-binding w4y-session-secret `
     --member="serviceAccount:$script:RUNTIME_SA" `
     --role='roles/secretmanager.secretAccessor' --condition=None 2>&1 | Out-Null
+gcloud secrets add-iam-policy-binding resend-api-key `
+    --member="serviceAccount:$script:RUNTIME_SA" `
+    --role='roles/secretmanager.secretAccessor' --condition=None 2>&1 | Out-Null
+# Auto-provision Free: cria secrets w4y-tenant-or-* por tenant no bootstrap.
+gcloud projects add-iam-policy-binding $script:PROJECT_ID `
+    --member="serviceAccount:$script:RUNTIME_SA" `
+    --role='roles/secretmanager.admin' --condition=None 2>&1 | Out-Null
 $ErrorActionPreference = $prevEap
 $deployArgs = @(
     'run', 'deploy', $WEB_SERVICE,
@@ -66,19 +88,25 @@ $deployArgs = @(
         # Turnstile (Cloudflare): anti-robô no registro/auto-provisionamento.
         'TURNSTILE_SITEKEY=turnstile-sitekey:latest',
         'TURNSTILE_SECRET=turnstile-secret:latest',
-        'W4Y_SESSION_SECRET=w4y-session-secret:latest'
+        'W4Y_SESSION_SECRET=w4y-session-secret:latest',
+        # Auth mail (verify/reset) via Resend API — branded HTML for all signups.
+        'RESEND_API_KEY=resend-api-key:latest'
     ) -join ',')),
     ('--set-env-vars=' + (@(
         'ADMIN_EMAILS=leonardo@dutelog.com.br',
         'ALLOW_ALL_EMAILS=1',
-        'WAYNE_INTERNAL_URL=https://wayne-w4y.fly.dev',
+        'WAYNE_INTERNAL_URL=https://app.work4you.ai',
         'PROVISIONER_URL=https://provisioner-w4y.fly.dev',
         'FREE_OPEN=1',
+        "W4Y_LAUNCH_MODE=$launchMode",
+        "NEXT_PUBLIC_W4Y_LAUNCH_MODE=$launchMode",
+        "W4Y_SHARED_MOTOR=$sharedMotor",
+        'W4Y_SHARED_FLY_APP=wayne-w4y',
         'NEXT_PUBLIC_PLATFORM_ORIGIN=https://work4you.ai',
         'NEXT_PUBLIC_APP_ORIGIN=https://app.work4you.ai',
-        'W4Y_APP_SUBDOMAIN=1',
+        "W4Y_APP_SUBDOMAIN=$appSubdomain",
         'W4Y_COOKIE_DOMAIN=.work4you.ai',
-        'TENANT_WAYNE_IMAGE=registry.fly.io/wayne-w4y:fly230',
+        'TENANT_WAYNE_IMAGE=registry.fly.io/wayne-w4y:fly250',
         'STRIPE_PRICE_STARTER=price_1TqadkCn608ngT3WOPRy6FXx',
         'STRIPE_PRICE_STARTER_YEAR=price_1TqadkCn608ngT3WfLm7zvbk',
         'STRIPE_PRICE_PRO=price_1TqadlCn608ngT3WHgbjXtP8',

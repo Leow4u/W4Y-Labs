@@ -1,14 +1,13 @@
 import { redirect } from "next/navigation";
 import { getDevSession } from "@/lib/dev-auth";
+import { postLoginDestination } from "@/lib/shared-motor";
 
 export const dynamic = "force-dynamic";
 
-// GET /abrir — "Abrir o Work4You": mantém o usuário no domínio único. Se já
-// existe sessão da plataforma, passa pelo SSO para emitir/renovar os cookies do
-// Wayne e cair em /chat; sem sessão, volta para a porta de login.
+// GET /abrir — signed-in users: SSO to browser app, or download handoff in L0.
 export async function GET() {
   const session = await getDevSession();
   if (!session) redirect("/login");
 
-  redirect("/login/enter");
+  redirect(postLoginDestination());
 }

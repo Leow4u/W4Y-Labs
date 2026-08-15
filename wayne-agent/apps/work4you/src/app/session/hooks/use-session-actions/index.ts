@@ -18,6 +18,7 @@ import {
 import { preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
 import { setSessionYolo } from '@/lib/yolo-session'
 import { clearQueuedPrompts } from '@/store/composer-queue'
+import { isWork4YouProduct } from '@/store/account-gate'
 import { ensureCloudBrainActive, ensureLocalBrainActive } from '@/store/gateway'
 import { $pinnedSessionIds } from '@/store/layout'
 import { clearNotifications, notify, notifyError } from '@/store/notifications'
@@ -165,7 +166,10 @@ export function useSessionActions({
       // Never clear the composer here — ChatBar's per-thread draft swap owns it.
       setFreshDraftReady(true)
       if ($runTarget.get() === 'cloud') {
-        void ensureCloudBrainActive().catch(() => undefined)
+        // Prefer cloud when chosen, but never leave the UI on a dead cloud socket.
+        void ensureCloudBrainActive().catch(() => {
+          void ensureLocalBrainActive()
+        })
       } else {
         void ensureLocalBrainActive()
       }
@@ -217,13 +221,19 @@ export function useSessionActions({
         const uiProvider = $currentProvider.get().trim()
         const uiEffort = $currentReasoningEffort.get().trim()
         const uiFast = $currentFastMode.get()
+        // Work4You catalog models always ride OpenRouter — never ship model
+        // without provider (motor then probes with provider '').
+        const createProvider =
+          uiProvider ||
+          (uiModel && isWork4YouProduct() ? 'openrouter' : '') ||
+          ''
 
         const created = await requestGateway<SessionCreateResponse>('session.create', {
           cols: 96,
           source: 'desktop',
           ...(cwd && { cwd }),
           ...(preferred === 'local' && newChatProfile ? { profile: newChatProfile } : {}),
-          ...(uiModel ? { model: uiModel, ...(uiProvider ? { provider: uiProvider } : {}) } : {}),
+          ...(uiModel ? { model: uiModel, ...(createProvider ? { provider: createProvider } : {}) } : {}),
           ...(uiEffort ? { reasoning_effort: uiEffort } : {}),
           ...(uiFast ? { fast: true } : {})
         })

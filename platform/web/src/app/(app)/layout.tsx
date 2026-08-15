@@ -6,7 +6,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const session = await getDevSession();
   if (!session) redirect("/login");
   return (
-    <AppShell email={session.email} isAdmin={session.role === "admin"}>
+    <AppShell email={session.email} isPlatformOperator={session.isPlatformOperator}>
       {children}
     </AppShell>
   );

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import HeroInstallCtas from "@/components/HeroInstallCtas";
 import {
   ArtifactsMock,
   AutomationsTableMock,
@@ -30,7 +31,8 @@ const CONTENT = {
     hero: {
       title1: "O novo jeito de trabalhar.",
       title2: "Seu parceiro de trabalho para grandes resultados.",
-      ctaPrimary: "Começar agora",
+      ctaDownload: "Baixar aplicativo para desktop",
+      ctaTerminal: "Instalar via terminal",
       ctaSecondary: "Ver preços →",
     },
     operate: {
@@ -121,7 +123,8 @@ const CONTENT = {
     hero: {
       title1: "The new way to work.",
       title2: "Your work partner for big results.",
-      ctaPrimary: "Start now",
+      ctaDownload: "Download desktop app",
+      ctaTerminal: "Install via terminal",
       ctaSecondary: "See pricing →",
     },
     operate: {
@@ -238,20 +241,16 @@ export default async function PlataformaPage() {
               {t.hero.title2}
             </span>
           </h1>
-          <div className="mt-8 flex flex-wrap items-center gap-5">
-            <Link
-              href="/login"
-              className="rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
-            >
-              {t.hero.ctaPrimary}
-            </Link>
-            <Link
-              href="/precos"
-              className="text-[15px] font-semibold text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
-            >
-              {t.hero.ctaSecondary}
-            </Link>
-          </div>
+          <HeroInstallCtas
+            downloadLabel={t.hero.ctaDownload}
+            terminalLabel={t.hero.ctaTerminal}
+          />
+          <Link
+            href="/precos"
+            className="mt-5 inline-block text-[15px] font-semibold text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
+          >
+            {t.hero.ctaSecondary}
+          </Link>
         </div>
       </section>
 

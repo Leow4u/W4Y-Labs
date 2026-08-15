@@ -540,3 +540,27 @@ describe('saveOnboardingLocalEndpoint', () => {
     expect($desktopOnboarding.get().configured).not.toBe(true)
   })
 })
+
+describe('Work4You product parity', () => {
+  beforeEach(() => {
+    window.localStorage.clear()
+    $desktopOnboarding.set(baseState())
+  })
+
+  afterEach(() => {
+    window.localStorage.clear()
+    $desktopOnboarding.set(baseState())
+    vi.restoreAllMocks()
+  })
+
+  it('refreshOnboarding skips BYO provider picker on browser product shell', async () => {
+    const accountGate = await import('@/store/account-gate')
+    vi.spyOn(accountGate, 'isWork4YouProduct').mockReturnValue(true)
+    vi.spyOn(accountGate, 'w4yAccountGateEnabled').mockReturnValue(false)
+
+    const ready = await refreshOnboarding(onboardingContext(async () => ({ ready: false } as never)))
+
+    expect(ready).toBe(true)
+    expect($desktopOnboarding.get().configured).toBe(true)
+  })
+})

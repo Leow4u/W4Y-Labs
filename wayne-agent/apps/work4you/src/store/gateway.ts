@@ -112,6 +112,18 @@ function setActive(profile: string): void {
   setGatewayState(gateway?.connectionState ?? 'closed')
 }
 
+/** Wall-clock: skip the statusbar "gateway offline" toast (intentional tear-down). */
+let suppressOfflineToastUntil = 0
+
+/** Call before account relaunch / update apply so open→closed is not a user error. */
+export function suppressGatewayOfflineToast(ms = 20_000): void {
+  suppressOfflineToastUntil = Math.max(suppressOfflineToastUntil, Date.now() + Math.max(0, ms))
+}
+
+export function shouldSuppressGatewayOfflineToast(): boolean {
+  return Date.now() < suppressOfflineToastUntil
+}
+
 function clearTimer(entry: Secondary): void {
   if (entry.reconnectTimer !== null) {
     clearTimeout(entry.reconnectTimer)
@@ -207,6 +219,10 @@ function createSecondary(profile: string): Secondary {
 
 // Make `profile` the active gateway, lazily opening its socket if needed. The
 // primary is a no-op fast path. Background sockets are never closed here.
+//
+// Never promote a secondary that failed to open — that used to flip
+// $gatewayState to closed/error while the local primary was still healthy
+// (first-login cloud-first → false "inference gateway offline").
 export async function ensureGatewayForProfile(profile: string): Promise<void> {
   const key = normKey(profile)
 
@@ -230,17 +246,36 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
 
     try {
       await openSecondary(entry)
-    } catch {
+    } catch (err) {
       scheduleReconnect(entry)
+      if (key === CLOUD_BRAIN_KEY && isOpen(primaryGateway)) {
+        setActive(primaryProfile)
+      }
+      throw err instanceof Error ? err : new Error('gateway unavailable')
     }
+  }
+
+  if (!isOpen(entry.gateway)) {
+    scheduleReconnect(entry)
+    if (key === CLOUD_BRAIN_KEY && isOpen(primaryGateway)) {
+      setActive(primaryProfile)
+    }
+    throw new Error('gateway unavailable')
   }
 
   setActive(key)
 }
 
-/** Route chat RPC to the Work4You cloud brain (Fly). */
+/** Route chat RPC to the Work4You cloud brain (Fly). Falls back to local on failure. */
 export async function ensureCloudBrainActive(): Promise<void> {
-  await ensureGatewayForProfile(CLOUD_BRAIN_KEY)
+  try {
+    await ensureGatewayForProfile(CLOUD_BRAIN_KEY)
+  } catch (err) {
+    if (isOpen(primaryGateway)) {
+      setActive(primaryProfile)
+    }
+    throw err
+  }
 }
 
 /** Route chat RPC back to the local/window Hermes backend. */

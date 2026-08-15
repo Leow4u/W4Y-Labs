@@ -7,7 +7,7 @@ import { probeInstance, type InstanceHealth } from "@/lib/instance-health";
 export const dynamic = "force-dynamic";
 
 // Console Admin (visão da PLATAFORMA, cross-tenant) — restrito a operadores
-// W4Y (role=admin). Tenants/usuários derivados do registry em v0; a tabela
+// W4Y (ADMIN_EMAILS → isPlatformOperator). Tenants/usuários derivados do registry
 // formal de tenants chega com o Identity Platform.
 
 interface TenantRow {
@@ -35,7 +35,7 @@ const num = (v: number) => v.toLocaleString("pt-BR");
 
 export default async function AdminPage() {
   const session = await getDevSession();
-  if (!session || session.role !== "admin") notFound();
+  if (!session?.isPlatformOperator) notFound();
 
   // --- Frota de instâncias Wayne (todas, cross-tenant) + saúde ---
   let fleet: InstanceRow[] | null = null;

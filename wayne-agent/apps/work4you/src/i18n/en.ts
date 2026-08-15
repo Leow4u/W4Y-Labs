@@ -17,6 +17,8 @@ export const en: Translations = {
     confirm: 'Confirm',
     connect: 'Connect',
     connecting: 'Connecting',
+    connectingCloudHint:
+      'On first open or after idle, your cloud account may take up to a minute to wake up.',
     continue: 'Continue',
     copied: 'Copied',
     copy: 'Copy',
@@ -1448,7 +1450,11 @@ export const en: Translations = {
       manageSubscriptionDesc: 'Change plan, payment method, or cancel in Stripe.',
       manageSubscriptionNoCustomer: 'No Stripe subscription yet — open Plans to subscribe.',
       planLogicHint:
-        'Included pool first, then on-demand up to your spend limit. Overage is billed on the next invoice. Command Center → Usage is agent telemetry, not billing.'
+        'Included pool first, then on-demand up to your spend limit. Overage is billed on the next invoice. Command Center → Usage is agent telemetry, not billing.',
+      signOut: 'Sign out',
+      signOutFailed: 'Could not sign out',
+      signedOutTitle: 'Signed out',
+      signedOutMessage: 'Work4You account session cleared on this device.'
     },
     providers: {
       connectAccount: 'Connect an account',
@@ -2593,7 +2599,9 @@ export const en: Translations = {
       updateAvailable: 'Update available',
       updateInstalling: 'Updating…',
       updateInstallingProgress: percent => `Updating… ${percent}%`,
-      updateShort: 'Update'
+      updateShort: 'Update',
+      signOut: 'Sign out',
+      signOutFailed: 'Could not sign out'
     },
     searchAria: 'Search sessions',
     searchPlaceholder: 'Search sessions…',
@@ -3052,7 +3060,7 @@ export const en: Translations = {
     failedDesc:
       'One of the install steps failed. On Windows, this can happen if another Work4You CLI or desktop instance is running. Stop any running Work4You instances, then retry. Check the details below or the desktop log for the full transcript.',
     activeDesc:
-      'This is a one-time setup. The Work4You installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.',
+      'One-time setup. Work4You is preparing the engine that came with the installer. Later launches skip this step.',
     progress: (completed, total) => `${completed} of ${total} steps complete`,
     currentStage: stage => ` -- now: ${stage}`,
     fetchingManifest: 'Fetching installer manifest...',
@@ -3069,6 +3077,19 @@ export const en: Translations = {
     reloadRetry: 'Reload and retry'
   },
 
+  accountGate: {
+    title: 'Sign in to Work4You',
+    subtitle: 'Use your Work4You account to continue. Your model access is included with your plan.',
+    continueSignIn: 'Continue',
+    checking: 'Checking session…',
+    signingIn: 'Signing in…',
+    createAccount: 'Create an account',
+    signInFailed: 'Sign-in did not complete. Try again.',
+    updateAvailable: 'An app update is available.',
+    updateNow: 'Update now',
+    manualDownload: 'Install manually at work4you.ai/baixar'
+  },
+
   onboarding: {
     headerTitle: "Let's get you setup with Work4You",
     headerDesc: 'Connect a model provider to start chatting. Most options take one click.',
@@ -3079,6 +3100,10 @@ export const en: Translations = {
     otherProviders: 'Other providers',
     haveApiKey: 'I have an API key',
     chooseLater: "I'll choose a provider later",
+    w4ySignIn: 'Sign in to Work4You',
+    w4ySignInDesc:
+      'Use your Work4You account — we provision the model key for you. Skip the provider list unless you bring your own API keys.',
+    w4ySignInFailed: 'Could not sign in to Work4You',
     recommended: 'Recommended',
     connected: 'Connected',
     featuredPitch: 'Relay 2.5 Fast on Free — sign in with your Work4You account',

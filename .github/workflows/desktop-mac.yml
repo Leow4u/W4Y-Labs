@@ -38,6 +38,23 @@ jobs:
         working-directory: wayne-agent
         run: npm ci
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      # The engine ships native binaries, so the macOS runtime can only be built
+      # ON macOS. Without this the DMG shipped source-only and every Mac spent
+      # ~30 minutes running `uv sync` on first launch. beforePack now refuses to
+      # package when this step is missing or produced another platform's tree.
+      - name: Build engine runtime (darwin-arm64)
+        working-directory: wayne-agent
+        run: |
+          node scripts/build-engine-runtime.mjs \
+            --out-dir apps/work4you/build/engine-runtime \
+            --out-zip "${RUNNER_TEMP}/wayne-engine-${GITHUB_RUN_ID}-darwin-arm64.zip"
+          cat apps/work4you/build/engine-runtime/runtime-ready.json
+
       - name: Build DMG
         working-directory: wayne-agent/apps/work4you
         env:
@@ -84,4 +101,42 @@ jobs:
           gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg" "$BUCKET/"
           gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg.blockmap" "$BUCKET/"
           gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' cp release/latest-mac.yml "$BUCKET/latest-mac.yml"
+
+      # In-app engine updates need a feed for THIS platform: the desktop asks for
+      # latest-darwin-arm64.json and refuses a manifest built for anything else.
+      # Without this, Macs have no engine updates at all.
+      - name: Publish engine feed (darwin-arm64)
+        if: inputs.publish
+        working-directory: wayne-agent
+        run: |
+          set -euo pipefail
+          BUCKET=gs://w4y-engine-dist
+          ENGINE_VERSION="$(date -u +%Y%m%d)-darwin-arm64"
+          ARTIFACT="wayne-engine-${ENGINE_VERSION}.zip"
+          ZIP="${RUNNER_TEMP}/wayne-engine-${GITHUB_RUN_ID}-darwin-arm64.zip"
+
+          # Read the platform from the runtime that was actually built rather
+          # than trusting a hardcoded string — a mislabelled feed is precisely
+          # what sent Windows binaries to every Mac.
+          PLATFORM=$(node -p "const m=require('./apps/work4you/build/engine-runtime/runtime-ready.json'); m.platform+'-'+m.arch")
+          if [ "$PLATFORM" != "darwin-arm64" ]; then
+            echo "Refusing to publish: runtime is $PLATFORM, expected darwin-arm64" >&2
+            exit 1
+          fi
+
+          gsutil -h 'Cache-Control:no-store' cp "$ZIP" "$BUCKET/$ARTIFACT"
+
+          ENGINE_VERSION="$ENGINE_VERSION" ARTIFACT="$ARTIFACT" node -e '
+            const fs = require("node:fs");
+            const manifest = {
+              version: process.env.ENGINE_VERSION,
+              zipUrl: "https://storage.googleapis.com/w4y-engine-dist/" + process.env.ARTIFACT,
+              builtAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+              runtimeReady: true,
+              platform: "darwin-arm64",
+            };
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/latest-darwin-arm64.json", JSON.stringify(manifest));
+          '
+          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:application/json; charset=utf-8' \
+            cp "${RUNNER_TEMP}/latest-darwin-arm64.json" "$BUCKET/latest-darwin-arm64.json"
 

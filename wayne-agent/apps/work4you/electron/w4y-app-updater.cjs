@@ -30,7 +30,10 @@ const https = require('node:https')
 const path = require('node:path')
 const { app } = require('electron')
 const w4yWayne = require('./w4y-wayne-resolve.cjs')
-const { resolveWayneHome } = require('./w4y-login.cjs')
+const {
+  resolvePlatformRoot,
+  resolveSharedEngineRoot
+} = require('./w4y-home.cjs')
 
 // TODO: configure GCS bucket → gs://w4y-engine-dist/  (public read, objects world-readable)
 // The electron-updater generic provider reads: <feedUrl>/latest.yml on Windows,
@@ -172,19 +175,24 @@ async function check() {
   }
 
   const currentVersion = app.getVersion()
-  let wayneHome
-  try { wayneHome = resolveWayneHome() } catch { wayneHome = null }
+  // Motor + marker live at the platform root (shared across accounts). Never use
+  // resolveWayneHome() here — after login that is accounts/<tenantId>, which has
+  // no engine and made checkEngineUpdate report notInstalled (no chip).
+  let platformRoot
+  try { platformRoot = resolvePlatformRoot() } catch { platformRoot = null }
 
   // Run both checks concurrently so the combined latency is max(t_casca, t_motor).
   const [cascSettled, motorSettled] = await Promise.allSettled([
     autoUpdater.checkForUpdates(),
-    wayneHome ? w4yWayne.checkEngineUpdate(wayneHome) : Promise.resolve({ available: false })
+    platformRoot ? w4yWayne.checkEngineUpdate(platformRoot) : Promise.resolve({ available: false })
   ])
 
   // --- Casca ---
-  // Prefer electron-updater's semver result (`isUpdateAvailable`). Do NOT use
-  // bare string inequality — it disagrees with semver on prerelease / padding
-  // and used to hide real upgrades when the check rejected (fail-open).
+  // Always decide with our own semver. electron-updater's `isUpdateAvailable`
+  // is often a false negative on unsigned Windows builds (publisherName /
+  // signature mismatch) even when latest.yml is clearly newer — and when it
+  // returns updateInfo.version the old code skipped the latest.yml fallback,
+  // so the chip never appeared (incident 14/08).
   let cascAvailable = false
   let cascTargetVersion = null
   let cascError = null
@@ -193,11 +201,7 @@ async function check() {
     const result = cascSettled.value
     if (result && result.updateInfo) {
       cascTargetVersion = result.updateInfo.version || null
-      if (typeof result.isUpdateAvailable === 'boolean') {
-        cascAvailable = result.isUpdateAvailable
-      } else {
-        cascAvailable = isRemoteNewer(cascTargetVersion, currentVersion)
-      }
+      cascAvailable = isRemoteNewer(cascTargetVersion, currentVersion)
     }
   } else {
     cascError = cascSettled.reason && cascSettled.reason.message
@@ -206,23 +210,23 @@ async function check() {
     console.warn('[w4y-updater] electron-updater check failed; trying latest.yml fallback:', cascError)
   }
 
-  // Fallback: direct latest.yml fetch when electron-updater returned null/rejected
-  // or reported no updateInfo. Surfaces feed upgrades even if the updater threw.
-  if (!cascAvailable && !cascTargetVersion) {
+  // Fallback: direct latest.yml whenever casca still looks current. Covers
+  // rejected checks, null updateInfo, and false negatives above.
+  if (!cascAvailable) {
     try {
       const remoteVersion = await fetchRemoteCascaVersion()
-      cascTargetVersion = remoteVersion
-      cascAvailable = isRemoteNewer(remoteVersion, currentVersion)
-      if (cascAvailable) cascError = null
+      if (remoteVersion) {
+        cascTargetVersion = cascTargetVersion || remoteVersion
+        if (isRemoteNewer(remoteVersion, currentVersion)) {
+          cascAvailable = true
+          cascError = null
+        }
+      }
     } catch (err) {
       const message = err && err.message ? err.message : String(err)
       cascError = cascError || message
       console.warn('[w4y-updater] latest.yml fallback failed:', message)
     }
-  } else if (!cascAvailable && cascTargetVersion && cascSettled.status === 'rejected') {
-    // Updater rejected but we somehow got a version — still compare.
-    cascAvailable = isRemoteNewer(cascTargetVersion, currentVersion)
-    if (cascAvailable) cascError = null
   }
 
   // --- Motor ---
@@ -347,12 +351,12 @@ async function apply(emitProgress, opts = {}) {
       }
     }
 
-    const wayneHome = opts.wayneHome || (() => {
-      try { return resolveWayneHome() } catch { return null }
+    const platformHome = opts.wayneHome || (() => {
+      try { return resolvePlatformRoot() } catch { return null }
     })()
-    const engineRoot = opts.engineRoot || (wayneHome ? path.join(wayneHome, 'wayne-agent') : null)
+    const engineRoot = opts.engineRoot || (platformHome ? resolveSharedEngineRoot(platformHome) : null)
 
-    if (!engineRoot || !wayneHome) {
+    if (!engineRoot || !platformHome) {
       const message = 'Não foi possível determinar o diretório do motor Work4You.'
       emit('error', message, null, 'engine-path-error')
       return { ok: false, error: 'engine-path-error', message }
@@ -360,12 +364,13 @@ async function apply(emitProgress, opts = {}) {
 
     emit('fetch', `Baixando motor v${motorRemote.version || 'latest'}…`, 0)
     try {
-      await w4yWayne.applyEngineUpdate(engineRoot, wayneHome, {
+      await w4yWayne.applyEngineUpdate(engineRoot, platformHome, {
         remote: motorRemote,
         onProgress: (msg, pct) => {
           let stage = 'fetch'
           if (pct === null) {
             if (/uv sync|dependências Python/i.test(msg)) stage = 'pydeps'
+            else if (/Motor pronto|runtime pré-instalado/i.test(msg)) stage = 'update'
             else if (/Extraindo|Aplicando ficheiros|extraí/i.test(msg)) stage = 'update'
           }
           emit(stage, msg, pct)

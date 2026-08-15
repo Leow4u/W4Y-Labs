@@ -57,7 +57,10 @@ runtime (**Wayne**, etc.) **não** aparecem ao utilizador.
 ## Modelo de conta (v1)
 
 **1 email = 1 tenant.** Cada conta recebe um runtime cloud isolado (app Fly
-dedicado). Multi-user por organização (Enterprise) fica para uma fase posterior.
+dedicado). No desktop L0, `WAYNE_HOME` fica em
+`%LOCALAPPDATA%\work4you\accounts\<tenantId>` (motor partilhado ao lado) — dois
+emails no mesmo PC Windows não partilham `state.db`. Multi-user por organização
+(Enterprise) fica para uma fase posterior.
 
 ---
 

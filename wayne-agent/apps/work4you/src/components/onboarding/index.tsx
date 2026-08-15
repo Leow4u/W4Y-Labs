@@ -10,6 +10,13 @@ import { useI18n } from '@/i18n'
 import { Check, ChevronDown, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { cn } from '@/lib/utils'
+import { notifyError } from '@/store/notifications'
+import {
+  $accountGate,
+  accountGateBlocksApp,
+  isWork4YouProduct,
+  w4yAccountGateEnabled
+} from '@/store/account-gate'
 import { $desktopBoot, type DesktopBootState } from '@/store/boot'
 import {
   $desktopOnboarding,
@@ -160,6 +167,7 @@ export function DesktopOnboardingOverlay({ enabled, onCompleted, requestGateway 
   const { t } = useI18n()
   const onboarding = useStore($desktopOnboarding)
   const boot = useStore($desktopBoot)
+  const gate = useStore($accountGate)
   const ctxRef = useRef<OnboardingContext>({ requestGateway, onCompleted })
   ctxRef.current = { requestGateway, onCompleted }
 
@@ -194,10 +202,25 @@ export function DesktopOnboardingOverlay({ enabled, onCompleted, requestGateway 
   }
 
   useEffect(() => {
-    if (enabled || onboarding.requested) {
-      void refreshOnboarding(ctx)
+    if (w4yAccountGateEnabled() && accountGateBlocksApp(gate.phase)) {
+      return
     }
-  }, [ctx, enabled, onboarding.requested])
+
+    void refreshOnboarding(ctx)
+  }, [ctx, enabled, gate.phase, onboarding.requested])
+
+  useEffect(() => {
+    const bootDone = !boot.running && boot.progress >= 100 && !boot.error
+    if (!bootDone || onboarding.configured !== null || onboarding.manual) {
+      return
+    }
+
+    if (w4yAccountGateEnabled() && accountGateBlocksApp(gate.phase)) {
+      return
+    }
+
+    void refreshOnboarding(ctx)
+  }, [boot.error, boot.progress, boot.running, ctx, gate.phase, onboarding.configured, onboarding.manual])
 
   // When the Providers settings page asked to connect a specific provider, the
   // store stashed its id. Once the provider list has loaded and we're back at
@@ -245,6 +268,16 @@ export function DesktopOnboardingOverlay({ enabled, onCompleted, requestGateway 
     return null
   }
 
+  if (w4yAccountGateEnabled() && accountGateBlocksApp(gate.phase) && !onboarding.manual) {
+    return null
+  }
+
+  // Work4You product: never show the Hermes first-run BYO provider picker.
+  // Desktop: account gate + Settings → Providers. Browser: SSO already done.
+  if (isWork4YouProduct() && !onboarding.manual) {
+    return null
+  }
+
   const { flow } = onboarding
   // Show the launch reason only when it's a meaningful, caller-supplied prompt —
   // suppress the generic defaults (useless noise) and provider-setup errors
@@ -261,8 +294,14 @@ export function DesktopOnboardingOverlay({ enabled, onCompleted, requestGateway 
 
   // In manual mode the app is already configured, so the flow is "ready"
   // immediately — no runtime gate needed. Otherwise wait for the readiness
-  // check (configured === false) before showing the picker.
-  const ready = onboarding.manual || (enabled && onboarding.configured === false)
+  // check (configured === false) before showing the picker. When boot has
+  // finished but configured is still null (gateway slow / first probe pending),
+  // don't trap the user on a frozen 100% bar — surface the picker.
+  const bootDone = !boot.running && boot.progress >= 100 && !boot.error
+  const ready =
+    onboarding.manual ||
+    onboarding.configured === false ||
+    (bootDone && onboarding.configured === null && !isWork4YouProduct())
   const showPicker = flow.status === 'idle' || flow.status === 'success'
   // The final "you're in" screen drops the card chrome and floats centered on
   // the surface — same bare, cinematic treatment as the connecting overlay.

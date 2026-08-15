@@ -18,7 +18,11 @@ import { queryClient } from './lib/query-client'
 import { ThemeProvider } from './themes/context'
 
 installClipboardShim()
-installBrowserShell()
+if (installBrowserShell()) {
+  void import('./store/onboarding').then(({ ensurePlatformOnboardingComplete }) => {
+    ensurePlatformOnboardingComplete()
+  })
+}
 
 // Dev-only: install __PERF_DRIVE__ + __PERF_PROBE__ on window so the
 // scripts/ harnesses can drive a synthetic stream + record render cost.

@@ -2,7 +2,7 @@
   "name": "work4you",
   "productName": "Work4You",
   "private": true,
-  "version": "1.0.95",
+  "version": "1.0.112",
   "description": "Work4You desktop — native agent workspace (official app).",
   "author": "Work4You",
   "type": "module",
@@ -38,7 +38,7 @@
     "test:desktop:nsis": "node scripts/test-desktop.mjs nsis",
     "test:desktop:existing": "node scripts/test-desktop.mjs existing",
     "test:desktop:fresh": "node scripts/test-desktop.mjs fresh",
-    "test:desktop:platforms": "node --test electron/bootstrap-platform.test.cjs electron/hardening.test.cjs electron/backend-env.test.cjs electron/backend-probes.test.cjs electron/backend-ready.test.cjs electron/bootstrap-runner.test.cjs electron/connection-config.test.cjs electron/dashboard-token.test.cjs electron/gateway-ws-probe.test.cjs electron/oauth-net-request.test.cjs electron/desktop-uninstall.test.cjs electron/session-windows.test.cjs electron/link-title-window.test.cjs electron/workspace-cwd.test.cjs electron/fs-read-dir.test.cjs electron/git-root.test.cjs electron/git-review-ops.test.cjs electron/git-review-ops.integration.test.cjs electron/git-worktree-ops.test.cjs electron/windows-child-process.test.cjs electron/update-remote.test.cjs electron/update-count.test.cjs electron/update-rebuild.test.cjs electron/update-marker.test.cjs electron/update-relaunch.test.cjs electron/engine-manifest-parse.test.cjs electron/windows-user-env.test.cjs electron/wsl-clipboard-image.test.cjs electron/titlebar-overlay-width.test.cjs electron/window-state.test.cjs electron/zoom.test.cjs electron/windows-hermes-resolution.test.cjs electron/oauth-session-request.test.cjs",
+    "test:desktop:platforms": "node --test electron/bootstrap-platform.test.cjs electron/hardening.test.cjs electron/backend-env.test.cjs electron/backend-probes.test.cjs electron/backend-ready.test.cjs electron/bootstrap-runner.test.cjs electron/connection-config.test.cjs electron/dashboard-token.test.cjs electron/gateway-ws-probe.test.cjs electron/oauth-net-request.test.cjs electron/desktop-uninstall.test.cjs electron/session-windows.test.cjs electron/link-title-window.test.cjs electron/workspace-cwd.test.cjs electron/fs-read-dir.test.cjs electron/git-root.test.cjs electron/git-review-ops.test.cjs electron/git-review-ops.integration.test.cjs electron/git-worktree-ops.test.cjs electron/windows-child-process.test.cjs electron/update-remote.test.cjs electron/update-count.test.cjs electron/update-rebuild.test.cjs electron/update-marker.test.cjs electron/update-relaunch.test.cjs electron/engine-manifest-parse.test.cjs electron/windows-user-env.test.cjs electron/wsl-clipboard-image.test.cjs electron/titlebar-overlay-width.test.cjs electron/window-state.test.cjs electron/zoom.test.cjs electron/windows-hermes-resolution.test.cjs electron/oauth-session-request.test.cjs electron/engine-ready-runtime.test.cjs electron/w4y-home.test.cjs",
     "typecheck": "tsc -p . --noEmit",
     "lint": "eslint src/ electron/",
     "lint:fix": "eslint src/ electron/ --fix",
@@ -52,7 +52,6 @@
     "make-icon": "electron scripts/make-icon.cjs"
   },
   "dependencies": {
-    "electron-updater": "^6.3.9",
     "@assistant-ui/react": "0.12.28",
     "@assistant-ui/react-streamdown": "0.1.11",
     "@assistant-ui/store": "0.2.13",
@@ -92,6 +91,7 @@
     "d3-force": "^3.0.0",
     "dnd-core": "^14.0.1",
     "dompurify": "^3.4.11",
+    "electron-updater": "^6.3.9",
     "fflate": "^0.8.3",
     "hast-util-from-html-isomorphic": "^2.0.0",
     "hast-util-to-text": "^4.0.2",
@@ -122,7 +122,8 @@
     "unist-util-visit-parents": "^6.0.2",
     "use-stick-to-bottom": "^1.1.6",
     "vfile": "^6.0.3",
-    "web-haptics": "^0.0.6"
+    "web-haptics": "^0.0.6",
+    "yauzl": "^3.4.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -198,6 +199,10 @@
       {
         "from": "assets/icon.ico",
         "to": "icon.ico"
+      },
+      {
+        "from": "build/engine-runtime",
+        "to": "engine"
       }
     ],
     "asar": true,
@@ -281,7 +286,8 @@
       "installerHeaderIcon": "assets/icon.ico",
       "shortcutName": "Work4You",
       "uninstallDisplayName": "Work4You",
-      "warningsAsErrors": false
+      "warningsAsErrors": false,
+      "include": "build/installer.nsh"
     }
   }
 }

@@ -20,8 +20,15 @@ export async function POST(req: NextRequest) {
   // interno (0.0.0.0:8080); um redirect absoluto derivado dele apontaria
   // para fora do domínio. Relativo o browser resolve contra work4you.ai.
   const res = new NextResponse(null, { status: 303, headers: { Location: "/" } });
-  res.cookies.delete(DEV_SESSION_COOKIE);
   const domain = cookieDomain();
+  res.cookies.set(DEV_SESSION_COOKIE, "", {
+    path: "/",
+    maxAge: 0,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    ...(domain ? { domain } : {}),
+  });
   res.cookies.set(ROUTE_COOKIE, "", {
     path: "/",
     maxAge: 0,

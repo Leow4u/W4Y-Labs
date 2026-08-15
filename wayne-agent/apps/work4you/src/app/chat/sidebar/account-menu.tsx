@@ -10,7 +10,7 @@ import { useStore } from '@nanostores/react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
-import { DOCS_ROUTE } from '@/app/routes'
+import { DOCS_ROUTE, NEW_CHAT_ROUTE } from '@/app/routes'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -33,6 +33,7 @@ import {
   Globe,
   HelpCircle,
   Loader2,
+  LogOut,
   MessageSquareText,
   Settings,
   Zap
@@ -40,6 +41,7 @@ import {
 import { cn } from '@/lib/utils'
 import { openKeybindPanel } from '@/store/keybinds'
 import { notifyError } from '@/store/notifications'
+import { signOutFromWork4You } from '@/store/account-gate'
 import { $connection } from '@/store/session'
 
 import { prefetchCommandCenter, prefetchSettings } from '../../view-prefetch'
@@ -83,6 +85,8 @@ export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenu
   const { t, locale, setLocale, isSavingLocale } = useI18n()
   const a = t.sidebar.account
   const [me, setMe] = useState<AuthMe | null>(null)
+  const [signingOut, setSigningOut] = useState(false)
+  const [hasPlatformKey, setHasPlatformKey] = useState(false)
   const connection = useStore($connection)
   const updateStatus = useStore($updateStatus)
   const updateApply = useStore($updateApply)
@@ -108,6 +112,12 @@ export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenu
     return () => {
       cancelled = true
     }
+  }, [])
+
+  useEffect(() => {
+    void window.work4youDesktop?.w4y?.hasKey()?.then(res => {
+      setHasPlatformKey(Boolean(res?.hasKey))
+    })
   }, [])
 
   const email = (me?.email || '').trim()
@@ -152,6 +162,26 @@ export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenu
       await setLocale(code)
     } catch (error) {
       notifyError(error, t.language.saveError)
+    }
+  }
+
+  const canSignOut = Boolean(window.work4youDesktop?.w4y?.logout)
+  const signedIn = Boolean(email || me?.user_id || hasPlatformKey)
+
+  const signOut = async () => {
+    if (signingOut) {
+      return
+    }
+    setSigningOut(true)
+    try {
+      await signOutFromWork4You()
+      if (import.meta.env.VITE_APP_SHELL !== 'browser') {
+        navigate(NEW_CHAT_ROUTE, { replace: true })
+      }
+    } catch (error) {
+      notifyError(error, a.signOutFailed)
+    } finally {
+      setSigningOut(false)
     }
   }
 
@@ -228,6 +258,20 @@ export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenu
             <Zap className="size-3.5" />
             {a.viewPlans}
           </DropdownMenuItem>
+          {canSignOut && signedIn ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                disabled={signingOut}
+                onSelect={() => {
+                  void signOut()
+                }}
+              >
+                {signingOut ? <Loader2 className="size-3.5 animate-spin" /> : <LogOut className="size-3.5" />}
+                {a.signOut}
+              </DropdownMenuItem>
+            </>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 

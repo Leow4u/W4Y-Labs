@@ -42,3 +42,11 @@ def test_expired_ticket_rejected(sso_env):
 def test_wrong_tenant_rejected_when_env_pinned(sso_env):
     ticket = _mint("test-sso-secret", "t-other")
     assert verify_platform_sso_ticket(ticket) is None
+
+
+def test_shared_motor_accepts_any_tenant(monkeypatch):
+    monkeypatch.setenv("W4Y_PLATFORM_SSO_SECRET", "test-sso-secret")
+    monkeypatch.setenv("W4Y_TENANT_ID", "t-acme")
+    monkeypatch.setenv("W4Y_SHARED_MOTOR", "1")
+    ticket = _mint("test-sso-secret", "t-other")
+    assert verify_platform_sso_ticket(ticket) == "t-other"

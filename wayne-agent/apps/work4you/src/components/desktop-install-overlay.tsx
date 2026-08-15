@@ -162,7 +162,8 @@ const EMPTY_STATE: DesktopBootstrapState = {
   log: [],
   startedAt: null,
   completedAt: null,
-  unsupportedPlatform: null
+  unsupportedPlatform: null,
+  progressPercent: null
 }
 
 function applyEvent(state: DesktopBootstrapState, ev: DesktopBootstrapEvent): DesktopBootstrapState {
@@ -179,8 +180,17 @@ function applyEvent(state: DesktopBootstrapState, ev: DesktopBootstrapEvent): De
       manifest: { type: 'manifest', stages: ev.stages, protocolVersion: ev.protocolVersion },
       stages,
       error: null,
+      progressPercent: null,
       startedAt: state.startedAt || Date.now()
     }
+  }
+
+  if (ev.type === 'progress') {
+    const pct =
+      typeof ev.percent === 'number' && Number.isFinite(ev.percent)
+        ? Math.max(0, Math.min(100, Math.round(ev.percent)))
+        : null
+    return { ...state, progressPercent: pct }
   }
 
   if (ev.type === 'stage') {
@@ -404,8 +414,14 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
   // Count the running stage as half-done so the bar advances *during* a long
   // stage instead of sitting frozen at the last completed step while its logs
   // stream (e.g. "0 of 2" pinned at 0% for the whole first stage).
+  // Prefer real extract/download percent from main when present; otherwise
+  // fall back to the half-step estimate so long stages still move the bar.
   const progressUnits = completedCount + (!failed && currentStage ? 0.5 : 0)
-  const progressPct = totalCount > 0 ? Math.round((progressUnits / totalCount) * 100) : 0
+  const estimatedPct = totalCount > 0 ? Math.round((progressUnits / totalCount) * 100) : 0
+  const progressPct =
+    typeof state.progressPercent === 'number' && Number.isFinite(state.progressPercent)
+      ? Math.max(0, Math.min(100, Math.round(state.progressPercent)))
+      : estimatedPct
   const currentStartedAt = currentStage ? state.stages[currentStage]?.startedAt : null
   const currentElapsed = typeof currentStartedAt === 'number' ? formatElapsed(now - currentStartedAt) : ''
 

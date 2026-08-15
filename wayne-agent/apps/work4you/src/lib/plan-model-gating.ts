@@ -4,7 +4,49 @@
  */
 import { isGratisPlan } from '@/lib/plans'
 import { isRelayFreeModel, RELAY_FREE_PRIMARY_MODEL } from '@/lib/relay-free-model'
-import { featuredDefaultOnIds } from '@/lib/w4y-featured-models'
+import {
+  featuredDefaultOnIds,
+  W4Y_AUTO_MODEL_ID,
+  W4Y_CATALOG_PROVIDER
+} from '@/lib/w4y-featured-models'
+
+/** Legacy OpenRouter free slugs / Nemotron — never a Work4You platform default. */
+export function isStalePlatformDefaultModel(modelId: string): boolean {
+  const mid = modelId.trim().toLowerCase()
+  if (!mid) {
+    return true
+  }
+  if (mid.includes('nemotron') || mid.endsWith(':free')) {
+    return true
+  }
+  return false
+}
+
+/** Canonical composer default for a platform plan (mirrors motor ``ensure_tenant_platform_config``). */
+export function platformDefaultModelSelection(plan: string | null | undefined): {
+  model: string
+  provider: string
+} {
+  if (isGratisPlan(plan)) {
+    return { model: RELAY_FREE_PRIMARY_MODEL, provider: W4Y_CATALOG_PROVIDER }
+  }
+  return { model: W4Y_AUTO_MODEL_ID, provider: W4Y_CATALOG_PROVIDER }
+}
+
+/** Replace sticky composer / config defaults that are not valid on *plan*. */
+export function shouldReplaceComposerModel(
+  modelId: string,
+  plan: string | null | undefined
+): boolean {
+  const id = modelId.trim()
+  if (!id) {
+    return false
+  }
+  if (isStalePlatformDefaultModel(id)) {
+    return true
+  }
+  return isPlanLockedModel(id, plan)
+}
 
 /** True when *modelId* requires Essencial+ on the current plan. */
 export function isPlanLockedModel(modelId: string, plan: string | null | undefined): boolean {

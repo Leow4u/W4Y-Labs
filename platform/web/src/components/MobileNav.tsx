@@ -41,13 +41,13 @@ export default function MobileNav({
               </Link>
             ))}
           </nav>
-          <Link
+          <a
             href={openHref}
             onClick={() => setOpen(false)}
             className="mt-5 block rounded-full bg-mata px-5 py-3 text-center text-sm font-semibold text-paper"
           >
             {ctaOpen}
-          </Link>
+          </a>
         </div>
       )}
     </div>

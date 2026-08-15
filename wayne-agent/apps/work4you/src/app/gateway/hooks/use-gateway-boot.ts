@@ -22,7 +22,8 @@ import {
   reconnectSecondaryGateways,
   reportPrimaryGatewayState,
   setPrimaryGateway,
-  touchSecondaryGateways
+  touchSecondaryGateways,
+  suppressGatewayOfflineToast
 } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile, normalizeProfileKey, touchActiveGatewayBackend } from '@/store/profile'
@@ -41,12 +42,9 @@ import {
 } from '@/store/session'
 import type { RpcEvent } from '@/types/hermes'
 
-// After this many consecutive failed reconnects (≈45s with the 1→15s backoff)
-// raise a recoverable boot error. Otherwise a dropped remote gateway loops the
-// backoff forever behind the fullscreen CONNECTING overlay with no way to reach
-// Settings / sign in / switch to local — the "lost connection breaks the app"
-// dead end. The next successful reconnect clears it.
-const RECONNECT_ESCALATE_AFTER = 6
+// After this many consecutive failed reconnects (≈45s desktop / ~90s browser)
+const RECONNECT_ESCALATE_AFTER =
+  import.meta.env.VITE_APP_SHELL === 'browser' ? 10 : 6
 
 interface GatewayBootOptions {
   handleGatewayEvent: (event: RpcEvent) => void
@@ -319,6 +317,10 @@ export function useGatewayBoot({
       }
     })
 
+    const offOfflineSuppress = desktop.onGatewayOfflineSuppress?.(() => {
+      suppressGatewayOfflineToast(20_000)
+    })
+
     const offExit = desktop.onBackendExit(() => {
       // Intentional stop during an in-app engine update — suppress the scary
       // "Backend stopped" toast. The update overlay already shows progress.
@@ -428,6 +430,7 @@ export function useGatewayBoot({
       offPowerResume?.()
       offState()
       offEvent()
+      offOfflineSuppress?.()
       offExit()
       offWindowState?.()
       offBootProgress()

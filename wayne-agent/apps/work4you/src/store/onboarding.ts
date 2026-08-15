@@ -1,6 +1,12 @@
 import { atom } from 'nanostores'
 
 import {
+  $accountGate,
+  accountGateBlocksApp,
+  isWork4YouProduct,
+  w4yAccountGateEnabled
+} from '@/store/account-gate'
+import {
   cancelOAuthSession,
   getGlobalModelOptions,
   getRecommendedDefaultModel,
@@ -385,7 +391,69 @@ async function refreshProviders() {
   await providersRefreshPromise
 }
 
+export function ensurePlatformOnboardingComplete() {
+  if (!isWork4YouProduct() || $desktopOnboarding.get().manual) {
+    return
+  }
+
+  if ($desktopOnboarding.get().configured === true) {
+    return
+  }
+
+  completeDesktopOnboarding()
+}
+
 export function requestDesktopOnboarding(reason = DEFAULT_ONBOARDING_REASON) {
+  if (isWork4YouProduct()) {
+    if (accountGateBlocksApp($accountGate.get().phase)) {
+      return
+    }
+
+    // Platform tenants already own an OpenRouter device key — heal silently
+    // instead of toasting "No API key configured for provider ''" on first chat.
+    const message = reason.trim() || DEFAULT_ONBOARDING_REASON
+    const ensure = window.work4youDesktop?.w4y?.ensureCredentials
+    if (typeof ensure === 'function') {
+      void ensure()
+        .then(res => {
+          if (res?.ok && res.hasKey) {
+            return
+          }
+
+          notify({
+            id: 'provider-setup-required',
+            kind: 'warning',
+            title: 'Model access unavailable',
+            message
+          })
+        })
+        .catch(() => {
+          notify({
+            id: 'provider-setup-required',
+            kind: 'warning',
+            title: 'Model access unavailable',
+            message
+          })
+        })
+      return
+    }
+
+    void window.work4youDesktop?.w4y?.hasKey?.().then(res => {
+      if (res?.hasKey) {
+        return
+      }
+
+      notify({
+        id: 'provider-setup-required',
+        kind: 'warning',
+        title: 'Model access unavailable',
+        message
+      })
+    })
+
+    return
+  }
+
   patch({ reason: reason.trim() || DEFAULT_ONBOARDING_REASON, requested: true })
 }
 
@@ -490,6 +558,42 @@ export function dismissFirstRunOnboarding() {
   patch({ firstRunSkipped: true, requested: false, manual: false, localEndpoint: false, flow: { status: 'idle' } })
 }
 
+/** After platform logout — drop cached onboarding so the next launch re-prompts. */
+export function resetOnboardingAfterLogout() {
+  clearPoll()
+
+  if (isWork4YouProduct()) {
+    // Work4You re-authenticates via account gate only — never BYO provider onboarding.
+    writeCachedConfigured(true)
+    writeCachedSkipped(false)
+    patch({
+      configured: true,
+      firstRunSkipped: false,
+      requested: false,
+      manual: false,
+      localEndpoint: false,
+      reason: null,
+      flow: { status: 'idle' },
+      providers: null
+    })
+
+    return
+  }
+
+  writeCachedConfigured(false)
+  writeCachedSkipped(false)
+  patch({
+    configured: false,
+    firstRunSkipped: false,
+    requested: false,
+    manual: false,
+    localEndpoint: false,
+    reason: null,
+    flow: { status: 'idle' },
+    providers: null
+  })
+}
+
 export function setOnboardingMode(mode: OnboardingMode) {
   patch({ mode })
 }
@@ -503,6 +607,19 @@ export async function refreshOnboarding(ctx: OnboardingContext) {
     await refreshProviders()
 
     return false
+  }
+
+  if (w4yAccountGateEnabled() && accountGateBlocksApp($accountGate.get().phase)) {
+    return false
+  }
+
+  // Work4You: platform login (desktop) or SSO (browser) is the first-run gate.
+  // BYO providers live in Settings.
+  if (isWork4YouProduct()) {
+    completeDesktopOnboarding()
+    ctx.onCompleted?.()
+
+    return true
   }
 
   const runtime = await checkRuntime(ctx)

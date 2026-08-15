@@ -149,6 +149,11 @@ export function GatewayConnectingOverlay() {
         >
           {t.common.connecting}…
         </span>
+        {import.meta.env.VITE_APP_SHELL === 'browser' && t.common.connectingCloudHint ? (
+          <span className="max-w-xs text-center text-[0.65rem] leading-snug text-(--theme-primary) opacity-40">
+            {t.common.connectingCloudHint}
+          </span>
+        ) : null}
       </div>
     </div>
   )

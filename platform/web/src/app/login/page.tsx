@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getDevSession } from "@/lib/dev-auth";
 import LoginClient from "./LoginClient";
 
 // Work4You single door (Claude-style split): form column on the left, living
@@ -8,9 +10,18 @@ import LoginClient from "./LoginClient";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; return_to?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, return_to } = await searchParams;
+  const dest = (next ?? return_to ?? "").trim();
+
+  // Desktop hand-off: sessão já válida → saltar o formulário e ir para /device.
+  if (dest === "/device") {
+    const session = await getDevSession();
+    if (session) {
+      redirect("/device");
+    }
+  }
 
   return (
     <main className="flex min-h-screen bg-paper text-ink">
@@ -38,7 +49,7 @@ export default async function LoginPage({
           </div>
 
           <LoginClient
-            next={next ?? ""}
+            next={dest}
             turnstileSitekey={process.env.TURNSTILE_SITEKEY || undefined}
           />
 

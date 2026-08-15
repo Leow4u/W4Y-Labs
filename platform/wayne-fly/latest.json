@@ -1,8 +1,1 @@
-{
-  "version": "20260807",
-  "builtAt": "2026-08-06T16:54:55Z",
-  "zipUrl": "https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260807.zip",
-  "sha256": "0ff2bddf23aaab3703443a750c9db1b65e6f9da01c554f65060c3aa8eb28286f",
-  "signature": "IKscuhYV8pQ/DmJ6e0+/jzqseofxVnp17INS7DPEP0Q798ooVu+XuKLbe8aBRpbnFTJ78V6T7lCP0ImAzZD6Aw=="
-}
-
+{"platform":"win32-x64","builtAt":"2026-08-14T18:16:33Z","version":"20260814","runtimeReady":true,"zipUrl":"https://storage.googleapis.com/w4y-engine-dist/wayne-engine-20260814.zip"}

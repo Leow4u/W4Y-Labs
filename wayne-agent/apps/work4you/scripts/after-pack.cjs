@@ -23,7 +23,7 @@ const path = require('node:path')
 
 const { stampExeIdentity } = require('./set-exe-identity.cjs')
 
-exports.default = async function afterPack(context) {
+async function afterPack(context) {
   if (context.electronPlatformName !== 'win32') {
     return
   }
@@ -32,10 +32,9 @@ exports.default = async function afterPack(context) {
   const exe = path.join(context.appOutDir, `${productName}.exe`)
   const desktopRoot = path.resolve(__dirname, '..')
 
-  try {
-    await stampExeIdentity(exe, desktopRoot)
-  } catch (err) {
-    // Never fail the build over a cosmetic stamp.
-    console.warn(`[after-pack] exe identity stamp failed (${err.message}); Work4You.exe keeps the stock Electron icon`)
-  }
+  await stampExeIdentity(exe, desktopRoot)
+  console.log(`[after-pack] Work4You icon stamped on ${exe}`)
 }
+
+module.exports = afterPack
+module.exports.default = afterPack

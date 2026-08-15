@@ -10,11 +10,11 @@ const NAV = [{ href: "/instancias", label: "Instâncias", icon: "▦" }];
 
 export default function AppShell({
   email,
-  isAdmin = false,
+  isPlatformOperator = false,
   children,
 }: {
   email: string;
-  isAdmin?: boolean;
+  isPlatformOperator?: boolean;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -40,7 +40,7 @@ export default function AppShell({
               {m.label}
             </Link>
           ))}
-          {isAdmin && (
+          {isPlatformOperator && (
             <>
               <div className="pt-3 pb-1 pl-3 text-[10px] font-semibold uppercase tracking-wider text-neutral-400">
                 Plataforma

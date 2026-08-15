@@ -179,9 +179,11 @@ export type {
 
 export class HermesGateway extends JsonRpcGatewayClient {
   constructor() {
+    const isBrowserShell = import.meta.env.VITE_APP_SHELL === 'browser'
     super({
       closedErrorMessage: 'Work4You gateway connection closed',
       connectErrorMessage: 'Could not connect to Work4You gateway',
+      connectTimeoutMs: isBrowserShell ? 60_000 : 15_000,
       createRequestId: nextId => nextId,
       notConnectedErrorMessage: 'Work4You gateway is not connected',
       requestTimeoutMs: DEFAULT_GATEWAY_REQUEST_TIMEOUT_MS

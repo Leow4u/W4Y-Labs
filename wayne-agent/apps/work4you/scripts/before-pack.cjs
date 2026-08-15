@@ -47,6 +47,7 @@
  */
 
 const fs = require('node:fs')
+const { assertEngineRuntime } = require('./assert-engine-runtime.cjs')
 
 function cleanStaleAppOutDir(appOutDir) {
   if (!appOutDir || typeof appOutDir !== 'string') {
@@ -65,6 +66,17 @@ function cleanStaleAppOutDir(appOutDir) {
 exports.cleanStaleAppOutDir = cleanStaleAppOutDir
 
 exports.default = async function beforePack(context) {
+  // Gate EVERY target on a matching engine runtime. This throws on purpose:
+  // an installer without the engine is not a degraded build, it is a ~30
+  // minute first launch for every user who downloads it.
+  const { marker } = assertEngineRuntime(
+    context && context.electronPlatformName,
+    context && context.arch
+  )
+  console.log(
+    `[before-pack] engine runtime ok: ${marker.platform}-${marker.arch} (extra=${marker.extra})`
+  )
+
   const appOutDir = context && context.appOutDir
   try {
     if (cleanStaleAppOutDir(appOutDir)) {

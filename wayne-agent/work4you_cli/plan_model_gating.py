@@ -17,6 +17,14 @@ _log = logging.getLogger(__name__)
 
 def fetch_tenant_plan(cookie: str) -> Optional[str]:
     """Resolve tenant plan from the platform billing API (cookie-forward)."""
+    payload = fetch_tenant_plan_payload_via_cookie(cookie)
+    if payload and payload.get("plan"):
+        return str(payload["plan"])
+    return None
+
+
+def fetch_tenant_plan_payload_via_cookie(cookie: str) -> Optional[dict]:
+    """Full plan payload from platform ``GET /planos/plan`` (cookie-forward)."""
     cookie = (cookie or "").strip()
     if not cookie:
         return None
@@ -33,10 +41,29 @@ def fetch_tenant_plan(cookie: str) -> Optional[str]:
             return None
         data = response.json()
         if isinstance(data, dict) and data.get("plan"):
-            return str(data["plan"])
+            return data
     except Exception as exc:
-        _log.debug("fetch_tenant_plan failed: %s", exc)
+        _log.debug("fetch_tenant_plan_payload_via_cookie failed: %s", exc)
     return None
+
+
+def fetch_tenant_plan_payload(tenant_id: str) -> Optional[dict]:
+    """Plan payload for shared motor (HMAC internal API — no platform cookies)."""
+    tenant_id = (tenant_id or "").strip()
+    if not tenant_id:
+        return None
+    from work4you_cli.platform_tenant import fetch_tenant_runtime
+
+    data = fetch_tenant_runtime(tenant_id)
+    if not data.get("plan"):
+        return None
+    return {
+        "plan": data.get("plan"),
+        "status": data.get("status", "inactive"),
+        "has_customer": bool(data.get("has_customer")),
+        "included_usd": data.get("included_usd", 0),
+        "ondemand": data.get("ondemand") or {},
+    }
 
 
 def resolve_tenant_plan_for_cli() -> Optional[str]:

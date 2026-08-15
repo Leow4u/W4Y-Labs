@@ -9,7 +9,9 @@ export const pt = defineLocale({
     delete: 'Eliminar',
     confirm: 'Confirmar',
     close: 'Fechar',
-    connecting: 'A ligar',
+    connecting: 'Abrindo o Work4You',
+    connectingCloudHint:
+      'Na primeira vez ou após pausa, sua conta na nuvem pode levar até um minuto para acordar.',
     loading: 'A carregar…',
     notSet: 'Não definido',
     on: 'Ligado',
@@ -319,7 +321,9 @@ export const pt = defineLocale({
       updateAvailable: 'Atualização disponível',
       updateInstalling: 'A actualizar…',
       updateInstallingProgress: percent => `A actualizar… ${percent}%`,
-      updateShort: 'Atualizar'
+      updateShort: 'Atualizar',
+      signOut: 'Terminar sessão',
+      signOutFailed: 'Não foi possível terminar a sessão'
     },
     searchAria: 'Buscar sessões',
     searchPlaceholder: 'Buscar sessões…',
@@ -1514,7 +1518,11 @@ export const pt = defineLocale({
       manageSubscriptionDesc: 'Mudar plano, método de pagamento ou cancelar no Stripe.',
       manageSubscriptionNoCustomer: 'Ainda sem subscrição Stripe — abra Planos para assinar.',
       planLogicHint:
-        'Primeiro o pool incluído, depois on-demand até ao limite. O overage é cobrado na próxima fatura. Command Center → Usage é telemetria do agente, não faturação.'
+        'Primeiro o pool incluído, depois on-demand até ao limite. O overage é cobrado na próxima fatura. Command Center → Usage é telemetria do agente, não faturação.',
+      signOut: 'Terminar sessão',
+      signOutFailed: 'Não foi possível terminar a sessão',
+      signedOutTitle: 'Sessão terminada',
+      signedOutMessage: 'A sessão da conta Work4You foi limpa neste dispositivo.'
     },
     memoryPage: {
       title: 'Memória e contexto',
@@ -1869,6 +1877,27 @@ export const pt = defineLocale({
         roamDesc: 'Deixe o pet vaguear sozinho pela janela quando estiver idle.'
       }
     }
+  },
+
+  onboarding: {
+    w4ySignIn: 'Entrar na Work4You',
+    w4ySignInDesc:
+      'Use a sua conta Work4You — provisionamos a chave do modelo por si. Ignore a lista de providers a menos que traga as suas próprias API keys.',
+    w4ySignInFailed: 'Não foi possível iniciar sessão na Work4You',
+    chooseLater: 'Escolher um provider depois'
+  },
+
+  accountGate: {
+    title: 'Entrar na Work4You',
+    subtitle: 'Use a sua conta Work4You para continuar. O acesso aos modelos vem com o seu plano.',
+    continueSignIn: 'Continuar',
+    checking: 'A verificar sessão…',
+    signingIn: 'A iniciar sessão…',
+    createAccount: 'Criar conta',
+    signInFailed: 'Não foi possível concluir o login. Tente de novo.',
+    updateAvailable: 'Há uma atualização da app disponível.',
+    updateNow: 'Atualizar agora',
+    manualDownload: 'Instalar manualmente em work4you.ai/baixar'
   },
 
   statusStack: {

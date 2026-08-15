@@ -1,0 +1,7 @@
+# Patch web_server.py — COPY to /tmp then redirect into /opt/wayne (Depot blocks direct COPY overwrite).
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly246
+FROM ${BASE_IMAGE}
+
+COPY work4you_cli/web_server.wayne.py /tmp/w4y-web_server.py
+
+RUN cat /tmp/w4y-web_server.py > /opt/wayne/wayne_cli/web_server.py && rm -f /tmp/w4y-web_server.py

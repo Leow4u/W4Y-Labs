@@ -14,7 +14,7 @@ AUTENTICADO
   /chat        experiência Work4You: retoma o prompt delegado (sessionStorage
                `w4y_delegation_prompt`) e faz a ponte p/ o workspace do tenant
   /instancias  rota INTERNA (admin/dev) — usuário final não escolhe instância
-  /admin       cross-tenant (role=admin): frota + uso por tenant
+  /admin       cross-tenant (ADMIN_EMAILS): frota + uso por tenant
 
 REGISTRY (Cloud SQL): instances (+ runs/agents/artifacts históricos)
 ```

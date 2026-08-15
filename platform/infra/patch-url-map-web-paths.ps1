@@ -20,7 +20,9 @@ $ExtraWebPaths = @(
     '/device/*',
     '/abrir',
     '/legal',
-    '/legal/*'
+    '/legal/*',
+    '/internal',
+    '/internal/*'
 )
 
 $tmpDir = Join-Path $env:TEMP "w4y-urlmap-patch-$(Get-Date -Format 'yyyyMMddHHmmss')"
@@ -28,7 +30,8 @@ New-Item -ItemType Directory -Path $tmpDir -Force | Out-Null
 $src = Join-Path $tmpDir 'w4y-urlmap.yaml'
 $dst = Join-Path $tmpDir 'w4y-urlmap.patched.yaml'
 $extraJson = Join-Path $tmpDir 'extra-paths.json'
-$ExtraWebPaths | ConvertTo-Json | Set-Content -Path $extraJson -Encoding utf8NoBOM
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false
+[System.IO.File]::WriteAllText($extraJson, ($ExtraWebPaths | ConvertTo-Json), $utf8NoBom)
 
 Write-Host "== export $UrlMap ==" -ForegroundColor Cyan
 & $script:GcloudExe compute url-maps export $UrlMap `
@@ -37,7 +40,7 @@ Write-Host "== export $UrlMap ==" -ForegroundColor Cyan
 if ($LASTEXITCODE -ne 0) { throw 'export failed' }
 
 $patchJs = Join-Path $tmpDir 'patch-url-map.cjs'
-@'
+[System.IO.File]::WriteAllText($patchJs, @'
 const fs = require("fs");
 const src = process.argv[2];
 const dst = process.argv[3];
@@ -65,7 +68,7 @@ if (idx === -1) {
   fs.writeFileSync(dst, patched, "utf8");
 }
 console.log(JSON.stringify({ added: missing }));
-'@ | Set-Content -Path $patchJs -Encoding utf8NoBOM
+'@, $utf8NoBom)
 
 node $patchJs $src $dst $extraJson
 if ($LASTEXITCODE -ne 0) { throw 'patch failed' }

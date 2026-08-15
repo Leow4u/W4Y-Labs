@@ -3,18 +3,26 @@
  * Prefer existing ZIP install or monorepo checkout over Hermes git bootstrap.
  *
  * Also owns the first-run engine bootstrap for packaged builds:
- *   ensureWayneEngineForPackaged(destRoot, opts) — download engine ZIP → uv sync.
+ *   ensureWayneEngineForPackaged(destRoot, opts) — extract bundled ready
+ *   engine (CPython + .venv) or download the ready ZIP. uv sync is only a
+ *   fallback for source-only ZIPs still in the field.
  */
 "use strict";
 
-const { execFileSync, spawn } = require("node:child_process");
+const { execFileSync, spawn, spawnSync } = require("node:child_process");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const https = require("node:https");
 const http = require("node:http");
 const os = require("node:os");
 const path = require("node:path");
-const { resolveWayneHome } = require("./w4y-login.cjs");
+const { resolveWayneHome, resolvePlatformRoot, resolveSharedEngineRoot } = require("./w4y-home.cjs");
+let yauzl = null;
+try {
+  yauzl = require("yauzl");
+} catch {
+  yauzl = null;
+}
 
 /** Pins must stay aligned with pyproject.toml `[project.optional-dependencies] mcp`. */
 const MCP_EXTRA_PACKAGES = ["mcp==1.26.0", "starlette==1.0.1"];
@@ -59,6 +67,170 @@ function resolveExistingVenv(root) {
   return null;
 }
 
+function runtimeReadyPath(root) {
+  return path.join(root, "runtime-ready.json");
+}
+
+function readRuntimeReady(root) {
+  const p = runtimeReadyPath(root);
+  if (!exists(p)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(p, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function runtimePlatformMatches(marker) {
+  if (!marker || typeof marker !== "object") return false;
+  const platform = String(marker.platform || "");
+  const arch = String(marker.arch || "");
+  if (platform && platform !== process.platform) return false;
+  if (arch && arch !== process.arch) return false;
+  return true;
+}
+
+function bundledPythonHome(engineRoot) {
+  return path.join(engineRoot, "runtime", "python");
+}
+
+/**
+ * Interpreter inside the bundled standalone CPython, per platform.
+ *
+ * The layouts genuinely differ and assuming the Windows one is what made a
+ * macOS runtime impossible to recognise:
+ *   win32 : runtime/python/python.exe
+ *   posix : runtime/python/bin/python3.11  (python3 / python are symlinks)
+ */
+function bundledPythonExe(engineRoot, platform = process.platform) {
+  const home = bundledPythonHome(engineRoot);
+  if (platform === "win32") {
+    const exe = path.join(home, "python.exe");
+    return exists(exe) ? exe : null;
+  }
+  for (const name of ["python3.11", "python3", "python"]) {
+    const candidate = path.join(home, "bin", name);
+    if (exists(candidate)) return candidate;
+  }
+  return null;
+}
+
+/**
+ * Rewrite pyvenv.cfg `home` to the bundled CPython next to the engine.
+ * The runtime is built on a CI/dev machine; without this the venv's launcher
+ * is a trampoline pointing at the builder's uv-managed interpreter.
+ */
+function repairReadyRuntime(engineRoot) {
+  const pythonExe = bundledPythonExe(engineRoot);
+  if (!pythonExe) return false;
+
+  const resolved = resolveExistingVenv(engineRoot);
+  if (!resolved) return false;
+
+  const cfgPath = path.join(resolved.venvRoot, "pyvenv.cfg");
+  if (!exists(cfgPath)) return false;
+
+  // `home` names the directory CONTAINING the base interpreter — the runtime
+  // root on Windows, its bin/ on POSIX. Deriving it from the resolved
+  // interpreter keeps both correct without branching again.
+  const pythonHome = path.dirname(pythonExe);
+
+  let cfg = fs.readFileSync(cfgPath, "utf8");
+  if (/^home\s*=/m.test(cfg)) {
+    cfg = cfg.replace(/^home\s*=\s*.*$/m, `home = ${pythonHome}`);
+  } else {
+    cfg = `home = ${pythonHome}\n${cfg}`;
+  }
+  fs.writeFileSync(cfgPath, cfg, "utf8");
+  return true;
+}
+
+function venvCanImportEngine(engineRoot) {
+  const resolved = resolveExistingVenv(engineRoot);
+  if (!resolved) return false;
+  try {
+    execFileSync(resolved.python, ["-c", "import work4you_cli"], {
+      stdio: "ignore",
+      windowsHide: true,
+      timeout: 20_000,
+      cwd: engineRoot,
+    });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * True when this tree ships a prebuilt Windows runtime and it can be activated.
+ */
+function prepareReadyRuntime(engineRoot) {
+  const marker = readRuntimeReady(engineRoot);
+  if (!marker || !runtimePlatformMatches(marker)) return false;
+  if (!repairReadyRuntime(engineRoot)) return false;
+  const resolved = resolveExistingVenv(engineRoot);
+  return Boolean(resolved && exists(resolved.python));
+}
+
+function isReadyRuntime(engineRoot) {
+  return prepareReadyRuntime(engineRoot);
+}
+
+/**
+ * The ready engine tree the installer laid down, or null for source builds.
+ *
+ * Shipped as a DIRECTORY, not an archive: NSIS/DMG already write every file
+ * natively at install time, so first run has nothing to decompress. The older
+ * layout shipped a 100MB ZIP inside the installer and unpacked its ~12.7k
+ * entries with a single-threaded JS unzip on first launch — the installer paid
+ * for the files once and the user paid for them again, slowly.
+ */
+function resolveBundledEngineDir() {
+  const candidates = [
+    process.resourcesPath ? path.join(process.resourcesPath, "engine") : null,
+    path.join(__dirname, "..", "build", "engine-runtime"),
+  ].filter(Boolean);
+  return candidates.find((dir) => exists(path.join(dir, "pyproject.toml"))) || null;
+}
+
+/**
+ * Copy a directory tree with the platform's own copier.
+ *
+ * robocopy/ditto/cp are multi-threaded native code that the OS (and real-time
+ * antivirus) are tuned for; a per-file JS walk over a CPython tree is orders of
+ * magnitude slower. Falls back to fs.cpSync only when the tool is absent, so a
+ * genuine copy failure still surfaces instead of being silently retried.
+ */
+function copyTreeNative(srcDir, destDir) {
+  fs.mkdirSync(destDir, { recursive: true });
+
+  let res;
+  if (process.platform === "win32") {
+    res = spawnSync(
+      "robocopy",
+      [srcDir, destDir, "/E", "/MT:16", "/R:2", "/W:1", "/NFL", "/NDL", "/NJH", "/NJS", "/NP"],
+      { windowsHide: true, stdio: "ignore" }
+    );
+    // robocopy signals success with exit codes 0-7; 8 and above are failures.
+    if (!res.error && typeof res.status === "number" && res.status < 8) return;
+  } else if (process.platform === "darwin") {
+    // ditto preserves symlinks, permissions and extended attributes, which the
+    // POSIX CPython tree depends on.
+    res = spawnSync("ditto", [srcDir, destDir], { stdio: "ignore" });
+    if (!res.error && res.status === 0) return;
+  } else {
+    res = spawnSync("cp", ["-a", `${srcDir}/.`, destDir], { stdio: "ignore" });
+    if (!res.error && res.status === 0) return;
+  }
+
+  const missingTool = Boolean(res && res.error && res.error.code === "ENOENT");
+  if (!missingTool) {
+    const code = res && typeof res.status === "number" ? res.status : "unknown";
+    throw new Error(`native copy failed (exit ${code}) copying ${srcDir}`);
+  }
+  fs.cpSync(srcDir, destDir, { recursive: true, verbatimSymlinks: true });
+}
+
 /**
  * @returns {string[]} candidate engine roots, highest priority first
  */
@@ -78,6 +250,13 @@ function wayneRootCandidates(opts = {}) {
   }
   // Monorepo: apps/work4you/electron → ../../.. = wayne-agent
   list.push(path.resolve(__dirname, "../../.."));
+  // Shared ready engine at the platform root (NSIS / first-run), independent
+  // of which Work4You account is active.
+  try {
+    list.push(resolveSharedEngineRoot(resolvePlatformRoot()));
+  } catch {
+    void 0;
+  }
   const home = resolveWayneHome();
   list.push(path.join(home, "work4you-agent"));
   list.push(path.join(home, "wayne-agent"));
@@ -108,10 +287,101 @@ function findUvBinary(root) {
     process.platform === "win32" ? "uv.exe" : "uv",
   ].filter(Boolean);
   for (const c of candidates) {
-    if (c === "uv" || c === "uv.exe") return c;
+    if (c === "uv" || c === "uv.exe") {
+      try {
+        execFileSync(c, ["--version"], { stdio: "ignore", windowsHide: true, timeout: 10_000 });
+        return c;
+      } catch {
+        continue;
+      }
+    }
     if (exists(c)) return c;
   }
   return null;
+}
+
+/** Install managed uv into %LOCALAPPDATA%\\wayne\\bin (same contract as install.ps1). */
+async function ensureManagedUv(onLog) {
+  const binDir = path.join(resolveWayneHome(), "bin");
+  const uvPath =
+    process.platform === "win32" ? path.join(binDir, "uv.exe") : path.join(binDir, "uv");
+  const existing = findUvBinary();
+  if (existing && (existing === "uv" || existing === "uv.exe" || exists(existing))) {
+    onLog && onLog(`uv disponível (${existing === "uv" || existing === "uv.exe" ? existing : uvPath})`);
+    return exists(uvPath) ? uvPath : existing;
+  }
+  if (exists(uvPath)) return uvPath;
+
+  onLog && onLog("Instalando uv (gestor de pacotes Python)…");
+  fs.mkdirSync(binDir, { recursive: true });
+
+  if (process.platform !== "win32") {
+    throw new Error(
+      "uv não encontrado. Instale com: curl -LsSf https://astral.sh/uv/install.sh | sh",
+    );
+  }
+
+  await new Promise((resolve, reject) => {
+    const env = { ...process.env, UV_INSTALL_DIR: binDir };
+    const child = spawn(
+      "powershell.exe",
+      [
+        "-NoProfile",
+        "-ExecutionPolicy",
+        "Bypass",
+        "-Command",
+        "irm https://astral.sh/uv/install.ps1 | iex",
+      ],
+      { env, stdio: "pipe", windowsHide: true },
+    );
+    let errOut = "";
+    if (child.stderr) {
+      child.stderr.on("data", (c) => {
+        errOut += c.toString();
+      });
+    }
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0 && exists(uvPath)) return resolve();
+      reject(
+        new Error(
+          `Falha ao instalar uv (código ${code ?? "?"}). ${errOut.slice(-300)}`.trim(),
+        ),
+      );
+    });
+  });
+
+  if (!exists(uvPath)) {
+    throw new Error(
+      "uv não ficou disponível após a instalação. Verifique firewall/antivírus e ligação à internet.",
+    );
+  }
+  onLog && onLog(`uv instalado em ${uvPath}`);
+  return uvPath;
+}
+
+function resolvePythonFallback() {
+  if (process.platform === "win32") {
+    for (const spec of [{ cmd: "py", args: ["-3"] }, { cmd: "python", args: [] }, { cmd: "python3", args: [] }]) {
+      try {
+        execFileSync(spec.cmd, [...spec.args, "--version"], {
+          stdio: "ignore",
+          windowsHide: true,
+          timeout: 10_000,
+        });
+        return spec;
+      } catch {
+        continue;
+      }
+    }
+    return null;
+  }
+  try {
+    execFileSync("python3", ["--version"], { stdio: "ignore", timeout: 10_000 });
+    return { cmd: "python3", args: [] };
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -170,6 +440,15 @@ function tryResolveWayneBackend(backendArgs, helpers = {}) {
 
   for (const root of candidates) {
     if (!isWayneSourceRoot(root)) continue;
+    if (helpers.requireReadyRuntime) {
+      if (prepareReadyRuntime(root)) {
+        // bundled CPython + .venv — paths repaired, ready to spawn
+      } else if (!venvCanImportEngine(root)) {
+        continue;
+      }
+    } else if (readRuntimeReady(root)) {
+      prepareReadyRuntime(root);
+    }
     const resolvedVenv = resolveExistingVenv(root);
     let command = resolvedVenv ? resolvedVenv.python : null;
     if (!command && typeof findPythonForRoot === "function") {
@@ -279,26 +558,56 @@ function verifyEngineManifest(manifest, zipPath) {
   }
 }
 
+const ENGINE_DIST_BASE = "https://storage.googleapis.com/w4y-engine-dist";
+
+/** Identifies which build of the engine this host can actually run. */
+function enginePlatformKey() {
+  return `${process.platform}-${process.arch}`;
+}
+
 /**
- * Fetch latest.json and return zipUrl (for future install.ps1 bootstrap).
+ * Manifest URLs to try, most specific first.
+ *
+ * The engine carries native binaries, so there is one feed per platform+arch.
+ * A single global latest.json cannot serve everyone: the legacy one publishes
+ * win32-x64, and every macOS install used to download those Windows binaries,
+ * fail the runtime check, and fall through to a ~30 minute uv sync.
  */
-async function fetchEngineZipUrl(https) {
-  const manifestUrl =
-    process.env.WAYNE_SOURCE_ZIP_URL ||
-    process.env.W4Y_ENGINE_LATEST_URL ||
-    "https://storage.googleapis.com/w4y-engine-dist/latest.json";
-  // If env already points at a .zip, use it directly.
-  if (/\.zip(\?|$)/i.test(manifestUrl)) return manifestUrl;
+function engineManifestUrls() {
+  const override =
+    process.env.WAYNE_SOURCE_ZIP_URL || process.env.W4Y_ENGINE_LATEST_URL;
+  if (override) return [override];
+  return [
+    `${ENGINE_DIST_BASE}/latest-${enginePlatformKey()}.json`,
+    // Legacy single-platform feed, kept for hosts it genuinely serves.
+    `${ENGINE_DIST_BASE}/latest.json`,
+  ];
+}
+
+/**
+ * A manifest that declares a platform must match this host. Manifests without
+ * the field predate per-platform feeds and are accepted as-is.
+ */
+function manifestMatchesHost(manifest) {
+  const declared = String((manifest && manifest.platform) || "").trim();
+  if (!declared) return true;
+  return declared === enginePlatformKey();
+}
+
+function fetchManifestJson(url) {
   return new Promise((resolve, reject) => {
     https
-      .get(manifestUrl, (res) => {
+      .get(url, (res) => {
+        if (res.statusCode && res.statusCode >= 400) {
+          res.resume();
+          reject(new Error(`HTTP ${res.statusCode} for ${url}`));
+          return;
+        }
         const chunks = [];
         res.on("data", (c) => chunks.push(c));
         res.on("end", () => {
           try {
-            const j = parseManifestJson(Buffer.concat(chunks));
-            if (j && typeof j.zipUrl === "string") resolve(j.zipUrl);
-            else reject(new Error("latest.json missing zipUrl"));
+            resolve(parseManifestJson(Buffer.concat(chunks)));
           } catch (e) {
             reject(e);
           }
@@ -306,6 +615,53 @@ async function fetchEngineZipUrl(https) {
       })
       .on("error", reject);
   });
+}
+
+/**
+ * Resolve the engine manifest for THIS host, trying the platform-specific feed
+ * before the legacy one. A manifest built for another platform is rejected
+ * rather than used: no update is strictly better than an engine that cannot
+ * run here.
+ */
+async function fetchEngineManifest() {
+  const urls = engineManifestUrls();
+
+  // A direct .zip override bypasses manifests entirely.
+  if (urls.length === 1 && /\.zip(\?|$)/i.test(urls[0])) {
+    return { version: "override", builtAt: new Date().toISOString(), zipUrl: urls[0] };
+  }
+
+  let lastErr = null;
+  for (const url of urls) {
+    let manifest;
+    try {
+      manifest = await fetchManifestJson(url);
+    } catch (err) {
+      lastErr = err;
+      continue;
+    }
+    if (!manifest || typeof manifest.zipUrl !== "string") {
+      lastErr = new Error(`${url} is missing zipUrl`);
+      continue;
+    }
+    if (!manifestMatchesHost(manifest)) {
+      lastErr = new Error(
+        `${url} publishes ${manifest.platform}, but this host needs ${enginePlatformKey()}`
+      );
+      continue;
+    }
+    return manifest;
+  }
+  throw lastErr || new Error(`No engine manifest available for ${enginePlatformKey()}`);
+}
+
+/**
+ * Fetch the engine manifest and return just its zipUrl.
+ * @param {*} [_https] — kept for call-site compatibility; unused.
+ */
+async function fetchEngineZipUrl(_https) {
+  const manifest = await fetchEngineManifest();
+  return manifest.zipUrl;
 }
 
 // ---------------------------------------------------------------------------
@@ -362,44 +718,19 @@ function writeEngineVersionMarker(wayneHome, info) {
  * @returns {Promise<{ version: string, builtAt: string, zipUrl: string }>}
  */
 async function fetchEngineLatestManifest() {
-  const manifestUrl =
-    process.env.WAYNE_SOURCE_ZIP_URL ||
-    process.env.W4Y_ENGINE_LATEST_URL ||
-    "https://storage.googleapis.com/w4y-engine-dist/latest.json";
-  // Direct ZIP URL override — construct a synthetic manifest so callers can
-  // treat override and normal paths uniformly.
-  if (/\.zip(\?|$)/i.test(manifestUrl)) {
-    return { version: "override", builtAt: new Date().toISOString(), zipUrl: manifestUrl };
-  }
-  return new Promise((resolve, reject) => {
-    https
-      .get(manifestUrl, (res) => {
-        const chunks = [];
-        res.on("data", (c) => chunks.push(c));
-        res.on("end", () => {
-          try {
-            const j = parseManifestJson(Buffer.concat(chunks));
-            if (j && typeof j.zipUrl === "string") resolve(j);
-            else reject(new Error("latest.json missing zipUrl"));
-          } catch (e) {
-            reject(e);
-          }
-        });
-      })
-      .on("error", reject);
-  });
+  return fetchEngineManifest();
 }
 
 /**
  * Check whether a motor (engine) update is available.
  *
- * Compares the remote latest.json against the local engine-version.json marker.
- * An update is considered available when the remote `version` or `builtAt`
- * differs from the locally recorded value. If there is no marker file but the
- * engine root exists, we conservatively flag an update so the marker gets
- * written on the next apply.
+ * Compares the remote latest.json against the local engine-version.json marker
+ * at the **platform root** (shared engine), never under `accounts/<tenantId>`.
+ * Callers often pass `resolveWayneHome()` which becomes the account home after
+ * login — that path has no engine and used to return `notInstalled`, hiding the
+ * update chip for every signed-in user (incident 14/08 — Rafael).
  *
- * @param {string} wayneHome
+ * @param {string} [_wayneHome]  — ignored for location; kept for call-site compat
  * @returns {Promise<{
  *   available: boolean,
  *   local: object|null,
@@ -408,7 +739,7 @@ async function fetchEngineLatestManifest() {
  *   error?: string
  * }>}
  */
-async function checkEngineUpdate(wayneHome) {
+async function checkEngineUpdate(_wayneHome) {
   let remote;
   try {
     remote = await fetchEngineLatestManifest();
@@ -416,13 +747,22 @@ async function checkEngineUpdate(wayneHome) {
     return { available: false, local: null, remote: null, error: err && err.message };
   }
 
-  const local = readEngineVersionMarker(wayneHome);
+  let platformRoot;
+  try {
+    platformRoot = resolvePlatformRoot();
+  } catch (err) {
+    return {
+      available: false,
+      local: null,
+      remote,
+      error: err && err.message ? err.message : "no-platform-root",
+    };
+  }
+
+  const local = readEngineVersionMarker(platformRoot);
 
   if (!local) {
-    const engineRoot = [
-      path.join(wayneHome, "work4you-agent"),
-      path.join(wayneHome, "wayne-agent"),
-    ].find(isWayneSourceRoot) || path.join(wayneHome, "wayne-agent");
+    const engineRoot = resolveSharedEngineRoot(platformRoot);
     if (!isWayneSourceRoot(engineRoot)) {
       // Engine not on disk at all — first-run territory, not an update scenario.
       return { available: false, local: null, remote, notInstalled: true };
@@ -434,7 +774,7 @@ async function checkEngineUpdate(wayneHome) {
     // write the marker now so subsequent checks can do a real version compare.
     // Without this, every check loop returns available=true and the update chip
     // appears immediately after a clean install.
-    writeEngineVersionMarker(wayneHome, remote);
+    writeEngineVersionMarker(platformRoot, remote);
     return { available: false, local: remote, remote };
   }
 
@@ -450,7 +790,7 @@ async function checkEngineUpdate(wayneHome) {
  *   1. Download the new engine ZIP from remote.zipUrl
  *   2. Extract over the existing engine root (Expand-Archive -Force)
  *   3. Promote wrapper directory if needed
- *   4. Run uv sync to refresh the venv
+ *   4. Activate bundled runtime (or uv sync fallback for source-only ZIPs)
  *   5. Write engine-version.json marker
  *
  * Callers should stop the Python backend BEFORE calling this to avoid
@@ -495,7 +835,7 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
   const tmpExtract = path.join(os.tmpdir(), `w4y-engine-extract-${Date.now()}`);
   log("Extraindo arquivos do motor…", null);
   try {
-    await extractZipTo(tmpZip, tmpExtract, (line) => log(line, null));
+    await extractZipTo(tmpZip, tmpExtract, (line, pct) => log(line, pct));
   } catch (err) {
     try { fs.unlinkSync(tmpZip); } catch { void 0; }
     try { fs.rmSync(tmpExtract, { recursive: true, force: true }); } catch { void 0; }
@@ -531,13 +871,17 @@ async function applyEngineUpdate(engineRoot, wayneHome, opts = {}) {
     );
   }
 
-  log("Atualizando dependências Python (uv sync)…", null);
-  try {
-    await runUvSync(engineRoot, (line) => log(line, null));
-  } catch (err) {
-    throw new Error(
-      `uv sync falhou após extração do motor. Detalhes: ${err && err.message}`
-    );
+  if (isReadyRuntime(engineRoot)) {
+    log("Motor pronto — runtime pré-instalado, sem uv sync.", null);
+  } else {
+    log("Atualizando dependências Python (uv sync)…", null);
+    try {
+      await runUvSync(engineRoot, (line) => log(line, null));
+    } catch (err) {
+      throw new Error(
+        `uv sync falhou após extração do motor. Detalhes: ${err && err.message}`
+      );
+    }
   }
 
   writeEngineVersionMarker(wayneHome, remote);
@@ -595,28 +939,27 @@ function downloadFileToPath(url, destPath, onProgress, hops = 0) {
 }
 
 /**
- * Extract a ZIP archive.
- * Windows: PowerShell Expand-Archive.
- * macOS/Linux: system unzip.
+ * Extract a ZIP with real per-file progress when yauzl is available.
+ * Falls back to Expand-Archive / unzip (no percent) if yauzl is missing.
  *
- * NOTE: ZIP structure expectation — the archive should contain the wayne-agent
- * source files at the top level OR in a single top-level directory.
- * After extraction we probe for wayne_cli/main.py and promote the inner dir
- * if needed.
- *
- * TODO(infra): Confirm ZIP structure when publishing engine ZIPs to GCS.
+ * @param {string} zipPath
+ * @param {string} destDir
+ * @param {(line: string, pct: number|null) => void} [onProgress]
  */
-function extractZipTo(zipPath, destDir, onLog) {
+function extractZipTo(zipPath, destDir, onProgress) {
+  clearDanglingLink(destDir);
+  fs.mkdirSync(destDir, { recursive: true });
+  if (yauzl) {
+    return extractZipWithYauzl(zipPath, destDir, onProgress);
+  }
+  return extractZipWithShell(zipPath, destDir, onProgress);
+}
+
+function extractZipWithShell(zipPath, destDir, onProgress) {
   return new Promise((resolve, reject) => {
-    // This is the path that bricked installs on 02/08/2026: the packaged
-    // first-run bootstrap extracts straight onto the engine dir, and a
-    // dangling junction there makes mkdir fail with ENOENT on every retry.
-    clearDanglingLink(destDir);
-    fs.mkdirSync(destDir, { recursive: true });
     const IS_WIN = process.platform === "win32";
     let child;
     if (IS_WIN) {
-      // Expand-Archive overwrites existing files (-Force).
       const psCmd = `Expand-Archive -Path '${zipPath.replace(/'/g, "''")}' -DestinationPath '${destDir.replace(/'/g, "''")}' -Force`;
       child = spawn("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", psCmd], {
         stdio: "pipe",
@@ -629,8 +972,97 @@ function extractZipTo(zipPath, destDir, onLog) {
     if (child.stderr) child.stderr.on("data", (c) => { stderr += c.toString(); });
     child.once("error", reject);
     child.once("exit", (code) => {
-      if (code === 0) return resolve();
+      if (code === 0) {
+        try { onProgress && onProgress("Extract complete", 100); } catch { void 0; }
+        return resolve();
+      }
       reject(new Error(`ZIP extraction failed (code ${code}): ${stderr.slice(0, 300)}`));
+    });
+  });
+}
+
+function safeZipEntryPath(destDir, entryName) {
+  const normalized = String(entryName || "").replace(/\\/g, "/");
+  if (!normalized || normalized.includes("\0")) return null;
+  if (normalized.split("/").some((p) => p === "..")) return null;
+  const abs = path.resolve(destDir, ...normalized.split("/"));
+  const root = path.resolve(destDir) + path.sep;
+  if (abs !== path.resolve(destDir) && !abs.startsWith(root)) return null;
+  return abs;
+}
+
+function extractZipWithYauzl(zipPath, destDir, onProgress) {
+  return new Promise((resolve, reject) => {
+    yauzl.open(zipPath, { lazyEntries: true }, (openErr, zipfile) => {
+      if (openErr) return reject(openErr);
+      const total = Math.max(1, zipfile.entryCount || 1);
+      let done = 0;
+      let lastPct = -1;
+      const tick = (force = false) => {
+        const pct = Math.min(99, Math.round((done / total) * 100));
+        if (force || pct !== lastPct) {
+          lastPct = pct;
+          try {
+            onProgress && onProgress(`A extrair o motor… ${pct}% (${done}/${total})`, pct);
+          } catch {
+            void 0;
+          }
+        }
+      };
+      tick(true);
+      zipfile.readEntry();
+      zipfile.on("entry", (entry) => {
+        const target = safeZipEntryPath(destDir, entry.fileName);
+        if (!target) {
+          done += 1;
+          tick();
+          zipfile.readEntry();
+          return;
+        }
+        if (/\/$/.test(entry.fileName)) {
+          try {
+            fs.mkdirSync(target, { recursive: true });
+          } catch (err) {
+            zipfile.close();
+            return reject(err);
+          }
+          done += 1;
+          tick();
+          zipfile.readEntry();
+          return;
+        }
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        zipfile.openReadStream(entry, (streamErr, readStream) => {
+          if (streamErr) {
+            zipfile.close();
+            return reject(streamErr);
+          }
+          const out = fs.createWriteStream(target);
+          readStream.on("error", (err) => {
+            zipfile.close();
+            reject(err);
+          });
+          out.on("error", (err) => {
+            zipfile.close();
+            reject(err);
+          });
+          out.on("finish", () => {
+            done += 1;
+            tick();
+            zipfile.readEntry();
+          });
+          readStream.pipe(out);
+        });
+      });
+      zipfile.on("end", () => {
+        try {
+          onProgress && onProgress("Extract complete", 100);
+        } catch {
+          void 0;
+        }
+        resolve();
+      });
+      zipfile.on("error", reject);
     });
   });
 }
@@ -661,8 +1093,10 @@ function resolveExtractedSourceRoot(extractDir) {
 }
 
 /**
- * Copy engine source files from srcRoot onto destRoot, preserving the local
- * venv (`.venv` / `venv`) so updates do not wipe installed packages.
+ * Copy engine source files from srcRoot onto destRoot.
+ * Source-only ZIPs keep the local venv so updates do not wipe packages.
+ * Ready ZIPs replace `.venv`, `venv`, and `runtime/` so the user never
+ * rebuilds Python deps.
  */
 /**
  * Remove a dangling junction/symlink sitting where a directory should be.
@@ -700,7 +1134,12 @@ function clearDanglingLink(p) {
 function mergeEngineTree(srcRoot, destRoot) {
   clearDanglingLink(destRoot);
   fs.mkdirSync(destRoot, { recursive: true });
-  const skip = new Set([".venv", "venv", "__pycache__", ".pytest_cache"]);
+  const skip = new Set(["__pycache__", ".pytest_cache"]);
+  if (!readRuntimeReady(srcRoot)) {
+    skip.add(".venv");
+    skip.add("venv");
+    skip.add("runtime");
+  }
   for (const name of fs.readdirSync(srcRoot)) {
     if (skip.has(name)) continue;
     const src = path.join(srcRoot, name);
@@ -854,105 +1293,232 @@ function ensureCliShims(engineRoot, wayneHome) {
 }
 
 /**
- * Run `uv sync` (or fall back to `pip install`) in the Wayne engine root.
+ * Run `uv sync` (or fall back to pip) in the Wayne engine root.
  * Creates the venv under `.venv/`.
  */
-function runUvSync(engineRoot, onLog) {
-  const uv = findUvBinary(engineRoot);
+function runUvSync(engineRoot, onLog, uvOverride = null) {
+  const uv = uvOverride || findUvBinary(engineRoot);
+  const UV_SYNC_TIMEOUT_MS = 45 * 60 * 1000;
   return new Promise((resolve, reject) => {
-    const args = uv
-      ? ["sync", "--frozen"]
-      : ["-m", "pip", "install", "-e", "."];
-    const cmd = uv || "python3";
+    let args;
+    let cmd;
+    let cmdArgs;
+    if (uv) {
+      cmd = uv;
+      cmdArgs = ["sync", "--frozen"];
+    } else {
+      const py = resolvePythonFallback();
+      if (!py) {
+        reject(
+          new Error(
+            "Python não encontrado no Windows. Instale Python 3.11+ de python.org ou deixe a app instalar o uv.",
+          ),
+        );
+        return;
+      }
+      cmd = py.cmd;
+      cmdArgs = [...py.args, "-m", "pip", "install", "-e", "."];
+    }
     const cwd = engineRoot;
-    onLog && onLog(`[w4y-engine] ${cmd} ${args.join(" ")} in ${cwd}`);
-    const child = spawn(cmd, args, {
+    onLog && onLog(`[w4y-engine] ${cmd} ${cmdArgs.join(" ")} in ${cwd}`);
+    const child = spawn(cmd, cmdArgs, {
       cwd,
       stdio: "pipe",
       windowsHide: true,
       env: { ...process.env, VIRTUAL_ENV: path.join(engineRoot, ".venv") },
     });
     let out = "";
-    if (child.stdout) child.stdout.on("data", (c) => { out += c.toString(); onLog && onLog(c.toString().trim()); });
-    if (child.stderr) child.stderr.on("data", (c) => { out += c.toString(); onLog && onLog(c.toString().trim()); });
-    child.once("error", reject);
+    let lastOutputAt = Date.now();
+    const heartbeat = setInterval(() => {
+      if (Date.now() - lastOutputAt > 45_000) {
+        onLog &&
+          onLog(
+            "Ainda a instalar dependências Python… na primeira vez pode demorar 5–15 minutos.",
+          );
+        lastOutputAt = Date.now();
+      }
+    }, 30_000);
+    const timer = setTimeout(() => {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        void 0;
+      }
+      reject(new Error("uv sync excedeu o tempo limite (45 min). Verifique rede e antivírus."));
+    }, UV_SYNC_TIMEOUT_MS);
+    const finish = (fn) => {
+      clearInterval(heartbeat);
+      clearTimeout(timer);
+      fn();
+    };
+    if (child.stdout) {
+      child.stdout.on("data", (c) => {
+        lastOutputAt = Date.now();
+        out += c.toString();
+        onLog && onLog(c.toString().trim());
+      });
+    }
+    if (child.stderr) {
+      child.stderr.on("data", (c) => {
+        lastOutputAt = Date.now();
+        out += c.toString();
+        onLog && onLog(c.toString().trim());
+      });
+    }
+    child.once("error", (err) => finish(() => reject(err)));
     child.once("exit", (code) => {
-      if (code === 0) resolve(out);
-      else reject(new Error(`uv sync failed (code ${code}): ${out.slice(-400)}`));
+      finish(() => {
+        if (code === 0) resolve(out);
+        else reject(new Error(`uv sync failed (code ${code}): ${out.slice(-400)}`));
+      });
     });
   });
 }
 
 /**
  * Full first-run engine install for packaged builds:
- *   1. Fetch engine ZIP URL from latest.json
- *   2. Download ZIP to temp
- *   3. Extract to destRoot
- *   4. Promote single inner dir if needed
- *   5. uv sync
+ *   1. Prefer the ready engine tree bundled in the installer (Cursor-like)
+ *   2. Else download the ready ZIP from latest.json
+ *   3. Extract to destRoot and promote wrapper dir
+ *   4. Activate bundled CPython + .venv (uv sync only if the ZIP is source-only)
  *
- * @param {string} destRoot  — %LOCALAPPDATA%\wayne\wayne-agent (must not exist or be empty)
- * @param {{ onProgress?: (msg: string, pct: number|null) => void }} opts
+ * When the ZIP is bundled, stages collapse to a single `engine-prepare` step
+ * with real extract percent. Incomplete installs are replaced silently.
+ *
+ * @param {string} destRoot  — platformRoot/wayne-agent
+ * @param {{ onProgress?: (msg: string, pct: number|null) => void, onStage?: Function }} opts
  */
 async function ensureWayneEngineForPackaged(destRoot, opts = {}) {
   const log = (msg, pct = null) => {
     try { opts.onProgress && opts.onProgress(msg, pct); } catch { void 0; }
   };
+  const stage = (name, state, extra = {}) => {
+    try { opts.onStage && opts.onStage(name, state, extra); } catch { void 0; }
+  };
 
-  log("Buscando URL do motor Work4You…", null);
-  let zipUrl;
-  try {
-    zipUrl = await fetchEngineZipUrl(https);
-  } catch (err) {
-    throw new Error(
-      `Não foi possível obter a URL do motor (latest.json): ${err && err.message}. ` +
-      `Verifique sua conexão com a internet.`
-    );
+  if (exists(destRoot) && isWayneSourceRoot(destRoot) && isReadyRuntime(destRoot)) {
+    log("Motor Work4You já está pronto.", 100);
+    return { bundled: Boolean(resolveBundledEngineDir()) };
+  }
+  if (exists(destRoot)) {
+    // Silent replace — do not surface "incomplete install" to the user overlay.
+    try {
+      fs.rmSync(destRoot, { recursive: true, force: true, maxRetries: 8, retryDelay: 200 });
+    } catch (err) {
+      throw new Error(
+        `Não foi possível limpar '${destRoot}' para reinstalar o motor: ${err && err.message}`
+      );
+    }
   }
 
-  const tmpZip = path.join(os.tmpdir(), `w4y-engine-${Date.now()}.zip`);
-  log(`Baixando motor de ${zipUrl}…`, 0);
-  try {
-    await downloadFileToPath(zipUrl, tmpZip, (pct) => {
-      log(`Baixando motor… ${pct}%`, pct);
-    });
-  } catch (err) {
-    throw new Error(`Falha ao baixar o motor Work4You: ${err && err.message}`);
-  }
+  const bundledDir = resolveBundledEngineDir();
+  const bundled = Boolean(bundledDir);
+  const extractStage = bundled ? "engine-prepare" : "engine-extract";
 
-  log("Extraindo arquivos do motor…", null);
-  try {
-    await extractZipTo(tmpZip, destRoot, (line) => log(line, null));
-  } catch (err) {
+  if (bundled) {
+    // The installer already wrote every file natively. Seed the user's engine
+    // root straight from it — no archive to open, no per-file JS unpacking.
+    stage("engine-prepare", "running");
+    log("A preparar o motor incluído no instalador…", 0);
+    try {
+      clearDanglingLink(destRoot);
+      copyTreeNative(bundledDir, destRoot);
+    } catch (err) {
+      stage("engine-prepare", "failed", { error: err && err.message });
+      throw new Error(
+        `Falha ao preparar o motor incluído no instalador: ${err && err.message}`
+      );
+    }
+  } else {
+    stage("engine-download", "running");
+    log("Buscando URL do motor Work4You…", null);
+    let zipUrl;
+    try {
+      zipUrl = await fetchEngineZipUrl(https);
+    } catch (err) {
+      stage("engine-download", "failed", { error: err && err.message });
+      throw new Error(
+        `Não foi possível obter a URL do motor (latest.json): ${err && err.message}. ` +
+        `Verifique sua conexão com a internet.`
+      );
+    }
+
+    const tmpZip = path.join(os.tmpdir(), `w4y-engine-${Date.now()}.zip`);
+    log(`Baixando motor de ${zipUrl}…`, 0);
+    try {
+      await downloadFileToPath(zipUrl, tmpZip, (pct) => {
+        log(`Baixando motor… ${pct}%`, pct);
+      });
+    } catch (err) {
+      stage("engine-download", "failed", { error: err && err.message });
+      throw new Error(`Falha ao baixar o motor Work4You: ${err && err.message}`);
+    }
+    stage("engine-download", "succeeded");
+    stage("engine-extract", "running");
+
+    try {
+      await extractZipTo(tmpZip, destRoot, (line, pct) => log(line, pct));
+    } catch (err) {
+      try { fs.unlinkSync(tmpZip); } catch { void 0; }
+      stage("engine-extract", "failed", { error: err && err.message });
+      throw new Error(`Falha ao extrair o motor Work4You: ${err && err.message}`);
+    }
     try { fs.unlinkSync(tmpZip); } catch { void 0; }
-    throw new Error(`Falha ao extrair o motor Work4You: ${err && err.message}`);
+
+    // Handle GitHub-style archive with wrapper directory.
+    try { promoteIfNeeded(destRoot); } catch { void 0; }
   }
-
-  try { fs.unlinkSync(tmpZip); } catch { void 0; }
-
-  // Handle GitHub-style archive with wrapper directory.
-  try { promoteIfNeeded(destRoot); } catch { void 0; }
 
   if (!isWayneSourceRoot(destRoot)) {
+    stage(extractStage, "failed");
     throw new Error(
       `Motor Work4You extraído em '${destRoot}' não parece ser um checkout válido do wayne-agent ` +
       `(work4you_cli/main.py ou wayne_cli/main.py não encontrado). Verifique a estrutura do ZIP publicado em GCS.`
     );
   }
 
-  log("Instalando dependências Python (uv sync)…", null);
-  try {
-    await runUvSync(destRoot, (line) => log(line, null));
-  } catch (err) {
-    throw new Error(
-      `uv sync falhou. Certifique-se de que 'uv' está instalado ou que Python está disponível. ` +
-      `Detalhes: ${err && err.message}`
-    );
+  if (bundled) {
+    if (!isReadyRuntime(destRoot)) {
+      stage("engine-prepare", "failed");
+      throw new Error(
+        "O motor incluído no instalador não ficou utilizável (runtime-ready em falta). Reinstale a app."
+      );
+    }
+    stage("engine-prepare", "succeeded");
+  } else {
+    stage("engine-extract", "succeeded");
+    stage("engine-deps", "running");
+    if (isReadyRuntime(destRoot)) {
+      log("Motor pronto — runtime pré-instalado, sem uv sync.", 100);
+      stage("engine-deps", "succeeded");
+    } else {
+      log("Preparando uv…", null);
+      let managedUv;
+      try {
+        managedUv = await ensureManagedUv(log);
+      } catch (err) {
+        stage("engine-deps", "failed", { error: err && err.message });
+        throw new Error(
+          `Não foi possível instalar uv: ${err && err.message}. ` +
+          `Verifique ligação à internet e permissões em ${resolveWayneHome()}.`
+        );
+      }
+
+      log("Instalando dependências Python (uv sync)…", null);
+      try {
+        await runUvSync(destRoot, log, managedUv);
+      } catch (err) {
+        stage("engine-deps", "failed", { error: err && err.message });
+        throw new Error(
+          `uv sync falhou. Certifique-se de que Python 3.11+ ou uv estão disponíveis. ` +
+          `Detalhes: ${err && err.message}`
+        );
+      }
+      stage("engine-deps", "succeeded");
+    }
   }
 
-  // Record the installed version so future update checks can compare.
-  // The marker lives in wayneHome (the parent of wayne-agent/), not inside
-  // the engine root itself — so it survives engine directory replacements.
+  // Marker lives beside the engine (platform root), not inside account homes.
   try {
     const manifest = await fetchEngineLatestManifest().catch(() => null);
     if (manifest) writeEngineVersionMarker(path.dirname(destRoot), manifest);
@@ -965,6 +1531,7 @@ async function ensureWayneEngineForPackaged(destRoot, opts = {}) {
   }
 
   log("Motor Work4You pronto!", 100);
+  return { bundled };
 }
 
 module.exports = {
@@ -972,6 +1539,9 @@ module.exports = {
   ensureWayneEngineForPackaged,
   fetchEngineZipUrl,
   parseManifestJson,
+  enginePlatformKey,
+  engineManifestUrls,
+  manifestMatchesHost,
   clearDanglingLink,
   isWayneSourceRoot,
   tryResolveWayneBackend,
@@ -985,4 +1555,11 @@ module.exports = {
   fetchEngineLatestManifest,
   checkEngineUpdate,
   applyEngineUpdate,
+  bundledPythonExe,
+  readRuntimeReady,
+  repairReadyRuntime,
+  prepareReadyRuntime,
+  isReadyRuntime,
+  resolveBundledEngineDir,
+  copyTreeNative,
 };

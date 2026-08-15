@@ -50,8 +50,17 @@ type CloudBridge = {
 
 export function cloudBridge(): CloudBridge | null {
   if (typeof window === 'undefined') return null
-  const c = window.work4youDesktop?.cloud
-  return c && typeof c.wsUrl === 'function' && typeof c.api === 'function' ? c : null
+  const w4y = window.work4youDesktop
+  const c = w4y?.cloud
+  if (!c || typeof c.api !== 'function' || typeof c.wsUrl !== 'function') {
+    return null
+  }
+  // Full cloud run-target UX (local vs cloud chip) is desktop-only; browser
+  // still exposes cloud.api for plan gating and account settings.
+  if (w4y?.isDesktop !== true) {
+    return null
+  }
+  return c
 }
 
 export function cloudRunAvailable(): boolean {

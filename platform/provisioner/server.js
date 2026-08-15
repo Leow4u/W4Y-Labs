@@ -25,7 +25,18 @@ const path = require("node:path");
 
 const SECRET = process.env.PROVISIONER_SHARED_SECRET || "";
 const CASCA_URL = (process.env.CASCA_URL || "https://work4you.ai").replace(/\/$/, "");
-const IMAGE = process.env.WAYNE_IMAGE || "registry.fly.io/wayne-w4y:fly229";
+// Prefer TENANT_WAYNE_IMAGE — Fly secret WAYNE_IMAGE can stick on an old tag when
+// `fly secrets set` hangs (ago/2026). Reject stale WAYNE_IMAGE below fly250.
+const IMAGE_PIN = "registry.fly.io/wayne-w4y:fly250";
+function resolveWayneImage() {
+  const preferred = String(process.env.TENANT_WAYNE_IMAGE || "").trim();
+  if (preferred) return preferred;
+  const legacy = String(process.env.WAYNE_IMAGE || "").trim();
+  const m = /^registry\.fly\.io\/wayne-w4y:fly(\d+)$/.exec(legacy);
+  if (m && Number(m[1]) >= 250) return legacy;
+  return IMAGE_PIN;
+}
+const IMAGE = resolveWayneImage();
 const ORG = process.env.FLY_ORG || "personal";
 const REGION = process.env.FLY_REGION || "gru";
 const OR_PROV = process.env.OPENROUTER_PROVISIONING_KEY || "";

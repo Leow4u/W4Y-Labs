@@ -4,6 +4,10 @@ import { useCallback } from 'react'
 import { getGlobalModelInfo, setGlobalModel } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { rememberComposerManualModel } from '@/lib/composer-auto-mode'
+import {
+  isStalePlatformDefaultModel,
+  platformDefaultModelSelection
+} from '@/lib/plan-model-gating'
 import { notifyError } from '@/store/notifications'
 import { $activeSessionId, $currentModel, $currentProvider, setCurrentModel, setCurrentProvider } from '@/store/session'
 import type { ModelOptionsResponse } from '@/types/hermes'
@@ -58,10 +62,27 @@ export function useModelControls({ activeSessionId, queryClient, requestGateway 
       }
 
       if (typeof result.model === 'string') {
-        setCurrentModel(result.model)
-      }
+        let model = result.model.trim()
+        let provider = typeof result.provider === 'string' ? result.provider.trim() : ''
 
-      if (typeof result.provider === 'string') {
+        if (isStalePlatformDefaultModel(model)) {
+          const fallback = platformDefaultModelSelection('free')
+          model = fallback.model
+          provider = fallback.provider
+          void setGlobalModel(fallback.provider, fallback.model).catch(() => undefined)
+        }
+
+        if (model) {
+          setCurrentModel(model)
+          if (provider) {
+            rememberComposerManualModel(model, provider)
+          }
+        }
+
+        if (provider) {
+          setCurrentProvider(provider)
+        }
+      } else if (typeof result.provider === 'string') {
         setCurrentProvider(result.provider)
       }
     } catch {

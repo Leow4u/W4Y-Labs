@@ -3,7 +3,10 @@ import { useEffect, useMemo, useRef } from 'react'
 import type { CommandCenterSection } from '@/app/command-center'
 import { useI18n } from '@/i18n'
 import type { RuntimeReadinessResult } from '@/lib/runtime-readiness'
+import { $desktopBoot } from '@/store/boot'
+import { shouldSuppressGatewayOfflineToast } from '@/store/gateway'
 import { notifyError } from '@/store/notifications'
+import { $updateApply } from '@/store/updates'
 import type { StatusResponse } from '@/types/hermes'
 
 import type { StatusbarItem } from '../statusbar-controls'
@@ -43,11 +46,19 @@ export function useStatusbarItems({
   const copy = t.shell.statusbar
 
   // Gateway left the status bar — surface drop-offs as toasts instead.
+  // Skip intentional tears (account-home relaunch, boot, update apply).
   const prevGatewayRef = useRef(gatewayState)
   useEffect(() => {
     const prev = prevGatewayRef.current
     prevGatewayRef.current = gatewayState
     if (prev === 'open' && gatewayState !== 'open' && gatewayState !== 'connecting') {
+      if (
+        shouldSuppressGatewayOfflineToast() ||
+        $desktopBoot.get().running ||
+        $updateApply.get().applying
+      ) {
+        return
+      }
       notifyError(new Error(copy.gatewayOffline), copy.gatewayTitle)
     }
   }, [copy.gatewayOffline, copy.gatewayTitle, gatewayState])

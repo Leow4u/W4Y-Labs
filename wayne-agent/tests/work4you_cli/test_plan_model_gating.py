@@ -69,3 +69,23 @@ def test_assert_model_allowed_for_plan_skips_byo_provider():
         plan="free",
         scope="main",
     )
+
+
+def test_fetch_tenant_plan_payload_from_runtime(monkeypatch):
+    from work4you_cli.plan_model_gating import fetch_tenant_plan_payload
+
+    monkeypatch.setattr(
+        "work4you_cli.platform_tenant.fetch_tenant_runtime",
+        lambda tenant_id: {
+            "ok": True,
+            "plan": "starter",
+            "status": "active",
+            "has_customer": True,
+            "included_usd": 20,
+            "ondemand": {"enabled": False},
+        },
+    )
+    payload = fetch_tenant_plan_payload("tenant-1")
+    assert payload is not None
+    assert payload["plan"] == "starter"
+    assert payload["included_usd"] == 20

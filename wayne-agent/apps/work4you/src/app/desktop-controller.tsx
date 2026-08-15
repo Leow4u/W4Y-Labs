@@ -8,6 +8,7 @@ import { BootFailureOverlay } from '@/components/boot-failure-overlay'
 import { DesktopInstallOverlay } from '@/components/desktop-install-overlay'
 import { GatewayConnectingOverlay } from '@/components/gateway-connecting-overlay'
 import { DesktopOnboardingOverlay } from '@/components/onboarding'
+import { Work4YouAccountGate } from '@/components/work4you-account-gate'
 import { Pane, PaneMain } from '@/components/pane-shell'
 import { RemoteDisplayBanner } from '@/components/remote-display-banner'
 import { useMediaQuery } from '@/hooks/use-media-query'
@@ -47,6 +48,7 @@ import { $filePreviewTarget, $previewTarget, closeActiveRightRailTab } from '../
 import { $activeGatewayProfile, $freshSessionRequest, $profileScope, refreshActiveProfile } from '../store/profile'
 import { $startWorkSessionRequest, followActiveSessionCwd, resolveNewSessionCwd } from '../store/projects'
 import { applyCloudFirstRunTargetDefault } from '../store/run-target'
+import { refreshAccountGate, w4yAccountGateEnabled } from '../store/account-gate'
 import { $reviewOpen, REVIEW_PANE_ID } from '../store/review'
 import {
   $activeSessionId,
@@ -895,6 +897,12 @@ export function DesktopController() {
   })
 
   useEffect(() => {
+    if (w4yAccountGateEnabled()) {
+      void refreshAccountGate()
+    }
+  }, [])
+
+  useEffect(() => {
     if (!productRuntime.capabilities.cloudBridge) {
       return
     }
@@ -1053,6 +1061,7 @@ export function DesktopController() {
   const overlays = (
     <>
       <RemoteDisplayBanner />
+      {!isSecondaryWindow() && <Work4YouAccountGate />}
       {!isSecondaryWindow() && productRuntime.capabilities.gcsUpdate && <DesktopInstallOverlay />}
       {!isSecondaryWindow() && (
         <DesktopOnboardingOverlay

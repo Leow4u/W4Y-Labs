@@ -62,6 +62,7 @@ export interface Translations {
     confirm: string
     connect: string
     connecting: string
+    connectingCloudHint?: string
     continue: string
     copied: string
     copy: string
@@ -916,6 +917,10 @@ export interface Translations {
       manageSubscriptionDesc: string
       manageSubscriptionNoCustomer: string
       planLogicHint: string
+      signOut: string
+      signOutFailed: string
+      signedOutTitle: string
+      signedOutMessage: string
     }
     providers: {
       connectAccount: string
@@ -1802,6 +1807,19 @@ export interface Translations {
     copyPath: string
   }
 
+  accountGate: {
+    title: string
+    subtitle: string
+    continueSignIn: string
+    checking: string
+    signingIn: string
+    createAccount: string
+    signInFailed: string
+    updateAvailable: string
+    updateNow: string
+    manualDownload: string
+  }
+
   sidebar: {
     nav: Record<string, string>
     account: {
@@ -1818,6 +1836,8 @@ export interface Translations {
       /** In-chip progress while applying (e.g. "Updating… 41%"). */
       updateInstallingProgress: (percent: number) => string
       updateShort: string
+      signOut: string
+      signOutFailed: string
     }
     searchAria: string
     searchPlaceholder: string
@@ -2233,6 +2253,9 @@ export interface Translations {
     otherProviders: string
     haveApiKey: string
     chooseLater: string
+    w4ySignIn: string
+    w4ySignInDesc: string
+    w4ySignInFailed: string
     recommended: string
     connected: string
     featuredPitch: string
