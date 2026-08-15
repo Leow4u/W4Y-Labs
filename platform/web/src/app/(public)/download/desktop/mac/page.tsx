@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import {
-  DESKTOP_VERSION,
+  MACOS_DESKTOP_VERSION,
   INSTALL_CMD,
   MACOS_DESKTOP_AVAILABLE,
   MACOS_DESKTOP_SIGNED,
@@ -23,12 +23,12 @@ const COPY = {
     download: "Descarregar .dmg",
     terminal: "Preferir terminal (CLI)",
     back: "Voltar ao início",
-    noteSigned: `v${DESKTOP_VERSION} · assinado e notarizado`,
-    noteUnsigned: `v${DESKTOP_VERSION} · pré-lançamento (sem assinatura Apple ainda)`,
+    noteSigned: `v${MACOS_DESKTOP_VERSION} · assinado e notarizado`,
+    noteUnsigned: `v${MACOS_DESKTOP_VERSION} · pré-lançamento (sem assinatura Apple ainda)`,
     titlePending: "App desktop para macOS",
     bodyPending:
       "O instalador nativo está a ser publicado. Enquanto isso, use a linha de comando — o mesmo motor e a mesma conta.",
-    notePending: `Versão desktop ${DESKTOP_VERSION} · macOS arm64 em publicação`,
+    notePending: `Versão desktop ${MACOS_DESKTOP_VERSION} · macOS arm64 em publicação`,
   },
   en: {
     titleReady: "Install Work4You on macOS",
@@ -43,12 +43,12 @@ const COPY = {
     download: "Download .dmg",
     terminal: "Prefer terminal (CLI)",
     back: "Back to home",
-    noteSigned: `v${DESKTOP_VERSION} · signed and notarized`,
-    noteUnsigned: `v${DESKTOP_VERSION} · pre-release (Apple signing pending)`,
+    noteSigned: `v${MACOS_DESKTOP_VERSION} · signed and notarized`,
+    noteUnsigned: `v${MACOS_DESKTOP_VERSION} · pre-release (Apple signing pending)`,
     titlePending: "Desktop app for macOS",
     bodyPending:
       "The native installer is being published. For now, use the CLI — same engine, same account.",
-    notePending: `Desktop ${DESKTOP_VERSION} · macOS arm64 release in progress`,
+    notePending: `Desktop ${MACOS_DESKTOP_VERSION} · macOS arm64 release in progress`,
   },
 } as const;
 

@@ -5,7 +5,7 @@ import { useCallback, useState } from "react";
 import DesktopDownloadLink from "@/components/DesktopDownloadLink";
 import {
   DESKTOP_SIZE,
-  DESKTOP_VERSION,
+  DESKTOP_VERSION_LABEL,
   INSTALL_CMD,
 } from "@/lib/product-download";
 import type { SiteLocale } from "@/lib/site-locale";
@@ -17,7 +17,7 @@ const COPY = {
       "App nativo no Windows e macOS, linha de comando leve, ou o mesmo produto no navegador — uma conta só.",
     desktopKicker: "Instalar app desktop",
     desktopBtn: "Baixar aplicativo para desktop",
-    desktopMeta: `Windows & macOS (Apple Silicon) · v${DESKTOP_VERSION} · ${DESKTOP_SIZE}`,
+    desktopMeta: `Windows & macOS (Apple Silicon) · v${DESKTOP_VERSION_LABEL} · ${DESKTOP_SIZE}`,
     desktopNote:
       "Detectamos o seu sistema automaticamente. Na primeira instalação, Windows ou macOS podem pedir confirmação extra (instalador ainda sem assinatura da editora). Depois, atualizações chegam pelo chip dentro do app. macOS: clique direito → Abrir se o Gatekeeper bloquear.",
     terminalKicker: "Instalar via terminal",
@@ -32,7 +32,7 @@ const COPY = {
       "Native Windows and macOS app, a light CLI, or the same product in your browser — one account.",
     desktopKicker: "Install desktop app",
     desktopBtn: "Download desktop app",
-    desktopMeta: `Windows & macOS (Apple Silicon) · v${DESKTOP_VERSION} · ${DESKTOP_SIZE}`,
+    desktopMeta: `Windows & macOS (Apple Silicon) · v${DESKTOP_VERSION_LABEL} · ${DESKTOP_SIZE}`,
     desktopNote:
       "We detect your system automatically. Windows or macOS may ask for an extra confirmation on first install (unsigned publisher for now). Later updates arrive via the in-app chip. macOS: right-click → Open if Gatekeeper blocks.",
     terminalKicker: "Install via terminal",

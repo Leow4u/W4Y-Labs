@@ -2,15 +2,34 @@
 
 const DOWNLOAD_BASE = "https://storage.googleapis.com/w4y-engine-dist";
 
-export const DESKTOP_VERSION = "1.0.111";
-export const DESKTOP_SIZE = "~205 MB";
+/**
+ * Windows and macOS ship on their own cadences — Windows is built and uploaded
+ * from a dev machine, macOS by CI — so each carries its own version.
+ *
+ * They used to share one constant, and that is exactly how the macOS download
+ * broke: bumping the shared version for a Windows release pointed the macOS
+ * link at a DMG that had never been built, so every Mac visitor got a 404.
+ * Only ever set these to a version that is actually in the bucket.
+ */
+// Typed as string, not as their literals: these are release pointers that move
+// independently, and code that compares them must stay legal when they differ.
+export const WINDOWS_DESKTOP_VERSION: string = "1.0.111";
+export const MACOS_DESKTOP_VERSION: string = "1.0.112";
+
+export const DESKTOP_SIZE = "~190 MB";
 
 export const WINDOWS_DESKTOP_URL =
-  `${DOWNLOAD_BASE}/Work4You-${DESKTOP_VERSION}-win-x64.exe`;
+  `${DOWNLOAD_BASE}/Work4You-${WINDOWS_DESKTOP_VERSION}-win-x64.exe`;
 
 /** Apple Silicon (arm64) — first macOS release target. Flip available after CI publish. */
 export const MACOS_DESKTOP_URL =
-  `${DOWNLOAD_BASE}/Work4You-${DESKTOP_VERSION}-mac-arm64.dmg`;
+  `${DOWNLOAD_BASE}/Work4You-${MACOS_DESKTOP_VERSION}-mac-arm64.dmg`;
+
+/** For surfaces that name one version for both platforms. */
+export const DESKTOP_VERSION_LABEL =
+  WINDOWS_DESKTOP_VERSION === MACOS_DESKTOP_VERSION
+    ? WINDOWS_DESKTOP_VERSION
+    : `${WINDOWS_DESKTOP_VERSION} (Windows) · ${MACOS_DESKTOP_VERSION} (macOS)`;
 
 /**
  * Set true after the first DMG is on GCS (`latest-mac.yml` + artefact).

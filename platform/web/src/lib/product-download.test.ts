@@ -2,9 +2,28 @@ import { describe, expect, it } from "vitest";
 
 import {
   MACOS_DESKTOP_AVAILABLE,
+  MACOS_DESKTOP_URL,
+  MACOS_DESKTOP_VERSION,
   WINDOWS_DESKTOP_URL,
+  WINDOWS_DESKTOP_VERSION,
   resolveDesktopDownloadTarget,
 } from "./product-download";
+
+describe("per-platform versions", () => {
+  // The two platforms release independently. When they shared one constant, a
+  // Windows bump silently pointed the macOS link at a DMG that was never built
+  // and every Mac visitor got a 404. Each URL must carry its own version.
+  it("builds each installer URL from its own platform version", () => {
+    expect(WINDOWS_DESKTOP_URL).toContain(`Work4You-${WINDOWS_DESKTOP_VERSION}-win-x64.exe`);
+    expect(MACOS_DESKTOP_URL).toContain(`Work4You-${MACOS_DESKTOP_VERSION}-mac-arm64.dmg`);
+  });
+
+  it("does not leak the Windows version into the macOS URL", () => {
+    if (WINDOWS_DESKTOP_VERSION === MACOS_DESKTOP_VERSION) return;
+    expect(MACOS_DESKTOP_URL).not.toContain(WINDOWS_DESKTOP_VERSION);
+    expect(WINDOWS_DESKTOP_URL).not.toContain(MACOS_DESKTOP_VERSION);
+  });
+});
 
 describe("resolveDesktopDownloadTarget", () => {
   it("routes Windows User-Agent to the NSIS artefact", () => {
