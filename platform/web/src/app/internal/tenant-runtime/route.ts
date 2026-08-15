@@ -2,18 +2,78 @@ import { NextRequest, NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
 import {
+  FREE_ALLOWANCE_USD,
   PLANS,
   ensureOndemandColumns,
   isOverageMeteredConfigured,
   maxOndemandSpendLimitUsd,
+  provisionTenantKey,
   type Plan,
 } from "@/lib/billing";
 import { verifyProvisionerSig } from "@/lib/provisioner";
-import { loadTenantOpenRouterKey } from "@/lib/tenant-secrets";
+import {
+  loadTenantOpenRouterKey,
+  storeTenantOpenRouterKey,
+  tenantSecretsEnabled,
+} from "@/lib/tenant-secrets";
 
 export const dynamic = "force-dynamic";
 
 const TIER_PLAN: Record<string, string> = { super: "pro", ultra: "max" };
+
+// One mint per tenant at a time. The shared motor bootstraps on first request,
+// so a tenant opening the app in three tabs would otherwise mint three
+// OpenRouter keys and keep only the last hash.
+const minting = new Map<string, Promise<string>>();
+
+/** Stored key for the tenant, minting and persisting one if none exists yet.
+ *
+ * Tenants created before the shared motor shipped never got a Secret Manager
+ * copy of their key (only signup writes one), so the motor bootstrapped their
+ * home with no `.env` and every model call failed. Repairing here means the
+ * key still only ever lives in the cloud.
+ */
+async function resolveTenantKey(
+  tenantId: string,
+  creditsUsd: number,
+  recordHash: (hash: string) => Promise<void>,
+): Promise<string> {
+  const stored = (await loadTenantOpenRouterKey(tenantId))?.trim();
+  if (stored) return stored;
+  // Without a secret store we could mint a key but never find it again, so
+  // every bootstrap would burn a new one.
+  if (!tenantSecretsEnabled()) return "";
+
+  const inflight = minting.get(tenantId);
+  if (inflight) return inflight;
+
+  const job = (async () => {
+    // A key with a zero ceiling is refused by OpenRouter and would strand the
+    // tenant; the free allowance is the floor every plan is entitled to.
+    const limitUsd = creditsUsd > 0 ? creditsUsd : FREE_ALLOWANCE_USD;
+    let key = "";
+    let hash = "";
+    try {
+      ({ key, hash } = await provisionTenantKey({ tenantId, creditsUsd: limitUsd }));
+    } catch (err) {
+      console.error(`[tenant-runtime] key mint failed tenant=${tenantId}`, err);
+      return "";
+    }
+    if (!key) return "";
+    const persisted = await storeTenantOpenRouterKey(tenantId, key);
+    if (!persisted) {
+      // Returning it anyway would hand the motor a key we can never look up
+      // again — the next bootstrap would mint yet another one.
+      console.error(`[tenant-runtime] key store failed tenant=${tenantId}`);
+      return "";
+    }
+    if (hash) await recordHash(hash);
+    return key;
+  })().finally(() => minting.delete(tenantId));
+
+  minting.set(tenantId, job);
+  return job;
+}
 
 type BillingPlanRow = {
   plan: string;
@@ -55,11 +115,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "registry_unavailable" }, { status: 503 });
   }
 
-  const openrouterKey = (await loadTenantOpenRouterKey(tenantId)) ?? "";
-  if (!openrouterKey) {
-    return NextResponse.json({ ok: false, error: "key_unavailable" }, { status: 404 });
-  }
-
   let planPayload: Record<string, unknown> = {
     plan: "free",
     status: "inactive",
@@ -75,6 +130,7 @@ export async function POST(req: NextRequest) {
       billed_on: isOverageMeteredConfigured() ? "next_invoice" : "ceiling_only",
     },
   };
+  let creditsUsd = 0;
 
   try {
     await ensureOndemandColumns((q) => database.execute(q));
@@ -88,6 +144,7 @@ export async function POST(req: NextRequest) {
       const planKey = (TIER_PLAN[row.plan] ?? row.plan) as Plan;
       const catalog = PLANS[planKey] ?? PLANS.free;
       const includedUsd = Number(row.monthly_credits_usd ?? catalog.creditsUsd ?? 0);
+      creditsUsd = includedUsd;
       const enabled = Boolean(row.ondemand_enabled);
       const spendLimit = enabled ? Number(row.ondemand_spend_limit_usd ?? 0) : 0;
       planPayload = {
@@ -108,6 +165,20 @@ export async function POST(req: NextRequest) {
     }
   } catch {
     /* billing optional — motor still boots with key + default free plan */
+  }
+
+  const openrouterKey = await resolveTenantKey(tenantId, creditsUsd, async (hash) => {
+    try {
+      await database.execute(sql`
+        UPDATE billing SET openrouter_key_hash=${hash}, key_injected_at=now(), updated_at=now()
+        WHERE tenant_id=${tenantId}
+      `);
+    } catch {
+      /* the key works regardless; the hash is for audit and re-limiting */
+    }
+  });
+  if (!openrouterKey) {
+    return NextResponse.json({ ok: false, error: "key_unavailable" }, { status: 404 });
   }
 
   return NextResponse.json({ ok: true, openrouterKey, ...planPayload });

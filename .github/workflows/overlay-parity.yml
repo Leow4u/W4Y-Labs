@@ -1,0 +1,46 @@
+# Fly tenant overlay parity.
+#
+# Dockerfile.ui does not deploy the engine modules directly — it deploys
+# GENERATED `.wayne.py` variants of them, because the Fly base image still
+# carries the pre-rebrand package names (`/opt/wayne/wayne_cli/`).
+#
+# The failure mode this guards: a fix lands in work4you_cli/web_server.py, the
+# desktop and the test suite go green, and the cloud keeps serving the stale
+# 15k-line copy — with nothing anywhere to say the two diverged. That is how
+# the variants drifted before; the generator existed but was saved as UTF-16LE
+# (unparseable by PowerShell) and wired to nothing, so it never ran.
+
+name: Overlay Parity
+
+on:
+  push:
+    paths:
+      - "wayne-agent/work4you_cli/**"
+      - "wayne-agent/work4you_state.py"
+      - "wayne-agent/**/*.wayne.py"
+      - "platform/wayne-fly/prepare-fly-overlay.mjs"
+      - ".github/workflows/overlay-parity.yml"
+  pull_request:
+    paths:
+      - "wayne-agent/work4you_cli/**"
+      - "wayne-agent/work4you_state.py"
+      - "wayne-agent/**/*.wayne.py"
+      - "platform/wayne-fly/prepare-fly-overlay.mjs"
+      - ".github/workflows/overlay-parity.yml"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+
+      - name: Verify Fly overlay variants are in sync
+        run: node platform/wayne-fly/prepare-fly-overlay.mjs --check

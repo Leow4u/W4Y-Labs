@@ -29,6 +29,12 @@ class TenantScopeRequiredError(RuntimeError):
     """Raised when shared-motor code tries to open tenant data without org_id scope."""
 
 
+# tenant_id -> (monotonic_stamp, runtime payload). Process-local by design: the
+# machine that serves the request is the one that needs the answer.
+_TENANT_RUNTIME_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
+_TENANT_RUNTIME_TTL_SECONDS = 300.0
+
+
 # Authenticated API paths that touch tenant-private state on the shared motor.
 _SHARED_MOTOR_TENANT_DATA_PREFIXES: tuple[str, ...] = (
     "/api/sessions",
@@ -45,6 +51,9 @@ _SHARED_MOTOR_TENANT_DATA_PREFIXES: tuple[str, ...] = (
     "/api/chat",
     "/api/gateway",
     "/api/connectors",
+    # /api/device/connector-bootstrap brokers the tenant's own Composio key and
+    # mints a tool-router session for it — tenant-private on both counts.
+    "/api/device",
     "/api/managed",
     "/api/terminal",
     "/api/v3.1",
@@ -163,7 +172,18 @@ async def platform_tenant_request_scope(request: Request) -> AsyncIterator[None]
         yield
         return
 
-    token = activate_platform_tenant_scope(tenant_id)
+    # ``ensure_tenant_home`` does blocking file and (on a cache miss) network
+    # I/O. Calling it inline would stall the event loop for every other tenant
+    # being served by this machine, so it goes to a worker thread. The
+    # ContextVar is set HERE, on the loop, because a token from another thread
+    # cannot be reset from this one.
+    import asyncio
+
+    await asyncio.to_thread(ensure_tenant_home, tenant_id)
+
+    from work4you_constants import set_wayne_home_override
+
+    token = set_wayne_home_override(str(tenant_home_path(tenant_id)))
     try:
         yield
     finally:
@@ -298,10 +318,32 @@ def ensure_tenant_platform_config(home: Path, plan: str | None) -> None:
         _save_tenant_config(home, config)
 
 
-def ensure_tenant_home(tenant_id: str) -> Path:
-    """Materialize tenant home (idempotent). Returns the home path."""
-    home = tenant_home_path(tenant_id)
+def _cached_tenant_runtime(tenant_id: str) -> dict[str, Any]:
+    """``fetch_tenant_runtime`` behind a short TTL.
+
+    The uncached call is a blocking HTTPS round-trip to the platform with a 20s
+    timeout. ``ensure_tenant_home`` runs on EVERY authenticated request, so
+    without this every API call on the shared motor paid for one — the plan
+    still refreshes within the TTL, which is what a Stripe upgrade needs.
+    """
+    import time
+
+    now = time.monotonic()
+    hit = _TENANT_RUNTIME_CACHE.get(tenant_id)
+    if hit and now - hit[0] < _TENANT_RUNTIME_TTL_SECONDS:
+        return hit[1]
     runtime = fetch_tenant_runtime(tenant_id)
+    # Only cache a usable answer: caching a failure would pin a tenant to the
+    # free-plan defaults until the process restarts.
+    if runtime:
+        _TENANT_RUNTIME_CACHE[tenant_id] = (now, runtime)
+    return runtime
+
+
+def ensure_tenant_home(tenant_id: str) -> Path:
+    """Materialize tenant home (idempotent, and cheap on the common path)."""
+    home = tenant_home_path(tenant_id)
+    runtime = _cached_tenant_runtime(tenant_id)
     plan = str(runtime.get("plan") or "free")
 
     env_path = home / ".env"

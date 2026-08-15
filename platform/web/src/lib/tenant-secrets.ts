@@ -18,6 +18,11 @@ function smEnabled(): boolean {
   return (process.env.TENANT_SECRETS_SM ?? "1") === "1";
 }
 
+/** Whether tenant secrets can be persisted at all (false in local dev). */
+export function tenantSecretsEnabled(): boolean {
+  return smEnabled();
+}
+
 async function gcpAccessToken(): Promise<string | null> {
   try {
     const res = await fetch(

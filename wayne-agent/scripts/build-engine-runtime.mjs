@@ -190,6 +190,15 @@ const ANY_DEPTH_EXCLUDED_DIRS = new Set([
 /** `.env` holds real secrets in the checkout root and must never ship. */
 const ANY_DEPTH_EXCLUDED_FILES = new Set([".env", ".DS_Store"]);
 
+/**
+ * `*.wayne.py` are Fly-overlay artifacts: renamed copies of engine modules
+ * that Dockerfile.ui lays over the cloud image's pre-rebrand package names
+ * (see platform/wayne-fly/prepare-fly-overlay.mjs). A dot in the stem makes
+ * them unimportable, so they are inert here — they would just ship a second,
+ * confusing copy of web_server.py (15k lines) to every desktop user.
+ */
+const CLOUD_ONLY_SUFFIX = ".wayne.py";
+
 function makeStageFilter(repoRoot) {
   const root = path.resolve(repoRoot);
   return (src) => {
@@ -200,6 +209,7 @@ function makeStageFilter(repoRoot) {
     if (parts.length === 1 && TOP_LEVEL_EXCLUDED.has(base)) return false;
     if (ANY_DEPTH_EXCLUDED_DIRS.has(base)) return false;
     if (ANY_DEPTH_EXCLUDED_FILES.has(base)) return false;
+    if (base.endsWith(CLOUD_ONLY_SUFFIX)) return false;
     if (base.endsWith(".pyc") || base.endsWith(".pyo")) return false;
     return true;
   };
