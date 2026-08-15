@@ -946,9 +946,26 @@ function downloadFileToPath(url, destPath, onProgress, hops = 0) {
  * @param {string} destDir
  * @param {(line: string, pct: number|null) => void} [onProgress]
  */
-function extractZipTo(zipPath, destDir, onProgress) {
+async function extractZipTo(zipPath, destDir, onProgress) {
   clearDanglingLink(destDir);
   fs.mkdirSync(destDir, { recursive: true });
+
+  // On POSIX the engine tree carries symlinks — the venv interpreter points at
+  // the bundled CPython, and the stdlib has its own. yauzl writes every entry
+  // as a regular file, which would silently turn each link into a text file
+  // holding its target path: the venv then looks present but cannot run, and
+  // the app falls back to the uv sync this whole change exists to remove.
+  // The system unzip preserves them, so it wins wherever links matter.
+  if (process.platform !== "win32") {
+    try {
+      return await extractZipWithShell(zipPath, destDir, onProgress);
+    } catch (err) {
+      // Only a missing `unzip` justifies the lossy path; a real extraction
+      // failure must surface.
+      if (!yauzl || !err || err.code !== "ENOENT") throw err;
+    }
+  }
+
   if (yauzl) {
     return extractZipWithYauzl(zipPath, destDir, onProgress);
   }

@@ -355,6 +355,44 @@ function resolveManagedPython(uv, version, env) {
   return installed;
 }
 
+/**
+ * Re-point the venv's interpreter links at the bundled runtime, relatively.
+ *
+ * On POSIX `uv venv` links .venv/bin/python to the interpreter it was built
+ * against, by absolute path. That link dangles the instant the tree moves —
+ * and moving is the entire delivery model here (build host -> installer ->
+ * the user's engine root). A dangling link reads as "no venv" to the desktop,
+ * which sends the user straight back to the ~30 minute uv sync this change
+ * exists to remove. A relative link survives every move because .venv/ and
+ * runtime/ always travel together inside the engine root.
+ *
+ * No-op on Windows, where the venv holds a real python.exe trampoline.
+ */
+function relinkVenvInterpreter(venvRoot, stagePython) {
+  if (IS_WIN) return;
+
+  const binDir = path.join(venvRoot, "bin");
+  const relTarget = path.relative(binDir, stagePython);
+
+  for (const name of ["python", "python3", "python3.11"]) {
+    const link = path.join(binDir, name);
+    try {
+      fs.rmSync(link, { force: true });
+    } catch {
+      /* nothing to replace */
+    }
+    fs.symlinkSync(relTarget, link);
+  }
+
+  // statSync follows the link, so this fails loudly if the relative path is
+  // wrong rather than shipping a venv that only looks complete.
+  const check = path.join(binDir, "python");
+  if (!exists(check)) {
+    throw new Error(`relinked venv interpreter does not resolve: ${check} -> ${relTarget}`);
+  }
+  log(`venv interpreter relinked relatively: bin/python -> ${relTarget}`);
+}
+
 function buildRuntime(stageDir, opts, pin) {
   const uv = findUv();
   log(`using uv at ${uv}`);
@@ -396,6 +434,8 @@ function buildRuntime(stageDir, opts, pin) {
   if (!exists(venvPython)) {
     throw new Error(`synced venv is missing its interpreter: ${venvPython}`);
   }
+
+  relinkVenvInterpreter(venvRoot, stagePython);
 
   const cfgPath = path.join(venvRoot, "pyvenv.cfg");
   if (exists(cfgPath)) {
