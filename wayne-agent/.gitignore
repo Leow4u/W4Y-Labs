@@ -70,7 +70,13 @@ environments/benchmarks/evals/
 # Web UI build output
 work4you_cli/web_dist/
 work4you_cli/app_dist/
-apps/work4you/build/
+# Contents, not the directory itself: git cannot re-include a file whose parent
+# directory is excluded, and build/installer.nsh MUST be versioned — it is the
+# NSIS macro that materializes the engine at install time, referenced from
+# package.json (build.nsis.include). Excluding `build/` outright kept it off
+# version control entirely, so it lived on one machine only.
+apps/work4you/build/*
+!apps/work4you/build/installer.nsh
 apps/work4you/dist/
 apps/work4you/release/
 apps/work4you/*.tsbuildinfo
