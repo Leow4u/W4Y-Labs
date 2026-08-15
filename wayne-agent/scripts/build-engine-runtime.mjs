@@ -42,6 +42,22 @@ const ZIP_WRAPPER = "wayne-agent";
 /** Python feature version baked into the shipped runtime. */
 const DEFAULT_PYTHON = "3.11";
 
+/**
+ * How to treat symlinks when copying trees, per platform.
+ *
+ * Windows materializes them as real files. Newer uv ships python3.exe as a
+ * symlink to python.exe, and the 7-Zip step that builds the NSIS payload
+ * rejects it outright ("The directory name is invalid"), failing the package.
+ * Windows also needs elevation to CREATE symlinks, so preserving them buys
+ * nothing there. Only CI caught this: uv versions differ between machines, and
+ * a dev box whose uv predates python3.exe packages perfectly.
+ *
+ * POSIX keeps them verbatim — bin/python3 -> python3.11 and parts of the stdlib
+ * depend on them, and a relative link survives the tree being moved.
+ */
+const SYMLINK_COPY_OPTS =
+  process.platform === "win32" ? { dereference: true } : { verbatimSymlinks: true };
+
 /** Optional-dependency group synced into the venv. */
 const DEFAULT_EXTRA = "all";
 
@@ -195,8 +211,7 @@ function stageSource(repoRoot, stageDir) {
   fs.cpSync(repoRoot, stageDir, {
     recursive: true,
     filter: makeStageFilter(repoRoot),
-    // Preserve symlinks rather than materializing their targets.
-    verbatimSymlinks: true,
+    ...SYMLINK_COPY_OPTS,
   });
 
   // pyproject.toml declares `readme = "README.md"`; uv/setuptools stat that
@@ -410,7 +425,7 @@ function buildRuntime(stageDir, opts, pin) {
   log(`copying standalone CPython from ${pythonRoot}`);
   fs.cpSync(pythonRoot, runtimeRoot, {
     recursive: true,
-    verbatimSymlinks: true,
+    ...SYMLINK_COPY_OPTS,
     filter: (src) => path.basename(src) !== "__pycache__",
   });
 
@@ -506,7 +521,7 @@ function emitDir(stageDir, outDir) {
     fs.renameSync(stageDir, abs);
   } catch {
     // Different volume — fall back to a copy.
-    fs.cpSync(stageDir, abs, { recursive: true, verbatimSymlinks: true });
+    fs.cpSync(stageDir, abs, { recursive: true, ...SYMLINK_COPY_OPTS });
     rmrf(stageDir);
   }
 }
