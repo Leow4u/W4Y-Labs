@@ -3,13 +3,12 @@ import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = { title: "Preços — Work4You" };
 
-// Public pricing page (Cursor-inspired grammar): 4 plans, ladder features,
-// CTAs route to /login. No billing code here — checkout lives in the app.
+// Public pricing — Cursor grammar: price + feature ladder only. Pool/on-demand
+// mechanics live in-app (Conta → Plan & Usage), not on the marketing page.
 type Plan = {
   name: string;
   tagline: string;
   price: string;
-  credits: string;
   ladder?: string;
   features: string[];
   cta: string;
@@ -32,135 +31,133 @@ const CONTENT: Record<
 > = {
   pt: {
     h1: "Comece grátis. Cresça quando fizer sentido.",
-    sub: "Créditos que viram trabalho entregue. Teste os planos pagos por 7 dias sem pagar nada — e cancele quando quiser.",
+    sub: "Sem cartão no Grátis. Cancele quando quiser.",
     mostPopular: "Mais popular",
     perMonth: "/mês",
-    footerNote:
-      "Cobrança anual com desconto disponível ao assinar. Pagamento processado com segurança pela Stripe — cancele quando quiser.",
+    footerNote: "Pagamento seguro pela Stripe. Cobrança anual com desconto ao assinar.",
     teamsTitle: "Precisa de mais? Times e empresas",
-    teamsBody: "Vários agentes, várias pessoas, limites sob medida. Fale com a gente: ",
+    teamsBody: "Várias pessoas, limites sob medida e SSO — fale com a gente: ",
     teamsEmail: "contato@work4you.ai",
     plans: [
       {
         name: "Grátis",
-        tagline: "Pra conhecer o seu agente",
+        tagline: "Relay 2.5 Fast — modelo de casa",
         price: "US$ 0",
-        credits: "créditos de boas-vindas",
         features: [
           "Sem necessidade de cartão de crédito",
+          "Relay 2.5 Fast — rápido e económico",
+          "Limites de agente para começar",
           "Seu agente pessoal na nuvem",
-          "Chat que conversa e executa",
           "Conectores e habilidades essenciais",
         ],
         cta: "Começar grátis",
       },
       {
-        name: "Starter",
+        name: "Essencial",
         tagline: "Pro trabalho de todo dia",
-        price: "US$ 19",
-        credits: "600 créditos/mês",
+        price: "US$ 20",
         ladder: "Tudo do Grátis, mais:",
         features: [
-          "Modelos essenciais (Flash e Auto)",
-          "Chat e habilidades sem limite de recursos",
+          "Catálogo completo de modelos",
+          "Limites de agente estendidos",
           "Rotinas e automações",
+          "MCPs, skills e conectores",
           "Suporte por e-mail",
         ],
-        cta: "Testar 7 dias por US$ 0",
+        cta: "Assinar Essencial",
       },
       {
-        name: "Pro",
+        name: "Plus",
         tagline: "Pra quem quer o 24/7",
-        price: "US$ 49",
-        credits: "1.600 créditos/mês",
-        ladder: "Tudo do Starter, mais:",
+        price: "US$ 60",
+        ladder: "Tudo do Essencial, mais:",
         features: [
-          "Modo Expert — modelos de ponta pra tarefas difíceis",
+          "Modo MAX — modelos de ponta pra tarefas difíceis",
           "Agente sempre ativo — trabalhando 24/7",
+          "Limites generosos de agente",
           "Respostas com prioridade",
         ],
-        cta: "Testar 7 dias por US$ 0",
+        cta: "Assinar Plus",
         highlight: true,
       },
       {
         name: "Max",
         tagline: "Pra operações inteiras",
-        price: "US$ 99",
-        credits: "3.800 créditos/mês",
-        ladder: "Tudo do Pro, mais:",
+        price: "US$ 200",
+        ladder: "Tudo do Plus, mais:",
         features: [
-          "Modo Crew — time de agentes em paralelo",
-          "Limites de uso mais altos",
+          "Limites ampliados de agente",
+          "Prioridade máxima",
           "Suporte prioritário",
+          "Feito pra equipes e volume alto",
         ],
-        cta: "Testar 7 dias por US$ 0",
+        cta: "Assinar Max",
       },
     ],
   },
   en: {
     h1: "Start free. Grow when it makes sense.",
-    sub: "Credits that turn into delivered work. Try any paid plan free for 7 days — and cancel whenever you want.",
+    sub: "No card on Free. Cancel anytime.",
     mostPopular: "Most popular",
     perMonth: "/month",
-    footerNote:
-      "Discounted annual billing available at checkout. Payments securely processed by Stripe — cancel anytime.",
+    footerNote: "Secure payments via Stripe. Discounted annual billing at checkout.",
     teamsTitle: "Need more? Teams and companies",
-    teamsBody: "Multiple agents, multiple people, limits built to fit. Talk to us: ",
+    teamsBody: "Multiple people, custom limits, and SSO — talk to us: ",
     teamsEmail: "contato@work4you.ai",
     plans: [
       {
         name: "Free",
-        tagline: "Get to know your agent",
+        tagline: "Relay 2.5 Fast — house model",
         price: "$0",
-        credits: "welcome credits",
         features: [
           "No credit card required",
+          "Relay 2.5 Fast — fast and economical",
+          "Agent limits to get started",
           "Your personal agent in the cloud",
-          "A chat that talks and gets things done",
           "Essential connectors and skills",
         ],
         cta: "Start free",
       },
       {
-        name: "Starter",
+        name: "Essencial",
         tagline: "For everyday work",
-        price: "$19",
-        credits: "600 credits/month",
+        price: "$20",
         ladder: "Everything in Free, plus:",
         features: [
-          "Essential models (Flash and Auto)",
-          "Chat and skills with no feature limits",
+          "Full model catalog",
+          "Extended agent limits",
           "Routines and automations",
+          "MCPs, skills, and connectors",
           "Email support",
         ],
-        cta: "Try 7 days for $0",
+        cta: "Subscribe to Essencial",
       },
       {
-        name: "Pro",
+        name: "Plus",
         tagline: "For those who want 24/7",
-        price: "$49",
-        credits: "1,600 credits/month",
-        ladder: "Everything in Starter, plus:",
+        price: "$60",
+        ladder: "Everything in Essencial, plus:",
         features: [
-          "Expert mode — frontier models for hard tasks",
+          "MAX mode — frontier models for hard tasks",
           "Always-on agent — working 24/7",
+          "Generous agent limits",
           "Priority responses",
         ],
-        cta: "Try 7 days for $0",
+        cta: "Subscribe to Plus",
         highlight: true,
       },
       {
         name: "Max",
         tagline: "For entire operations",
-        price: "$99",
-        credits: "3,800 credits/month",
-        ladder: "Everything in Pro, plus:",
+        price: "$200",
+        ladder: "Everything in Plus, plus:",
         features: [
-          "Crew mode — a team of agents in parallel",
-          "Higher usage limits",
+          "Expanded agent limits",
+          "Highest priority",
           "Priority support",
+          "Built for teams and high volume",
         ],
-        cta: "Try 7 days for $0",
+        cta: "Subscribe to Max",
       },
     ],
   },
@@ -180,7 +177,6 @@ export default async function PrecosPage() {
             <p className="mt-4 text-ink-soft">{t.sub}</p>
           </div>
 
-          {/* the four plans */}
           <div className="mt-14 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {t.plans.map((p) => (
               <div
@@ -201,9 +197,6 @@ export default async function PrecosPage() {
                 <p className="mt-5 text-ink">
                   <span className="text-4xl font-extrabold tracking-[-0.02em]">{p.price}</span>
                   <span className="ml-1 text-sm text-ink-faint">{t.perMonth}</span>
-                </p>
-                <p className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-ink-faint">
-                  {p.credits}
                 </p>
                 <Link
                   href="/login"
@@ -236,12 +229,9 @@ export default async function PrecosPage() {
         </div>
       </section>
 
-      {/* teams / enterprise strip */}
       <section className="px-6 pb-24">
         <div className="mx-auto max-w-3xl rounded-3xl border border-line bg-cream px-8 py-10 text-center">
-          <h2 className="text-xl font-bold tracking-tight text-ink">
-            {t.teamsTitle}
-          </h2>
+          <h2 className="text-xl font-bold tracking-tight text-ink">{t.teamsTitle}</h2>
           <p className="mx-auto mt-2 max-w-md text-sm text-ink-soft">
             {t.teamsBody}
             <span className="font-semibold text-ink">{t.teamsEmail}</span>

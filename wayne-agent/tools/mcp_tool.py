@@ -4034,6 +4034,13 @@ _COMPOSIO_SEARCH_TOOLS_CONNECT_HINT = (
     "toolkit slug and paste any Connect Link in the reply."
 )
 
+_COMPOSIO_MULTI_EXECUTE_NATIVE_HINT = (
+    " For generic URLs or browsing (not a connected OAuth app), use native "
+    "Work4You tools: web_extract/web_search for read-only fetch, "
+    "browser_navigate for the Browser panel — not Composio fetch/browser "
+    "helpers."
+)
+
 
 def _convert_mcp_schema(server_name: str, mcp_tool) -> dict:
     """Convert an MCP tool listing to the Wayne registry schema format.
@@ -4059,6 +4066,11 @@ def _convert_mcp_schema(server_name: str, mcp_tool) -> dict:
             description = f"{description.rstrip()}{_COMPOSIO_MANAGE_CONNECTIONS_HINT}"
         elif "SEARCH_TOOLS" in tool_u and "MANAGE_CONNECTIONS" not in description:
             description = f"{description.rstrip()}{_COMPOSIO_SEARCH_TOOLS_CONNECT_HINT}"
+        elif (
+            ("MULTI_EXECUTE" in tool_u or tool_u.endswith("EXECUTE_TOOL"))
+            and "browser_navigate" not in description
+        ):
+            description = f"{description.rstrip()}{_COMPOSIO_MULTI_EXECUTE_NATIVE_HINT}"
     return {
         "name": prefixed_name,
         "description": description,

@@ -101,11 +101,12 @@ export const instances = pgTable(
 
 // Usuários da plataforma → tenant. Criado pelo provisionador (ou pelo admin);
 // e-mail presente aqui também vale como autorização de acesso (além da
-// ALLOWED_EMAILS de dev). role: member | admin (do tenant).
+// ALLOWED_EMAILS de dev). role: owner (criador do tenant) | member (convidado).
+// Operadores W4Y (frota /admin) vêm de ADMIN_EMAILS — não desta coluna.
 export const users = pgTable("users", {
   email: text("email").primaryKey(),
   tenantId: text("tenant_id").notNull(),
-  role: text("role").notNull().default("member"),
+  role: text("role").notNull().default("owner"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

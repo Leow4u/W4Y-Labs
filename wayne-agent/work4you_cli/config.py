@@ -899,9 +899,13 @@ def _ensure_wayne_home_managed(home: Path):
 # =============================================================================
 
 DEFAULT_CONFIG = {
-    "model": "",
+    "model": {
+        "default": "qwen/qwen3.7-flash",
+        "provider": "openrouter",
+    },
     "providers": {},
     "fallback_providers": [],
+    "fallback_model": [{"provider": "openrouter", "model": "openai/gpt-oss-20b"}],
     "credential_pool_strategies": {},
     "toolsets": ["wayne-cli"],
     # Global active chat session cap across CLI, TUI/dashboard, and messaging.
@@ -1082,6 +1086,7 @@ DEFAULT_CONFIG = {
         # remains available as a tool regardless of this setting — the routing
         # only controls how inbound user images are presented.
         "image_input_mode": "auto",
+        "reasoning_effort": "medium",
         "disabled_toolsets": [],
     },
     
@@ -2413,10 +2418,9 @@ DEFAULT_CONFIG = {
 
     # WhatsApp platform settings (gateway mode)
     "whatsapp": {
-        # Reply prefix prepended to every outgoing WhatsApp message.
-        # Default (None) uses the built-in "⚕ *Wayne Agent*" header.
-        # Set to "" (empty string) to disable the header entirely.
-        # Supports \n for newlines, e.g. "🤖 *My Bot*\n──────\n"
+        # Optional prefix prepended to every outgoing WhatsApp message in self-chat
+        # mode. Default (None) sends plain replies with no header.
+        # Set e.g. "🤖 *My Bot*\n──────\n" or "" to override explicitly.
     },
 
     # Telegram platform settings (gateway mode)
@@ -3203,8 +3207,8 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "OPENROUTER_API_KEY": {
-        "description": "OpenRouter API key (for vision, web scraping helpers, and MoA)",
-        "prompt": "OpenRouter API key",
+        "description": "Model catalog API key (for vision, web scraping helpers, and MoA)",
+        "prompt": "Model catalog API key",
         "url": "https://openrouter.ai/keys",
         "password": True,
         "tools": ["vision_analyze"],
@@ -7679,7 +7683,7 @@ def show_config():
     print(color("◆ API Keys", Colors.CYAN, Colors.BOLD))
     
     keys = [
-        ("OPENROUTER_API_KEY", "OpenRouter"),
+        ("OPENROUTER_API_KEY", "Model catalog"),
         ("VOICE_TOOLS_OPENAI_KEY", "OpenAI (STT/TTS)"),
         ("EXA_API_KEY", "Exa"),
         ("PARALLEL_API_KEY", "Parallel"),

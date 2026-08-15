@@ -47,7 +47,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
   pt: {
     kicker: "Ajuda",
     heading: "Como podemos ajudar?",
-    searchPlaceholder: "Busque um assunto — rotinas, WhatsApp, créditos…",
+    searchPlaceholder: "Busque um assunto — automações, WhatsApp, planos…",
     cards: [
       {
         href: "/documentacao",
@@ -83,40 +83,40 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
         links: [
           { label: "O que é a Work4You", href: "/documentacao/o-que-e" },
           { label: "Criar conta e começar", href: "/documentacao/primeiros-passos" },
-          { label: "Planos e créditos", href: "/documentacao/planos-e-creditos" },
+          { label: "Planos e uso", href: "/documentacao/planos-e-creditos" },
           { label: "Ver preços", href: "/precos" },
         ],
       },
       {
         title: "Usando o agente",
-        subtitle: "Tarefas, projetos, rotinas e entregas.",
+        subtitle: "Sessões, projetos, automações e artefatos.",
         icon: "chat",
         links: [
           { label: "Tarefas e sessões", href: "/documentacao/tarefas-e-sessoes" },
           { label: "Projetos", href: "/documentacao/projetos" },
-          { label: "Agenda e rotinas", href: "/documentacao/agenda" },
-          { label: "Entregas e arquivos", href: "/documentacao/entregas-e-arquivos" },
+          { label: "Automações — tarefas que se repetem", href: "/documentacao/automacoes" },
+          { label: "Artefatos — o que o agente cria", href: "/documentacao/artefatos" },
         ],
       },
       {
-        title: "Construindo agentes",
-        subtitle: "Agentes sob medida, com conhecimento e limites.",
+        title: "Personalizando o agente",
+        subtitle: "Skills, conectores e MCPs — o agente do seu jeito.",
         icon: "grid",
         links: [
-          { label: "Agent Studio", href: "/documentacao/agent-studio" },
-          { label: "Habilidades", href: "/documentacao/habilidades" },
-          { label: "Conhecimento do agente", href: "/documentacao/agent-studio" },
-          { label: "Teto de créditos por agente", href: "/documentacao/agent-studio" },
+          { label: "Personalizar o agente", href: "/documentacao/personalizar" },
+          { label: "Skills e o Marketplace", href: "/documentacao/skills" },
+          { label: "Conectores — os apps do agente", href: "/documentacao/conectores" },
+          { label: "MCPs — conexões avançadas", href: "/documentacao/personalizar" },
         ],
       },
       {
-        title: "Conexões",
-        subtitle: "WhatsApp, e-mail e os apps que você já usa.",
+        title: "Canais e plataformas",
+        subtitle: "Fale com o agente onde você já está.",
         icon: "plug",
         links: [
-          { label: "Canais — WhatsApp, Telegram e mais", href: "/documentacao/canais" },
-          { label: "Conectores — mais de 1.000 apps", href: "/documentacao/conectores" },
-          { label: "Desligar um app numa conversa", href: "/documentacao/conectores" },
+          { label: "Canais — WhatsApp, Telegram, Slack e mais", href: "/documentacao/canais" },
+          { label: "WhatsApp API oficial, e-mail e SMS", href: "/documentacao/canais" },
+          { label: "Mais de 1.000 apps conectados", href: "/documentacao/conectores" },
           { label: "Web, desktop e outras plataformas", href: "/documentacao/plataformas" },
         ],
       },
@@ -124,11 +124,11 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
     faqs: [
       {
         q: "Preciso de cartão de crédito pra testar?",
-        a: "Não. O plano Grátis não pede cartão. Nos planos pagos, os primeiros 7 dias são grátis e você pode cancelar antes de qualquer cobrança.",
+        a: "Não. O plano Grátis não pede cartão. Nos planos pagos, você assina direto — cancele quando quiser, sem trial de 7 dias.",
       },
       {
-        q: "O que acontece quando meus créditos acabam?",
-        a: "O agente para e avisa — nunca existe cobrança surpresa. Os créditos renovam no início do próximo ciclo, ou você pode mudar pra um plano com mais créditos a qualquer momento.",
+        q: "O que acontece quando esgota o uso incluído?",
+        a: "O agente para e avisa — nunca existe cobrança surpresa. O uso incluído renova no início do próximo ciclo. Com plano pago, você pode ativar on-demand na Conta (com limite de gasto) ou mudar para um plano com pool maior.",
       },
       {
         q: "Como mudo de plano ou cancelo a assinatura?",
@@ -144,7 +144,15 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       },
       {
         q: "O agente funciona no meu WhatsApp?",
-        a: "Sim. Conecte o WhatsApp na tela Canais e você passa a mandar tarefas e receber as entregas por lá, sem abrir a plataforma.",
+        a: "Sim. Conecte o WhatsApp na tela Canais e você passa a mandar tarefas e receber os artefatos por lá, sem abrir a plataforma.",
+      },
+      {
+        q: "O agente trabalha sozinho, sem eu pedir?",
+        a: "Sim, nas Automações. Você cria uma tarefa que se repete — todos os dias às 7:00, por exemplo — ou que dispara quando algo acontece no seu ambiente. O agente roda na nuvem, sempre ativo, e a tela mostra o histórico de execuções, com sucesso e com falha.",
+      },
+      {
+        q: "Dá pra ajustar o agente ao meu trabalho?",
+        a: "Dá. Em Personalizar você ajusta o seu agente em três abas: Skills (o que ele sabe fazer, com um Marketplace pra adicionar mais), Conectores (os apps que ele usa) e MCPs (conexões avançadas para ferramentas externas).",
       },
       {
         q: "Tem aplicativo pra celular ou pra Windows?",
@@ -163,7 +171,7 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
   en: {
     kicker: "Help",
     heading: "How can we help?",
-    searchPlaceholder: "Search a topic — routines, WhatsApp, credits…",
+    searchPlaceholder: "Search a topic — automations, WhatsApp, plans…",
     cards: [
       {
         href: "/documentacao",
@@ -199,40 +207,40 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
         links: [
           { label: "What is Work4You", href: "/documentacao/o-que-e" },
           { label: "Create an account and get started", href: "/documentacao/primeiros-passos" },
-          { label: "Plans and credits", href: "/documentacao/planos-e-creditos" },
+          { label: "Plans and usage", href: "/documentacao/planos-e-creditos" },
           { label: "See pricing", href: "/precos" },
         ],
       },
       {
         title: "Using your agent",
-        subtitle: "Tasks, projects, routines, and deliveries.",
+        subtitle: "Sessions, projects, automations, and artifacts.",
         icon: "chat",
         links: [
           { label: "Tasks and sessions", href: "/documentacao/tarefas-e-sessoes" },
           { label: "Projects", href: "/documentacao/projetos" },
-          { label: "Agenda and routines", href: "/documentacao/agenda" },
-          { label: "Deliveries and files", href: "/documentacao/entregas-e-arquivos" },
+          { label: "Automations — work that repeats", href: "/documentacao/automacoes" },
+          { label: "Artifacts — what your agent creates", href: "/documentacao/artefatos" },
         ],
       },
       {
-        title: "Building agents",
-        subtitle: "Custom-built agents, with knowledge and limits.",
+        title: "Customizing your agent",
+        subtitle: "Skills, connectors, and MCPs — your agent, your way.",
         icon: "grid",
         links: [
-          { label: "Agent Studio", href: "/documentacao/agent-studio" },
-          { label: "Skills", href: "/documentacao/habilidades" },
-          { label: "Agent knowledge", href: "/documentacao/agent-studio" },
-          { label: "Per-agent credit caps", href: "/documentacao/agent-studio" },
+          { label: "Customize your agent", href: "/documentacao/personalizar" },
+          { label: "Skills and the Marketplace", href: "/documentacao/skills" },
+          { label: "Connectors — the apps your agent uses", href: "/documentacao/conectores" },
+          { label: "MCPs — advanced connections", href: "/documentacao/personalizar" },
         ],
       },
       {
-        title: "Connections",
-        subtitle: "WhatsApp, email, and the apps you already use.",
+        title: "Channels and platforms",
+        subtitle: "Talk to your agent where you already are.",
         icon: "plug",
         links: [
-          { label: "Channels — WhatsApp, Telegram, and more", href: "/documentacao/canais" },
-          { label: "Connectors — over 1,000 apps", href: "/documentacao/conectores" },
-          { label: "Turn off an app in a conversation", href: "/documentacao/conectores" },
+          { label: "Channels — WhatsApp, Telegram, Slack, and more", href: "/documentacao/canais" },
+          { label: "Official WhatsApp API, email, and SMS", href: "/documentacao/canais" },
+          { label: "Over 1,000 connected apps", href: "/documentacao/conectores" },
           { label: "Web, desktop, and other platforms", href: "/documentacao/plataformas" },
         ],
       },
@@ -240,11 +248,11 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
     faqs: [
       {
         q: "Do I need a credit card to try it?",
-        a: "No. The Free plan doesn't ask for a card. On paid plans, the first 7 days are free and you can cancel before any charge.",
+        a: "No. The Free plan doesn't ask for a card. Paid plans bill when you subscribe — cancel anytime, no 7-day trial.",
       },
       {
-        q: "What happens when I run out of credits?",
-        a: "The agent stops and lets you know — there's never a surprise charge. Credits renew at the start of the next cycle, or you can switch to a plan with more credits at any time.",
+        q: "What happens when included usage runs out?",
+        a: "The agent stops and lets you know — there's never a surprise charge. Included usage renews at the start of the next cycle. On a paid plan, you can enable on-demand in Account (with a spend limit) or switch to a plan with a larger pool.",
       },
       {
         q: "How do I change plans or cancel my subscription?",
@@ -260,7 +268,15 @@ const CONTENT: Record<SiteLocale, HelpContent> = {
       },
       {
         q: "Does the agent work on my WhatsApp?",
-        a: "Yes. Connect WhatsApp on the Channels screen and you can send tasks and receive deliveries right there, without opening the platform.",
+        a: "Yes. Connect WhatsApp on the Channels screen and you can send tasks and receive artifacts right there, without opening the platform.",
+      },
+      {
+        q: "Does the agent work on its own, without me asking?",
+        a: "Yes — that's Automations. You set up work that repeats (every day at 7:00, for example) or that fires when something happens in your environment. The agent runs in the cloud, always on, and the screen shows the run history, successes and failures.",
+      },
+      {
+        q: "Can I shape the agent around my work?",
+        a: "You can. Under Customize you tune your agent across three tabs: Skills (what it knows how to do, with a Marketplace to add more), Connectors (the apps it uses), and MCPs (advanced connections to external tools).",
       },
       {
         q: "Is there a mobile or Windows app?",

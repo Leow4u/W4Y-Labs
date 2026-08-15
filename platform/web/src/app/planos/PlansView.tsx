@@ -5,16 +5,16 @@ import { loadStripe } from "@stripe/stripe-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { BillingInterval, Plan } from "@/lib/billing";
+import { publicAppOrigin } from "@/lib/site-origins";
 
 // Dado de exibição de um plano individual (montado no server a partir de PLANS —
 // billing.ts é server-only, não pode ser importado aqui).
 export interface PlanCard {
   key: Plan;
   label: string;
+  tagline: string;
   priceMonth: number;
   priceYear: number;
-  credits: number;
-  trialDays: number;
 }
 
 interface PlansViewProps {
@@ -27,24 +27,27 @@ interface PlansViewProps {
   initialInterval?: BillingInterval;
 }
 
-// Copy das features (estático, client-side). Créditos aparecem em destaque à parte.
+// Copy das features — vitrine Cursor: preço + capacidades, sem pool em US$.
 const FEATURES: Record<string, string[]> = {
   starter: [
-    "Todos os modelos essenciais (Flash e Auto)",
-    "Chat e habilidades sem limite de recursos",
+    "Catálogo completo de modelos",
+    "Limites de agente estendidos",
+    "Chat, Skills e Conectores",
     "Sua instância pessoal na nuvem",
+    "Rotinas e automações",
     "Suporte por e-mail",
   ],
   pro: [
-    "Tudo do Starter",
-    "Modo Expert (Claude) para tarefas difíceis",
-    "Instância sempre-ativa — funcionário 24h",
+    "Tudo do Essencial",
+    "Modo MAX — modelos de ponta",
+    "Instância sempre-ativa — agente 24/7 na nuvem",
+    "Limites generosos de agente",
     "Respostas com prioridade",
   ],
   max: [
-    "Tudo do Pro",
-    "Modo Crew — time de agentes em paralelo",
-    "Limites de uso mais altos",
+    "Tudo do Plus",
+    "Limites ampliados de agente",
+    "Prioridade máxima",
     "Suporte prioritário",
   ],
 };
@@ -131,7 +134,7 @@ export function PlansView({
         <a href="/" className="font-brand text-xl font-semibold">Work4You</a>
         {loggedIn ? (
           <a
-            href="/chat"
+            href={`${publicAppOrigin()}/chat`}
             className="text-sm font-medium text-neutral-500 transition hover:text-neutral-800 dark:hover:text-neutral-200"
           >
             Ir para o app →
@@ -151,7 +154,6 @@ export function PlansView({
         <div className="text-center">
           <h1 className="font-brand text-3xl font-semibold sm:text-4xl">Assine o Work4You</h1>
           <p className="mt-2 text-sm text-neutral-500">
-            Experimente <span className="font-semibold text-neutral-800 dark:text-neutral-200">7 dias por US$ 0</span>.
             Cancele quando quiser
             {loggedIn && (
               <>
@@ -194,9 +196,7 @@ export function PlansView({
                   ? "Plano atual"
                   : loggedIn && !checkoutEnabled
                     ? "Em breve"
-                    : card.trialDays
-                      ? `Começar — ${card.trialDays} dias por US$ 0`
-                      : `Assinar ${card.label}`;
+                    : `Assinar ${card.label}`;
                 return (
                   <div
                     key={card.key}
@@ -212,20 +212,16 @@ export function PlansView({
                       </span>
                     )}
                     <h2 className="font-brand text-lg font-semibold">{card.label}</h2>
-                    <div className="mt-1 flex items-baseline gap-1">
+                    <p className="mt-0.5 text-sm text-neutral-500">{card.tagline}</p>
+                    <div className="mt-3 flex items-baseline gap-1">
                       <span className="text-3xl font-semibold">US$ {price}</span>
                       <span className="text-sm text-neutral-500">
                         /{interval === "year" ? "ano" : "mês"}
                       </span>
                     </div>
-                    <p className="mt-0.5 text-xs text-neutral-400">
-                      {interval === "year"
-                        ? `${priceEquivMonth(card)}/mês · 2 meses grátis`
-                        : `${card.credits.toLocaleString("pt-BR")} créditos/mês`}
-                    </p>
                     {interval === "year" && (
-                      <p className="text-xs text-neutral-400">
-                        {card.credits.toLocaleString("pt-BR")} créditos/mês
+                      <p className="mt-0.5 text-xs text-neutral-400">
+                        {priceEquivMonth(card)}/mês · 2 meses grátis
                       </p>
                     )}
 
@@ -242,12 +238,6 @@ export function PlansView({
                     </button>
 
                     <ul className="mt-6 flex flex-1 flex-col gap-3 text-sm text-neutral-600 dark:text-neutral-300">
-                      <li className="flex items-start gap-2">
-                        <Check />
-                        <span>
-                          <strong>{card.credits.toLocaleString("pt-BR")}</strong> créditos por mês
-                        </span>
-                      </li>
                       {(FEATURES[card.key] ?? []).map((f) => (
                         <li key={f} className="flex items-start gap-2">
                           <Check />
@@ -390,7 +380,7 @@ export function PlansView({
         )}
 
         <p className="mt-10 text-center text-xs text-neutral-400">
-          Pagamento processado com segurança pela Stripe. Você pode cancelar quando quiser.
+          Pagamento processado com segurança pela Stripe. Cancele quando quiser.
         </p>
       </main>
     </>

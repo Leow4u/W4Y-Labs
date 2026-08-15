@@ -69,7 +69,7 @@ runtime/
 # Desktop app + installer are not carried over in this fork. But apps/shared
 # IS required: web/ depends on it (file:../apps/shared) at build time, so we
 # exclude only the dropped subdirs, not apps/ wholesale.
-apps/desktop/
+apps/work4you/
 apps/bootstrap-installer/
 
 # Test suite — not shipped in production images

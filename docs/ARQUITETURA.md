@@ -42,7 +42,7 @@
 > | **Dashboard / produto** — `work4you.ai/chat` | **Fly.io**: app `wayne-w4y` (GRU), 1 Machine, **volume persistente `/opt/data`**, `autostop=suspend` + wake por HTTP. A imagem Fly é um overlay sobre a base "Cloud Run" do Wayne — **Cloud Run está só na linhagem de build, não no runtime**. |
 > | **Landing / login / planos / billing** — `platform/web` | **Cloud Run**: serviço `w4y-web` (us-east1), Next.js. Stripe + provisionamento OpenRouter vivem aqui. |
 > | **Registry** | **Cloud SQL** `w4y-registry` (southamerica-east1), consumido pela casca. |
-> | **Desktop** (app instalável) | Casca **Electron** (`wayne-agent/apps/desktop`, renderer React nativo) em **modo motor local** (spawna `work4you serve`, carrega `127.0.0.1`); motor distribuído por **engine ZIP** em `gs://w4y-engine-dist`; auto-atualização via electron-updater. **Nota (29/07):** esta linha dizia `apps/desktop-shell` — corrigida após o porte. O `desktop-shell` é legado e não é o app distribuído. |
+> | **Desktop** (app instalável) | Casca **Electron** (`wayne-agent/apps/work4you`, renderer React nativo) em **modo motor local** (spawna `work4you serve`, carrega `127.0.0.1`); motor distribuído por **engine ZIP** em `gs://w4y-engine-dist`; auto-atualização via electron-updater. **Nota (29/07):** esta linha dizia `apps/work4you-shell` — corrigida após o porte. O `desktop-shell` é legado e não é o app distribuído. |
 > | **Estado do runtime** | **Volume Fly `/opt/data`** (persistente). A externalização pra Cloud SQL/GCS do plano v3 foi **dispensada no MVP** (v4). |
 >
 > **Válidos e mantidos:** OpenRouter (modelos) · Composio (conectores/MCP) · ReactFlow
@@ -158,7 +158,7 @@ O Wayne Agent é **single-user por instância**. A plataforma vira multi-tenant 
 | **Cloud SQL `w4y-registry`** | **southamerica-east1** | Registry da plataforma; a casca us-east1 conecta cross-region via connector (unix socket) |
 
 - **Latência medida:** landing us-east1 ~0,27s TTFB; rota autenticada da casca (registry cross-region) ~0,5-0,7s; produto Wayne em SP ~0,2s (quente). O cross-region só afeta a antessala, não o produto.
-- **`run.app` = fallback técnico**; a experiência pública é o domínio `work4you.ai`. Sem subdomínios de app no MVP.
+- **`run.app` = fallback técnico**; a experiência pública é o domínio `work4you.ai` (plataforma) e **`app.work4you.ai`** (SPA de produto → `router-w4y` Fly). Ver `platform/infra/app-subdomain.md`.
 - **Migração futura (se necessário):** Global External Application Load Balancer + Serverless NEG para servir o domínio custom com backend em SP, ou réplica do registry em us-east1. Não justificado no MVP.
 
 ### 4.1 Externalização de estado (o ponto crítico do Cloud Run)

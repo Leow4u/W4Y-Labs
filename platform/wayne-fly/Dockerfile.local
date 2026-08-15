@@ -11,4 +11,5 @@ COPY tools/terminal_tool.py /opt/wayne/tools/terminal_tool.py
 COPY tools/file_operations.py /opt/wayne/tools/file_operations.py
 COPY tools/environments/local_desktop.py /opt/wayne/tools/environments/local_desktop.py
 # SPA (EnvironmentChip novo + hook localEnv).
-COPY wayne_cli/web_dist /opt/wayne/wayne_cli/web_dist
+RUN rm -rf /opt/work4you/work4you_cli/web_dist /opt/work4you/work4you_cli/app_dist
+COPY work4you_cli/app_dist /opt/work4you/work4you_cli/app_dist

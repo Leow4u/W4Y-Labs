@@ -6,7 +6,7 @@ import { getSiteLocale } from "@/lib/site-locale";
 export const metadata = {
   title: "Workshops — Work4You",
   description:
-    "Sessões ao vivo, mão na massa: saia com um agente montado e uma rotina no ar.",
+    "Sessões ao vivo, mão na massa: saia com o seu agente personalizado e uma automação no ar.",
 };
 
 const RSVP_MAILTO =
@@ -56,9 +56,9 @@ type WorkshopsContent = {
 const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
   pt: {
     kicker: "Workshops",
-    heroTitle: "Aprenda a colocar agentes pra trabalhar.",
+    heroTitle: "Aprenda a colocar o seu agente pra trabalhar.",
     heroText:
-      "Sessões ao vivo, mão na massa, com o time Work4You. Você não assiste — você sai com um agente montado e uma rotina no ar.",
+      "Sessões ao vivo, mão na massa, com o time Work4You. Você não assiste — você sai com o seu agente personalizado e uma automação no ar.",
     nextEvent: "Próximo evento",
     eventMonth: "set",
     badgeOnline: "Online",
@@ -66,17 +66,17 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
     badgeFree: "Gratuito",
     eventTitle: "Construa o seu primeiro agente — ao vivo",
     eventText:
-      "Com o time Work4You. Em uma hora: seu agente montado, um aplicativo conectado e a primeira rotina agendada — trabalhando enquanto você dorme.",
+      "Com o time Work4You. Em uma hora: seu agente personalizado, um aplicativo conectado e a primeira automação no ar — trabalhando enquanto você dorme.",
     rsvpCta: "Reservar minha vaga",
     rsvpNote: "Vagas limitadas · convite por e-mail",
     tracksTitle: "As trilhas ao vivo.",
     tracksText:
-      "Cada workshop segue uma trilha — do primeiro agente ao time completo.",
+      "Cada workshop segue uma trilha — da primeira sessão ao agente com a sua cara.",
     tracks: [
       {
         level: "Fundamentos",
         title: "Work4You 101 — o primeiro agente",
-        text: "Da conta criada à primeira entrega: como delegar bem, aprovar com segurança e transformar a primeira tarefa numa rotina.",
+        text: "Da conta criada ao primeiro artefato: como delegar bem, aprovar com segurança e transformar a primeira tarefa numa automação.",
         length: "1h ao vivo",
         icon: "rocket",
       },
@@ -89,8 +89,8 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
       },
       {
         level: "Avançado",
-        title: "Agent Studio — do agente ao time",
-        text: "Agentes com papel definido: conhecimento próprio, teto de créditos, canais por agente e delegação de objetivos grandes.",
+        title: "Personalizar — Skills, conectores e automações",
+        text: "O agente do seu jeito: Skills do Marketplace, conectores dos seus apps, conexões avançadas (MCPs) e automações que rodam por horário ou por gatilho.",
         length: "1h ao vivo",
         icon: "grid",
       },
@@ -106,7 +106,7 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
       },
       {
         title: "Comércio e e-commerce",
-        text: "Atendimento no WhatsApp, catálogo respondido com fonte, cobranças e pós-venda automáticos.",
+        text: "Atendimento no WhatsApp, dúvidas de catálogo respondidas na hora, cobranças e pós-venda automáticos.",
         icon: "coins",
       },
       {
@@ -116,7 +116,7 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
       },
       {
         title: "Times de vendas",
-        text: "Lead novo vira proposta em minutos; o funil inteiro monitorado por rotina.",
+        text: "Lead novo vira proposta em minutos; o funil inteiro acompanhado por automação.",
         icon: "chat",
       },
     ],
@@ -131,9 +131,9 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
   },
   en: {
     kicker: "Workshops",
-    heroTitle: "Learn to put agents to work.",
+    heroTitle: "Learn to put your agent to work.",
     heroText:
-      "Live, hands-on sessions with the Work4You team. You don't just watch — you leave with an agent built and a routine running.",
+      "Live, hands-on sessions with the Work4You team. You don't just watch — you leave with your agent customized and an automation running.",
     nextEvent: "Next event",
     eventMonth: "Sep",
     badgeOnline: "Online",
@@ -141,17 +141,17 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
     badgeFree: "Free",
     eventTitle: "Build your first agent — live",
     eventText:
-      "With the Work4You team. In one hour: your agent built, an app connected, and your first routine scheduled — working while you sleep.",
+      "With the Work4You team. In one hour: your agent customized, an app connected, and your first automation running — working while you sleep.",
     rsvpCta: "Save my spot",
     rsvpNote: "Limited spots · invite by email",
     tracksTitle: "The live tracks.",
     tracksText:
-      "Every workshop follows a track — from your first agent to a full team.",
+      "Every workshop follows a track — from your first session to an agent that works your way.",
     tracks: [
       {
         level: "Fundamentals",
         title: "Work4You 101 — your first agent",
-        text: "From account setup to your first delivery: how to delegate well, approve with confidence, and turn that first task into a routine.",
+        text: "From account setup to your first artifact: how to delegate well, approve with confidence, and turn that first task into an automation.",
         length: "1h live",
         icon: "rocket",
       },
@@ -164,8 +164,8 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
       },
       {
         level: "Advanced",
-        title: "Agent Studio — from one agent to a team",
-        text: "Agents with defined roles: their own knowledge, credit caps, per-agent channels, and delegation of big goals.",
+        title: "Customize — skills, connectors and automations",
+        text: "Your agent, your way: Skills from the Marketplace, connectors for your apps, advanced connections (MCPs), and automations that run on a schedule or on a trigger.",
         length: "1h live",
         icon: "grid",
       },
@@ -181,7 +181,7 @@ const CONTENT: { pt: WorkshopsContent; en: WorkshopsContent } = {
       },
       {
         title: "Retail and e-commerce",
-        text: "WhatsApp customer service, catalog questions answered with sources, automatic billing and post-sale follow-up.",
+        text: "WhatsApp customer service, catalog questions answered on the spot, automatic billing and post-sale follow-up.",
         icon: "coins",
       },
       {

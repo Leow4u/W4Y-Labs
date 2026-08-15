@@ -66,8 +66,26 @@ def _prompt_auth_credentials_choice(title: str) -> str:
     return "use"
 
 
+def _model_flow_w4y_relay(config, current_model=""):
+    """Work4You platform default: Relay 2.5 Fast on OpenRouter."""
+    from work4you_cli.config import load_config, save_config
+    from work4you_cli.w4y_platform_setup import run_w4y_relay_setup
+
+    if not run_w4y_relay_setup(config):
+        return
+
+    refreshed = load_config() or {}
+    if isinstance(refreshed, dict):
+        config.clear()
+        config.update(refreshed)
+    save_config(config)
+
+
 def _model_flow_openrouter(config, current_model=""):
-    """OpenRouter provider: ensure API key, then pick model."""
+    """OpenRouter / Work4You catalog: Relay defaults + optional model pick."""
+    from work4you_cli.relay_free_model import apply_relay_free_defaults, W4Y_LOGIN_URL
+
+    apply_relay_free_defaults(config)
     from work4you_cli.main import _prompt_api_key
     from work4you_constants import OPENROUTER_BASE_URL
     from work4you_cli.auth import (
@@ -85,13 +103,14 @@ def _model_flow_openrouter(config, current_model=""):
     # isn't in PROVIDER_REGISTRY so we synthesize a minimal pconfig.
     pconfig = ProviderConfig(
         id="openrouter",
-        name="OpenRouter",
+        name="Work4You models",
         auth_type="api_key",
         api_key_env_vars=("OPENROUTER_API_KEY",),
     )
     existing_key = get_env_value("OPENROUTER_API_KEY") or ""
     if not existing_key:
-        print("Get one at: https://openrouter.ai/keys")
+        print(f"Sign in at {W4Y_LOGIN_URL} or paste an OpenRouter key.")
+        print("Get a BYO key at: https://openrouter.ai/keys")
         print()
     _resolved, abort = _prompt_api_key(pconfig, existing_key, provider_id="openrouter")
     if abort:
@@ -100,6 +119,23 @@ def _model_flow_openrouter(config, current_model=""):
     from work4you_cli.models import model_ids, get_pricing_for_provider
 
     openrouter_models = model_ids(force_refresh=True)
+
+    # Free-tier tenants: only Relay 2.5 Fast is selectable on the catalog.
+    try:
+        from work4you_cli.plan_model_gating import (
+            filter_models_for_plan,
+            resolve_tenant_plan_for_cli,
+        )
+        from work4you_cli.relay_free_model import RELAY_25_FAST_LABEL, RELAY_FREE_PRIMARY_MODEL, is_gratis_plan
+
+        plan = resolve_tenant_plan_for_cli()
+        if is_gratis_plan(plan):
+            openrouter_models = filter_models_for_plan(openrouter_models, plan)
+            if not openrouter_models:
+                openrouter_models = [RELAY_FREE_PRIMARY_MODEL]
+            print(f"Plano Grátis: catálogo limitado a {RELAY_25_FAST_LABEL}.")
+    except Exception:
+        pass
 
     # Fetch live pricing (non-blocking — returns empty dict on failure)
     pricing = get_pricing_for_provider("openrouter", force_refresh=True)

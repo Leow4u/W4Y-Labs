@@ -212,7 +212,7 @@ describe('StatusRule session count click target', () => {
       bgCount: 0,
       busy: false,
       cols: 44,
-      cwdLabel: '~/src/wayne-agent/apps/desktop (bb/tui-statusbar-responsive)',
+      cwdLabel: '~/src/wayne-agent/apps/work4you (bb/tui-statusbar-responsive)',
       liveSessionCount: 3,
       model: 'opus-4.8',
       onSessionCountClick: vi.fn(),

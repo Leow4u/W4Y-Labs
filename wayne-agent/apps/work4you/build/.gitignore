@@ -1,0 +1,4 @@
+engine-runtime/
+*
+!.gitignore
+!installer.nsh

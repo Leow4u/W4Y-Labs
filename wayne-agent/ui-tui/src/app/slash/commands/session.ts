@@ -565,7 +565,7 @@ export const sessionCommands: SlashCommand[] = [
   },
 
   {
-    help: 'session usage + Nous credits',
+    help: 'session usage + Work4You credits',
     name: 'usage',
     run: (_arg, ctx) => {
       ctx.gateway.rpc<SessionUsageResponse>('session.usage', { session_id: ctx.sid }).then(r => {
@@ -585,7 +585,7 @@ export const sessionCommands: SlashCommand[] = [
         const creditsLines = r?.credits_lines ?? []
 
         if (creditsLines.length) {
-          ctx.transcript.panel('Nous credits', [{ text: creditsLines.join('\n') }])
+          ctx.transcript.panel('Work4You credits', [{ text: creditsLines.join('\n') }])
         }
 
         if (!r?.calls) {

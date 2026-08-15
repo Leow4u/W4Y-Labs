@@ -6,8 +6,12 @@ app = "wayne-w4y"
 primary_region = "gru"
 
 [build]
-  # Imagem = overlay Fly (init-fly) sobre a imagem Cloud Run do Wayne.
-  image = "registry.fly.io/wayne-w4y:fly229"
+  dockerfile = "Dockerfile.ui"
+  [build.args]
+    BASE_IMAGE = "registry.fly.io/wayne-w4y:fly250"
+
+# Runtime pin (after fly241 push):
+# image = "registry.fly.io/wayne-w4y:fly241"
 
 [processes]
   # init-fly -> main-wrapper.sh -> `wayne gateway run`
@@ -18,6 +22,12 @@ primary_region = "gru"
   WAYNE_DASHBOARD_HOST = "0.0.0.0"
   WAYNE_DASHBOARD_PORT = "8080"
   FORWARDED_ALLOW_IPS = "*"
+  # Claude-style shared motor: one Fly app, isolated WAYNE_HOME per tenant.
+  W4Y_SHARED_MOTOR = "1"
+  W4Y_PLATFORM_ORIGIN = "https://work4you.ai"
+  W4Y_TENANTS_ROOT = "/opt/data/tenants"
+  # Legacy env on base images pointed at web_dist; UI overlay ships app_dist only.
+  WAYNE_WEB_DIST = "/opt/wayne/wayne_cli/app_dist"
 
 [mounts]
   source = "wayne_data"
@@ -29,8 +39,8 @@ primary_region = "gru"
   force_https = true
   auto_stop_machines = "suspend"
   auto_start_machines = true
-  min_machines_running = 0
+  min_machines_running = 1
 
 [[vm]]
-  size = "shared-cpu-2x"
-  memory = "2048mb"
+  size = "shared-cpu-1x"
+  memory = "1024mb"

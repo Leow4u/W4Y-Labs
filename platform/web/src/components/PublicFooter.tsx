@@ -6,7 +6,7 @@ import type { SiteLocale } from "@/lib/site-locale";
 // Public footer — locale-aware columns (labels only; hrefs are shared).
 const CONTENT = {
   pt: {
-    tagline: "Construa o seu agente de IA. Coloque ele pra rodar 24/7.",
+    tagline: "Agente de IA que executa de verdade — terminal, canais e nuvem.",
     rights: "Todos os direitos reservados.",
     columns: [
       {
@@ -38,7 +38,7 @@ const CONTENT = {
     ],
   },
   en: {
-    tagline: "Build your AI agent. Put it to work 24/7.",
+    tagline: "The AI agent that actually executes — terminal, channels, and cloud.",
     rights: "All rights reserved.",
     columns: [
       {

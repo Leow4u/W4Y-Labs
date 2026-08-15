@@ -26,12 +26,14 @@ def test_env_base_url_labels_custom():
 
 def test_no_base_url_stays_openrouter():
     label = _label_with({"model": {}})
-    assert "OpenRouter" in label
+    assert "OpenRouter" not in label
+    assert "Model catalog" in label
 
 
 def test_blank_base_url_stays_openrouter():
     label = _label_with({"model": {"base_url": "   "}})
-    assert "OpenRouter" in label
+    assert "OpenRouter" not in label
+    assert "Model catalog" in label
 
 
 def test_non_openrouter_provider_untouched():

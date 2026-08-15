@@ -3,7 +3,6 @@ import { getDevSession } from "@/lib/dev-auth";
 import { db } from "@/lib/db";
 import {
   PLANS,
-  creditsForDisplay,
   TEAM_SEAT_USD_MONTH,
   type BillingInterval,
   type Plan,
@@ -15,6 +14,12 @@ export const metadata = { title: "Assine — Work4You" };
 
 // Planos individuais mostrados (Free é o baseline; os pagos vão nos cards).
 const ORDER = ["starter", "pro", "max"] as const;
+
+const PLAN_TAGLINE: Record<(typeof ORDER)[number], string> = {
+  starter: "Pro trabalho de todo dia",
+  pro: "Pra quem quer o 24/7",
+  max: "Pra operações inteiras",
+};
 
 // Página PÚBLICA de preços (também é o /precos da landing). Deslogado → vê os
 // cards e o CTA leva ao cadastro guardando a escolha; logado → checkout embedded.
@@ -46,8 +51,7 @@ export default async function PlanosPage({
       label: p.label,
       priceMonth: p.priceUsdMonth,
       priceYear: p.priceUsdYear,
-      credits: creditsForDisplay(p.creditsUsd),
-      trialDays: p.trialDays,
+      tagline: PLAN_TAGLINE[k],
     };
   });
 

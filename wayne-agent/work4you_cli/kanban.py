@@ -27,6 +27,7 @@ from typing import Any, Optional
 from work4you_cli import kanban_db as kb
 from work4you_cli import kanban_swarm as ks
 from work4you_cli.profiles import get_active_profile_name
+from work4you_cli.relay_free_model import W4Y_DOCS_BASE
 from work4you_constants import display_wayne_home
 
 
@@ -203,7 +204,7 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
             "Durable SQLite-backed task board shared across Work4You profiles. "
             "Tasks are claimed atomically, can depend on other tasks, and "
             "are executed by a named profile in an isolated workspace. "
-            "See https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban "
+            f"See {W4Y_DOCS_BASE} "
             "or docs/wayne-kanban-v1-spec.pdf for the full design."
         ),
     )

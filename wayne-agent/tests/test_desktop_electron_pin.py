@@ -7,7 +7,7 @@ changed its install mechanism mid patch-series:
     electron 40.10.3 / 40.10.4  -> @electron/get@^5 +
                                    @electron-internal/extract-zip@^1 (native napi)
 
-``apps/desktop/package.json`` declared ``electronVersion: 40.9.3`` (the tested,
+``apps/work4you/package.json`` declared ``electronVersion: 40.9.3`` (the tested,
 JS-extract build) but pinned the dependency loosely as ``electron: ^40.9.3``.
 ``npm ci`` then resolved 40.10.3/40.10.4 — the new *native* extract-zip whose
 win32-x64 binding fails to ``dlopen`` on some Windows hosts
@@ -50,7 +50,7 @@ def _electron_spec(pkg: dict) -> str:
         spec = pkg.get(section, {}).get("electron")
         if spec:
             return spec
-    pytest.fail("electron is not listed in apps/desktop dependencies")
+    pytest.fail("electron is not listed in apps/work4you dependencies")
 
 
 def test_electron_dependency_is_exactly_pinned():

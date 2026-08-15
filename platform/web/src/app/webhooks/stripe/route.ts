@@ -165,7 +165,12 @@ export async function POST(req: NextRequest) {
           sql`SELECT fly_app FROM instances WHERE tenant_id=${tenantId} AND status='ready' LIMIT 1`,
         );
         const app = (inst.rows[0] as FlyAppRow | undefined)?.fly_app;
-        if (app) await requestReconfigure(app, "base");
+        if (app) {
+          const ok = await requestReconfigure(app, "base");
+          if (!ok) {
+            console.error(`[billing] downgrade reconfigure falhou tenant=${tenantId} app=${app}`);
+          }
+        }
       }
     }
   }
@@ -252,14 +257,18 @@ async function activate(
   `);
 
   if (planRegime(previousPlan) !== planRegime(opts.plan)) {
-    try {
-      const inst = await database.execute(
-        sql`SELECT fly_app FROM instances WHERE tenant_id=${opts.tenantId} AND status='ready' LIMIT 1`,
-      );
-      const app = (inst.rows[0] as FlyAppRow | undefined)?.fly_app;
-      if (app) await requestReconfigure(app, planRegime(opts.plan));
-    } catch {
-      /* reconfigure é best-effort */
+    const inst = await database.execute(
+      sql`SELECT fly_app FROM instances WHERE tenant_id=${opts.tenantId} AND status='ready' LIMIT 1`,
+    );
+    const app = (inst.rows[0] as FlyAppRow | undefined)?.fly_app;
+    if (app) {
+      const regime = planRegime(opts.plan);
+      const ok = await requestReconfigure(app, regime);
+      if (!ok) {
+        console.error(
+          `[billing] reconfigure regime=${regime} falhou tenant=${opts.tenantId} app=${app}`,
+        );
+      }
     }
   }
 }

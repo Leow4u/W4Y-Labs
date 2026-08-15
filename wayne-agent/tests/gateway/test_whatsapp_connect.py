@@ -146,6 +146,121 @@ class TestCloseBridgeLog:
         assert adapter._bridge_log_fh is None
 
 
+class TestBridgeSpawnWindowsFlags:
+    """Bridge node.exe must not flash a console on Windows."""
+
+    @pytest.mark.asyncio
+    async def test_bridge_popen_uses_windows_hide_flags(self, monkeypatch):
+        adapter = _make_adapter()
+        captured: list[dict] = []
+
+        def fake_popen(*args, **kwargs):
+            captured.append(kwargs)
+            mock_proc = MagicMock()
+            mock_proc.poll.return_value = None
+            return mock_proc
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        mock_client_cls = _mock_aiohttp(
+            status=200, json_data={"status": "connected"},
+        )
+        mock_fh = MagicMock()
+
+        monkeypatch.setattr("plugins.platforms.whatsapp.adapter._IS_WINDOWS", True)
+        monkeypatch.setattr(
+            "work4you_cli._subprocess_compat.windows_hide_flags",
+            lambda: 0x08000000,
+        )
+
+        with patch("plugins.platforms.whatsapp.adapter.check_whatsapp_requirements", return_value=True), \
+             patch.object(Path, "exists", return_value=True), \
+             patch.object(Path, "mkdir", return_value=None), \
+             patch("subprocess.run", return_value=MagicMock(returncode=0)), \
+             patch("subprocess.Popen", side_effect=fake_popen), \
+             patch("builtins.open", return_value=mock_fh), \
+             patch("plugins.platforms.whatsapp.adapter.asyncio.sleep", new_callable=AsyncMock), \
+             patch("plugins.platforms.whatsapp.adapter.asyncio.create_task"), \
+             patch("aiohttp.ClientSession", mock_client_cls), \
+             patch.object(type(adapter), "_poll_messages", return_value=MagicMock()), \
+             patch("gateway.status.acquire_scoped_lock", return_value=(True, None)):
+            result = await adapter.connect()
+
+        assert result is True
+        assert captured
+        assert captured[0].get("creationflags") == 0x08000000
+
+
+class TestNpmInstallWindowsArgv:
+    """npm install must not spawn cmd.exe on Windows (visible console tab)."""
+
+    @pytest.mark.asyncio
+    async def test_npm_install_uses_node_cli_argv(self, monkeypatch, tmp_path):
+        adapter = _make_adapter()
+        bridge_dir = tmp_path / "whatsapp-bridge"
+        bridge_dir.mkdir()
+        (bridge_dir / "package.json").write_text('{"name":"bridge"}')
+        (bridge_dir / "bridge.js").write_text("// bridge")
+        adapter._bridge_script = str(bridge_dir / "bridge.js")
+
+        session_dir = tmp_path / "session"
+        session_dir.mkdir()
+        (session_dir / "creds.json").write_text("{}")
+        adapter._session_path = session_dir
+
+        node_dir = tmp_path / "node"
+        node_dir.mkdir()
+        npm_cli_dir = node_dir / "node_modules" / "npm" / "bin"
+        npm_cli_dir.mkdir(parents=True)
+        npm_cli = npm_cli_dir / "npm-cli.js"
+        npm_cli.write_text("// npm cli")
+        node_exe = node_dir / "node.exe"
+        node_exe.write_text("")
+
+        npm_captured: list[list[str]] = []
+
+        def fake_run(argv, **kwargs):
+            npm_captured.append(list(argv))
+            return MagicMock(returncode=0)
+
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = None
+        mock_client_cls = _mock_aiohttp(
+            status=200, json_data={"status": "connected"},
+        )
+        mock_fh = MagicMock()
+
+        monkeypatch.setattr("plugins.platforms.whatsapp.adapter._IS_WINDOWS", True)
+        monkeypatch.setattr(
+            "work4you_cli._subprocess_compat.windows_hide_flags",
+            lambda: 0x08000000,
+        )
+
+        def fake_find_node(command: str):
+            if command == "node":
+                return str(node_exe)
+            return None
+
+        with patch("plugins.platforms.whatsapp.adapter.check_whatsapp_requirements", return_value=True), \
+             patch("work4you_constants.find_node_executable", side_effect=fake_find_node), \
+             patch("subprocess.run", side_effect=fake_run) as mock_run, \
+             patch("subprocess.Popen", return_value=mock_proc), \
+             patch("builtins.open", return_value=mock_fh), \
+             patch("plugins.platforms.whatsapp.adapter.asyncio.sleep", new_callable=AsyncMock), \
+             patch("plugins.platforms.whatsapp.adapter.asyncio.create_task"), \
+             patch("aiohttp.ClientSession", mock_client_cls), \
+             patch.object(type(adapter), "_poll_messages", return_value=MagicMock()), \
+             patch("gateway.status.acquire_scoped_lock", return_value=(True, None)):
+            result = await adapter.connect()
+
+        assert result is True
+        assert npm_captured
+        assert npm_captured[0][0] == str(node_exe)
+        assert npm_captured[0][1].endswith("npm-cli.js")
+        assert npm_captured[0][2:] == ["install", "--silent"]
+        assert mock_run.call_args.kwargs.get("creationflags") == 0x08000000
+
+
 # ---------------------------------------------------------------------------
 # data variable initialization
 # ---------------------------------------------------------------------------

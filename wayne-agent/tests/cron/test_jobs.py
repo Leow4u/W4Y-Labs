@@ -1129,6 +1129,31 @@ class TestEnabledToolsets:
         fetched = get_job(job["id"])
         assert fetched["enabled_toolsets"] == ["web", "delegation"]
 
+    def test_connectors_enabled_stored_and_updated(self, tmp_cron_dir):
+        job = create_job(
+            prompt="monitor",
+            schedule="every 1h",
+            connectors_enabled=["GitHub", " gmail "],
+        )
+        assert job["connectors_enabled"] == ["github", "gmail"]
+        assert job.get("connectors_disabled") is None
+
+        update_job(job["id"], {"connectors_enabled": []})
+        fetched = get_job(job["id"])
+        assert fetched["connectors_enabled"] == []
+
+    def test_connectors_disabled_stored_and_updated(self, tmp_cron_dir):
+        job = create_job(
+            prompt="monitor",
+            schedule="every 1h",
+            connectors_disabled=["GitHub", " gmail "],
+        )
+        assert job["connectors_disabled"] == ["github", "gmail"]
+
+        update_job(job["id"], {"connectors_disabled": []})
+        fetched = get_job(job["id"])
+        assert fetched["connectors_disabled"] is None
+
 
 class TestMarkJobRunConcurrency:
     """Regression tests for concurrent parallel job state writes.

@@ -16,7 +16,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Email,
     [ValidateSet('base', 'premium')][string]$Plan = 'base',
     [double]$TrialUsd = 1,
-    [string]$Image = 'registry.fly.io/wayne-w4y:fly2',
+    [string]$Image = 'registry.fly.io/wayne-w4y:fly230',
     [int]$ProxyPort = 5434,
     # Retomar um provisionamento interrompido (pula recursos já criados).
     [switch]$Reconcile
@@ -77,7 +77,9 @@ Write-Host "runtime key OpenRouter: limite US`$$TrialUsd (hash $($orHash.Substri
     "API_SERVER_KEY=$apiKey" `
     "WAYNE_DASHBOARD_BASIC_AUTH_USERNAME=$dashUser" `
     "WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD=$dashPass" `
-    "WAYNE_DASHBOARD_BASIC_AUTH_SECRET=$dashSecret" | Out-Null
+    "WAYNE_DASHBOARD_BASIC_AUTH_SECRET=$dashSecret" `
+    "GATEWAY_RELAY_WAKE_URL=https://$APP.fly.dev/api/auth/providers" `
+    $(if ($Plan -eq 'premium') { @() } else { @("WAYNE_SCALE_TO_ZERO=1") }) | Out-Null
 Write-Host "secrets do tenant staged"
 
 # Conectores (Composio, projeto compartilhado — Onda 5): mesma project key em
@@ -141,7 +143,7 @@ const url=fs.readFileSync(".env.local","utf8").match(/DATABASE_URL=["']?([^"'\r\
 const {Pool}=require("pg"); const pool=new Pool({connectionString:url,connectionTimeoutMillis:8000});
 (async()=>{
   const t=process.env.PGTENANT, app=process.env.PGAPP;
-  await pool.query("INSERT INTO users (email,tenant_id,role) VALUES ($1,$2,'admin') ON CONFLICT (email) DO UPDATE SET tenant_id=EXCLUDED.tenant_id",[process.env.PGEMAIL,t]);
+  await pool.query("INSERT INTO users (email,tenant_id,role) VALUES ($1,$2,'owner') ON CONFLICT (email) DO UPDATE SET tenant_id=EXCLUDED.tenant_id",[process.env.PGEMAIL,t]);
   await pool.query(`INSERT INTO instances (tenant_id,name,url,fly_app,dashboard_username,dashboard_password,notes)
     VALUES ($1,$2,$3,$4,$5,$6,'Fly.io GRU · provisionado automaticamente')`,
     [t,`Work4You — ${process.env.PGSLUG}`,`https://${app}.fly.dev`,app,process.env.PGUSER2,process.env.PGPASS2]);

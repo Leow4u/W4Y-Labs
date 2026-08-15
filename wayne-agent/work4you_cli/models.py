@@ -77,7 +77,10 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     # Qwen
     ("qwen/qwen3.7-max",                       ""),
     ("qwen/qwen3.7-plus",                      ""),
+    ("qwen/qwen3.7-flash",                     ""),
     ("qwen/qwen3.6-35b-a3b",                   ""),
+    # OpenAI open-weight (Relay 2.5 Fast fallback)
+    ("openai/gpt-oss-20b",                     ""),
     # MoonshotAI
     ("moonshotai/kimi-k2.7-code",              ""),
     ("moonshotai/kimi-k2.6",                   "recommended"),
@@ -221,7 +224,10 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         # Qwen
         "qwen/qwen3.7-max",
         "qwen/qwen3.7-plus",
+        "qwen/qwen3.7-flash",
         "qwen/qwen3.6-35b-a3b",
+        # OpenAI open-weight (Relay 2.5 Fast fallback)
+        "openai/gpt-oss-20b",
         # MoonshotAI
         "moonshotai/kimi-k2.6",
         "moonshotai/kimi-k2.7-code",
@@ -1050,8 +1056,7 @@ class ProviderEntry(NamedTuple):
     tui_desc: str   # detailed description for `wayne model` TUI
 
 CANONICAL_PROVIDERS: list[ProviderEntry] = [
-    ProviderEntry("nous",           "Nous Portal",              "Nous Portal (Everything your agent needs, 300+ models with bundled tool use)"),
-    ProviderEntry("openrouter",     "OpenRouter",               "OpenRouter (Pay-per-use API aggregator)"),
+    ProviderEntry("openrouter",     "Work4You models",          "Work4You model catalog (Relay 2.5 Fast on Free; full roster when your plan unlocks it)"),
     ProviderEntry("moa",            "Mixture of Agents",        "Mixture of Agents (named presets; aggregator acts after reference models)"),
     ProviderEntry("novita",         "NovitaAI",                 "NovitaAI (Cloud: Model API, Agent Sandbox, GPU Cloud)"),
     ProviderEntry("lmstudio",       "LM Studio",                "LM Studio (Local desktop app with built-in model server)"),
@@ -2063,7 +2068,7 @@ def provider_label(provider: Optional[str]) -> str:
     if normalized == "auto":
         return "Auto"
     normalized = normalize_provider(normalized)
-    return _PROVIDER_LABELS.get(normalized, original or "OpenRouter")
+    return _PROVIDER_LABELS.get(normalized, original or "Model catalog")
 
 
 # Models that support OpenAI Priority Processing (service_tier="priority").

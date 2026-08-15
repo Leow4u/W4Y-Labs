@@ -2283,6 +2283,83 @@ def _guard_job_credential_exfil(job: dict) -> None:
         raise RuntimeError(f"Cron job '{job_id}' blocked for safety: {err}")
 
 
+def _active_composio_toolkit_slugs() -> frozenset[str]:
+    """ACTIVE Composio toolkit slugs for the global connector scope."""
+    import os
+    import re
+
+    import httpx
+
+    from work4you_cli.env_loader import load_wayne_dotenv
+    from work4you_constants import get_wayne_home
+
+    try:
+        load_wayne_dotenv(wayne_home=str(get_wayne_home()))
+    except Exception:
+        pass
+    raw = os.environ.get("COMPOSIO_API_KEY", "")
+    key = re.sub(r"[\s\u00a0\"']+", "", raw)
+    if not key:
+        return frozenset()
+
+    try:
+        resp = httpx.get(
+            "https://backend.composio.dev/api/v3/connected_accounts",
+            params={"user_ids": "global", "limit": 100},
+            headers={"x-api-key": key},
+            timeout=15.0,
+        )
+        if resp.status_code >= 400:
+            return frozenset()
+        data = resp.json() if resp.content else {}
+    except Exception:
+        logger.debug("Could not fetch Composio connected accounts for cron job", exc_info=True)
+        return frozenset()
+
+    slugs: set[str] = set()
+    for item in data.get("items") or []:
+        if str(item.get("status") or "").upper() != "ACTIVE":
+            continue
+        toolkit = item.get("toolkit") or {}
+        slug = (
+            toolkit.get("slug") if isinstance(toolkit, dict) else str(toolkit)
+        )
+        slug = str(slug or "").strip().lower()
+        if slug:
+            slugs.add(slug)
+    return frozenset(slugs)
+
+
+def _resolve_job_disabled_connectors(job: dict) -> Optional[List[str]]:
+    """Return connector slugs to disable for one cron run, or None to clear."""
+    if "connectors_enabled" in job:
+        raw_enabled = job.get("connectors_enabled")
+        enabled = (
+            {
+                str(item).strip().lower()
+                for item in raw_enabled
+                if isinstance(raw_enabled, (list, tuple)) and str(item).strip()
+            }
+            if isinstance(raw_enabled, (list, tuple))
+            else set()
+        )
+        active = _active_composio_toolkit_slugs()
+        if not active:
+            return None
+        disabled = sorted(active - enabled)
+        return disabled or None
+
+    raw_disabled = job.get("connectors_disabled")
+    if isinstance(raw_disabled, list) and raw_disabled:
+        slugs = [
+            str(item).strip().lower()
+            for item in raw_disabled
+            if str(item).strip()
+        ]
+        return slugs or None
+    return None
+
+
 def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     """
     Execute a single cron job.
@@ -2483,6 +2560,7 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
         return True, "", SILENT_MARKER, None
     origin = _resolve_origin(job)
     _cron_session_id = f"cron_{job_id}_{_wayne_now().strftime('%Y%m%d_%H%M%S')}"
+    _approval_session_token = None
 
     logger.info("Running job '%s' (ID: %s)", job_name, job_id)
     logger.info("Prompt: %s", prompt[:100])
@@ -2576,6 +2654,17 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
     # (every future job blocks on acquire_*); a leaked reader blocks all
     # future writers.  Acquire itself can't leak (it either blocks or returns).
     try:
+        from tools.approval import (
+            reset_current_session_key,
+            set_current_session_key,
+            set_session_disabled_connectors,
+        )
+
+        _approval_session_token = set_current_session_key(_cron_session_id)
+        _job_connectors_disabled = _resolve_job_disabled_connectors(job)
+        if _job_connectors_disabled:
+            set_session_disabled_connectors(_cron_session_id, _job_connectors_disabled)
+
         if _job_workdir:
             os.environ["TERMINAL_CWD"] = _job_workdir
             logger.info("Job '%s': using workdir %s", job_id, _job_workdir)
@@ -3076,6 +3165,17 @@ def run_job(job: dict) -> tuple[bool, str, str, Optional[str]]:
         return False, output, "", error_msg
 
     finally:
+        try:
+            from tools.approval import (
+                reset_current_session_key,
+                set_session_disabled_connectors,
+            )
+
+            set_session_disabled_connectors(_cron_session_id, None)
+            if _approval_session_token is not None:
+                reset_current_session_key(_approval_session_token)
+        except Exception as e:
+            logger.debug("Job '%s': failed to reset connector session scope: %s", job_id, e)
         # Restore TERMINAL_CWD to whatever it was before this job ran.  We
         # only ever mutate it when the job has a workdir; see the setup block
         # at the top of run_job for the serialization guarantee.

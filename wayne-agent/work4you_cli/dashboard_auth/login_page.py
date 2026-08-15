@@ -22,6 +22,7 @@ class name MUST NOT change without updating
 from __future__ import annotations
 
 import html
+import os
 
 from work4you_cli.dashboard_auth import list_session_providers
 
@@ -285,6 +286,23 @@ _LOGIN_HTML_TEMPLATE = """\
     margin-top: 0.25rem;
   }}
 
+  .platform-hint {{
+    margin: 0 0 1.25rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--hairline-strong);
+    background: color-mix(in srgb, var(--midground) 4%, var(--background-base));
+    font-size: 0.92rem;
+    line-height: 1.45;
+    letter-spacing: 0.01em;
+    text-transform: none;
+  }}
+  .platform-hint a {{
+    color: var(--midground);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+  }}
+
   footer {{
     margin-top: 1.75rem;
     text-align: center;
@@ -316,6 +334,7 @@ _LOGIN_HTML_TEMPLATE = """\
   <div class="card">
     <h1>Entrar</h1>
     <p class="subtitle">Entre para continuar na plataforma Work4You.</p>
+    {platform_hint}
     <div class="provider-list">
 {provider_buttons}
     </div>
@@ -448,7 +467,7 @@ _PASSWORD_FORM_SCRIPT = """\
         }
         var msg = resp.status === 429
           ? 'Too many attempts. Please wait and try again.'
-          : (resp.status === 401 ? 'Usu00e1rio ou senha inv00e1lidos.'
+          : (resp.status === 401 ? 'Usu\u00e1rio ou senha inv\u00e1lidos.'
                                  : 'Falha ao entrar. Tente novamente.');
         if (err) { err.textContent = msg; err.hidden = false; }
         if (btn) { btn.disabled = false; }
@@ -463,6 +482,23 @@ _PASSWORD_FORM_SCRIPT = """\
 })();
 </script>
 """
+
+
+def _platform_login_hint() -> str:
+    """Shared motor: point users at platform SSO, not local basic auth."""
+    if (os.environ.get("W4Y_SHARED_MOTOR") or "").strip() not in ("1", "true", "yes"):
+        return ""
+    origin = (
+        os.environ.get("W4Y_PLATFORM_ORIGIN")
+        or os.environ.get("WORK4YOU_PLATFORM_ORIGIN")
+        or "https://work4you.ai"
+    ).rstrip("/")
+    url = html.escape(f"{origin}/login/enter", quote=True)
+    return (
+        f'<p class="platform-hint">Conta Work4You? '
+        f'<a href="{url}">Entrar pela plataforma</a> — '
+        f"este formulário é só para administração interna.</p>"
+    )
 
 
 def render_login_html(*, next_path: str = "") -> str:
@@ -505,6 +541,7 @@ def render_login_html(*, next_path: str = "") -> str:
     return _LOGIN_HTML_TEMPLATE.format(
         provider_buttons="\n".join(buttons),
         password_script=script,
+        platform_hint=_platform_login_hint(),
     )
 
 

@@ -14608,7 +14608,9 @@ class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
                         label += "  ← current"
                     choices.append(label)
                 choices.append("Cancel")
-                hint = f"Current: {state.get('current_model', 'unknown')} on {state.get('current_provider', 'unknown')}"
+                from work4you_cli.models import provider_label as _provider_label
+                _cur_prov = _provider_label(state.get("current_provider") or "")
+                hint = f"Current: {state.get('current_model', 'unknown')} on {_cur_prov}"
             else:
                 provider_data = state.get("provider_data") or {}
                 model_list = state.get("model_list") or []

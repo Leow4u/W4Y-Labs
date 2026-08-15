@@ -402,6 +402,85 @@ def _validate_post_login_target(raw: str) -> str:
     return decoded
 
 
+@router.get("/auth/platform-sso", name="auth_platform_sso")
+async def auth_platform_sso(request: Request, ticket: str = ""):
+    """Exchange a platform HMAC ticket for a Wayne session (app subdomain E1)."""
+    from work4you_cli.dashboard_auth.platform_sso import verify_platform_sso_claims
+    from work4you_cli.platform_tenant import ensure_tenant_home, shared_motor_enabled
+
+    ip = _client_ip(request)
+    claims = verify_platform_sso_claims(ticket)
+    if not claims:
+        audit_log(
+            AuditEvent.LOGIN_FAILURE,
+            provider="platform-sso",
+            reason="bad_ticket",
+            ip=ip,
+        )
+        raise HTTPException(status_code=401, detail="Invalid or expired ticket")
+
+    p = get_provider("basic")
+    if p is None or not getattr(p, "supports_password", False):
+        raise HTTPException(status_code=503, detail="Password auth unavailable")
+
+    username = (
+        os.environ.get("WAYNE_DASHBOARD_BASIC_AUTH_USERNAME")
+        or os.environ.get("WAYNE_DASHBOARD_USERNAME")
+        or ""
+    ).strip()
+    password = (
+        os.environ.get("WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD")
+        or os.environ.get("WAYNE_DASHBOARD_PASSWORD")
+        or ""
+    ).strip()
+    if not username or not password:
+        raise HTTPException(status_code=503, detail="Dashboard credentials not configured")
+
+    try:
+        p.complete_password_login(username=username, password=password)
+    except InvalidCredentialsError:
+        audit_log(
+            AuditEvent.LOGIN_FAILURE,
+            provider="platform-sso",
+            reason="invalid_credentials",
+            ip=ip,
+        )
+        raise HTTPException(status_code=503, detail="Dashboard credentials mismatch")
+    except ProviderError as e:
+        raise HTTPException(status_code=503, detail=f"Provider unreachable: {e}")
+
+    platform_user = claims.email or f"platform:{claims.tenant_id}"
+    if shared_motor_enabled():
+        ensure_tenant_home(claims.tenant_id)
+
+    session = p.mint_session_with_claims(
+        user_id=platform_user,
+        email=claims.email,
+        org_id=claims.tenant_id,
+    )
+
+    audit_log(
+        AuditEvent.LOGIN_SUCCESS,
+        provider="platform-sso",
+        user_id=session.user_id,
+        email=session.email,
+        org_id=session.org_id,
+        ip=ip,
+    )
+
+    expires_in = max(60, session.expires_at - int(time.time()))
+    resp = RedirectResponse(url="/chat", status_code=302)
+    set_session_cookies(
+        resp,
+        access_token=session.access_token,
+        refresh_token=session.refresh_token,
+        access_token_expires_in=expires_in,
+        use_https=detect_https(request),
+        prefix=_prefix(request),
+    )
+    return resp
+
+
 # ---------------------------------------------------------------------------
 # Public: password (non-redirect) login
 # ---------------------------------------------------------------------------
@@ -574,7 +653,7 @@ async def auth_logout(request: Request):
 
     prefix = _prefix(request)
     resp = RedirectResponse(url=f"{prefix}/login", status_code=302)
-    clear_session_cookies(resp, prefix=prefix)
+    clear_session_cookies(resp, prefix=prefix, use_https=detect_https(request))
     clear_pkce_cookie(resp, prefix=prefix)
     return resp
 
@@ -607,40 +686,36 @@ async def api_account_plan(request: Request):
     Billing lives on the platform at ``GET /planos/plan`` (outside ``/api/*``
     by LB design). The desktop shell bridge only ferries ``/api/*``, so this
     route proxies to the platform with the caller's Cookie header — same
-    session the Electron login already holds. Fail-open for the UI: 503 when
-    the platform is unreachable (chip stays hidden).
+    session the Electron login already holds.
+
+    On the shared motor (``W4Y_SHARED_MOTOR``), browser SSO has no platform
+    cookies on the Fly origin — resolve plan via ``session.org_id`` and the
+    HMAC internal ``/internal/tenant-runtime`` API instead.
     """
     sess = getattr(request.state, "session", None)
     if sess is None:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+    from work4you_cli.plan_model_gating import (
+        fetch_tenant_plan_payload,
+        fetch_tenant_plan_payload_via_cookie,
+    )
+    from work4you_cli.platform_tenant import shared_motor_enabled
+
+    org_id = str(getattr(sess, "org_id", "") or "").strip()
+    if shared_motor_enabled() and org_id:
+        payload = fetch_tenant_plan_payload(org_id)
+        if payload:
+            return payload
+
     cookie = request.headers.get("cookie") or ""
     if not cookie.strip():
         raise HTTPException(status_code=401, detail="Unauthorized")
-    import httpx
 
-    platform = (
-        os.environ.get("W4Y_PLATFORM_ORIGIN") or "https://work4you.ai"
-    ).rstrip("/")
-    try:
-        with httpx.Client(timeout=httpx.Timeout(8.0), follow_redirects=True) as client:
-            r = client.get(
-                f"{platform}/planos/plan",
-                headers={"cookie": cookie, "accept": "application/json"},
-            )
-    except httpx.RequestError as exc:
-        logging.getLogger(__name__).warning("account/plan platform unreachable: %s", exc)
-        raise HTTPException(status_code=503, detail="platform_unavailable") from exc
-    if r.status_code == 401:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    if r.status_code >= 400:
-        raise HTTPException(status_code=503, detail="plan_unavailable")
-    try:
-        data = r.json()
-    except ValueError as exc:
-        raise HTTPException(status_code=503, detail="plan_unavailable") from exc
-    if not isinstance(data, dict):
-        raise HTTPException(status_code=503, detail="plan_unavailable")
-    return data
+    payload = fetch_tenant_plan_payload_via_cookie(cookie)
+    if payload:
+        return payload
+    raise HTTPException(status_code=503, detail="plan_unavailable")
 
 
 @router.patch("/api/account/spend-limit", name="account_spend_limit")
@@ -725,7 +800,11 @@ async def api_auth_ws_ticket(request: Request):
     # don't load the ticket store.
     from work4you_cli.dashboard_auth.ws_tickets import TTL_SECONDS, mint_ticket
 
-    ticket = mint_ticket(user_id=sess.user_id, provider=sess.provider)
+    ticket = mint_ticket(
+        user_id=sess.user_id,
+        provider=sess.provider,
+        org_id=sess.org_id or "",
+    )
     audit_log(
         AuditEvent.WS_TICKET_MINTED,
         provider=sess.provider,

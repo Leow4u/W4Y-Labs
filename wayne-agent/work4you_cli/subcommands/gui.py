@@ -26,7 +26,7 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
     gui_parser.add_argument(
         "--source",
         action="store_true",
-        help="Launch via `electron .` against apps/desktop/dist instead of the packaged app",
+        help="Launch via `electron .` against apps/work4you/dist instead of the packaged app",
     )
     gui_parser.add_argument(
         "--build-only",
@@ -63,7 +63,7 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
     gui_parser.add_argument(
         "--skip-build",
         action="store_true",
-        help="Skip npm install/package and launch the existing unpacked app from apps/desktop/release",
+        help="Skip npm install/package and launch the existing unpacked app from apps/work4you/release",
     )
     gui_parser.add_argument(
         "--force-build",

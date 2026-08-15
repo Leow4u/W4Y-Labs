@@ -23,6 +23,9 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Product wiring — never surface in the CLI banner (Conectores / desktop MCP tab).
+_INTERNAL_MCP_SERVERS = frozenset({"composio"})
+
 
 # =========================================================================
 # ANSI building blocks for conversation display
@@ -555,9 +558,17 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         mcp_status = []
 
     if mcp_status:
+        visible_mcp = [
+            srv for srv in mcp_status
+            if str(srv.get("name", "")).strip().lower() not in _INTERNAL_MCP_SERVERS
+        ]
+    else:
+        visible_mcp = []
+
+    if visible_mcp:
         right_lines.append("")
         right_lines.append(f"[bold {accent}]MCP[/]")
-        for srv in mcp_status:
+        for srv in visible_mcp:
             status = srv.get("status")
             if srv["connected"]:
                 right_lines.append(

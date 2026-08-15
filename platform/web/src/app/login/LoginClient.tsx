@@ -4,8 +4,6 @@ import { useEffect, useRef, useState } from "react";
 import {
   GoogleAuthProvider,
   createUserWithEmailAndPassword,
-  sendEmailVerification,
-  sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithPopup,
   type UserCredential,
@@ -20,9 +18,11 @@ const ERROS: Record<string, string> = {
   "auth/invalid-email": "E-mail inválido.",
   "auth/too-many-requests": "Muitas tentativas — aguarde um instante.",
   "auth/email-already-in-use": "Este e-mail já tem conta — entre com a sua palavra-passe.",
+  "auth/network-request-failed": "Sem ligação — verifique a internet e tente de novo.",
   denied: "Acesso ainda não liberado para este e-mail.",
-  unverified: "Confirme o seu e-mail — clique no link que enviamos.",
+  unverified: "Confirme o seu e-mail — clique no botão que enviámos.",
   captcha: "Confirmação anti-robô falhou — recarregue a página.",
+  "email-send-failed": "Não foi possível enviar o email de confirmação. Tente reenviar em instantes.",
 };
 
 function GoogleIcon() {
@@ -49,6 +49,7 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
   const [podeReenviar, setPodeReenviar] = useState(false);
+  const [codigo, setCodigo] = useState("");
   const [ocupado, setOcupado] = useState(false);
   const [captcha, setCaptcha] = useState("");
   const captchaRef = useRef<HTMLDivElement>(null);
@@ -76,21 +77,42 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
     }
   }, [etapa, turnstileSitekey]);
 
-  function limpar() { setErro(""); setAviso(""); setPodeReenviar(false); }
+  function limpar() { setErro(""); setAviso(""); setPodeReenviar(false); setCodigo(""); }
 
   async function concluir(cred: UserCredential) {
-    const idToken = await cred.user.getIdToken();
-    const r = await fetch("/login/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ idToken, next, captcha }),
-    });
-    const data = await r.json().catch(() => ({}));
-    if (r.ok && data.next) { window.location.href = data.next; return; }
-    if (data.error === "unverified") { setErro(ERROS.unverified); setPodeReenviar(true); setOcupado(false); return; }
-    await firebaseAuth().signOut().catch(() => {});
-    setErro(ERROS[data.error as string] ?? "Não foi possível entrar. Tente novamente.");
-    setOcupado(false);
+    try {
+      const idToken = await cred.user.getIdToken();
+      const r = await fetch("/login/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ idToken, next, captcha }),
+        signal: AbortSignal.timeout(60_000),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (r.ok && data.next) {
+        window.location.href = data.next;
+        return;
+      }
+      if (data.error === "unverified") {
+        setErro(ERROS.unverified);
+        setPodeReenviar(true);
+        setOcupado(false);
+        return;
+      }
+      await firebaseAuth().signOut().catch(() => {});
+      setErro(ERROS[data.error as string] ?? "Não foi possível entrar. Tente novamente.");
+      setOcupado(false);
+    } catch (e) {
+      const timedOut = e instanceof Error && e.name === "TimeoutError";
+      await firebaseAuth().signOut().catch(() => {});
+      setErro(
+        timedOut
+          ? "O servidor demorou demais — tente de novo em instantes."
+          : "Não foi possível entrar. Tente novamente.",
+      );
+      setOcupado(false);
+    }
   }
 
   function falhou(e: unknown) {
@@ -132,15 +154,39 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
     catch (e) { falhou(e); }
   }
 
+  async function enviarConfirmacao(idToken: string) {
+    const r = await fetch("/login/send-verification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ idToken }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok || !data.ok) {
+      throw new Error(typeof data.error === "string" ? data.error : "email-send-failed");
+    }
+  }
+
   async function registrar(ev: React.FormEvent) {
     ev.preventDefault(); limpar(); setOcupado(true);
     const auth = firebaseAuth();
     try {
       const cred = await createUserWithEmailAndPassword(auth, email, senha);
-      await sendEmailVerification(cred.user, { url: `${window.location.origin}/login` }).catch(() => {});
+      const idToken = await cred.user.getIdToken();
+      try {
+        await enviarConfirmacao(idToken);
+      } catch {
+        await auth.signOut().catch(() => {});
+        setEtapa("senha"); setSenha("");
+        setErro(ERROS["email-send-failed"]);
+        setPodeReenviar(true);
+        setOcupado(false);
+        return;
+      }
       await auth.signOut().catch(() => {});
       setEtapa("senha"); setSenha("");
-      setAviso("Conta criada! Enviamos um link de confirmação — clique nele e depois entre aqui.");
+      setAviso("Conta criada. Enviamos um email da Work4You com um botao e um codigo de 6 digitos — confirme e depois entre aqui.");
+      setPodeReenviar(true);
       setOcupado(false);
     } catch (e) { falhou(e); }
   }
@@ -148,19 +194,87 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
   async function esqueceu() {
     limpar();
     try {
-      await sendPasswordResetEmail(firebaseAuth(), email, { url: `${window.location.origin}/login` });
-      setAviso("Enviamos um link para redefinir a sua palavra-passe — confira o seu e-mail (e o spam).");
-    } catch (e) {
-      const code = (e as { code?: string })?.code ?? "";
-      setErro(ERROS[code] ?? "Não foi possível enviar o link agora. Tente de novo.");
+      const r = await fetch("/login/send-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) {
+        setErro(ERROS["email-send-failed"]);
+        return;
+      }
+      setAviso("Se existir conta neste email, enviámos um email da Work4You para redefinir a palavra-passe.");
+    } catch {
+      setErro(ERROS["email-send-failed"]);
     }
   }
 
   async function reenviar() {
-    const u = firebaseAuth().currentUser;
-    if (!u) { setErro("Entre com e-mail e palavra-passe para reenviarmos o link."); setPodeReenviar(false); return; }
-    await sendEmailVerification(u, { url: `${window.location.origin}/login` }).catch(() => {});
-    setErro(""); setAviso("Link reenviado — confira a sua caixa de entrada (e o spam)."); setPodeReenviar(false);
+    limpar();
+    setOcupado(true);
+    try {
+      let u = firebaseAuth().currentUser;
+      if (!u) {
+        if (!email || !senha) {
+          setErro("Entre com o email e a palavra-passe para reenviarmos a confirmacao.");
+          setPodeReenviar(true);
+          setOcupado(false);
+          return;
+        }
+        const cred = await signInWithEmailAndPassword(firebaseAuth(), email, senha);
+        u = cred.user;
+      }
+      const idToken = await u.getIdToken();
+      await enviarConfirmacao(idToken);
+      await firebaseAuth().signOut().catch(() => {});
+      setAviso("Email de confirmacao reenviado — confira a caixa de entrada, o spam e a quarentena. Tambem pode usar o codigo de 6 digitos.");
+      setPodeReenviar(true);
+    } catch (e) {
+      const code = (e as { code?: string })?.code ?? "";
+      setErro(ERROS[code] ?? ERROS["email-send-failed"]);
+      setPodeReenviar(true);
+    }
+    setOcupado(false);
+  }
+
+  async function confirmarCodigo(ev: React.FormEvent) {
+    ev.preventDefault();
+    setErro("");
+    setAviso("");
+    setOcupado(true);
+    setPodeReenviar(true);
+    try {
+      const r = await fetch("/login/confirm-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, code: codigo }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (!r.ok || !data.ok) {
+        const err = String(data.error || "");
+        setErro(
+          err === "expired"
+            ? "Codigo expirado — peca um novo email."
+            : err === "locked"
+              ? "Demasiadas tentativas — aguarde e peca um novo email."
+              : "Codigo incorrecto. Verifique o email ou reenvie.",
+        );
+        setPodeReenviar(true);
+        setOcupado(false);
+        return;
+      }
+      setAviso("Email confirmado. Entre com a sua palavra-passe.");
+      setCodigo("");
+      setEtapa("senha");
+      setPodeReenviar(false);
+    } catch {
+      setErro(ERROS["email-send-failed"]);
+      setPodeReenviar(true);
+    }
+    setOcupado(false);
   }
 
   const btnSocial =
@@ -178,11 +292,35 @@ export default function LoginClient({ next, turnstileSitekey }: { next: string; 
       {erro && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
           {erro}
-          {podeReenviar && <button type="button" onClick={reenviar} className="ml-1 underline">Reenviar link</button>}
+          {podeReenviar && <button type="button" onClick={() => void reenviar()} className="ml-1 underline">Reenviar email</button>}
         </div>
+      )}
+      {podeReenviar && (
+        <form onSubmit={(e) => void confirmarCodigo(e)} className="flex flex-col gap-2 rounded-lg border border-line bg-white px-3 py-3">
+          <p className="text-xs text-ink-soft">Se o email nao aparecer (spam/quarentena), use o codigo de 6 digitos do email:</p>
+          <div className="flex gap-2">
+            <input
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              pattern="[0-9]*"
+              maxLength={8}
+              placeholder="Codigo"
+              value={codigo}
+              onChange={(e) => setCodigo(e.target.value)}
+              className="min-w-0 flex-1 rounded-xl border border-line bg-white px-3 py-2 text-sm tracking-[0.2em] text-ink outline-none focus:border-salvia"
+            />
+            <button type="submit" disabled={ocupado || codigo.replace(/\D/g, "").length < 6} className="shrink-0 rounded-xl bg-ink px-3 py-2 text-xs font-semibold text-paper disabled:opacity-50">
+              Confirmar
+            </button>
+          </div>
+          <button type="button" onClick={() => void reenviar()} className="self-start text-xs font-medium text-mata underline">
+            Reenviar email
+          </button>
+        </form>
       )}
     </>
   );
+
 
   // ETAPA 1 — e-mail + Turnstile + provedores sociais
   if (etapa === "email") {

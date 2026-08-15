@@ -1,0 +1,18 @@
+import { NextRequest, NextResponse } from "next/server";
+
+import { resolveDesktopDownloadTarget } from "@/lib/product-download";
+
+export const dynamic = "force-dynamic";
+
+/** Smart desktop download — one URL, OS-specific artefact (Claude-style). */
+export async function GET(req: NextRequest) {
+  const ua = req.headers.get("user-agent") ?? "";
+  const target = resolveDesktopDownloadTarget(ua);
+
+  if (target.direct) {
+    return NextResponse.redirect(target.href, 302);
+  }
+
+  const url = new URL(target.href, req.url);
+  return NextResponse.redirect(url, 302);
+}

@@ -492,7 +492,8 @@ The dashboard embeds the real `work4you --tui` — **not** a rewrite.  See `work
 ### Electron Desktop — Work4You
 
 > **Product definition:** repo-root [`docs/PRODUTO.md`](../docs/PRODUTO.md) — the
-> single source of truth. If another doc contradicts it, that doc is stale.
+> single source of truth. **Surfaces:** [`docs/PLATAFORMA.md`](../docs/PLATAFORMA.md).
+> **Execution:** [`docs/PLANO-APP-UNICA.md`](../docs/PLANO-APP-UNICA.md).
 >
 > **Who this is for:** developers and technical users — the same audience as
 > Claude Code or Cursor. They write code, live in a terminal, and know git,
@@ -500,35 +501,20 @@ The dashboard embeds the real `work4you --tui` — **not** a rewrite.  See `work
 > never hide a capability to make a screen look simpler. Jargon may be
 > softened or regrouped under Advanced; power is never removed.
 >
-> **Ships today:** `apps/desktop/` — Electron + **native React renderer**
-> (chat, tools, panes). W4Y deltas (login, ZIP/slots, cloud bridge, GCS
-> update) live in this tree.
+> **Product UI:** `apps/work4you/` is the **canonical** React app — ships as
+> Electron and (via `build:web`) as browser SPA on the tenant Fly app.
+> Do **not** add product features to `wayne-agent/web/` (legacy, being removed).
+> CLI, TUI, and gateway remain separate entry points to the same motor.
 >
-> **Stale docs:** anything under `docs/arquivo/` is a dated record, **not**
-> instruction. Never take a product decision from it.
->
-> **There is exactly one desktop app.** `apps/desktop-shell/` (motor ZIP +
-> `loadURL` of `web_dist`) was deleted on 29/07 — it had been frozen by a
-> STOP-SHIP note but stayed in the tree, and its presence kept producing
-> "which app am I testing?" confusion. Git history keeps it. Do not treat
-> “UMA UI SÓ = web_dist” as the product destination; the sections that said so
-> were archived on 29/07 to `docs/arquivo/BACKEND-MAP-legado-web-shell.md`.
->
-> **Never publish a second Electron app to the release bucket.** Both trees
-> pointed `build.publish` at `https://storage.googleapis.com/w4y-engine-dist/`
-> with the same `artifactName`, so they shared one `latest.yml` while carrying
-> different `appId`s (`com.work4you.app` vs `com.work4you.desktop`). Whoever
-> published last owned the update feed for both, and an in-place upgrade was
-> impossible across the appId boundary — it would install a second Work4You
-> beside the first. One app, one appId, one feed.
+> **One desktop app:** `com.work4you.app`, one GCS feed (`latest.yml` + `latest.json`).
+> Never publish a second Electron app to the release bucket.
 >
 > **Validate only on the installed app.** After desktop or engine changes,
 > publish to GCS and have the user apply the in-app update chip. Never tell
-> them to validate product behavior with `npm run dev`. Long publishes belong
-> in a background agent/shell so the chat can keep moving. See
+> them to validate product behavior with `npm run dev`. See
 > `.cursor/rules/desktop-publish-via-app.mdc`.
 >
-> **Where to write what you learn** — three live docs, no fourth:
+> **Where to write what you learn** — live docs only:
 > `docs/BACKEND-MAP.md` for engine contracts, gotchas and incidents;
 > `docs/INVENTARIO-SUPERFICIES.md` for what the engine has versus what the UI
 > exposes; `docs/PRODUTO.md` for product, audience and scope. Update the one

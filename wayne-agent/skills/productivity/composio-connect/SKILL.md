@@ -30,6 +30,20 @@ Work4You toolsets (browser, terminal, file, …) are separate and stay available
 - "Conecte meu LinkedIn"
 - Any request to add/authorize a Composio toolkit account
 
+## When NOT to Use Composio
+
+Generic web and browsing use **native Work4You tools**, not Composio:
+
+- Read page text / search the web → ``web_extract``, ``web_search``
+- Open a site in the Browser panel, JS-heavy pages, screenshots →
+  ``browser_navigate`` → ``browser_snapshot`` (or ``browser_vision``)
+- Do **not** use Composio ``SEARCH_FETCH_URL``, ``BROWSER_TOOL_*``, or
+  similar meta fetch/browser tools for these — they skip the desktop Browser
+  panel and duplicate native capability.
+
+Composio is for **connected OAuth apps** (Gmail, Apollo, Slack, …) after
+``MANAGE_CONNECTIONS`` reports an active account.
+
 ## Procedure
 
 1. **Immediately** call `mcp_composio_COMPOSIO_MANAGE_CONNECTIONS` with the

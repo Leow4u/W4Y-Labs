@@ -1,11 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
+import HeroInstallCtas from "@/components/HeroInstallCtas";
+import {
+  ArtifactsMock,
+  AutomationsTableMock,
+  ChannelsGridMock,
+  PersonalizeConnectorsMock,
+  PersonalizeSkillsMock,
+} from "@/components/ProductMocks";
 import { getSiteLocale } from "@/lib/site-locale";
 
 export const metadata = { title: "Plataforma — Work4You" };
 
 // Platform page: the product in two postures — operate the day-to-day and
-// build/code — plus Studio, models (Auto), the 24/7 cloud and controls.
+// build/code — plus Customize (Skills / Connectors / MCPs), models (Auto),
+// the 24/7 cloud and controls.
 // Same visual grammar as the home: real-mechanics mocks, Papel & Mata.
 
 const MODELS = [
@@ -22,7 +31,8 @@ const CONTENT = {
     hero: {
       title1: "O novo jeito de trabalhar.",
       title2: "Seu parceiro de trabalho para grandes resultados.",
-      ctaPrimary: "Começar agora",
+      ctaDownload: "Baixar aplicativo para desktop",
+      ctaTerminal: "Instalar via terminal",
       ctaSecondary: "Ver preços →",
     },
     operate: {
@@ -37,7 +47,7 @@ const CONTENT = {
         "Entregas: planilhas, decks, PDFs prontos",
         "Aprovação humana no que importa",
       ],
-      windowLabel: "Agenda — rotinas",
+      windowLabel: "Automações",
       rows: [
         { when: "Toda manhã · 07h00", what: "Resumo dos e-mails e do que vence hoje", on: true },
         { when: "Toda sexta · 17h00", what: "Cobranças e follow-ups da semana", on: true },
@@ -70,17 +80,20 @@ const CONTENT = {
       done: "✓ Testes passando · PR aberto pra sua revisão",
       previewLabel: "Preview",
     },
-    studio: {
-      eyebrow: "Agent Studio",
-      h3: "Construa um. Construa vários.",
+    personalize: {
+      eyebrow: "Personalizar",
+      h3: "Um agente. O seu jeito.",
       body:
-        "Agentes independentes com foco próprio, que se consultam e trabalham juntos. O principal delega e traz o resultado.",
-      agents: [
-        { name: "Agente principal", focus: "Coordena, delega e entrega", on: true },
-        { name: "Vendas", focus: "Leads, propostas e follow-ups", on: true },
-        { name: "Financeiro", focus: "Cobranças e conciliação", on: true },
+        "Skills, Conectores e MCPs — você amplia o Work com o que o seu trabalho pede. Sem criar outro produto, sem lista de agentes separados.",
+      tabs: ["Skills", "Conectores", "MCPs"],
+      rows: [
+        { name: "Planilhas e relatórios", focus: "Números organizados, gráficos e Excel pronto", on: true },
+        { name: "Pesquisa na web", focus: "Busca, lê e resume — com as fontes", on: true },
+        { name: "Gmail + Notion", focus: "Conectores ativos nas tarefas", on: true },
       ],
-      badge: "no ar",
+      statusOn: "ativa",
+      statusOff: "desativada",
+      marketplace: "Navegar Marketplace →",
     },
     models: {
       eyebrow: "Modelos",
@@ -98,19 +111,20 @@ const CONTENT = {
     controls: [
       { title: "Aprovação humana", copy: "Ações sensíveis esperam o seu OK." },
       { title: "Histórico completo", copy: "Cada tarefa e decisão registrada." },
-      { title: "Controle de uso", copy: "Consumo e custo por agente." },
+      { title: "Controle de uso", copy: "Uso incluído e on-demand na Conta." },
       { title: "Acesso por equipe", copy: "Cada pessoa vê o que deve ver." },
     ],
     cta: {
-      h2: "Construa o seu. Leva minutos.",
-      button: "Construir meu agente",
+      h2: "Entre. Personalize. Trabalhe.",
+      button: "Começar agora",
     },
   },
   en: {
     hero: {
       title1: "The new way to work.",
       title2: "Your work partner for big results.",
-      ctaPrimary: "Start now",
+      ctaDownload: "Download desktop app",
+      ctaTerminal: "Install via terminal",
       ctaSecondary: "See pricing →",
     },
     operate: {
@@ -125,7 +139,7 @@ const CONTENT = {
         "Deliveries: finished spreadsheets, decks, and PDFs",
         "Human approval where it matters",
       ],
-      windowLabel: "Agenda — routines",
+      windowLabel: "Automations",
       rows: [
         { when: "Every morning · 7:00 AM", what: "Summary of your email and what's due today", on: true },
         { when: "Every Friday · 5:00 PM", what: "Payment reminders and the week's follow-ups", on: true },
@@ -158,17 +172,20 @@ const CONTENT = {
       done: "✓ Tests passing · PR open for your review",
       previewLabel: "Preview",
     },
-    studio: {
-      eyebrow: "Agent Studio",
-      h3: "Build one. Build many.",
+    personalize: {
+      eyebrow: "Customize",
+      h3: "One agent. Your way.",
       body:
-        "Independent agents, each with its own focus, that consult each other and work together. The main one delegates and brings back the result.",
-      agents: [
-        { name: "Main agent", focus: "Coordinates, delegates, and delivers", on: true },
-        { name: "Sales", focus: "Leads, proposals, and follow-ups", on: true },
-        { name: "Finance", focus: "Billing and reconciliation", on: true },
+        "Skills, Connectors, and MCPs — you extend Work with what your job needs. No second product, no roster of separate agents.",
+      tabs: ["Skills", "Connectors", "MCPs"],
+      rows: [
+        { name: "Spreadsheets and reports", focus: "Numbers organized, charts, Excel ready", on: true },
+        { name: "Web research", focus: "Search, read, summarize — with sources", on: true },
+        { name: "Gmail + Notion", focus: "Connectors active in tasks", on: true },
       ],
-      badge: "live",
+      statusOn: "active",
+      statusOff: "off",
+      marketplace: "Browse Marketplace →",
     },
     models: {
       eyebrow: "Models",
@@ -186,12 +203,12 @@ const CONTENT = {
     controls: [
       { title: "Human approval", copy: "Sensitive actions wait for your OK." },
       { title: "Full history", copy: "Every task and decision on record." },
-      { title: "Usage control", copy: "Consumption and cost per agent." },
+      { title: "Usage control", copy: "Included usage and on-demand in Account." },
       { title: "Team access", copy: "Each person sees only what they should." },
     ],
     cta: {
-      h2: "Build yours. It takes minutes.",
-      button: "Build my agent",
+      h2: "Sign in. Customize. Work.",
+      button: "Get started",
     },
   },
 };
@@ -224,20 +241,16 @@ export default async function PlataformaPage() {
               {t.hero.title2}
             </span>
           </h1>
-          <div className="mt-8 flex flex-wrap items-center gap-5">
-            <Link
-              href="/login"
-              className="rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
-            >
-              {t.hero.ctaPrimary}
-            </Link>
-            <Link
-              href="/precos"
-              className="text-[15px] font-semibold text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
-            >
-              {t.hero.ctaSecondary}
-            </Link>
-          </div>
+          <HeroInstallCtas
+            downloadLabel={t.hero.ctaDownload}
+            terminalLabel={t.hero.ctaTerminal}
+          />
+          <Link
+            href="/precos"
+            className="mt-5 inline-block text-[15px] font-semibold text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
+          >
+            {t.hero.ctaSecondary}
+          </Link>
         </div>
       </section>
 
@@ -265,26 +278,11 @@ export default async function PlataformaPage() {
             </ul>
           </div>
 
-          {/* Agenda mock */}
+          {/* Automações mock */}
           <div className="rounded-3xl bg-white/60 p-4 sm:p-8">
             <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-[0_24px_80px_-40px_rgba(41,51,31,0.35)]">
               <WindowChrome label={t.operate.windowLabel} />
-              <div className="divide-y divide-line">
-                {t.operate.rows.map((r) => (
-                  <div key={r.when} className="flex items-center gap-4 px-5 py-3.5">
-                    <span className={`h-2 w-2 shrink-0 rounded-full ${r.on ? "w4y-live-dot bg-salvia" : "bg-line"}`} />
-                    <div className="min-w-0">
-                      <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-salvia">
-                        {r.when}
-                      </p>
-                      <p className="mt-0.5 truncate text-sm text-ink">{r.what}</p>
-                    </div>
-                    <span className="ml-auto shrink-0 font-mono text-[10px] uppercase tracking-[0.14em] text-ink-faint">
-                      {r.on ? t.operate.statusOn : t.operate.statusOff}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <AutomationsTableMock locale={locale} />
             </div>
           </div>
         </div>
@@ -378,33 +376,22 @@ export default async function PlataformaPage() {
         </div>
       </section>
 
-      {/* ── Studio + Models row ─────────────────────────────────────── */}
+      {/* ── Personalize + Models row ──────────────────────────────────── */}
       <section className="border-t border-line px-6 py-20">
         <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-2">
-          {/* Agent Studio */}
+          {/* Personalizar */}
           <div className="rounded-2xl border border-line bg-white p-7">
             <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-              {t.studio.eyebrow}
+              {t.personalize.eyebrow}
             </p>
             <h3 className="mt-2 text-xl font-bold text-ink">
-              {t.studio.h3}
+              {t.personalize.h3}
             </h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-soft">
-              {t.studio.body}
+              {t.personalize.body}
             </p>
-            <div className="mt-5 overflow-hidden rounded-xl border border-line">
-              {t.studio.agents.map((a, i) => (
-                <div key={a.name} className={`flex items-center gap-3 px-4 py-3 ${i > 0 ? "border-t border-line" : ""}`}>
-                  <span className={`h-2 w-2 shrink-0 rounded-full ${a.on ? "w4y-live-dot bg-salvia" : "bg-line"}`} />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink">{a.name}</p>
-                    <p className="truncate text-[12.5px] text-ink-soft">{a.focus}</p>
-                  </div>
-                  <span className="ml-auto shrink-0 rounded-full bg-salvia-soft px-2.5 py-1 font-mono text-[9px] uppercase tracking-[0.12em] text-mata">
-                    {t.studio.badge}
-                  </span>
-                </div>
-              ))}
+            <div className="mt-5">
+              <PersonalizeSkillsMock locale={locale} />
             </div>
           </div>
 
@@ -434,6 +421,15 @@ export default async function PlataformaPage() {
               ))}
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Canais + Conectores ─────────────────────────────────────── */}
+      <section className="border-t border-line bg-paper-deep px-6 py-20">
+        <div className="mx-auto grid max-w-6xl gap-6 lg:grid-cols-3">
+          <ChannelsGridMock locale={locale} />
+          <PersonalizeConnectorsMock locale={locale} />
+          <ArtifactsMock locale={locale} />
         </div>
       </section>
 

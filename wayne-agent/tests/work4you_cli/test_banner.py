@@ -173,6 +173,47 @@ def test_build_welcome_banner_disabled_mcp_shows_disabled_not_failed():
     assert "failed" in output
 
 
+def test_build_welcome_banner_hides_internal_mcp_servers():
+    """Product wiring (Composio / Conectores) must not appear in the CLI banner."""
+    with (
+        patch.object(model_tools, "check_tool_availability", return_value=(["web"], [])),
+        patch.object(banner, "get_available_skills", return_value={}),
+        patch.object(banner, "get_update_result", return_value=None),
+        patch.object(
+            tools.mcp_tool,
+            "get_mcp_status",
+            return_value=[
+                {
+                    "name": "composio",
+                    "transport": "http",
+                    "tools": 0,
+                    "connected": False,
+                    "disabled": False,
+                    "status": "failed",
+                },
+                {
+                    "name": "docker-profile",
+                    "transport": "stdio",
+                    "tools": 2,
+                    "connected": True,
+                    "disabled": False,
+                    "status": "connected",
+                },
+            ],
+        ),
+    ):
+        console = Console(record=True, force_terminal=False, color_system=None, width=160)
+        banner.build_welcome_banner(
+            console=console, model="anthropic/test-model", cwd="/tmp/project",
+            tools=[{"function": {"name": "read_file"}}],
+            get_toolset_for_tool=lambda n: "file",
+        )
+
+    output = console.export_text()
+    assert "composio" not in output.lower()
+    assert "docker-profile" in output
+
+
 def test_build_welcome_banner_configured_mcp_is_not_failed():
     """A configured MCP server with no connection attempt yet is not a failure."""
     with (

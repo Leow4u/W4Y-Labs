@@ -30,7 +30,7 @@ export default async function RetornoPage({
       <h1 className="font-brand text-2xl font-semibold">Estamos ativando sua assinatura…</h1>
       <p className="mt-3 text-sm text-neutral-500">
         Pode levar alguns segundos para o pagamento ser confirmado. Você já pode voltar às suas
-        instâncias — os créditos aparecem assim que a confirmação chega.
+        instâncias — o plano fica ativo assim que a confirmação chega.
       </p>
       <Link
         href="/instancias"

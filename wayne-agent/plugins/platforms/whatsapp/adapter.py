@@ -535,20 +535,27 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                     _deps_fresh = False
             if not _deps_fresh:
                 print(f"[{self.name}] Installing WhatsApp bridge dependencies...")
-                # Resolve npm path so Windows uses npm.cmd from the
-                # Wayne-managed portable Node before falling back to PATH.
-                _npm_bin = find_node_executable("npm") or "npm"
                 try:
                     # Read timeout from environment variable, default to 300 seconds (5 minutes)
                     # to accommodate slower systems like Unraid NAS
                     npm_install_timeout = env_int("WHATSAPP_NPM_INSTALL_TIMEOUT", 300)
+                    from work4you_cli._subprocess_compat import (
+                        resolve_npm_argv,
+                        windows_hide_flags,
+                    )
+
+                    npm_argv = resolve_npm_argv(["install", "--silent"])
+                    npm_kwargs: dict = {}
+                    if _IS_WINDOWS:
+                        npm_kwargs["creationflags"] = windows_hide_flags()
                     install_result = subprocess.run(
-                        [_npm_bin, "install", "--silent"],
+                        npm_argv,
                         cwd=str(bridge_dir),
                         capture_output=True,
                         text=True,
                         timeout=npm_install_timeout,
                         env=with_wayne_node_path(),
+                        **npm_kwargs,
                     )
                     if install_result.returncode != 0:
                         print(f"[{self.name}] npm install failed: {install_result.stderr}")
@@ -623,8 +630,9 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
             # can use it without the user needing to set a separate env var.
             # with_wayne_node_path() copies os.environ when called with no arg.
             bridge_env = with_wayne_node_path()
-            if self._reply_prefix is not None:
-                bridge_env["WHATSAPP_REPLY_PREFIX"] = self._reply_prefix
+            # Always pass the effective prefix so the Node bridge never falls back
+            # to its own legacy default (pre-rebrand "Wayne Agent" header).
+            bridge_env["WHATSAPP_REPLY_PREFIX"] = self._effective_reply_prefix()
             # Pass the profile-aware cache directories so the bridge writes
             # media where the Python side reads it.  Without these the bridge
             # hardcodes ~/.wayne/{image,audio,document}_cache, which diverges
@@ -638,6 +646,12 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
             bridge_env["WAYNE_AUDIO_CACHE_DIR"] = str(_get_audio_dir())
             bridge_env["WAYNE_DOCUMENT_CACHE_DIR"] = str(_get_doc_dir())
 
+            popen_kwargs: dict = {}
+            if _IS_WINDOWS:
+                from work4you_cli._subprocess_compat import windows_hide_flags
+
+                popen_kwargs["creationflags"] = windows_hide_flags()
+
             self._bridge_process = subprocess.Popen(
                 [
                     find_node_executable("node") or "node",
@@ -650,6 +664,7 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                 stderr=bridge_log_fh,
                 start_new_session=True,
                 env=bridge_env,
+                **popen_kwargs,
             )
             _write_bridge_pidfile(self._session_path, self._bridge_process.pid)
             

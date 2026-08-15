@@ -51,7 +51,7 @@ param(
 
     # --- Desktop GUI build (opt-in) ---
     # When set, install.ps1 includes Stage-Desktop in the manifest and
-    # builds apps/desktop into a launchable Wayne.exe.
+    # builds apps/work4you into a launchable Wayne.exe.
     #
     # Why opt-in:
     #   * Wayne-Setup.exe (the signed Tauri bootstrap installer) passes
@@ -59,7 +59,7 @@ param(
     #     with a launchable desktop binary.
     #   * The Electron desktop's own bootstrap-runner.cjs runs install.ps1
     #     from inside an already-launched Wayne.exe; if THAT recursively
-    #     built apps/desktop it would try to overwrite the live Wayne.exe
+    #     built apps/work4you it would try to overwrite the live Wayne.exe
     #     on disk and fail. The recursive path omits the flag.
     #   * The canonical CLI one-liner (irm | iex) omits the flag too;
     #     terminal users don't need a desktop binary built for them, and
@@ -2021,7 +2021,7 @@ try:
     specs = data['project']['optional-dependencies']['all']
     out = []
     for s in specs:
-        m = re.search(r'wayne-agent\[([\w-]+)\]', s)
+        m = re.search(r'(?:work4you-agent|wayne-agent)\[([\w-]+)\]', s)
         if m: out.append(m.group(1))
     print(','.join(out))
 except Exception:
@@ -2181,7 +2181,21 @@ function Set-PathVariable {
     if ($NoVenv) {
         $wayneBin = "$InstallDir"
     } else {
-        $wayneBin = "$InstallDir\venv\Scripts"
+        $wayneBin = $null
+        foreach ($venvName in @('.venv', 'venv')) {
+            $candidate = Join-Path $InstallDir "$venvName\Scripts"
+            if (Test-Path (Join-Path $candidate 'work4you.exe')) {
+                $wayneBin = $candidate
+                break
+            }
+            if (Test-Path (Join-Path $candidate 'wayne.exe')) {
+                $wayneBin = $candidate
+                break
+            }
+        }
+        if (-not $wayneBin) {
+            $wayneBin = Join-Path $InstallDir 'venv\Scripts'
+        }
     }
 
     # Add the venv Scripts dir to user PATH so work4you is globally available.
@@ -2192,14 +2206,39 @@ function Set-PathVariable {
     # directory on PATH is what installs both names; there is no separate shim
     # to write on Windows.
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
+    $staleBins = @(
+        (Join-Path $InstallDir 'venv\Scripts'),
+        (Join-Path $InstallDir '.venv\Scripts')
+    ) | Where-Object { $_ -ne $wayneBin }
 
-    if ($currentPath -notlike "*$wayneBin*") {
-        [Environment]::SetEnvironmentVariable(
-            "Path",
-            "$wayneBin;$currentPath",
-            "User"
-        )
-        Write-Success "Added to user PATH: $wayneBin"
+    $pathParts = @($currentPath -split ';' | Where-Object { $_ })
+    foreach ($stale in $staleBins) {
+        $pathParts = @($pathParts | Where-Object {
+            $_.TrimEnd('\') -ne $stale.TrimEnd('\')
+        })
+    }
+    $currentPath = ($pathParts -join ';')
+
+    $homeBin = Join-Path $WayneHome "bin"
+    New-Item -ItemType Directory -Path $homeBin -Force | Out-Null
+    if (-not $NoVenv) {
+        $work4youExe = Join-Path $wayneBin 'work4you.exe'
+        $wayneExe = Join-Path $wayneBin 'wayne.exe'
+        if (Test-Path $work4youExe) {
+            Set-Content -Path (Join-Path $homeBin 'work4you.cmd') -Value "@echo off`r`n`"$work4youExe`" %*" -Encoding ASCII
+        }
+        if (Test-Path $wayneExe) {
+            Set-Content -Path (Join-Path $homeBin 'wayne.cmd') -Value "@echo off`r`n`"$wayneExe`" %*" -Encoding ASCII
+        }
+    }
+
+    $pathToAdd = @($homeBin, $wayneBin) | Where-Object { $_ -and $currentPath -notlike "*$_*" }
+    if ($pathToAdd.Count -gt 0) {
+        $joined = ($pathToAdd + @($currentPath)) -join ';'
+        [Environment]::SetEnvironmentVariable("Path", $joined, "User")
+        foreach ($entry in $pathToAdd) {
+            Write-Success "Added to user PATH: $entry"
+        }
     } else {
         Write-Info "PATH already configured"
     }
@@ -2248,20 +2287,20 @@ function Set-PathVariable {
     }
 
     # Update current session
-    $env:Path = "$wayneBin;$env:Path"
+    $env:Path = "$homeBin;$wayneBin;$env:Path"
 
     Write-Success "work4you command ready"
 }
 
 function Write-BootstrapMarker {
     # Writes $InstallDir\.wayne-bootstrap-complete which tells the Wayne
-    # desktop app (apps/desktop/electron/main.cjs) "install.ps1 ran
+    # desktop app (apps/work4you/electron/main.cjs) "install.ps1 ran
     # successfully — DON'T trigger the legacy first-launch bootstrap
     # runner."
     #
     # Schema mirrors what main.cjs's writeBootstrapMarker() / isBootstrap
     # Complete() expect. Keep this in lockstep when either side changes:
-    #   apps/desktop/electron/main.cjs lines 1199-1222
+    #   apps/work4you/electron/main.cjs lines 1199-1222
     #   BOOTSTRAP_MARKER_SCHEMA_VERSION = 1 (line 187)
     #
     # Pinned commit/branch come from -Commit + -Branch flags (passed by
@@ -2693,7 +2732,7 @@ $script:DesktopElectronFallbackMirror = "https://npmmirror.com/mirrors/electron/
 # Electron package dir — workspace-local nest first, then root hoist.
 function Get-ElectronDir {
     param([string]$InstallDir)
-    $desktopLocal = Join-Path $InstallDir 'apps\desktop\node_modules\electron'
+    $desktopLocal = Join-Path $InstallDir 'apps\work4you\node_modules\electron'
     if (Test-Path -LiteralPath $desktopLocal) { return $desktopLocal }
     return (Join-Path $InstallDir 'node_modules\electron')
 }
@@ -2757,20 +2796,20 @@ function Try-RestoreElectronDist {
 }
 
 function Install-Desktop {
-    # Build apps/desktop into a launchable Wayne.exe. Only called from
+    # Build apps/work4you into a launchable Wayne.exe. Only called from
     # Stage-Desktop, which is itself only included in the manifest when
     # -IncludeDesktop was passed to install.ps1.
     #
     # The workspace npm install at repo root (done by Install-NodeDeps for
-    # browser tools) does NOT pull apps/desktop's dependencies, because the
+    # browser tools) does NOT pull apps/work4you's dependencies, because the
     # browser-tools workspace at $InstallDir\package.json is a separate
     # workspace from apps/*. We do a full root-level `npm install` here
-    # so the workspace resolves apps/desktop's deps (including Electron
-    # itself, ~150MB), then run `npm run pack` in apps/desktop which
-    # produces the unpacked binary at apps/desktop/release/<os>-unpacked/.
+    # so the workspace resolves apps/work4you's deps (including Electron
+    # itself, ~150MB), then run `npm run pack` in apps/work4you which
+    # produces the unpacked binary at apps/work4you/release/<os>-unpacked/.
     #
     # The Tauri bootstrap installer's launch_wayne_desktop command
-    # resolves apps/desktop/release/win-unpacked/Wayne.exe directly,
+    # resolves apps/work4you/release/win-unpacked/Wayne.exe directly,
     # so an "unpacked" build (electron-builder --dir) is enough — we
     # don't need to produce an NSIS/MSI artifact here.
 
@@ -2787,10 +2826,10 @@ function Install-Desktop {
         return
     }
 
-    $desktopDir = "$InstallDir\apps\desktop"
+    $desktopDir = "$InstallDir\apps\work4you"
     if (-not (Test-Path "$desktopDir\package.json")) {
-        Write-Warn "Skipping desktop build (apps/desktop not present in checkout)"
-        $script:_StageSkippedReason = "apps/desktop not present"
+        Write-Warn "Skipping desktop build (apps/work4you not present in checkout)"
+        $script:_StageSkippedReason = "apps/work4you not present"
         return
     }
 
@@ -2806,7 +2845,7 @@ function Install-Desktop {
         if (Test-Path $sibling) { $npmExe = $sibling }
     }
 
-    # 1. Workspace-level install so apps/desktop's deps (Electron, Vite,
+    # 1. Workspace-level install so apps/work4you's deps (Electron, Vite,
     # node-pty prebuilds, etc.) actually land in node_modules. This is
     # the SAME `npm install` Install-NodeDeps does for browser tools,
     # but at the root rather than the browser-tools workspace, so all
@@ -2868,17 +2907,17 @@ function Install-Desktop {
     }
     Pop-Location
 
-    # 2. Build apps/desktop. `npm run pack` runs:
+    # 2. Build apps/work4you. `npm run pack` runs:
     #      assert-root-install + write-build-stamp + stage-native-deps +
     #      tsc -b + vite build + electron-builder --dir
     # The --dir mode produces an unpacked Wayne.exe in
-    # apps/desktop/release/win-unpacked/ without bundling NSIS/MSI;
+    # apps/work4you/release/win-unpacked/ without bundling NSIS/MSI;
     # we don't need a distributable installer artifact, just a
     # launchable binary the Tauri installer can spawn.
     #
     # CSC_IDENTITY_AUTO_DISCOVERY=false tells electron-builder we are
     # NOT signing the output. Combined with signAndEditExecutable=false in
-    # apps/desktop/package.json's build.win block, electron-builder never
+    # apps/work4you/package.json's build.win block, electron-builder never
     # invokes signtool and therefore never fetches/extracts winCodeSign
     # (whose macOS symlinks crash 7-Zip on non-admin Windows — a dead end we
     # are NOT trying to work around). The Wayne icon + product name are
@@ -2942,7 +2981,7 @@ function Install-Desktop {
                 foreach ($line in $snippet -split "`n") { Write-Host "    $line" -ForegroundColor DarkGray }
                 Write-Info "  Full log: $buildLog"
             }
-            throw "apps/desktop build failed (exit $code)"
+            throw "apps/work4you build failed (exit $code)"
         }
         Write-Success "Desktop app built"
         Remove-Item -Force $buildLog -ErrorAction SilentlyContinue
@@ -2961,7 +3000,7 @@ function Install-Desktop {
     Pop-Location
 
     # 3. Sanity-check the produced binary. Probe both arches so this works
-    # on x64 and arm64 build machines, and both product names: apps/desktop's
+    # on x64 and arm64 build machines, and both product names: apps/work4you's
     # productName is now Work4You, but a checkout from before the desktop
     # rename still packs Wayne.exe.
     $exeCandidates = @(
@@ -2985,7 +3024,7 @@ function Install-Desktop {
     }
 
     # 3b. The Wayne icon + identity are stamped onto Wayne.exe by the
-    #     electron-builder `afterPack` hook (apps/desktop/scripts/after-pack.cjs)
+    #     electron-builder `afterPack` hook (apps/work4you/scripts/after-pack.cjs)
     #     during `npm run pack` above — for every build, so the installer's
     #     --update rebuild stays branded too. No separate stamp step needed here.
     #     electron-builder's own rcedit step stays disabled (signAndEditExecutable

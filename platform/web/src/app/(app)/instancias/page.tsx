@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 import { getDevSession } from "@/lib/dev-auth";
 import { db, instances } from "@/lib/db";
 import { probeInstance, type InstanceHealth } from "@/lib/instance-health";
+import { desktopLaunchMode, postLoginDestination } from "@/lib/shared-motor";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,12 @@ interface Row {
 
 export default async function InstanciasPage() {
   const session = (await getDevSession())!; // layout (app) garante auth
+  const l0 = desktopLaunchMode();
+  const enterHref = postLoginDestination();
+  const enterLabel = l0 ? "Baixar aplicativo →" : "Entrar no Work4You →";
+  const enterHint = l0
+    ? "Nesta fase o produto corre na app desktop instalada. Faça login na app com a mesma conta."
+    : "A entrada usa login unificado e abre o Work4You em app.work4you.ai.";
 
   let rows: Row[] | null = null;
   try {
@@ -88,16 +95,16 @@ export default async function InstanciasPage() {
                     </p>
                   </div>
                   <a
-                    href="/login/enter"
+                    href={enterHref}
                     className="font-brand shrink-0 rounded-md bg-neutral-900 px-5 py-2.5 text-sm font-semibold text-white hover:opacity-90 dark:bg-white dark:text-neutral-900"
                   >
-                    Entrar no Work4You →
+                    {enterLabel}
                   </a>
                 </div>
               </div>
             ))}
             <p className="text-xs text-neutral-400">
-              A entrada usa login unificado e abre o Work4You em /chat na mesma origem.
+              {enterHint}
             </p>
           </div>
         )}

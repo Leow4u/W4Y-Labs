@@ -1,0 +1,176 @@
+# Build and publish Work4You desktop for macOS (Apple Silicon).
+# unsigned=true (default): no Apple account needed
+# See docs/SECURITY-SIGNING-APPLE.md
+
+name: Desktop macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      unsigned:
+        description: Build without Apple signing (pre-Developer account)
+        type: boolean
+        default: true
+      publish:
+        description: Upload release artefacts to GCS after build
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  mac-arm64:
+    runs-on: macos-14
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: wayne-agent/package-lock.json
+
+      - name: Install dependencies
+        working-directory: wayne-agent
+        run: npm ci
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      # The engine ships native binaries, so the macOS runtime can only be built
+      # ON macOS. Without this the DMG shipped source-only and every Mac spent
+      # ~30 minutes running `uv sync` on first launch. beforePack now refuses to
+      # package when this step is missing or produced another platform's tree.
+      - name: Build engine runtime (darwin-arm64)
+        working-directory: wayne-agent
+        run: |
+          node scripts/build-engine-runtime.mjs \
+            --out-dir apps/work4you/build/engine-runtime \
+            --out-zip "${RUNNER_TEMP}/wayne-engine-${GITHUB_RUN_ID}-darwin-arm64.zip"
+          cat apps/work4you/build/engine-runtime/runtime-ready.json
+
+      - name: Build DMG
+        working-directory: wayne-agent/apps/work4you
+        env:
+          W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64: ${{ secrets.W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ inputs.unsigned }}" != "true" ]; then
+            export CSC_LINK="${{ secrets.APPLE_CSC_LINK_BASE64 }}"
+            export CSC_KEY_PASSWORD="${{ secrets.APPLE_CSC_KEY_PASSWORD }}"
+            export APPLE_API_KEY_ID="${{ secrets.APPLE_API_KEY_ID }}"
+            export APPLE_API_ISSUER="${{ secrets.APPLE_API_ISSUER }}"
+            export APPLE_API_KEY="${{ secrets.APPLE_API_KEY }}"
+          else
+            echo "Unsigned build (no CSC_/APPLE_ secrets)."
+          fi
+          npm run dist:mac:dmg
+
+      # Prove the PACKAGED app can actually start its engine. Building the
+      # runtime and packaging it successfully does not prove that: the venv
+      # interpreter was once linked by absolute path and dangled the moment the
+      # tree moved, which no build step notices. Nobody on this project owns a
+      # Mac, so this runner is the only place the macOS app is ever exercised.
+      - name: Verify packaged engine (darwin-arm64)
+        working-directory: wayne-agent/apps/work4you
+        run: |
+          set -euo pipefail
+          APP=$(find release -maxdepth 2 -name 'Work4You.app' -type d | head -1)
+          if [ -z "$APP" ]; then echo "No Work4You.app under release/" >&2; exit 1; fi
+          ENGINE="$APP/Contents/Resources/engine"
+          echo "app    : $APP"
+          echo "engine : $ENGINE"
+
+          test -f "$ENGINE/pyproject.toml" || { echo "engine tree missing" >&2; exit 1; }
+
+          PLATFORM=$(node -p "const m=require('$PWD/$ENGINE/runtime-ready.json'); m.platform+'-'+m.arch")
+          [ "$PLATFORM" = "darwin-arm64" ] || { echo "packaged runtime is $PLATFORM" >&2; exit 1; }
+
+          # -e, not -f: a dangling symlink exists but does not resolve, and that
+          # is exactly the failure this step is here to catch.
+          PY="$ENGINE/.venv/bin/python"
+          test -e "$PY" || { echo "venv interpreter does not resolve: $(readlink "$PY" || true)" >&2; exit 1; }
+
+          # Run it the way the app runs it: main.cjs spawns the backend with
+          # cwd set to the engine root. That cwd is load-bearing — `uv sync`
+          # installs the project EDITABLE, and the .pth finder still points at
+          # the build-time staging directory, which is long gone by now. The
+          # import therefore resolves from cwd, not from site-packages. Do not
+          # "simplify" this by dropping the cd: it would pass here and tell you
+          # nothing about the app.
+          ( cd "$ENGINE" && ./.venv/bin/python -c 'import work4you_cli, sys; print("engine ok on CPython " + sys.version.split()[0])' )
+
+      - name: Upload build artefacts (CI retention)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: work4you-mac-arm64
+          path: |
+            wayne-agent/apps/work4you/release/Work4You-*-mac-arm64.dmg
+            wayne-agent/apps/work4you/release/Work4You-*-mac-arm64.dmg.blockmap
+            wayne-agent/apps/work4you/release/latest-mac.yml
+          if-no-files-found: error
+
+      - name: Authenticate to Google Cloud
+        if: inputs.publish
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.11
+        with:
+          credentials_json: ${{ secrets.GCP_W4Y_PUBLISH_SA_JSON }}
+
+      - name: Setup gcloud
+        if: inputs.publish
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2.2.1
+
+      - name: Publish to GCS
+        if: inputs.publish
+        working-directory: wayne-agent/apps/work4you
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUCKET=gs://w4y-engine-dist
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg" "$BUCKET/"
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg.blockmap" "$BUCKET/"
+          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' cp release/latest-mac.yml "$BUCKET/latest-mac.yml"
+
+      # In-app engine updates need a feed for THIS platform: the desktop asks for
+      # latest-darwin-arm64.json and refuses a manifest built for anything else.
+      # Without this, Macs have no engine updates at all.
+      - name: Publish engine feed (darwin-arm64)
+        if: inputs.publish
+        working-directory: wayne-agent
+        run: |
+          set -euo pipefail
+          BUCKET=gs://w4y-engine-dist
+          ENGINE_VERSION="$(date -u +%Y%m%d)-darwin-arm64"
+          ARTIFACT="wayne-engine-${ENGINE_VERSION}.zip"
+          ZIP="${RUNNER_TEMP}/wayne-engine-${GITHUB_RUN_ID}-darwin-arm64.zip"
+
+          # Read the platform from the runtime that was actually built rather
+          # than trusting a hardcoded string — a mislabelled feed is precisely
+          # what sent Windows binaries to every Mac.
+          PLATFORM=$(node -p "const m=require('./apps/work4you/build/engine-runtime/runtime-ready.json'); m.platform+'-'+m.arch")
+          if [ "$PLATFORM" != "darwin-arm64" ]; then
+            echo "Refusing to publish: runtime is $PLATFORM, expected darwin-arm64" >&2
+            exit 1
+          fi
+
+          gsutil -h 'Cache-Control:no-store' cp "$ZIP" "$BUCKET/$ARTIFACT"
+
+          ENGINE_VERSION="$ENGINE_VERSION" ARTIFACT="$ARTIFACT" node -e '
+            const fs = require("node:fs");
+            const manifest = {
+              version: process.env.ENGINE_VERSION,
+              zipUrl: "https://storage.googleapis.com/w4y-engine-dist/" + process.env.ARTIFACT,
+              builtAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+              runtimeReady: true,
+              platform: "darwin-arm64",
+            };
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/latest-darwin-arm64.json", JSON.stringify(manifest));
+          '
+          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:application/json; charset=utf-8' \
+            cp "${RUNNER_TEMP}/latest-darwin-arm64.json" "$BUCKET/latest-darwin-arm64.json"
+

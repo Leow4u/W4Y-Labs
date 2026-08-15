@@ -1,0 +1,14 @@
+# Tenant platform defaults (Relay/Auto) + mandatory web_server import patch.
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly245
+FROM ${BASE_IMAGE}
+
+COPY work4you_cli/platform_tenant.wayne.py /opt/wayne/wayne_cli/platform_tenant.py
+COPY work4you_cli/web_server.py /tmp/w4y-web_server.py
+
+RUN set -e; \
+    sed 's/work4you_cli/wayne_cli/g;s/work4you_constants/wayne_constants/g;s/work4you_state/wayne_state/g;s/work4you_logging/wayne_logging/g;s/work4you_bootstrap/wayne_bootstrap/g;s/work4you_time/wayne_time/g' \
+        /tmp/w4y-web_server.py > /opt/wayne/wayne_cli/web_server.py; \
+    if [ -d /opt/work4you/work4you_cli ]; then \
+      cp /opt/wayne/wayne_cli/web_server.py /opt/work4you/work4you_cli/web_server.py; \
+    fi; \
+    rm -f /tmp/w4y-web_server.py

@@ -1,6 +1,6 @@
 """Invariant: the @assistant-ui dependency cluster agrees on one tap version.
 
-The Wayne desktop app (``apps/desktop``) is built from source on every
+The Wayne desktop app (``apps/work4you``) is built from source on every
 install/update via ``scripts/install.ps1`` → ``npm ci``/``npm install`` →
 ``tsc -b && vite build``. The ``@assistant-ui`` packages share an internal
 reactivity lib, ``@assistant-ui/tap``, and they only interoperate when they
@@ -18,7 +18,7 @@ install silently floated ``store`` up to ``0.2.18``, which then could not find
 
     "./react-shim" is not exported ... from package @assistant-ui/tap
 
-i.e. the opaque "apps/desktop build failed (exit 1)" every user hit when
+i.e. the opaque "apps/work4you build failed (exit 1)" every user hit when
 updating. The fix pins ``@assistant-ui/store`` (via root ``overrides``) to the
 last release that targets ``tap@^0.5.x``.
 

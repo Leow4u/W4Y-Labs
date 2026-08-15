@@ -81,7 +81,7 @@ export interface DocPage {
 export const CATEGORIES = [
   "Comece por aqui",
   "No dia a dia",
-  "Construa",
+  "Personalize",
   "Conexões",
   "Plataformas",
 ] as const;
@@ -98,7 +98,7 @@ export const DOCS: DocPage[] = [
     body: (
       <>
         <P>
-          A Work4You é uma plataforma onde você <B>constrói o seu agente de IA</B> e
+          A Work4You é uma plataforma onde você <B>personaliza o seu agente de IA</B> e
           coloca ele pra trabalhar. Diferente de um chat comum, o seu agente tem um{" "}
           <B>computador próprio na nuvem</B>: ele navega na internet, mexe em
           planilhas, escreve documentos, acessa os aplicativos que você autorizar e
@@ -122,8 +122,10 @@ export const DOCS: DocPage[] = [
         <P>
           O agente vive na nuvem, não no seu navegador. Você pode fechar a aba,
           desligar o computador — ele continua o trabalho e te avisa quando terminar.
-          Com a <DocLink href="/documentacao/agenda">Agenda</DocLink>, ele também
-          executa rotinas recorrentes sem ninguém pedir.
+          Com as{" "}
+          <DocLink href="/documentacao/automacoes">Automações</DocLink>, ele também
+          executa tarefas repetitivas sozinho, na hora marcada ou quando algo
+          acontece.
         </P>
         <Note>
           Cada cliente tem uma <B>instância dedicada</B>: seu agente, seus arquivos e
@@ -149,8 +151,7 @@ export const DOCS: DocPage[] = [
             </>,
             <>
               <B>Descreva a primeira tarefa</B> na caixa de mensagem. Seja
-              específico, como seria com um funcionário novo: o que você quer, pra
-              quando, em que formato. Exemplo: “Pesquisa os 10 maiores concorrentes
+              específico — contexto, prazo e formato. Exemplo: “Pesquisa os 10 maiores concorrentes
               de [seu setor] no Brasil e monta uma planilha comparando preço e
               proposta de valor”.
             </>,
@@ -164,8 +165,9 @@ export const DOCS: DocPage[] = [
               aprovação. Você decide: permitir uma vez, permitir sempre ou negar.
             </>,
             <>
-              <B>Receba a entrega.</B> Planilhas, documentos e apresentações
-              aparecem na conversa prontos pra abrir, pré-visualizar e baixar.
+              <B>Receba os artefatos.</B> Planilhas, documentos, imagens e
+              apresentações aparecem na conversa prontos pra abrir, pré-visualizar e
+              baixar.
             </>,
           ]}
         />
@@ -182,9 +184,9 @@ export const DOCS: DocPage[] = [
               <DocLink href="/documentacao/conectores">Conectores</DocLink>.
             </>,
             <>
-              Quando uma tarefa der certo, transforme em rotina na{" "}
-              <DocLink href="/documentacao/agenda">Agenda</DocLink> — o agente passa
-              a fazer sozinho, no horário que você definir.
+              Quando uma tarefa der certo, transforme em{" "}
+              <DocLink href="/documentacao/automacoes">automação</DocLink> — o agente
+              passa a fazer sozinho, no horário que você definir.
             </>,
           ]}
         />
@@ -194,66 +196,69 @@ export const DOCS: DocPage[] = [
   {
     slug: "planos-e-creditos",
     category: "Comece por aqui",
-    nav: "Planos e créditos",
-    title: "Planos e créditos",
-    description: "Como funciona a cobrança: créditos mensais, sem surpresa no fim do mês.",
+    nav: "Planos e uso",
+    title: "Planos e uso",
+    description: "Como funciona a cobrança: uso incluído por plano, on-demand opcional, sem surpresa.",
     body: (
       <>
         <P>
-          Todo plano inclui uma quantidade de <B>créditos por mês</B>. Créditos são a
-          moeda de trabalho do agente: cada tarefa consome de acordo com o esforço —
-          uma pergunta rápida gasta pouco; uma pesquisa longa com planilha no final
-          gasta mais. Acabaram os créditos do mês? O agente para e avisa. <B>Nunca
-          existe cobrança surpresa.</B>
+          Cada plano inclui um <B>pool de uso</B> que reinicia a cada ciclo de cobrança.
+          Tarefas simples consomem menos; pesquisas longas ou modo MAX consomem mais.
+          Quando o uso incluído acaba, o agente para e avisa — ou você ativa{" "}
+          <B>on-demand</B> em Configurações → Conta, com um <B>limite de gasto</B> por
+          ciclo. O overage é reportado no fim do ciclo e cobrado na próxima fatura.{" "}
+          <B>Nunca existe cobrança surpresa.</B>
         </P>
         <H2>Os planos</H2>
         <UL
           items={[
             <>
-              <B>Grátis</B> — pra conhecer a plataforma. Sem cartão de crédito.
+              <B>Grátis</B> — Relay 2.5 Fast (modelo de casa). Sem cartão de crédito.
+              Resto do catálogo com cadeado até upgrade.
             </>,
             <>
-              <B>Starter (US$ 19/mês)</B> — 600 créditos, os modos essenciais
-              (Flash e Auto) e sua instância pessoal na nuvem.
+              <B>Essencial (US$ 20/mês)</B> — catálogo completo, limites estendidos e sua
+              instância pessoal na nuvem.
             </>,
             <>
-              <B>Pro (US$ 49/mês)</B> — 1.600 créditos, modo <B>Expert</B> pra tarefas
-              difíceis e instância sempre ativa: seu funcionário 24 horas.
+              <B>Plus (US$ 60/mês)</B> — modo <B>MAX</B>, agente 24/7 na nuvem e limites
+              generosos.
             </>,
             <>
-              <B>Max (US$ 99/mês)</B> — 3.800 créditos e o modo <B>Crew</B>: um time de
-              agentes trabalhando em paralelo no mesmo objetivo.
+              <B>Max (US$ 200/mês)</B> — limites ampliados e suporte prioritário pra
+              operações pesadas.
             </>,
           ]}
         />
         <P>
-          Planos pagos começam com <B>7 dias grátis</B>, e a cobrança anual dá 2 meses
-          de desconto. Detalhes e assinatura em{" "}
+          A cobrança anual dá 2 meses de desconto. Detalhes e assinatura em{" "}
           <DocLink href="/precos">work4you.ai/precos</DocLink>.
+        </P>
+        <H2>On-demand e limite de gasto</H2>
+        <P>
+          Com um plano pago ativo e cartão associado, você pode ligar o uso on-demand
+          na Conta. Define um teto por ciclo (até o máximo do seu plano); o agente
+          continua depois de esgotar o incluído, sem alterar a mensalidade. Acompanhe o
+          medidor de <B>uso incluído</B> e o gasto on-demand estimado na mesma tela.
         </P>
         <H2>Os modos de trabalho</H2>
         <UL
           items={[
             <>
-              <B>Flash</B> — respostas rápidas, custo mínimo. Ideal pra tarefas do
-              dia a dia.
+              <B>Relay 2.5 Fast</B> — modelo de casa no plano Grátis. Rápido e
+              económico.
             </>,
             <>
-              <B>Auto</B> — o padrão inteligente: direciona cada tarefa pro melhor
-              modelo, equilibrando qualidade e custo.
+              <B>Relay</B> — roteador inteligente nos planos pagos (Essencial+).
             </>,
             <>
-              <B>Expert</B> — os modelos mais fortes, pra problemas difíceis (nos
-              planos Pro e Max).
-            </>,
-            <>
-              <B>Crew</B> — vários agentes em paralelo, coordenados (no plano Max).
+              <B>MAX</B> — modelos mais fortes, pra problemas difíceis (Plus e Max).
             </>,
           ]}
         />
         <Note>
-          Você acompanha o consumo do mês dentro da plataforma e recebe avisos ao
-          passar de 50%, 75% e 90% dos créditos.
+          Você acompanha o consumo do ciclo em Configurações → Conta e recebe avisos ao
+          passar de 50%, 75% e 90% do uso incluído.
         </Note>
       </>
     ),
@@ -271,8 +276,8 @@ export const DOCS: DocPage[] = [
         <P>
           Cada trabalho vive numa <B>sessão</B> — uma conversa com memória própria.
           Você pode ter várias sessões ao mesmo tempo: uma pesquisa rodando, um
-          relatório em andamento, uma rotina agendada. A lista fica na barra lateral,
-          sempre à mão.
+          relatório em andamento, uma automação em execução. A lista fica na barra
+          lateral, na seção <B>SESSÕES</B>, sempre à mão.
         </P>
         <H2>Enquanto o agente trabalha</H2>
         <UL
@@ -345,77 +350,98 @@ export const DOCS: DocPage[] = [
     ),
   },
   {
-    slug: "agenda",
+    slug: "automacoes",
     category: "No dia a dia",
-    nav: "Agenda e rotinas",
-    title: "Agenda e rotinas",
-    description: "Trabalho recorrente que acontece sozinho — sem depender de você.",
+    nav: "Automações",
+    title: "Automações",
+    description: "Tarefas repetitivas que acontecem sozinhas — por horário ou por gatilho.",
     body: (
       <>
         <P>
-          A <B>Agenda</B> é onde o seu agente ganha compromissos. Uma rotina é uma
-          tarefa com horário: “toda segunda às 8h, resume os e-mails da semana”,
-          “todo dia às 18h, confere se entrou lead novo no CRM e me avisa no
-          WhatsApp”. Você define uma vez; ele cumpre sempre.
+          <B>Automações</B> são as tarefas repetitivas que o seu agente executa
+          sozinho, na nuvem, sem ninguém pedir. Você define uma vez; ele cumpre
+          sempre. Exemplo real, tirado da tela: <B>“Notícias Diárias de IA por
+          e-mail”</B> — todos os dias às 7:00, ativa.
         </P>
-        <H2>Como criar uma rotina</H2>
+        <H2>Duas formas de disparar</H2>
+        <UL
+          items={[
+            <>
+              <B>Por horário</B> — “toda segunda às 8h, resume os e-mails da semana”;
+              “todo dia às 7h, manda as notícias do setor no meu e-mail”.
+            </>,
+            <>
+              <B>Por gatilho do ambiente</B> — quando algo acontece: chegou um e-mail
+              com determinado assunto, entrou um lead novo no CRM, apareceu um
+              arquivo na pasta. O agente reage na hora.
+            </>,
+          ]}
+        />
+        <H2>Como criar uma automação</H2>
         <UL
           items={[
             <>
               <B>Conversando:</B> peça direto na sessão — “faz isso toda sexta às
-              17h” — e o agente agenda.
+              17h” — e o agente cria a automação.
             </>,
             <>
-              <B>Pela Agenda:</B> monte a rotina na tela, escolhendo frequência,
-              horário e instruções.
+              <B>Pela tela Automações:</B> monte na mão, escolhendo frequência ou
+              gatilho, horário e instruções.
             </>,
             <>
-              <B>Pela galeria de templates:</B> rotinas prontas pra adaptar — resumo
+              <B>Por um modelo pronto:</B> automações prontas pra adaptar — resumo
               diário, monitoramento, acompanhamento de clientes.
             </>,
           ]}
         />
-        <H2>Acompanhamento</H2>
+        <H2>O painel de execuções</H2>
         <P>
-          O <B>Calendário</B> mostra tudo que está agendado, inclusive quando você
-          tem mais de um agente. Cada execução fica registrada com o resultado — e as
-          entregas chegam onde você pediu: na plataforma, no seu e-mail ou no seu
-          WhatsApp, via <DocLink href="/documentacao/canais">Canais</DocLink>.
+          A tela mostra, de cara, como está a saúde do seu trabalho automático:{" "}
+          <B>Total de automações</B>, <B>Com sucesso (7 dias)</B> e{" "}
+          <B>Com falha (7 dias)</B>. Abaixo fica o <B>Histórico de execuções</B> —
+          cada rodada registrada com data, resultado e o que foi produzido. Deu erro,
+          você vê exatamente onde.
+        </P>
+        <P>
+          Cada automação aparece na lista com o resumo do agendamento e o estado —{" "}
+          <B>Ativa</B> ou pausada. Os resultados chegam onde você pediu: na
+          plataforma, no seu e-mail ou no seu WhatsApp, via{" "}
+          <DocLink href="/documentacao/canais">Canais</DocLink>.
         </P>
         <Note>
-          Rotinas rodam na nuvem — seu computador pode estar desligado. Do plano Pro
-          pra cima, o computador do seu agente fica <B>sempre ativo</B> — ideal pra
-          agenda cheia.
+          Automações rodam na nuvem — seu computador pode estar desligado. Do plano
+          Pro pra cima, o computador do seu agente fica <B>sempre ativo</B> — ideal
+          pra quem depende de gatilhos a qualquer hora.
         </Note>
       </>
     ),
   },
   {
-    slug: "entregas-e-arquivos",
+    slug: "artefatos",
     category: "No dia a dia",
-    nav: "Entregas e arquivos",
-    title: "Entregas e arquivos",
-    description: "Onde fica tudo que o agente produz — e o material que você dá pra ele.",
+    nav: "Artefatos",
+    title: "Artefatos",
+    description: "Os arquivos, imagens e links que o agente cria — todos num lugar só.",
     body: (
       <>
         <P>
-          O resultado do trabalho do agente é <B>arquivo de verdade</B>: planilhas,
-          documentos, apresentações, relatórios, páginas. Cada entrega aparece na
-          conversa na hora, com pré-visualização no painel lateral — planilha abre
-          como planilha, página abre como página.
+          <B>Artefatos</B> são as coisas de verdade que o agente cria: planilhas,
+          documentos, apresentações, relatórios, imagens, páginas e links. Cada
+          artefato aparece na conversa na hora, com pré-visualização no painel
+          lateral — planilha abre como planilha, página abre como página.
         </P>
-        <H2>A tela Entregas</H2>
+        <H2>A tela Artefatos</H2>
         <UL
           items={[
             <>
-              Tudo que o agente produziu, organizado em pastas, com busca, arquivos
+              Tudo que o agente produziu, organizado em pastas, com busca, itens
               recentes e favoritos.
             </>,
             <>
               Pré-visualize, baixe, renomeie e mova arquivos sem sair da plataforma.
             </>,
             <>
-              Os arquivos vivem no computador do agente na nuvem — disponíveis de
+              Os artefatos vivem no computador do agente na nuvem — disponíveis de
               qualquer dispositivo, a qualquer hora.
             </>,
           ]}
@@ -424,91 +450,84 @@ export const DOCS: DocPage[] = [
         <P>
           O caminho também funciona ao contrário: envie arquivos pro agente
           trabalhar — uma base de clientes, um contrato pra revisar, o histórico de
-          vendas. E, no{" "}
-          <DocLink href="/documentacao/agent-studio">Agent Studio</DocLink>, você
-          monta a base de <B>conhecimento</B> permanente do agente: documentos que
-          ele consulta e cita em qualquer tarefa.
+          vendas. Dentro de um{" "}
+          <DocLink href="/documentacao/projetos">projeto</DocLink>, esse material fica
+          junto das sessões, e o agente lê e escreve nele direto.
         </P>
       </>
     ),
   },
 
-  /* ============ Construa ============ */
+  /* ============ Personalize ============ */
   {
-    slug: "agent-studio",
-    category: "Construa",
-    nav: "Agent Studio",
-    title: "Agent Studio",
-    description: "Monte agentes sob medida: papel, conhecimento, limites e equipe.",
+    slug: "personalizar",
+    category: "Personalize",
+    nav: "Personalizar",
+    title: "Personalizar",
+    description: "O hub do seu agente: Skills, Conectores e MCPs, tudo numa tela só.",
     body: (
       <>
         <P>
-          O <B>Agent Studio</B> é onde você deixa de ter “uma IA” e passa a ter{" "}
-          <B>funcionários digitais com papel definido</B>: um agente de prospecção,
-          um de atendimento, um de relatórios — cada um com instruções, conhecimento
-          e limites próprios.
+          Você tem <B>um agente</B> — e a tela <B>Personalizar</B> é onde você molda
+          ele. Em vez de escolher entre vários assistentes, você amplia o seu: dá
+          capacidades novas, dá acesso aos seus aplicativos e liga ferramentas
+          externas. Tudo em três abas: <B>Skills</B>, <B>Conectores</B> e{" "}
+          <B>MCPs</B>.
         </P>
-        <H2>Criando um agente</H2>
+        <H2>Skills</H2>
         <P>
-          Comece <B>conversando</B>: descreva o papel — “quero um agente que cuida do
-          meu Instagram: responde comentários e prepara 3 posts por semana” — e o
-          Studio monta o rascunho com campos editáveis. Ou parta de um{" "}
-          <B>template pronto</B> e ajuste.
+          Capacidades prontas pra instalar — apresentações, edição de imagem, análise
+          de dados. Instalou, o agente já sabe usar. Detalhes em{" "}
+          <DocLink href="/documentacao/skills">Skills</DocLink>.
         </P>
-        <H2>O que cada agente pode ter</H2>
-        <UL
-          items={[
-            <>
-              <B>Conhecimento próprio</B> — envie documentos (PDF, Word, Excel,
-              planilhas, texto) e o agente passa a consultar e citar esse material.
-            </>,
-            <>
-              <B>Teto de créditos</B> — defina quanto cada agente pode gastar por
-              mês. Chegou no teto, ele para. Você controla o gasto de cada um.
-            </>,
-            <>
-              <B>Canais e aplicativos próprios</B> — o agente de atendimento no
-              WhatsApp; o de relatórios com acesso ao Drive. Cada um com o seu.
-            </>,
-            <>
-              <B>Time de apoio</B> — o agente pode ganhar papéis de apoio
-              trabalhando com ele, como uma pequena equipe.
-            </>,
-          ]}
-        />
-        <H2>Delegar um objetivo</H2>
+        <H2>Conectores</H2>
         <P>
-          Pra trabalhos grandes, entregue um <B>objetivo</B> — “lança a campanha do
-          produto X” — e o agente propõe o plano: as etapas, a ordem, quem faz o quê.
-          Você revisa, aprova, e o time executa. O andamento fica visível em tempo
-          real, com aprovações centralizadas num só lugar.
+          O acesso aos aplicativos que você já usa: Gmail, Drive, Sheets, Notion,
+          HubSpot e mais de mil outros. Com a autorização feita, o agente lê, escreve
+          e age nesses apps por você. Detalhes em{" "}
+          <DocLink href="/documentacao/conectores">Conectores</DocLink>.
         </P>
+        <H2>MCPs</H2>
+        <P>
+          Conexões avançadas para ferramentas externas. Se o sistema que você usa
+          oferece um <B>servidor MCP</B>, você aponta o endereço aqui e o agente
+          passa a usar as ferramentas dele como se fossem nativas. É a porta pra
+          casos que fogem do catálogo pronto — normalmente indicada pelo fornecedor
+          da ferramenta ou por quem cuida da TI.
+        </P>
+        <Note>
+          Skill, conector e MCP se complementam: a <B>skill</B> ensina o agente a
+          fazer algo novo; o <B>conector</B> dá acesso a um aplicativo seu; o{" "}
+          <B>MCP</B> pluga uma ferramenta externa inteira. Um agente bem
+          personalizado costuma usar os três.
+        </Note>
       </>
     ),
   },
   {
-    slug: "habilidades",
-    category: "Construa",
-    nav: "Habilidades",
-    title: "Habilidades",
+    slug: "skills",
+    category: "Personalize",
+    nav: "Skills",
+    title: "Skills",
     description: "Capacidades prontas pra instalar — o agente aprende na hora.",
     body: (
       <>
         <P>
-          <B>Habilidades</B> são capacidades prontas pra usar: geração de
-          apresentações, edição de imagem, análise de dados, coleta automática de
-          informações de sites — instalou, o agente já sabe usar. É o jeito mais
-          rápido de ampliar o que o seu agente consegue fazer.
+          <B>Skills</B> são capacidades prontas pra usar: geração de apresentações,
+          edição de imagem, análise de dados, coleta automática de informações de
+          sites — instalou, o agente já sabe usar. É o jeito mais rápido de ampliar o
+          que o seu agente consegue fazer. Ficam na aba <B>Skills</B>, dentro de{" "}
+          <DocLink href="/documentacao/personalizar">Personalizar</DocLink>.
         </P>
-        <H2>O marketplace</H2>
+        <H2>O Marketplace</H2>
         <UL
           items={[
             <>
-              Catálogo oficial organizado por categoria, com busca e descrição do que
-              cada habilidade faz.
+              Clique em <B>Navegar Marketplace</B> pra ver o catálogo oficial,
+              organizado por categoria, com busca e descrição do que cada skill faz.
             </>,
             <>
-              Instalação em um clique — e toda habilidade passa por{" "}
+              Instalação em um clique — e toda skill passa por{" "}
               <B>verificação de segurança</B> antes de entrar na sua instância.
             </>,
             <>
@@ -518,9 +537,9 @@ export const DOCS: DocPage[] = [
           ]}
         />
         <Note>
-          Habilidade é diferente de{" "}
-          <DocLink href="/documentacao/conectores">conector</DocLink>: a habilidade
-          ensina o agente a <B>fazer</B> algo novo; o conector dá <B>acesso</B> a um
+          Skill é diferente de{" "}
+          <DocLink href="/documentacao/conectores">conector</DocLink>: a skill ensina
+          o agente a <B>fazer</B> algo novo; o conector dá <B>acesso</B> a um
           aplicativo seu. Um agente completo geralmente combina os dois.
         </Note>
       </>
@@ -563,16 +582,14 @@ export const DOCS: DocPage[] = [
               arquivos.
             </>,
             <>
-              <B>Seus clientes falando com o seu agente</B> — um agente de
-              atendimento no WhatsApp da empresa, respondendo 24/7 com o
-              conhecimento que você deu a ele.
+              <B>Seus clientes no WhatsApp da empresa</B> — atendimento 24/7 com o
+              conhecimento e o tom que você configurou no agente.
             </>,
           ]}
         />
         <Note>
-          Canais podem ser globais (valem pra instância toda) ou por agente — o
-          agente de atendimento tem o número dele, o seu agente pessoal tem o seu.
-          Configure na tela <B>Canais</B>.
+          Configure cada canal na tela <B>Canais</B> — WhatsApp da empresa para
+          clientes, Telegram ou e-mail para você mandar tarefas de onde estiver.
         </Note>
       </>
     ),
@@ -618,7 +635,8 @@ export const DOCS: DocPage[] = [
               garantir que aquela tarefa não toque no seu e-mail, por exemplo.
             </>,
             <>
-              <B>Por agente:</B> cada agente só enxerga os apps que você deu a ele.
+              <B>Na instância:</B> conectou uma vez, o agente usa em qualquer sessão
+              — ou desligue só na conversa aberta, se precisar isolar.
             </>,
             <>
               <B>Revogável sempre:</B> desconectou, o acesso morre na hora.

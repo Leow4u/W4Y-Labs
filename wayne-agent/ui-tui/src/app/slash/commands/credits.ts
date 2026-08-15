@@ -5,7 +5,7 @@ import type { SlashCommand } from '../types.js'
 
 export const creditsCommands: SlashCommand[] = [
   {
-    help: 'Show Nous credit balance and top up',
+    help: 'Show credit balance and top up',
     name: 'credits',
     run: (_arg, ctx) => {
       ctx.gateway
@@ -13,12 +13,12 @@ export const creditsCommands: SlashCommand[] = [
         .then(
           ctx.guarded<CreditsViewResponse>(view => {
             if (!view.logged_in) {
-              ctx.transcript.sys('💳 Not logged into Nous Portal — run /portal to log in.')
+              ctx.transcript.sys('💳 Not logged in — run /portal to sign in to your Work4You account.')
 
               return
             }
 
-            const lines = ['💳 Nous credits', ...view.balance_lines]
+            const lines = ['💳 Work4You credits', ...view.balance_lines]
 
             if (view.identity_line) {
               lines.push('', view.identity_line)

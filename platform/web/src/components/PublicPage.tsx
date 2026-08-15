@@ -50,7 +50,7 @@ export default function PublicPage({
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="text-2xl font-semibold tracking-tight">Pronto para delegar?</h2>
           <p className="mt-2 text-neutral-500">
-            Descreva a primeira tarefa e veja o seu funcionário digital em ação.
+            Descreva a primeira tarefa e veja o seu agente em ação.
           </p>
           <Link
             href="/"

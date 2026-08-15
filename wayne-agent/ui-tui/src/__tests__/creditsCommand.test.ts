@@ -80,7 +80,7 @@ describe('/credits slash command', () => {
 
     // (a) sys received the balance text including the topup_url
     const printed = sys.mock.calls.map(call => call[0]).join('\n')
-    expect(printed).toContain('💳 Nous credits')
+    expect(printed).toContain('💳 Work4You credits')
     expect(printed).toContain('Grant: $9.50 left')
     expect(printed).toContain('Signed in as ada@example.com')
     expect(printed).toContain(view.topup_url)
@@ -119,7 +119,7 @@ describe('/credits slash command', () => {
     await run()
 
     const printed = sys.mock.calls.map(call => call[0]).join('\n')
-    expect(printed).toContain('💳 Nous credits')
+    expect(printed).toContain('💳 Work4You credits')
     expect(getOverlayState().confirm).toBeNull()
   })
 
@@ -135,7 +135,7 @@ describe('/credits slash command', () => {
 
     await run()
 
-    expect(sys).toHaveBeenCalledWith('💳 Not logged into Nous Portal — run /portal to log in.')
+    expect(sys).toHaveBeenCalledWith('💳 Not logged in — run /portal to sign in to your Work4You account.')
     expect(getOverlayState().confirm).toBeNull()
     expect(openExternalUrlMock).not.toHaveBeenCalled()
   })

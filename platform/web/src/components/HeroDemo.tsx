@@ -116,8 +116,8 @@ const SCENARIOS: Record<SiteLocale, Scenario[]> = {
           user: "Toda sexta às 17h, manda as cobranças da semana pros clientes.",
           items: [
             { kind: "line", text: "Thinking" },
-            { kind: "line", text: "Agenda · rotina criada" },
-            { kind: "reply", text: "Rotina no ar — toda sexta, às 17h:" },
+            { kind: "line", text: "Automações · automação criada" },
+            { kind: "reply", text: "Automação no ar — todo dia às 7:00:" },
             { kind: "routine" },
           ],
         },
@@ -211,11 +211,11 @@ const SCENARIOS: Record<SiteLocale, Scenario[]> = {
     {
       turns: [
         {
-          user: "Every Friday at 5pm, send the week's invoices to my clients.",
+          user: "Every day at 7am, email me the daily AI news digest.",
           items: [
             { kind: "line", text: "Thinking" },
-            { kind: "line", text: "Agenda · routine created" },
-            { kind: "reply", text: "Routine is live — every Friday at 5pm:" },
+            { kind: "line", text: "Automations · automation created" },
+            { kind: "reply", text: "Automation is live — every day at 7:00 AM:" },
             { kind: "routine" },
           ],
         },
@@ -231,18 +231,33 @@ const T = {
     windowTitle: "work4you.ai — seu agente",
     live: "no ar",
     newSession: "Nova sessão",
-    menu: ["Agent Studio", "Agenda", "Habilidades", "Canais", "Entregas"],
+    newSessionHint: "Ctrl N",
+    menu: ["Automações", "Personalizar", "Canais", "Artefatos"],
+    projectsLabel: "Projetos",
+    projects: ["Dutelog"],
     sessionsLabel: "Sessões",
-    sessions: ["Post pro Instagram", "Proposta de junho", "Cobranças da semana"],
+    sessions: [
+      "restart whatsapp gateway",
+      "Saudações e início de co…",
+      "Mapeia a estrutura deste reposit…",
+    ],
     emptyTitle: "No que vamos trabalhar?",
-    emptySub: "Descreva o objetivo — eu cuido da parte mecânica.",
+    emptySub:
+      "Traz o código, a dúvida ou o ponto onde estás preso. Eu leio o contexto antes de mudar algo.",
+    quickChips: [
+      "Mapeia a estrutura deste reposit…",
+      "Corrige os testes a falhar",
+      "Refatora o módulo que eu indicar",
+      "Prepara um PR com a última alter…",
+    ],
     searchModels: "Buscar modelos",
     addModels: "Adicionar modelos",
     chooseFolder: "Escolha uma pasta",
-    composerPlaceholder: "Descreva o que precisa",
-    askApproval: "Pedir aprovação ▾",
+    composerPlaceholder: "Pergunte qualquer coisa",
+    askApproval: "⚡ Nunca perguntar",
+    modelLabel: "Gemini 1.5 Flash - Max",
     pdfName: "proposta-junho.pdf",
-    pdfSub: "Salvo em Entregas — pronto pra revisar",
+    pdfSub: "Salvo em Artefatos — pronto pra revisar",
     pdfDone: "feito ✓",
     authSub: "Autorização segura",
     authorize: "Autorizar",
@@ -266,18 +281,33 @@ const T = {
     windowTitle: "work4you.ai — your agent",
     live: "live",
     newSession: "New session",
-    menu: ["Agent Studio", "Agenda", "Skills", "Channels", "Deliveries"],
+    newSessionHint: "Ctrl N",
+    menu: ["Automations", "Customize", "Channels", "Artifacts"],
+    projectsLabel: "Projects",
+    projects: ["Dutelog"],
     sessionsLabel: "Sessions",
-    sessions: ["Instagram post", "June proposal", "This week's invoices"],
+    sessions: [
+      "restart whatsapp gateway",
+      "Greetings and kickoff…",
+      "Map this repo's structure…",
+    ],
     emptyTitle: "What are we working on?",
-    emptySub: "Describe the goal — I'll handle the busywork.",
+    emptySub:
+      "Bring the code, the question, or where you're stuck. I read the context before changing anything.",
+    quickChips: [
+      "Map this repo's structure…",
+      "Fix the failing tests",
+      "Refactor the module I point at",
+      "Prepare a PR with the last change…",
+    ],
     searchModels: "Search models",
     addModels: "Add models",
     chooseFolder: "Choose a folder",
-    composerPlaceholder: "Describe what you need",
-    askApproval: "Ask for approval ▾",
+    composerPlaceholder: "Ask anything",
+    askApproval: "⚡ Never ask",
+    modelLabel: "Gemini 1.5 Flash - Max",
     pdfName: "june-proposal.pdf",
-    pdfSub: "Saved to Deliveries — ready to review",
+    pdfSub: "Saved to Artifacts — ready to review",
     pdfDone: "done ✓",
     authSub: "Secure authorization",
     authorize: "Authorize",
@@ -526,6 +556,33 @@ export default function HeroDemo({ locale }: { locale: SiteLocale }) {
         </div>
       );
     }
+    if (it.kind === "routine") {
+      const job =
+        locale === "pt"
+          ? {
+              name: "Notícias Diárias de IA por e-mail",
+              when: "Todos os dias às 7:00 · Este desktop",
+              status: "Ativa",
+            }
+          : {
+              name: "Daily AI news by email",
+              when: "Every day at 7:00 AM · This desktop",
+              status: "Active",
+            };
+      return (
+        <div
+          key={key}
+          className="max-w-md rounded-xl border border-line bg-paper px-4 py-3"
+        >
+          <p className="text-[13px] font-semibold text-ink">{job.name}</p>
+          <p className="mt-0.5 text-[11px] text-ink-faint">{job.when}</p>
+          <p className="mt-2 flex items-center gap-1.5 text-[11px] font-medium text-emerald-700">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            {job.status}
+          </p>
+        </div>
+      );
+    }
     return null; // "picker" renders as the composer dropdown
   };
 
@@ -549,12 +606,23 @@ export default function HeroDemo({ locale }: { locale: SiteLocale }) {
         {/* sidebar — the product's real navigation */}
         <aside className="hidden border-r border-line bg-paper px-4 py-5 sm:block">
           <div className="space-y-2.5 text-[13px]">
-            <p className="font-semibold text-ink">{t.newSession}</p>
+            <p className="flex items-center justify-between font-semibold text-ink">
+              <span>{t.newSession}</span>
+              <span className="font-mono text-[10px] font-normal text-ink-faint">{t.newSessionHint}</span>
+            </p>
             {t.menu.map((m) => (
               <p key={m} className="text-ink-soft">{m}</p>
             ))}
           </div>
           <p className="mt-6 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
+            {t.projectsLabel}
+          </p>
+          <div className="mt-2.5 space-y-2 text-[12px] text-ink-soft">
+            {t.projects.map((p) => (
+              <p key={p} className="truncate">{p}</p>
+            ))}
+          </div>
+          <p className="mt-5 font-mono text-[10px] uppercase tracking-[0.16em] text-ink-faint">
             {t.sessionsLabel}
           </p>
           <div className="mt-2.5 space-y-2 text-[12px] text-ink-soft">
@@ -577,9 +645,19 @@ export default function HeroDemo({ locale }: { locale: SiteLocale }) {
                 <p className="text-xl font-bold tracking-tight text-ink">
                   {t.emptyTitle}
                 </p>
-                <p className="mt-2 max-w-xs text-[13px] leading-relaxed text-ink-faint">
+                <p className="mt-2 max-w-md text-[13px] leading-relaxed text-ink-faint">
                   {t.emptySub}
                 </p>
+                <div className="mt-5 flex max-w-lg flex-wrap justify-center gap-2">
+                  {t.quickChips.map((chip) => (
+                    <span
+                      key={chip}
+                      className="rounded-full border border-line bg-white px-3 py-1.5 text-[11px] text-ink-soft"
+                    >
+                      {chip}
+                    </span>
+                  ))}
+                </div>
               </div>
             ) : (
               sc.turns.map((turn, t) => {
@@ -652,13 +730,14 @@ export default function HeroDemo({ locale }: { locale: SiteLocale }) {
               <span className="flex items-center gap-3 px-4 pb-3 text-ink-faint">
                 <span className="text-base leading-none">+</span>
                 <span className="text-[12px]">{t.askApproval}</span>
-                <span className="flex items-center gap-1 text-[12px]">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/brand/apps/gmail.svg" alt="" width={12} height={12} className="h-3 w-3" />
-                  +14
+                <span className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-ink-soft">
+                  GitHub
                 </span>
-                <span className={`ml-auto rounded-md px-1.5 py-0.5 text-[12px] ${pickerOpen ? "bg-salvia-soft text-mata" : ""}`}>
-                  Auto ▾
+                <span className="rounded border border-line px-1.5 py-0.5 text-[10px] text-ink-soft">
+                  Gemini
+                </span>
+                <span className={`ml-auto text-[11px] ${pickerOpen ? "text-mata" : ""}`}>
+                  {t.modelLabel} ▾
                 </span>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
                   <path d="M12 2a3 3 0 0 1 3 3v6a3 3 0 0 1-6 0V5a3 3 0 0 1 3-3z" />

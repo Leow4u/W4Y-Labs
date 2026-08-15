@@ -1,7 +1,7 @@
 """Regression for #37718: macOS microphone entitlement must be inherited.
 
 Wayne Desktop signs with ``hardenedRuntime: true`` and points electron-builder
-at two entitlement files (see ``apps/desktop/package.json``):
+at two entitlement files (see ``apps/work4you/package.json``):
 
 * ``entitlements`` → ``electron/entitlements.mac.plist`` (the main app), and
 * ``entitlementsInherit`` → ``electron/entitlements.mac.inherit.plist`` (the

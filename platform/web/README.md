@@ -14,7 +14,7 @@ AUTENTICADO
   /chat        experiência Work4You: retoma o prompt delegado (sessionStorage
                `w4y_delegation_prompt`) e faz a ponte p/ o workspace do tenant
   /instancias  rota INTERNA (admin/dev) — usuário final não escolhe instância
-  /admin       cross-tenant (role=admin): frota + uso por tenant
+  /admin       cross-tenant (ADMIN_EMAILS): frota + uso por tenant
 
 REGISTRY (Cloud SQL): instances (+ runs/agents/artifacts históricos)
 ```
@@ -23,7 +23,7 @@ REGISTRY (Cloud SQL): instances (+ runs/agents/artifacts históricos)
 executa LLM — salva o prompt em sessionStorage → `/login?next=/chat` → `/chat`
 reabre com o prompt preenchido e o botão "Continuar no meu workspace".
 
-**Linguagem pública**: funcionário digital, agente, trabalho, rotina,
+**Linguagem pública**: agente, trabalho, rotina, delegar — tom direto para
 conectores, arquivos, aprovação humana, histórico, controle. NUNCA na landing:
 MCP, OpenRouter, Cloud Run, runtime, fork, Hermes, stack técnica.
 

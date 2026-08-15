@@ -5,10 +5,15 @@ import { db } from "@/lib/db";
 import { setDevSession } from "@/lib/dev-auth";
 import { isEmailAllowed } from "@/lib/allowlist";
 import { requestProvision, slugFor } from "@/lib/provisioner";
-import { FREE_TRIAL_USD } from "@/lib/billing";
+import { FREE_ALLOWANCE_USD, provisionTenantKey } from "@/lib/billing";
+import { sharedFlyApp, sharedMotorEnabled, sharedMotorUrl, useSharedMotorForPlan, desktopLaunchMode, postLoginDestination } from "@/lib/shared-motor";
+import { storeTenantOpenRouterKey } from "@/lib/tenant-secrets";
 import { verifyTurnstile } from "@/lib/turnstile";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
+
+const LOGIN_RATE = { limit: 20, windowMs: 60_000 };
 
 // Porta de verificação do Identity Platform: o navegador autentica no
 // Firebase Auth (Google/Microsoft/e-mail) e nos envia o ID token; aqui o
@@ -35,6 +40,15 @@ export async function POST(req: NextRequest) {
   }
   if (!idToken) {
     return NextResponse.json({ ok: false, error: "missing_token" }, { status: 400 });
+  }
+
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const rl = rateLimit(`login:${ip}`, LOGIN_RATE.limit, LOGIN_RATE.windowMs);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { ok: false, error: "rate_limited", retryAfterSec: rl.retryAfterSec },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } },
+    );
   }
 
   let email = "";
@@ -83,8 +97,12 @@ export async function POST(req: NextRequest) {
     }
     const created = await autoProvision(email);
     if (created) {
-      await setDevSession(email, created);
-      return NextResponse.json({ ok: true, next: "/onboarding" });
+      try {
+        await setDevSession(email, created);
+      } catch {
+        return NextResponse.json({ ok: false, error: "session_unavailable" }, { status: 503 });
+      }
+      return NextResponse.json({ ok: true, next: postLoginDestination() });
     }
     // provisionamento não pôde iniciar (registry/serviço fora) → nega educado
     return NextResponse.json({ ok: false, error: "provision_failed" }, { status: 503 });
@@ -94,33 +112,110 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: false, error: "denied" }, { status: 403 });
   }
 
-  await setDevSession(email, tenantId);
+  let instanceStatus: string | undefined;
+  if (tenantId) {
+    try {
+      const inst = await db().execute<{ status: string }>(
+        sql`SELECT status FROM instances WHERE tenant_id=${tenantId} LIMIT 1`,
+      );
+      instanceStatus = inst.rows[0]?.status;
+    } catch {
+      /* registry indisponível — segue para enter */
+    }
+  }
+
+  try {
+    await setDevSession(email, tenantId);
+  } catch {
+    return NextResponse.json({ ok: false, error: "session_unavailable" }, { status: 503 });
+  }
+
+  if (instanceStatus === "provisioning" || instanceStatus === "failed") {
+    if (sharedMotorEnabled()) {
+      try {
+        if (tenantId) await promoteToSharedMotor(tenantId);
+      } catch {
+        /* */
+      }
+      return NextResponse.json({ ok: true, next: postLoginDestination() });
+    }
+    return NextResponse.json({ ok: true, next: "/onboarding" });
+  }
+
   // Whitelist de destinos pós-login: /admin, /instancias, ou /planos* (retoma o
   // checkout do funil público de preços — só paths relativos, sem open redirect);
   // qualquer outro cai no SSO do Wayne (/login/enter → /chat).
+  const defaultNext = postLoginDestination();
   const target =
-    next === "/admin" || next === "/instancias" || next.startsWith("/planos")
+    next === "/admin" ||
+    next === "/instancias" ||
+    next === "/device" ||
+    next === "/baixar" ||
+    next.startsWith("/planos")
       ? next
-      : "/login/enter";
+      : defaultNext;
   return NextResponse.json({ ok: true, next: target });
 }
 
-// Cria o registro do tenant Free (status=provisioning) e dispara o serviço
-// provisionador. Retorna o tenantId novo, ou null se não pôde iniciar.
+// Cria o registro do tenant Free. Com motor partilhado (Claude-style) não
+// provisiona Fly por utilizador — aponta para wayne-w4y e status=ready.
 async function autoProvision(email: string): Promise<string | null> {
   try {
     const database = db();
     const slug = slugFor(email);
     const tenantId = `t-${slug}`;
-    const trialCredits = FREE_TRIAL_USD; // trial de entrada gratuito (Free)
-    await database.execute(sql`INSERT INTO users (email, tenant_id, role) VALUES (${email}, ${tenantId}, 'admin') ON CONFLICT (email) DO NOTHING`);
-    await database.execute(sql`
-      INSERT INTO instances (tenant_id, name, url, fly_app, status, notes)
-      VALUES (${tenantId}, ${"Work4You — " + slug}, '', ${"wayne-" + slug}, 'provisioning', 'Free · auto-provisionado')
-    `);
+    const trialCredits = FREE_ALLOWANCE_USD;
+    await database.execute(sql`INSERT INTO users (email, tenant_id, role) VALUES (${email}, ${tenantId}, 'owner') ON CONFLICT (email) DO NOTHING`);
     await database.execute(sql`
       INSERT INTO billing (tenant_id, plan, status, monthly_credits_usd)
       VALUES (${tenantId}, 'free', 'active', ${trialCredits}) ON CONFLICT (tenant_id) DO NOTHING
+    `);
+
+    if (desktopLaunchMode()) {
+      const { key, hash } = await provisionTenantKey({
+        tenantId,
+        creditsUsd: trialCredits,
+      });
+      if (key) {
+        await storeTenantOpenRouterKey(tenantId, key);
+      }
+      await database.execute(sql`
+        INSERT INTO instances (tenant_id, name, url, fly_app, status, notes)
+        VALUES (${tenantId}, ${"Work4You — " + slug}, '', '', 'desktop', 'Free · motor local (app desktop)')
+      `);
+      if (hash) {
+        await database.execute(sql`
+          UPDATE billing SET openrouter_key_hash=${hash}, key_injected_at=now(), updated_at=now()
+          WHERE tenant_id=${tenantId}
+        `);
+      }
+      return tenantId;
+    }
+
+    if (sharedMotorEnabled() && useSharedMotorForPlan("free")) {
+      const { key, hash } = await provisionTenantKey({
+        tenantId,
+        creditsUsd: trialCredits,
+      });
+      if (key) {
+        await storeTenantOpenRouterKey(tenantId, key);
+      }
+      await database.execute(sql`
+        INSERT INTO instances (tenant_id, name, url, fly_app, status, notes)
+        VALUES (${tenantId}, ${"Work4You — " + slug}, ${sharedMotorUrl()}, ${sharedFlyApp()}, 'ready', 'Free · motor partilhado')
+      `);
+      if (hash) {
+        await database.execute(sql`
+          UPDATE billing SET openrouter_key_hash=${hash}, key_injected_at=now(), updated_at=now()
+          WHERE tenant_id=${tenantId}
+        `);
+      }
+      return tenantId;
+    }
+
+    await database.execute(sql`
+      INSERT INTO instances (tenant_id, name, url, fly_app, status, notes)
+      VALUES (${tenantId}, ${"Work4You — " + slug}, '', ${"wayne-" + slug}, 'provisioning', 'Free · auto-provisionado')
     `);
     const started = await requestProvision({ tenantId, slug, email, plan: "base", trialUsd: trialCredits });
     if (!started) {
@@ -131,4 +226,38 @@ async function autoProvision(email: string): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+async function promoteToSharedMotor(tenantId: string): Promise<void> {
+  const database = db();
+  const trialCredits = FREE_ALLOWANCE_USD;
+  const row = await database.execute<{ openrouter_key_hash: string | null; plan: string }>(
+    sql`SELECT openrouter_key_hash, plan FROM billing WHERE tenant_id=${tenantId} LIMIT 1`,
+  );
+  const plan = row.rows[0]?.plan ?? "free";
+  if (!useSharedMotorForPlan(plan)) return;
+
+  let hash = (row.rows[0]?.openrouter_key_hash || "").trim();
+  if (!hash) {
+    const created = await provisionTenantKey({ tenantId, creditsUsd: trialCredits });
+    hash = created.hash;
+    if (created.key) await storeTenantOpenRouterKey(tenantId, created.key);
+    if (hash) {
+      await database.execute(sql`
+        UPDATE billing SET openrouter_key_hash=${hash}, key_injected_at=now(), updated_at=now()
+        WHERE tenant_id=${tenantId}
+      `);
+    }
+  }
+
+  const slug = tenantId.replace(/^t-/, "");
+  await database.execute(sql`
+    UPDATE instances SET
+      url=${sharedMotorUrl()},
+      fly_app=${sharedFlyApp()},
+      status='ready',
+      notes='Free · motor partilhado (migrado)'
+    WHERE tenant_id=${tenantId}
+  `);
+  void slug;
 }

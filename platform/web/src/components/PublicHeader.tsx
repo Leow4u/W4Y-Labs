@@ -4,12 +4,12 @@ import { getDevSession } from "@/lib/dev-auth";
 import MobileNav from "@/components/MobileNav";
 import ResourcesMenu from "@/components/ResourcesMenu";
 import type { SiteLocale } from "@/lib/site-locale";
+import { browserEnter, browserEnterAuthed } from "@/lib/product-download";
+import { postLoginCtaLabel } from "@/lib/shared-motor";
 
 // Public header — light ground, generous spacing. "Recursos" is a real
 // dropdown (ResourcesMenu); mobile gets the flattened list. The PT|EN chip
 // switches the whole public site via the locale cookie.
-// "/baixar" intentionally out of the nav: the desktop app is being reworked
-// and downloads are paused. Re-add the entry when it ships.
 const NAV = {
   pt: [
     { href: "/plataforma", label: "Plataforma" },
@@ -41,15 +41,15 @@ const RESOURCES = {
 } as const;
 
 const LABELS = {
-  pt: { resources: "Recursos", open: "Abrir o Work4You", signIn: "Conecte-se" },
-  en: { resources: "Resources", open: "Open Work4You", signIn: "Sign in" },
+  pt: { resources: "Recursos" },
+  en: { resources: "Resources" },
 } as const;
 
 export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
   const session = await getDevSession();
   const nav = NAV[locale];
   const resources = RESOURCES[locale];
-  const t = LABELS[locale];
+  const t = { ...LABELS[locale], open: postLoginCtaLabel(locale) };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-paper/90 px-6 backdrop-blur">
@@ -85,26 +85,25 @@ export default async function PublicHeader({ locale }: { locale: SiteLocale }) {
         <div className="flex items-center gap-3">
           <div className="hidden md:block">
             {session ? (
-              <Link
-                href="/abrir"
+              <a
+                href={browserEnterAuthed()}
                 className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
               >
                 {t.open}
-              </Link>
+              </a>
             ) : (
               <Link
-                href="/login"
+                href={browserEnter()}
                 className="inline-block whitespace-nowrap rounded-full bg-ink px-5 py-2 text-sm font-semibold text-paper transition-colors hover:bg-black"
               >
-                {t.signIn}
+                {t.open}
               </Link>
             )}
           </div>
           <MobileNav
             items={[...nav, ...resources]}
-            authenticated={!!session}
+            openHref={session ? browserEnterAuthed() : browserEnter()}
             ctaOpen={t.open}
-            ctaSignIn={t.signIn}
           />
         </div>
       </div>

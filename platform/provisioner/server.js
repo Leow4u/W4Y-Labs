@@ -25,7 +25,18 @@ const path = require("node:path");
 
 const SECRET = process.env.PROVISIONER_SHARED_SECRET || "";
 const CASCA_URL = (process.env.CASCA_URL || "https://work4you.ai").replace(/\/$/, "");
-const IMAGE = process.env.WAYNE_IMAGE || "registry.fly.io/wayne-w4y:fly2";
+// Prefer TENANT_WAYNE_IMAGE — Fly secret WAYNE_IMAGE can stick on an old tag when
+// `fly secrets set` hangs (ago/2026). Reject stale WAYNE_IMAGE below fly250.
+const IMAGE_PIN = "registry.fly.io/wayne-w4y:fly250";
+function resolveWayneImage() {
+  const preferred = String(process.env.TENANT_WAYNE_IMAGE || "").trim();
+  if (preferred) return preferred;
+  const legacy = String(process.env.WAYNE_IMAGE || "").trim();
+  const m = /^registry\.fly\.io\/wayne-w4y:fly(\d+)$/.exec(legacy);
+  if (m && Number(m[1]) >= 250) return legacy;
+  return IMAGE_PIN;
+}
+const IMAGE = resolveWayneImage();
 const ORG = process.env.FLY_ORG || "personal";
 const REGION = process.env.FLY_REGION || "gru";
 const OR_PROV = process.env.OPENROUTER_PROVISIONING_KEY || "";
@@ -222,8 +233,9 @@ async function deprovisionComposioProject(app) {
 }
 
 // Executa o provisionamento completo e chama de volta a casca ao terminar.
-async function provision({ tenantId, slug, email, plan, trialUsd }) {
+async function provision({ tenantId, slug, email, plan, trialUsd, wayneImage }) {
   const app = `wayne-${slug}`;
+  const image = (wayneImage && String(wayneImage).trim()) || IMAGE;
   const result = { tenantId, ok: false };
   try {
     await fly("apps", "create", app, "--org", ORG);
@@ -242,6 +254,9 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
       `WAYNE_DASHBOARD_BASIC_AUTH_USERNAME=${dashUser}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_PASSWORD=${dashPass}`,
       `WAYNE_DASHBOARD_BASIC_AUTH_SECRET=${dashSecret}`,
+      `W4Y_TENANT_ID=${tenantId}`,
+      `W4Y_PLATFORM_SSO_SECRET=${SECRET}`,
+      `W4Y_PLATFORM_ORIGIN=${CASCA_URL}`,
     ];
     // Conectores (Composio). Opção A (COMPOSIO_ORG_KEY presente): projeto
     // DEDICADO por tenant — isolamento físico; injeta SÓ a chave do projeto
@@ -260,11 +275,13 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
       secrets.push(`COMPOSIO_API_KEY=${process.env.COMPOSIO_API_KEY}`);
     }
     secrets.push(...platformToolSecretArgs());
+    const regime = regimeEnvSecrets(plan, app);
+    secrets.push(...regime.set);
     await fly("secrets", "set", "-a", app, "--stage", ...secrets);
 
     const tomlPath = path.join(os.tmpdir(), `fly.${app}.toml`);
-    writeFileSync(tomlPath, tenantToml(app, plan));
-    await fly("deploy", "-c", tomlPath, "-a", app, "--image", IMAGE, "--ha=false", "--regions", REGION);
+    writeFileSync(tomlPath, tenantToml(app, plan, image));
+    await fly("deploy", "-c", tomlPath, "-a", app, "--image", image, "--ha=false", "--regions", REGION);
 
     Object.assign(result, {
       ok: true, app, url: `https://${app}.fly.dev`,
@@ -287,13 +304,38 @@ async function provision({ tenantId, slug, email, plan, trialUsd }) {
 }
 
 // Gera o fly.toml de um tenant conforme o regime do plano.
-function tenantToml(app, plan) {
+function tenantWakeUrl(app) {
+  return `https://${app}.fly.dev/api/auth/providers`;
+}
+
+// H3: wake URL per tenant — relay/scale-to-zero poke + cron HTTP wake (same path).
+function regimeEnvSecrets(plan, app) {
+  const secrets = [`GATEWAY_RELAY_WAKE_URL=${tenantWakeUrl(app)}`];
+  if (plan === "premium") {
+    // Premium: always-on; scale-to-zero off (unset if present from prior base).
+    return { set: secrets, unset: ["WAYNE_SCALE_TO_ZERO"] };
+  }
+  secrets.push("WAYNE_SCALE_TO_ZERO=1");
+  return { set: secrets, unset: [] };
+}
+
+async function applyRegimeSecrets(app, plan) {
+  const { set, unset } = regimeEnvSecrets(plan, app);
+  if (unset.length) {
+    await fly("secrets", "unset", "-a", app, ...unset).catch(() => {});
+  }
+  if (set.length) {
+    await fly("secrets", "set", "-a", app, ...set);
+  }
+}
+
+function tenantToml(app, plan, image) {
   const autostop = plan === "premium" ? '"off"' : '"suspend"';
   const minRun = plan === "premium" ? 1 : 0;
   return `app = "${app}"
 primary_region = "${REGION}"
 [build]
-  image = "${IMAGE}"
+  image = "${image}"
 [processes]
   app = "gateway run"
 [env]
@@ -320,10 +362,12 @@ primary_region = "${REGION}"
 // Troca o regime da máquina de um tenant (upgrade/downgrade de plano):
 // re-deploya o app com o novo autostop/min_machines. Estado no volume
 // persiste; downtime ~segundos.
-async function reconfigure({ app, plan }) {
+async function reconfigure({ app, plan, wayneImage }) {
+  const image = (wayneImage && String(wayneImage).trim()) || IMAGE;
   const tomlPath = path.join(os.tmpdir(), `fly.${app}.toml`);
-  writeFileSync(tomlPath, tenantToml(app, plan));
-  await fly("deploy", "-c", tomlPath, "-a", app, "--image", IMAGE, "--ha=false", "--regions", REGION);
+  writeFileSync(tomlPath, tenantToml(app, plan, image));
+  await fly("deploy", "-c", tomlPath, "-a", app, "--image", image, "--ha=false", "--regions", REGION);
+  await applyRegimeSecrets(app, plan);
 }
 
 // Seta o secret OPENROUTER_API_KEY (+ toolEnv plataforma quando ops setou) na
@@ -371,7 +415,17 @@ function readBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
-  if (req.url === "/healthz") { res.writeHead(200); return res.end("ok"); }
+  if (req.url === "/healthz") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    return res.end(JSON.stringify({
+      ok: true,
+      wayneImage: IMAGE,
+      routes: ["/provision", "/archive", "/reconfigure", "/ensure-key", "/device-key"],
+      ensureKey: true,
+      relayWake: true,
+      ts: new Date().toISOString(),
+    }));
+  }
   if (req.method !== "POST") { res.writeHead(405); return res.end(); }
   const raw = await readBody(req);
   // auth: assinatura HMAC do corpo (mesma chave que a casca usa). Comparação

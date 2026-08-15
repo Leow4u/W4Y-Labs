@@ -25,14 +25,14 @@ const T = {
     back: "← Blog",
     min: "min",
     ctaTitle: "Pronto pra colocar um agente pra trabalhar?",
-    cta: "Construir meu agente",
+    cta: "Começar agora →",
     more: "Mais do blog",
   },
   en: {
     back: "← Blog",
     min: "min",
     ctaTitle: "Ready to put an agent to work?",
-    cta: "Build my agent",
+    cta: "Get started",
     more: "More from the blog",
   },
 } as const;

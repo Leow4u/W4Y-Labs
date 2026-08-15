@@ -865,6 +865,8 @@ def create_job(
     script: Optional[str] = None,
     context_from: Optional[Union[str, List[str]]] = None,
     enabled_toolsets: Optional[List[str]] = None,
+    connectors_enabled: Optional[List[str]] = None,
+    connectors_disabled: Optional[List[str]] = None,
     workdir: Optional[str] = None,
     no_agent: bool = False,
     attach_to_session: Optional[bool] = None,
@@ -899,6 +901,11 @@ def create_job(
                           When set, only tools from these toolsets are loaded, reducing
                           token overhead. When omitted, all default tools are loaded.
                           Ignored when ``no_agent=True``.
+        connectors_enabled: Optional explicit allowlist of Composio toolkit slugs for
+                             this job only. ``None`` (omitted) = legacy behaviour —
+                             all connected apps except ``connectors_disabled``.
+                             ``[]`` = no connector tools for this job.
+        connectors_disabled: Legacy opt-out list; ignored when ``connectors_enabled`` is set.
         workdir: Optional absolute path.  When set, the job runs as if launched
                 from that directory: AGENTS.md / CLAUDE.md / .cursorrules from
                 that directory are injected into the system prompt, and the
@@ -941,6 +948,19 @@ def create_job(
     normalized_script = normalized_script or None
     normalized_toolsets = [str(t).strip() for t in enabled_toolsets if str(t).strip()] if enabled_toolsets else None
     normalized_toolsets = normalized_toolsets or None
+    normalized_connectors_enabled = (
+        [str(s).strip().lower() for s in connectors_enabled if str(s).strip()]
+        if connectors_enabled is not None
+        else None
+    )
+    if normalized_connectors_enabled is not None and not normalized_connectors_enabled:
+        normalized_connectors_enabled = []
+    normalized_connectors_disabled = (
+        [str(s).strip().lower() for s in connectors_disabled if str(s).strip()]
+        if connectors_disabled
+        else None
+    )
+    normalized_connectors_disabled = normalized_connectors_disabled or None
     normalized_workdir = _normalize_workdir(workdir)
     normalized_no_agent = bool(no_agent)
     normalized_attach = attach_to_session if isinstance(attach_to_session, bool) else None
@@ -1020,6 +1040,12 @@ def create_job(
         "enabled_toolsets": normalized_toolsets,
         "workdir": normalized_workdir,
     }
+    if normalized_connectors_enabled is not None:
+        job["connectors_enabled"] = normalized_connectors_enabled
+        job["connectors_disabled"] = None
+    elif normalized_connectors_disabled:
+        job["connectors_disabled"] = normalized_connectors_disabled
+
     # Only persist attach_to_session when explicitly set, so existing jobs and
     # the common case stay byte-identical (absent key => fall back to the
     # global cron.mirror_delivery config, default off).
@@ -1091,10 +1117,13 @@ def list_jobs(include_disabled: bool = False) -> List[Dict[str, Any]]:
 
 def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]:
     """Update a job by ID, refreshing derived schedule fields when needed."""
+    updates = dict(updates or {})
+    rebaseline_snapshots = bool(updates.pop("rebaseline_inference_snapshots", False))
+
     # Block mutation of immutable fields. ``id`` in particular is a filesystem
     # path component under OUTPUT_DIR — letting an update change it leaks
     # path-escape values into output writes/deletes.
-    bad_fields = _IMMUTABLE_JOB_FIELDS.intersection(updates or {})
+    bad_fields = _IMMUTABLE_JOB_FIELDS.intersection(updates)
     if bad_fields:
         raise ValueError(
             f"Cron job field(s) cannot be updated: {', '.join(sorted(bad_fields))}"
@@ -1127,6 +1156,35 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
                 updated["skills"] = normalized_skills
                 updated["skill"] = normalized_skills[0] if normalized_skills else None
 
+            if "connectors_disabled" in updates:
+                raw_disabled = updates.get("connectors_disabled")
+                if raw_disabled in {None, False}:
+                    updated["connectors_disabled"] = None
+                elif isinstance(raw_disabled, (list, tuple)):
+                    slugs = [
+                        str(item).strip().lower()
+                        for item in raw_disabled
+                        if str(item).strip()
+                    ]
+                    updated["connectors_disabled"] = slugs or None
+                else:
+                    raise ValueError("connectors_disabled must be a list of toolkit slugs")
+
+            if "connectors_enabled" in updates:
+                raw_enabled = updates.get("connectors_enabled")
+                if raw_enabled is None:
+                    updated.pop("connectors_enabled", None)
+                elif isinstance(raw_enabled, (list, tuple)):
+                    slugs = [
+                        str(item).strip().lower()
+                        for item in raw_enabled
+                        if str(item).strip()
+                    ]
+                    updated["connectors_enabled"] = slugs
+                    updated["connectors_disabled"] = None
+                else:
+                    raise ValueError("connectors_enabled must be a list of toolkit slugs")
+
             if schedule_changed:
                 updated_schedule = updated["schedule"]
                 # The API may pass schedule as a raw string (e.g. "every 10m")
@@ -1142,7 +1200,7 @@ def update_job(job_id: str, updates: Dict[str, Any]) -> Optional[Dict[str, Any]]
                 if updated.get("state") != "paused":
                     updated["next_run_at"] = compute_next_run(updated_schedule)
 
-            if inference_fields_changed:
+            if inference_fields_changed or rebaseline_snapshots:
                 provider_snapshot, model_snapshot = _compute_provider_model_snapshots(
                     provider=updated.get("provider"),
                     model=updated.get("model"),

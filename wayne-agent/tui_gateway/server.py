@@ -3157,7 +3157,23 @@ def _probe_credentials(agent) -> str:
     """Light credential check at session creation — returns warning or ''."""
     try:
         key = getattr(agent, "api_key", "") or ""
+        if callable(key):
+            return ""
         provider = getattr(agent, "provider", "") or ""
+        if key and key != "no-key-required":
+            return ""
+        # Work4You desktop: key may land in .env after the agent process started.
+        # Re-read dotenv before scaring the user with an empty-provider toast.
+        try:
+            from work4you_cli.env_loader import load_wayne_dotenv
+            from work4you_constants import get_wayne_home
+
+            load_wayne_dotenv(wayne_home=get_wayne_home())
+            env_key = (os.environ.get("OPENROUTER_API_KEY") or "").strip()
+            if env_key:
+                return ""
+        except Exception:
+            pass
         if not key or key == "no-key-required":
             return f"No API key configured for provider '{provider}'. First message will fail."
     except Exception:
@@ -4374,6 +4390,16 @@ def _make_agent(
         pass
 
     cfg = _load_cfg()
+    try:
+        from work4you_cli.env_loader import load_wayne_dotenv
+        from work4you_constants import get_wayne_home
+
+        # Device-key login writes ~/.work4you/accounts/<id>/.env while the motor
+        # may already be running — reload before resolving credentials so the
+        # first session.create does not probe with an empty OpenRouter key.
+        load_wayne_dotenv(wayne_home=get_wayne_home())
+    except Exception:
+        pass
     agent_cfg = cfg.get("agent") or {}
     system_prompt = _prompt_text(agent_cfg.get("system_prompt", ""))
     startup_skills = _parse_tui_skills_env()

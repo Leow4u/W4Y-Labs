@@ -1,5 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getDevSession } from "@/lib/dev-auth";
 import LoginClient from "./LoginClient";
 
 // Work4You single door (Claude-style split): form column on the left, living
@@ -8,9 +10,18 @@ import LoginClient from "./LoginClient";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; return_to?: string }>;
 }) {
-  const { next } = await searchParams;
+  const { next, return_to } = await searchParams;
+  const dest = (next ?? return_to ?? "").trim();
+
+  // Desktop hand-off: sessão já válida → saltar o formulário e ir para /device.
+  if (dest === "/device") {
+    const session = await getDevSession();
+    if (session) {
+      redirect("/device");
+    }
+  }
 
   return (
     <main className="flex min-h-screen bg-paper text-ink">
@@ -38,7 +49,7 @@ export default async function LoginPage({
           </div>
 
           <LoginClient
-            next={next ?? ""}
+            next={dest}
             turnstileSitekey={process.env.TURNSTILE_SITEKEY || undefined}
           />
 
@@ -77,11 +88,11 @@ export default async function LoginPage({
           <div className="absolute inset-0 bg-mata-deep/10" />
           <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-mata-deep/70 to-transparent px-8 pb-7 pt-20">
             <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-paper/90">
-              Monte · Ligue · Ele continua
+              Entre · Personalize · Trabalhe
             </p>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-paper/75">
-              O agente que você construiu, trabalhando 24/7 — mesmo quando você
-              não está olhando.
+              Agente de IA que executa de verdade — terminal, canais e nuvem, com
+              o mesmo Work em todo o lado.
             </p>
           </div>
         </div>

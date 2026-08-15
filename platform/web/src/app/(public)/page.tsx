@@ -1,14 +1,22 @@
 import Image from "next/image";
 import Link from "next/link";
 import HeroDemo from "@/components/HeroDemo";
+import HeroInstallCtas from "@/components/HeroInstallCtas";
+import HomeInstallPanel from "@/components/HomeInstallPanel";
 import DelegationInput from "@/components/DelegationInput";
+import {
+  AutomationsTableMock,
+  PersonalizeSkillsMock,
+  WhatsAppAgentMock,
+} from "@/components/ProductMocks";
 import { getSiteLocale } from "@/lib/site-locale";
+import { browserEnter } from "@/lib/product-download";
 
 // Work4You landing — new architecture, benchmark-informed:
 // centered display hero with the LIVE product window bleeding into the fold,
 // alternating text-rail × product-frame sections, one dark statement canvas,
-// editorial meta-cards, the 24/7 forest section, final CTA.
-// Narrative order from the site brief: build → talk & execute → run 24/7.
+// editorial meta-cards, cloud automations section, final CTA.
+// Narrative order from the site brief: personalize → talk & execute → cloud runtime.
 // All visible copy is bilingual (pt/en) via the site-locale cookie.
 
 // Real brand logos (Simple Icons, /brand/apps). Brazil-first ordering.
@@ -45,7 +53,7 @@ const CONNECTORS = {
   ],
 } as const;
 
-const DELIVERABLES = [
+const ARTIFACTS = [
   { name: "Excel", icon: "/brand/apps/excel.svg" },
   { name: "PowerPoint", icon: "/brand/apps/powerpoint.svg" },
   { name: "Word", icon: "/brand/apps/word.svg" },
@@ -55,11 +63,9 @@ const DELIVERABLES = [
 const CONTENT = {
   pt: {
     hero: {
-      title: "Construa o seu agente de IA.",
-      sub1: "Coloque ele pra rodar",
-      sub2: " — conversa, executa e continua depois que você sai.",
-      ctaBuild: "Construir meu agente",
-      ctaHow: "Ver como funciona →",
+      title: "Agente de IA que cresce com você.",
+      ctaDownload: "Baixar aplicativo para desktop",
+      ctaTerminal: "Instalar via terminal",
     },
     explainer: {
       heading: "Fala onde você fala. Usa o que você usa. Entrega pronto.",
@@ -77,32 +83,25 @@ const CONTENT = {
         more: "+ de 1.400 apps",
         quote: "“Lê o meu Gmail e atualiza o Notion.”",
       },
-      deliverables: {
-        label: "Entregas",
-        title: "O que ele produz e devolve pronto",
-        quote: "“Gera o fluxo de caixa em Excel e deixa em Entregas.”",
+      artifacts: {
+        label: "Artefatos",
+        title: "O que ele cria e devolve pronto",
+        quote: "“Gera o fluxo de caixa em Excel e deixa em Artefatos.”",
       },
     },
     statement: {
       t1: "Chat responde.",
-      tu: "O seu agente executa",
-      t2: "— e continua depois que você sai.",
-      p: "Aqui você não usa um “agente pronto” de marketing. Você constrói um de verdade — foco, estilo, ferramentas, modelo — e deixa ele ligado.",
+      tu: "Work executa",
+      t2: "— ficheiros, terminal e automações na nuvem.",
+      p: "Um agente Default, no espírito do Cursor. Personalize Skills e Conectores; use no desktop, browser ou WhatsApp.",
     },
     build: {
-      label: "01 · Construa",
-      title: "Do zero ao seu agente",
-      titleFaint: "em minutos, não semanas.",
-      p: "Diga o foco, o estilo, as ferramentas e o modelo. Construa um. Construa vários no Agent Studio — independentes, que se consultam e trabalham juntos quando a tarefa pede.",
-      cta: "Conhecer o Agent Studio →",
-      agents: [
-        { name: "Agente principal", focus: "Coordena, delega e entrega", model: "modelo à sua escolha", on: true },
-        { name: "Vendas", focus: "Leads, propostas e follow-ups", model: "foco próprio", on: true },
-        { name: "Financeiro", focus: "Cobranças e conciliação", model: "rotinas 24/7", on: true },
-        { name: "Atendimento", focus: "Respostas no tom da empresa", model: "em construção", on: false },
-      ],
-      statusOn: "no ar",
-      statusOff: "pausado",
+      label: "01 · Personalize",
+      title: "Amplie com Personalizar",
+      titleFaint: "Skills, Conectores e MCPs.",
+      p: "Ligue as suas contas, instale Skills e escolha o modelo — sem montar outro agente do zero.",
+      cta: "Ver como personalizar →",
+      frame: "Personalizar",
     },
     use: {
       label: "02 · Use",
@@ -126,9 +125,9 @@ const CONTENT = {
       ],
     },
     always: {
-      label: "03 · Ligue o 24/7",
-      title: "Depois de construído, ele não depende do seu notebook.",
-      p: "Agenda, rotinas e trabalhos longos rodam na nuvem. Desktop e web são entradas — a nuvem é onde o seu agente fica ligado.",
+      label: "03 · Automações",
+      title: "Rotinas e runtime na nuvem.",
+      p: "Automações, gateway e trabalhos longos continuam com o agente ligado. Desktop e web são entradas — a nuvem mantém tudo a correr.",
       cta: "Conhecer a plataforma →",
       routines: [
         { when: "Toda manhã · 07h00", what: "Resumo dos e-mails e do que vence hoje" },
@@ -143,7 +142,7 @@ const CONTENT = {
       desktop: {
         title: "Desktop",
         copy: "Do dia a dia às pastas e ao código — direto no seu computador.",
-        cta: "Baixar →",
+        cta: "Download →",
         prompt: "adiciona o filtro de junho na planilha",
         reading: "Lendo",
         file: "vendas.xlsx",
@@ -160,14 +159,9 @@ const CONTENT = {
         done: "✓ testes passando · commit enviado",
       },
       whatsapp: {
-        title: "Outras plataformas",
-        copy: "Inicie agentes pelo WhatsApp, Telegram, Slack e muito mais.",
-        cta: "Adicionar ao WhatsApp ↗",
-        agentName: "Agente Work4You",
-        online: "online",
-        msg: "Vê no CRM se entrou lead novo",
-        reply: "3 leads novos! O mais quente pediu proposta — já preparei: 📎",
-        file: "proposta-marina.pdf 📄",
+        title: "WhatsApp e canais",
+        copy: "Peça no WhatsApp — o agente lê Gmail, roda ferramentas e devolve estruturado.",
+        cta: "Conectar WhatsApp ↗",
       },
       web: {
         title: "Web e celular",
@@ -186,21 +180,19 @@ const CONTENT = {
     trust: [
       { title: "Aprovação humana", copy: "Ações sensíveis esperam o seu OK." },
       { title: "Histórico completo", copy: "Cada tarefa e decisão registrada." },
-      { title: "Controle de uso", copy: "Consumo e custo por agente." },
+      { title: "Controle de uso", copy: "Uso incluído e on-demand na Conta." },
       { title: "Acesso por equipe", copy: "Cada pessoa vê o que deve ver." },
     ],
     final: {
-      title: "Monte. Ligue. Ele continua.",
-      p: "Leva minutos — e o agente que você construiu começa a trabalhar.",
+      title: "Entre. Personalize. Trabalhe.",
+      p: "O mesmo agente no desktop, no browser e nos canais — com uso incluído e on-demand na Conta.",
     },
   },
   en: {
     hero: {
-      title: "Build your AI agent.",
-      sub1: "Put it to work",
-      sub2: " — it talks, executes, and keeps going after you leave.",
-      ctaBuild: "Build my agent",
-      ctaHow: "See how it works →",
+      title: "An AI agent that grows with you.",
+      ctaDownload: "Download desktop app",
+      ctaTerminal: "Install via terminal",
     },
     explainer: {
       heading: "Talks where you talk. Uses what you use. Delivers finished work.",
@@ -218,32 +210,25 @@ const CONTENT = {
         more: "1,400+ apps",
         quote: "“It reads my Gmail and updates Notion.”",
       },
-      deliverables: {
-        label: "Deliveries",
+      artifacts: {
+        label: "Artifacts",
         title: "What it produces and hands back, done",
-        quote: "“It builds the cash flow in Excel and drops it in Deliveries.”",
+        quote: "“It builds the cash flow in Excel and drops it in Artifacts.”",
       },
     },
     statement: {
       t1: "Chat answers.",
-      tu: "Your agent executes",
-      t2: "— and keeps going after you leave.",
-      p: "This isn't a prepackaged “agent” from a marketing page. You build a real one — focus, style, tools, model — and leave it running.",
+      tu: "Work executes",
+      t2: "— files, terminal, and cloud automations.",
+      p: "One Default agent, Cursor-style. Customize Skills and Connectors; use it on desktop, browser, or WhatsApp.",
     },
     build: {
-      label: "01 · Build",
-      title: "From zero to your agent",
-      titleFaint: "in minutes, not weeks.",
-      p: "Set the focus, the style, the tools, and the model. Build one. Build several in Agent Studio — independent agents that consult each other and work together when the task calls for it.",
-      cta: "Meet Agent Studio →",
-      agents: [
-        { name: "Main agent", focus: "Coordinates, delegates, delivers", model: "model of your choice", on: true },
-        { name: "Sales", focus: "Leads, proposals, follow-ups", model: "own focus", on: true },
-        { name: "Finance", focus: "Invoicing and reconciliation", model: "24/7 routines", on: true },
-        { name: "Support", focus: "Replies in your company's tone", model: "in progress", on: false },
-      ],
-      statusOn: "live",
-      statusOff: "paused",
+      label: "01 · Customize",
+      title: "Extend with Customize",
+      titleFaint: "Skills, Connectors, and MCPs.",
+      p: "Connect your accounts, install Skills, pick the model — without building a separate agent from scratch.",
+      cta: "See how to customize →",
+      frame: "Customize",
     },
     use: {
       label: "02 · Use",
@@ -267,9 +252,9 @@ const CONTENT = {
       ],
     },
     always: {
-      label: "03 · Turn on 24/7",
-      title: "Once it's built, it doesn't depend on your laptop.",
-      p: "Agenda, routines, and long-running work run in the cloud. Desktop and web are entry points — the cloud is where your agent stays on.",
+      label: "03 · Automations",
+      title: "Routines and cloud runtime.",
+      p: "Automations, gateway, and long-running work keep going with the agent online. Desktop and web are entry points — the cloud keeps it running.",
       cta: "Explore the platform →",
       routines: [
         { when: "Every morning · 7:00 am", what: "Summary of emails and what's due today" },
@@ -301,14 +286,9 @@ const CONTENT = {
         done: "✓ tests passing · commit pushed",
       },
       whatsapp: {
-        title: "Other platforms",
-        copy: "Start agents from WhatsApp, Telegram, Slack, and more.",
-        cta: "Add to WhatsApp ↗",
-        agentName: "Work4You Agent",
-        online: "online",
-        msg: "Check the CRM for new leads",
-        reply: "3 new leads! The hottest one asked for a proposal — already done: 📎",
-        file: "marina-proposal.pdf 📄",
+        title: "WhatsApp and channels",
+        copy: "Ask on WhatsApp — the agent reads Gmail, runs tools, and replies in structure.",
+        cta: "Connect WhatsApp ↗",
       },
       web: {
         title: "Web and mobile",
@@ -327,12 +307,12 @@ const CONTENT = {
     trust: [
       { title: "Human approval", copy: "Sensitive actions wait for your OK." },
       { title: "Full history", copy: "Every task and decision on record." },
-      { title: "Usage control", copy: "Consumption and cost per agent." },
+      { title: "Usage control", copy: "Included usage and on-demand in Account." },
       { title: "Team access", copy: "Each person sees only what they should." },
     ],
     final: {
-      title: "Build it. Turn it on. It keeps going.",
-      p: "It takes minutes — and the agent you built gets to work.",
+      title: "Sign in. Customize. Work.",
+      p: "The same agent on desktop, browser, and channels — with included usage and on-demand in Account.",
     },
   },
 } as const;
@@ -346,28 +326,13 @@ export default async function LandingPage() {
       {/* ── S1 · Hero: quiet two-tone statement, product as the star ── */}
       <section className="px-6 pb-20 pt-20 md:pt-28">
         <div className="mx-auto max-w-6xl">
-          <h1 className="max-w-3xl text-3xl font-bold leading-[1.18] tracking-[-0.02em] md:text-[2.6rem]">
-            <span className="text-ink">{t.hero.title}</span>{" "}
-            <span className="font-semibold text-ink-faint">
-              {t.hero.sub1}{" "}
-              <span className="whitespace-nowrap text-mata">24/7</span>
-              {t.hero.sub2}
-            </span>
+          <h1 className="max-w-3xl text-3xl font-bold leading-[1.18] tracking-[-0.02em] text-ink md:text-[2.6rem]">
+            {t.hero.title}
           </h1>
-          <div className="mt-8 flex flex-wrap items-center gap-5">
-            <Link
-              href="/login"
-              className="rounded-full bg-ink px-6 py-3 text-[15px] font-semibold text-paper transition-colors hover:bg-black"
-            >
-              {t.hero.ctaBuild}
-            </Link>
-            <Link
-              href="/plataforma"
-              className="text-[15px] font-semibold text-ink-soft underline-offset-4 transition-colors hover:text-ink hover:underline"
-            >
-              {t.hero.ctaHow}
-            </Link>
-          </div>
+          <HeroInstallCtas
+            downloadLabel={t.hero.ctaDownload}
+            terminalLabel={t.hero.ctaTerminal}
+          />
         </div>
 
         {/* the product, floating over the landscape (Unsplash, free license) */}
@@ -458,16 +423,16 @@ export default async function LandingPage() {
               </p>
             </div>
 
-            {/* Deliverables: what the agent produces */}
+            {/* Artifacts: what the agent produces */}
             <div className="rounded-2xl border border-line bg-white p-7">
               <p className="font-mono text-[11px] font-medium uppercase tracking-[0.18em] text-salvia">
-                {t.explainer.deliverables.label}
+                {t.explainer.artifacts.label}
               </p>
               <h3 className="mt-2 text-lg font-bold text-ink">
-                {t.explainer.deliverables.title}
+                {t.explainer.artifacts.title}
               </h3>
               <div className="mt-5 flex flex-wrap gap-2">
-                {DELIVERABLES.map((d) => (
+                {ARTIFACTS.map((d) => (
                   <span
                     key={d.name}
                     className="flex items-center gap-2 rounded-full border border-line bg-paper px-3.5 py-1.5 text-[13px] font-medium text-ink-soft"
@@ -479,7 +444,7 @@ export default async function LandingPage() {
                 ))}
               </div>
               <p className="mt-5 text-[13px] italic leading-relaxed text-ink-faint">
-                {t.explainer.deliverables.quote}
+                {t.explainer.artifacts.quote}
               </p>
             </div>
           </div>
@@ -502,7 +467,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── S4 · Build: text rail × Studio frame ────────────────────── */}
+      {/* ── S4 · Customize: text rail × Personalizar frame ──────────── */}
       <section className="px-6 py-20">
         <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
           <div>
@@ -524,7 +489,7 @@ export default async function LandingPage() {
             </Link>
           </div>
 
-          {/* Studio frame over the misty pines */}
+          {/* Personalizar frame over the misty pines */}
           <div className="relative overflow-hidden rounded-3xl p-4 sm:p-8">
             <Image
               src="/media/studio-mist.jpg"
@@ -539,33 +504,10 @@ export default async function LandingPage() {
                 <span className="h-2.5 w-2.5 rounded-full bg-line" />
                 <span className="h-2.5 w-2.5 rounded-full bg-line" />
                 <span className="ml-3 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">
-                  Agent Studio
+                  {t.build.frame}
                 </span>
               </div>
-              {t.build.agents.map((a, i) => (
-                <div
-                  key={a.name}
-                  className={`flex items-center gap-4 px-5 py-4 ${i > 0 ? "border-t border-line" : ""}`}
-                >
-                  <span
-                    className={`h-2 w-2 shrink-0 rounded-full ${a.on ? "w4y-live-dot bg-salvia" : "bg-line"}`}
-                  />
-                  <div className="min-w-0">
-                    <p className="text-sm font-semibold text-ink">{a.name}</p>
-                    <p className="truncate text-[13px] text-ink-soft">{a.focus}</p>
-                  </div>
-                  <span className="ml-auto hidden shrink-0 font-mono text-[10px] uppercase tracking-[0.12em] text-ink-faint sm:block">
-                    {a.model}
-                  </span>
-                  <span
-                    className={`shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] ${
-                      a.on ? "bg-salvia-soft text-mata" : "bg-paper text-ink-faint"
-                    }`}
-                  >
-                    {a.on ? t.build.statusOn : t.build.statusOff}
-                  </span>
-                </div>
-              ))}
+              <PersonalizeSkillsMock locale={locale} />
             </div>
           </div>
         </div>
@@ -604,7 +546,7 @@ export default async function LandingPage() {
         </div>
       </section>
 
-      {/* ── S6 · 24/7 — the dark forest (real one) ──────────────────── */}
+      {/* ── S6 · Automações — the dark forest (real one) ─────────────── */}
       <section className="relative overflow-hidden bg-mata-deep px-6 py-24 text-paper">
         <Image
           src="/media/night-forest.jpg"
@@ -633,25 +575,7 @@ export default async function LandingPage() {
                 {t.always.cta}
               </Link>
             </div>
-            <div className="space-y-3">
-              {t.always.routines.map((r) => (
-                <div
-                  key={r.when}
-                  className="flex items-center gap-4 rounded-2xl border border-paper/15 bg-paper/5 px-5 py-4"
-                >
-                  <span className="w4y-live-dot h-2 w-2 shrink-0 rounded-full bg-salvia" />
-                  <div className="min-w-0">
-                    <p className="font-mono text-[11px] uppercase tracking-[0.14em] text-salvia">
-                      {r.when}
-                    </p>
-                    <p className="mt-1 truncate text-sm text-paper/90">{r.what}</p>
-                  </div>
-                  <span className="ml-auto shrink-0 font-mono text-[11px] uppercase tracking-[0.14em] text-paper/50">
-                    {t.always.live}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <AutomationsTableMock locale={locale} />
           </div>
         </div>
       </section>
@@ -673,7 +597,7 @@ export default async function LandingPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
                 {t.platforms.desktop.copy}
               </p>
-              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+              <Link href="#install" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.desktop.cta}
               </Link>
               <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-white">
@@ -705,7 +629,7 @@ export default async function LandingPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
                 {t.platforms.cli.copy}
               </p>
-              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+              <Link href="#install-terminal" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.cli.cta}
               </Link>
               <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-ink/60 bg-[#1b1d19]">
@@ -752,25 +676,8 @@ export default async function LandingPage() {
               <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.whatsapp.cta}
               </Link>
-              <div className="mt-5 flex-1 overflow-hidden rounded-t-xl border border-b-0 border-line bg-[#ece5dd]">
-                <div className="flex items-center gap-2 border-b border-line bg-white px-3 py-2">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/brand/apps/whatsapp.svg" alt="" width={14} height={14} className="h-3.5 w-3.5" />
-                  <span className="text-[11px] font-semibold text-ink">{t.platforms.whatsapp.agentName}</span>
-                  <span className="text-[10px] text-[#25a05a]">{t.platforms.whatsapp.online}</span>
-                </div>
-                <div className="space-y-2 px-3 py-3">
-                  <div className="ml-auto w-fit max-w-[85%] rounded-lg rounded-tr-sm bg-[#d9fdd3] px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
-                    {t.platforms.whatsapp.msg}
-                    <span className="ml-1 text-[9px] text-[#53bdeb]">✓✓</span>
-                  </div>
-                  <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] text-ink shadow-sm">
-                    {t.platforms.whatsapp.reply}
-                  </div>
-                  <div className="w-fit max-w-[85%] rounded-lg rounded-tl-sm bg-white px-2.5 py-1.5 text-[10.5px] font-medium text-ink shadow-sm">
-                    {t.platforms.whatsapp.file}
-                  </div>
-                </div>
+              <div className="mt-5 flex-1">
+                <WhatsAppAgentMock locale={locale} />
               </div>
             </div>
 
@@ -780,7 +687,7 @@ export default async function LandingPage() {
               <p className="mt-1.5 text-[13.5px] leading-relaxed text-ink-soft">
                 {t.platforms.web.copy}
               </p>
-              <Link href="/login" className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
+              <Link href={browserEnter()} className="mt-3 text-[13.5px] font-semibold text-mata hover:underline">
                 {t.platforms.web.cta}
               </Link>
               <div className="mx-auto mt-5 w-[82%] flex-1 overflow-hidden rounded-t-[1.6rem] border-4 border-b-0 border-ink bg-white">
@@ -814,6 +721,8 @@ export default async function LandingPage() {
           </div>
         </div>
       </section>
+
+      <HomeInstallPanel locale={locale} />
 
       {/* ── S8 · Trust hairlines ────────────────────────────────────── */}
       <section className="px-6 pb-8 pt-4">

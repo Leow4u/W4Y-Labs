@@ -19,7 +19,7 @@ export default function TermosPage() {
         />
       </Link>
       <h1 className="mt-7 text-3xl font-extrabold tracking-[-0.02em] text-ink">Termos e Serviços</h1>
-      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Última atualização: 5 de julho de 2026 · Versão 1.0</p>
+      <p className="mt-2 font-mono text-[11px] uppercase tracking-[0.14em] text-ink-faint">Última atualização: 6 de agosto de 2026 · Versão 1.1</p>
 
       <section className="mt-8 space-y-6">
         <div>
@@ -62,13 +62,14 @@ export default function TermosPage() {
           </p>
         </div>
         <div>
-          <h2 className="font-bold text-ink">5. Planos, créditos e cobrança</h2>
+          <h2 className="font-bold text-ink">5. Planos e cobrança</h2>
           <p className="mt-1">
-            Recursos podem ser oferecidos em planos gratuitos e pagos, com créditos de consumo.
-            Valores, limites e condições de cada plano são apresentados no momento da
-            contratação, processada por meio do provedor de pagamentos Stripe. Créditos de
-            assinatura podem expirar conforme as regras do plano; créditos avulsos (top-up) não
-            expiram, salvo indicação em contrário.
+            Recursos podem ser oferecidos em planos gratuitos e pagos. Cada plano inclui uso
+            que reinicia a cada ciclo de cobrança; planos pagos podem oferecer uso on-demand
+            opcional, sujeito a um limite de gasto definido por você. Valores, limites e
+            condições de cada plano são apresentados no momento da contratação, processada
+            por meio do provedor de pagamentos Stripe. O uso além do incluído é reportado no
+            fim do ciclo e cobrado na fatura seguinte, conforme as regras do plano.
           </p>
         </div>
         <div>
@@ -106,7 +107,17 @@ export default function TermosPage() {
           </p>
         </div>
         <div>
-          <h2 className="font-bold text-ink">10. Lei aplicável e contato</h2>
+          <h2 className="font-bold text-ink">10. Software proprietário</h2>
+          <p className="mt-1">
+            O aplicativo desktop Work4You, o motor de agentes e demais componentes distribuídos
+            pela W4Y-Labs são <strong>software proprietário</strong>, licenciados — não vendidos —
+            para uso pessoal conforme estes Termos. É proibida engenharia reversa, descompilação,
+            redistribuição, sublicenciamento ou cópia não autorizada. Detalhes em{" "}
+            <Link href="/legal/licenca" className="underline">Licença de software</Link>.
+          </p>
+        </div>
+        <div>
+          <h2 className="font-bold text-ink">11. Lei aplicável e contato</h2>
           <p className="mt-1">
             Estes Termos são regidos pelas leis da República Federativa do Brasil, com foro na
             comarca de domicílio do usuário. Dúvidas: <strong>contato@work4you.ai</strong>.

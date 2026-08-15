@@ -1,0 +1,322 @@
+"""Shared multi-tenant platform runtime (Claude-style motor on one Fly app).
+
+Each platform tenant gets an isolated WAYNE_HOME under ``W4Y_TENANTS_ROOT``.
+Bootstrap pulls per-tenant OpenRouter keys from the platform internal API.
+
+**Isolation contract (1000+ users):** every authenticated request on a shared
+motor MUST resolve storage from ``session.org_id`` — never from a process-wide
+default home. See ``platform_tenant_request_scope`` and ``open_session_db``.
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+import logging
+import os
+from contextlib import asynccontextmanager
+from pathlib import Path
+from typing import Any, AsyncIterator, Optional
+
+import httpx
+import yaml
+from starlette.requests import Request
+from starlette.responses import JSONResponse, Response
+
+_log = logging.getLogger(__name__)
+
+class TenantScopeRequiredError(RuntimeError):
+    """Raised when shared-motor code tries to open tenant data without org_id scope."""
+
+
+# Authenticated API paths that touch tenant-private state on the shared motor.
+_SHARED_MOTOR_TENANT_DATA_PREFIXES: tuple[str, ...] = (
+    "/api/sessions",
+    "/api/pty",
+    "/api/ws",
+    "/api/pub",
+    "/api/events",
+    "/api/files",
+    "/api/config",
+    "/api/memory",
+    "/api/cron",
+    "/api/skills",
+    "/api/account",
+    "/api/chat",
+    "/api/gateway",
+    "/api/connectors",
+    "/api/managed",
+    "/api/terminal",
+    "/api/v3.1",
+)
+
+
+def shared_motor_enabled() -> bool:
+    return (os.environ.get("W4Y_SHARED_MOTOR") or "").strip() in ("1", "true", "yes")
+
+
+def tenants_root() -> Path:
+    raw = (os.environ.get("W4Y_TENANTS_ROOT") or "").strip()
+    if raw:
+        return Path(raw)
+    from work4you_constants import get_wayne_home
+
+    return get_wayne_home() / "tenants"
+
+
+def tenant_home_path(tenant_id: str) -> Path:
+    safe = tenant_id.replace("/", "_").strip()
+    if not safe:
+        raise ValueError("tenant_id required")
+    return tenants_root() / safe
+
+
+def platform_tenant_from_session(session: Any) -> Optional[str]:
+    org_id = str(getattr(session, "org_id", "") or "").strip()
+    return org_id or None
+
+
+def session_db_path(home: Path | None = None) -> Path:
+    """Resolve ``state.db`` for the active tenant (runtime ``get_wayne_home``)."""
+    if home is None:
+        from work4you_constants import get_wayne_home, get_wayne_home_override
+
+        if shared_motor_enabled() and not get_wayne_home_override():
+            raise TenantScopeRequiredError(
+                "Shared motor requires tenant scope (session.org_id) before opening state.db"
+            )
+        home = get_wayne_home()
+    return Path(home) / "state.db"
+
+
+def open_session_db(*, profile_home: Path | None = None):
+    """Open SessionDB for the scoped tenant — never the import-time default."""
+    from work4you_state import SessionDB
+
+    return SessionDB(db_path=session_db_path(profile_home))
+
+
+def _path_requires_tenant_scope(path: str) -> bool:
+    if not path.startswith("/api/"):
+        return False
+    from work4you_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS
+
+    if path in PUBLIC_API_PATHS:
+        return False
+    return any(
+        path == prefix or path.startswith(prefix + "/")
+        for prefix in _SHARED_MOTOR_TENANT_DATA_PREFIXES
+    )
+
+
+def shared_motor_tenant_violation_response(
+    request: Request, session: Any | None
+) -> Response | None:
+    """Fail-closed when shared motor serves tenant data without ``org_id``."""
+    if not shared_motor_enabled():
+        return None
+    if session is None:
+        return None
+    path = request.url.path
+    if not _path_requires_tenant_scope(path):
+        return None
+    tenant_id = platform_tenant_from_session(session)
+    if tenant_id:
+        return None
+    _log.error(
+        "shared-motor tenant isolation violation path=%s user=%s",
+        path,
+        getattr(session, "user_id", "?"),
+    )
+    return JSONResponse(
+        status_code=403,
+        content={
+            "detail": "Tenant scope required — sign in through the platform SSO flow.",
+        },
+    )
+
+
+def activate_platform_tenant_scope(tenant_id: str) -> Any:
+    """Bootstrap tenant home and pin ``WAYNE_HOME`` for this context. Returns reset token."""
+    from work4you_constants import set_wayne_home_override
+
+    ensure_tenant_home(tenant_id)
+    return set_wayne_home_override(str(tenant_home_path(tenant_id)))
+
+
+def deactivate_platform_tenant_scope(token: Any) -> None:
+    from work4you_constants import reset_wayne_home_override
+
+    reset_wayne_home_override(token)
+
+
+@asynccontextmanager
+async def platform_tenant_request_scope(request: Request) -> AsyncIterator[None]:
+    """Pin ``WAYNE_HOME`` to ``session.org_id`` for the remainder of the request."""
+    if not shared_motor_enabled():
+        yield
+        return
+
+    session = getattr(request.state, "session", None)
+    tenant_id = platform_tenant_from_session(session)
+    if not tenant_id:
+        yield
+        return
+
+    token = activate_platform_tenant_scope(tenant_id)
+    try:
+        yield
+    finally:
+        deactivate_platform_tenant_scope(token)
+
+
+def _platform_origin() -> str:
+    return (
+        os.environ.get("W4Y_PLATFORM_ORIGIN")
+        or os.environ.get("WORK4YOU_PLATFORM_ORIGIN")
+        or "https://work4you.ai"
+    ).rstrip("/")
+
+
+def _provisioner_secret() -> str:
+    return (
+        os.environ.get("W4Y_PLATFORM_SSO_SECRET")
+        or os.environ.get("PROVISIONER_SHARED_SECRET")
+        or ""
+    ).strip()
+
+
+def _sign_body(body: str) -> str:
+    secret = _provisioner_secret()
+    return hmac.new(secret.encode(), body.encode(), hashlib.sha256).hexdigest()
+
+
+def fetch_tenant_runtime(tenant_id: str) -> dict[str, Any]:
+    """Return ``{openrouterKey, plan, ...}`` from platform (HMAC-authenticated)."""
+    payload = json.dumps({"tenantId": tenant_id}, separators=(",", ":"))
+    sig = _sign_body(payload)
+    url = f"{_platform_origin()}/internal/tenant-runtime"
+    try:
+        with httpx.Client(timeout=20.0) as client:
+            r = client.post(
+                url,
+                content=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-provisioner-sig": sig,
+                },
+            )
+        if r.status_code != 200:
+            _log.warning(
+                "tenant-runtime fetch failed tenant=%s status=%s",
+                tenant_id,
+                r.status_code,
+            )
+            return {}
+        data = r.json()
+        if not isinstance(data, dict) or not data.get("ok"):
+            return {}
+        return data
+    except Exception as exc:
+        _log.warning("tenant-runtime fetch error tenant=%s: %s", tenant_id, exc)
+        return {}
+
+
+def _write_tenant_env(home: Path, openrouter_key: str) -> None:
+    home.mkdir(parents=True, exist_ok=True)
+    env_path = home / ".env"
+    lines: list[str] = []
+    if env_path.is_file():
+        try:
+            lines = env_path.read_text(encoding="utf-8").splitlines()
+        except OSError:
+            lines = []
+    filtered = [ln for ln in lines if not ln.startswith("OPENROUTER_API_KEY=")]
+    filtered.append(f"OPENROUTER_API_KEY={openrouter_key.strip()}")
+    env_path.write_text("\n".join(filtered) + "\n", encoding="utf-8")
+
+
+def _load_tenant_config(home: Path) -> dict[str, Any]:
+    config_path = home / "config.yaml"
+    if not config_path.is_file():
+        return {}
+    try:
+        raw = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    except OSError:
+        return {}
+    return raw if isinstance(raw, dict) else {}
+
+
+def _save_tenant_config(home: Path, config: dict[str, Any]) -> None:
+    home.mkdir(parents=True, exist_ok=True)
+    config_path = home / "config.yaml"
+    config_path.write_text(
+        yaml.safe_dump(config, sort_keys=False, allow_unicode=True),
+        encoding="utf-8",
+    )
+
+
+def _should_reset_platform_default(model_default: str, plan: str | None) -> bool:
+    from work4you_cli.relay_free_model import is_gratis_plan, is_plan_locked_model
+
+    mid = (model_default or "").strip()
+    if not mid:
+        return True
+    lower = mid.lower()
+    if "nemotron" in lower or lower.endswith(":free"):
+        return True
+    if is_gratis_plan(plan) and is_plan_locked_model(mid, plan):
+        return True
+    return False
+
+
+def ensure_tenant_platform_config(home: Path, plan: str | None) -> None:
+    """Apply Work4You catalog defaults (Relay on Free, Auto on paid)."""
+    from work4you_cli.relay_free_model import (
+        apply_relay_free_defaults,
+        is_gratis_plan,
+    )
+
+    config = _load_tenant_config(home)
+    model = config.get("model")
+    if not isinstance(model, dict):
+        model = {}
+        config["model"] = model
+
+    current_default = str(model.get("default") or "").strip()
+
+    if is_gratis_plan(plan):
+        if _should_reset_platform_default(current_default, plan):
+            apply_relay_free_defaults(config)
+            _save_tenant_config(home, config)
+        return
+
+    if _should_reset_platform_default(current_default, plan):
+        model["default"] = "openrouter/auto"
+        model["provider"] = "openrouter"
+        config["model"] = model
+        _save_tenant_config(home, config)
+
+
+def ensure_tenant_home(tenant_id: str) -> Path:
+    """Materialize tenant home (idempotent). Returns the home path."""
+    home = tenant_home_path(tenant_id)
+    runtime = fetch_tenant_runtime(tenant_id)
+    plan = str(runtime.get("plan") or "free")
+
+    env_path = home / ".env"
+    if not env_path.is_file():
+        key = str(runtime.get("openrouterKey") or "").strip()
+        if not key:
+            home.mkdir(parents=True, exist_ok=True)
+            _log.warning("tenant home bootstrap missing key tenant=%s", tenant_id)
+        else:
+            _write_tenant_env(home, key)
+
+    ensure_tenant_platform_config(home, plan)
+    return home
+
+
+async def platform_tenant_http_middleware(request, call_next):
+    """Deprecated outer middleware — tenant scope now runs inside gated_auth."""
+    return await call_next(request)

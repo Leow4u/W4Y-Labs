@@ -69,10 +69,17 @@ environments/benchmarks/evals/
 
 # Web UI build output
 work4you_cli/web_dist/
-apps/desktop/build/
-apps/desktop/dist/
-apps/desktop/release/
-apps/desktop/*.tsbuildinfo
+work4you_cli/app_dist/
+# Contents, not the directory itself: git cannot re-include a file whose parent
+# directory is excluded, and build/installer.nsh MUST be versioned — it is the
+# NSIS macro that materializes the engine at install time, referenced from
+# package.json (build.nsis.include). Excluding `build/` outright kept it off
+# version control entirely, so it lived on one machine only.
+apps/work4you/build/*
+!apps/work4you/build/installer.nsh
+apps/work4you/dist/
+apps/work4you/release/
+apps/work4you/*.tsbuildinfo
 
 # Web UI assets — synced from @nous-research/ui at build time via
 # `npm run sync-assets` (see web/package.json).
@@ -142,7 +149,7 @@ RELEASE_v*.md
 
 # Desktop demo-run scratch output (wayne writes demo/*.txt during recorded
 # walkthroughs). Throwaway artifacts, never part of the app.
-apps/desktop/demo/
+apps/work4you/demo/
 
 # PR infographics are rendered locally and embedded in PR descriptions via the
 # image-provider (fal.media) URL — they are NEVER committed to the repo. The

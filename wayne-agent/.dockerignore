@@ -66,10 +66,13 @@ runtime/
 
 # ---------- Not needed inside the Docker image ----------
 
-# Desktop app + installer are not carried over in this fork. But apps/shared
-# IS required: web/ depends on it (file:../apps/shared) at build time, so we
-# exclude only the dropped subdirs, not apps/ wholesale.
-apps/desktop/
+# Product SPA (apps/work4you) is built inside the image
+# via `npm run build:web` → work4you_cli/app_dist. Exclude Electron packaging
+# trees and the bootstrap installer — not needed at runtime.
+apps/work4you/electron/
+apps/work4you/out/
+apps/work4you/release-build/
+apps/work4you/dist/
 apps/bootstrap-installer/
 
 # Test suite — not shipped in production images

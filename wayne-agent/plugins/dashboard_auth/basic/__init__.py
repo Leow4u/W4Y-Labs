@@ -258,6 +258,16 @@ class BasicAuthProvider(DashboardAuthProvider):
             raise InvalidCredentialsError("invalid username or password")
         return self._mint_session(self._username)
 
+    def mint_session_with_claims(
+        self,
+        *,
+        user_id: str,
+        email: str = "",
+        org_id: str = "",
+    ) -> Session:
+        """Mint a session with optional platform tenant claims in the token."""
+        return self._mint_session(user_id, email=email, org_id=org_id)
+
     # ---- session lifecycle -------------------------------------------------
 
     def verify_session(self, *, access_token: str) -> Optional[Session]:
@@ -280,7 +290,11 @@ class BasicAuthProvider(DashboardAuthProvider):
             or payload.get("exp", 0) <= int(time.time())
         ):
             raise RefreshExpiredError("refresh token expired or invalid")
-        return self._mint_session(str(payload.get("sub", self._username)))
+        return self._mint_session(
+            str(payload.get("sub", self._username)),
+            email=str(payload.get("email", "") or ""),
+            org_id=str(payload.get("org_id", "") or ""),
+        )
 
     def revoke_session(self, *, refresh_token: str) -> None:
         # Stateless tokens — nothing to revoke server-side. The session
@@ -290,21 +304,29 @@ class BasicAuthProvider(DashboardAuthProvider):
 
     # ---- internals ---------------------------------------------------------
 
-    def _mint_session(self, user_id: str) -> Session:
+    def _mint_session(
+        self, user_id: str, *, email: str = "", org_id: str = ""
+    ) -> Session:
         now = int(time.time())
         exp = now + self._ttl
+        extra = {}
+        if email:
+            extra["email"] = email
+        if org_id:
+            extra["org_id"] = org_id
         access_token = _sign(
-            {"sub": user_id, "kind": "access", "exp": exp}, self._secret
+            {"sub": user_id, "kind": "access", "exp": exp, **extra}, self._secret
         )
         refresh_token = _sign(
-            {"sub": user_id, "kind": "refresh", "exp": now + _REFRESH_TTL_SECONDS},
+            {"sub": user_id, "kind": "refresh", "exp": now + _REFRESH_TTL_SECONDS, **extra},
             self._secret,
         )
+        display = email or user_id
         return Session(
             user_id=user_id,
-            email="",
-            display_name=user_id,
-            org_id="",
+            email=email,
+            display_name=display,
+            org_id=org_id,
             provider=self.name,
             expires_at=exp,
             access_token=access_token,
@@ -315,11 +337,14 @@ class BasicAuthProvider(DashboardAuthProvider):
         self, access_token: str, refresh_token: str, payload: dict
     ) -> Session:
         user_id = str(payload.get("sub", ""))
+        email = str(payload.get("email", "") or "")
+        org_id = str(payload.get("org_id", "") or "")
+        display = email or user_id
         return Session(
             user_id=user_id,
-            email="",
-            display_name=user_id,
-            org_id="",
+            email=email,
+            display_name=display,
+            org_id=org_id,
             provider=self.name,
             expires_at=int(payload["exp"]),
             access_token=access_token,

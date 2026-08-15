@@ -43,11 +43,10 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-# Source resolution (Work4You distribution model): the engine git remote comes
-# from the environment — mirrors install.ps1. WORK4YOU_SOURCE_REPO_URL is the
-# canonical name; the legacy WAYNE_SOURCE_REPO_URL still works so runners and
-# CI jobs configured before the rebrand keep installing. Nothing is ever
-# fetched from a hardcoded upstream repo.
+# Source resolution (Work4You distribution model): the engine ships as a ZIP
+# package hosted by us (WORK4YOU_SOURCE_ZIP_URL, main path) with an optional
+# git remote fallback (WORK4YOU_SOURCE_REPO_URL). Mirrors install.ps1.
+SOURCE_ZIP_URL="${WORK4YOU_SOURCE_ZIP_URL:-${WAYNE_SOURCE_ZIP_URL:-}}"
 SOURCE_REPO_URL="${WORK4YOU_SOURCE_REPO_URL:-${WAYNE_SOURCE_REPO_URL:-}}"
 
 # Data home.  WORK4YOU_HOME is the canonical env var; WAYNE_HOME is still read
@@ -198,7 +197,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Work4You.app)"
+            echo "  --include-desktop  Also build the desktop app (apps/work4you -> Work4You.app)"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.work4you/work4you-agent"
             echo "                   default (root, Linux): /usr/local/lib/work4you-agent"
@@ -1265,6 +1264,66 @@ show_manual_install_hint() {
 # Installation
 # ============================================================================
 
+get_engine_from_zip() {
+    log_info "Downloading Work4You engine package..."
+    log_info "  $SOURCE_ZIP_URL"
+
+    local zip_path extract_path src_root top
+    zip_path="$(mktemp -t wayne-engine.XXXXXX.zip)"
+    extract_path="$(mktemp -d)"
+
+    if ! curl -fsSL "$SOURCE_ZIP_URL" -o "$zip_path"; then
+        log_error "Failed to download engine package"
+        rm -f "$zip_path"
+        rm -rf "$extract_path"
+        return 1
+    fi
+
+    if ! unzip -q "$zip_path" -d "$extract_path"; then
+        log_error "Failed to extract engine package"
+        rm -f "$zip_path"
+        rm -rf "$extract_path"
+        return 1
+    fi
+
+    src_root="$extract_path"
+    if [ ! -f "$src_root/pyproject.toml" ]; then
+        top="$(find "$extract_path" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | head -1)"
+        if [ -n "$top" ] && [ -f "$top/pyproject.toml" ]; then
+            src_root="$top"
+        fi
+    fi
+    if [ ! -f "$src_root/pyproject.toml" ]; then
+        log_error "Invalid ZIP package: pyproject.toml not found at package root"
+        rm -f "$zip_path"
+        rm -rf "$extract_path"
+        return 1
+    fi
+
+    if [ -f "$INSTALL_DIR/pyproject.toml" ]; then
+        log_info "Refreshing existing installation from the engine package..."
+        if command -v rsync >/dev/null 2>&1; then
+            rsync -a "$src_root/" "$INSTALL_DIR/"
+        else
+            cp -R "$src_root/." "$INSTALL_DIR/"
+        fi
+    else
+        mkdir -p "$(dirname "$INSTALL_DIR")"
+        if [ -e "$INSTALL_DIR" ]; then
+            log_error "Target directory $INSTALL_DIR exists but is not a Work4You install; move it aside and re-run"
+            rm -f "$zip_path"
+            rm -rf "$extract_path"
+            return 1
+        fi
+        mv "$src_root" "$INSTALL_DIR"
+    fi
+
+    rm -f "$zip_path"
+    rm -rf "$extract_path"
+    log_success "Engine source extracted to $INSTALL_DIR"
+    return 0
+}
+
 clone_repo() {
     log_info "Installing to $INSTALL_DIR..."
 
@@ -1281,6 +1340,15 @@ clone_repo() {
     fi
 
     if [ -d "$INSTALL_DIR" ]; then
+        if [ -f "$INSTALL_DIR/pyproject.toml" ] && [ -n "$SOURCE_ZIP_URL" ] && [ ! -d "$INSTALL_DIR/.git" ]; then
+            log_info "Existing ZIP-managed installation found; refreshing from the engine package..."
+            if ! get_engine_from_zip; then
+                exit 1
+            fi
+            cd "$INSTALL_DIR"
+            log_success "Repository ready"
+            return 0
+        fi
         if [ -d "$INSTALL_DIR/.git" ]; then
             log_info "Existing installation found, updating..."
             cd "$INSTALL_DIR"
@@ -1361,11 +1429,28 @@ clone_repo() {
             exit 1
         fi
     else
+        if [ -n "$SOURCE_ZIP_URL" ]; then
+            if [ -n "$INSTALL_COMMIT" ] || [ -n "$INSTALL_TAG" ]; then
+                log_info "Note: --commit/--tag apply to git sources; the engine ZIP is already a pinned snapshot."
+            fi
+            if ! get_engine_from_zip; then
+                if [ -n "$SOURCE_REPO_URL" ]; then
+                    log_warn "Engine package download failed; trying git fallback..."
+                else
+                    log_error "Failed to obtain the Work4You engine source from ZIP ($SOURCE_ZIP_URL)"
+                    exit 1
+                fi
+            else
+                cd "$INSTALL_DIR"
+                log_success "Repository ready"
+                return 0
+            fi
+        fi
         if [ -z "$SOURCE_REPO_URL" ]; then
             # User-facing error in PT (product language); code stays in English.
             log_error "Fonte de instalação não configurada."
-            log_info "Defina a variável de ambiente WORK4YOU_SOURCE_REPO_URL (URL git do motor Work4You)"
-            log_info "e execute o instalador novamente."
+            log_info "Defina a variável de ambiente WORK4YOU_SOURCE_ZIP_URL (URL do pacote ZIP do motor Work4You)"
+            log_info "ou WORK4YOU_SOURCE_REPO_URL (URL git alternativa) e execute o instalador novamente."
             exit 1
         fi
         # GIT_SSH_COMMAND disables interactive prompts and sets a short timeout
@@ -1618,7 +1703,7 @@ try:
     specs = data["project"]["optional-dependencies"]["all"]
     extras = []
     for s in specs:
-        m = re.search(r"wayne-agent\[([\w-]+)\]", s)
+        m = re.search(r"(?:work4you-agent|wayne-agent)\[([\w-]+)\]", s)
         if m:
             extras.append(m.group(1))
     print(",".join(extras))
@@ -2808,7 +2893,7 @@ EOF
     printf '%s' "$removed"
 }
 
-# Run the desktop pack in $1 (the apps/desktop dir). `npm run pack` = tsc +
+# Run the desktop pack in $1 (the apps/work4you dir). `npm run pack` = tsc +
 # vite build + electron-builder --dir, producing an unpacked app for the
 # current OS. Signing auto-discovery is disabled so electron-builder falls back
 # to an ad-hoc signature instead of grabbing an unrelated Developer ID from the
@@ -2843,8 +2928,8 @@ NODE_DEPS_TIMEOUT="${NODE_DEPS_TIMEOUT:-600}"
 # Electron package dir — workspace-local nest first, then root hoist.
 _electron_dir() {
     local install_dir="$1"
-    if [ -d "$install_dir/apps/desktop/node_modules/electron" ]; then
-        printf '%s\n' "$install_dir/apps/desktop/node_modules/electron"
+    if [ -d "$install_dir/apps/work4you/node_modules/electron" ]; then
+        printf '%s\n' "$install_dir/apps/work4you/node_modules/electron"
     else
         printf '%s\n' "$install_dir/node_modules/electron"
     fi
@@ -2897,14 +2982,14 @@ _restore_electron_dist_with_fallback() {
         || { [ -z "${ELECTRON_MIRROR:-}" ] && _restore_electron_dist "$install_dir" "$DESKTOP_ELECTRON_FALLBACK_MIRROR"; }
 }
 
-# Build apps/desktop into a launchable native app. Mirrors install.ps1's
+# Build apps/work4you into a launchable native app. Mirrors install.ps1's
 # Install-Desktop: a root-level npm install so the apps/* workspace resolves
 # the desktop's own deps (Electron ~150MB), then `npm run pack`
 # (electron-builder --dir) which emits an unpacked app for the current OS. Only invoked
 # via the 'desktop' stage / --include-desktop, which the Electron app's own
 # first-launch bootstrap never requests (it must not rebuild itself).
 install_desktop() {
-    local desktop_dir="$INSTALL_DIR/apps/desktop"
+    local desktop_dir="$INSTALL_DIR/apps/work4you"
 
     # The desktop stage only runs when a build is explicitly requested
     # (--include-desktop / 'desktop' stage), so a missing toolchain is a hard
@@ -2922,11 +3007,11 @@ install_desktop() {
         return 1
     fi
     if [ ! -f "$desktop_dir/package.json" ]; then
-        log_warn "Skipping desktop build (apps/desktop not present in checkout)"
+        log_warn "Skipping desktop build (apps/work4you not present in checkout)"
         return 0
     fi
 
-    # 1. Root workspace install so apps/desktop's deps (Electron, Vite,
+    # 1. Root workspace install so apps/work4you's deps (Electron, Vite,
     #    node-pty prebuilds) resolve. The browser-tools install runs in the
     #    repo-root package workspace, which does not pull apps/* deps.
     #
@@ -2974,7 +3059,7 @@ install_desktop() {
         log_info "earlier 'sudo npm' or 'sudo npx'. Reclaim ownership and retry:"
         log_info "  sudo chown -R \"\$(id -un)\" ~/.npm && npm cache verify"
         log_info "Then re-run this installer, or build manually:"
-        log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/desktop && npm run pack"
+        log_info "  cd \"$INSTALL_DIR\" && npm ci && cd apps/work4you && npm run pack"
         return 1
     fi
 
@@ -3028,7 +3113,7 @@ install_desktop() {
         return 1
     fi
 
-    # apps/desktop's productName is now Work4You; the old names are kept as
+    # apps/work4you's productName is now Work4You; the old names are kept as
     # fallbacks so a checkout from before the desktop rename still validates.
     local app=""
     if [ "$OS" = "linux" ]; then

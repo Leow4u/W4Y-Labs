@@ -119,7 +119,31 @@ except ImportError:
             f"Install with: {sys.executable} -m pip install 'fastapi' 'uvicorn[standard]'"
         )
 
-WEB_DIST = Path(os.environ["WAYNE_WEB_DIST"]) if "WAYNE_WEB_DIST" in os.environ else Path(__file__).parent / "web_dist"
+def _default_product_ui_dist() -> Path:
+    """Prefer unified app bundle (app_dist); fall back to legacy web_dist."""
+    parent = Path(__file__).parent
+    for name in ("app_dist", "web_dist"):
+        candidate = parent / name
+        if (candidate / "index.html").is_file():
+            return candidate
+    return parent / "web_dist"
+
+
+def _resolve_web_dist() -> Path:
+    """Honour WAYNE_WEB_DIST when it points at a real build; else auto-detect."""
+    env = os.environ.get("WAYNE_WEB_DIST", "").strip()
+    if env:
+        candidate = Path(env)
+        if (candidate / "index.html").is_file():
+            return candidate
+        logging.getLogger(__name__).warning(
+            "WAYNE_WEB_DIST=%s has no index.html; falling back to bundled UI",
+            env,
+        )
+    return _default_product_ui_dist()
+
+
+WEB_DIST = _resolve_web_dist()
 _log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -552,11 +576,8 @@ async def _plugin_api_runtime_gate(request: Request, call_next):
 
 
 # ---------------------------------------------------------------------------
-# Dashboard OAuth auth gate — engaged only when start_server flags the
-# bind as non-loopback-without-insecure.  No-op pass-through in loopback
-# mode so the legacy auth_middleware (below) handles those binds via
-# the injected ``_SESSION_TOKEN``.  Registered between host_header and
-# auth_middleware so the order is: host check → cookie auth → token auth.
+# Dashboard OAuth auth gate — tenant scope wraps call_next AFTER gated_auth
+# attaches session (reliable vs separate middleware registration order).
 # ---------------------------------------------------------------------------
 
 
@@ -573,7 +594,20 @@ async def _dashboard_auth_gate(request: Request, call_next):
     if request.url.path.startswith("/api/connectors/events/"):
         return await call_next(request)
     from work4you_cli.dashboard_auth.middleware import gated_auth_middleware
-    return await gated_auth_middleware(request, call_next)
+    from work4you_cli.platform_tenant import (
+        platform_tenant_request_scope,
+        shared_motor_tenant_violation_response,
+    )
+
+    async def _tenant_scoped_call_next(req: Request):
+        session = getattr(req.state, "session", None)
+        blocked = shared_motor_tenant_violation_response(req, session)
+        if blocked is not None:
+            return blocked
+        async with platform_tenant_request_scope(req):
+            return await call_next(req)
+
+    return await gated_auth_middleware(request, _tenant_scoped_call_next)
 
 
 @app.middleware("http")
@@ -830,6 +864,37 @@ for _k, _v in CONFIG_SCHEMA.items():
     if _k == "model":
         _ordered_schema["model_context_length"] = _mcl_entry
 CONFIG_SCHEMA = _ordered_schema
+
+# Fields that must never appear in the dashboard config editor (credentials).
+_SCHEMA_HIDDEN_EXACT: frozenset = frozenset({
+    "delegation.api_key",
+    "dashboard.basic_auth.username",
+    "dashboard.basic_auth.password",
+    "dashboard.basic_auth.password_hash",
+    "dashboard.basic_auth.secret",
+})
+_SCHEMA_HIDDEN_SUFFIXES: tuple = (
+    ".api_key",
+    ".password",
+    ".password_hash",
+)
+
+
+def _public_config_schema() -> Dict[str, Dict[str, Any]]:
+    """Dashboard-safe schema — strips tenant credentials and secrets."""
+    out: Dict[str, Dict[str, Any]] = {}
+    for key, entry in CONFIG_SCHEMA.items():
+        if key in _SCHEMA_HIDDEN_EXACT:
+            continue
+        if any(key.endswith(suffix) for suffix in _SCHEMA_HIDDEN_SUFFIXES):
+            continue
+        if key.startswith("dashboard.basic_auth."):
+            continue
+        out[key] = entry
+    return out
+
+
+PUBLIC_CONFIG_SCHEMA = _public_config_schema()
 
 
 class ConfigUpdate(BaseModel):
@@ -4914,7 +4979,14 @@ async def get_sessions(
             db.close()
     except HTTPException:
         raise
-    except Exception:
+    except Exception as exc:
+        from work4you_cli.platform_tenant import TenantScopeRequiredError
+
+        if isinstance(exc, TenantScopeRequiredError):
+            raise HTTPException(
+                status_code=403,
+                detail="Tenant scope required — sign in through the platform SSO flow.",
+            ) from exc
         _log.exception("GET /api/sessions failed")
         raise HTTPException(status_code=500, detail="Internal server error")
 
@@ -5394,7 +5466,7 @@ async def get_defaults():
 
 @app.get("/api/config/schema")
 async def get_schema():
-    return {"fields": CONFIG_SCHEMA, "category_order": _CATEGORY_ORDER}
+    return {"fields": PUBLIC_CONFIG_SCHEMA, "category_order": _CATEGORY_ORDER}
 
 
 _EMPTY_MODEL_INFO: dict = {
@@ -5582,48 +5654,23 @@ def get_recommended_default_model(provider: str = ""):
     """
     slug = (provider or "").strip().lower()
 
-    if slug == "nous":
+    if slug in {"openrouter", "nous"}:
         try:
-            from work4you_cli.models import (
-                get_curated_nous_model_ids,
-                get_pricing_for_provider,
-                check_nous_free_tier,
-                partition_nous_models_by_tier,
-                union_with_portal_free_recommendations,
-                union_with_portal_paid_recommendations,
+            from work4you_cli.relay_free_model import (
+                RELAY_FREE_PRIMARY_MODEL,
+                RELAY_FREE_PROVIDER,
             )
-            from work4you_cli.auth import get_provider_auth_state
 
-            model_ids = get_curated_nous_model_ids()
-            pricing = get_pricing_for_provider("nous") or {}
-            free_tier = check_nous_free_tier(force_fresh=True)
-
-            portal_url = ""
-            try:
-                state = get_provider_auth_state("nous") or {}
-                portal_url = state.get("portal_base_url", "") or ""
-            except Exception:
-                portal_url = ""
-
-            if free_tier:
-                model_ids, pricing = union_with_portal_free_recommendations(
-                    model_ids, pricing, portal_url
-                )
-                model_ids, _unavailable = partition_nous_models_by_tier(
-                    model_ids, pricing, free_tier=True
-                )
-            else:
-                model_ids, pricing = union_with_portal_paid_recommendations(
-                    model_ids, pricing, portal_url
-                )
-
-            model = model_ids[0] if model_ids else ""
-            return {"provider": "nous", "model": model, "free_tier": bool(free_tier)}
+            return {
+                "provider": RELAY_FREE_PROVIDER,
+                "model": RELAY_FREE_PRIMARY_MODEL,
+                "free_tier": True,
+            }
         except Exception:
-            _log.exception("GET /api/model/recommended-default (nous) failed")
-            return {"provider": "nous", "model": "", "free_tier": None}
+            _log.exception("GET /api/model/recommended-default (relay) failed")
+            return {"provider": "openrouter", "model": "", "free_tier": None}
 
-    # Non-Nous: first curated model for the provider, matching prior behaviour.
+    # Other providers: first curated model for the provider.
     try:
         from work4you_cli.inventory import build_models_payload, load_picker_context
 
@@ -5750,7 +5797,7 @@ def set_moa_models(body: MoaConfigPayload, profile: Optional[str] = None):
 
 
 @app.post("/api/model/set")
-async def set_model_assignment(body: ModelAssignment, profile: Optional[str] = None):
+async def set_model_assignment(body: ModelAssignment, request: Request, profile: Optional[str] = None):
     """Assign a model to the main slot or an auxiliary task slot.
 
     Writes to ``~/.wayne/config.yaml`` — applies to **new** sessions only.
@@ -5768,6 +5815,26 @@ async def set_model_assignment(body: ModelAssignment, profile: Optional[str] = N
         raise HTTPException(status_code=400, detail="scope must be 'main' or 'auxiliary'")
 
     try:
+        # Free-tier gating: Relay 2.5 Fast only on the Work4You catalog.
+        if model:
+            cookie = (request.headers.get("cookie") or "").strip()
+            if cookie:
+                from work4you_cli.plan_model_gating import (
+                    assert_model_allowed_for_plan,
+                    fetch_tenant_plan,
+                )
+
+                plan = await asyncio.to_thread(fetch_tenant_plan, cookie)
+                try:
+                    assert_model_allowed_for_plan(
+                        provider=provider,
+                        model=model,
+                        plan=plan,
+                        scope=scope,
+                    )
+                except ValueError as exc:
+                    raise HTTPException(status_code=403, detail=str(exc)) from exc
+
         # Expensive-model warning runs BEFORE the profile scope is entered:
         # _profile_scope must never be held across an await (the RLock is
         # reentrant per-thread, so a second coroutine interleaving on the
@@ -6596,7 +6663,8 @@ _PLATFORM_OVERRIDES: dict[str, dict[str, Any]] = {
     "whatsapp": {
         "name": "WhatsApp",
         "description": "WhatsApp through the bundled bridge, paired with a QR code.",
-        "docs_url": "https://github.com/tulir/whatsmeow",
+        # Product docs — never third-party GitHub (whatsmeow) in the user-facing guide.
+        "docs_url": "https://work4you.ai/docs",
         "env_vars": ("WHATSAPP_ENABLED", "WHATSAPP_MODE", "WHATSAPP_ALLOWED_USERS"),
         "required_env": (),
     },
@@ -8042,14 +8110,6 @@ def _copilot_acp_status() -> Dict[str, Any]:
 # CLI like Claude Code or Qwen).
 _OAUTH_PROVIDER_CATALOG: tuple[Dict[str, Any], ...] = (
     {
-        "id": "nous",
-        "name": "Nous Portal",
-        "flow": "device_code",
-        "cli_command": "work4you auth add nous",
-        "docs_url": "https://portal.nousresearch.com",
-        "status_fn": None,  # dispatched via auth.get_nous_auth_status
-    },
-    {
         "id": "openai-codex",
         "name": "OpenAI OAuth (ChatGPT)",
         "flow": "device_code",
@@ -9353,7 +9413,7 @@ def _session_latest_descendant(session_id: str):
     /model may create child sessions. Dashboard refresh should continue the
     newest child instead of reopening the old parent.
     """
-    from work4you_state import SessionDB
+    from work4you_cli.platform_tenant import open_session_db
 
     def row_get(row, key, index):
         if isinstance(row, dict):
@@ -9366,7 +9426,7 @@ def _session_latest_descendant(session_id: str):
             except Exception:
                 return None
 
-    db = SessionDB()
+    db = open_session_db()
     try:
         sid = db.resolve_session_id(session_id)
         if not sid or not db.get_session(sid):
@@ -9566,16 +9626,17 @@ async def get_session_stats(profile: Optional[str] = None):
 def _open_session_db_for_profile(profile: Optional[str]):
     """Open a SessionDB for read paths, optionally for another profile.
 
-    ``profile`` None/empty → this process's own ``state.db`` (the common,
-    single-profile case). A named profile opens that profile's on-disk
-    ``state.db`` directly so the primary backend can serve cross-profile reads
-    (transcripts, detail) without spawning that profile's backend.
+    ``profile`` None/empty → scoped tenant ``state.db`` via runtime ``get_wayne_home``.
+    A named profile opens that profile's on-disk ``state.db`` directly.
     """
-    from work4you_state import SessionDB
+    from pathlib import Path
+
+    from work4you_cli.platform_tenant import open_session_db
+
     if not profile:
-        return SessionDB()
+        return open_session_db()
     _name, home = _cron_profile_home(profile)
-    return SessionDB(db_path=Path(home) / "state.db")
+    return open_session_db(profile_home=Path(home))
 
 
 @app.get("/api/sessions/{session_id}")
@@ -9803,6 +9864,8 @@ class CronJobCreate(BaseModel):
     script: Optional[str] = None
     context_from: Optional[Any] = None
     enabled_toolsets: Optional[List[str]] = None
+    connectors_enabled: Optional[List[str]] = None
+    connectors_disabled: Optional[List[str]] = None
     workdir: Optional[str] = None
     no_agent: bool = False
 
@@ -9907,7 +9970,33 @@ def _normalize_dashboard_cron_updates(
         normalized["context_from"] = _cron_string_list(normalized["context_from"])
     if "enabled_toolsets" in normalized:
         normalized["enabled_toolsets"] = _cron_string_list(normalized["enabled_toolsets"])
+    if "connectors_disabled" in normalized:
+        normalized["connectors_disabled"] = _cron_string_list(normalized["connectors_disabled"])
+    if "connectors_enabled" in normalized:
+        raw_enabled = normalized.get("connectors_enabled")
+        if raw_enabled is None:
+            normalized.pop("connectors_enabled", None)
+        elif isinstance(raw_enabled, (list, tuple)):
+            normalized["connectors_enabled"] = [
+                str(item).strip().lower()
+                for item in raw_enabled
+                if str(item).strip()
+            ]
+            normalized["connectors_disabled"] = None
+        else:
+            normalized["connectors_enabled"] = _cron_string_list(raw_enabled) or []
+            normalized["connectors_disabled"] = None
     return normalized
+
+
+def _cron_connectors_enabled_list(value: Any) -> Optional[List[str]]:
+    """Preserve explicit empty allowlists (``[]`` disables all connectors)."""
+    if value is None:
+        return None
+    if isinstance(value, (list, tuple)):
+        return [str(item).strip().lower() for item in value if str(item).strip()]
+    parsed = _cron_string_list(value)
+    return parsed if parsed is not None else []
 
 
 def _validate_dashboard_cron_context_from(
@@ -10120,6 +10209,8 @@ async def create_cron_job(body: CronJobCreate, profile: str = "default"):
             script=script,
             context_from=context_from,
             enabled_toolsets=_cron_string_list(body.enabled_toolsets),
+            connectors_enabled=_cron_connectors_enabled_list(body.connectors_enabled),
+            connectors_disabled=_cron_string_list(body.connectors_disabled),
             workdir=_cron_optional_text(body.workdir),
             no_agent=no_agent,
         )
@@ -11396,12 +11487,12 @@ async def get_user_profile():
     inherits. USER.md is the native store for "what the assistant knows about
     you" and is injected into every system prompt (agent/system_prompt.py:432).
     """
-    from tools.memory_tool import load_memory_store
+    from tools.memory_tool import load_on_disk_store
 
     try:
-        store = load_memory_store()
+        store = load_on_disk_store()
     except Exception:
-        _log.exception("load_memory_store failed")
+        _log.exception("load_on_disk_store failed")
         raise HTTPException(status_code=500, detail="Could not read the user profile")
     return {
         "content": "\n\n".join(store.user_entries),
@@ -11421,14 +11512,14 @@ async def set_user_profile(body: UserProfileBody):
     from tools.memory_tool import (
         MemoryStore,
         _scan_memory_content,
-        load_memory_store,
+        load_on_disk_store,
     )
 
     text = (body.content or "").strip()
     try:
-        store = load_memory_store()
+        store = load_on_disk_store()
     except Exception:
-        _log.exception("load_memory_store failed")
+        _log.exception("load_on_disk_store failed")
         raise HTTPException(status_code=500, detail="Could not read the user profile")
 
     if len(text) > store.user_char_limit:
@@ -15297,7 +15388,7 @@ def _ws_auth_mode() -> str:
     return "loopback"
 
 
-def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
+def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str, Optional[dict]]:
     """Validate WS-upgrade auth; return ``(reason, credential)``.
 
     ``reason`` is None when the credential is accepted, else a short
@@ -15347,7 +15438,7 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
         if internal:
             try:
                 consume_internal_credential(internal)
-                return None, "internal"
+                return None, "internal", None
             except TicketInvalid as exc:
                 audit_log(
                     AuditEvent.WS_TICKET_REJECTED,
@@ -15355,15 +15446,15 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
                     ip=(ws.client.host if ws.client else ""),
                     path=ws.url.path,
                 )
-                return "internal_invalid", "internal"
+                return "internal_invalid", "internal", None
 
         ticket = ws.query_params.get("ticket", "")
         if not ticket:
-            return "no_credential", "none"
+            return "no_credential", "none", None
 
         try:
-            consume_ticket(ticket)
-            return None, "ticket"
+            info = consume_ticket(ticket)
+            return None, "ticket", info
         except TicketInvalid as exc:
             audit_log(
                 AuditEvent.WS_TICKET_REJECTED,
@@ -15371,14 +15462,14 @@ def _ws_auth_reason(ws: "WebSocket") -> tuple[Optional[str], str]:
                 ip=(ws.client.host if ws.client else ""),
                 path=ws.url.path,
             )
-            return "ticket_invalid", "ticket"
+            return "ticket_invalid", "ticket", None
 
     token = ws.query_params.get("token", "")
     if not token:
-        return "no_credential", "none"
+        return "no_credential", "none", None
     if hmac.compare_digest(token.encode(), _SESSION_TOKEN.encode()):
-        return None, "token"
-    return "token_mismatch", "token"
+        return None, "token", None
+    return "token_mismatch", "token", None
 
 
 def _ws_auth_ok(ws: "WebSocket") -> bool:
@@ -15399,6 +15490,7 @@ def _resolve_chat_argv(
     profile: Optional[str] = None,
     active_session_file: Optional[str] = None,
     lang: Optional[str] = None,
+    tenant_home: Optional[str] = None,
 ) -> tuple[list[str], Optional[str], Optional[dict]]:
     """Resolve the argv + cwd + env for the chat PTY.
 
@@ -15478,9 +15570,22 @@ def _resolve_chat_argv(
 
     if profile_dir is not None:
         env["WAYNE_HOME"] = str(profile_dir)
+    elif tenant_home:
+        env["WAYNE_HOME"] = tenant_home
 
     if resume:
-        latest_resume, _latest_path = _session_latest_descendant(resume)
+        from work4you_constants import reset_wayne_home_override, set_wayne_home_override
+
+        home_override_token = None
+        if profile_dir is not None:
+            home_override_token = set_wayne_home_override(str(profile_dir))
+        elif tenant_home:
+            home_override_token = set_wayne_home_override(tenant_home)
+        try:
+            latest_resume, _latest_path = _session_latest_descendant(resume)
+        finally:
+            if home_override_token is not None:
+                reset_wayne_home_override(home_override_token)
         if latest_resume:
             resume = latest_resume
         env["WAYNE_TUI_RESUME"] = resume
@@ -15491,11 +15596,10 @@ def _resolve_chat_argv(
     if active_session_file:
         env["WAYNE_TUI_ACTIVE_SESSION_FILE"] = active_session_file
 
-    # Profile-scoped chats must NOT attach to the dashboard's in-memory
-    # gateway — it runs under the dashboard's own profile. Without the
-    # attach URL, gatewayClient spawns its own `tui_gateway.entry`, which
-    # inherits the profile WAYNE_HOME set above.
-    if profile_dir is None:
+    # Shared-motor tenants spawn an isolated gateway subprocess (WAYNE_HOME in
+    # env). Attaching to the dashboard's in-process /api/ws would bypass tenant
+    # isolation because internal WS credentials carry no org_id.
+    if profile_dir is None and not tenant_home:
         if gateway_ws_url := _build_gateway_ws_url():
             env["WAYNE_TUI_GATEWAY_URL"] = gateway_ws_url
 
@@ -15541,6 +15645,7 @@ async def _resolve_chat_argv_async(
     profile: Optional[str] = None,
     active_session_file: Optional[str] = None,
     lang: Optional[str] = None,
+    tenant_home: Optional[str] = None,
 ) -> tuple[list[str], Optional[str], Optional[dict]]:
     """Resolve chat argv without blocking the dashboard event loop.
 
@@ -15556,6 +15661,7 @@ async def _resolve_chat_argv_async(
         "resume": resume,
         "sidecar_url": sidecar_url,
         "profile": profile,
+        "tenant_home": tenant_home,
     }
     if active_session_file is not None:
         kwargs["active_session_file"] = active_session_file
@@ -15900,7 +16006,7 @@ async def console_ws(ws: WebSocket) -> None:
         await ws.close(code=4404, reason="embedded chat disabled")
         return
 
-    auth_reason, cred = _ws_auth_reason(ws)
+    auth_reason, cred, _ticket_info = _ws_auth_reason(ws)
     mode = _ws_auth_mode()
     if auth_reason is not None:
         _log.warning(
@@ -16262,7 +16368,7 @@ async def pty_ws(ws: WebSocket) -> None:
     #     browser banner agree on the cause:
     #       4401 bad credential   4403 host/origin mismatch
     #       4408 peer not allowed  4404 chat disabled
-    auth_reason, cred = _ws_auth_reason(ws)
+    auth_reason, cred, ticket_info = _ws_auth_reason(ws)
     mode = _ws_auth_mode()
     if auth_reason is not None:
         _log.warning(
@@ -16323,10 +16429,27 @@ async def pty_ws(ws: WebSocket) -> None:
         elif not resume:
             resume = _read_active_session_file(active_session_file)
 
+    tenant_home: Optional[str] = None
+    if ticket_info:
+        tenant_id = str(ticket_info.get("org_id") or "").strip()
+        if tenant_id:
+            from work4you_cli.platform_tenant import ensure_tenant_home, tenant_home_path
+
+            ensure_tenant_home(tenant_id)
+            tenant_home = str(tenant_home_path(tenant_id))
+
+    from work4you_cli.platform_tenant import shared_motor_enabled
+
+    if shared_motor_enabled() and cred == "ticket" and not tenant_home:
+        _log.error("pty rejected: shared motor ticket missing org_id peer=%s", peer)
+        await ws.close(code=4401, reason=_ws_close_reason("tenant scope required"))
+        return
+
     resolve_kwargs = {
         "resume": resume,
         "sidecar_url": sidecar_url,
         "profile": profile,
+        "tenant_home": tenant_home,
     }
     if active_session_file is not None:
         resolve_kwargs["active_session_file"] = str(active_session_file)
@@ -16457,7 +16580,8 @@ async def gateway_ws(ws: WebSocket) -> None:
         await ws.close(code=4403)
         return
 
-    if not _ws_auth_ok(ws):
+    auth_reason, _cred, ticket_info = _ws_auth_reason(ws)
+    if auth_reason is not None:
         await ws.close(code=4401)
         return
 
@@ -16466,6 +16590,29 @@ async def gateway_ws(ws: WebSocket) -> None:
         return
 
     from tui_gateway.ws import handle_ws
+    from work4you_constants import reset_wayne_home_override, set_wayne_home_override
+
+    from work4you_cli.platform_tenant import (
+        ensure_tenant_home,
+        shared_motor_enabled,
+        tenant_home_path,
+    )
+
+    tenant_id = ""
+    if ticket_info:
+        tenant_id = str(ticket_info.get("org_id") or "").strip()
+
+    if shared_motor_enabled():
+        if not tenant_id:
+            await ws.close(code=4401)
+            return
+        ensure_tenant_home(tenant_id)
+        token = set_wayne_home_override(str(tenant_home_path(tenant_id)))
+        try:
+            await handle_ws(ws)
+        finally:
+            reset_wayne_home_override(token)
+        return
 
     await handle_ws(ws)
 

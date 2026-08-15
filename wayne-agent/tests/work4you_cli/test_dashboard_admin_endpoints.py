@@ -197,6 +197,26 @@ class TestMemoryEndpoints:
             "/api/memory/reset", json={"target": "bogus"}
         ).status_code == 400
 
+    def test_user_profile_roundtrip(self):
+        from work4you_constants import get_wayne_home
+
+        mem = get_wayne_home() / "memories"
+        mem.mkdir(parents=True, exist_ok=True)
+        (mem / "USER.md").write_text("Hello from test\n")
+
+        r = self.client.get("/api/memory/user-profile")
+        assert r.status_code == 200
+        body = r.json()
+        assert "content" in body and "char_limit" in body
+        assert "Hello from test" in body["content"]
+        assert body["char_limit"] > 0
+
+        r = self.client.put(
+            "/api/memory/user-profile", json={"content": "Updated profile"}
+        )
+        assert r.status_code == 200 and r.json()["content"] == "Updated profile"
+        assert (mem / "USER.md").read_text().strip() == "Updated profile"
+
 
 class TestPairingEndpoints:
     @pytest.fixture(autouse=True)

@@ -6,7 +6,7 @@
 # WORK4YOU_SOURCE_ZIP_URL (legacy WAYNE_SOURCE_ZIP_URL still accepted; see
 # Get-EngineSourceFromZip there -- keep the layout contract in lockstep)
 # and that the desktop in-app updater downloads via
-# latest.json's zipUrl (apps/desktop/electron/w4y-wayne-resolve.cjs).
+# latest.json's zipUrl (apps/work4you/electron/w4y-wayne-resolve.cjs).
 #
 # Layout contract produced here:
 #   work4you-engine-<date>.zip
@@ -43,7 +43,7 @@
 #                                  the field reads only the old name, so the
 #                                  produced file keeps it until those cascas
 #                                  are gone.
-#       agent/ tools/ work4you_cli/ (incl. web_dist) wayne_cli/ (compat stub)
+#       agent/ tools/ work4you_cli/ (incl. app_dist) wayne_cli/ (compat stub)
 #       gateway/ tui_gateway/ ...
 #
 # Feed-cut compatibility (verified 01/08 against the published field state):
@@ -65,11 +65,19 @@
 #   apps/      -- the desktop app; the app never installs itself
 #   tests/     -- 71MB of test fixtures the runtime never imports
 #   release/   -- build outputs (if present)
-#   .git, node_modules, __pycache__, .venv/venv, caches, *.egg-info (any depth)
+#   .git, node_modules, __pycache__, checkout .venv/venv, caches, *.egg-info
 #   .env       -- real secrets live in the checkout root; NEVER ship them
+#
+# Ready runtime (Windows, default):
+#   After staging source, this script copies a standalone CPython into
+#   wayne-agent/runtime/python/ and runs `uv sync --extra all --locked` into
+#   wayne-agent/.venv/. The desktop first-run extracts this tree and starts —
+#   no uv sync on the user's machine (Cursor-like). Marker: runtime-ready.json.
+#   Use -SourceOnly to emit the old source-only ZIP (Fly/docs/non-Windows).
 #
 # Usage:
 #   pwsh platform/wayne-fly/build-engine-zip.ps1 [-OutputPath <file.zip>]
+#   pwsh platform/wayne-fly/build-engine-zip.ps1 -SourceOnly
 #
 # The ZIP is then uploaded (manually, with the machine's GCP credentials) to
 # the bucket whose public URL becomes WORK4YOU_SOURCE_ZIP_URL / latest.json zipUrl.
@@ -82,10 +90,26 @@ param(
     # Destination ZIP path. Defaults to %TEMP%\work4you-engine-<yyyyMMdd>.zip.
     [string]$OutputPath = "",
     # Keep the staging directory around for inspection instead of deleting it.
-    [switch]$KeepStage
+    [switch]$KeepStage,
+    # Force a Windows-ready ZIP (CPython + .venv). Default on Windows.
+    [switch]$IncludeRuntime,
+    # Source tree only — no Python runtime. Default on non-Windows.
+    [switch]$SourceOnly
 )
 
 $ErrorActionPreference = "Stop"
+
+if ($IncludeRuntime -and $SourceOnly) {
+    throw "Use either -IncludeRuntime or -SourceOnly, not both."
+}
+$buildRuntime = $false
+if ($SourceOnly) {
+    $buildRuntime = $false
+} elseif ($IncludeRuntime) {
+    $buildRuntime = $true
+} else {
+    $buildRuntime = [bool]($env:OS -eq "Windows_NT")
+}
 
 if (-not $RepoRoot) {
     $RepoRoot = Join-Path $PSScriptRoot "..\..\wayne-agent"
@@ -113,13 +137,12 @@ $xdTopLevel = @(
     (Join-Path $RepoRoot "apps"),
     (Join-Path $RepoRoot "tests"),
     (Join-Path $RepoRoot "release"),
-    # UI SOURCES must not ship: the engine serves the prebuilt web_dist, and if
-    # web/ sources are present the serve startup's mtime staleness check
-    # triggers an npm rebuild that fails on a user machine (no workspace shared
-    # package — apps/ is excluded — and no dev deps). Real incident: first
-    # 0.3.0 install timed out on boot exactly this way. ui-tui/ ships out for
-    # the same reason.
-    (Join-Path $RepoRoot "web"),
+    # UI SOURCES must not ship: the engine serves the prebuilt app_dist, and if
+    # apps/work4you sources are present the serve startup's mtime staleness check
+    # triggers an npm rebuild that fails on a user machine (apps/ is excluded
+    # wholesale — no workspace shared package — and no dev deps). Real incident:
+    # first 0.3.0 install timed out on boot exactly this way. ui-tui/ ships out
+    # for the same reason.
     (Join-Path $RepoRoot "ui-tui")
 )
 $xdAnyDepth = @(
@@ -181,6 +204,109 @@ $versionLines = @(
 $utf8NoBom = New-Object System.Text.UTF8Encoding $false
 [System.IO.File]::WriteAllText((Join-Path $stageDir ".wayne-engine-version"), ($versionLines -join "`n") + "`n", $utf8NoBom)
 
+if ($buildRuntime) {
+    if ($env:OS -ne "Windows_NT") {
+        throw "-IncludeRuntime requires Windows (CPython + .venv are win-x64)."
+    }
+    Write-Host "-> Building ready Windows runtime (CPython + uv sync --extra all)"
+
+    $uvCmd = $null
+    $uvFound = Get-Command uv -ErrorAction SilentlyContinue
+    if ($uvFound) { $uvCmd = $uvFound.Source }
+    if (-not $uvCmd) {
+        $managedUv = Join-Path $env:LOCALAPPDATA "wayne\bin\uv.exe"
+        if (Test-Path $managedUv) { $uvCmd = $managedUv }
+    }
+    if (-not $uvCmd) {
+        throw "uv not found. Install from https://astral.sh/uv or %LOCALAPPDATA%\wayne\bin\uv.exe"
+    }
+
+    $prevUvPython = $env:UV_PYTHON
+    $prevUvProject = $env:UV_PROJECT_ENVIRONMENT
+    $env:UV_PYTHON = $null
+
+    try {
+        Write-Host "   uv python install 3.11"
+        & $uvCmd python install 3.11
+        if ($LASTEXITCODE -ne 0) { throw "uv python install 3.11 failed (exit $LASTEXITCODE)" }
+
+        $pythonExe = (& $uvCmd python find 3.11 2>$null)
+        if (-not $pythonExe) { throw "uv python find 3.11 returned no interpreter" }
+        $pythonExe = "$pythonExe".Trim()
+        if (-not (Test-Path $pythonExe)) { throw "Python interpreter missing: $pythonExe" }
+        $pythonHome = Split-Path $pythonExe -Parent
+        $hasDll = (Test-Path (Join-Path $pythonHome "python311.dll")) -or (Test-Path (Join-Path $pythonHome "python3.dll"))
+        if (-not $hasDll) {
+            $managedRoot = Join-Path $env:APPDATA "uv\python"
+            $managedHit = Get-ChildItem $managedRoot -Directory -ErrorAction SilentlyContinue |
+                Where-Object { $_.Name -like "cpython-3.11-*" } |
+                Select-Object -First 1
+            if ($managedHit -and (Test-Path (Join-Path $managedHit.FullName "python.exe"))) {
+                $pythonHome = $managedHit.FullName
+                $pythonExe = Join-Path $pythonHome "python.exe"
+            }
+        }
+        if (-not (Test-Path (Join-Path $pythonHome "python311.dll"))) {
+            throw "Standalone CPython 3.11 not found (python311.dll missing near $pythonExe). uv python install 3.11 and retry."
+        }
+
+        $runtimePython = Join-Path $stageDir "runtime\python"
+        if (Test-Path $runtimePython) { Remove-Item -Recurse -Force $runtimePython }
+        New-Item -ItemType Directory -Force -Path $runtimePython | Out-Null
+        Write-Host "   Copying standalone CPython from $pythonHome"
+        & robocopy $pythonHome $runtimePython /E /NFL /NDL /NJH /NJS /NP /XD "__pycache__" | Out-Null
+        $rcPy = $LASTEXITCODE
+        $global:LASTEXITCODE = 0
+        if ($rcPy -ge 8) { throw "robocopy CPython failed (exit $rcPy)" }
+        $stagePython = Join-Path $runtimePython "python.exe"
+        if (-not (Test-Path $stagePython)) { throw "Staged python.exe missing: $stagePython" }
+
+        $stageVenv = Join-Path $stageDir ".venv"
+        if (Test-Path $stageVenv) { Remove-Item -Recurse -Force $stageVenv }
+        Write-Host "   uv venv --relocatable"
+        & $uvCmd venv --relocatable --python $stagePython $stageVenv
+        if ($LASTEXITCODE -ne 0) { throw "uv venv failed (exit $LASTEXITCODE)" }
+
+        $env:UV_PROJECT_ENVIRONMENT = $stageVenv
+        Write-Host "   uv sync --extra all --locked (this is the slow step; runs here, not on the user machine)"
+        Push-Location $stageDir
+        try {
+            & $uvCmd sync --extra all --locked
+            if ($LASTEXITCODE -ne 0) { throw "uv sync --extra all --locked failed (exit $LASTEXITCODE)" }
+        } finally {
+            Pop-Location
+        }
+
+        $venvPython = Join-Path $stageVenv "Scripts\python.exe"
+        if (-not (Test-Path $venvPython)) { throw "Ready venv missing $venvPython" }
+
+        $cfgPath = Join-Path $stageVenv "pyvenv.cfg"
+        if (Test-Path $cfgPath) {
+            $cfg = [System.IO.File]::ReadAllText($cfgPath)
+            $cfg = [regex]::Replace($cfg, '(?im)^home\s*=\s*.*$', "home = $runtimePython")
+            [System.IO.File]::WriteAllText($cfgPath, $cfg, $utf8NoBom)
+        }
+
+        $runtimeReady = @{
+            schema   = 1
+            platform = "win32"
+            arch     = "x64"
+            python   = "3.11"
+            extra    = "all"
+            builtAt  = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            commit   = $commit
+        } | ConvertTo-Json -Compress
+        [System.IO.File]::WriteAllText((Join-Path $stageDir "runtime-ready.json"), $runtimeReady + "`n", $utf8NoBom)
+        Write-Host "   runtime-ready.json written (win32-x64, extra=all)"
+    } finally {
+        if ($null -ne $prevUvPython) { $env:UV_PYTHON = $prevUvPython } else { Remove-Item Env:UV_PYTHON -ErrorAction SilentlyContinue }
+        if ($null -ne $prevUvProject) { $env:UV_PROJECT_ENVIRONMENT = $prevUvProject } else { Remove-Item Env:UV_PROJECT_ENVIRONMENT -ErrorAction SilentlyContinue }
+        $global:LASTEXITCODE = 0
+    }
+} else {
+    Write-Host "-> Source-only ZIP (no bundled Python runtime)"
+}
+
 Write-Host "-> Compressing to $OutputPath"
 if (Test-Path $OutputPath) { Remove-Item -Force $OutputPath }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
@@ -195,6 +321,17 @@ $sizeMb = [Math]::Round($zipItem.Length / 1MB, 1)
 Write-Host ""
 Write-Host "[OK] Engine package built: $OutputPath ($sizeMb MB)"
 Write-Host "     commit=$commit branch=$branch"
+
+# Optional Ed25519 signing for latest.json (see scripts/sign-engine-manifest.mjs)
+$manifestPath = Join-Path (Split-Path $OutputPath -Parent) "latest.json"
+if (Test-Path $manifestPath) {
+    $node = Get-Command node -ErrorAction SilentlyContinue
+    if ($node -and $env:W4Y_ENGINE_SIGNING_PRIVATE_KEY) {
+        & node (Join-Path (Split-Path $RepoRoot -Parent) "scripts/sign-engine-manifest.mjs") --zip $OutputPath --manifest $manifestPath
+    } else {
+        Write-Host "[i] Skipping engine manifest signature (set W4Y_ENGINE_SIGNING_PRIVATE_KEY to enable)"
+    }
+}
 
 # Publish-time guardrail for the field cut (see header): cascas <= 1.0.45
 # probe wayne_cli/main.py in the extracted tree. Warn loudly when this build

@@ -21,6 +21,7 @@ import copy
 from pathlib import Path
 from typing import Optional, Dict, Any
 
+from work4you_cli.relay_free_model import W4Y_DOCS_BASE
 from work4you_cli.nous_subscription import get_nous_subscription_features
 from tools.tool_backend_helpers import managed_nous_tools_enabled
 from utils import base_url_hostname
@@ -30,7 +31,7 @@ logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-_DOCS_BASE = "https://hermes-agent.nousresearch.com/docs"
+_DOCS_BASE = "https://work4you.ai/documentacao"
 
 
 def _model_config_dict(config: Dict[str, Any]) -> Dict[str, Any]:
@@ -777,7 +778,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     # on demand via `wayne auth add`, `wayne setup` vision, and
     # `wayne setup tts`. This keeps both quick and full setup thin.
 
-    # Tool Gateway prompt is already shown by _model_flow_nous() above.
+    # Tool Gateway prompt removed — Work4You uses platform OpenRouter, not Nous Portal.
     save_config(config)
 
 
@@ -1929,7 +1930,7 @@ def _setup_webhooks():
     print_warning("   internet. For security, run the gateway in a sandboxed environment")
     print_warning("   (Docker, VM, etc.) to limit blast radius from prompt injection.")
     print()
-    print_info("   Full guide: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/")
+    print_info(f"   Full guide: {W4Y_DOCS_BASE}/canais")
     print()
 
     port = prompt("Webhook port (default 8644)")
@@ -1956,7 +1957,7 @@ def _setup_webhooks():
     print_info("      http://your-server:8644/webhooks/<route-name>")
     print()
     print_info("   Route configuration guide:")
-    print_info("   https://hermes-agent.nousresearch.com/docs/user-guide/messaging/webhooks/#configuring-routes")
+    print_info(f"   {W4Y_DOCS_BASE}/canais")
     print()
     print_info("   Open config in your editor:  work4you config edit")
     print_info("   Open config in your editor:  work4you config edit")
@@ -2630,23 +2631,15 @@ SETUP_SECTIONS = [
 
 
 def _run_portal_one_shot(config: dict) -> None:
-    """One-shot Nous Portal setup — OAuth + model pick + provider + Tool Gateway.
+    """Deprecated alias — Work4You uses account login + Relay, not Nous Portal."""
+    _run_w4y_relay_one_shot(config)
 
-    Wired into ``wayne setup --portal`` and ``wayne portal``. This is the
-    Nous-Portal slice of the first-time quick setup, collapsed into a single
-    shareable command so a brand-new user goes from zero to a fully working
-    Wayne session — model selected, provider set, and web/image/tts/browser
-    tools routed via their Portal sub — without being told to run
-    ``wayne setup`` and hunt for the quick-setup option.
 
-    The login + model selection + provider switch + Tool Gateway opt-in are all
-    delegated to ``_model_flow_nous`` — the exact same flow quick setup uses
-    (``_run_first_time_quick_setup``) and the same one ``wayne model`` runs
-    when you pick Nous. Routing through it (instead of hand-rolling the auth +
-    provider write here) means ``wayne portal`` always offers a model picker,
-    and there is a single source of truth for the Nous onboarding steps.
-    """
+def _run_w4y_relay_one_shot(config: dict) -> None:
+    """One-shot Work4You model setup: Relay 2.5 Fast + platform OpenRouter key."""
     from work4you_cli.config import load_config
+    from work4you_cli.relay_free_model import W4Y_LOGIN_URL
+    from work4you_cli.w4y_platform_setup import run_w4y_relay_setup
 
     print()
     print(
@@ -2655,7 +2648,7 @@ def _run_portal_one_shot(config: dict) -> None:
             Colors.MAGENTA,
         )
     )
-    print(color("│     ⚕ Wayne Setup — Nous Portal (one-shot)             │", Colors.MAGENTA))
+    print(color("│     Work4You Setup — Relay 2.5 Fast                    │", Colors.MAGENTA))
     print(
         color(
             "└─────────────────────────────────────────────────────────┘",
@@ -2663,54 +2656,37 @@ def _run_portal_one_shot(config: dict) -> None:
         )
     )
     print()
-    print_info("  One subscription, 300+ models, plus the Tool Gateway:")
-    print_info("    web search, image generation, TTS, browser automation")
-    print_info("    — all routed through your Nous Portal sub.")
-    print()
-    print_info("  Sign up: https://portal.nousresearch.com/manage-subscription")
+    print_info("  Free plan: Relay 2.5 Fast is your default house model.")
+    print_info("  Upgrade unlocks the full catalog (Relay router, MAX, and more).")
+    print_info(f"  Account: {W4Y_LOGIN_URL}")
     print()
 
-    # _model_flow_nous handles BOTH the logged-out path (device-code OAuth,
-    # which selects a model internally) and the already-logged-in path (curated
-    # Nous model picker), then offers the Tool Gateway opt-in and sets
-    # provider=nous via the login/model save. This is the same routine quick
-    # setup calls, so `wayne portal` == quick setup's Nous step.
     try:
-        from work4you_cli.main import _model_flow_nous
-
-        _model_flow_nous(config)
+        if not run_w4y_relay_setup(config):
+            print_info("  Setup cancelled.")
+            print_info("  Sign in in the app or run: work4you setup")
+            return
     except (KeyboardInterrupt, EOFError, SystemExit):
-        # _login_nous raises SystemExit(130)/(1) on cancel/failure; the
-        # logged-out path inside _model_flow_nous catches it, but the
-        # expired-session re-login path only catches Exception, so a
-        # SystemExit there would otherwise escape and kill the whole CLI.
-        # Treat all of these as a graceful cancel/abort for the portal flow.
         print()
         print_info("  Setup cancelled.")
-        print_info("  You can retry later with `work4you portal`.")
         return
     except Exception as exc:
-        logger.debug("_model_flow_nous error during `wayne portal`: %s", exc)
+        logger.debug("run_w4y_relay_setup error during portal/relay flow: %s", exc)
         print()
-        print_error(f"  Nous Portal setup encountered an error: {exc}")
-        print_info("  You can retry later with `work4you portal`.")
+        print_error(f"  Work4You model setup encountered an error: {exc}")
+        print_info("  Retry with: work4you setup")
         return
 
-    # Re-sync the in-memory config from disk — _model_flow_nous (and the
-    # underlying login/model save) write via their own load/save cycle, so any
-    # later save_config(config) by a caller must not clobber those values.
     try:
-        _refreshed = load_config()
-        if isinstance(_refreshed, dict):
+        refreshed = load_config()
+        if isinstance(refreshed, dict):
             config.clear()
-            config.update(_refreshed)
+            config.update(refreshed)
     except Exception:
         pass
 
-    print()
-    print_success("Portal setup complete.")
-    print_info("  Run `work4you portal info` to inspect routing.")
-    print_info("  Run `wayne` to start chatting.")
+    print_success("  Model ready — start Work4You or run: work4you setup terminal")
+    print_info("  Run `work4you setup model` to change provider or model.")
 
 
 def run_setup_wizard(args):
@@ -2785,7 +2761,7 @@ def run_setup_wizard(args):
                         Colors.MAGENTA,
                     )
                 )
-                print(color(f"│     ⚕ Wayne Setup — {label:<34s} │", Colors.MAGENTA))
+                print(color(f"│     ⚕ Work4You Setup — {label:<34s} │", Colors.MAGENTA))
                 print(
                     color(
                         "└─────────────────────────────────────────────────────────┘",
@@ -2864,7 +2840,7 @@ def run_setup_wizard(args):
 
         print()
         print_header("Reconfigure")
-        print_success("You already have Wayne configured.")
+        print_success("You already have Work4You configured.")
         print_info("Running the full wizard — each prompt shows your current value.")
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
@@ -2891,7 +2867,7 @@ def run_setup_wizard(args):
         setup_mode = prompt_choice(
             "How would you like to set up Work4You?",
             [
-                "Quick Setup (Nous Portal) — free OAuth login, no API keys, model + tools (recommended)",
+                "Quick Setup (Relay 2.5 Fast) — Work4You account + default model (recommended)",
                 "Full setup — configure every provider, tool & option yourself (bring your own keys)",
                 "Blank Slate — everything off except the bare minimum; opt in to each capability",
             ],
@@ -2952,40 +2928,27 @@ def run_setup_wizard(args):
 
 
 def _run_first_time_quick_setup(config: dict, wayne_home, is_existing: bool):
-    """Streamlined first-time setup via Nous Portal: OAuth, model, terminal & messaging.
-
-    Routes straight to the Nous Portal provider — runs the device-code OAuth
-    login, picks a Nous model, then configures the terminal backend and (optionally)
-    a messaging platform. Applies sensible defaults for everything else (agent
-    settings, tools); the user can customize later via ``wayne setup <section>``
-    or switch providers with ``wayne model``.
-    """
+    """Streamlined first-time setup: Relay 2.5 Fast + terminal + optional gateway."""
     from work4you_cli.config import load_config
+    from work4you_cli.relay_free_model import W4Y_LOGIN_URL, RELAY_25_FAST_LABEL
+    from work4you_cli.w4y_platform_setup import run_w4y_relay_setup
 
-    # Step 1: Nous Portal — OAuth login + model selection.
-    # _model_flow_nous() handles both the logged-out path (device-code OAuth,
-    # which selects a model internally) and the already-logged-in path (curated
-    # Nous model picker). Provider is set to "nous" by the login/model save.
     print()
-    print_header("Nous Portal")
-    print_info("One subscription, 300+ models, plus the Tool Gateway:")
-    print_info("  web search, image generation, TTS, browser automation.")
-    print_info("Sign up: https://portal.nousresearch.com/manage-subscription")
+    print_header("Work4You — Relay 2.5 Fast")
+    print_info(f"Free plan default: {RELAY_25_FAST_LABEL}. Upgrade unlocks the full catalog.")
+    print_info(f"Account: {W4Y_LOGIN_URL}")
     print()
     try:
-        from work4you_cli.main import _model_flow_nous
-        _model_flow_nous(config)
+        if not run_w4y_relay_setup(config):
+            print_info("Model setup skipped — sign in via the app or run: work4you setup model")
     except (KeyboardInterrupt, EOFError):
         print()
-        print_info("Nous Portal setup cancelled.")
+        print_info("Setup cancelled.")
     except Exception as exc:
-        logger.debug("_model_flow_nous error during quick setup: %s", exc)
-        print_warning(f"Nous Portal setup encountered an error: {exc}")
-        print_info("You can try again later with: work4you model")
+        logger.debug("run_w4y_relay_setup error during quick setup: %s", exc)
+        print_warning(f"Model setup encountered an error: {exc}")
+        print_info("Retry with: work4you setup model")
 
-    # Re-sync the wizard's config dict from disk — _model_flow_nous (and the
-    # underlying login/model save) write via their own load/save cycle, and the
-    # wizard's later save_config(config) must not clobber those values (#4172).
     _refreshed = load_config()
     config.clear()
     config.update(_refreshed)
