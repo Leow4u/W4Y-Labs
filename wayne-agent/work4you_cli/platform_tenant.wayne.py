@@ -37,28 +37,26 @@ _TENANT_RUNTIME_CACHE: dict[str, tuple[float, dict[str, Any]]] = {}
 _TENANT_RUNTIME_TTL_SECONDS = 300.0
 
 
-# Authenticated API paths that touch tenant-private state on the shared motor.
-_SHARED_MOTOR_TENANT_DATA_PREFIXES: tuple[str, ...] = (
-    "/api/sessions",
-    "/api/pty",
-    "/api/ws",
-    "/api/pub",
-    "/api/events",
-    "/api/files",
-    "/api/config",
-    "/api/memory",
-    "/api/cron",
-    "/api/skills",
-    "/api/account",
-    "/api/chat",
-    "/api/gateway",
-    "/api/connectors",
-    # /api/device/connector-bootstrap brokers the tenant's own Composio key and
-    # mints a tool-router session for it — tenant-private on both counts.
-    "/api/device",
-    "/api/managed",
-    "/api/terminal",
-    "/api/v3.1",
+# Authenticated ``/api`` paths a shared motor may serve WITHOUT a tenant.
+#
+# Everything else fails closed. An enumerated list of tenant-private prefixes
+# was the other way round and covered 66 of 211 routes; the 145 it missed —
+# ``/api/env/reveal``, ``/api/ops/dump``, ``/api/credentials/pool``,
+# ``/api/fs``, ``/api/git``, ``/api/profiles`` among them — would have served a
+# session that carries no ``org_id`` from the CONTAINER's home. Worse, the list
+# was silent by construction: a route added tomorrow is uncovered and nothing
+# says so. Denying by default means new routes are safe on arrival and the
+# exceptions have to be argued for here.
+#
+# This only applies to requests that already carry a verified session; a
+# service-to-service caller (no session) never reaches the check.
+_SHARED_MOTOR_TENANTLESS_PREFIXES: tuple[str, ...] = (
+    # Auth and account linkage: how a session GETS its tenant in the first
+    # place, so requiring one here would be circular.
+    "/api/auth",
+    # Liveness and build metadata about the container, identical for everyone.
+    "/api/status",
+    "/api/version",
 )
 
 
@@ -108,15 +106,16 @@ def open_session_db(*, profile_home: Path | None = None):
 
 
 def _path_requires_tenant_scope(path: str) -> bool:
+    """Whether serving ``path`` without a tenant would read the wrong home."""
     if not path.startswith("/api/"):
         return False
     from wayne_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS
 
     if path in PUBLIC_API_PATHS:
         return False
-    return any(
+    return not any(
         path == prefix or path.startswith(prefix + "/")
-        for prefix in _SHARED_MOTOR_TENANT_DATA_PREFIXES
+        for prefix in _SHARED_MOTOR_TENANTLESS_PREFIXES
     )
 
 

@@ -209,6 +209,64 @@ def test_open_session_db_uses_runtime_wayne_home(tenant_env):
     assert get_wayne_home() != tenant_a
 
 
+def test_every_api_route_is_public_or_needs_a_tenant(tenant_env):
+    """No route may quietly serve the container's home to a tenant's session.
+
+    Walks the real app rather than a list, so a route added tomorrow is
+    covered on arrival instead of silently falling outside the net.
+    """
+    from work4you_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS
+    from work4you_cli.platform_tenant import (
+        _path_requires_tenant_scope,
+        _SHARED_MOTOR_TENANTLESS_PREFIXES,
+    )
+    from work4you_cli.web_server import app
+
+    api_paths = {
+        route.path
+        for route in app.routes
+        if getattr(route, "path", "").startswith("/api/")
+    }
+    assert api_paths, "no /api routes discovered — the walk is broken"
+
+    unaccounted = {
+        path
+        for path in api_paths
+        if not _path_requires_tenant_scope(path)
+        and path not in PUBLIC_API_PATHS
+        and not any(
+            path == prefix or path.startswith(prefix + "/")
+            for prefix in _SHARED_MOTOR_TENANTLESS_PREFIXES
+        )
+    }
+    assert not unaccounted
+
+
+def test_tenant_private_routes_fail_closed(tenant_env):
+    """Spot-check the surfaces that hurt most when served unscoped."""
+    from work4you_cli.platform_tenant import _path_requires_tenant_scope
+
+    for path in (
+        "/api/env/reveal",
+        "/api/ops/dump",
+        "/api/credentials/pool",
+        "/api/fs/read-text",
+        "/api/profiles",
+        "/api/sessions",
+        "/api/connectors/accounts",
+        "/api/device/connector-bootstrap",
+    ):
+        assert _path_requires_tenant_scope(path), path
+
+
+def test_login_and_liveness_do_not_require_a_tenant(tenant_env):
+    """Requiring a tenant on the login path would be circular."""
+    from work4you_cli.platform_tenant import _path_requires_tenant_scope
+
+    for path in ("/api/auth/providers", "/api/auth/callback", "/api/status"):
+        assert not _path_requires_tenant_scope(path), path
+
+
 def test_shared_motor_tenant_violation_blocks_sessions_without_org_id(tenant_env):
     request = Request({"type": "http", "path": "/api/sessions", "headers": []})
     session = SimpleNamespace(user_id="u1", org_id="")
