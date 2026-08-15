@@ -383,7 +383,10 @@ async def gated_auth_middleware(
         # cycle with cookies → middleware at module load. Pass the active
         # prefix so the deletion's Path matches the set-Path (otherwise
         # the browser ignores it).
-        from wayne_cli.dashboard_auth.cookies import clear_session_cookies
+        from wayne_cli.dashboard_auth.cookies import (
+            clear_session_cookies,
+            detect_https,
+        )
         from wayne_cli.dashboard_auth.prefix import prefix_from_request
         clear_session_cookies(
             response,
