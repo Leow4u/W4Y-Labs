@@ -1,0 +1,144 @@
+# Build and publish Work4You desktop for Windows (x64).
+#
+# WHY THIS EXISTS: Windows releases used to be built and uploaded by hand from a
+# developer machine. That is how 1.0.96–1.0.111 shipped from a tree that was
+# never committed (main sat on 1.0.95 the whole time), and how build/installer.nsh
+# — the macro that materializes the engine during install — survived on exactly
+# one computer. A release nobody can reproduce from a clean checkout is not a
+# release. This workflow builds only from what is in the repository.
+#
+# unsigned=true (default): no code-signing certificate needed.
+
+name: Desktop Windows
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Upload release artefacts to GCS after build
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  win-x64:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.2.2
+
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: wayne-agent/package-lock.json
+
+      - name: Install dependencies
+        working-directory: wayne-agent
+        run: npm ci
+
+      - name: Setup uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          enable-cache: true
+
+      # The runtime carries native binaries, so it can only be built on the
+      # target platform. beforePack refuses to package without a matching one.
+      - name: Build engine runtime (win32-x64)
+        working-directory: wayne-agent
+        shell: bash
+        run: |
+          node scripts/build-engine-runtime.mjs \
+            --out-dir apps/work4you/build/engine-runtime
+          cat apps/work4you/build/engine-runtime/runtime-ready.json
+
+      - name: Build NSIS installer
+        working-directory: wayne-agent/apps/work4you
+        env:
+          W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64: ${{ secrets.W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 }}
+        run: npm run dist:win:nsis
+
+      # Packaging successfully proves nothing about whether the shipped engine
+      # runs — see the script header for the two failures that reached this far.
+      - name: Verify packaged engine (win32-x64)
+        working-directory: wayne-agent/apps/work4you
+        run: node scripts/verify-packaged-engine.mjs
+
+      - name: Upload build artefacts (CI retention)
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: work4you-win-x64
+          path: |
+            wayne-agent/apps/work4you/release/Work4You-*-win-x64.exe
+            wayne-agent/apps/work4you/release/Work4You-*-win-x64.exe.blockmap
+            wayne-agent/apps/work4you/release/latest.yml
+          if-no-files-found: error
+
+      - name: Authenticate to Google Cloud
+        if: inputs.publish
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.11
+        with:
+          credentials_json: ${{ secrets.GCP_W4Y_PUBLISH_SA_JSON }}
+
+      - name: Setup gcloud
+        if: inputs.publish
+        uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2.2.1
+
+      - name: Publish to GCS
+        if: inputs.publish
+        working-directory: wayne-agent/apps/work4you
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          BUCKET=gs://w4y-engine-dist
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-win-x64.exe" "$BUCKET/"
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-win-x64.exe.blockmap" "$BUCKET/"
+          # latest.yml drives electron-updater for every installed Windows app,
+          # so it goes LAST — never advertise a version before its bytes exist.
+          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' \
+            cp release/latest.yml "$BUCKET/latest.yml"
+
+      # In-app engine updates need a feed for this platform+arch. The desktop
+      # asks for latest-win32-x64.json and refuses a manifest built for anything
+      # else; the unsuffixed latest.json is the legacy feed older shells read.
+      - name: Publish engine feed (win32-x64)
+        if: inputs.publish
+        working-directory: wayne-agent
+        shell: bash
+        run: |
+          set -euo pipefail
+          BUCKET=gs://w4y-engine-dist
+          ENGINE_VERSION="$(date -u +%Y%m%d)-win32-x64"
+          ARTIFACT="wayne-engine-${ENGINE_VERSION}.zip"
+          ZIP="${RUNNER_TEMP}/${ARTIFACT}"
+
+          PLATFORM=$(node -p "const m=require('./apps/work4you/build/engine-runtime/runtime-ready.json'); m.platform+'-'+m.arch")
+          if [ "$PLATFORM" != "win32-x64" ]; then
+            echo "Refusing to publish: runtime is $PLATFORM, expected win32-x64" >&2
+            exit 1
+          fi
+
+          # The feed ships a ZIP; rebuild it from the same checkout that produced
+          # the installer so the two can never advertise different engines.
+          node scripts/build-engine-runtime.mjs --out-zip "$ZIP"
+          gsutil -h 'Cache-Control:no-store' cp "$ZIP" "$BUCKET/$ARTIFACT"
+
+          ENGINE_VERSION="$ENGINE_VERSION" ARTIFACT="$ARTIFACT" node -e '
+            const fs = require("node:fs");
+            fs.writeFileSync(process.env.RUNNER_TEMP + "/latest-win32-x64.json", JSON.stringify({
+              version: process.env.ENGINE_VERSION,
+              zipUrl: "https://storage.googleapis.com/w4y-engine-dist/" + process.env.ARTIFACT,
+              builtAt: new Date().toISOString().replace(/\.\d{3}Z$/, "Z"),
+              runtimeReady: true,
+              platform: "win32-x64",
+            }));
+          '
+          for NAME in latest-win32-x64.json latest.json; do
+            gsutil -h 'Cache-Control:no-store' -h 'Content-Type:application/json; charset=utf-8' \
+              cp "${RUNNER_TEMP}/latest-win32-x64.json" "$BUCKET/$NAME"
+          done

@@ -79,32 +79,7 @@ jobs:
       # Mac, so this runner is the only place the macOS app is ever exercised.
       - name: Verify packaged engine (darwin-arm64)
         working-directory: wayne-agent/apps/work4you
-        run: |
-          set -euo pipefail
-          APP=$(find release -maxdepth 2 -name 'Work4You.app' -type d | head -1)
-          if [ -z "$APP" ]; then echo "No Work4You.app under release/" >&2; exit 1; fi
-          ENGINE="$APP/Contents/Resources/engine"
-          echo "app    : $APP"
-          echo "engine : $ENGINE"
-
-          test -f "$ENGINE/pyproject.toml" || { echo "engine tree missing" >&2; exit 1; }
-
-          PLATFORM=$(node -p "const m=require('$PWD/$ENGINE/runtime-ready.json'); m.platform+'-'+m.arch")
-          [ "$PLATFORM" = "darwin-arm64" ] || { echo "packaged runtime is $PLATFORM" >&2; exit 1; }
-
-          # -e, not -f: a dangling symlink exists but does not resolve, and that
-          # is exactly the failure this step is here to catch.
-          PY="$ENGINE/.venv/bin/python"
-          test -e "$PY" || { echo "venv interpreter does not resolve: $(readlink "$PY" || true)" >&2; exit 1; }
-
-          # Run it the way the app runs it: main.cjs spawns the backend with
-          # cwd set to the engine root. That cwd is load-bearing — `uv sync`
-          # installs the project EDITABLE, and the .pth finder still points at
-          # the build-time staging directory, which is long gone by now. The
-          # import therefore resolves from cwd, not from site-packages. Do not
-          # "simplify" this by dropping the cd: it would pass here and tell you
-          # nothing about the app.
-          ( cd "$ENGINE" && ./.venv/bin/python -c 'import work4you_cli, sys; print("engine ok on CPython " + sys.version.split()[0])' )
+        run: node scripts/verify-packaged-engine.mjs
 
       - name: Upload build artefacts (CI retention)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
