@@ -407,6 +407,56 @@ sessões/chaves em `…\work4you\accounts\<tenantId>` (pin `active-account.json`
 Dois emails no mesmo utilizador Windows = duas pastas — não o mesmo `state.db`.
 Não reactivar `W4Y_SHARED_MOTOR` sem E2E de duas contas.
 
+### Distribuição do motor — contratos (15/08/2026) ✅
+
+Reescrita da instalação: era **~30 min** (o instalador levava o motor num ZIP de
+100MB e o primeiro arranque descompactava ~12.7k entradas em JS; sem ZIP caía
+para `uv sync` na máquina do utilizador, com 45 min de timeout no código).
+
+| Contrato | Onde | Nota |
+|---|---|---|
+| Motor viaja como **DIRECTÓRIO** em `extraResources` → `resources/engine` | `apps/work4you/package.json` (`build.extraResources`) | NSIS/DMG escrevem os ficheiros nativamente; nada para descomprimir no arranque |
+| First-run semeia o motor com **cópia nativa do SO** (robocopy/ditto/cp) | `w4y-wayne-resolve.cjs` (`copyTreeNative`) | 12.761 ficheiros em ~9s medidos; fallback `fs.cpSync` só se a ferramenta faltar |
+| Runtime é **por plataforma+arch**, marcado em `runtime-ready.json` | `scripts/build-engine-runtime.mjs` | Builder cross-platform; o `.ps1` antigo recusava correr fora de Windows |
+| Feed é **por plataforma**: `latest-<platform>-<arch>.json` | `w4y-wayne-resolve.cjs` (`engineManifestUrls`) | Manifest de outra plataforma é **RECUSADO**. `latest.json` sem sufixo = feed legado |
+| Nenhum alvo empacota sem o seu runtime | `scripts/before-pack.cjs` → `assert-engine-runtime.cjs` | Valida o marcador contra `electronPlatformName`/`arch` do alvo |
+| Nenhum app empacotado sai sem arrancar o motor | `scripts/verify-packaged-engine.mjs` (CI win+mac) | Usa o resolver REAL, não uma reimplementação — não pode divergir do que embarca |
+
+**⚠️ O `cwd` é load-bearing, não cosmético.** `uv sync` instala o motor
+**editable**: o `.pth` em `site-packages` aponta para o directório de *staging*
+do build, que é apagado a seguir. `import work4you_cli` só resolve porque
+`main.cjs:1432` faz spawn do backend com `cwd` na raiz do motor. Funciona hoje e
+sempre funcionou — mas qualquer código que corra o interpretador do motor a
+partir de outro directório falha com `ModuleNotFoundError`. Foi assim que a
+primeira versão da verificação de CI falhou (culpa da verificação, não da app).
+
+**⚠️ Layout do CPython difere por SO — assumir o de Windows mata o macOS.**
+`runtime/python/python.exe` (win) vs `runtime/python/bin/python3.11` (POSIX). A
+sonda aceita ambos (`bundledPythonExe`, com testes a fixar os dois). No POSIX o
+`uv venv` liga `.venv/bin/python` por caminho **absoluto** e o link fica
+pendurado assim que a árvore se move — e mover é todo o modelo de entrega; o
+builder repõe o link **relativo**. Extracção em POSIX usa o `unzip` do sistema,
+não `yauzl`: o `yauzl` escreve cada entrada como ficheiro normal e transformaria
+os symlinks em ficheiros de texto com o caminho lá dentro.
+
+**⚠️ `build/installer.nsh` TEM de ficar versionado.** O `.gitignore` excluía
+`apps/work4you/build/` como *directório*, e o git não reinclui ficheiro cujo
+directório-pai está excluído — o `!installer.nsh` aninhado era letra morta e o
+macro viveu numa só máquina. A regra passou a excluir o **conteúdo**
+(`build/*` + `!build/installer.nsh`). Todos os outros insumos de `build/` são
+gerados por scripts versionados; este era o único que não era.
+
+**Releases saem do CI, não de uma máquina.** `desktop-win.yml` e
+`desktop-mac.yml` são espelho um do outro. Publicar à mão foi o que fez as
+versões 1.0.96–1.0.111 saírem de uma árvore nunca commitada (o `main` esteve na
+1.0.95 esse tempo todo). `latest.yml`/`latest-mac.yml` vão **por último** — nunca
+anunciar uma versão antes de os bytes existirem.
+
+**Versões do site são por plataforma** (`platform/web/src/lib/product-download.ts`):
+uma constante partilhada fez um release de Windows apontar o link do macOS para
+um DMG que nunca foi construído — **404 em produção** para todo o Mac. Só mover
+para uma versão confirmada no bucket.
+
 ### Gateway offline toast (desktop, ago/2026)
 
 Toast `Work4You inference gateway status / offline` só dispara em
