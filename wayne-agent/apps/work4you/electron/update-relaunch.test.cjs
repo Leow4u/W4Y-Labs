@@ -46,8 +46,9 @@ const UNPACKED = path.join(ROOT, 'apps', 'work4you', 'release', 'linux-unpacked'
 
 // `bash -n` needs a working bash. On a Windows dev box `bash` is usually a WSL
 // shim that fails with ENOENT on /bin/bash when no distro is installed, which
-// says nothing about the generated script. Probe once, then skip that one
-// assertion loudly instead of reporting a failure the script didn't cause.
+// says nothing about the generated script. Probe once and declare the skip, the
+// way the fs tests declare theirs when Windows won't let them create symlinks.
+const NO_BASH_REASON = 'no working bash on this host'
 const BASH_AVAILABLE = (() => {
   try {
     execFileSync('bash', ['-c', 'exit 0'], { stdio: 'pipe' })
@@ -57,11 +58,7 @@ const BASH_AVAILABLE = (() => {
   }
 })()
 
-function assertValidBash(t, script, name) {
-  if (!BASH_AVAILABLE) {
-    t.diagnostic('no working bash on this host — skipped the `bash -n` syntax check')
-    return
-  }
+function lintBash(script, name) {
   const tmp = path.join(os.tmpdir(), `${name}-${Date.now()}.sh`)
   fs.writeFileSync(tmp, script)
   try {
@@ -224,14 +221,28 @@ test('shellQuote neutralizes single quotes and metacharacters', () => {
   assert.equal(shellQuote('$(rm -rf /)'), `'$(rm -rf /)'`)
 })
 
-test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', t => {
-  const script = buildRelaunchScript({
+// The two shapes the watcher script comes in, shared by the structural
+// assertions below and the `bash -n` syntax check.
+const scriptWithLaunchContext = () =>
+  buildRelaunchScript({
     pid: 4242,
     execPath: '/home/u/.hermes/hermes-agent/apps/work4you/release/linux-unpacked/Hermes',
     args: ['hermes://open/agent/42', "--note=it's fine"],
     env: { HERMES_HOME: '/home/u/.hermes', HERMES_DESKTOP_REMOTE_URL: 'http://box:9119' },
     cwd: '/home/u/work dir'
   })
+
+const bareScript = () =>
+  buildRelaunchScript({
+    pid: 1,
+    execPath: '/opt/Hermes/Hermes',
+    args: [],
+    env: {},
+    cwd: ''
+  })
+
+test('buildRelaunchScript embeds pid/exec/args/env/cwd, safely quoted', () => {
+  const script = scriptWithLaunchContext()
 
   // Structural assertions.
   assert.match(script, /^#!\/bin\/bash/)
@@ -243,20 +254,15 @@ test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', t => 
   assert.match(script, /export HERMES_DESKTOP_REMOTE_URL='http:\/\/box:9119'/)
   assert.match(script, /cd '\/home\/u\/work dir'/)
   assert.match(script, /exec '.*\/linux-unpacked\/Hermes' 'hermes:\/\/open\/agent\/42' '--note=it'\\''s fine'/)
-
-  // It must be syntactically valid bash (`bash -n`).
-  assertValidBash(t, script, 'hermes-relaunch-test')
 })
 
-test('buildRelaunchScript with no args/env still lints clean', t => {
-  const script = buildRelaunchScript({
-    pid: 1,
-    execPath: '/opt/Hermes/Hermes',
-    args: [],
-    env: {},
-    cwd: ''
-  })
-  assertValidBash(t, script, 'hermes-relaunch-test2')
+test('buildRelaunchScript with no args/env leaves the exec line bare', () => {
+  const script = bareScript()
   // exec line has no trailing args.
   assert.match(script, /exec '\/opt\/Hermes\/Hermes'\n/)
+})
+
+test('the generated relaunch scripts are valid bash', { skip: BASH_AVAILABLE ? false : NO_BASH_REASON }, () => {
+  lintBash(scriptWithLaunchContext(), 'hermes-relaunch-test')
+  lintBash(bareScript(), 'hermes-relaunch-test2')
 })
