@@ -2668,13 +2668,50 @@ async def device_connector_bootstrap():
     return await asyncio.to_thread(_run)
 
 
+_CONNECTOR_OWNED_LISTS: Dict[str, str] = {
+    "account": "/api/v3/connected_accounts",
+    "trigger": "/api/v3.1/trigger_instances/active",
+}
+
+
+def _require_owned_connector_resource(kind: str, resource_id: str, scope: str) -> None:
+    """Refuse to act on a Composio resource that does not belong to the caller.
+
+    On a dedicated install the Composio project is itself the fence, so any id
+    the caller can name is already theirs. On the shared motor one project
+    serves every tenant and the ``user_id`` is the only boundary — so acting on
+    an id alone let any authenticated tenant revoke another tenant's connected
+    account or trigger, because the id is all the upstream API asks for. Resolve
+    the caller's own ids first and refuse anything outside that set.
+
+    The caller cannot widen this by choosing ``scope``: ``_connector_user_id``
+    stamps their own tenant onto whatever scope they ask for, so the lookup can
+    only ever enumerate their own resources.
+
+    404 rather than 403 — a caller who guessed an id should not learn from the
+    status code that it exists somewhere else.
+    """
+    path = _CONNECTOR_OWNED_LISTS[kind]
+    uid = _connector_user_id(scope)
+    data = _composio_request("GET", path, params={"user_ids": uid, "limit": 100}) or {}
+    owned: set[str] = set()
+    for it in data.get("items") or []:
+        for field in ("id", "nanoid", "triggerId", "trigger_id"):
+            value = it.get(field)
+            if value:
+                owned.add(str(value))
+    if resource_id not in owned:
+        raise HTTPException(status_code=404, detail=f"{kind} not found in this scope")
+
+
 @app.delete("/api/connectors/accounts/{account_id}")
-async def connectors_disconnect(account_id: str):
+async def connectors_disconnect(account_id: str, scope: str = "global"):
     """Desconecta uma conta (revoga o acesso àquele app no escopo dela)."""
     if not re.fullmatch(r"[A-Za-z0-9_-]{4,64}", account_id or ""):
         raise HTTPException(status_code=400, detail="invalid account id")
 
     def _run():
+        _require_owned_connector_resource("account", account_id, scope)
         _composio_request("DELETE", f"/api/v3/connected_accounts/{account_id}")
         return {"ok": True}
 
@@ -3052,11 +3089,12 @@ async def connector_trigger_create(body: ConnectorTriggerCreate, request: Reques
 
 
 @app.delete("/api/connectors/triggers/{trigger_id}")
-async def connector_trigger_delete(trigger_id: str):
+async def connector_trigger_delete(trigger_id: str, scope: str = "global"):
     if not re.fullmatch(r"[A-Za-z0-9_-]{4,80}", trigger_id or ""):
         raise HTTPException(status_code=400, detail="invalid trigger id")
 
     def _run():
+        _require_owned_connector_resource("trigger", trigger_id, scope)
         _composio_request("DELETE", f"/api/v3.1/trigger_instances/manage/{trigger_id}")
         return {"ok": True}
 
@@ -6716,11 +6754,26 @@ async def reveal_env_var(
 
     Protected by:
     - Ephemeral session token (generated per server start, injected into SPA)
+    - Platform-managed keys are never revealed (see below)
     - Rate limiting (max 5 reveals per 30s window)
     - Audit logging
     """
     # --- Token check ---
     _require_token(request)
+
+    # --- Platform-managed keys are not the caller's to read ---
+    # The keys in W4Y_PLATFORM_MANAGED_ENV are provisioned by Work4You, and on
+    # a shared motor some of them are platform-wide rather than this tenant's
+    # alone. PUT/DELETE /api/env already refuse to write them and the SPA hides
+    # the rows, but hiding a row is not a boundary: a caller who knows the name
+    # could still read the value here. Refuse by name, not by whether the UI
+    # happens to show it.
+    if body.key in W4Y_PLATFORM_MANAGED_ENV:
+        _log.warning("env/reveal refused for platform-managed key: %s", body.key)
+        raise HTTPException(
+            status_code=403,
+            detail=f"{body.key} is managed by Work4You and cannot be revealed",
+        )
 
     # --- Rate limit ---
     now = time.time()
