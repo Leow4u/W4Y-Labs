@@ -390,12 +390,9 @@ async function runLoginFlow({ parentWindow, onAccountSwitched } = {}) {
           res.json.apiKey ||
           "";
         if (key) upsertEnvKey("OPENROUTER_API_KEY", String(key));
-        const composio =
-          res.json.composioApiKey ||
-          res.json.composio_api_key ||
-          res.json.composioKey ||
-          "";
-        if (composio) upsertEnvKey("COMPOSIO_API_KEY", String(composio));
+        // COMPOSIO_API_KEY não vem daqui: chega pelo broker do tenant em
+        // bootstrapLocalConnectors() (w4y-composio.cjs). A Composio não nos deixa
+        // cunhar chave por dispositivo — ver docs/BACKEND-MAP.md.
         // Platform-managed tool secrets (Firecrawl / Langfuse) from engine-key.
         const toolEnv =
           res.json.toolEnv && typeof res.json.toolEnv === "object"
@@ -532,12 +529,6 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
           res.json.billingPlan ||
           res.json.billing_plan ||
           plan;
-        const composio =
-          res.json.composioApiKey ||
-          res.json.composio_api_key ||
-          res.json.composioKey ||
-          "";
-        if (composio) upsertEnvKey("COMPOSIO_API_KEY", String(composio));
       }
     } catch {
       /* session may be logged out */
@@ -574,8 +565,18 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
   };
 }
 
-/** Keys minted by POST /device/engine-key — not user BYO secrets. */
-const PLATFORM_ENV_KEYS = ["OPENROUTER_API_KEY", "COMPOSIO_API_KEY"];
+/** Chaves que a plataforma provisiona — nunca segredos BYO do utilizador.
+ *
+ * A de modelos vem de POST /device/engine-key; a de conectores e a identidade
+ * Composio vêm do broker do tenant (bootstrapLocalConnectors). Todas saem do
+ * .env ao trocar de conta: manter a identidade da conta anterior apontaria este
+ * dispositivo ao escopo de outro tenant.
+ */
+const PLATFORM_ENV_KEYS = [
+  "OPENROUTER_API_KEY",
+  "COMPOSIO_API_KEY",
+  "W4Y_CONNECTOR_USER_ID",
+];
 
 function removePlatformEnvKeys() {
   const file = envPath();

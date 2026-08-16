@@ -227,7 +227,7 @@ A narrativa completa do pivô foi para
 O que sobrevive são estes factos, que continuam verdadeiros e continuam a custar
 caro se forem reaprendidos.
 
-**Conectores locais exigem três elos, não um.** Ter a chave do Composio não
+**Conectores locais exigem quatro elos, não um.** Ter a chave do Composio não
 chega. (1) A chave no `.env` — o motor relê o `.env` **por request**
 (`load_wayne_dotenv override=True`), portanto chave nova vale sem reiniciar.
 (2) A entrada `mcp_servers.composio` no `config.yaml` — a página de plugins usa
@@ -236,6 +236,17 @@ entrada. (3) Uma sessão de tool-router **própria**: as sessões `trs_…` são
 stateful e mono-consumidor, portanto copiar a URL da nuvem dá *"Session
 terminated"*. Cada motor tem de mintar a sua com
 `POST /api/v3.1/tool_router/session {user_id:"global"}`.
+(4) **A identidade Composio do tenant** (`W4Y_CONNECTOR_USER_ID` no `.env`,
+entregue pelo `connector-bootstrap`). O elo que faltava: no motor partilhado a
+nuvem arquiva as ligações em `<tenant>:global` e um motor local, que não tem home
+fixado, perguntava por `global` nu. Sintoma enganador — as **ferramentas
+funcionavam** (a sessão MCP tinha sido cunhada do lado da nuvem com o id certo) e
+a **página de conectores vinha vazia**, o que se lê como bug de ecrã. O motor lê
+os dois ids (novo e nu) para não perder ligações feitas antes disto, mas só fora
+do motor partilhado: ali, ler o id nu devolveria a fronteira que o prefixo
+comprou. E lê-se do **ficheiro**, nunca de `os.environ` — o dotenv não desfaz o
+que já pôs no ambiente, logo o prefixo da conta anterior sobreviveria à troca de
+conta.
 
 **Duas paredes do Composio, verificadas ao vivo por sondas de dentro do
 provisioner.** O endpoint de chave *adicional* não existe sob autenticação por
@@ -245,6 +256,26 @@ enabled for this organization"** — a rotação coordenada está morta. Consequ
 de desenho: o caminho durável é *tenant-as-broker*, um endpoint no `web_server`
 do tenant atrás do auth do dashboard, com os cookies do login.
 ⚠️ `regenerate` **invalida todas as chaves do projeto**, incluindo a do Fly.
+
+**O código que ignorava essas paredes foi removido (ago/2026).** O provisioner
+tinha um `createComposioDeviceKey` que tentava a chave adicional e caía na
+rotação; com as duas portas fechadas ele gastava duas chamadas e devolvia erro
+a cada login, e os comentários descreviam a rotação como o caminho de produção.
+`/device-key` já não fala de conectores, e `requestDeviceKey` já não promete
+`composioKey`. O motor local recebe a chave por
+`GET /api/device/connector-bootstrap`. Corolário para quem for reabrir isto:
+`ensureComposioProject` só devolve chave no caminho de **criação** — para um
+projeto que já existe sai por excepção, e é por isso que re-provisionar um
+tenant antigo o deixa sem conectores.
+
+**Duas fronteiras novas nos conectores e nas chaves (ago/2026).**
+`POST /api/env/reveal` recusa tudo o que esteja em `W4Y_PLATFORM_MANAGED_ENV`:
+a SPA já escondia essas linhas, mas esconder uma linha não é fronteira e o valor
+saía a quem soubesse o nome. E `DELETE /api/connectors/accounts/{id}` e
+`DELETE /api/connectors/triggers/{id}` passaram a confirmar posse antes de
+chamar a Composio — no projeto partilhado do motor partilhado, o id era tudo o
+que a API de cima pedia, portanto um tenant autenticado revogava o Gmail de
+outro pela nossa própria rota.
 
 **Nunca reutilizar tag de imagem.** Incidente real confirmado no Fly/GCP: o
 deploy de 11/07 reutilizou a tag `p3` por cima da imagem de billing de 07/07. O

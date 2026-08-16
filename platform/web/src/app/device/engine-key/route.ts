@@ -69,8 +69,7 @@ export async function POST(req: NextRequest) {
   });
   if (!dk) return NextResponse.json({ error: "provisioner_failed" }, { status: 502 });
 
-  // Registra o HASH (nunca a key) para auditoria/revogação granular. O id da
-  // key Composio (não-secreto) entra no payload; a key crua, jamais.
+  // Registra o HASH (nunca a key) para auditoria/revogação granular.
   // Reusa billing_events (sem migração); id = devkey:<hash> é idempotente.
   // Pendência: tabela device_keys própria quando houver passada de schema.
   try {
@@ -78,7 +77,7 @@ export async function POST(req: NextRequest) {
       INSERT INTO billing_events (id, tenant_id, type, payload)
       VALUES (
         ${"devkey:" + dk.hash}, ${session.tenantId}, 'device_key.created',
-        ${JSON.stringify({ hash: dk.hash, name: dk.name, deviceLabel: deviceLabel || null, limitUsd: dk.limitUsd, app, email: session.email, composioKeyId: dk.composioKeyId, composioError: dk.composioError })}::jsonb
+        ${JSON.stringify({ hash: dk.hash, name: dk.name, deviceLabel: deviceLabel || null, limitUsd: dk.limitUsd, app, email: session.email })}::jsonb
       )
       ON CONFLICT (id) DO NOTHING
     `);
@@ -86,9 +85,10 @@ export async function POST(req: NextRequest) {
     /* registro é best-effort — a key já existe e pertence ao dono */
   }
 
-  // S0 conectores: repassa a chave Composio do projeto dedicado quando o
-  // provisionador conseguiu criá-la (o app grava COMPOSIO_API_KEY no .env do
-  // motor local). Ausente/null = motor segue sem conectores (best-effort).
+  // Conectores NÃO vêm por aqui: a chave do projeto Composio chega ao motor
+  // local pelo broker do tenant (GET /api/device/connector-bootstrap, atrás do
+  // auth do dashboard), que é o único caminho que a Composio nos deixa. Ver
+  // docs/BACKEND-MAP.md — "Duas paredes do Composio".
   // toolEnv: Firecrawl / Langfuse shared platform secrets for the desktop .env.
   return NextResponse.json({
     key: dk.key,
@@ -98,7 +98,6 @@ export async function POST(req: NextRequest) {
     tenantId: session.tenantId,
     email: session.email,
     plan,
-    ...(dk.composioKey ? { composioKey: dk.composioKey, composioEnvVar: "COMPOSIO_API_KEY" } : {}),
     ...(dk.toolEnv ? { toolEnv: dk.toolEnv } : {}),
   });
 }

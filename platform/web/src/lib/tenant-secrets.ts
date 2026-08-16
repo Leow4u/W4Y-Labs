@@ -51,20 +51,10 @@ async function smFetch(method: string, path: string, body?: unknown): Promise<Re
   });
 }
 
-export interface TenantDashboardCreds {
-  username: string;
-  password: string;
-}
-
-/** Persiste credenciais do dashboard no Secret Manager (prod). Falha silenciosa em dev. */
-export async function storeTenantDashboardCreds(
-  tenantId: string,
-  creds: TenantDashboardCreds,
-): Promise<boolean> {
-  if (!smEnabled()) return false;
-  const sid = secretId(tenantId);
+/** Grava uma versão nova do segredo, criando-o na primeira vez. */
+async function putSecret(tenantId: string, sid: string, value: string): Promise<boolean> {
   const parent = `projects/${PROJECT_ID}`;
-  const payload = Buffer.from(JSON.stringify(creds)).toString("base64");
+  const payload = Buffer.from(value).toString("base64");
 
   let r = await smFetch("GET", `${parent}/secrets/${sid}`);
   if (r?.status === 404) {
@@ -83,20 +73,44 @@ export async function storeTenantDashboardCreds(
   return add?.ok ?? false;
 }
 
-/** Lê credenciais do SM. Null se indisponível (dev local ou secret inexistente). */
-export async function loadTenantDashboardCreds(
-  tenantId: string,
-): Promise<TenantDashboardCreds | null> {
-  if (!smEnabled()) return null;
-  const sid = secretId(tenantId);
-  const path = `projects/${PROJECT_ID}/secrets/${sid}/versions/latest:access`;
-  const r = await smFetch("POST", path);
+/** Lê a versão mais recente do segredo. Null em dev ou quando não existe. */
+async function getSecret(sid: string): Promise<string | null> {
+  const r = await smFetch("POST", `projects/${PROJECT_ID}/secrets/${sid}/versions/latest:access`);
   if (!r?.ok) return null;
   try {
     const j = (await r.json()) as { payload?: { data?: string } };
     const raw = j.payload?.data;
     if (!raw) return null;
-    const parsed = JSON.parse(Buffer.from(raw, "base64").toString("utf8")) as TenantDashboardCreds;
+    return Buffer.from(raw, "base64").toString("utf8") || null;
+  } catch {
+    /* corrupt secret */
+    return null;
+  }
+}
+
+export interface TenantDashboardCreds {
+  username: string;
+  password: string;
+}
+
+/** Persiste credenciais do dashboard no Secret Manager (prod). Falha silenciosa em dev. */
+export async function storeTenantDashboardCreds(
+  tenantId: string,
+  creds: TenantDashboardCreds,
+): Promise<boolean> {
+  if (!smEnabled()) return false;
+  return putSecret(tenantId, secretId(tenantId), JSON.stringify(creds));
+}
+
+/** Lê credenciais do SM. Null se indisponível (dev local ou secret inexistente). */
+export async function loadTenantDashboardCreds(
+  tenantId: string,
+): Promise<TenantDashboardCreds | null> {
+  if (!smEnabled()) return null;
+  const raw = await getSecret(secretId(tenantId));
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as TenantDashboardCreds;
     if (typeof parsed.username === "string" && typeof parsed.password === "string") {
       return parsed;
     }
@@ -114,40 +128,10 @@ export function credsFingerprint(password: string): string {
 /** OpenRouter runtime key (shared motor bootstrap). Never log the value. */
 export async function storeTenantOpenRouterKey(tenantId: string, key: string): Promise<boolean> {
   if (!smEnabled() || !key.trim()) return false;
-  const sid = orSecretId(tenantId);
-  const parent = `projects/${PROJECT_ID}`;
-  const payload = Buffer.from(key.trim()).toString("base64");
-
-  let r = await smFetch("GET", `${parent}/secrets/${sid}`);
-  if (r?.status === 404) {
-    r = await smFetch("POST", `${parent}/secrets?secretId=${encodeURIComponent(sid)}`, {
-      replication: { automatic: {} },
-      labels: { tenant_id: tenantId.replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 63) },
-    });
-    if (!r?.ok) return false;
-  } else if (!r?.ok) {
-    return false;
-  }
-
-  const add = await smFetch("POST", `${parent}/secrets/${sid}:addVersion`, {
-    payload: { data: payload },
-  });
-  return add?.ok ?? false;
+  return putSecret(tenantId, orSecretId(tenantId), key.trim());
 }
 
 export async function loadTenantOpenRouterKey(tenantId: string): Promise<string | null> {
   if (!smEnabled()) return null;
-  const sid = orSecretId(tenantId);
-  const path = `projects/${PROJECT_ID}/secrets/${sid}/versions/latest:access`;
-  const r = await smFetch("POST", path);
-  if (!r?.ok) return null;
-  try {
-    const j = (await r.json()) as { payload?: { data?: string } };
-    const raw = j.payload?.data;
-    if (!raw) return null;
-    const key = Buffer.from(raw, "base64").toString("utf8").trim();
-    return key || null;
-  } catch {
-    return null;
-  }
+  return (await getSecret(orSecretId(tenantId)))?.trim() || null;
 }

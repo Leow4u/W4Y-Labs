@@ -14,6 +14,25 @@
 2. `billing_events` audit by tenant_id.
 3. Issue new device key on next desktop login.
 
+### Leaked Composio project key
+
+The tenant's connector key reaches devices from the tenant's own engine
+(`GET /api/device/connector-bootstrap`), and it is the same key the tenant's Fly
+app uses. There is **no rotation path**: the org has `regenerate_api_key`
+disabled (403) and the per-key endpoint is not exposed under org-key auth, so
+"rotate the key" is not an option — see `docs/BACKEND-MAP.md`.
+
+1. Disconnect the affected accounts in the Composio dashboard (revokes the OAuth
+   grants the key could reach) and disable the project's triggers.
+2. Create a **new** project for the tenant, set `COMPOSIO_API_KEY` on its Fly app
+   from the creation response, and have the user reconnect the apps.
+3. Audit `connected_accounts` for that project for connections the user did not
+   make.
+
+Blast radius while a key is out: the whole project. On a dedicated tenant that
+is one customer; on the shared motor the project is shared, so treat it as a
+cross-tenant incident and follow that section too.
+
 ### Compromised GCS update bucket
 
 1. Disable public access; rotate engine signing key pair.

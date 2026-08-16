@@ -105,11 +105,10 @@ export async function requestEnsureKey(
 
 // Pivô desktop: pede ao provisionador uma runtime key OpenRouter POR
 // DISPOSITIVO (nova, separada da key do Fly), com limite = crédito do plano.
-// S0 conectores: a resposta pode trazer também uma chave Composio ADICIONAL
-// do projeto DEDICADO do tenant (best-effort; null quando a Composio falhou —
-// composioError curto explica). É o único fluxo em que chaves CRUAS transitam
-// pela casca — seguem direto para o dispositivo do dono (motor local); nunca
-// logar nem persistir as keys (o composioKeyId, não-secreto, serve à auditoria).
+// É o único fluxo em que uma chave CRUA transita pela casca — segue direto para
+// o dispositivo do dono (motor local); nunca logar.
+// Conectores não passam por aqui: a chave do projeto Composio chega ao motor
+// local pelo broker do tenant (ver docs/BACKEND-MAP.md).
 export async function requestDeviceKey(opts: {
   app: string | null;
   tenantId: string;
@@ -120,9 +119,6 @@ export async function requestDeviceKey(opts: {
   hash: string;
   limitUsd: number;
   name: string;
-  composioKey: string | null;
-  composioKeyId: string | null;
-  composioError: string | null;
   /** Shared platform tool secrets (Firecrawl / Langfuse). Never log values. */
   toolEnv: Record<string, string> | null;
 } | null> {
@@ -134,9 +130,6 @@ export async function requestDeviceKey(opts: {
       hash?: string;
       limitUsd?: number;
       name?: string;
-      composioKey?: string | null;
-      composioKeyId?: string | null;
-      composioError?: string | null;
       toolEnv?: Record<string, unknown> | null;
     };
     if (!j.key || !j.hash) return null;
@@ -155,9 +148,6 @@ export async function requestDeviceKey(opts: {
       hash: j.hash,
       limitUsd: Number(j.limitUsd ?? opts.limitUsd),
       name: j.name ?? "",
-      composioKey: typeof j.composioKey === "string" && j.composioKey ? j.composioKey : null,
-      composioKeyId: typeof j.composioKeyId === "string" && j.composioKeyId ? j.composioKeyId : null,
-      composioError: typeof j.composioError === "string" && j.composioError ? j.composioError : null,
       toolEnv,
     };
   } catch {

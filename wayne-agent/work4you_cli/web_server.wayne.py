@@ -2267,8 +2267,54 @@ def _connector_tenant_id() -> str:
     return re.sub(r"[^a-z0-9_-]+", "-", raw.strip().lower()) or "local"
 
 
+def _connector_scope_id(scope: str) -> str:
+    """Id nu do escopo — "global" (agente principal) ou o nome do profile."""
+    scope = (scope or "global").strip() or "global"
+    if scope != "global":
+        from wayne_cli.profiles import normalize_profile_name
+
+        scope = normalize_profile_name(scope)
+    return scope
+
+
+def _local_connector_tenant() -> str:
+    """Prefixo de tenant que a nuvem mandou este motor LOCAL usar, ou "".
+
+    Um motor de desktop não é motor partilhado, portanto não tem home fixado de
+    onde derivar o prefixo — e sem prefixo pergunta à Composio por "global" nu
+    enquanto a nuvem arquivou as ligações em "<tenant>:global". Resultado: a
+    página de conectores vinha vazia num tenant cloud, embora a chave e a sessão
+    MCP estivessem corretas (as ferramentas funcionavam, os cartões não
+    apareciam). A nuvem entrega o id no bootstrap
+    (``GET /api/device/connector-bootstrap``) e a casca guarda-o no ``.env``.
+
+    Lido do ficheiro e NUNCA de ``os.environ``: ao trocar de conta a casca
+    apaga a linha, e o dotenv não desfaz o que já pôs no ambiente do processo —
+    o prefixo da conta anterior sobreviveria e este dispositivo passaria a
+    perguntar pelo escopo do tenant antigo com a chave do novo.
+
+    Isto é uma DICA de identidade, não uma fronteira: quem tem a chave do
+    projeto no ``.env`` já pode chamar a Composio com o user_id que quiser. A
+    fronteira real são ids opacos e o gateway (ondas C e G do
+    docs/PLANO-CREDENCIAIS-E-GATEWAY.md).
+    """
+    if _shared_motor_home() is not None:
+        return ""
+    try:
+        from dotenv import dotenv_values
+
+        raw = (dotenv_values(_connector_base_home() / ".env") or {}).get(
+            "W4Y_CONNECTOR_USER_ID"
+        ) or ""
+    except Exception:
+        _log.exception("connector identity read failed")
+        return ""
+    parsed = _connector_event_scope(raw)
+    return parsed[0] if parsed else ""
+
+
 def _connector_user_id(scope: str) -> str:
-    """user_id Composio do escopo — "global" (agente principal) ou o profile.
+    """user_id Composio canónico do escopo — o id sob o qual ESCREVEMOS.
 
     Projeto DEDICADO por tenant (opção A): o isolamento é o próprio projeto,
     logo o user_id é só o escopo, SEM prefixo. O prefixo foi removido porque
@@ -2278,17 +2324,70 @@ def _connector_user_id(scope: str) -> str:
     Shared motor: um só app Fly serve todos os tenants, logo há uma só chave
     Composio e o projeto DEIXA de ser fronteira. Sem prefixo, todos os tenants
     colapsam no mesmo user_id "global" e passam a ver as contas ligadas uns dos
-    outros, portanto o prefixo volta — mas SÓ aí. Instalações dedicadas e o
-    desktop mantêm o id nu, para não invalidar as sessões que já existem.
+    outros, portanto o prefixo volta. O desktop de um tenant cloud tem de usar o
+    MESMO id da nuvem, senão não vê o que lá está — daí a dica local. Uma
+    instalação dedicada, que não tem nem uma coisa nem outra, mantém o id nu.
     ``_connector_event_scope`` desfaz o prefixo na volta.
     """
-    scope = (scope or "global").strip() or "global"
-    if scope != "global":
-        from wayne_cli.profiles import normalize_profile_name
-
-        scope = normalize_profile_name(scope)
-    tenant = _shared_motor_tenant()
+    scope = _connector_scope_id(scope)
+    tenant = _shared_motor_tenant() or _local_connector_tenant()
     return f"{tenant}:{scope}" if tenant else scope
+
+
+def _connector_user_ids(scope: str) -> List[str]:
+    """Ids sob os quais LEMOS o escopo: o canónico, mais o legado quando aplica.
+
+    Um desktop que ligou apps antes da dica de tenant arquivou-as sob o id nu.
+    Passar a perguntar só pelo id prefixado faria essas ligações desaparecerem
+    da página, portanto lê-se os dois e junta-se.
+
+    No motor partilhado devolve SÓ o canónico. Ler também o id nu ali seria
+    reabrir a porta que o prefixo fechou: o nu é o formato de instalações
+    dedicadas e do desktop, e nada garante que pertença a quem pergunta.
+    """
+    canonical = _connector_user_id(scope)
+    if _shared_motor_tenant():
+        return [canonical]
+    bare = _connector_scope_id(scope)
+    return [canonical] if canonical == bare else [canonical, bare]
+
+
+def _connector_accounts(scope: str) -> List[Dict[str, Any]]:
+    """Contas ligadas do escopo, em todos os ids sob que possam estar."""
+    items: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for uid in _connector_user_ids(scope):
+        data = _composio_request(
+            "GET",
+            "/api/v3/connected_accounts",
+            params={"user_ids": uid, "limit": 100},
+        ) or {}
+        for it in data.get("items") or []:
+            key = str(it.get("id") or it.get("nanoid") or "")
+            if key and key not in seen:
+                seen.add(key)
+                items.append(it)
+    return items
+
+
+def _connector_trigger_instances(scope: str) -> List[Dict[str, Any]]:
+    """Gatilhos activos do escopo, em todos os ids sob que possam estar."""
+    items: List[Dict[str, Any]] = []
+    seen: set[str] = set()
+    for uid in _connector_user_ids(scope):
+        data = _composio_request(
+            "GET",
+            "/api/v3.1/trigger_instances/active",
+            params={"user_ids": uid, "limit": 100},
+        ) or {}
+        for it in data.get("items") or []:
+            key = str(
+                it.get("id") or it.get("triggerId") or it.get("trigger_id") or ""
+            )
+            if key and key not in seen:
+                seen.add(key)
+                items.append(it)
+    return items
 
 
 def _connector_event_scope(uid: str) -> Optional[Tuple[str, str]]:
@@ -2507,13 +2606,8 @@ async def connectors_status(scope: str = "global"):
     def _run():
         uid = _connector_user_id(scope)
         entry = _CONNECTOR_ENTRY_GLOBAL if scope == "global" else _CONNECTOR_ENTRY_AGENT
-        data = _composio_request(
-            "GET",
-            "/api/v3/connected_accounts",
-            params={"user_ids": uid, "limit": 100},
-        ) or {}
         accounts = []
-        for it in data.get("items") or []:
+        for it in _connector_accounts(scope):
             tk = it.get("toolkit") or {}
             accounts.append(
                 {
@@ -2668,13 +2762,46 @@ async def device_connector_bootstrap():
     return await asyncio.to_thread(_run)
 
 
+def _require_owned_connector_resource(kind: str, resource_id: str, scope: str) -> None:
+    """Refuse to act on a Composio resource that does not belong to the caller.
+
+    On a dedicated install the Composio project is itself the fence, so any id
+    the caller can name is already theirs. On the shared motor one project
+    serves every tenant and the ``user_id`` is the only boundary — so acting on
+    an id alone let any authenticated tenant revoke another tenant's connected
+    account or trigger, because the id is all the upstream API asks for. Resolve
+    the caller's own ids first and refuse anything outside that set.
+
+    The caller cannot widen this by choosing ``scope``: ``_connector_user_id``
+    stamps their own tenant onto whatever scope they ask for, so the lookup can
+    only ever enumerate their own resources.
+
+    404 rather than 403 — a caller who guessed an id should not learn from the
+    status code that it exists somewhere else.
+    """
+    listing = (
+        _connector_accounts(scope)
+        if kind == "account"
+        else _connector_trigger_instances(scope)
+    )
+    owned: set[str] = set()
+    for it in listing:
+        for field in ("id", "nanoid", "triggerId", "trigger_id"):
+            value = it.get(field)
+            if value:
+                owned.add(str(value))
+    if resource_id not in owned:
+        raise HTTPException(status_code=404, detail=f"{kind} not found in this scope")
+
+
 @app.delete("/api/connectors/accounts/{account_id}")
-async def connectors_disconnect(account_id: str):
+async def connectors_disconnect(account_id: str, scope: str = "global"):
     """Desconecta uma conta (revoga o acesso àquele app no escopo dela)."""
     if not re.fullmatch(r"[A-Za-z0-9_-]{4,64}", account_id or ""):
         raise HTTPException(status_code=400, detail="invalid account id")
 
     def _run():
+        _require_owned_connector_resource("account", account_id, scope)
         _composio_request("DELETE", f"/api/v3/connected_accounts/{account_id}")
         return {"ok": True}
 
@@ -2698,14 +2825,9 @@ async def connectors_disconnect_all(body: ConnectorDisconnectAll):
 
     def _run():
         uid = _connector_user_id(scope)
-        data = _composio_request(
-            "GET",
-            "/api/v3/connected_accounts",
-            params={"user_ids": uid, "limit": 100},
-        ) or {}
         removed: list[str] = []
         errors: list[dict[str, str]] = []
-        for it in data.get("items") or []:
+        for it in _connector_accounts(scope):
             aid = it.get("id") or it.get("nanoid")
             if not aid:
                 continue
@@ -2871,17 +2993,12 @@ def _toolkit_slug_from_trigger(slug: str, explicit: Optional[str] = None) -> str
     return head
 
 
-def _active_connected_account_id(user_id: str, toolkit: str) -> Optional[str]:
-    """First ACTIVE connected account for user+toolkit, if any."""
+def _active_connected_account_id(scope: str, toolkit: str) -> Optional[str]:
+    """First ACTIVE connected account of the scope for this toolkit, if any."""
     toolkit = (toolkit or "").strip().lower()
     if not toolkit:
         return None
-    data = _composio_request(
-        "GET",
-        "/api/v3/connected_accounts",
-        params={"user_ids": user_id, "limit": 100},
-    ) or {}
-    for it in data.get("items") or []:
+    for it in _connector_accounts(scope):
         status = str(it.get("status") or "").upper()
         if status not in {"ACTIVE", "INITIATED"}:
             continue
@@ -2926,12 +3043,8 @@ async def connector_triggers_list(scope: str = "global"):
     """Gatilhos ativos do escopo."""
 
     def _run():
-        uid = _connector_user_id(scope)
-        data = _composio_request(
-            "GET", "/api/v3.1/trigger_instances/active", params={"user_ids": uid, "limit": 100}
-        ) or {}
         out = []
-        for it in data.get("items") or []:
+        for it in _connector_trigger_instances(scope):
             out.append(
                 {
                     "id": it.get("id") or it.get("triggerId") or it.get("trigger_id"),
@@ -3000,7 +3113,7 @@ async def connector_trigger_create(body: ConnectorTriggerCreate, request: Reques
         uid = _connector_user_id(scope)
         account_id = (body.connected_account_id or "").strip() or None
         if not account_id:
-            account_id = _active_connected_account_id(uid, toolkit)
+            account_id = _active_connected_account_id(scope, toolkit)
         if not account_id:
             raise HTTPException(
                 status_code=400,
@@ -3052,11 +3165,12 @@ async def connector_trigger_create(body: ConnectorTriggerCreate, request: Reques
 
 
 @app.delete("/api/connectors/triggers/{trigger_id}")
-async def connector_trigger_delete(trigger_id: str):
+async def connector_trigger_delete(trigger_id: str, scope: str = "global"):
     if not re.fullmatch(r"[A-Za-z0-9_-]{4,80}", trigger_id or ""):
         raise HTTPException(status_code=400, detail="invalid trigger id")
 
     def _run():
+        _require_owned_connector_resource("trigger", trigger_id, scope)
         _composio_request("DELETE", f"/api/v3.1/trigger_instances/manage/{trigger_id}")
         return {"ok": True}
 
@@ -6444,6 +6558,11 @@ def _catalog_provider_env_metadata() -> dict:
 W4Y_PLATFORM_MANAGED_ENV: frozenset[str] = frozenset({
     "OPENROUTER_API_KEY",
     "COMPOSIO_API_KEY",
+    # Not a secret — the Composio identity the cloud tells this device to use
+    # (see ``_local_connector_tenant``). Listed here so the Keys page does not
+    # surface it as a mystery "custom secret" and so a local edit cannot point
+    # the device at another tenant's scope through our own API.
+    "W4Y_CONNECTOR_USER_ID",
     "FIRECRAWL_API_KEY",
     "FIRECRAWL_API_URL",
     "FAL_KEY",
@@ -6716,11 +6835,26 @@ async def reveal_env_var(
 
     Protected by:
     - Ephemeral session token (generated per server start, injected into SPA)
+    - Platform-managed keys are never revealed (see below)
     - Rate limiting (max 5 reveals per 30s window)
     - Audit logging
     """
     # --- Token check ---
     _require_token(request)
+
+    # --- Platform-managed keys are not the caller's to read ---
+    # The keys in W4Y_PLATFORM_MANAGED_ENV are provisioned by Work4You, and on
+    # a shared motor some of them are platform-wide rather than this tenant's
+    # alone. PUT/DELETE /api/env already refuse to write them and the SPA hides
+    # the rows, but hiding a row is not a boundary: a caller who knows the name
+    # could still read the value here. Refuse by name, not by whether the UI
+    # happens to show it.
+    if body.key in W4Y_PLATFORM_MANAGED_ENV:
+        _log.warning("env/reveal refused for platform-managed key: %s", body.key)
+        raise HTTPException(
+            status_code=403,
+            detail=f"{body.key} is managed by Work4You and cannot be revealed",
+        )
 
     # --- Rate limit ---
     now = time.time()
