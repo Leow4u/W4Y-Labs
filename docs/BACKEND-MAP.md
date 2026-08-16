@@ -227,7 +227,7 @@ A narrativa completa do pivô foi para
 O que sobrevive são estes factos, que continuam verdadeiros e continuam a custar
 caro se forem reaprendidos.
 
-**Conectores locais exigem três elos, não um.** Ter a chave do Composio não
+**Conectores locais exigem quatro elos, não um.** Ter a chave do Composio não
 chega. (1) A chave no `.env` — o motor relê o `.env` **por request**
 (`load_wayne_dotenv override=True`), portanto chave nova vale sem reiniciar.
 (2) A entrada `mcp_servers.composio` no `config.yaml` — a página de plugins usa
@@ -236,6 +236,17 @@ entrada. (3) Uma sessão de tool-router **própria**: as sessões `trs_…` são
 stateful e mono-consumidor, portanto copiar a URL da nuvem dá *"Session
 terminated"*. Cada motor tem de mintar a sua com
 `POST /api/v3.1/tool_router/session {user_id:"global"}`.
+(4) **A identidade Composio do tenant** (`W4Y_CONNECTOR_USER_ID` no `.env`,
+entregue pelo `connector-bootstrap`). O elo que faltava: no motor partilhado a
+nuvem arquiva as ligações em `<tenant>:global` e um motor local, que não tem home
+fixado, perguntava por `global` nu. Sintoma enganador — as **ferramentas
+funcionavam** (a sessão MCP tinha sido cunhada do lado da nuvem com o id certo) e
+a **página de conectores vinha vazia**, o que se lê como bug de ecrã. O motor lê
+os dois ids (novo e nu) para não perder ligações feitas antes disto, mas só fora
+do motor partilhado: ali, ler o id nu devolveria a fronteira que o prefixo
+comprou. E lê-se do **ficheiro**, nunca de `os.environ` — o dotenv não desfaz o
+que já pôs no ambiente, logo o prefixo da conta anterior sobreviveria à troca de
+conta.
 
 **Duas paredes do Composio, verificadas ao vivo por sondas de dentro do
 provisioner.** O endpoint de chave *adicional* não existe sob autenticação por
