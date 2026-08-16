@@ -1874,6 +1874,30 @@ class TestWebServerEndpoints:
         )
         assert resp.status_code == 404
 
+    def test_reveal_env_var_refuses_platform_managed_keys(self, tmp_path):
+        """Platform credentials are not the caller's to read.
+
+        The SPA hides these rows, but hiding a row is not a boundary: anyone
+        holding the session token could ask for the value by name. On a shared
+        motor some of these keys serve the whole platform, not just this tenant.
+        """
+        from work4you_cli.config import save_env_value
+        from work4you_cli.web_server import _SESSION_HEADER_NAME, _SESSION_TOKEN
+
+        for key, value in (
+            ("OPENROUTER_API_KEY", "sk-or-platform-value"),
+            ("COMPOSIO_API_KEY", "ak-connector-value"),
+        ):
+            save_env_value(key, value)
+            resp = self.client.post(
+                "/api/env/reveal",
+                json={"key": key},
+                headers={_SESSION_HEADER_NAME: _SESSION_TOKEN},
+            )
+            assert resp.status_code == 403
+            assert "managed by Work4You" in resp.json()["detail"]
+            assert value not in resp.text
+
     def test_reveal_env_var_no_token(self, tmp_path):
         """POST /api/env/reveal without token should return 401."""
         from starlette.testclient import TestClient
