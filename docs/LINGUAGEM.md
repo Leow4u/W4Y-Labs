@@ -41,9 +41,9 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 
 ## Próximos
 
-1. ~~Locale `pt-BR` via `defineLocale()` (parcial → EN fallback).~~ **Feito** — `pt.ts` cobre o catálogo desktop em português do Brasil; só `settings.fieldLabels` / `fieldDescriptions` (constantes EN de schema) e locales stub `es`/`fr`/`de` ainda caem em EN.  
+1. Locale `pt-BR` via `defineLocale()` (parcial → EN fallback).  
 2. Alinhar copy da página Personalizar ao destino produto (Skills + Conectores + Subagentes; Tools/MCP fora da face) — ver PRODUTO.md.  
-3. Completar `es` / `fr` / `de` (hoje picker-ready com fallback EN — mesma causa do “misturado” que o PT tinha).  
+3. Empty states em PT na jornada principal (chat, agenda, entregas).  
 4. Revisar tool titles em `ToolTitleKey` para verbs de negócio.
 5. Favicon / `assets/icon.*` quando a arte final chegar.
 6. Login UI, strip, Composio (produto — fora do banho de marca).

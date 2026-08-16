@@ -12,8 +12,8 @@ export const DEFAULT_LOCALE: Locale = 'en'
 export const LOCALE_OPTIONS = [
   {
     id: 'pt',
-    name: 'Português (Brasil)',
-    englishName: 'Portuguese (Brazil)',
+    name: 'Português',
+    englishName: 'Portuguese',
     configValue: 'pt',
     inPicker: true
   },
