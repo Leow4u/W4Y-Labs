@@ -567,10 +567,16 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
 
 /** Chaves que a plataforma provisiona — nunca segredos BYO do utilizador.
  *
- * A de modelos vem de POST /device/engine-key; a de conectores vem do broker do
- * tenant (bootstrapLocalConnectors). Ambas saem do .env ao trocar de conta.
+ * A de modelos vem de POST /device/engine-key; a de conectores e a identidade
+ * Composio vêm do broker do tenant (bootstrapLocalConnectors). Todas saem do
+ * .env ao trocar de conta: manter a identidade da conta anterior apontaria este
+ * dispositivo ao escopo de outro tenant.
  */
-const PLATFORM_ENV_KEYS = ["OPENROUTER_API_KEY", "COMPOSIO_API_KEY"];
+const PLATFORM_ENV_KEYS = [
+  "OPENROUTER_API_KEY",
+  "COMPOSIO_API_KEY",
+  "W4Y_CONNECTOR_USER_ID",
+];
 
 function removePlatformEnvKeys() {
   const file = envPath();

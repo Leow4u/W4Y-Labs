@@ -149,10 +149,25 @@ async function bootstrapLocalConnectors() {
     const key =
       typeof res.json.composio_key === "string" ? res.json.composio_key.trim() : "";
     const mcpUrl = typeof res.json.mcp_url === "string" ? res.json.mcp_url.trim() : "";
+    // The cloud files this tenant's connections under its own Composio user_id
+    // ("<tenant>:global" on the shared motor). A local engine has no way to
+    // derive that, and asking under the bare "global" it defaults to returns an
+    // empty list — connectors page blank even though the key and the MCP session
+    // are right. So keep the id the broker sent.
+    const userId =
+      typeof res.json.user_id === "string" ? res.json.user_id.trim() : "";
     let wrote = false;
     if (key) {
       try {
         upsertEnvKeyLocal("COMPOSIO_API_KEY", key);
+        wrote = true;
+      } catch {
+        /* ignore */
+      }
+    }
+    if (userId) {
+      try {
+        upsertEnvKeyLocal("W4Y_CONNECTOR_USER_ID", userId);
         wrote = true;
       } catch {
         /* ignore */
