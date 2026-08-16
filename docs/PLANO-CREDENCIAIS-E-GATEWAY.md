@@ -1,6 +1,7 @@
 # Work4You — Plano credenciais, isolamento e gateway de modelos
 
 > **Status:** plano de execução (ago/2026). Nasce da auditoria feita depois do PR #30.
+> **Onda S concluída** — ver estado por item na respectiva tabela. Próxima: onda L.
 > Produto: [`PRODUTO.md`](./PRODUTO.md) · Linguagem: [`LINGUAGEM.md`](./LINGUAGEM.md)
 > Billing: [`BILLING-ARQUITETURA.md`](./BILLING-ARQUITETURA.md) · Superfícies: [`SECURITY-SURFACES.md`](./SECURITY-SURFACES.md)
 > Pesquisa de fundo: PR #31 (agregador vs integração directa).
@@ -42,13 +43,15 @@ Ordem por retorno sobre risco: primeiro o que fecha exposição e é contido, de
 
 ### Onda S — fechar a auditoria (contido, sem arquitectura nova)
 
-| ID | Trabalho | Ficheiros | Verificação |
+| ID | Trabalho | Ficheiros | Estado |
 |---|---|---|---|
-| **S1** | `POST /api/env/reveal` recusa as chaves da plataforma. Hoje exige token de sessão e limita a taxa, mas não exclui `W4Y_PLATFORM_MANAGED_ENV`: a UI esconde a linha e a API entrega o valor a quem souber o nome. | `work4you_cli/web_server.py` (`~6720-6739`) | Teste: reveal de `OPENROUTER_API_KEY` e `COMPOSIO_API_KEY` responde 403; reveal de chave BYOK continua a funcionar. |
-| **S2** | Verificar posse antes de desconectar. `DELETE /api/connectors/accounts/{id}` valida só o formato do id e apaga na Composio. Num projeto partilhado, um tenant autenticado que conheça um id de outro revoga o Gmail dele — pela nossa própria API, sem extrair chave nenhuma. Mesmo tratamento para triggers. | `work4you_cli/web_server.py` (`~2669-2679` e rotas de trigger) | Teste: conta de outro `user_id` devolve 404/403 e não chama a Composio; conta própria continua a desconectar. |
-| **S3** | Login no desktop deixa de rodar a chave do projeto do tenant. O caminho pretendido (chave adicional por dispositivo) responde 404 sob org-key — está documentado no código — e o fallback regenera a chave do projeto e reinjecta-a no Fly. Consequência actual: o dispositivo partilha a chave da nuvem, e cada login invalida o dispositivo anterior. Decisão: falhar explícito (sem conectores no dispositivo novo, com mensagem clara) em vez de rodar por baixo; a rotação passa a ser acto de operação, não efeito de login. | `platform/provisioner/server.js` (`createComposioDeviceKey`), `platform/web/src/app/device/engine-key/route.ts` | Teste: `/device-key` não chama `regenerate_api_key`; dois logins seguidos não invalidam a chave do primeiro. |
+| **S1** | `POST /api/env/reveal` recusa as chaves da plataforma. Exigia token de sessão e limitava a taxa, mas não excluía `W4Y_PLATFORM_MANAGED_ENV`: a UI escondia a linha e a API entregava o valor a quem soubesse o nome. | `work4you_cli/web_server.py` | ✅ 403 por nome, com teste sobre `OPENROUTER_API_KEY` e `COMPOSIO_API_KEY` |
+| **S2** | Verificar posse antes de desconectar conta ou trigger. As rotas validavam o formato do id e apagavam na Composio; no projeto partilhado o id era tudo o que a API de cima pedia, logo um tenant autenticado revogava o Gmail de outro pela nossa própria rota. A verificação resolve os ids do próprio tenant e recusa o resto com 404 (403 confirmaria que o id existe). | `work4you_cli/web_server.py` (`_require_owned_connector_resource`) | ✅ com testes, incluindo a tentativa de alargar o âmbito pelo parâmetro `scope` |
+| **S3** | **Corrigido em execução — o furo não era o que o plano dizia.** A auditoria leu o comentário do provisionador ("o caminho de produção é a rotação coordenada") e concluiu que cada login rodava a chave do projeto. O `BACKEND-MAP` tinha o facto mais recente, provado ao vivo: a chave adicional dá 404 sob org-key **e** o `regenerate_api_key` dá 403 porque a organização tem a regeneração desactivada. Ou seja não havia rotação nenhuma — havia uma função que gastava duas chamadas e falhava a cada login, com comentários a descrever um comportamento inexistente. O desktop sempre recebeu a chave pelo broker do tenant (`GET /api/device/connector-bootstrap`). Trabalho feito: remover o caminho morto em vez de o cachear, e alinhar os comentários com a realidade. | `platform/provisioner/server.js`, `platform/web/src/lib/provisioner.ts`, `platform/web/src/app/device/engine-key/route.ts`, `electron/w4y-login.cjs` | ✅ caminho removido; `/device-key` já não fala de conectores |
 
-**Publicação:** S1/S2 são motor → ZIP do motor + imagem do tenant. S3 é provisionador + plataforma.
+**Publicação:** S1/S2 são motor → ZIP do motor + imagem do tenant. S3 é provisionador + plataforma; a limpeza em `w4y-login.cjs` viaja na próxima casca (é remoção de leitura morta, não muda comportamento).
+
+**Lição a levar para as ondas seguintes:** quando um comentário no código e um facto no `BACKEND-MAP` discordam, o `BACKEND-MAP` ganha — foi escrito depois da sonda. Verificar antes de construir sobre a premissa.
 
 ---
 
@@ -74,7 +77,7 @@ O modelo forte já está escrito, mas `ensureComposioProject` é chaveado pelo *
 
 | ID | Trabalho | Ficheiros | Verificação |
 |---|---|---|---|
-| **C1** | Chavear o projeto Composio por **tenant**, não por app Fly, para o motor partilhado ter um projeto por cliente como os dedicados. | `platform/provisioner/server.js` | Dois tenants no mesmo motor recebem `projectId` distintos. |
+| **C1** | Chavear o projeto Composio por **tenant**, não por app Fly, para o motor partilhado ter um projeto por cliente como os dedicados. Restrição descoberta no S3: só a **criação** de projeto devolve a chave — a regeneração está desactivada na organização (403) e o GET vem mascarado. Logo isto tem de nascer com o tenant e a chave ser guardada nesse momento; não há como recuperá-la depois. | `platform/provisioner/server.js` | Dois tenants no mesmo motor recebem `projectId` distintos; a chave é persistida na criação. |
 | **C2** | Entregar a chave do projeto pelo caminho que já existe: `/internal/tenant-runtime` passa a incluí-la e `_write_tenant_env` a persistir no `.env` do tenant. Com isso o fallback para o secret do processo deixa de ser normal e passa a ser sinal de erro. | `platform/web/src/app/internal/tenant-runtime/route.ts`, `work4you_cli/platform_tenant.py` | Teste: tenant sem chave própria não herda a do processo. |
 | **C3** | `user_id` opaco por tenant em vez de slug adivinhável. **Item de maior fricção:** as contas ligadas na Composio são indexadas pelo `user_id`; mudá-lo torna as ligações existentes invisíveis. Plano: leitura dupla (novo e antigo) durante a transição, e só depois cortar o antigo. Se a Composio não permitir reatribuir, aceitar reconexão com aviso agendado — nunca silenciosa. | `work4you_cli/web_server.py` (`_connector_user_id`, `_connector_event_scope`) | Teste de leitura dupla; contas antigas continuam a aparecer durante a transição. |
 | **C4** | Segredo de assinatura de eventos por tenant. Hoje vive no config do home por omissão e, depois de validar o HMAC, é o `user_id` do payload que escolhe em que home escrever. | `work4you_cli/web_server.py` (`_connectors_webhook_secret`) | Teste: evento assinado com o segredo do tenant A não escreve no home de B. |
@@ -155,7 +158,7 @@ G1 → G2 → G3 → G4 → G6
 
 ## Definição de pronto por onda
 
-- **S:** testes de regressão para os três furos; nenhum caminho autenticado devolve chave da plataforma nem age em recurso de outro tenant.
+- **S:** ✅ nenhum caminho autenticado devolve chave da plataforma nem age em recurso de outro tenant, com testes de regressão; e nenhum código a descrever um comportamento que a Composio recusa.
 - **L:** CI reprova a reintrodução do nome do broker em superfície visível; `streaming.test.tsx` afirma copy neutra.
 - **C:** dois tenants no motor partilhado com projetos Composio distintos; evento assinado por um não escreve no outro.
 - **G:** cliente novo funciona sem chave de fornecedor no disco; tecto e limites aplicados por tenant no servidor; cliente antigo continua a funcionar.

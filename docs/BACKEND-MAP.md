@@ -246,6 +246,26 @@ de desenho: o caminho durável é *tenant-as-broker*, um endpoint no `web_server
 do tenant atrás do auth do dashboard, com os cookies do login.
 ⚠️ `regenerate` **invalida todas as chaves do projeto**, incluindo a do Fly.
 
+**O código que ignorava essas paredes foi removido (ago/2026).** O provisioner
+tinha um `createComposioDeviceKey` que tentava a chave adicional e caía na
+rotação; com as duas portas fechadas ele gastava duas chamadas e devolvia erro
+a cada login, e os comentários descreviam a rotação como o caminho de produção.
+`/device-key` já não fala de conectores, e `requestDeviceKey` já não promete
+`composioKey`. O motor local recebe a chave por
+`GET /api/device/connector-bootstrap`. Corolário para quem for reabrir isto:
+`ensureComposioProject` só devolve chave no caminho de **criação** — para um
+projeto que já existe sai por excepção, e é por isso que re-provisionar um
+tenant antigo o deixa sem conectores.
+
+**Duas fronteiras novas nos conectores e nas chaves (ago/2026).**
+`POST /api/env/reveal` recusa tudo o que esteja em `W4Y_PLATFORM_MANAGED_ENV`:
+a SPA já escondia essas linhas, mas esconder uma linha não é fronteira e o valor
+saía a quem soubesse o nome. E `DELETE /api/connectors/accounts/{id}` e
+`DELETE /api/connectors/triggers/{id}` passaram a confirmar posse antes de
+chamar a Composio — no projeto partilhado do motor partilhado, o id era tudo o
+que a API de cima pedia, portanto um tenant autenticado revogava o Gmail de
+outro pela nossa própria rota.
+
 **Nunca reutilizar tag de imagem.** Incidente real confirmado no Fly/GCP: o
 deploy de 11/07 reutilizou a tag `p3` por cima da imagem de billing de 07/07. O
 provisioner em produção ficou **sem `/ensure-key`**, o Cloud Scheduler continuou
