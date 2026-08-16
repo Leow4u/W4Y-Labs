@@ -5,9 +5,10 @@
 //   POST /archive    {app, tenantId}                           (snapshot+destroy)
 //   POST /reconfigure{app, plan}                               (regime base/premium)
 //   POST /ensure-key {app, tenantId, limitUsd}  → {hash}       (cria+injeta chave capada)
-//   POST /device-key {app, tenantId, limitUsd, deviceLabel?}   (key OpenRouter por dispositivo
-//                     + composioKey adicional do projeto do tenant, best-effort
-//                     + toolEnv plataforma: Firecrawl / Langfuse quando ops setou)
+//   POST /device-key {app, tenantId, limitUsd, deviceLabel?}  (key OpenRouter
+//                     por dispositivo + toolEnv plataforma: Firecrawl /
+//                     Langfuse quando ops setou. Conectores não saem por aqui —
+//                     ver "conectores NÃO saem por aqui" abaixo)
 //   GET  /healthz
 // Não toca no banco: a CASCA é dona do registry. O /provision devolve o
 // resultado por callback assinado (HMAC) em CASCA_URL/onboarding/complete.
@@ -137,8 +138,14 @@ async function composioOrg(method, pathname, body) {
 }
 
 // Garante o projeto Composio do tenant (nome = app Fly). White-label embutido
-// na criação. Idempotente: se já existe, regenera a chave (a lista NÃO devolve
-// a chave — ela só volta na criação/regeneração). Devolve {projectId, apiKey}.
+// na criação. Devolve {projectId, apiKey}.
+// ⚠️ Só o caminho de CRIAÇÃO devolve chave de facto. Para um projeto que já
+// existe a chave é irrecuperável (a lista e o GET vêm mascarados) e o
+// regenerate_api_key responde 403 "API key regeneration is not enabled for this
+// organization" — provado ao vivo. Portanto re-provisionar um tenant que já tem
+// projeto sai daqui por excepção e o chamador segue sem conectores. Reparar isto
+// é onda C do docs/PLANO-CREDENCIAIS-E-GATEWAY.md (projeto por tenant + chave
+// entregue pelo tenant-runtime).
 async function ensureComposioProject(app) {
   const name = app.slice(0, 75).replace(/[^a-zA-Z0-9_-]/g, "-");
   const list = await composioOrg("GET", "/api/v3/org/owner/project/list");
@@ -163,62 +170,22 @@ async function ensureComposioProject(app) {
   return { projectId: created.id, apiKey: created.api_key };
 }
 
-// ── Pivô desktop · chave Composio ADICIONAL do projeto do tenant ───────────
-// O motor LOCAL precisa da COMPOSIO_API_KEY do projeto DEDICADO do tenant
-// (sem ela /api/connectors responde 503). A key original é irrecuperável
-// (GET project devolve api_keys MASCARADAS, ex. "ak_**6j0z") e o
-// regenerate_api_key INVALIDA TODAS as keys do projeto — o Fly do tenant
-// depende da dele, então regenerar aqui é PROIBIDO. Caminho: criar uma key
-// ADICIONAL via POST /api/v3/org/project/{id}/api_keys/create — endpoint que
-// o dashboard da Composio usa no "Create API Key" de Project Settings
-// (confirmado em produção via ComposioHQ/composio#2985; fora do OpenAPI
-// público v3/v3.1, daí o best-effort). Uma key por dispositivo = revogação
-// granular no dashboard sem tocar na key da nuvem.
-// ATENÇÃO: NUNCA chamar regenerate_api_key aqui; NUNCA logar a key criada.
-async function createComposioDeviceKey({ app, deviceLabel }) {
-  if (!COMPOSIO_ORG_KEY) return { key: null, error: "org_key_missing" };
-  if (!app) return { key: null, error: "no_app" };
-  // Mesma normalização de nome do ensureComposioProject (nome = app Fly).
-  const name = String(app).slice(0, 75).replace(/[^a-zA-Z0-9_-]/g, "-");
-  const list = await composioOrg("GET", "/api/v3/org/owner/project/list");
-  const proj = (list?.data || []).find((p) => p.name === name);
-  // Tenant sem projeto dedicado (legado pré-opção A): não criamos projeto
-  // aqui — isso é papel do /provision (que injeta a key no Fly junto).
-  if (!proj) return { key: null, error: "project_not_found" };
-  const suffix = crypto.randomBytes(3).toString("hex");
-  const label = String(deviceLabel || "").replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 24);
-  let r = null;
-  try {
-    r = await composioOrg(
-      "POST", `/api/v3/org/project/${proj.id}/api_keys/create`,
-      { name: label ? `device-${label}-${suffix}` : `device-${suffix}` },
-    );
-  } catch (e) {
-    // Probed live 17/07: the additional-key endpoint 404s under org-key auth
-    // (4 path variants; the dashboard's version needs a browser session).
-    // Fallback = COORDINATED ROTATION using only battle-tested endpoints:
-    // regenerate the project key (invalidates the old one) and inject the NEW
-    // key into the tenant's Fly app in the same breath, then hand the SAME key
-    // to the device. Cloud and device share one key; revoking = rotating both.
-    if (!/composio 404/.test(String(e.message || e))) throw e;
-    const rot = await composioOrg(
-      "POST", `/api/v3/org/owner/project/${proj.id}/regenerate_api_key`,
-    );
-    // Same parsing ensureComposioProject uses in production for this endpoint.
-    const rotated = rot?.api_key ?? rot?.key ?? null;
-    if (typeof rotated !== "string" || !rotated) {
-      return { key: null, error: "no_key_after_rotate" };
-    }
-    await fly("secrets", "set", "-a", app, `COMPOSIO_API_KEY=${rotated}`);
-    return { key: rotated, keyId: "rotated-shared" };
-  }
-  // Formato de resposta não documentado; aceita as formas plausíveis
-  // (regenerate devolve {api_key:{key,...}}; criação pode devolver o objeto).
-  const key = r?.api_key?.key ?? r?.data?.key ?? r?.key ?? null;
-  const keyId = r?.api_key?.id ?? r?.data?.id ?? r?.id ?? null;
-  if (typeof key !== "string" || !key) return { key: null, error: "no_key_in_response" };
-  return { key, keyId, error: null };
-}
+// ── Pivô desktop · conectores NÃO saem por aqui ────────────────────────────
+// Houve aqui um `createComposioDeviceKey` que tentava dar ao motor local a
+// COMPOSIO_API_KEY do projeto do tenant. As duas portas estão fechadas do lado
+// da Composio, ambas provadas ao vivo por sondas de dentro deste serviço:
+//   • key ADICIONAL (POST /api/v3/org/project/{id}/api_keys/create) → 404 sob
+//     org-key, nas quatro variantes de path (a do dashboard exige sessão de
+//     navegador);
+//   • regenerate_api_key → 403 "API key regeneration is not enabled for this
+//     organization".
+// Ou seja, a função nunca devolvia chave: gastava duas chamadas e devolvia erro
+// a cada login. Removida em vez de mantida como tentativa, porque descrevia um
+// comportamento que não existe.
+// O caminho que serve o desktop é o BROKER DO TENANT: o motor local pede
+// GET /api/device/connector-bootstrap ao tenant, atrás do auth do dashboard, e
+// recebe a chave que já está no Fly dele. Ver docs/BACKEND-MAP.md, "Duas
+// paredes do Composio".
 
 // Apaga o projeto Composio do tenant no teardown (para custo + limpa dados).
 async function deprovisionComposioProject(app) {
@@ -471,38 +438,18 @@ const server = http.createServer(async (req, res) => {
     }
     try {
       const dk = await createDeviceKey({ tenantId: body.tenantId, limitUsd });
-      // S0 conectores: chave Composio ADICIONAL do projeto dedicado do tenant,
-      // best-effort — falha da Composio NUNCA derruba a entrega da chave de
-      // modelo (composioKey null + composioError curto e redigido).
-      let composioKey = null;
-      let composioKeyId = null;
-      let composioError = null;
-      try {
-        const ck = await createComposioDeviceKey({
-          app: body.app,
-          deviceLabel: body.deviceLabel,
-        });
-        composioKey = ck.key;
-        composioKeyId = ck.keyId ?? null;
-        composioError = ck.error;
-      } catch (e) {
-        composioError = redact(String(e.message || e)).slice(0, 120);
-      }
       // Platform tool secrets (Firecrawl / Langfuse) — shared org keys for the
       // desktop .env. Never log values; only whether the bag is non-empty.
       const toolEnv = platformToolEnv();
       const toolEnvKeys = Object.keys(toolEnv);
-      // log de auditoria sem segredo: só nome/hash/id identificam as keys
+      // log de auditoria sem segredo: só nome/hash identificam a key
       console.log(
         `[provisioner] device-key tenant=${body.tenantId} app=${body.app || "?"} name=${dk.name} limit=${limitUsd}` +
-        ` composio=${composioKey ? `ok:${composioKeyId || "?"}` : `miss:${composioError || "?"}`}` +
         ` toolEnv=${toolEnvKeys.length ? toolEnvKeys.join(",") : "none"}`,
       );
       res.writeHead(200, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({
         ok: true, key: dk.key, hash: dk.hash, limitUsd, name: dk.name,
-        composioKey, ...(composioKeyId ? { composioKeyId } : {}),
-        ...(composioError ? { composioError } : {}),
         ...(toolEnvKeys.length ? { toolEnv } : {}),
       }));
     } catch (e) {
