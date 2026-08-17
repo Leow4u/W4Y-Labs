@@ -1,19 +1,16 @@
 'use strict'
 
 /**
- * Packaged builds must ship a ready engine tree (standalone CPython + a synced
- * .venv). Without it the app falls back to resolving Python dependencies with
- * `uv sync` on the user's machine — a ~30 minute first launch.
+ * Optional gate for fat packs (`W4Y_PACK_WITH_ENGINE=1`).
  *
- * This runs from the electron-builder `beforePack` hook, so it covers EVERY
- * target. It used to be a step on the `dist:win:nsis` npm script only, which is
- * exactly how macOS shipped a DMG with no engine at all: `dist:mac:dmg` never
- * called it and nothing else noticed.
+ * Default product policy (casca fina, 17/08/2026): the Electron installer does
+ * **not** embed the engine. First launch downloads a ready tree from
+ * `gs://w4y-engine-dist/`. This assert remains for:
+ *   - building the motor ZIP that the feed serves
+ *   - legacy air-gapped / fat installer experiments
  *
- * The runtime is platform- AND arch-specific (it contains native binaries), so
- * a build for one target must never be allowed to ship another's tree. The
- * desktop enforces the same match at runtime via runtime-ready.json; failing
- * here turns a silent unusable install into a loud build error.
+ * The runtime is platform- AND arch-specific (native binaries). A build for
+ * one target must never ship another's tree.
  */
 
 const fs = require('node:fs')

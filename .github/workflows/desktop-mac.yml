@@ -1,4 +1,5 @@
 # Build and publish Work4You desktop for macOS (Apple Silicon).
+# Casca fina: DMG is shell-only; motor ZIP is published separately to GCS.
 # unsigned=true (default): no Apple account needed
 # See docs/SECURITY-SIGNING-APPLE.md
 
@@ -43,10 +44,7 @@ jobs:
         with:
           enable-cache: true
 
-      # The engine ships native binaries, so the macOS runtime can only be built
-      # ON macOS. Without this the DMG shipped source-only and every Mac spent
-      # ~30 minutes running `uv sync` on first launch. beforePack now refuses to
-      # package when this step is missing or produced another platform's tree.
+      # Built for the motor ZIP feed — NOT embedded in the DMG (casca fina).
       - name: Build engine runtime (darwin-arm64)
         working-directory: wayne-agent
         run: |
@@ -55,7 +53,7 @@ jobs:
             --out-zip "${RUNNER_TEMP}/wayne-engine-${GITHUB_RUN_ID}-darwin-arm64.zip"
           cat apps/work4you/build/engine-runtime/runtime-ready.json
 
-      - name: Build DMG
+      - name: Build DMG (shell-only)
         working-directory: wayne-agent/apps/work4you
         env:
           W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64: ${{ secrets.W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 }}
@@ -72,14 +70,9 @@ jobs:
           fi
           npm run dist:mac:dmg
 
-      # Prove the PACKAGED app can actually start its engine. Building the
-      # runtime and packaging it successfully does not prove that: the venv
-      # interpreter was once linked by absolute path and dangled the moment the
-      # tree moved, which no build step notices. Nobody on this project owns a
-      # Mac, so this runner is the only place the macOS app is ever exercised.
-      - name: Verify packaged engine (darwin-arm64)
+      - name: Verify shell-only pack (no Resources/engine)
         working-directory: wayne-agent/apps/work4you
-        run: node scripts/verify-packaged-engine.mjs
+        run: node scripts/verify-shell-only.mjs
 
       - name: Upload build artefacts (CI retention)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -101,19 +94,7 @@ jobs:
         if: inputs.publish
         uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2.2.1
 
-      - name: Publish to GCS
-        if: inputs.publish
-        working-directory: wayne-agent/apps/work4you
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          BUCKET=gs://w4y-engine-dist
-          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg" "$BUCKET/"
-          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg.blockmap" "$BUCKET/"
-          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' cp release/latest-mac.yml "$BUCKET/latest-mac.yml"
-
-      # In-app engine updates need a feed for THIS platform: the desktop asks for
-      # latest-darwin-arm64.json and refuses a manifest built for anything else.
-      # Without this, Macs have no engine updates at all.
+      # Motor feed first — shell-only first launch needs the ZIP on the bucket.
       - name: Publish engine feed (darwin-arm64)
         if: inputs.publish
         working-directory: wayne-agent
@@ -124,9 +105,6 @@ jobs:
           ARTIFACT="wayne-engine-${ENGINE_VERSION}.zip"
           ZIP="${RUNNER_TEMP}/wayne-engine-${GITHUB_RUN_ID}-darwin-arm64.zip"
 
-          # Read the platform from the runtime that was actually built rather
-          # than trusting a hardcoded string — a mislabelled feed is precisely
-          # what sent Windows binaries to every Mac.
           PLATFORM=$(node -p "const m=require('./apps/work4you/build/engine-runtime/runtime-ready.json'); m.platform+'-'+m.arch")
           if [ "$PLATFORM" != "darwin-arm64" ]; then
             echo "Refusing to publish: runtime is $PLATFORM, expected darwin-arm64" >&2
@@ -148,4 +126,14 @@ jobs:
           '
           gsutil -h 'Cache-Control:no-store' -h 'Content-Type:application/json; charset=utf-8' \
             cp "${RUNNER_TEMP}/latest-darwin-arm64.json" "$BUCKET/latest-darwin-arm64.json"
+
+      - name: Publish casca to GCS
+        if: inputs.publish
+        working-directory: wayne-agent/apps/work4you
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          BUCKET=gs://w4y-engine-dist
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg" "$BUCKET/"
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-mac-arm64.dmg.blockmap" "$BUCKET/"
+          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' cp release/latest-mac.yml "$BUCKET/latest-mac.yml"
 

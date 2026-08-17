@@ -372,6 +372,13 @@ instalador, cada update da casca paga o CPython todo outra vez. O
 `runtime-ready.json` + `.venv\Scripts\python.exe` — o desperdício está antes
 disso, no próprio NSIS.
 
+**Resolvido (casca fina, 17/08/2026):** o `extraResources` deixou de incluir
+`build/engine-runtime`. NSIS/DMG = shell; motor só no feed GCS
+(`ensureWayneEngineForPackaged` no primeiro arranque / chip). CI publica o
+motor **antes** da casca. Guarda: `verify-shell-only.mjs`,
+`casca-thin-pack.test.cjs`. Fluxo Dev→CI→máquina QA: `docs/RELEASE-QA.md`.
+Fat pack legado: `W4Y_PACK_WITH_ENGINE=1`.
+
 **O feed do motor não ia assinado (17/08).** A cadeia estava toda construída —
 `scripts/sign-engine-manifest.mjs`, `verifyEngineManifest`, `engine-trust.json`
 — e não segurava nada, porque as duas pontas falhavam abertas ao mesmo tempo: a

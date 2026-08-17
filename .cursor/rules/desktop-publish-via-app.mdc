@@ -1,30 +1,41 @@
 ---
-description: Work4You desktop — validate only via the installed app update chip; never npm run dev for product testing; publish in background
+description: Work4You desktop — Dev/CI/QA separados; validar só na máquina limpa via chip; casca fina
 alwaysApply: true
 ---
 
-# Desktop: uma app, um caminho de validação
+# Desktop: programar aqui, validar noutro sítio
 
 ## Regra
 
-Mudanças em `wayne-agent/apps/work4you` (renderer ou Electron) e no motor Python que o desktop consome **só se validam na app instalada** (`com.work4you.app`), via o **chip de atualização** (conta / nome).
+Mudanças em `wayne-agent/apps/work4you` e no motor **só se validam** numa
+**máquina QA** com a app instalada (`com.work4you.app`), via o **chip de
+atualização**. A máquina de programador / Cloud Agent **não** é canónica.
 
-**Nunca** digas ao utilizador para testar produto com `npm run dev`, `electron .`, ou um segundo checkout “de engenharia”. Isso partiu a regra várias vezes e cria a confusão das duas apps.
+Detalhe: `docs/RELEASE-QA.md`.
 
-## O que fazer em vez disso
+**Nunca** digas ao utilizador para testar produto com `npm run dev`, `electron .`,
+ou um segundo checkout “de engenharia”.
 
-1. Commit (+ bump de versão da casca se o renderer/Electron mudou).
-2. Publicar no feed GCS `gs://w4y-engine-dist/`:
-   - **Casca:** `npm run dist:win:nsis` → upload do `.exe`, `.blockmap`, e `latest.yml` com `Cache-Control: no-store`.
-   - **Motor:** `platform/wayne-fly/build-engine-zip.ps1` → upload do zip + `latest.json` **sem BOM** e com `Cache-Control: no-store`.
-3. Actualizar o link em `platform/web/src/app/(public)/baixar/page.tsx` quando a casca sobe de versão.
-4. Dizer ao utilizador: aplica o chip e testa **na app**.
+## Pipeline
+
+1. Código + testes no agente / PR.
+2. Bump de versão da casca se renderer/Electron mudou.
+3. Publicar via CI **Desktop Windows** (`publish=true`) → GCS:
+   - **Motor** primeiro (`latest.json` assinado)
+   - **Casca** depois (`.exe` + `latest.yml`, **casca fina** — sem motor no NSIS)
+4. Actualizar `WINDOWS_DESKTOP_VERSION` / `/baixar` quando a casca sobe.
+5. Dizer: aplicar o chip **na máquina QA** (não na do programador).
+
+## Casca fina
+
+O instalador **não** embute `build/engine-runtime`. O motor vem do feed no
+primeiro arranque / chip. Não reintroduzir `extraResources → engine` sem
+reverter explicitamente a política em `docs/RELEASE-QA.md`.
 
 ## Publicar em background
 
-Builds NSIS e uploads GCS são lentos. **Lança-os num subagente / shell em background** (`Task` com `run_in_background`, ou Shell com `block_until_ms: 0`) e **continua a conversa** noutros trabalhos. Não bloqueies o chat à espera do build a menos que o utilizador peça só a publicação.
-
-Quando o background terminar, confirma no chat: versão no `latest.yml` / `latest.json` e o que o utilizador deve aplicar.
+Builds NSIS e uploads GCS são lentos. Lança-os em background e continua a
+conversa. Quando terminar: confirma versões em `latest.yml` / `latest.json`.
 
 ## Proibido
 
@@ -33,8 +44,6 @@ Quando o background terminar, confirma no chat: versão no `latest.yml` / `lates
 cd apps/work4you && npm run dev
 ```
 
-`npm run dev` / typecheck / vitest locais são só para o agente iterar **código** antes de publicar — nunca a instrução de validação ao utilizador.
-
 ## Uma app só
 
-Não existe `apps/desktop-shell`. Um `appId`, um `latest.yml`. Não sugiras um segundo instalador nem um fluxo paralelo de update.
+Um `appId`, um `latest.yml`. Não sugiras um segundo instalador.
