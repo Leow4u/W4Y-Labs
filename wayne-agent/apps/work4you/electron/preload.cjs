@@ -253,6 +253,12 @@ contextBridge.exposeInMainWorld('work4youDesktop', {
     probeSession: () => ipcRenderer.invoke('w4y:login:probeSession'),
     bootstrapApp: () => ipcRenderer.invoke('w4y:login:bootstrapApp'),
     ensureCredentials: () => ipcRenderer.invoke('w4y:login:ensureCredentials'),
-    updatePolicy: () => ipcRenderer.invoke('w4y:update:policy')
+    updatePolicy: () => ipcRenderer.invoke('w4y:update:policy'),
+    // Soft motor restart after same-home login — casca stays up; refresh identity.
+    onAccountHomeSoftRestarted: callback => {
+      const listener = () => callback()
+      ipcRenderer.on('w4y:account-home-soft-restarted', listener)
+      return () => ipcRenderer.removeListener('w4y:account-home-soft-restarted', listener)
+    }
   }
 })

@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { atom } from 'nanostores'
+import type { ReactElement } from 'react'
+import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const fetchAccountPlan = vi.fn()
@@ -19,7 +21,7 @@ vi.mock('@/lib/plans', async () => {
     fetchAccountUsageMeter: (...args: unknown[]) => fetchAccountUsageMeter(...args),
     openUpgrade: (...args: unknown[]) => openUpgrade(...args),
     openBillingPortal: () => openBillingPortal(),
-    openPlans: (...args: unknown[]) => openPlans(...args),
+    openPlans: () => openPlans(),
     saveSpendLimit: (...args: unknown[]) => saveSpendLimit(...args)
   }
 })
@@ -44,10 +46,6 @@ const proPlan = {
     billedOn: 'next_invoice' as const
   }
 }
-
-vi.mock('@/store/gateway', () => ({
-  $gateway: gatewayAtom
-}))
 
 beforeEach(async () => {
   fetchAccountPlan.mockResolvedValue(proPlan)
@@ -87,12 +85,16 @@ afterEach(async () => {
   $accountSession.set({ status: 'unknown', me: null })
 })
 
+function renderAccountSettings(ui: ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>)
+}
+
 describe('AccountSettings wired', () => {
   it('shows live plan chip, included %, and opens Stripe portal when managing', async () => {
     const { AccountSettings } = await import('./account-settings')
-    render(<AccountSettings />)
+    renderAccountSettings(<AccountSettings />)
 
-    expect(await screen.findByText('Pro')).toBeTruthy()
+    expect(await screen.findByText('Plus')).toBeTruthy()
     await waitFor(() => expect(screen.getByText('42% used')).toBeTruthy())
     expect(screen.getByText('Leo')).toBeTruthy()
     expect(screen.getAllByText('leo@work4you.ai').length).toBeGreaterThan(0)
@@ -123,9 +125,9 @@ describe('AccountSettings wired', () => {
       }
     })
     const { AccountSettings } = await import('./account-settings')
-    render(<AccountSettings />)
+    renderAccountSettings(<AccountSettings />)
 
-    expect(await screen.findByText('Hobby')).toBeTruthy()
+    expect(await screen.findByText('Grátis')).toBeTruthy()
     fireEvent.click(screen.getByRole('button', { name: 'Manage subscription' }))
     expect(openPlans).toHaveBeenCalled()
     expect(openBillingPortal).not.toHaveBeenCalled()
@@ -133,9 +135,9 @@ describe('AccountSettings wired', () => {
 
   it('enables on-demand and saves spend limit', async () => {
     const { AccountSettings } = await import('./account-settings')
-    render(<AccountSettings />)
+    renderAccountSettings(<AccountSettings />)
 
-    expect(await screen.findByText('Pro')).toBeTruthy()
+    expect(await screen.findByText('Plus')).toBeTruthy()
     const switchEl = screen.getByRole('switch')
     fireEvent.click(switchEl)
 

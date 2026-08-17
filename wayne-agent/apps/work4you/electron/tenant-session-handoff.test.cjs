@@ -183,4 +183,28 @@ test('the account handler soft-restarts the motor when the home path did not cha
   const soft = body.indexOf('if (!homeSwitched)')
   const hardExit = body.indexOf('app.exit(0)')
   assert.ok(soft !== -1 && hardExit > soft, 'app.exit must sit after the soft-restart early return')
+
+  // Soft path must quiet the renderer before killing the motor — otherwise
+  // onBackendExit paints "Backend stopped" on every successful same-home login.
+  const suppress = body.indexOf('hermes:gateway-offline-suppress')
+  const softTeardown = body.indexOf('await teardownPrimaryBackendAndWait()', soft)
+  assert.ok(suppress !== -1 && suppress < softTeardown, 'suppress toast before soft teardown')
+  assert.match(body, /w4y:account-home-soft-restarted/, 'renderer must learn the soft restart finished')
+})
+
+test('soft motor restart does not toast Backend stopped', () => {
+  const fs = require('node:fs')
+  const path = require('node:path')
+  const boot = fs
+    .readFileSync(
+      path.join(__dirname, '..', 'src', 'app', 'gateway', 'hooks', 'use-gateway-boot.ts'),
+      'utf8'
+    )
+    .replace(/\r\n/g, '\n')
+
+  assert.match(
+    boot,
+    /shouldSuppressGatewayOfflineToast\(\)/,
+    'backend-exit must honour the same suppress window as gateway-offline'
+  )
 })

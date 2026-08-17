@@ -628,7 +628,10 @@ app reiniciava-se por inteiro em todos os logins. **Resolvido a seguir ao
 barra lateral e as definições leem-na; `hasKey` ficou para acesso a modelos.
 E `relaunchForAccountHome(info)` só faz `app.relaunch()` quando
 `info.switched` (pasta da conta mudou); no mesmo home reinicia só o motor via
-`teardownPrimaryBackendAndWait` + `ensureBackend(null)`.
+`teardownPrimaryBackendAndWait` + `ensureBackend(null)`. O soft path emite
+`hermes:gateway-offline-suppress` antes do teardown (para o renderer não
+toastar "Backend stopped") e `w4y:account-home-soft-restarted` no fim, para a
+porta / Conta refrescarem `$accountSession`. Logout continua hard relaunch.
 
 ### Update chip missing when logged in (desktop, 14/08/2026)
 

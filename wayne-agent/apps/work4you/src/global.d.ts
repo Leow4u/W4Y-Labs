@@ -44,6 +44,8 @@ declare global {
           home?: string
         }>
         updatePolicy: () => Promise<unknown>
+        /** Same-home login restarted the motor without app.relaunch. */
+        onAccountHomeSoftRestarted?: (callback: () => void) => () => void
       }
     }
     hermesDesktop: {
