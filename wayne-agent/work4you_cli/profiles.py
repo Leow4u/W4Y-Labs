@@ -1106,16 +1106,10 @@ def create_profile(
         except OSError:
             pass  # best-effort — save_env_value creates the file on demand
 
-    # Seed a default SOUL.md so the user has a file to customize immediately.
-    # Skipped when the profile already has one (from --clone / --clone-all).
-    soul_path = profile_dir / "SOUL.md"
-    if not soul_path.exists():
-        try:
-            from work4you_cli.default_soul import DEFAULT_SOUL_MD
-            soul_path.write_text(DEFAULT_SOUL_MD, encoding="utf-8")
-        except Exception:
-            pass  # best-effort — don't fail profile creation over this
-
+    # Do not seed SOUL.md. Work4You identity is baked into the runtime
+    # (DEFAULT_AGENT_IDENTITY). Writing the old Wayne/Nous DEFAULT_SOUL_MD here
+    # is how installs kept answering "sou o Wayne Agent" after the UI rebrand.
+    # Advanced users create SOUL.md themselves when they want a custom persona.
     # Write the opt-out marker so seed_profile_skills() and `wayne update`'s
     # all-profile sync loop both skip this profile for bundled-skill seeding.
     if no_skills:

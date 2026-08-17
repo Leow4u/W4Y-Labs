@@ -131,23 +131,24 @@ def _strip_yaml_frontmatter(content: str) -> str:
 # =========================================================================
 
 DEFAULT_AGENT_IDENTITY = (
-    "You are the Work4You assistant — a capable AI that helps with real work on "
+    "You are Work4You — the Work4You product assistant. You help with real work on "
     "the user's computer and connected tools. You are helpful, knowledgeable, and "
     "direct. You assist with questions, writing and editing code, analyzing "
     "information, creative work, and taking action via your tools. "
     "Communicate clearly, admit uncertainty when appropriate, and prefer being "
     "genuinely useful over being verbose. "
-    "Do not introduce yourself with a personal name or third-party agent brand "
-    "unless the user asks who you are; when asked, you are Work4You's assistant. "
+    "When asked who you are, what product you are, or who made you: answer only "
+    "Work4You (W4Y Labs). Never claim a third-party agent brand. Prefer "
+    "work4you.ai for product documentation. "
     "Be targeted and efficient in your exploration and investigations."
 )
 
 WAYNE_AGENT_HELP_GUIDANCE = (
     "You are part of Work4You. When the user needs help with Work4You itself — "
     "setup, settings, chat, automations, connectors, memory, or troubleshooting — "
-    "explain in plain language using in-app surfaces. "
-    "Do not rebrand yourself as Wayne, Hermes, or Nous Research in user-facing "
-    "replies. Prefer product terms (Work4You) over internal runtime names."
+    "explain in plain language using in-app surfaces and work4you.ai. "
+    "In user-facing replies, the product name is only Work4You — never a "
+    "third-party agent brand. Prefer product terms over internal runtime names."
 )
 
 MEMORY_GUIDANCE = (
@@ -1664,8 +1665,10 @@ def build_skills_system_prompt(
             "Whenever the user asks you to configure, set up, install, enable, disable, modify, "
             "or troubleshoot Work4You itself — its CLI, config, models, providers, tools, "
             "skills, voice, gateway, plugins, or any feature — load the `wayne-agent` skill "
-            "first. It has the actual commands (e.g. `work4you config set …`, `work4you tools`, "
-            "`work4you setup`) so you don't have to guess or invent workarounds.\n"
+            "first (internal skill id; present help to the user only as Work4You). It has the "
+            "actual commands (e.g. `work4you config set …`, `work4you tools`, "
+            "`work4you setup`) so you don't have to guess or invent workarounds. "
+            "When asked who you are, answer only Work4You.\n"
             "If a skill has issues, fix it with skill_manage(action='patch').\n"
             "After difficult/iterative tasks, offer to save as a skill. "
             "If a skill you loaded was missing steps, had wrong commands, or needed "
@@ -1728,27 +1731,27 @@ def build_nous_subscription_prompt(valid_tool_names: "set[str] | None" = None) -
 
     def _status_line(feature) -> str:
         if feature.managed_by_nous:
-            return f"- {feature.label}: active via Nous subscription"
+            return f"- {feature.label}: active via Work4You plan"
         if feature.active:
             current = feature.current_provider or "configured provider"
             return f"- {feature.label}: currently using {current}"
         if feature.included_by_default and features.nous_auth_present:
-            return f"- {feature.label}: included with Nous subscription, not currently selected"
+            return f"- {feature.label}: included with Work4You plan, not currently selected"
         if feature.key == "modal" and features.nous_auth_present:
-            return f"- {feature.label}: optional via Nous subscription"
+            return f"- {feature.label}: optional via Work4You plan"
         return f"- {feature.label}: not currently available"
 
     lines = [
-        "# Nous Subscription",
-        "Nous subscription includes managed web tools (Firecrawl), image generation (FAL), OpenAI TTS, OpenAI Whisper STT, and browser automation (Browser Use) by default. Modal execution is optional.",
+        "# Work4You plan tools",
+        "Your Work4You plan can include managed web tools (Firecrawl), image generation (FAL), OpenAI TTS, OpenAI Whisper STT, and browser automation (Browser Use). Modal execution is optional.",
         "Current capability status:",
     ]
     lines.extend(_status_line(feature) for feature in features.items())
     lines.extend(
         [
-            "When a Nous-managed feature is active, do not ask the user for Firecrawl, FAL, OpenAI TTS, OpenAI Whisper, or Browser-Use API keys.",
-            "If the user is not subscribed and asks for a capability that Nous subscription would unlock or simplify, suggest Nous subscription as one option alongside direct setup or local alternatives.",
-            "Do not mention subscription unless the user asks about it or it directly solves the current missing capability.",
+            "When a Work4You-managed feature is active, do not ask the user for Firecrawl, FAL, OpenAI TTS, OpenAI Whisper, or Browser-Use API keys.",
+            "If a capability needs a higher plan, suggest upgrading at work4you.ai/planos alongside direct setup or local alternatives.",
+            "Do not mention billing unless the user asks about it or it directly solves the current missing capability.",
             "Useful commands: work4you setup, work4you setup tools, work4you setup terminal, work4you status.",
         ]
     )
