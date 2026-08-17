@@ -580,6 +580,54 @@ no env do processo ou com `model.provider` vazio. Contrato produto: login
 da key (não só quando `accounts/<tenantId>` muda). Heal silencioso:
 `w4y:login:ensureCredentials` + reload de dotenv em `_make_agent` / probe.
 
+### Sessão do tenant perdida no login (desktop, 17/08/2026)
+
+Um login **completo** deixava a app assim: nome "Conta", "Sem sessão" nas
+definições, plano a cair para "Hobby", medidor indisponível, o selector de
+pastas a pedir sessão para a nuvem, e conectores em `503 COMPOSIO_API_KEY is
+not configured for this tenant`.
+
+Um login traz **duas** credenciais, e só a segunda é difícil: a sessão da
+plataforma (`work4you.ai`, cookie `w4y_session`) que cunha a key dos modelos, e
+a sessão do **tenant** (`app.work4you.ai`) que responde por identidade, plano,
+projectos na nuvem e conectores. Quem cria a segunda é o
+`bootstrapAppSession()` → `/login/enter` → ticket SSO → `/auth/platform-sso`.
+
+Três defeitos ao mesmo tempo, e o primeiro escondia os outros:
+
+1. **Ordem.** `bootstrapLocalConnectors()` corria **antes** do
+ `bootstrapAppSession()`. O broker da Composio é uma rota do tenant, gated
+ pelos cookies que o handoff ainda não tinha ido buscar → 401 garantido em
+ instalação nova ou depois de logout (que limpa cookies de propósito). Falhava
+ em silêncio (`catch { return false }`), sem retry e sem nada que voltasse a
+ chamá-lo: **um primeiro login nunca conseguia aprovisionar conectores.**
+2. **Saída dura sem gravar os cookies.** O login termina em `app.exit(0)`, que
+ não corre teardown, um segundo depois de os cookies do tenant chegarem. O
+ Chromium grava a cookie store em lote — e não havia **um único**
+ `flushStore()` no código. Os cookies morriam entre o "entrou" e o reinício.
+3. **Ninguém verificava.** O `bootstrapAppSession` devolvia sucesso para
+ qualquer status < 400 — incluindo o caso em que `/login/enter` devolve para
+ `/login` por falta de sessão. E o heal de arranque só olhava para o
+ `OPENROUTER_API_KEY`.
+
+Como a porta de entrada aceita `hasKey` (uma key num ficheiro) como prova de
+sessão, a app abria na mesma e ficava meio autenticada para sempre.
+
+Fix: handoff **antes** dos conectores; `bootstrapAppSession` confirma contra
+`/api/auth/me` e repete enquanto a máquina do tenant acorda (suspende quando
+ociosa), parando num 401 porque esse é um tenant acordado a recusar-nos;
+`flushStore()` antes de qualquer `app.exit(0)`, no login e no logout; e
+`healTenantSession()` no arranque, que custa uma chamada quando está tudo bem e
+refaz handoff + conectores quando não está — é também assim que um dispositivo
+que entrou antes dos conectores existirem apanha a key sem ter de sair e voltar
+a entrar. Guarda: `electron/tenant-session-handoff.test.cjs`.
+
+**Por resolver:** há três noções independentes de "tenho sessão" (a porta aceita
+`hasKey`; a barra lateral conta `me || hasKey`; as definições contam só `me`),
+e a app reinicia-se por inteiro em **todos** os logins porque `HERMES_HOME` é
+constante de módulo (`main.cjs:340`) — quando a conta não muda bastava reiniciar
+o motor.
+
 ### Update chip missing when logged in (desktop, 14/08/2026)
 
 Feed GCS estava certo (`latest.yml` / `latest.json`), mas o chip não aparecia
