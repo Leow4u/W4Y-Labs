@@ -76,3 +76,15 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 **Fora deste scope (legado técnico, OK):** paths `~/.wayne`, env `WAYNE_*`, repo `wayne-agent/`, apps Fly `wayne-*`, chaves i18n internas (`updateWayne`).
 
 **Agentes Cursor:** não escrever “Motor Wayne” ou “Wayne Agent” ao falar com o utilizador — dizer *runtime Work4You* ou *motor na nuvem*.
+
+## Identidade no chat (motor)
+
+O modelo **não** pode apresentar-se como Wayne / Hermes / Nous. Identidade
+canónica = `DEFAULT_AGENT_IDENTITY` em `agent/prompt_builder.py` (**Work4You**).
+
+`SOUL.md` no disco só é override avançado; seeds legados (Wayne/Nous) e
+ficheiros que ainda digam “You are Wayne Agent…” são ignorados e apagados em
+`ensure_wayne_home()`. O skill interno `wayne-agent` fala do produto como
+Work4You e aponta docs para `work4you.ai` — nunca `hermes-agent.nousresearch.com`.
+
+Guarda: `tests/agent/test_identity_brand.py` + `node scripts/check-user-facing-brand.mjs`.
