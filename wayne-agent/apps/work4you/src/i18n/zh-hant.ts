@@ -1512,7 +1512,7 @@ export const zhHant = defineLocale({
     waiting: '等待授權…',
     authSecure: '安全授權',
     connectAppPrompt:
-      '請連接我的 {app}。呼叫 mcp_composio_COMPOSIO_MANAGE_CONNECTIONS，並把 Connect Link（https://connect.composio.dev/link/...）貼到回覆中，以便我在聊天中授權。',
+      '請連接我的 {app}。立即呼叫 mcp_composio_COMPOSIO_MANAGE_CONNECTIONS（請勿先使用 SEARCH_TOOLS），並把 Connect Link（https://connect.composio.dev/link/...）貼到回覆中，以便我在聊天中授權。',
     connectApps: '連接應用'
   },
 

@@ -76,3 +76,27 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 **Fora deste scope (legado técnico, OK):** paths `~/.wayne`, env `WAYNE_*`, repo `wayne-agent/`, apps Fly `wayne-*`, chaves i18n internas (`updateWayne`).
 
 **Agentes Cursor:** não escrever “Motor Wayne” ou “Wayne Agent” ao falar com o utilizador — dizer *runtime Work4You* ou *motor na nuvem*.
+
+---
+
+## O que nunca se traduz
+
+Nem tudo num catálogo de tradução é texto. Estas coisas são **identificadores**: é
+por elas que o ecrã encontra a copy, ou é o que o utilizador vai escrever.
+
+| Nunca mexer | Exemplo | Porquê |
+|---|---|---|
+| Id do modelo (é a chave) | `'anthropic/claude-sonnet-4.6'` | O cartão procura a copy por este id |
+| Nome do modelo (é o valor de `title`) | `Relay 2.5 Fast`, `Claude Sonnet 4.6` | É o nome no mercado; "2,5" não existe |
+| Caminho da definição no schema (é a chave) | `'memory.memory_enabled'` | É como o ecrã de definições liga rótulo a campo |
+| Variáveis e literais que o agente ou o utilizador escrevem | `WAYNE_HOME`, `SEARCH_TOOLS` | Traduzidos, deixam de funcionar |
+| Comandos, ficheiros, URLs | `/yolo`, `config.yaml`, `imap.gmail.com` | São para copiar tal e qual |
+
+**A armadilha:** partir uma chave com ponto (`'anthropic/claude-sonnet-4.6'` →
+`{ 'anthropic/claude-sonnet-4': { '6': … } }`) não dá erro nenhum. O ecrã
+simplesmente não encontra a copy e mostra inglês. Foi assim que dezoito modelos
+ficaram sem português em ago/2026, com o teste de cobertura verde por cima.
+
+**Guarda:** `apps/work4you/src/i18n/key-integrity.test.ts` — recusa qualquer
+chave que o inglês não tenha, exige que o nome do modelo seja idêntico ao inglês
+e que os identificadores dentro da copy sobrevivam à tradução.
