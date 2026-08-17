@@ -415,12 +415,19 @@ async function apply(emitProgress, opts = {}) {
 
     const onDownloaded = () => {
       cleanup()
-      emit('restart', 'Reiniciando Work4You…', 100)
-      // isSilent=true  → passes /S to NSIS; no wizard, no prompts (Cursor-like)
-      // isForceRunAfter=true → relaunch after install completes
+      emit('restart', 'Instalando Work4You… uma janela de progresso vai abrir.', 100)
+      // isSilent=false. The installer writes ~700 MB across 13k files because the
+      // engine ships inside it, which takes minutes on a normal disk. Silent (/S)
+      // means the app closes and NOTHING is on screen for that whole time, so the
+      // user concludes it died and kills the installer mid-write (17/08). The
+      // oneClick progress window needs no interaction and closes itself.
+      //
+      // It also buys the relaunch: silent + --force-run reaches the app only
+      // through ExecShellAsUser from a windowless installer, which is what failed
+      // on 17/08; visible takes the ${ifNot} ${Silent} branch instead.
       setImmediate(() => {
         try {
-          autoUpdater.quitAndInstall(true, true)
+          autoUpdater.quitAndInstall(false, true)
         } catch (err) {
           resolve({ ok: false, error: 'install-failed', message: err && err.message })
         }

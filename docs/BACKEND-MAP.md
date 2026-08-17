@@ -352,6 +352,26 @@ nativo; só o de actualização é que não.
 Guardas: `electron/engine-update-lock.test.cjs` (ordem e posse do marcador) e
 `electron/engine-merge-atomic.test.cjs` (a cópia em duas fases).
 
+**A casca tem o mesmo problema, noutro processo (17/08).** Corrigido o motor, o
+chip da casca deu o mesmo sintoma: a app fechou e não voltou. O NSIS corria com
+`/S`. Sem janela, a instalação levou nove minutos — três a apagar a instalação
+antiga e cinco a escrever a nova — e não há nada no ecrã durante esse tempo. São
+~700 MB e 13 mil ficheiros porque **o motor viaja dentro do instalador da
+casca** (`extraResources` → `resources/engine`); um update que só mexeu em três
+`.cjs` volta a assentar o CPython inteiro. Por cima disso, em silencioso o
+relançamento depende só do `ExecShellAsUser` disparado por um instalador sem
+janela, e não disparou.
+
+`quitAndInstall(false, true)`: a janela oneClick não pede nada, fecha-se
+sozinha, e o relançamento passa a usar o ramo `${ifNot} ${Silent}` do
+`installSection.nsh`. Guarda: `electron/casca-install-handoff.test.cjs`.
+
+O que continua por resolver é o tamanho: enquanto o motor viajar dentro do
+instalador, cada update da casca paga o CPython todo outra vez. O
+`customInstall` já **salta** a cópia para `%LOCALAPPDATA%` quando encontra
+`runtime-ready.json` + `.venv\Scripts\python.exe` — o desperdício está antes
+disso, no próprio NSIS.
+
 ## ⚠️ 24/7 agendado — wake PARTIAL (atualizado 22/07)
 
 `platform/wayne-fly/fly.wayne-w4y.toml:30-32`: `auto_stop_machines = "suspend"` +
