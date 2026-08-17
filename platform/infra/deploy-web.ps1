@@ -125,7 +125,13 @@ $deployArgs = @(
     '--allow-unauthenticated'
 )
 Write-Host ("gcloud " + ($deployArgs -join ' '))
-gcloud @deployArgs
+# O gcloud escreve o progresso do deploy em stderr e, com ErrorActionPreference
+# em Stop, a primeira dessas linhas aborta o script com a revisão por publicar —
+# sem falhar nada, o que engana. Dobrar stderr em stdout e julgar pelo exit code.
+$prevEap = $ErrorActionPreference
+$ErrorActionPreference = 'Continue'
+gcloud @deployArgs 2>&1 | Out-Host
+$ErrorActionPreference = $prevEap
 if ($LASTEXITCODE -ne 0) { throw "deploy failed" }
 
 $url = (gcloud run services describe $WEB_SERVICE --region=$WEB_REGION --format='value(status.url)')
