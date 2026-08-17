@@ -372,6 +372,21 @@ instalador, cada update da casca paga o CPython todo outra vez. O
 `runtime-ready.json` + `.venv\Scripts\python.exe` — o desperdício está antes
 disso, no próprio NSIS.
 
+**O feed do motor não ia assinado (17/08).** A cadeia estava toda construída —
+`scripts/sign-engine-manifest.mjs`, `verifyEngineManifest`, `engine-trust.json`
+— e não segurava nada, porque as duas pontas falhavam abertas ao mesmo tempo: a
+chave pública só vinha de `W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64`, que ninguém
+definia (todas as cascas publicadas tinham `engineUpdatePublicKeyB64: null`), e
+o `desktop-win.yml` escrevia o `latest.json` sem `sha256` nem `signature` — que
+é exactamente a condição em que o `verifyEngineManifest` **retorna logo**. O
+motor era instalado sem verificação nenhuma.
+
+Agora a pública é uma constante no `write-engine-trust.cjs` (todo o build a
+embute, sem passo para lembrar), o workflow assina e **recusa publicar** sem o
+secret. Detalhe que morde: uma casca sem chave que receba um manifesto assinado
+**lança**, não ignora — por isso a casca com a chave tem de sair antes do
+primeiro feed assinado. Ver `docs/SECURITY-SIGNING.md`.
+
 ## ⚠️ 24/7 agendado — wake PARTIAL (atualizado 22/07)
 
 `platform/wayne-fly/fly.wayne-w4y.toml:30-32`: `auto_stop_machines = "suspend"` +

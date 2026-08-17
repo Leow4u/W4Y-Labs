@@ -1697,6 +1697,7 @@ module.exports = {
   // Engine version tracking and update primitives
   readEngineVersionMarker,
   writeEngineVersionMarker,
+  verifyEngineManifest,
   fetchEngineLatestManifest,
   checkEngineUpdate,
   applyEngineUpdate,

@@ -78,6 +78,23 @@ jobs:
             wayne-agent/apps/work4you/release/latest.yml
           if-no-files-found: error
 
+      # Before anything reaches the bucket, not after. The engine feed is signed
+      # further down; without the key that step would publish a manifest with no
+      # sha256 and no signature, and the desktop's verifyEngineManifest returns
+      # early when both are absent — it would install whatever the bucket serves.
+      # Failing here keeps the shell and the engine from going out half-signed.
+      - name: Require the engine signing key
+        if: inputs.publish
+        shell: bash
+        env:
+          SIGNING_KEY: ${{ secrets.W4Y_ENGINE_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "${SIGNING_KEY:-}" ]; then
+            echo "Refusing to publish: secret W4Y_ENGINE_SIGNING_PRIVATE_KEY is missing." >&2
+            echo "Its public half is pinned in apps/work4you/scripts/write-engine-trust.cjs." >&2
+            exit 1
+          fi
+
       - name: Authenticate to Google Cloud
         if: inputs.publish
         uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.11
@@ -110,6 +127,8 @@ jobs:
         if: inputs.publish
         working-directory: wayne-agent
         shell: bash
+        env:
+          W4Y_ENGINE_SIGNING_PRIVATE_KEY: ${{ secrets.W4Y_ENGINE_SIGNING_PRIVATE_KEY }}
         run: |
           set -euo pipefail
           BUCKET=gs://w4y-engine-dist
@@ -137,6 +156,17 @@ jobs:
               runtimeReady: true,
               platform: "win32-x64",
             }));
+          '
+          # Adds sha256 over the ZIP and an Ed25519 signature over
+          # version|builtAt|sha256 — the exact message the desktop reconstructs.
+          node ../scripts/sign-engine-manifest.mjs \
+            --zip "$ZIP" --manifest "${RUNNER_TEMP}/latest-win32-x64.json"
+          node -e '
+            const m = require(process.env.RUNNER_TEMP + "/latest-win32-x64.json");
+            if (!m.sha256 || !m.signature) {
+              console.error("Refusing to publish an unsigned engine manifest");
+              process.exit(1);
+            }
           '
           for NAME in latest-win32-x64.json latest.json; do
             gsutil -h 'Cache-Control:no-store' -h 'Content-Type:application/json; charset=utf-8' \
