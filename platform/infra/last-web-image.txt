@@ -1,1 +1,1 @@
-southamerica-east1-docker.pkg.dev/project-67a4bd4d-a990-406b-9e7/w4y/w4y-web@sha256:349565710dfd316511f75246e91d03b4200a43ec99632cfac2908f6e20fb7d63
+southamerica-east1-docker.pkg.dev/project-67a4bd4d-a990-406b-9e7/w4y/w4y-web@sha256:4550ff12f122dadec65464f13453f8ff79193040f5fe7018fdc8af6bce4e29a5
