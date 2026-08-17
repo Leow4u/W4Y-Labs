@@ -7,7 +7,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { app, BrowserWindow, net, session, shell } = require("electron");
-const { appOrigin, platformOrigin } = require("./w4y-cloud.cjs");
+const { appOrigin, cloudApiRequest, platformOrigin } = require("./w4y-cloud.cjs");
 const { bootstrapLocalConnectors } = require("./w4y-composio.cjs");
 const {
   resolveWayneHome,
@@ -125,7 +125,7 @@ async function probePlatformSession() {
   }
 }
 
-function bootstrapAppSession(timeoutMs = 30_000) {
+function requestLoginEnter(timeoutMs = 30_000) {
   const origin = platformOrigin();
   return new Promise((resolve) => {
     let settled = false;
@@ -174,6 +174,61 @@ function bootstrapAppSession(timeoutMs = 30_000) {
     });
     request.end();
   });
+}
+
+/**
+ * Hand the platform session over to the tenant, and prove it landed.
+ *
+ * `/login/enter` mints an SSO ticket and 303s to the tenant's
+ * `/auth/platform-sso`, which is what actually sets the cookies every tenant
+ * API needs — identity, plan, cloud projects, connectors. Following that
+ * redirect is not evidence it worked: with no platform session the same route
+ * bounces to `/login`, and a 200 on the login page is what this used to report
+ * as success (17/08). So ask the tenant who we are and believe only that.
+ *
+ * Retried because the tenant machine may be suspended. `/login/enter` already
+ * waits up to 25s for the wake, but a machine that is still coming up answers
+ * 502 for a few seconds after, and one attempt would throw the session away.
+ */
+async function bootstrapAppSession(timeoutMs = 30_000) {
+  let last = { ok: false };
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 2_000 * attempt));
+
+    const enter = await requestLoginEnter(timeoutMs);
+    const who = await cloudApiRequest(
+      { method: "GET", path: "/api/auth/me" },
+      12_000,
+    );
+    if (who.ok) return { ok: true, email: who.json && who.json.email };
+
+    // 401 is a real answer from a reachable tenant: the handoff did not take,
+    // and hammering it will not change that.
+    last = { ok: false, status: who.status, enter: enter.ok };
+    if (who.status === 401) break;
+  }
+
+  return last;
+}
+
+/**
+ * Write the cookie jar to disk before anyone kills this process.
+ *
+ * Chromium batches cookie writes and flushes on its own schedule. The login
+ * ends in `app.exit(0)` — a hard exit that runs no teardown — within a second
+ * of the tenant cookies arriving, so without this they can be lost between
+ * "signed in" and the relaunch. That is the state the user lands in: the
+ * OpenRouter key is on disk so the gate opens, but every tenant API 401s and
+ * the whole app reads as signed out (17/08).
+ */
+async function flushSessionCookies() {
+  try {
+    await session.defaultSession.cookies.flushStore();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function requestDeviceEngineKey(timeoutMs = 10_000) {
@@ -421,20 +476,25 @@ async function runLoginFlow({ parentWindow, onAccountSwitched } = {}) {
         } catch {
           /* best effort — key alone still unlocks chat after relaunch */
         }
-        // Best-effort: mint a device tool-router URL into mcp_servers.composio.
-        // Failures must not block login — marketplace attach can recover later.
-        try {
-          await bootstrapLocalConnectors();
-        } catch {
-          /* ignore */
-        }
         try {
           if (flow.win && !flow.win.isDestroyed()) flow.win.destroy();
         } catch {
           /* ignore */
         }
         loginFlow = null;
-        await bootstrapAppSession();
+        const appSession = await bootstrapAppSession();
+        // AFTER the handoff, never before. The Composio key comes from the
+        // tenant broker, which is gated by the very cookies bootstrapAppSession
+        // just obtained — asking first is a guaranteed 401, and it fails
+        // silently, so a first login could never provision connectors and the
+        // engine answered 503 forever after (17/08).
+        try {
+          await bootstrapLocalConnectors();
+        } catch {
+          /* ignore — marketplace attach can recover later */
+        }
+        // The relaunch below is a hard exit; get the cookies onto disk first.
+        await flushSessionCookies();
         // Motor only loads .env at process start — always relaunch when we mint
         // a device key, not only when the account home path changes.
         const needsMotorRestart =
@@ -455,6 +515,10 @@ async function runLoginFlow({ parentWindow, onAccountSwitched } = {}) {
         return {
           ok: true,
           got: key ? "key" : "no-credit",
+          // The gate opens on the OpenRouter key alone, so a failed handoff is
+          // invisible unless the caller is told: without it the app runs signed
+          // out everywhere that talks to the tenant.
+          tenantSession: Boolean(appSession.ok),
           tenantId: tenantId || null,
           plan: String(plan || "free"),
           switched: Boolean(accountSwitch?.switched),
@@ -544,6 +608,12 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
   }
 
   const hasKey = hasOpenRouterKey();
+  // Repair a half-finished login. The gate opens on the key alone, so an app
+  // whose tenant handoff failed looks signed in and behaves signed out: no
+  // name, no plan, no cloud, and connectors 503 for want of a Composio key it
+  // never got to fetch. Nothing used to notice, so it stayed that way forever.
+  const healed = hasKey ? await healTenantSession() : { ok: false };
+
   if (minted && typeof onAccountSwitched === "function") {
     try {
       await onAccountSwitched({
@@ -561,8 +631,34 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
     hasKey,
     minted,
     seeded,
+    tenantSession: Boolean(healed.ok),
     home: resolveWayneHome(),
   };
+}
+
+/**
+ * Re-run the handoff when the tenant no longer knows us.
+ *
+ * Cheap when everything is fine — one `/api/auth/me` that answers from cookies
+ * already on disk. Only a tenant that says "who?" costs a handoff, and only a
+ * handoff that succeeds costs a connector bootstrap, which is also how a
+ * device that logged in before connectors existed picks up its Composio key
+ * without the user having to sign out and back in.
+ */
+async function healTenantSession() {
+  const who = await cloudApiRequest({ method: "GET", path: "/api/auth/me" }, 12_000);
+  if (who.ok) return { ok: true, healed: false };
+
+  const restored = await bootstrapAppSession();
+  if (!restored.ok) return { ok: false, healed: false };
+
+  try {
+    await bootstrapLocalConnectors();
+  } catch {
+    /* ignore — the session is what mattered here */
+  }
+  await flushSessionCookies();
+  return { ok: true, healed: true };
 }
 
 /** Chaves que a plataforma provisiona — nunca segredos BYO do utilizador.
