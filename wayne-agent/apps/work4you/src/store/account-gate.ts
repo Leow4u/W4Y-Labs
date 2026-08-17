@@ -1,21 +1,26 @@
 /**
- * Work4You account gate — desktop must have a platform session before the
- * product UI (chat, provider onboarding, etc.). Logout returns here.
+ * Work4You account gate — desktop must have a **tenant** session before the
+ * product UI. Logout returns here.
+ *
+ * Identity is `$accountSession` (`/api/auth/me`). An OpenRouter key on disk is
+ * model access, not proof of login — treating it as such left the gate open
+ * while every tenant surface said "Sem sessão" (17/08).
  */
 import { atom } from 'nanostores'
 
 import { cloudRunAvailable } from '@/lib/w4y-cloud-projects'
+
+import {
+  accountSessionSignedIn,
+  clearAccountSession,
+  refreshAccountSession
+} from './account-session'
 
 export type AccountGatePhase = 'checking' | 'idle' | 'required' | 'signing-in'
 
 export interface AccountGateState {
   error: null | string
   phase: AccountGatePhase
-}
-
-type PlatformSessionProbe = {
-  loggedIn?: boolean
-  noCredit?: boolean
 }
 
 export function w4yAccountGateEnabled(): boolean {
@@ -40,38 +45,10 @@ export function accountGateBlocksApp(phase: AccountGatePhase): boolean {
   return phase === 'checking' || phase === 'required' || phase === 'signing-in'
 }
 
-async function probePlatformLogin(): Promise<boolean | null> {
-  const w4y = window.work4youDesktop?.w4y
-  if (!w4y) {
-    return null
-  }
-
-  if (typeof w4y.probeSession === 'function') {
-    try {
-      const res = (await w4y.probeSession()) as PlatformSessionProbe | null
-      if (res?.loggedIn === true) {
-        return true
-      }
-      if (res?.loggedIn === false) {
-        return false
-      }
-    } catch {
-      /* fall through */
-    }
-  }
-
-  try {
-    const hasKey = await w4y.hasKey?.()
-    if (hasKey?.hasKey) {
-      return true
-    }
-  } catch {
-    /* ignore */
-  }
-
-  return null
-}
-
+/**
+ * Heal credentials first (tenant SSO + Composio key when possible), then ask
+ * the tenant who we are. The gate opens only on that answer.
+ */
 export async function refreshAccountGate(): Promise<boolean> {
   if (!w4yAccountGateEnabled()) {
     $accountGate.set({ phase: 'idle', error: null })
@@ -79,9 +56,18 @@ export async function refreshAccountGate(): Promise<boolean> {
   }
 
   $accountGate.set({ phase: 'checking', error: null })
-  const loggedIn = await probePlatformLogin()
 
-  if (loggedIn === true) {
+  // Same-home soft login and cold boots both land here: ensureCredentials
+  // re-runs the tenant handoff when cookies died but the model key survived.
+  try {
+    await window.work4youDesktop?.w4y?.ensureCredentials?.()
+  } catch {
+    /* identity check below decides */
+  }
+
+  const signedIn = await refreshAccountSession()
+
+  if (signedIn) {
     const { ensurePlatformOnboardingComplete } = await import('./onboarding')
     ensurePlatformOnboardingComplete()
     $accountGate.set({ phase: 'idle', error: null })
@@ -97,6 +83,7 @@ export function requireAccountLogin() {
     return
   }
 
+  clearAccountSession()
   $accountGate.set({ phase: 'required', error: null })
 }
 
@@ -121,11 +108,21 @@ export async function signInToWork4You(): Promise<boolean> {
       throw new Error(reason)
     }
 
-    await window.work4youDesktop?.w4y?.bootstrapApp?.().catch(() => undefined)
-
+    // Soft motor restart (same account home) returns here. Full relaunch exits
+    // the process before this line — cold start then runs refreshAccountGate.
     const gateOpen = await refreshAccountGate()
     if (gateOpen) {
       return true
+    }
+
+    // Handoff wrote the key but the tenant still does not know us — keep the
+    // gate up with an error rather than pretending hasKey is enough.
+    if (res.tenantSession === false) {
+      $accountGate.set({
+        phase: 'required',
+        error: 'tenant-session-failed'
+      })
+      return false
     }
 
     window.location.reload()
@@ -147,4 +144,9 @@ export async function signOutFromWork4You(): Promise<void> {
   const { resetOnboardingAfterLogout } = await import('./onboarding')
   resetOnboardingAfterLogout()
   requireAccountLogin()
+}
+
+/** @deprecated Prefer accountSessionSignedIn — kept for call sites mid-migration. */
+export function isAccountGateSignedIn(): boolean {
+  return accountSessionSignedIn()
 }

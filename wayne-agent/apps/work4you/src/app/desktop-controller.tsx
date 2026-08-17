@@ -902,6 +902,16 @@ export function DesktopController() {
     }
   }, [])
 
+  // Same-home soft login: motor respawned, casca stayed. Re-ask the tenant who
+  // we are so Conta / Sem sessão cannot lag behind the gate.
+  useEffect(() => {
+    const off = window.work4youDesktop?.w4y?.onAccountHomeSoftRestarted?.(() => {
+      void refreshAccountGate()
+      void window.hermesDesktop?.revalidateConnection?.()
+    })
+    return () => off?.()
+  }, [])
+
   useEffect(() => {
     if (!productRuntime.capabilities.cloudBridge) {
       return

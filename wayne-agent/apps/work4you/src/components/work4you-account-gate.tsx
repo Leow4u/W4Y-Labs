@@ -55,8 +55,11 @@ export function Work4YouAccountGate() {
       )}
     >
       <div className="w-full max-w-md text-center [-webkit-app-region:no-drag]">
-        <BrandMark className="mx-auto size-16" />
-        <h1 className="mt-6 text-xl font-semibold tracking-tight text-foreground">{copy.title}</h1>
+        <BrandMark className="mx-auto size-20" />
+        <p className="mt-5 text-[0.6875rem] font-medium uppercase tracking-[0.14em] text-muted-foreground">
+          Work4You
+        </p>
+        <h1 className="mt-2 text-2xl font-semibold tracking-tight text-foreground">{copy.title}</h1>
         <p className="mt-2 text-[0.875rem] leading-relaxed text-muted-foreground">{copy.subtitle}</p>
 
         {updateAvailable ? (
@@ -109,13 +112,18 @@ export function Work4YouAccountGate() {
             <ExternalLink className="size-3.5 opacity-70" />
           </Button>
 
-          <button
-            className="text-xs text-muted-foreground underline-offset-2 hover:underline"
-            onClick={() => openExternal(DOWNLOAD_URL)}
-            type="button"
-          >
-            {copy.manualDownload}
-          </button>
+          {/* Already running the installed app — a link to /baixar belongs on
+              the web gate only. Showing it here was part of what made this
+              screen feel unfinished next to Cursor/Claude. */}
+          {window.work4youDesktop?.isDesktop ? null : (
+            <button
+              className="text-xs text-muted-foreground underline-offset-2 hover:underline"
+              onClick={() => openExternal(DOWNLOAD_URL)}
+              type="button"
+            >
+              {copy.manualDownload}
+            </button>
+          )}
         </div>
       </div>
     </div>

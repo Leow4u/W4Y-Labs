@@ -23,6 +23,7 @@ import {
   reportPrimaryGatewayState,
   setPrimaryGateway,
   touchSecondaryGateways,
+  shouldSuppressGatewayOfflineToast,
   suppressGatewayOfflineToast
 } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
@@ -325,6 +326,14 @@ export function useGatewayBoot({
       // Intentional stop during an in-app engine update — suppress the scary
       // "Backend stopped" toast. The update overlay already shows progress.
       if ($updateApply.get().applying) {
+        return
+      }
+
+      // Same window as hermes:gateway-offline-suppress — soft account-home
+      // restart (same WAYNE_HOME login) tears the motor down on purpose.
+      // Without this the user saw "Backend stopped" every successful sign-in
+      // even though the casca never relaunched (17/08 follow-up).
+      if (shouldSuppressGatewayOfflineToast()) {
         return
       }
 

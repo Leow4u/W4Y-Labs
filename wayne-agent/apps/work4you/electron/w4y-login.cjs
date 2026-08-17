@@ -493,17 +493,19 @@ async function runLoginFlow({ parentWindow, onAccountSwitched } = {}) {
         } catch {
           /* ignore — marketplace attach can recover later */
         }
-        // The relaunch below is a hard exit; get the cookies onto disk first.
+        // The relaunch / soft restart below needs cookies on disk first.
         await flushSessionCookies();
-        // Motor only loads .env at process start — always relaunch when we mint
-        // a device key, not only when the account home path changes.
-        const needsMotorRestart =
-          Boolean(key) || Boolean(accountSwitch?.switched);
+        // Motor loads .env at process start. Restart it whenever we mint a
+        // key — but only relaunch the *whole app* when the account home path
+        // changed. Same-home sign-in used to always app.exit(0), which is why
+        // login felt broken next to Cursor/Claude (17/08).
+        const homeSwitched = Boolean(accountSwitch?.switched);
+        const needsMotorRestart = Boolean(key) || homeSwitched;
         if (needsMotorRestart && typeof onAccountSwitched === "function") {
           try {
             await onAccountSwitched(
               accountSwitch || {
-                switched: true,
+                switched: false,
                 home: resolveWayneHome(),
                 previousTenantId: null,
               },
@@ -515,14 +517,14 @@ async function runLoginFlow({ parentWindow, onAccountSwitched } = {}) {
         return {
           ok: true,
           got: key ? "key" : "no-credit",
-          // The gate opens on the OpenRouter key alone, so a failed handoff is
-          // invisible unless the caller is told: without it the app runs signed
-          // out everywhere that talks to the tenant.
+          // The gate opens only on tenant identity now; surface handoff result
+          // so a half-login is not indistinguishable from a clean one.
           tenantSession: Boolean(appSession.ok),
           tenantId: tenantId || null,
           plan: String(plan || "free"),
-          switched: Boolean(accountSwitch?.switched),
+          switched: homeSwitched,
           motorRestarted: needsMotorRestart,
+          softRestart: needsMotorRestart && !homeSwitched,
         };
       }
       await new Promise((r) => setTimeout(r, 1500));
@@ -556,6 +558,7 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
   const home = resolveWayneHome();
   let minted = false;
   let plan = "free";
+  let accountSwitch = null;
 
   if (!hasOpenRouterKey()) {
     try {
@@ -570,7 +573,7 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
         const email = res.json.email || "";
         if (tenantId) {
           try {
-            activateAccount({
+            accountSwitch = activateAccount({
               tenantId: String(tenantId),
               email: String(email || ""),
             });
@@ -608,19 +611,23 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
   }
 
   const hasKey = hasOpenRouterKey();
-  // Repair a half-finished login. The gate opens on the key alone, so an app
-  // whose tenant handoff failed looks signed in and behaves signed out: no
-  // name, no plan, no cloud, and connectors 503 for want of a Composio key it
-  // never got to fetch. Nothing used to notice, so it stayed that way forever.
+  // Repair a half-finished login. Identity is the tenant session now; without
+  // this heal a surviving OpenRouter key used to open the gate while every
+  // tenant surface said "Sem sessão".
   const healed = hasKey ? await healTenantSession() : { ok: false };
 
   if (minted && typeof onAccountSwitched === "function") {
     try {
-      await onAccountSwitched({
-        switched: true,
-        home: resolveWayneHome(),
-        previousTenantId: null,
-      });
+      // Pass the real activateAccount result: first pin off the platform root
+      // is switched=true (full relaunch); minting into an already-pinned home
+      // is switched=false (soft motor restart only).
+      await onAccountSwitched(
+        accountSwitch || {
+          switched: false,
+          home: resolveWayneHome(),
+          previousTenantId: null,
+        },
+      );
     } catch {
       /* relaunch may exit the process */
     }

@@ -143,11 +143,68 @@ test('the account relaunch flushes cookies before the hard exit', () => {
 test('the login tells its caller whether the tenant session was actually established', () => {
   const body = loginFlowBody()
 
-  // The gate opens on the OpenRouter key alone, so without this a failed
-  // handoff is indistinguishable from a clean login.
   assert.match(
     body,
     /tenantSession: Boolean\(appSession\.ok\)/,
     'a login that half-worked must not report itself as a plain success'
+  )
+})
+
+test('same-home login asks for a soft motor restart, not a full app relaunch', () => {
+  const body = loginFlowBody()
+
+  // Until 17/08 every key mint passed switched:true (or equivalent) and the
+  // shell always app.exit(0). Cursor and Claude never do that.
+  assert.match(body, /const homeSwitched = Boolean\(accountSwitch\?\.switched\)/)
+  assert.match(body, /softRestart: needsMotorRestart && !homeSwitched/)
+  assert.match(
+    body,
+    /switched: false/,
+    'the fallback when activateAccount did not run must not force a hard relaunch'
+  )
+})
+
+test('the account handler soft-restarts the motor when the home path did not change', () => {
+  const source = read('main.cjs')
+  const start = source.indexOf('const relaunchForAccountHome')
+  assert.notEqual(start, -1, 'missing relaunchForAccountHome')
+  const body = source.slice(start, source.indexOf('if (IS_MAC)', start))
+
+  assert.match(body, /const homeSwitched = Boolean\(info && info\.switched\)/)
+  assert.match(body, /if \(!homeSwitched\)/)
+  assert.match(body, /await ensureBackend\(null\)/, 'soft path must respawn the primary motor')
+  assert.match(
+    body,
+    /onLoggedOut: \(\) => relaunchForAccountHome\(\{ switched: true \}\)/,
+    'logout always clears the pin — never soft'
+  )
+
+  // Hard exit only on the switched branch.
+  const soft = body.indexOf('if (!homeSwitched)')
+  const hardExit = body.indexOf('app.exit(0)')
+  assert.ok(soft !== -1 && hardExit > soft, 'app.exit must sit after the soft-restart early return')
+
+  // Soft path must quiet the renderer before killing the motor — otherwise
+  // onBackendExit paints "Backend stopped" on every successful same-home login.
+  const suppress = body.indexOf('hermes:gateway-offline-suppress')
+  const softTeardown = body.indexOf('await teardownPrimaryBackendAndWait()', soft)
+  assert.ok(suppress !== -1 && suppress < softTeardown, 'suppress toast before soft teardown')
+  assert.match(body, /w4y:account-home-soft-restarted/, 'renderer must learn the soft restart finished')
+})
+
+test('soft motor restart does not toast Backend stopped', () => {
+  const fs = require('node:fs')
+  const path = require('node:path')
+  const boot = fs
+    .readFileSync(
+      path.join(__dirname, '..', 'src', 'app', 'gateway', 'hooks', 'use-gateway-boot.ts'),
+      'utf8'
+    )
+    .replace(/\r\n/g, '\n')
+
+  assert.match(
+    boot,
+    /shouldSuppressGatewayOfflineToast\(\)/,
+    'backend-exit must honour the same suppress window as gateway-offline'
   )
 })
