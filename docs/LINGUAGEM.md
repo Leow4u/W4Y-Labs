@@ -31,6 +31,26 @@ de API. Renomear um rótulo obscuro é bom; explicar o óbvio é condescendênci
 | Profiles | Perfis (mecanismo interno / multi-instância — não “Agent Studio”) |
 | Agent Studio | **Morto** — não usar na copy nem na navegação |
 
+## O que **não** traduzir (i18n)
+
+Ao criar/estender locales (`pt`, `es`, …), espelhar o consenso dos locales maduros
+(`zh` / `ja`) e o chrome EN: **não traduzir por traduzir**.
+
+| Manter em inglês | Exemplos |
+|---|---|
+| Marcas e plataformas | Work4You, Discord, Slack, Telegram, WhatsApp, Gmail, GitHub, OpenRouter, Relay |
+| Labels de plano / modo (chrome) | `Pro`, `Free`, `Hobby`, `Auto`, `Free tier`, `Model catalog` |
+| Siglas / superfície técnica | `MCP`, `URL`, `API`, `OAuth`, `JSON`, `env`, `Tokens` (unidade no painel de contexto) |
+| Nome do componente Gateway | `Gateway` (maiúsculo na prosa de produto; `work4you gateway` no CLI) |
+| Placeholders literais | `publisher.extension`, `example.com`, `@user:server`, IPs/localhost |
+| Verbos git no chrome curto | `Commit`, `Push`, `PR`, `branch`, `diff`, `stage`, `worktree` (ligar só a cola em PT) |
+
+Traduzir a frase à volta; **não** “brasileirizar” o token. Glossário acima
+(`Habilidades`, `Agenda`, `Entregas`, …) continua a aplicar-se — não confundir
+com esta lista de preservação.
+
+Teste de guarda: `apps/work4you/src/i18n/pt-coverage.test.ts` (secção keep-English).
+
 Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmula-vs-conectores).
 
 ## Já aplicado

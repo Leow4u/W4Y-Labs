@@ -390,7 +390,7 @@ export const pt = defineLocale({
       toolsTitle: 'Ferramentas',
       toolsIntro: 'Chaves API para pesquisa, navegador, média e memória. O Work4You funciona sem elas — adicione só quando precisar dessa capacidade.',
       settingsTitle: 'Configurações',
-      settingsIntro: 'Variáveis de ambiente do agente local, relay do gateway e extras de canais. Preferências do dia a dia ficam em Geral / Aparência — isto é para power users.',
+      settingsIntro: 'Variáveis de ambiente do agente local, relay do Gateway e extras de canais. Preferências do dia a dia ficam em Geral / Aparência — isto é para power users.',
       groups: {
         search: 'Pesquisa e extração web',
         browser: 'Navegador',
@@ -1488,7 +1488,7 @@ export const pt = defineLocale({
       installButton: 'Instalar',
       installDesc: 'Cole o ID de uma extensão de tema (por exemplo, dracula-theme.theme-dracula) para converter a paleta para o aplicativo para desktop.',
       installError: 'Não foi possível instalar esse tema.',
-      installPlaceholder: 'publicador.extensao',
+      installPlaceholder: 'publisher.extension',
       installTitle: 'Instalar pela galeria',
       installed: name => `“${name}” instalado.`,
       installing: 'Instalando…',
@@ -2238,7 +2238,7 @@ export const pt = defineLocale({
     },
     sectionEntries: {
       sessions: { title: 'Painel de sessões', detail: 'Buscar, fixar e gerenciar sessões' },
-      system: { title: 'Painel do sistema', detail: 'Status do gateway, logs, reinicialização e atualização' },
+      system: { title: 'Painel do sistema', detail: 'Status do Gateway, logs, reinicialização e atualização' },
       usage: { title: 'Painel de uso', detail: 'Atividade de tokens, custos e habilidades' }
     },
     providerNavigate: 'Navegar',
@@ -2254,8 +2254,8 @@ export const pt = defineLocale({
     gatewayRunning: 'Gateway de mensagens em execução',
     gatewayStopped: 'Gateway de mensagens parado',
     hermesActiveSessions: (version, count) => `Work4You ${version} · Sessões ativas ${count}`,
-    restartGateway: 'Reiniciar gateway',
-    gatewayRestartFailed: 'Falha ao reiniciar o gateway.',
+    restartGateway: 'Reiniciar Gateway',
+    gatewayRestartFailed: 'Falha ao reiniciar o Gateway.',
     actionRunning: 'em execução',
     actionDone: 'concluída',
     actionFailed: 'falhou',
@@ -2360,8 +2360,8 @@ export const pt = defineLocale({
     testing: 'testando…',
     testOk: name => `${name}: conexão OK`,
     testFailed: name => `${name}: teste falhou`,
-    testHintUnpaired: 'Isto só valida o estado. Se ainda não estiver pareado, completa os passos do QR acima, liga Ativo e reinicia o gateway na barra de estado.',
-    whatsappUnpairedError: 'O WhatsApp está ativo mas ainda não foi pareado. Conclua os passos do QR acima e reinicia o gateway na barra de estado.',
+    testHintUnpaired: 'Isto só valida o estado. Se ainda não estiver pareado, completa os passos do QR acima, liga Ativo e reinicia o Gateway na barra de estado.',
+    whatsappUnpairedError: 'O WhatsApp está ativo mas ainda não foi pareado. Conclua os passos do QR acima e reinicia o Gateway na barra de estado.',
     openProductDocs: 'Documentação Work4You',
     states: {
       connected: 'Conectado',
@@ -2375,8 +2375,8 @@ export const pt = defineLocale({
       startup_failed: 'Falha ao iniciar',
     },
     unknown: 'Desconhecido',
-    hintPendingRestart: 'Reinicie o gateway na barra de estado para aplicar.',
-    hintGatewayStopped: 'Inicia o gateway na barra de estado (conta / área de estado) e volta aqui.',
+    hintPendingRestart: 'Reinicie o Gateway na barra de estado para aplicar.',
+    hintGatewayStopped: 'Inicia o Gateway na barra de estado (conta / área de estado) e volta aqui.',
     credentialsSet: 'Credenciais guardadas',
     needsSetup: 'Precisa de configuração',
     gatewayStopped: 'Gateway parado',
@@ -2399,9 +2399,9 @@ export const pt = defineLocale({
     disableAria: name => `Desligar ${name}`,
     platformEnabled: name => `${name} ligado`,
     platformDisabled: name => `${name} desligado`,
-    restartToApply: 'A alteração passa a valer depois de reiniciar o gateway.',
+    restartToApply: 'A alteração passa a valer depois de reiniciar o Gateway.',
     setupSaved: name => `Configuração de ${name} guardada`,
-    restartToReconnect: 'As novas credenciais passam a valer depois de reiniciar o gateway.',
+    restartToReconnect: 'As novas credenciais passam a valer depois de reiniciar o Gateway.',
     keyCleared: key => `${key} limpo`,
     setupUpdated: name => `Configuração de ${name} atualizada.`,
     failedUpdate: name => `Falha ao atualizar ${name}`,
@@ -2508,7 +2508,7 @@ export const pt = defineLocale({
       },
       MATRIX_USER_ID: {
         label: 'ID de usuário do bot',
-        placeholder: '@work4you:exemplo.org',
+        placeholder: '@work4you:example.org',
       },
       MATTERMOST_ALLOW_ALL_USERS: {
         label: 'Permitir qualquer pessoa',
@@ -2518,7 +2518,7 @@ export const pt = defineLocale({
       },
       MATTERMOST_URL: {
         label: 'URL do servidor',
-        placeholder: 'https://mattermost.exemplo.com',
+        placeholder: 'https://mattermost.example.com',
       },
       QQBOT_HOME_CHANNEL: {
         help: 'Destino dos alertas e das tarefas agendadas.',
@@ -3314,7 +3314,7 @@ export const pt = defineLocale({
     },
     attachUrlTitle: 'Anexar uma URL',
     attachUrlDesc: 'O Work4You buscará a página e a incluirá como contexto neste turno.',
-    urlPlaceholder: 'https://exemplo.com/post',
+    urlPlaceholder: 'https://example.com/post',
     urlHintPre: 'Inclua a URL completa, por exemplo: ',
     attach: 'Anexar',
     queued: count => `${count} na fila`,
@@ -3562,7 +3562,7 @@ export const pt = defineLocale({
     connected: 'Conectado',
     featuredPitch: 'Relay 2.5 Fast no plano Grátis — entre com sua conta Work4You',
     openRouterPitch: 'Uma chave, centenas de modelos — uma ótima opção padrão',
-    catalogKeyTitle: 'Catálogo de modelos',
+    catalogKeyTitle: 'Model catalog',
     apiKeyOptions: {
       openrouter: {
         short: 'uma chave, muitos modelos',
@@ -3612,9 +3612,9 @@ export const pt = defineLocale({
     reopenVerification: 'Reabrir página de verificação',
     copy: 'Copiar',
     defaultModel: 'Modelo padrão',
-    freeTier: 'Faixa gratuita',
+    freeTier: 'Free tier',
     pro: 'Pro',
-    free: 'Grátis',
+    free: 'Free',
     price: (input, output) => `${input} entrada / ${output} saída por Mtok`,
     change: 'Alterar',
     startChatting: 'Começar',
@@ -3634,8 +3634,8 @@ export const pt = defineLocale({
     proNeedsSubscription: 'Os modelos Pro exigem uma assinatura paga do Work4You.',
     upgrade: 'Fazer upgrade',
     planGatedHint: 'O plano Gratuito inclui apenas o Relay 2.5 Fast. Faça upgrade para o Essencial e acesse o catálogo completo.',
-    free: 'Gratuito',
-    freeTier: 'Plano gratuito',
+    free: 'Free',
+    freeTier: 'Free tier',
     priceTitle: 'Preço de entrada/saída por milhão de tokens'
   },
 
@@ -3656,7 +3656,7 @@ export const pt = defineLocale({
       addModels: 'Adicionar modelos',
       fast: 'Rápido',
       medium: 'Médio',
-      autoMode: 'Automático',
+      autoMode: 'Auto',
       autoModeHint: 'Equilíbrio entre qualidade e velocidade, recomendado para a maioria das tarefas',
       switchToSpecific: 'Trocar para um modelo específico',
       specificModel: 'Modelo específico'
@@ -3713,7 +3713,7 @@ export const pt = defineLocale({
       gatewayConnecting: 'conectando',
       gatewayOffline: 'offline',
       gatewayRestarting: 'reiniciando…',
-      gatewayTitle: 'Status do gateway de inferência do Work4You',
+      gatewayTitle: 'Status do Gateway de inferência do Work4You',
       agents: 'Agentes',
       closeAgents: 'Fechar agentes',
       openAgents: 'Abrir agentes',
@@ -3742,7 +3742,7 @@ export const pt = defineLocale({
         loading: 'Carregando detalhes…',
         percentFull: percent => `${percent}% cheio`,
         title: 'Uso do contexto',
-        tokenSummary: (used, max) => `${used} / ${max} tokens`
+        tokenSummary: (used, max) => `${used} / ${max} Tokens`
       },
       openContextUsage: 'Abrir detalhes do uso do contexto',
       session: 'Sessão',
@@ -4161,7 +4161,7 @@ export const pt = defineLocale({
     resumeFailed: 'Falha ao retomar',
     resumeStrandedTitle: 'Não foi possível carregar esta sessão',
     resumeStrandedBody:
-      'A conexão com esta sessão falhou e as tentativas automáticas foram encerradas. Verifique se o gateway está em execução e tente novamente.',
+      'A conexão com esta sessão falhou e as tentativas automáticas foram encerradas. Verifique se o Gateway está em execução e tente novamente.',
     resumeRetry: 'Tentar novamente',
     nothingToBranch: 'Nada para criar branch',
     branchNeedsChat: 'Inicie ou retome uma conversa antes de criar uma branch.',
@@ -4206,7 +4206,7 @@ export const pt = defineLocale({
       success: platform => `Transferido para ${platform}. Retome aqui quando quiser.`,
       systemNote: platform => `↻ Transferido para ${platform} — retome aqui quando quiser.`,
       failed: error => `Falha na transferência: ${error}`,
-      timedOut: 'Tempo esgotado ao aguardar o gateway. O `work4you gateway` está em execução?'
+      timedOut: 'Tempo esgotado ao aguardar o Gateway. O `work4you gateway` está em execução?'
     }
   },
 

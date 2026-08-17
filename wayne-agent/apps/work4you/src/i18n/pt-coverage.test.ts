@@ -85,4 +85,33 @@ describe('Portuguese catalog coverage', () => {
       `Too many identical EN/PT strings (${identical.length}/${shared.length}). Sample: ${identical.slice(0, 15).join(', ')}`
     ).toBeLessThan(0.12)
   })
+
+  it('preserves English chrome that zh/ja also keep (do not over-translate)', () => {
+    const { en, pt } = TRANSLATIONS
+
+    // Compact labels / brands / placeholders — consensus with zh+ja identical-to-EN.
+    expect(pt.shell.modelMenu.autoMode).toBe('Auto')
+    expect(pt.modelPicker.pro).toBe('Pro')
+    expect(pt.onboarding.pro).toBe('Pro')
+    expect(pt.onboarding.catalogKeyTitle).toBe('Model catalog')
+    expect(pt.modelPicker.free).toBe('Free')
+    expect(pt.onboarding.free).toBe('Free')
+    expect(pt.modelPicker.freeTier).toBe('Free tier')
+    expect(pt.onboarding.freeTier).toBe('Free tier')
+    expect(pt.skills.tabMcp).toBe('MCP')
+    expect(pt.settings.nav.mcp).toBe('MCP')
+    expect(pt.profiles.env).toBe('env')
+    expect(pt.settings.appearance.installPlaceholder).toBe('publisher.extension')
+    expect(pt.composer.urlPlaceholder).toBe('https://example.com/post')
+    expect(pt.shell.statusbar.contextUsagePanel.tokenSummary(1, 2)).toBe('1 / 2 Tokens')
+
+    // Git chrome: keep technical tokens (translate only connective words).
+    expect(pt.statusStack.coding.commit).toBe('Commit')
+    expect(pt.statusStack.coding.createPr).toContain('PR')
+    expect(pt.statusStack.coding.commitAndPush.toLowerCase()).toContain('push')
+
+    // Glossary-driven PT still applies (not forced English).
+    expect(pt.skills.tabSkills).not.toBe(en.skills.tabSkills)
+    expect(pt.cron.close.toLowerCase()).not.toContain('automations') // Agenda surface
+  })
 })
