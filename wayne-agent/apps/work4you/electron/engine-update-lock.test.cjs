@@ -48,6 +48,27 @@ test('the engine update claims the marker and releases it even when it fails', (
   )
 })
 
+test('the gate closes before the backend is torn down, not after', () => {
+  const source = readMain()
+  const index = source.indexOf("ipcMain.handle('hermes:updates:apply'")
+  const handler = source.slice(index, index + 2500)
+
+  const claim = handler.indexOf('writeUpdateMarker(')
+  const teardown = handler.indexOf('resetHermesConnection()')
+  const wait = handler.indexOf('await waitForBackendExit(')
+
+  assert.notEqual(claim, -1, 'missing the marker claim')
+  assert.notEqual(teardown, -1, 'missing the teardown')
+  assert.notEqual(wait, -1, 'missing the wait for exit')
+
+  // 1.0.115 claimed it after waiting for the backend to exit. The renderer
+  // notices the dropped socket in milliseconds and the wait takes seconds, so a
+  // fresh backend spawned inside that window and re-locked the venv (17/08:
+  // backend at 09:05:13, marker at 09:05:22).
+  assert.ok(claim < teardown, 'the marker must be claimed before the teardown starts')
+  assert.ok(claim < wait, 'the marker must be claimed before we wait for the backend to exit')
+})
+
 test('every local backend spawn waits for a live update to finish', () => {
   const source = readMain()
 

@@ -7545,6 +7545,13 @@ ipcMain.handle('hermes:updates:apply', async (_event, payload) => {
         // Stop the Python backend before overwriting engine files so Windows
         // file locks on .pyd / python.exe are released before extraction.
         stopBackend: async () => {
+          // Close the gate BEFORE touching anything. The renderer notices the
+          // dropped socket in milliseconds and asks for a connection, while
+          // waiting for the backend to exit takes seconds — claiming the marker
+          // after that wait leaves a window wide enough for a fresh backend to
+          // spawn and re-lock the venv the update is about to replace (17/08:
+          // backend at 09:05:13, marker at 09:05:22, shredded venv at 09:15).
+          writeUpdateMarker(HERMES_HOME, process.pid)
           // Capture the reference before resetHermesConnection() nulls hermesProcess,
           // then wait for the process to fully exit instead of a fixed sleep.
           // waitForBackendExit will SIGKILL after 5s if needed on Windows.
@@ -7554,12 +7561,6 @@ ipcMain.handle('hermes:updates:apply', async (_event, payload) => {
           // killing the primary alone still leaves the engine tree locked.
           stopAllPoolBackends()
           await waitForBackendExit(dying)
-          // Downloading and extracting the engine ZIP takes minutes. In that
-          // window the renderer's socket is down, it asks for a connection, and
-          // a fresh backend spawns and re-locks the venv — the merge then dies
-          // with EPERM on .venv (16/08: engine restarted at 21:32:49, EPERM at
-          // 21:32:52). The marker makes those requests park instead.
-          writeUpdateMarker(HERMES_HOME, process.pid)
         },
         engineRoot,
         wayneHome: platformRoot

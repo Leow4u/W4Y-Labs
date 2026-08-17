@@ -966,10 +966,48 @@ async function extractZipTo(zipPath, destDir, onProgress) {
     }
   }
 
+  // Windows ships bsdtar (System32\tar.exe) since 1803, and it opens this ZIP
+  // in under a minute. yauzl walks the same ~14.7k entries one at a time inside
+  // the Electron main process and takes upwards of ten — long enough that on
+  // 17/08 the user read it as a hang and killed the app mid-update. Per-file
+  // progress is not worth an order of magnitude of waiting, so tar wins and
+  // yauzl stays as the fallback for machines without it.
+  if (process.platform === "win32") {
+    try {
+      return await extractZipWithTar(zipPath, destDir, onProgress);
+    } catch (err) {
+      if (!yauzl || !err || err.code !== "ENOENT") throw err;
+    }
+  }
+
   if (yauzl) {
     return extractZipWithYauzl(zipPath, destDir, onProgress);
   }
   return extractZipWithShell(zipPath, destDir, onProgress);
+}
+
+/**
+ * Extract with the system tar (bsdtar), which reads ZIP as well as tar.
+ * Rejects with code ENOENT when tar is not installed, so the caller can fall
+ * back; every other failure is a real extraction failure and must surface.
+ */
+function extractZipWithTar(zipPath, destDir, onProgress) {
+  return new Promise((resolve, reject) => {
+    const child = spawn("tar", ["-xf", zipPath, "-C", destDir], {
+      stdio: "pipe",
+      windowsHide: true,
+    });
+    let stderr = "";
+    if (child.stderr) child.stderr.on("data", (c) => { stderr += c.toString(); });
+    child.once("error", reject);
+    child.once("exit", (code) => {
+      if (code === 0) {
+        try { onProgress && onProgress("Extract complete", 100); } catch { void 0; }
+        return resolve();
+      }
+      reject(new Error(`tar extraction failed (code ${code}): ${stderr.slice(0, 300)}`));
+    });
+  });
 }
 
 function extractZipWithShell(zipPath, destDir, onProgress) {
@@ -1148,22 +1186,112 @@ function clearDanglingLink(p) {
   }
 }
 
+// Marks a directory the merge set aside to replace. Anything carrying it is
+// disposable: the live tree is whatever sits at the plain name.
+const ASIDE_MARK = ".w4y-old-";
+
+/**
+ * Drop trees a previous merge could not delete because something still held
+ * them. By the next update the holder is long gone, so this is the cheap way
+ * to keep the engine root from growing a copy per update.
+ */
+function sweepMergeLeftovers(destRoot) {
+  let names;
+  try {
+    names = fs.readdirSync(destRoot);
+  } catch {
+    return;
+  }
+  for (const name of names) {
+    if (!name.includes(ASIDE_MARK)) continue;
+    try {
+      fs.rmSync(path.join(destRoot, name), {
+        recursive: true,
+        force: true,
+        maxRetries: 4,
+        retryDelay: 200,
+      });
+    } catch {
+      // Still held — the next update sweeps it.
+    }
+  }
+}
+
+function pathIsPresent(p) {
+  try {
+    fs.lstatSync(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Replace the engine tree with the extracted one.
+ *
+ * Windows will not delete a file another process has open, and the tree being
+ * replaced is the one this app was running seconds ago. Deleting each entry in
+ * place — as this did until 17/08/2026 — means one locked file leaves the
+ * install shredded: a stray backend held `.venv\Scripts\python.exe`, the merge
+ * died with EPERM having already deleted most of the venv, and the user was
+ * left with no interpreter and an app that could not boot.
+ *
+ * So nothing is destroyed until everything is ours. Each entry is claimed by
+ * renaming it aside, which is the same operation the delete would need and
+ * fails just as loudly — but fails while the install is still intact. If any
+ * claim fails we put back what we took and abort. Only with every entry claimed
+ * do we copy the new tree in.
+ */
 function mergeEngineTree(srcRoot, destRoot) {
   clearDanglingLink(destRoot);
   fs.mkdirSync(destRoot, { recursive: true });
+  sweepMergeLeftovers(destRoot);
+
   const skip = new Set(["__pycache__", ".pytest_cache"]);
   if (!readRuntimeReady(srcRoot)) {
     skip.add(".venv");
     skip.add("venv");
     skip.add("runtime");
   }
-  for (const name of fs.readdirSync(srcRoot)) {
-    if (skip.has(name)) continue;
+
+  const names = fs.readdirSync(srcRoot).filter((name) => !skip.has(name));
+  const stamp = Date.now();
+  const claimed = [];
+
+  try {
+    for (const name of names) {
+      const dst = path.join(destRoot, name);
+      if (!pathIsPresent(dst)) continue;
+      const aside = `${dst}${ASIDE_MARK}${stamp}`;
+      fs.renameSync(dst, aside);
+      claimed.push([aside, dst]);
+    }
+  } catch (err) {
+    for (const [aside, dst] of claimed.reverse()) {
+      try {
+        fs.renameSync(aside, dst);
+      } catch {
+        // Best effort: the copy below never ran, so whatever we could put back
+        // is the install the user had.
+      }
+    }
+    throw new Error(
+      `algo ainda está a usar o motor (${err && err.message}). ` +
+        `Feche outras janelas do Work4You e volte a tentar — nada foi alterado.`
+    );
+  }
+
+  for (const name of names) {
     const src = path.join(srcRoot, name);
     const dst = path.join(destRoot, name);
-    fs.rmSync(dst, { recursive: true, force: true });
-    fs.cpSync(src, dst, { recursive: true, force: true });
+    // The first-run install has always used the platform copier; only this
+    // update path walked the CPython tree file by file in JS, which is where
+    // the minutes went.
+    if (fs.statSync(src).isDirectory()) copyTreeNative(src, dst);
+    else fs.copyFileSync(src, dst);
   }
+
+  sweepMergeLeftovers(destRoot);
 }
 
 /**
