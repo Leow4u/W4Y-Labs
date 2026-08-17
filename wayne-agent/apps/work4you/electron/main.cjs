@@ -63,7 +63,7 @@ const {
   macTitleBarOverlayHeight
 } = require('./titlebar-overlay-width.cjs')
 const { readDirForIpc } = require('./fs-read-dir.cjs')
-const { readLiveUpdateMarker, writeUpdateMarker } = require('./update-marker.cjs')
+const { readLiveUpdateMarker, writeUpdateMarker, clearUpdateMarker } = require('./update-marker.cjs')
 const {
   resolveUnpackedRelease,
   decideRelaunchOutcome,
@@ -5580,6 +5580,10 @@ async function spawnPoolBackend(profile, entry) {
     }
   }
 
+  // Same mutual exclusion the primary backend gets: a profile switch during an
+  // engine update would spawn python.exe out of the venv being replaced.
+  await waitForUpdateToFinish()
+
   const token = crypto.randomBytes(32).toString('base64url')
   // --profile wins over the inherited HERMES_HOME env (see _apply_profile_override
   // step 3 in hermes_cli/main.py), so the child re-homes to this profile.
@@ -7536,20 +7540,35 @@ ipcMain.handle('hermes:updates:apply', async (_event, payload) => {
       typeof w4yHome.resolveSharedEngineRoot === 'function'
         ? w4yHome.resolveSharedEngineRoot(platformRoot)
         : path.join(platformRoot, 'wayne-agent')
-    return w4yAppUpdater.apply(emitUpdateProgress, {
-      // Stop the Python backend before overwriting engine files so Windows
-      // file locks on .pyd / python.exe are released before extraction.
-      stopBackend: async () => {
-        // Capture the reference before resetHermesConnection() nulls hermesProcess,
-        // then wait for the process to fully exit instead of a fixed sleep.
-        // waitForBackendExit will SIGKILL after 5s if needed on Windows.
-        const dying = hermesProcess && !hermesProcess.killed ? hermesProcess : null
-        resetHermesConnection()
-        await waitForBackendExit(dying)
-      },
-      engineRoot,
-      wayneHome: platformRoot
-    })
+    try {
+      return await w4yAppUpdater.apply(emitUpdateProgress, {
+        // Stop the Python backend before overwriting engine files so Windows
+        // file locks on .pyd / python.exe are released before extraction.
+        stopBackend: async () => {
+          // Capture the reference before resetHermesConnection() nulls hermesProcess,
+          // then wait for the process to fully exit instead of a fixed sleep.
+          // waitForBackendExit will SIGKILL after 5s if needed on Windows.
+          const dying = hermesProcess && !hermesProcess.killed ? hermesProcess : null
+          resetHermesConnection()
+          // Extra profiles run their own python.exe out of the SAME .venv, so
+          // killing the primary alone still leaves the engine tree locked.
+          stopAllPoolBackends()
+          await waitForBackendExit(dying)
+          // Downloading and extracting the engine ZIP takes minutes. In that
+          // window the renderer's socket is down, it asks for a connection, and
+          // a fresh backend spawns and re-locks the venv — the merge then dies
+          // with EPERM on .venv (16/08: engine restarted at 21:32:49, EPERM at
+          // 21:32:52). The marker makes those requests park instead.
+          writeUpdateMarker(HERMES_HOME, process.pid)
+        },
+        engineRoot,
+        wayneHome: platformRoot
+      })
+    } finally {
+      // Our own pid owns the marker and outlives the update, so nothing else
+      // would ever clear it.
+      clearUpdateMarker(HERMES_HOME)
+    }
   }
   // Unpackaged: git-based apply (engineering only).
   if (!IS_PACKAGED) {

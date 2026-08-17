@@ -315,6 +315,20 @@ e parte o unzip POSIX — sempre pwsh 7.
 bundles antigos acumulam-se em `app_dist` na máquina do utilizador, tal como o
 `COPY` do Docker os acumulava na imagem. Inertes, mas enganam qualquer grep.
 
+**O chip do motor tem de fechar o portão do update (16/08).** Aplicar o motor
+substitui o `.venv` de onde o próprio backend Python corre. Parar o backend não
+chega: o ZIP demora minutos a descarregar, o renderer fica sem socket, pede
+ligação, e nasce um `python.exe` novo dentro do venv que está prestes a ser
+apagado — `EPERM` no `.venv` a meio da cópia (log do motor: arranque às
+21:32:49, erro às 21:32:52). A exclusão mútua já existia para o updater antigo
+(o marcador `.hermes-update-in-progress`, #50238); o caminho empacotado é que
+nunca o reclamava. Agora `hermes:updates:apply` escreve o marcador **com o pid
+do próprio desktop** (logo, tem de o apagar num `finally` — nada o auto-cura) e
+`spawnPoolBackend` passou a esperar nele como o `startHermes` já fazia. Perfis
+extra contam: correm o seu próprio Python **do mesmo venv**, por isso o
+`stopBackend` do update também chama `stopAllPoolBackends()`. Guarda:
+`electron/engine-update-lock.test.cjs`.
+
 ## ⚠️ 24/7 agendado — wake PARTIAL (atualizado 22/07)
 
 `platform/wayne-fly/fly.wayne-w4y.toml:30-32`: `auto_stop_machines = "suspend"` +

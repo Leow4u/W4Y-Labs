@@ -118,10 +118,27 @@ function writeUpdateMarker(hermesHome, pid, { now = Date.now } = {}) {
   }
 }
 
+/**
+ * Delete the marker.
+ *
+ * The in-app engine update writes the marker with the DESKTOP's own pid — that
+ * pid is still alive when the update ends, so `readLiveUpdateMarker` has no way
+ * to self-heal it and every later backend start would park until the age
+ * ceiling. Whoever writes the marker under its own pid must clear it.
+ */
+function clearUpdateMarker(hermesHome) {
+  try {
+    fs.unlinkSync(markerPath(hermesHome))
+  } catch {
+    // Absent or unreadable: nothing to clear.
+  }
+}
+
 module.exports = {
   UPDATE_MARKER_MAX_AGE_MS,
   markerPath,
   isPidAlive,
   readLiveUpdateMarker,
-  writeUpdateMarker
+  writeUpdateMarker,
+  clearUpdateMarker
 }

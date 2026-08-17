@@ -18,7 +18,7 @@ const fs = require('fs')
 const os = require('os')
 const path = require('path')
 
-const { markerPath, isPidAlive, readLiveUpdateMarker, writeUpdateMarker, UPDATE_MARKER_MAX_AGE_MS } = require('./update-marker.cjs')
+const { markerPath, isPidAlive, readLiveUpdateMarker, writeUpdateMarker, clearUpdateMarker, UPDATE_MARKER_MAX_AGE_MS } = require('./update-marker.cjs')
 
 function tmpHome(tag) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), `hermes-marker-${tag}-`))
@@ -106,6 +106,25 @@ test('writeUpdateMarker is best-effort (no throw on bad path)', () => {
   // A non-existent directory should not throw.
   const badHome = path.join(os.tmpdir(), 'hermes-marker-nonexistent-' + Date.now())
   assert.doesNotThrow(() => writeUpdateMarker(badHome, 4242))
+})
+
+test('clearUpdateMarker removes a marker owned by a live pid', () => {
+  // The in-app engine update writes the marker under the desktop's OWN pid,
+  // which is still alive when the update ends. Nothing self-heals that — only
+  // an explicit clear releases the gate.
+  const home = tmpHome('clear')
+  writeUpdateMarker(home, process.pid)
+  assert.ok(readLiveUpdateMarker(home, { kill: ALIVE }), 'precondition: gate is closed')
+
+  clearUpdateMarker(home)
+
+  assert.ok(!fs.existsSync(markerPath(home)), 'marker file is gone')
+  assert.equal(readLiveUpdateMarker(home, { kill: ALIVE }), null, 'gate is open again')
+})
+
+test('clearUpdateMarker is best-effort (no throw when there is no marker)', () => {
+  const badHome = path.join(os.tmpdir(), 'hermes-marker-nonexistent-' + Date.now())
+  assert.doesNotThrow(() => clearUpdateMarker(badHome))
 })
 
 test('writeUpdateMarker + dead pid => self-heals on read', () => {
