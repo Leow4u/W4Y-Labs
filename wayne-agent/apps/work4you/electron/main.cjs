@@ -7978,6 +7978,16 @@ app.whenReady().then(async () => {
     } catch {
       /* best effort */
     }
+    // app.exit() is a hard exit: no teardown, no chance for Chromium to write
+    // out the cookie jar it batches. The session we just signed in with lives
+    // in that jar, so skipping this can restart the app straight back into a
+    // signed-out state (17/08). Logout depends on it too — the cleared cookies
+    // have to reach disk or they come back.
+    try {
+      await session.defaultSession.cookies.flushStore()
+    } catch {
+      /* best effort */
+    }
     app.relaunch()
     app.exit(0)
   }
