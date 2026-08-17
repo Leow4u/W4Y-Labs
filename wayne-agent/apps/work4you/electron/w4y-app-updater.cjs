@@ -28,7 +28,7 @@
 
 const https = require('node:https')
 const path = require('node:path')
-const { app } = require('electron')
+const { app, session } = require('electron')
 const w4yWayne = require('./w4y-wayne-resolve.cjs')
 const {
   resolvePlatformRoot,
@@ -385,14 +385,24 @@ async function apply(emitProgress, opts = {}) {
     // Motor updated successfully.
     if (!cascAvailable) {
       // Motor-only update: relaunch the entire app so the new engine starts fresh.
+      // Flush cookies first — a hard process exit skips Chromium teardown, and
+      // without a flush the tenant jar can vanish across relaunch. That left
+      // users on "A verificar sessão…" after a chip update (cookies gone, heal slow).
       emit('restart', 'Motor atualizado! Reiniciando Work4You…', 100)
       setImmediate(() => {
-        try {
-          app.relaunch()
-          app.exit(0)
-        } catch {
-          // If relaunch fails (unusual), the user will need to restart manually.
-        }
+        void (async () => {
+          try {
+            await session.defaultSession.cookies.flushStore()
+          } catch {
+            /* best effort — still relaunch */
+          }
+          try {
+            app.relaunch()
+            app.exit(0)
+          } catch {
+            // If relaunch fails (unusual), the user will need to restart manually.
+          }
+        })()
       })
       // Resolve with handedOff so the renderer keeps the "Restarting…" view.
       return { ok: true, handedOff: true }
