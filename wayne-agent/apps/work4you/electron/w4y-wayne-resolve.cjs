@@ -1346,7 +1346,12 @@ function resolveVenvScriptsDir(engineRoot) {
         : path.join(engineRoot, name, "bin");
     const exe = process.platform === "win32" ? "work4you.exe" : "work4you";
     const legacy = process.platform === "win32" ? "wayne.exe" : "wayne";
-    if (exists(path.join(scripts, exe)) || exists(path.join(scripts, legacy))) {
+    const py = process.platform === "win32" ? "python.exe" : "python";
+    if (
+      exists(path.join(scripts, exe)) ||
+      exists(path.join(scripts, legacy)) ||
+      exists(path.join(scripts, py))
+    ) {
       return scripts;
     }
   }
@@ -1354,34 +1359,38 @@ function resolveVenvScriptsDir(engineRoot) {
 }
 
 /**
- * Desktop uv sync uses `.venv/`; older install.ps1 put `venv\Scripts` on PATH.
- * Write stable shims into %LOCALAPPDATA%\wayne\bin (already on PATH) and
- * repair a stale venv\Scripts entry when present.
+ * Write PATH shims that launch the CLI via the engine interpreter + PYTHONPATH.
+ *
+ * Why not `.venv/Scripts/work4you.exe`? That console-script expects
+ * `work4you_cli` installed into the venv's site-packages. After a ready ZIP is
+ * relocated (or when the user's cwd is not the engine root), import fails with
+ * `ModuleNotFoundError: No module named 'work4you_cli'` — while the desktop
+ * still works because it sets PYTHONPATH to the checkout. Put only `bin/` on
+ * PATH so the broken Scripts/*.exe never shadows these shims.
  */
 function ensureCliShims(engineRoot, wayneHome) {
-  const scriptsDir = resolveVenvScriptsDir(engineRoot);
-  if (!scriptsDir || !wayneHome) return;
+  if (!engineRoot || !wayneHome) return;
+
+  const resolved = resolveExistingVenv(engineRoot);
+  if (!resolved || !exists(resolved.python) || !isWayneSourceRoot(engineRoot)) {
+    return;
+  }
 
   const binDir = path.join(wayneHome, "bin");
   fs.mkdirSync(binDir, { recursive: true });
+  const root = path.resolve(engineRoot);
+  const py = path.resolve(resolved.python);
+  const scriptsDir = resolveVenvScriptsDir(engineRoot);
 
   if (process.platform === "win32") {
-    const work4youExe = path.join(scriptsDir, "work4you.exe");
-    const wayneExe = path.join(scriptsDir, "wayne.exe");
-    if (exists(work4youExe)) {
-      fs.writeFileSync(
-        path.join(binDir, "work4you.cmd"),
-        `@echo off\r\n"${work4youExe}" %*\r\n`,
-        "utf8"
-      );
-    }
-    if (exists(wayneExe)) {
-      fs.writeFileSync(
-        path.join(binDir, "wayne.cmd"),
-        `@echo off\r\n"${wayneExe}" %*\r\n`,
-        "utf8"
-      );
-    }
+    // Quote paths: user homes often contain spaces ("Rafael Santos").
+    const cmd =
+      `@echo off\r\n` +
+      `set "PYTHONPATH=${root};%PYTHONPATH%"\r\n` +
+      `"${py}" -m work4you_cli.main %*\r\n`;
+    fs.writeFileSync(path.join(binDir, "work4you.cmd"), cmd, "utf8");
+    // Legacy alias — same entry point, product name is Work4You.
+    fs.writeFileSync(path.join(binDir, "wayne.cmd"), cmd, "utf8");
 
     try {
       const userPath = execFileSync(
@@ -1393,17 +1402,23 @@ function ensureCliShims(engineRoot, wayneHome) {
         ],
         { encoding: "utf8", windowsHide: true, timeout: 15_000 }
       ).trim();
-      const stale = path.join(engineRoot, "venv", "Scripts");
+      const staleScripts = [
+        scriptsDir,
+        path.join(engineRoot, "venv", "Scripts"),
+        path.join(engineRoot, ".venv", "Scripts"),
+      ].filter(Boolean);
+      const staleSet = new Set(staleScripts.map((p) => path.resolve(p).toLowerCase()));
       const parts = userPath.split(";").filter(Boolean);
-      const withoutStale = parts.filter(
-        (p) => path.resolve(p).toLowerCase() !== path.resolve(stale).toLowerCase()
-      );
+      const withoutStale = parts.filter((p) => !staleSet.has(path.resolve(p).toLowerCase()));
       const norm = (p) => path.resolve(p).toLowerCase();
       const hasBin = withoutStale.some((p) => norm(p) === norm(binDir));
-      const hasScripts = withoutStale.some((p) => norm(p) === norm(scriptsDir));
-      const nextParts = [...withoutStale];
-      if (!hasBin) nextParts.unshift(binDir);
-      if (!hasScripts) nextParts.unshift(scriptsDir);
+      const nextParts = hasBin ? withoutStale : [binDir, ...withoutStale];
+      // Keep binDir first so a stray Scripts entry elsewhere cannot win.
+      if (nextParts.length && norm(nextParts[0]) !== norm(binDir)) {
+        const rest = nextParts.filter((p) => norm(p) !== norm(binDir));
+        nextParts.length = 0;
+        nextParts.push(binDir, ...rest);
+      }
       const nextPath = nextParts.join(";");
       if (nextPath !== userPath) {
         execFileSync(
@@ -1422,13 +1437,14 @@ function ensureCliShims(engineRoot, wayneHome) {
     return;
   }
 
+  const sh =
+    `#!/bin/sh\n` +
+    `export PYTHONPATH="${root}\${PYTHONPATH:+:\$PYTHONPATH}"\n` +
+    `exec "${py}" -m work4you_cli.main "$@"\n`;
   for (const name of ["work4you", "wayne"]) {
-    const target = path.join(scriptsDir, name);
     const link = path.join(binDir, name);
-    if (!exists(target)) continue;
     try {
-      fs.rmSync(link, { force: true });
-      fs.symlinkSync(target, link);
+      fs.writeFileSync(link, sh, { encoding: "utf8", mode: 0o755 });
     } catch {
       void 0;
     }
@@ -1541,6 +1557,14 @@ async function ensureWayneEngineForPackaged(destRoot, opts = {}) {
 
   if (exists(destRoot) && isWayneSourceRoot(destRoot) && isReadyRuntime(destRoot)) {
     log("Motor Work4You já está pronto.", 100);
+    // Heal CLI shims even when the tree is already ready — otherwise an
+    // install that once wrote Scripts\work4you.exe onto PATH keeps breaking
+    // `work4you` in the terminal until a full engine reinstall.
+    try {
+      ensureCliShims(destRoot, path.dirname(destRoot));
+    } catch {
+      void 0;
+    }
     return { bundled: Boolean(resolveBundledEngineDir()) };
   }
   if (exists(destRoot)) {
@@ -1706,4 +1730,5 @@ module.exports = {
   isReadyRuntime,
   resolveBundledEngineDir,
   copyTreeNative,
+  ensureCliShims,
 };
