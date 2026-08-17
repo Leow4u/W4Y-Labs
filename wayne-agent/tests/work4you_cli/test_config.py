@@ -77,6 +77,16 @@ class TestEnsureWayneHome:
             ensure_wayne_home()
             assert not soul_path.exists()
 
+    def test_removes_near_match_wayne_soul_md(self, tmp_path):
+        with patch.dict(os.environ, {"WAYNE_HOME": str(tmp_path)}):
+            soul_path = tmp_path / "SOUL.md"
+            soul_path.write_text(
+                "# Wayne Agent Persona\nYou are Wayne Agent, created by Nous Research.\n",
+                encoding="utf-8",
+            )
+            ensure_wayne_home()
+            assert not soul_path.exists()
+
     def test_removes_legacy_template_soul_md(self, tmp_path):
         # Older installers seeded a comment-only scaffold that carried no
         # user persona — remove it so the baked-in identity wins.

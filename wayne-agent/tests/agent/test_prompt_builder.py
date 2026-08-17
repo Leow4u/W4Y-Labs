@@ -752,6 +752,21 @@ class TestBuildContextFilesPrompt:
         result = load_soul_md()
         assert result is None
 
+    def test_near_match_wayne_soul_md_ignored(self, tmp_path, monkeypatch):
+        # Installers/users sometimes wrap the legacy seed in a heading — exact
+        # match alone used to let "You are Wayne Agent…" into the system prompt.
+        from agent.prompt_builder import load_soul_md
+
+        monkeypatch.setenv("WAYNE_HOME", str(tmp_path / "wayne_home"))
+        wayne_home = tmp_path / "wayne_home"
+        wayne_home.mkdir()
+        (wayne_home / "SOUL.md").write_text(
+            "# Wayne Agent Persona\n\n"
+            "You are Wayne Agent, an intelligent AI assistant created by Nous Research.\n",
+            encoding="utf-8",
+        )
+        assert load_soul_md() is None
+
     def test_custom_soul_md_is_loaded(self, tmp_path, monkeypatch):
         from agent.prompt_builder import load_soul_md
 

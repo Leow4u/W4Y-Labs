@@ -1,20 +1,20 @@
 ---
 name: wayne-agent
 description: "Configure, extend, or contribute to Work4You."
-version: 2.3.0
-author: Wayne Agent + Teknium
+version: 2.3.1
+author: Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
   wayne:
-    tags: [wayne, setup, configuration, multi-agent, spawning, cli, gateway, development]
-    homepage: https://github.com/NousResearch/hermes-agent
+    tags: [work4you, setup, configuration, multi-agent, spawning, cli, gateway, development]
+    homepage: https://work4you.ai
     related_skills: [claude-code, codex, opencode]
 ---
 
 # Work4You
 
-Work4You is an AI agent that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. Work4You works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
+Work4You is an AI agent that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and Cursor — autonomous coding and task-execution agents that use tool calling to interact with your system. Work4You works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
 
 What makes Work4You different:
 
@@ -30,17 +30,19 @@ People use Work4You for software development, research, system administration, d
 
 **This skill helps you work with Work4You effectively** — setting it up, configuring features, spawning additional agent instances, troubleshooting issues, finding the right commands and settings, and understanding how the system works when you need to extend or contribute to it.
 
-**Docs:** https://hermes-agent.nousresearch.com/docs/
+**Product identity:** When the user asks who you are, answer only **Work4You** (W4Y Labs).
+
+**Docs:** https://work4you.ai/documentacao
 
 ## Scope & Verification
 
-This skill is a concise operating guide, not the complete source of truth for every Work4You feature. If a Work4You feature, command, or setting is not mentioned here, do not treat that absence as evidence that it does not exist. Check the live repository and official docs before giving a negative answer.
+This skill is a concise operating guide, not the complete source of truth for every Work4You feature. If a Work4You feature, command, or setting is not mentioned here, do not treat that absence as evidence that it does not exist. Check the live product and docs before giving a negative answer.
 
 Good verification targets:
 
 - CLI commands: `work4you --help`, `work4you <command> --help`, and `work4you_cli/main.py`
-- User documentation: https://hermes-agent.nousresearch.com/docs/
-- Source tree: https://github.com/NousResearch/hermes-agent
+- User documentation: https://work4you.ai/documentacao
+- Product site: https://work4you.ai
 
 ## Quick Start
 
@@ -179,7 +181,7 @@ work4you gateway setup        Configure platforms
 
 Supported platforms (20+): Telegram, Discord, Slack, WhatsApp (Baileys bridge + official Business Cloud API), iMessage (Photon — `work4you photon setup`, the BlueBubbles successor with no Mac relay), Signal, Email, SMS, Matrix, Mattermost, Microsoft Teams, LINE, SimpleX, ntfy, Google Chat, Home Assistant, DingTalk, Feishu, WeCom, Weixin (WeChat), Raft (agent network), API Server, Webhooks. Open WebUI connects via the API Server adapter. Most adapters ship under `plugins/platforms/`, so new ones drop in without touching core.
 
-Platform docs: https://hermes-agent.nousresearch.com/docs/user-guide/messaging/
+Platform docs: https://work4you.ai/documentacao/user-guide/messaging/
 
 ### Sessions
 
@@ -252,7 +254,7 @@ work4you update               Update to latest version
 work4you desktop / gui        Launch the native desktop app
 work4you dashboard            Web admin panel + embedded chat
 work4you proxy                OpenAI-compatible local proxy backed by an OAuth provider
-work4you portal               Quick setup / sign in via Nous Portal
+work4you portal               Quick setup / sign in via Work4You account
 work4you kanban <verb>        Multi-agent work-queue board (init/create/list/show/assign/…)
 work4you pairing list/approve/revoke  DM authorization
 work4you plugins list/install/remove  Plugin management
@@ -273,7 +275,7 @@ For the full, authoritative command list run `work4you --help` (and `work4you <c
 
 Type these during an interactive chat session. New commands land fairly
 often; if something below looks stale, run `/help` in-session for the
-authoritative list or see the [live slash commands reference](https://hermes-agent.nousresearch.com/docs/reference/slash-commands).
+authoritative list or see the [live slash commands reference](https://work4you.ai/documentacao/reference/slash-commands).
 The registry of record is `work4you_cli/commands.py` — every consumer
 (autocomplete, Telegram menu, Slack mapping, `/help`) derives from it.
 
@@ -407,7 +409,7 @@ Edit with `work4you config edit` or `work4you config set section.key value`.
 | `checkpoints` | `enabled`, `max_snapshots` (50) |
 | `curator` | `enabled`, `consolidate` (false — opt-in aux-model skill consolidation), `interval_hours`, `stale_after_days` |
 
-Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/configuration
+Full config reference: https://work4you.ai/documentacao/user-guide/configuration
 
 ### Providers
 
@@ -417,7 +419,7 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 |----------|------|-------------|
 | OpenRouter | API key | `OPENROUTER_API_KEY` |
 | Anthropic | API key | `ANTHROPIC_API_KEY` |
-| Nous Portal | OAuth | `work4you auth` |
+| Work4You account | OAuth | `work4you auth` |
 | OpenAI Codex | OAuth | `work4you auth` |
 | GitHub Copilot | Token | `COPILOT_GITHUB_TOKEN` |
 | Google Gemini | API key | `GOOGLE_API_KEY` or `GEMINI_API_KEY` |
@@ -437,7 +439,7 @@ Full config reference: https://hermes-agent.nousresearch.com/docs/user-guide/con
 | Custom endpoint | Config | `model.base_url` + `model.api_key` in config.yaml |
 | GitHub Copilot ACP | External | `COPILOT_CLI_PATH` or Copilot CLI |
 
-Full provider docs: https://hermes-agent.nousresearch.com/docs/integrations/providers
+Full provider docs: https://work4you.ai/documentacao/integrations/providers
 
 ### Toolsets
 
@@ -749,7 +751,7 @@ the `cronjob` tool, the `work4you cron` CLI (`list`, `add`, `edit`,
   header/footer instead of being mirrored into the target gateway
   session (keeps role alternation intact).
 
-User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/cron
+User docs: https://work4you.ai/documentacao/user-guide/features/cron
 
 ### Curator (skill lifecycle)
 
@@ -775,7 +777,7 @@ so nothing is lost.
 
 Config: `curator.*` (`enabled`, `interval_hours`, `min_idle_hours`,
 `stale_after_days`, `archive_after_days`, `backup.*`).
-User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/curator
+User docs: https://work4you.ai/documentacao/user-guide/features/curator
 
 ### Kanban (multi-agent work queue)
 
@@ -804,7 +806,7 @@ sessions still have zero `kanban_*` schema footprint unless configured.
   `WAYNE_KANBAN_BOARD` pinned in env); tenant is a soft namespace
   within a board for workspace-path + memory-key isolation.
 
-User docs: https://hermes-agent.nousresearch.com/docs/user-guide/features/kanban
+User docs: https://work4you.ai/documentacao/user-guide/features/kanban
 
 ---
 
@@ -957,18 +959,18 @@ work4you config set auxiliary.vision.model <model_name>
 
 | Looking for... | Location |
 |----------------|----------|
-| Config options | `work4you config edit` or [Configuration docs](https://hermes-agent.nousresearch.com/docs/user-guide/configuration) |
-| Available tools | `work4you tools list` or [Tools reference](https://hermes-agent.nousresearch.com/docs/reference/tools-reference) |
-| Slash commands | `/help` in session or [Slash commands reference](https://hermes-agent.nousresearch.com/docs/reference/slash-commands) |
-| Skills catalog | `work4you skills browse` or [Skills catalog](https://hermes-agent.nousresearch.com/docs/reference/skills-catalog) |
-| Provider setup | `work4you model` or [Providers guide](https://hermes-agent.nousresearch.com/docs/integrations/providers) |
-| Platform setup | `work4you gateway setup` or [Messaging docs](https://hermes-agent.nousresearch.com/docs/user-guide/messaging/) |
-| MCP servers | `work4you mcp list` or [MCP guide](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp) |
-| Profiles | `work4you profile list` or [Profiles docs](https://hermes-agent.nousresearch.com/docs/user-guide/profiles) |
-| Cron jobs | `work4you cron list` or [Cron docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/cron) |
-| Memory | `work4you memory status` or [Memory docs](https://hermes-agent.nousresearch.com/docs/user-guide/features/memory) |
-| Env variables | `work4you config env-path` or [Env vars reference](https://hermes-agent.nousresearch.com/docs/reference/environment-variables) |
-| CLI commands | `work4you --help` or [CLI reference](https://hermes-agent.nousresearch.com/docs/reference/cli-commands) |
+| Config options | `work4you config edit` or [Configuration docs](https://work4you.ai/documentacao/user-guide/configuration) |
+| Available tools | `work4you tools list` or [Tools reference](https://work4you.ai/documentacao/reference/tools-reference) |
+| Slash commands | `/help` in session or [Slash commands reference](https://work4you.ai/documentacao/reference/slash-commands) |
+| Skills catalog | `work4you skills browse` or [Skills catalog](https://work4you.ai/documentacao/reference/skills-catalog) |
+| Provider setup | `work4you model` or [Providers guide](https://work4you.ai/documentacao/integrations/providers) |
+| Platform setup | `work4you gateway setup` or [Messaging docs](https://work4you.ai/documentacao/user-guide/messaging/) |
+| MCP servers | `work4you mcp list` or [MCP guide](https://work4you.ai/documentacao/user-guide/features/mcp) |
+| Profiles | `work4you profile list` or [Profiles docs](https://work4you.ai/documentacao/user-guide/profiles) |
+| Cron jobs | `work4you cron list` or [Cron docs](https://work4you.ai/documentacao/user-guide/features/cron) |
+| Memory | `work4you memory status` or [Memory docs](https://work4you.ai/documentacao/user-guide/features/memory) |
+| Env variables | `work4you config env-path` or [Env vars reference](https://work4you.ai/documentacao/reference/environment-variables) |
+| CLI commands | `work4you --help` or [CLI reference](https://work4you.ai/documentacao/reference/cli-commands) |
 | Gateway logs | `~/.work4you/logs/gateway.log` |
 | Session files | `work4you sessions browse` (reads state.db) |
 | Source code | `~/.work4you/work4you-agent/` |
@@ -977,7 +979,7 @@ work4you config set auxiliary.vision.model <model_name>
 
 ## Contributor Quick Reference
 
-For occasional contributors and PR authors. Full developer docs: https://hermes-agent.nousresearch.com/docs/developer-guide/
+For occasional contributors and PR authors. Full developer docs: https://work4you.ai/documentacao/developer-guide/
 
 ### Project Layout
 
@@ -986,7 +988,7 @@ wayne-agent/
 ├── run_agent.py          # AIAgent — core conversation loop
 ├── model_tools.py        # Tool discovery and dispatch
 ├── toolsets.py           # Toolset definitions
-├── cli.py                # Interactive CLI (WayneCLI)
+├── cli.py                # Interactive CLI (Work4You CLI)
 ├── work4you_state.py    # SQLite session store
 ├── agent/                # Prompt builder, context compression, memory, model routing, credential pooling, skill dispatch
 ├── work4you_cli/        # CLI subcommands, config, setup, commands

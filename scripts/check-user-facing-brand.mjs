@@ -19,6 +19,7 @@ const SCAN_ROOTS = [
 ]
 
 const SCAN_FILES = [
+  path.join(REPO_ROOT, 'wayne-agent/optional-skills/autonomous-ai-agents/wayne-agent/SKILL.md'),
   path.join(REPO_ROOT, 'wayne-agent/apps/work4you/index.html'),
   path.join(REPO_ROOT, 'platform/web/src/app/onboarding/OnboardingClient.tsx'),
   path.join(REPO_ROOT, 'wayne-agent/apps/work4you/src/app/skills/index.tsx'),
