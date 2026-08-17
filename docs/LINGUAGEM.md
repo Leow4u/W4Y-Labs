@@ -31,6 +31,26 @@ de API. Renomear um rótulo obscuro é bom; explicar o óbvio é condescendênci
 | Profiles | Perfis (mecanismo interno / multi-instância — não “Agent Studio”) |
 | Agent Studio | **Morto** — não usar na copy nem na navegação |
 
+## O que **não** traduzir (i18n)
+
+Ao criar/estender locales (`pt`, `es`, …), espelhar o consenso dos locales maduros
+(`zh` / `ja`) e o chrome EN: **não traduzir por traduzir**.
+
+| Manter em inglês / literal | Exemplos |
+|---|---|
+| Marcas e plataformas | Work4You, Discord, Slack, Telegram, WhatsApp, Gmail, GitHub, OpenRouter, Relay |
+| Labels de plano / modo (chrome) | `Pro`, `Free`, `Hobby`, `Auto`, `Free tier`, `Model catalog` |
+| Siglas / superfície técnica | `MCP`, `URL`, `API`, `OAuth`, `JSON`, `env`, `Tokens` (unidade no painel de contexto) |
+| Nome do componente Gateway | `Gateway` (maiúsculo na prosa; `work4you gateway` no CLI) |
+| Placeholders literais | `publisher.extension`, `example.com`, `@user:server`, IPs/localhost |
+| Verbos git no chrome curto | `Commit`, `Push`, `PR`, `branch`, `diff`, `stage`, `worktree` |
+| **Chaves de objeto** | ids de modelo (`anthropic/claude-sonnet-4.6`), paths de schema (`memory.memory_enabled`), env vars, slash commands — **nunca** partir em nested keys |
+
+Traduzir a frase à volta; **não** “brasileirizar” o token. Glossário acima
+(`Habilidades`, `Agenda`, …) continua a aplicar-se.
+
+Guarda: `apps/work4you/src/i18n/pt-coverage.test.ts` (cobertura + keep-English + **paridade de chaves com pontos** vs `en.ts`).
+
 Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmula-vs-conectores).
 
 ## Já aplicado
@@ -41,9 +61,9 @@ Doutrina completa: [`PRODUTO.md` — Fórmula vs Conectores](./PRODUTO.md#fórmu
 
 ## Próximos
 
-1. Locale `pt-BR` via `defineLocale()` (parcial → EN fallback).  
+1. ~~Locale `pt-BR` via `defineLocale()` (parcial → EN fallback).~~ Catálogo PT-BR completo + keep-English + guarda de chaves (reaberto após revert #33).  
 2. Alinhar copy da página Personalizar ao destino produto (Skills + Conectores + Subagentes; Tools/MCP fora da face) — ver PRODUTO.md.  
-3. Empty states em PT na jornada principal (chat, agenda, entregas).  
+3. Completar `es` / `fr` / `de` (hoje picker-ready com fallback EN).  
 4. Revisar tool titles em `ToolTitleKey` para verbs de negócio.
 5. Favicon / `assets/icon.*` quando a arte final chegar.
 6. Login UI, strip, Composio (produto — fora do banho de marca).
