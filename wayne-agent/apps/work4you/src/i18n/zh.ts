@@ -2479,7 +2479,7 @@ export const zh: Translations = {
     waiting: '等待授权…',
     authSecure: '安全授权',
     connectAppPrompt:
-      '请连接我的 {app}。调用 mcp_composio_COMPOSIO_MANAGE_CONNECTIONS，并把 Connect Link（https://connect.composio.dev/link/...）粘贴到回复中，以便我在聊天中授权。',
+      '请连接我的 {app}。立即调用 mcp_composio_COMPOSIO_MANAGE_CONNECTIONS（请勿先使用 SEARCH_TOOLS），并把 Connect Link（https://connect.composio.dev/link/...）粘贴到回复中，以便我在聊天中授权。',
     connectApps: '连接应用'
   },
 

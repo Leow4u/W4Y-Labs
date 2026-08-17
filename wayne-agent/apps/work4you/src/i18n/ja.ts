@@ -1616,7 +1616,7 @@ export const ja = defineLocale({
     waiting: '承認待ち…',
     authSecure: '安全な承認',
     connectAppPrompt:
-      '{app} を接続してください。mcp_composio_COMPOSIO_MANAGE_CONNECTIONS を呼び、Connect Link（https://connect.composio.dev/link/...）を返信に貼り付けてチャットで承認できるようにしてください。',
+      '{app} を接続してください。すぐに mcp_composio_COMPOSIO_MANAGE_CONNECTIONS を呼び（先に SEARCH_TOOLS を使わないでください）、Connect Link（https://connect.composio.dev/link/...）を返信に貼り付けてチャットで承認できるようにしてください。',
     connectApps: 'アプリを接続'
   },
 

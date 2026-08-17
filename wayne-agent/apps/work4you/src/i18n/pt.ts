@@ -302,7 +302,6 @@ export const pt = defineLocale({
 
   sidebar: {
     nav: {
-      'session.new': 'Nova sessão',
       'new-session': 'Nova sessão',
       cron: 'Automações',
       skills: 'Personalizar',
