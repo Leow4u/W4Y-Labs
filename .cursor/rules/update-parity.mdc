@@ -12,8 +12,8 @@ Toda mudança de **UI, UX ou backend (motor Python)** que afecte o produto agent
 | Superfície | O que publicar | Feed / destino |
 |------------|----------------|----------------|
 | **Renderer** (React) | `npm run build:web` → `work4you_cli/app_dist/` | Incluído no motor ZIP **e** overlay Fly `Dockerfile.ui` |
-| **Casca Electron** | bump versão + `npm run dist:win:nsis` | GCS `latest.yml` + `.exe` |
-| **Motor** (Python) | `platform/wayne-fly/build-engine-zip.ps1` | GCS `latest.json` + zip (`Cache-Control: no-store`) |
+| **Casca Electron** | bump versão + `npm run dist:win:nsis` (**casca fina**, sem motor no NSIS) | GCS `latest.yml` + `.exe` |
+| **Motor** (Python) | ZIP ready (`build-engine-runtime` / CI) | GCS `latest.json` + zip (`Cache-Control: no-store`) — **antes** da casca |
 | **Tenant Fly** | `Dockerfile.ui` → `registry.fly.io/wayne-w4y:flyN+1` | `TENANT_WAYNE_IMAGE` + `WAYNE_IMAGE` no provisioner |
 | **Plataforma** | `platform/infra/deploy-web.ps1` | Cloud Run `w4y-web` (só billing/login/SEO) |
 
@@ -23,10 +23,10 @@ Toda mudança de **UI, UX ou backend (motor Python)** que afecte o produto agent
 2. `cd wayne-agent/apps/work4you && npm run build:web` (gera `app_dist` partilhado).
 3. Motor: build-engine-zip → upload zip + `latest.json` (UTF-8 sem BOM).
 4. Tenant: build/push imagem `wayne-w4y:flyN+1` com `Dockerfile.ui`; actualizar pins (`fly.toml`, `deploy-web.ps1`, `provisioner`).
-5. Casca: bump + `dist:win:nsis` → upload GCS `latest.yml`.
+5. Casca: bump + `dist:win:nsis` (shell-only) → upload GCS `latest.yml`.
 6. Web plataforma: `deploy-web.ps1` se mudou `platform/web`.
 7. Provisioner: rebuild imagem se mudou `platform/provisioner/server.js`.
-8. Validar **só na app instalada** (chip casca + chip motor) e smoke em `app.work4you.ai`.
+8. Validar na **máquina QA** (app instalada + chip) — não na máquina de programador. Ver `docs/RELEASE-QA.md`.
 
 ## Excepções (não exigem paridade)
 
@@ -38,4 +38,6 @@ Toda mudança de **UI, UX ou backend (motor Python)** que afecte o produto agent
 
 - Publicar só casca quando `app_dist` ou Python mudou (utilizador cloud fica desalinhado).
 - Publicar motor ZIP sem `build:web` prévio quando houve diff em `apps/work4you/src`.
+- Publicar casca shell-only **antes** do `latest.json` correspondente (primeira instalação fica sem motor).
 - Apontar `latest.json` a um zip cujo `app_dist` não corresponde ao renderer da casca em GCS.
+- Reembutir `build/engine-runtime` no NSIS sem reverter a política de casca fina.

@@ -2,7 +2,7 @@
   "name": "work4you",
   "productName": "Work4You",
   "private": true,
-  "version": "1.0.120",
+  "version": "1.0.121",
   "description": "Work4You desktop — native agent workspace (official app).",
   "author": "Work4You",
   "type": "module",
@@ -38,7 +38,7 @@
     "test:desktop:nsis": "node scripts/test-desktop.mjs nsis",
     "test:desktop:existing": "node scripts/test-desktop.mjs existing",
     "test:desktop:fresh": "node scripts/test-desktop.mjs fresh",
-    "test:desktop:platforms": "node --test electron/bootstrap-platform.test.cjs electron/hardening.test.cjs electron/backend-env.test.cjs electron/backend-probes.test.cjs electron/backend-ready.test.cjs electron/bootstrap-runner.test.cjs electron/connection-config.test.cjs electron/dashboard-token.test.cjs electron/gateway-ws-probe.test.cjs electron/oauth-net-request.test.cjs electron/desktop-uninstall.test.cjs electron/session-windows.test.cjs electron/link-title-window.test.cjs electron/workspace-cwd.test.cjs electron/fs-read-dir.test.cjs electron/git-root.test.cjs electron/git-review-ops.test.cjs electron/git-review-ops.integration.test.cjs electron/git-worktree-ops.test.cjs electron/windows-child-process.test.cjs electron/update-remote.test.cjs electron/update-count.test.cjs electron/update-rebuild.test.cjs electron/update-marker.test.cjs electron/engine-update-lock.test.cjs electron/engine-merge-atomic.test.cjs electron/casca-install-handoff.test.cjs electron/engine-trust-key.test.cjs electron/engine-manifest-signature.test.cjs electron/tenant-session-handoff.test.cjs electron/update-relaunch.test.cjs electron/engine-manifest-parse.test.cjs electron/windows-user-env.test.cjs electron/wsl-clipboard-image.test.cjs electron/titlebar-overlay-width.test.cjs electron/window-state.test.cjs electron/zoom.test.cjs electron/windows-hermes-resolution.test.cjs electron/oauth-session-request.test.cjs electron/engine-ready-runtime.test.cjs electron/w4y-home.test.cjs",
+    "test:desktop:platforms": "node --test electron/bootstrap-platform.test.cjs electron/hardening.test.cjs electron/backend-env.test.cjs electron/backend-probes.test.cjs electron/backend-ready.test.cjs electron/bootstrap-runner.test.cjs electron/connection-config.test.cjs electron/dashboard-token.test.cjs electron/gateway-ws-probe.test.cjs electron/oauth-net-request.test.cjs electron/desktop-uninstall.test.cjs electron/session-windows.test.cjs electron/link-title-window.test.cjs electron/workspace-cwd.test.cjs electron/fs-read-dir.test.cjs electron/git-root.test.cjs electron/git-review-ops.test.cjs electron/git-review-ops.integration.test.cjs electron/git-worktree-ops.test.cjs electron/windows-child-process.test.cjs electron/update-remote.test.cjs electron/update-count.test.cjs electron/update-rebuild.test.cjs electron/update-marker.test.cjs electron/engine-update-lock.test.cjs electron/engine-merge-atomic.test.cjs electron/casca-install-handoff.test.cjs electron/casca-thin-pack.test.cjs electron/engine-trust-key.test.cjs electron/engine-manifest-signature.test.cjs electron/tenant-session-handoff.test.cjs electron/update-relaunch.test.cjs electron/engine-manifest-parse.test.cjs electron/windows-user-env.test.cjs electron/wsl-clipboard-image.test.cjs electron/titlebar-overlay-width.test.cjs electron/window-state.test.cjs electron/zoom.test.cjs electron/windows-hermes-resolution.test.cjs electron/oauth-session-request.test.cjs electron/engine-ready-runtime.test.cjs electron/w4y-home.test.cjs",
     "typecheck": "tsc -p . --noEmit",
     "lint": "eslint src/ electron/",
     "lint:fix": "eslint src/ electron/ --fix",
@@ -199,10 +199,6 @@
       {
         "from": "assets/icon.ico",
         "to": "icon.ico"
-      },
-      {
-        "from": "build/engine-runtime",
-        "to": "engine"
       }
     ],
     "asar": true,

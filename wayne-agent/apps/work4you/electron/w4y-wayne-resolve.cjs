@@ -177,13 +177,11 @@ function isReadyRuntime(engineRoot) {
 }
 
 /**
- * The ready engine tree the installer laid down, or null for source builds.
+ * Optional ready engine tree next to the shell, or null.
  *
- * Shipped as a DIRECTORY, not an archive: NSIS/DMG already write every file
- * natively at install time, so first run has nothing to decompress. The older
- * layout shipped a 100MB ZIP inside the installer and unpacked its ~12.7k
- * entries with a single-threaded JS unzip on first launch — the installer paid
- * for the files once and the user paid for them again, slowly.
+ * Casca fina (default): packaged apps have no `resources/engine` — first
+ * launch downloads from the GCS feed. Fat packs / local `build/engine-runtime`
+ * still resolve here when present.
  */
 function resolveBundledEngineDir() {
   const candidates = [

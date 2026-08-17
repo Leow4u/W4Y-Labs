@@ -3,15 +3,10 @@
 /**
  * What happens after the shell update finishes downloading.
  *
- * The app quits and hands the .exe to NSIS, which then writes ~700 MB across
- * 13k files because the Python engine ships inside the installer. On 17/08/2026
- * that ran with /S: the window closed, nothing appeared for nine minutes, and
- * the app never came back — the user's report was "fechou e nao abriu
- * novamente". Silent also meant the relaunch depended solely on
- * ExecShellAsUser from a windowless installer, which did not fire.
- *
- * These assertions are source-level on purpose: electron-updater cannot be
- * driven from a unit test.
+ * Historically the app quit into a fat NSIS (~700 MB engine inside) that ran
+ * silent for minutes and often failed to relaunch (17/08). Casca fina removed
+ * the engine from the installer; we still hand off visibly until the field
+ * proves thin updates are reliably short.
  *
  * Run with: node --test electron/casca-install-handoff.test.cjs
  */

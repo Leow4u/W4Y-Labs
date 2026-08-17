@@ -1,17 +1,16 @@
-; Materialize the ready engine into %LOCALAPPDATA%\work4you\wayne-agent during
-; NSIS install so the first app launch has nothing left to prepare (Cursor-like).
+; First-install seed of the motor into %LOCALAPPDATA%\work4you\wayne-agent.
 ;
-; The engine ships as extraResources DIRECTORY -> $INSTDIR\resources\engine.
-; It used to ship as engine-runtime.zip and this macro ran Expand-Archive over
-; ~12.7k entries mid-install; now NSIS has already written those files natively
-; and this is a plain directory copy.
+; Casca fina (17/08/2026): the NSIS no longer embeds resources\engine. When the
+; tree is absent this macro is a no-op and the app downloads the motor from
+; gs://w4y-engine-dist/ on first launch (ensureWayneEngineForPackaged).
 ;
-; robocopy is used rather than Copy-Item: it is multi-threaded and does not
-; choke on the depth of a CPython tree. Exit codes 0-7 are success (1 = files
-; copied); 8 and above are real failures.
+; Legacy fat installers still ship resources\engine; in that case we robocopy
+; into LOCALAPPDATA (and skip when a ready runtime is already there).
+;
+; robocopy exit codes 0-7 are success; 8+ are failures.
 
 !macro customInstall
-  DetailPrint "Preparing Work4You engine..."
+  DetailPrint "Preparing Work4You engine (if bundled)..."
   nsExec::ExecToLog 'powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "\
     $$ErrorActionPreference=\"Stop\";\
     $$src=Join-Path \"$INSTDIR\" \"resources\\engine\";\

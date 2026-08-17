@@ -10,44 +10,26 @@
  * ---------------
  * electron-builder's final packaging step copies the stock `electron`
  * binary into `release/<platform>-unpacked/` and then renames it to the
- * product name (`Hermes`). If a PREVIOUS `npm run pack` was interrupted
- * (Ctrl-C, OOM kill, crash, full disk) the unpacked directory is left in a
- * corrupted partial state: it keeps the already-renamed `LICENSE.electron.txt`
- * and the Chromium payload (.pak/.so/icudtl.dat/chrome-sandbox) but is MISSING
- * the `electron` binary itself.
+ * product name. If a PREVIOUS `npm run pack` was interrupted the unpacked
+ * directory is left in a corrupted partial state and the next run dies with
+ * ENOENT renaming `electron` → product name. Wipe up front so packaging is
+ * idempotent across interrupted runs.
  *
- * On the next run, electron-builder sees the destination directory already
- * populated, skips re-copying the binary it thinks is present, then tries to
- * rename a `electron` file that no longer exists. The build dies with:
- *
- *   ENOENT: no such file or directory, rename
- *   '.../release/linux-unpacked/electron' -> '.../release/linux-unpacked/Hermes'
- *
- * This is a hard failure with no obvious cause for the user — `hermes desktop`
- * just prints "Desktop GUI build failed" and the only fix is to manually
- * `rm -rf` the release directory, which a normal user has no way to know.
- *
- * The packaging step is not idempotent across an interrupted run, so we make
- * it idempotent ourselves: wipe the target unpacked directory up front so
- * electron-builder always stages into a clean tree. This is safe — the
- * directory is a pure build artifact that electron-builder fully recreates
- * on every pack; nothing else depends on its prior contents.
- *
- * Cross-platform: the same partial-state trap exists on macOS
- * (the mac-unpacked Hermes.app bundle) and Windows (win-unpacked), so we
- * clean whatever `appOutDir` electron-builder hands us regardless of platform.
- *
- * Best-effort: a cleanup failure must never mask the real build. We log and
- * resolve rather than throw — worst case electron-builder hits the original
- * ENOENT, which is no worse than not having this hook at all.
- *
- * electron-builder passes a context with:
- *   - appOutDir:            the unpacked app directory about to be staged
- *   - electronPlatformName: 'win32' | 'darwin' | 'linux'
+ * ENGINE POLICY (casca fina, 17/08/2026)
+ * --------------------------------------
+ * The NSIS/DMG no longer embeds `build/engine-runtime`. First launch (and the
+ * update chip) pull the motor from `gs://w4y-engine-dist/latest-*.json`. That
+ * is what made casca updates take 5–10 minutes: every shell bump rewrote
+ * ~700 MB of CPython. Opt back into the fat pack only with
+ * `W4Y_PACK_WITH_ENGINE=1` (legacy / air-gapped experiments).
  */
 
 const fs = require('node:fs')
 const { assertEngineRuntime } = require('./assert-engine-runtime.cjs')
+
+function packWithEngine() {
+  return process.env.W4Y_PACK_WITH_ENGINE === '1'
+}
 
 function cleanStaleAppOutDir(appOutDir) {
   if (!appOutDir || typeof appOutDir !== 'string') {
@@ -56,26 +38,27 @@ function cleanStaleAppOutDir(appOutDir) {
   if (!fs.existsSync(appOutDir)) {
     return false
   }
-  // Recursive + force so a half-written tree (read-only bits, partial files)
-  // can't block the wipe. retry/maxRetries rides out transient EBUSY on
-  // Windows where an AV/indexer may briefly hold a handle.
   fs.rmSync(appOutDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 })
   return true
 }
 
 exports.cleanStaleAppOutDir = cleanStaleAppOutDir
+exports.packWithEngine = packWithEngine
 
 exports.default = async function beforePack(context) {
-  // Gate EVERY target on a matching engine runtime. This throws on purpose:
-  // an installer without the engine is not a degraded build, it is a ~30
-  // minute first launch for every user who downloads it.
-  const { marker } = assertEngineRuntime(
-    context && context.electronPlatformName,
-    context && context.arch
-  )
-  console.log(
-    `[before-pack] engine runtime ok: ${marker.platform}-${marker.arch} (extra=${marker.extra})`
-  )
+  if (packWithEngine()) {
+    const { marker } = assertEngineRuntime(
+      context && context.electronPlatformName,
+      context && context.arch
+    )
+    console.log(
+      `[before-pack] fat pack: engine runtime ok (${marker.platform}-${marker.arch})`
+    )
+  } else {
+    console.log(
+      '[before-pack] shell-only pack — motor vem do feed GCS no primeiro arranque / chip'
+    )
+  }
 
   const appOutDir = context && context.appOutDir
   try {
@@ -83,8 +66,6 @@ exports.default = async function beforePack(context) {
       console.log(`[before-pack] removed stale unpacked dir before staging: ${appOutDir}`)
     }
   } catch (err) {
-    // Never fail the build over cleanup; surface why so a genuinely stuck
-    // directory (permissions, mount) is still diagnosable.
     console.warn(`[before-pack] could not clean ${appOutDir} (${err.message}); continuing`)
   }
 }

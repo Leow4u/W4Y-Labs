@@ -1,11 +1,9 @@
 # Build and publish Work4You desktop for Windows (x64).
 #
-# WHY THIS EXISTS: Windows releases used to be built and uploaded by hand from a
-# developer machine. That is how 1.0.96–1.0.111 shipped from a tree that was
-# never committed (main sat on 1.0.95 the whole time), and how build/installer.nsh
-# — the macro that materializes the engine during install — survived on exactly
-# one computer. A release nobody can reproduce from a clean checkout is not a
-# release. This workflow builds only from what is in the repository.
+# Casca fina (17/08/2026): the NSIS installer is shell-only. The Python engine
+# is built on this runner and published to GCS as a separate ZIP + signed
+# latest.json. First launch / the update chip pull the motor from that feed.
+# That is what stops every casca bump from rewriting ~700 MB of CPython.
 #
 # unsigned=true (default): no code-signing certificate needed.
 
@@ -46,8 +44,7 @@ jobs:
         with:
           enable-cache: true
 
-      # The runtime carries native binaries, so it can only be built on the
-      # target platform. beforePack refuses to package without a matching one.
+      # Built for the motor ZIP feed — NOT embedded in the NSIS (casca fina).
       - name: Build engine runtime (win32-x64)
         working-directory: wayne-agent
         shell: bash
@@ -56,17 +53,15 @@ jobs:
             --out-dir apps/work4you/build/engine-runtime
           cat apps/work4you/build/engine-runtime/runtime-ready.json
 
-      - name: Build NSIS installer
+      - name: Build NSIS installer (shell-only)
         working-directory: wayne-agent/apps/work4you
         env:
           W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64: ${{ secrets.W4Y_ENGINE_UPDATE_PUBLIC_KEY_B64 }}
         run: npm run dist:win:nsis
 
-      # Packaging successfully proves nothing about whether the shipped engine
-      # runs — see the script header for the two failures that reached this far.
-      - name: Verify packaged engine (win32-x64)
+      - name: Verify shell-only pack (no resources/engine)
         working-directory: wayne-agent/apps/work4you
-        run: node scripts/verify-packaged-engine.mjs
+        run: node scripts/verify-shell-only.mjs
 
       - name: Upload build artefacts (CI retention)
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -78,11 +73,6 @@ jobs:
             wayne-agent/apps/work4you/release/latest.yml
           if-no-files-found: error
 
-      # Before anything reaches the bucket, not after. The engine feed is signed
-      # further down; without the key that step would publish a manifest with no
-      # sha256 and no signature, and the desktop's verifyEngineManifest returns
-      # early when both are absent — it would install whatever the bucket serves.
-      # Failing here keeps the shell and the engine from going out half-signed.
       - name: Require the engine signing key
         if: inputs.publish
         shell: bash
@@ -105,24 +95,8 @@ jobs:
         if: inputs.publish
         uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2.2.1
 
-      - name: Publish to GCS
-        if: inputs.publish
-        working-directory: wayne-agent/apps/work4you
-        shell: bash
-        run: |
-          set -euo pipefail
-          VERSION=$(node -p "require('./package.json').version")
-          BUCKET=gs://w4y-engine-dist
-          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-win-x64.exe" "$BUCKET/"
-          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-win-x64.exe.blockmap" "$BUCKET/"
-          # latest.yml drives electron-updater for every installed Windows app,
-          # so it goes LAST — never advertise a version before its bytes exist.
-          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' \
-            cp release/latest.yml "$BUCKET/latest.yml"
-
-      # In-app engine updates need a feed for this platform+arch. The desktop
-      # asks for latest-win32-x64.json and refuses a manifest built for anything
-      # else; the unsuffixed latest.json is the legacy feed older shells read.
+      # Motor feed FIRST — a fresh shell-only install needs latest.json before
+      # the user opens the new casca for the first time.
       - name: Publish engine feed (win32-x64)
         if: inputs.publish
         working-directory: wayne-agent
@@ -142,8 +116,6 @@ jobs:
             exit 1
           fi
 
-          # The feed ships a ZIP; rebuild it from the same checkout that produced
-          # the installer so the two can never advertise different engines.
           node scripts/build-engine-runtime.mjs --out-zip "$ZIP"
           gsutil -h 'Cache-Control:no-store' cp "$ZIP" "$BUCKET/$ARTIFACT"
 
@@ -157,8 +129,6 @@ jobs:
               platform: "win32-x64",
             }));
           '
-          # Adds sha256 over the ZIP and an Ed25519 signature over
-          # version|builtAt|sha256 — the exact message the desktop reconstructs.
           node ../scripts/sign-engine-manifest.mjs \
             --zip "$ZIP" --manifest "${RUNNER_TEMP}/latest-win32-x64.json"
           node -e '
@@ -172,3 +142,17 @@ jobs:
             gsutil -h 'Cache-Control:no-store' -h 'Content-Type:application/json; charset=utf-8' \
               cp "${RUNNER_TEMP}/latest-win32-x64.json" "$BUCKET/$NAME"
           done
+
+      - name: Publish casca to GCS
+        if: inputs.publish
+        working-directory: wayne-agent/apps/work4you
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION=$(node -p "require('./package.json').version")
+          BUCKET=gs://w4y-engine-dist
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-win-x64.exe" "$BUCKET/"
+          gsutil -h 'Cache-Control:no-store' cp "release/Work4You-${VERSION}-win-x64.exe.blockmap" "$BUCKET/"
+          # latest.yml last — never advertise a version before its bytes exist.
+          gsutil -h 'Cache-Control:no-store' -h 'Content-Type:text/yaml; charset=utf-8' \
+            cp release/latest.yml "$BUCKET/latest.yml"
