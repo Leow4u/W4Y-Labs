@@ -7,7 +7,7 @@
  * minimal "?" help chip (shortcuts / get help / feedback), Codex-style.
  */
 import { useStore } from '@nanostores/react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { DOCS_ROUTE, NEW_CHAT_ROUTE } from '@/app/routes'
@@ -39,9 +39,10 @@ import {
   Zap
 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { signOutFromWork4You } from '@/store/account-gate'
+import { $accountSession, accountSessionSignedIn } from '@/store/account-session'
 import { openKeybindPanel } from '@/store/keybinds'
 import { notifyError } from '@/store/notifications'
-import { signOutFromWork4You } from '@/store/account-gate'
 import { $connection } from '@/store/session'
 
 import { prefetchCommandCenter, prefetchSettings } from '../../view-prefetch'
@@ -56,12 +57,6 @@ import {
 const PLANS_URL = 'https://work4you.ai/planos'
 const HELP_URL = 'https://work4you.ai/docs'
 const FEEDBACK_URL = 'https://work4you.ai/feedback'
-
-interface AuthMe {
-  display_name?: string | null
-  email?: string | null
-  user_id?: string | null
-}
 
 function initialsOf(label: string): string {
   const parts = label.split(/[^A-Za-z0-9]+/).filter(Boolean)
@@ -84,41 +79,14 @@ export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenu
   const navigate = useNavigate()
   const { t, locale, setLocale, isSavingLocale } = useI18n()
   const a = t.sidebar.account
-  const [me, setMe] = useState<AuthMe | null>(null)
   const [signingOut, setSigningOut] = useState(false)
-  const [hasPlatformKey, setHasPlatformKey] = useState(false)
+  const session = useStore($accountSession)
+  const me = session.me
   const connection = useStore($connection)
   const updateStatus = useStore($updateStatus)
   const updateApply = useStore($updateApply)
   const backendUpdateStatus = useStore($backendUpdateStatus)
   const backendUpdateApply = useStore($backendUpdateApply)
-
-  useEffect(() => {
-    let cancelled = false
-    const api = window.work4youDesktop?.cloud?.api
-    if (!api) {
-      return
-    }
-
-    void api({ method: 'GET', path: '/api/auth/me' })
-      .then(res => {
-        if (cancelled || !res.ok || !res.json || typeof res.json !== 'object') {
-          return
-        }
-        setMe(res.json as AuthMe)
-      })
-      .catch(() => undefined)
-
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  useEffect(() => {
-    void window.work4youDesktop?.w4y?.hasKey()?.then(res => {
-      setHasPlatformKey(Boolean(res?.hasKey))
-    })
-  }, [])
 
   const email = (me?.email || '').trim()
   const displayName = (me?.display_name || '').trim()
@@ -166,7 +134,7 @@ export function AccountMenu({ onOpenCommandCenter, onOpenSettings }: AccountMenu
   }
 
   const canSignOut = Boolean(window.work4youDesktop?.w4y?.logout)
-  const signedIn = Boolean(email || me?.user_id || hasPlatformKey)
+  const signedIn = accountSessionSignedIn(session)
 
   const signOut = async () => {
     if (signingOut) {

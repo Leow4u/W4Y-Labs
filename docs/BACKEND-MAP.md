@@ -622,11 +622,13 @@ refaz handoff + conectores quando não está — é também assim que um disposi
 que entrou antes dos conectores existirem apanha a key sem ter de sair e voltar
 a entrar. Guarda: `electron/tenant-session-handoff.test.cjs`.
 
-**Por resolver:** há três noções independentes de "tenho sessão" (a porta aceita
-`hasKey`; a barra lateral conta `me || hasKey`; as definições contam só `me`),
-e a app reinicia-se por inteiro em **todos** os logins porque `HERMES_HOME` é
-constante de módulo (`main.cjs:340`) — quando a conta não muda bastava reiniciar
-o motor.
+**Por resolver (era):** havia três noções independentes de "tenho sessão" e a
+app reiniciava-se por inteiro em todos os logins. **Resolvido a seguir ao
+#38:** `$accountSession` (só `/api/auth/me`) é a fonte única — a porta, a
+barra lateral e as definições leem-na; `hasKey` ficou para acesso a modelos.
+E `relaunchForAccountHome(info)` só faz `app.relaunch()` quando
+`info.switched` (pasta da conta mudou); no mesmo home reinicia só o motor via
+`teardownPrimaryBackendAndWait` + `ensureBackend(null)`.
 
 ### Update chip missing when logged in (desktop, 14/08/2026)
 

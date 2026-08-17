@@ -143,11 +143,44 @@ test('the account relaunch flushes cookies before the hard exit', () => {
 test('the login tells its caller whether the tenant session was actually established', () => {
   const body = loginFlowBody()
 
-  // The gate opens on the OpenRouter key alone, so without this a failed
-  // handoff is indistinguishable from a clean login.
   assert.match(
     body,
     /tenantSession: Boolean\(appSession\.ok\)/,
     'a login that half-worked must not report itself as a plain success'
   )
+})
+
+test('same-home login asks for a soft motor restart, not a full app relaunch', () => {
+  const body = loginFlowBody()
+
+  // Until 17/08 every key mint passed switched:true (or equivalent) and the
+  // shell always app.exit(0). Cursor and Claude never do that.
+  assert.match(body, /const homeSwitched = Boolean\(accountSwitch\?\.switched\)/)
+  assert.match(body, /softRestart: needsMotorRestart && !homeSwitched/)
+  assert.match(
+    body,
+    /switched: false/,
+    'the fallback when activateAccount did not run must not force a hard relaunch'
+  )
+})
+
+test('the account handler soft-restarts the motor when the home path did not change', () => {
+  const source = read('main.cjs')
+  const start = source.indexOf('const relaunchForAccountHome')
+  assert.notEqual(start, -1, 'missing relaunchForAccountHome')
+  const body = source.slice(start, source.indexOf('if (IS_MAC)', start))
+
+  assert.match(body, /const homeSwitched = Boolean\(info && info\.switched\)/)
+  assert.match(body, /if \(!homeSwitched\)/)
+  assert.match(body, /await ensureBackend\(null\)/, 'soft path must respawn the primary motor')
+  assert.match(
+    body,
+    /onLoggedOut: \(\) => relaunchForAccountHome\(\{ switched: true \}\)/,
+    'logout always clears the pin — never soft'
+  )
+
+  // Hard exit only on the switched branch.
+  const soft = body.indexOf('if (!homeSwitched)')
+  const hardExit = body.indexOf('app.exit(0)')
+  assert.ok(soft !== -1 && hardExit > soft, 'app.exit must sit after the soft-restart early return')
 })

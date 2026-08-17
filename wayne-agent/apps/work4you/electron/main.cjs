@@ -7964,8 +7964,7 @@ app.whenReady().then(async () => {
   // Work4You Fase 3: real cloud bridge + login IPC; Wayne motor via resolver.
   ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
   w4yCloud.registerCloudIpc(ipcMain)
-  const relaunchForAccountHome = async () => {
-    // Per-tenant WAYNE_HOME only sticks for child processes after a clean restart.
+  const relaunchForAccountHome = async (info) => {
     // Tell the renderer first so open→closed is not toasted as "gateway offline".
     try {
       const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
@@ -7973,6 +7972,42 @@ app.whenReady().then(async () => {
     } catch {
       /* best effort */
     }
+
+    const homeSwitched = Boolean(info && info.switched)
+
+    // Same account home: only the motor needs a new process (it loads .env at
+    // start). Cursor and Claude never relaunch the whole shell on sign-in —
+    // until 17/08 we did on every key mint, which is what made login feel
+    // broken even when it worked. Account A→B (or first pin off the platform
+    // root) still needs a full relaunch: HERMES_HOME is frozen at boot and
+    // session DBs sit under the previous path.
+    if (!homeSwitched) {
+      try {
+        await teardownPrimaryBackendAndWait()
+      } catch {
+        /* best effort */
+      }
+      try {
+        await session.defaultSession.cookies.flushStore()
+      } catch {
+        /* best effort */
+      }
+      try {
+        // Kick the primary so the next getConnection does not wait on a
+        // renderer notice — use-gateway-boot also reconnects on backend-exit.
+        await ensureBackend(null)
+      } catch {
+        /* renderer reconnect will retry */
+      }
+      try {
+        const win = mainWindow && !mainWindow.isDestroyed() ? mainWindow : null
+        win?.webContents?.send("w4y:account-home-soft-restarted")
+      } catch {
+        /* best effort */
+      }
+      return
+    }
+
     try {
       await teardownPrimaryBackendAndWait()
     } catch {
@@ -7994,7 +8029,8 @@ app.whenReady().then(async () => {
   w4yLogin.registerLoginIpc(ipcMain, {
     getMainWindow: () => (mainWindow && !mainWindow.isDestroyed() ? mainWindow : null),
     onAccountSwitched: relaunchForAccountHome,
-    onLoggedOut: relaunchForAccountHome
+    // Logout always clears the account pin — full relaunch, never soft.
+    onLoggedOut: () => relaunchForAccountHome({ switched: true })
   })
   if (IS_MAC) {
     Menu.setApplicationMenu(buildApplicationMenu())

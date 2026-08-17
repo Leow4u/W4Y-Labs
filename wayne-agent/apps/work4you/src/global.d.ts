@@ -23,7 +23,14 @@ declare global {
       }
       w4y: {
         loginUrl: () => Promise<string>
-        login: () => Promise<{ ok: boolean; got?: string; reason?: string }>
+        login: () => Promise<{
+          ok: boolean
+          got?: string
+          reason?: string
+          tenantSession?: boolean
+          softRestart?: boolean
+          switched?: boolean
+        }>
         loginCancel: () => Promise<{ ok: boolean }>
         logout: () => Promise<{ ok: boolean }>
         hasKey: () => Promise<{ ok: boolean; hasKey: boolean }>

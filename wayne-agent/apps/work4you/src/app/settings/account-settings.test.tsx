@@ -45,7 +45,11 @@ const proPlan = {
   }
 }
 
-beforeEach(() => {
+vi.mock('@/store/gateway', () => ({
+  $gateway: gatewayAtom
+}))
+
+beforeEach(async () => {
   fetchAccountPlan.mockResolvedValue(proPlan)
   saveSpendLimit.mockResolvedValue({
     ...proPlan,
@@ -68,12 +72,19 @@ beforeEach(() => {
       }))
     }
   } as never
+  const { $accountSession } = await import('@/store/account-session')
+  $accountSession.set({
+    status: 'signedIn',
+    me: { display_name: 'Leo', email: 'leo@work4you.ai', user_id: 'u1' }
+  })
 })
 
-afterEach(() => {
+afterEach(async () => {
   cleanup()
   vi.clearAllMocks()
   delete (window as { work4youDesktop?: unknown }).work4youDesktop
+  const { $accountSession } = await import('@/store/account-session')
+  $accountSession.set({ status: 'unknown', me: null })
 })
 
 describe('AccountSettings wired', () => {

@@ -26,24 +26,24 @@ import {
   type AccountPlan,
   type AccountUsageMeter
 } from '@/lib/plans'
-import { notify, notifyError } from '@/store/notifications'
 import { signOutFromWork4You } from '@/store/account-gate'
+import {
+  $accountSession,
+  accountSessionSignedIn,
+  refreshAccountSession
+} from '@/store/account-session'
 import { $gateway } from '@/store/gateway'
+import { notify, notifyError } from '@/store/notifications'
 
 import { ListRow, SettingsContent, SettingsGroup, SettingsPageTitle } from './primitives'
-
-interface AuthMe {
-  display_name?: string | null
-  email?: string | null
-  user_id?: string | null
-}
 
 export function AccountSettings() {
   const navigate = useNavigate()
   const { t } = useI18n()
   const a = t.settings.account
   const gateway = useStore($gateway)
-  const [me, setMe] = useState<AuthMe | null>(null)
+  const session = useStore($accountSession)
+  const me = session.me
   const [accountPlan, setAccountPlan] = useState<AccountPlan | null>(null)
   const [meter, setMeter] = useState<AccountUsageMeter | null>(null)
   const [loaded, setLoaded] = useState(false)
@@ -54,34 +54,21 @@ export function AccountSettings() {
 
   useEffect(() => {
     let cancelled = false
-    const api = window.work4youDesktop?.cloud?.api
 
     void (async () => {
       try {
-        if (api) {
-          const [meRes, plan] = await Promise.all([
-            api({ method: 'GET', path: '/api/auth/me' }).catch(() => null),
-            fetchAccountPlan()
-          ])
-          if (cancelled) {
-            return
-          }
-          if (meRes?.ok && meRes.json && typeof meRes.json === 'object') {
-            setMe(meRes.json as AuthMe)
-          }
-          if (plan) {
-            setAccountPlan(plan)
-            setOndemandEnabled(plan.ondemand.enabled)
-            const seed = plan.ondemand.spendLimitUsd || Math.min(10, plan.ondemand.maxSpendLimitUsd || 10)
-            setSpendDraft(String(seed > 0 ? seed : 10))
-          }
-        } else {
-          const plan = await fetchAccountPlan()
-          if (!cancelled && plan) {
-            setAccountPlan(plan)
-            setOndemandEnabled(plan.ondemand.enabled)
-            setSpendDraft(String(plan.ondemand.spendLimitUsd || 10))
-          }
+        if (session.status === 'unknown' || session.status === 'checking') {
+          await refreshAccountSession()
+        }
+        const plan = await fetchAccountPlan()
+        if (cancelled) {
+          return
+        }
+        if (plan) {
+          setAccountPlan(plan)
+          setOndemandEnabled(plan.ondemand.enabled)
+          const seed = plan.ondemand.spendLimitUsd || Math.min(10, plan.ondemand.maxSpendLimitUsd || 10)
+          setSpendDraft(String(seed > 0 ? seed : 10))
         }
       } finally {
         if (!cancelled) {
@@ -93,7 +80,7 @@ export function AccountSettings() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [session.status])
 
   useEffect(() => {
     if (!gateway || gateway.connectionState !== 'open') {
@@ -139,7 +126,7 @@ export function AccountSettings() {
   const ondemandUsed = accountPlan?.ondemand.usedUsd
   const spendLimit = accountPlan?.ondemand.spendLimitUsd ?? 0
   const canSignOut = Boolean(window.work4youDesktop?.w4y?.logout)
-  const signedIn = Boolean(email || me?.user_id)
+  const signedIn = accountSessionSignedIn(session)
 
   const signOut = async () => {
     if (signingOut) {
