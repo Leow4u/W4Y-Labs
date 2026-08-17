@@ -315,19 +315,42 @@ e parte o unzip POSIX — sempre pwsh 7.
 bundles antigos acumulam-se em `app_dist` na máquina do utilizador, tal como o
 `COPY` do Docker os acumulava na imagem. Inertes, mas enganam qualquer grep.
 
-**O chip do motor tem de fechar o portão do update (16/08).** Aplicar o motor
+**O chip do motor tem de fechar o portão do update (16–17/08).** Aplicar o motor
 substitui o `.venv` de onde o próprio backend Python corre. Parar o backend não
-chega: o ZIP demora minutos a descarregar, o renderer fica sem socket, pede
+chega: o ZIP demora a descarregar e a abrir, o renderer fica sem socket, pede
 ligação, e nasce um `python.exe` novo dentro do venv que está prestes a ser
-apagado — `EPERM` no `.venv` a meio da cópia (log do motor: arranque às
-21:32:49, erro às 21:32:52). A exclusão mútua já existia para o updater antigo
-(o marcador `.hermes-update-in-progress`, #50238); o caminho empacotado é que
-nunca o reclamava. Agora `hermes:updates:apply` escreve o marcador **com o pid
-do próprio desktop** (logo, tem de o apagar num `finally` — nada o auto-cura) e
-`spawnPoolBackend` passou a esperar nele como o `startHermes` já fazia. Perfis
-extra contam: correm o seu próprio Python **do mesmo venv**, por isso o
-`stopBackend` do update também chama `stopAllPoolBackends()`. Guarda:
-`electron/engine-update-lock.test.cjs`.
+apagado — `EPERM` a meio da cópia. A exclusão mútua já existia para o updater
+antigo (o marcador `.hermes-update-in-progress`, #50238); o caminho empacotado é
+que nunca o reclamava.
+
+Três lições, uma por tentativa:
+
+1. **Reclamar o marcador.** `hermes:updates:apply` escreve-o **com o pid do
+ próprio desktop** — logo, tem de o apagar num `finally`, porque nada
+ auto-cura um marcador cujo dono continua vivo. `spawnPoolBackend` espera
+ nele como o `startHermes` já fazia, e o `stopBackend` derruba também os
+ perfis extra: correm o seu próprio Python **do mesmo venv**.
+2. **Reclamá-lo *antes* de derrubar o motor.** A 1.0.115 escrevia-o depois de
+ esperar que o backend morresse. O renderer nota o socket em milissegundos e a
+ espera leva segundos: nasceu um backend às 09:05:13 e o marcador só chegou às
+ 09:05:22.
+3. **Nunca destruir antes de ter tudo.** A cópia apagava entrada a entrada, por
+ isso o primeiro ficheiro trancado deixou a instalação em pedaços — venv sem
+ `pyvenv.cfg`, sem interpretador, app que não arranca nem se consegue
+ actualizar. Agora `mergeEngineTree` **reclama cada entrada renomeando-a de
+ lado**: o rename falha exactamente onde o delete falharia, mas falha com a
+ instalação inteira, e o que foi reclamado volta ao sítio. Só com tudo
+ reclamado é que copia.
+
+**E tem de ser rápido.** A extracção corria com yauzl dentro do processo do
+Electron: ~14,7 mil entradas, mais de dez minutos — tempo que o utilizador lê
+como bloqueio e mata a app a meio. O `tar.exe` do Windows abre o mesmo ZIP em
+~50s, e o `robocopy` do `copyTreeNative` copia a árvore em ~11s contra os
+minutos do `fs.cpSync`. O caminho de primeira instalação já usava o copiador
+nativo; só o de actualização é que não.
+
+Guardas: `electron/engine-update-lock.test.cjs` (ordem e posse do marcador) e
+`electron/engine-merge-atomic.test.cjs` (a cópia em duas fases).
 
 ## ⚠️ 24/7 agendado — wake PARTIAL (atualizado 22/07)
 
