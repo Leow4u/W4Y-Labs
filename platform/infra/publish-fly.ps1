@@ -9,15 +9,31 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly238",
-  [string]$ProvisionerTag = "p4",
-  [string]$BaseTenantTag = "fly230",
+  [string]$TenantTag = "fly252",
+  [string]$ProvisionerTag = "p8",
+  [string]$BaseTenantTag = "fly251",
   [switch]$SkipTenant,
   [switch]$SkipProvisioner
 )
 
 $ErrorActionPreference = "Stop"
 . "$PSScriptRoot\_env.ps1"
+
+# docker e fly escrevem o progresso em stderr. Com ErrorActionPreference=Stop cada
+# uma dessas linhas vira erro terminante e o script morre antes de o trabalho
+# arrancar. Dobrar stderr em stdout desarma isso; o veredito continua a ser o
+# código de saída.
+function Invoke-Native {
+  param(
+    [Parameter(Mandatory)][string]$Exe,
+    [Parameter(Mandatory)][string[]]$Arguments,
+    [Parameter(Mandatory)][string]$What
+  )
+  $prev = $ErrorActionPreference
+  $ErrorActionPreference = 'Continue'
+  try { & $Exe @Arguments 2>&1 | Out-Host } finally { $ErrorActionPreference = $prev }
+  if ($LASTEXITCODE -ne 0) { throw "$What failed (exit $LASTEXITCODE)" }
+}
 
 $fly = (Get-Command fly -ErrorAction SilentlyContinue).Source
 if (-not $fly) { throw "fly CLI not found" }
@@ -34,13 +50,11 @@ if (-not $SkipProvisioner) {
   Write-Host "== Provisioner $ProvisionerTag ==" -ForegroundColor Cyan
   Push-Location (Join-Path $script:REPO_ROOT "platform\provisioner")
   try {
-    docker build -t "registry.fly.io/provisioner-w4y:$ProvisionerTag" .
-    if ($LASTEXITCODE -ne 0) { throw "provisioner docker build failed" }
-    & $fly auth docker
-    docker push "registry.fly.io/provisioner-w4y:$ProvisionerTag"
-    if ($LASTEXITCODE -ne 0) { throw "provisioner push failed" }
-    & $fly deploy --image "registry.fly.io/provisioner-w4y:$ProvisionerTag" -a provisioner-w4y --remote-only
-    if ($LASTEXITCODE -ne 0) { throw "provisioner deploy failed" }
+    $img = "registry.fly.io/provisioner-w4y:$ProvisionerTag"
+    Invoke-Native docker @('build', '-t', $img, '.') 'provisioner docker build'
+    Invoke-Native $fly @('auth', 'docker') 'fly auth docker'
+    Invoke-Native docker @('push', $img) 'provisioner push'
+    Invoke-Native $fly @('deploy', '--image', $img, '-a', 'provisioner-w4y', '--remote-only') 'provisioner deploy'
     Write-Host "OK provisioner-w4y:$ProvisionerTag" -ForegroundColor Green
   } finally { Pop-Location }
 }
@@ -65,19 +79,35 @@ if (-not $SkipTenant) {
 
   Push-Location $engineRoot
   try {
+    # Builds on Fly's remote builder, never locally. Each tag adds layers on top
+    # of the previous one and the base crossed 496 layers in ago/2026: the local
+    # docker driver then refuses the first COPY with "mount options is too long",
+    # because overlayfs takes the lowerdir list in a single 4096-byte mount
+    # option. The remote builder does not have that ceiling.
+    Invoke-Native $fly @(
+      'deploy', '--build-only', '--push', '--remote-only',
+      '--dockerfile', (Join-Path $script:REPO_ROOT "platform\wayne-fly\Dockerfile.ui"),
+      '--build-arg', "BASE_IMAGE=registry.fly.io/wayne-w4y:$BaseTenantTag",
+      '--image-label', $TenantTag,
+      '-c', (Join-Path $script:REPO_ROOT "platform\wayne-fly\fly.wayne-w4y.toml")
+    ) 'tenant ui remote build'
+
+    # `fly deploy --image` would try to CREATE a machine here: the wayne-w4y
+    # machine predates Fly Launch and carries no process group, so deploy does
+    # not recognise it as its own and fails on volume capacity in gru. Update
+    # the machines that exist instead.
     $prevEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
-    docker build -f (Join-Path $script:REPO_ROOT "platform\wayne-fly\Dockerfile.ui") `
-      --build-arg "BASE_IMAGE=registry.fly.io/wayne-w4y:$BaseTenantTag" `
-      -t "registry.fly.io/wayne-w4y:$TenantTag" . 2>&1 | Out-Host
+    $machinesJson = (& $fly machines list -a wayne-w4y --json 2>$null) -join "`n"
     $ErrorActionPreference = $prevEap
-    if ($LASTEXITCODE -ne 0) { throw "tenant ui docker build failed" }
-    & $fly auth docker
-    docker push "registry.fly.io/wayne-w4y:$TenantTag"
-    if ($LASTEXITCODE -ne 0) { throw "tenant push failed" }
-    & $fly deploy --image "registry.fly.io/wayne-w4y:$TenantTag" `
-      -c (Join-Path $script:REPO_ROOT "platform\wayne-fly\fly.wayne-w4y.toml") --remote-only
-    if ($LASTEXITCODE -ne 0) { throw "wayne-w4y deploy failed" }
+    $machines = @($machinesJson | ConvertFrom-Json)
+    if (-not $machines) { throw "wayne-w4y has no machines to update" }
+    foreach ($m in $machines) {
+      Invoke-Native $fly @(
+        'machine', 'update', $m.id, '--image', "registry.fly.io/wayne-w4y:$TenantTag",
+        '-a', 'wayne-w4y', '-y'
+      ) "machine $($m.id) update"
+    }
     Write-Host "OK wayne-w4y:$TenantTag" -ForegroundColor Green
     Write-Host "Actualize TENANT_WAYNE_IMAGE / WAYNE_IMAGE para registry.fly.io/wayne-w4y:$TenantTag e corra deploy-web.ps1" -ForegroundColor Yellow
   } finally { Pop-Location }

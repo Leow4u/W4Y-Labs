@@ -1,5 +1,5 @@
 # Tenant-isolation overlay — COPY-only (Depot blocks some dashboard_auth overwrites).
-ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly244
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly251
 FROM ${BASE_IMAGE}
 
 COPY work4you_cli/app_dist /opt/wayne/wayne_cli/app_dist

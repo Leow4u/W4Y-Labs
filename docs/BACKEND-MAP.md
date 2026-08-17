@@ -42,6 +42,8 @@ Mudança de UI/UX/motor → publicar **todos** os artefactos do mesmo commit: `b
 | `_heal_dead_cwd` sonda o disco e REESCREVE `session["cwd"]`; pasta Windows em host Linux só sobrevive porque `dirname` POSIX quebra na 1ª volta — **sorte, não projeto; não "melhorar" esse loop** | `server.py:1428-1465` | ✅ |
 | `COPY` do Docker MESCLA `app_dist` (não substitui) — sem `rm -rf` antes, bundles acumulam (82 no fly193) e enganam grep | `platform/wayne-fly/Dockerfile.ui` e `.projects` (já corrigidos) | ✅ |
 | Gateway aparece no `ps` como `wayne gateway run` (NÃO "tui_gateway"; grafia legada da imagem actual — com o CLI rebrandado passa a `work4you gateway run`); traceback `gateway-default.tmp` no boot é benigno | diagnóstico fly189 | ✅ |
+| Imagem do tenant **já não constrói em Docker local**: cada `flyN` acrescenta camadas à anterior e o `fly250` chegou a **496**; o overlayfs recebe a lista de `lowerdir` numa única opção de montagem de 4096 bytes, e o primeiro `COPY` morre em `mount options is too long`. Construir no builder remoto (`fly deploy --build-only --push`) | `platform/infra/publish-fly.ps1` (já corrigido, ago/2026) | ✅ |
+| `fly deploy --image` na app `wayne-w4y` tenta **criar** máquina: a que existe é anterior ao Fly Launch e não tem process group, logo o deploy não a reconhece e estoira em capacidade no `gru`. Actualizar com `fly machine update <id> --image` | `publish-fly.ps1`, incidente fly251 | ✅ |
 
 ## Segurança / multi-tenant — o que foi verificado (16/07)
 
