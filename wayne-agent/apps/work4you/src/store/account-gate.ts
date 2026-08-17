@@ -5,6 +5,12 @@
  * Identity is `$accountSession` (`/api/auth/me`). An OpenRouter key on disk is
  * model access, not proof of login — treating it as such left the gate open
  * while every tenant surface said "Sem sessão" (17/08).
+ *
+ * Safety (must never leave the user stranded after a chip update):
+ * - Cheap `/me` first — if cookies survived, open immediately.
+ * - Credential heal is budgeted; after the budget we show Continuar.
+ * - A late heal that restores the tenant still opens the gate.
+ * - Concurrent refresh calls share one in-flight promise.
  */
 import { atom } from 'nanostores'
 
@@ -22,6 +28,10 @@ export interface AccountGateState {
   error: null | string
   phase: AccountGatePhase
 }
+
+/** Hard ceiling for boot heal. Fly wake + SSO can be slow; past this the user
+ *  must see Continuar — never an endless "A verificar sessão…". */
+export const ACCOUNT_GATE_CHECK_BUDGET_MS = 20_000
 
 export function w4yAccountGateEnabled(): boolean {
   return cloudRunAvailable()
@@ -45,36 +55,99 @@ export function accountGateBlocksApp(phase: AccountGatePhase): boolean {
   return phase === 'checking' || phase === 'required' || phase === 'signing-in'
 }
 
+let gateRefreshInFlight: Promise<boolean> | null = null
+
+async function markGateOpen(): Promise<void> {
+  const { ensurePlatformOnboardingComplete } = await import('./onboarding')
+  ensurePlatformOnboardingComplete()
+  $accountGate.set({ phase: 'idle', error: null })
+}
+
+function healCredentialsInBackground(): void {
+  const ensure = window.work4youDesktop?.w4y?.ensureCredentials
+  if (!ensure) return
+  void Promise.resolve(ensure()).catch(() => undefined)
+}
+
 /**
  * Heal credentials first (tenant SSO + Composio key when possible), then ask
- * the tenant who we are. The gate opens only on that answer.
+ * the tenant who we are. The gate opens only on that answer — but never waits
+ * unbounded on heal (post-update relaunch used to strand users on checking).
+ *
+ * Not `async`: callers must share the same in-flight Promise reference when
+ * gate + desktop-controller both refresh on mount.
  */
-export async function refreshAccountGate(): Promise<boolean> {
+export function refreshAccountGate(): Promise<boolean> {
   if (!w4yAccountGateEnabled()) {
     $accountGate.set({ phase: 'idle', error: null })
-    return true
+    return Promise.resolve(true)
   }
 
+  if (gateRefreshInFlight) {
+    return gateRefreshInFlight
+  }
+
+  gateRefreshInFlight = runRefreshAccountGate().finally(() => {
+    gateRefreshInFlight = null
+  })
+  return gateRefreshInFlight
+}
+
+async function runRefreshAccountGate(): Promise<boolean> {
   $accountGate.set({ phase: 'checking', error: null })
 
-  // Same-home soft login and cold boots both land here: ensureCredentials
-  // re-runs the tenant handoff when cookies died but the model key survived.
+  // Fast path: cookies still good after relaunch / motor chip — enter now.
   try {
-    await window.work4youDesktop?.w4y?.ensureCredentials?.()
+    if (await refreshAccountSession()) {
+      await markGateOpen()
+      healCredentialsInBackground()
+      return true
+    }
   } catch {
-    /* identity check below decides */
+    /* heal below */
   }
 
-  const signedIn = await refreshAccountSession()
+  const ensure = window.work4youDesktop?.w4y?.ensureCredentials
+  const heal = ensure
+    ? Promise.resolve(ensure()).catch(() => null)
+    : Promise.resolve(null)
 
-  if (signedIn) {
-    const { ensurePlatformOnboardingComplete } = await import('./onboarding')
-    ensurePlatformOnboardingComplete()
-    $accountGate.set({ phase: 'idle', error: null })
-    return true
+  let timedOut = false
+  await Promise.race([
+    heal,
+    new Promise<void>(resolve => {
+      setTimeout(() => {
+        timedOut = true
+        resolve()
+      }, ACCOUNT_GATE_CHECK_BUDGET_MS)
+    })
+  ])
+
+  try {
+    if (await refreshAccountSession()) {
+      await markGateOpen()
+      return true
+    }
+  } catch {
+    /* required below */
   }
 
+  // Fail-open to the Continuar screen — never leave checking forever.
   $accountGate.set({ phase: 'required', error: null })
+
+  if (timedOut) {
+    void heal.then(async () => {
+      if ($accountGate.get().phase !== 'required') return
+      try {
+        if (await refreshAccountSession()) {
+          await markGateOpen()
+        }
+      } catch {
+        /* stay on Continuar */
+      }
+    })
+  }
+
   return false
 }
 

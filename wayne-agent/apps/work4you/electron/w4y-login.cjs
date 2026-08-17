@@ -617,20 +617,21 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
   const healed = hasKey ? await healTenantSession() : { ok: false };
 
   if (minted && typeof onAccountSwitched === "function") {
-    try {
-      // Pass the real activateAccount result: first pin off the platform root
-      // is switched=true (full relaunch); minting into an already-pinned home
-      // is switched=false (soft motor restart only).
-      await onAccountSwitched(
+    // Never await motor restart here. ensureCredentials runs on every boot
+    // behind the account gate — awaiting soft ensureBackend after a motor ZIP
+    // (or a hung spawn) stranded users on "A verificar sessão…" with Continuar
+    // disabled. Fire-and-forget: tenant identity does not need the local motor.
+    void Promise.resolve(
+      onAccountSwitched(
         accountSwitch || {
           switched: false,
           home: resolveWayneHome(),
           previousTenantId: null,
         },
-      );
-    } catch {
+      ),
+    ).catch(() => {
       /* relaunch may exit the process */
-    }
+    });
   }
 
   return {
