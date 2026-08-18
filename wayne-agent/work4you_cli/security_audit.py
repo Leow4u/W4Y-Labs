@@ -1,4 +1,4 @@
-"""On-demand supply-chain audit for Wayne Agent installs.
+"""On-demand supply-chain audit for Work4You installs.
 
 Scans three surfaces a Wayne user actually controls and we can map to
 upstream advisories without auth or extra binaries:

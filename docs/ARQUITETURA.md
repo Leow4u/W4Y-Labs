@@ -5,7 +5,7 @@
 
 > **Revisão 2026-07-03 (v3):** a infraestrutura passa a ser **Google Cloud** para tudo que
 > precisar. Mantidos: **OpenRouter** (motor de modelos), **Composio** (conectores),
-> **ReactFlow** (workflow UI) e o runtime **Wayne Agent** (fork do
+> **ReactFlow** (workflow UI) e o runtime **Work4You** (fork do
 > [Hermes Agent](https://github.com/NousResearch/hermes-agent), Nous Research, MIT —
 > ver [`wayne-agent/CREDITS.md`](../wayne-agent/CREDITS.md)). Único ponto fora do Google:
 > **Stripe** para cobrança B2C (o Google Cloud não faz billing de revenda).
@@ -68,7 +68,7 @@ Plataforma **multi-tenant, multi-usuário** de **agentes de IA autônomos e pers
 
 | Capacidade | ❌ NÃO construir | ✅ Reusar (decisão) |
 |---|---|---|
-| Runtime de agente (loop, tools, memória, skills) | Loop/runtime próprio | **Wayne Agent** (fork do Hermes Agent, MIT) |
+| Runtime de agente (loop, tools, memória, skills) | Loop/runtime próprio | **Work4You** (fork do Hermes Agent, MIT) |
 | Hospedagem das instâncias (1 por tenant) | Servidor/VM próprio | **Fly.io** (1 Machine/tenant, volume persistente, suspend/wake) — *runtime real; ver v5* |
 | Autenticação + Organizações (tenants) | Login/RBAC próprio | **Identity Platform** (multi-tenancy nativo) + Firebase Auth |
 | Registry + estado de sessão/run | ORM/DB próprio | **Cloud SQL (PostgreSQL)** |
@@ -137,7 +137,7 @@ Plataforma **multi-tenant, multi-usuário** de **agentes de IA autônomos e pers
 
 > **Escala-alvo: 2.000 usuários** (multi-tenant). Requisito registrado em 2026-07-04.
 
-O Wayne Agent é **single-user por instância**. A plataforma vira multi-tenant por **isolamento de serviço**:
+O Work4You é **single-user por instância**. A plataforma vira multi-tenant por **isolamento de serviço**:
 
 - **Granularidade da instância — decisão de Fase 2 (dimensionada para 2.000 usuários):**
   - *M0 (atual):* 1 serviço Cloud Run compartilhado de desenvolvimento.
@@ -195,13 +195,13 @@ usage_events(id, tenant_id, run_id, kind[llm|tool|runtime], units, cost_cents, t
 
 ## 5. Fronteiras dos pilares (sem sobreposição)
 
-- **Wayne Agent = runtime.** Loop, memória/aprendizado, skills, tools, gateway. Roda em **Fly.io** (`wayne-w4y`, volume `/opt/data`).
+- **Work4You = runtime.** Loop, memória/aprendizado, skills, tools, gateway. Roda em **Fly.io** (`wayne-w4y`, volume `/opt/data`).
 - **OpenRouter = único gateway de modelos.** First-class no Wayne; agentes do Studio escolhem model IDs do OpenRouter. Nunca chamamos provedores direto (e por isso **não** usamos Vertex AI Agent Engine, que é Gemini-cêntrico).
 - **Composio = braços externos**, via MCP, OAuth por usuário.
 - **Google Cloud = plataforma** (identidade, dados, storage, segredos, agendamento, eventos, uso, observabilidade, landing `w4y-web`, CI). *O runtime Wayne roda no **Fly** — ver v5.*
 - **Stripe = cobrança** ao cliente final.
 
-## 5.1 Adaptações do fork Wayne Agent
+## 5.1 Adaptações do fork Work4You
 
 1–4 (higiene do rename, já aplicadas): self-update desativado, `debug share` sem egress público, skills dual-namespace, npm workspaces. Ver [`wayne-agent/FORK-NOTES.md`](../wayne-agent/FORK-NOTES.md).
 5. **(nova, GCP) Estado externalizado para Cloud Run** — session store → Cloud SQL; memória/skills/artefatos → Cloud Storage; segredos → Secret Manager; telemetria → BigQuery/Cloud Trace (OpenTelemetry). É a **única adaptação não-trivial** (troca de backend de estado; reusa serviços prontos, não constrói store).
@@ -212,7 +212,7 @@ usage_events(id, tenant_id, run_id, kind[llm|tool|runtime], units, cost_cents, t
 
 | Camada | Serviço |
 |---|---|
-| Runtime de agentes | **Wayne Agent** (fork Hermes Agent, MIT) |
+| Runtime de agentes | **Work4You** (fork Hermes Agent, MIT) |
 | Hospedagem (runtime) | **Fly.io** (`wayne-w4y`, volume `/opt/data`) — *ver v5* |
 | Front (landing) | **Cloud Run** (`w4y-web`, Next.js) |
 | Auth + Tenancy | **Identity Platform** + Firebase Auth |
@@ -237,7 +237,7 @@ usage_events(id, tenant_id, run_id, kind[llm|tool|runtime], units, cost_cents, t
 ## 7. Decisões travadas (2026-07-03)
 
 1. ✅ **Infra = Google Cloud** para tudo que precisar.
-2. ✅ **Runtime = Wayne Agent em Fly.io** (`wayne-w4y`, volume `/opt/data`, suspend/wake). *(v3 previa Cloud Run + estado externalizado; superado pela v4 — ver v5.)*
+2. ✅ **Runtime = Work4You em Fly.io** (`wayne-w4y`, volume `/opt/data`, suspend/wake). *(v3 previa Cloud Run + estado externalizado; superado pela v4 — ver v5.)*
 3. ✅ **Registry/sessão/run = Cloud SQL (PostgreSQL)**.
 4. ✅ **Uso + Observabilidade = 100% Google** (BigQuery + Looker Studio + Cloud Trace/Monitoring).
 5. ✅ **Mantidos:** OpenRouter (modelos), Composio (conectores/MCP), ReactFlow (workflow), Stripe (cobrança).

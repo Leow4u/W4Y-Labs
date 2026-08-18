@@ -1,5 +1,5 @@
 """
-Unified tool configuration for Wayne Agent.
+Unified tool configuration for Work4You.
 
 `wayne tools` and `wayne setup tools` both enter this module.
 Select a platform → toggle toolsets on/off → for newly enabled tools

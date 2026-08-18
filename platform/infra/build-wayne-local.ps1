@@ -1,4 +1,4 @@
-# Build the Wayne Agent image locally for linux/amd64 (Cloud Run target).
+# Build the Work4You image locally for linux/amd64 (Cloud Run target).
 # Two stages: the upstream-close base image, then the thin Cloud Run overlay
 # (platform/wayne-cloudrun) that seeds config.yaml + runs `gateway run`.
 #

@@ -8,7 +8,7 @@ description: >
   running locally.
 platforms: [linux, macos, windows]
 version: 1.0.0
-author: Wayne Agent + Nous Research
+author: Work4You + Nous Research
 license: MIT
 metadata:
   wayne:

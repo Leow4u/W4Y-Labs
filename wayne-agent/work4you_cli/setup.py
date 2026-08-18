@@ -1,5 +1,5 @@
 """
-Interactive setup wizard for Wayne Agent.
+Interactive setup wizard for Work4You.
 
 Modular wizard with independently-runnable sections:
   1. Model & Provider — choose your AI provider and model

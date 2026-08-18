@@ -458,7 +458,7 @@ de PID; toolset `wayne-cli` em `config.yaml` existentes; `DEFAULT_PROJECT_NAME`
 do Photon (chave find-or-create do serviço).
 
 **Identificadores externos registados** — mudar parte a integração:
-`DEFAULT_NOUS_CLIENT_ID='wayne-cli'` (OAuth do Nous Portal), `X-Title: Wayne Agent`
+`DEFAULT_NOUS_CLIENT_ID='wayne-cli'` (OAuth do Nous Portal), `X-Title: Work4You`
 enviado ao OpenRouter, fórmula Homebrew `wayne-agent`.
 
 **Família de modelos da Nous.** `nousresearch/wayne-3-*` e `wayne-4-*` são modelos

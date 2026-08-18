@@ -1,5 +1,5 @@
 """
-Single source of truth for provider identity in Wayne Agent.
+Single source of truth for provider identity in Work4You.
 
 Two data sources, merged at runtime:
 

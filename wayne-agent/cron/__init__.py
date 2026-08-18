@@ -1,5 +1,5 @@
 """
-Cron job scheduling system for Wayne Agent.
+Cron job scheduling system for Work4You.
 
 This module provides scheduled task execution, allowing the agent to:
 - Run automated tasks on schedules (cron expressions, intervals, one-shot)

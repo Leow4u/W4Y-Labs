@@ -1,4 +1,4 @@
-"""Shared constants for Wayne Agent.
+"""Shared constants for Work4You.
 
 Import-safe module with no dependencies — can be imported from anywhere
 without risk of circular imports.

@@ -2,7 +2,7 @@
 name: wayne-s6-container-supervision
 description: Modify, debug, or extend the s6-overlay supervision tree inside the Work4You Docker image — adding new services, debugging profile gateways, understanding the Architecture B main-program pattern.
 version: 1.0.0
-author: Wayne Agent
+author: Work4You
 license: MIT
 platforms: [linux]
 environments: [s6]

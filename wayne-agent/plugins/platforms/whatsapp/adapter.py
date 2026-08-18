@@ -631,7 +631,7 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
             # with_wayne_node_path() copies os.environ when called with no arg.
             bridge_env = with_wayne_node_path()
             # Always pass the effective prefix so the Node bridge never falls back
-            # to its own legacy default (pre-rebrand "Wayne Agent" header).
+            # to its own legacy default (pre-rebrand "Work4You" header).
             bridge_env["WHATSAPP_REPLY_PREFIX"] = self._effective_reply_prefix()
             # Pass the profile-aware cache directories so the bridge writes
             # media where the Python side reads it.  Without these the bridge

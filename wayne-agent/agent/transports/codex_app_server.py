@@ -156,7 +156,7 @@ class CodexAppServerClient:
     def initialize(
         self,
         client_name: str = "wayne",
-        client_title: str = "Wayne Agent",
+        client_title: str = "Work4You",
         client_version: str = "0.1",
         capabilities: Optional[dict] = None,
         timeout: float = 10.0,

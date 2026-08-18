@@ -1,6 +1,6 @@
 # Photon sidecar
 
-Small Node helper that bridges Wayne Agent to Photon's Spectrum SDK
+Small Node helper that bridges Work4You to Photon's Spectrum SDK
 (`spectrum-ts`).  Wayne is Python; Photon has no public HTTP
 send-message endpoint today; replies therefore go through this sidecar.
 

@@ -9,7 +9,7 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly254",
+  [string]$TenantTag = "fly255",
   [string]$ProvisionerTag = "p9",
   [string]$BaseTenantTag = "fly252",
   [switch]$SkipTenant,
@@ -88,7 +88,8 @@ if (-not $SkipTenant) {
     $gwDst = Join-Path $stage "opt\wayne\tui_gateway"
     $cliDst = Join-Path $stage "opt\wayne\wayne_cli"
     $authDst = Join-Path $cliDst "dashboard_auth"
-    New-Item -ItemType Directory -Force -Path $toolsDst, $gwDst, $cliDst, $authDst | Out-Null
+    $agentDst = Join-Path $stage "opt\wayne\agent"
+    New-Item -ItemType Directory -Force -Path $toolsDst, $gwDst, $cliDst, $authDst, $agentDst | Out-Null
     # desktop_body has no work4you_* imports; the rest need .wayne.py renames
     # so the Fly base (wayne_cli / wayne_constants) can import them.
     Copy-Item (Join-Path $engineRoot "tools\desktop_body.py") $toolsDst
@@ -98,6 +99,9 @@ if (-not $SkipTenant) {
     Copy-Item (Join-Path $engineRoot "work4you_cli\app_dist") (Join-Path $cliDst "app_dist") -Recurse
     Copy-Item (Join-Path $engineRoot "work4you_cli\platform_tenant.wayne.py") (Join-Path $cliDst "platform_tenant.py")
     Copy-Item (Join-Path $engineRoot "work4you_cli\web_server.wayne.py") (Join-Path $cliDst "web_server.py")
+    Copy-Item (Join-Path $engineRoot "work4you_cli\default_soul.wayne.py") (Join-Path $cliDst "default_soul.py")
+    Copy-Item (Join-Path $engineRoot "agent\prompt_builder.wayne.py") (Join-Path $agentDst "prompt_builder.py")
+    Copy-Item (Join-Path $engineRoot "agent\conversation_loop.wayne.py") (Join-Path $agentDst "conversation_loop.py")
     # Auth/SSO variants — fly252 shipped a corrupted platform_sso.py
     # (`function _secret` SyntaxError → 500 on /auth/platform-sso).
     foreach ($name in @(

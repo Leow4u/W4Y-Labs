@@ -370,7 +370,7 @@ class OpenRouterVideoGenProvider(VideoGenProvider):
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             "HTTP-Referer": "https://github.com/NousResearch/hermes-agent",
-            "X-Title": "Wayne Agent",
+            "X-Title": "Work4You",
         }
 
         last_error: Optional[Dict[str, Any]] = None

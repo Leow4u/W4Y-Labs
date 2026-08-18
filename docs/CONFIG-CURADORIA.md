@@ -1,4 +1,4 @@
-# Curadoria da tela de Configuração — Wayne Agent / Work4You
+# Curadoria da tela de Configuração — Work4You / Work4You
 
 > Documento de trabalho da curadoria campo a campo da tela de Configuração do dashboard Wayne.
 > Método: prints/leitura de código + conversa + benchmark (telas de configuração do Claude) → decisão → implementação em blocos.

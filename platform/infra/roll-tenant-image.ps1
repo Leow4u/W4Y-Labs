@@ -6,11 +6,11 @@
 #   cd platform/infra
 #   .\roll-tenant-image.ps1 -Apps wayne-rafael-santos-558b29b,wayne-flavia-xxxx
 #   .\roll-tenant-image.ps1 -EmailHints rafael,flavia
-#   .\roll-tenant-image.ps1 -Image registry.fly.io/wayne-w4y:fly254 -AllWayneApps
+#   .\roll-tenant-image.ps1 -Image registry.fly.io/wayne-w4y:fly255 -AllWayneApps
 #
 [CmdletBinding()]
 param(
-  [string]$Image = 'registry.fly.io/wayne-w4y:fly254',
+  [string]$Image = 'registry.fly.io/wayne-w4y:fly255',
   [string[]]$Apps = @(),
   [string[]]$EmailHints = @(),
   [switch]$AllWayneApps,

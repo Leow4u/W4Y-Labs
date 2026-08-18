@@ -2,7 +2,7 @@
 name: xurl
 description: "X/Twitter via xurl CLI: post, search, DM, media, v2 API."
 version: 1.1.1
-author: xdevplatform + openclaw + Wayne Agent
+author: xdevplatform + openclaw + Work4You
 license: MIT
 platforms: [linux, macos]
 prerequisites:

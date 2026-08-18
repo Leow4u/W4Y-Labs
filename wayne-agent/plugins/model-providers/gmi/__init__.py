@@ -13,7 +13,7 @@ gmi = ProviderProfile(
     env_vars=("GMI_API_KEY", "GMI_BASE_URL"),
     base_url="https://api.gmi-serving.com/v1",
     auth_type="api_key",
-    # Attribution so GMI can identify traffic from Wayne Agent.
+    # Attribution so GMI can identify traffic from Work4You.
     # The generic profile.default_headers fallback in run_agent.py and
     # agent/auxiliary_client.py picks this up at client construction time.
     default_headers={"User-Agent": f"WayneAgent/{_WAYNE_VERSION}"},

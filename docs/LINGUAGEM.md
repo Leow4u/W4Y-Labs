@@ -84,7 +84,13 @@ canónica = `DEFAULT_AGENT_IDENTITY` em `agent/prompt_builder.py` (**Work4You**)
 
 `SOUL.md` no disco só é override avançado; seeds legados (Wayne/Nous) e
 ficheiros que ainda digam “You are Wayne Agent…” são ignorados e apagados em
-`ensure_wayne_home()`. O skill interno `wayne-agent` fala do produto como
-Work4You e aponta docs para `work4you.ai` — nunca `hermes-agent.nousresearch.com`.
+`ensure_wayne_home()` / `ensure_tenant_home()` / `load_soul_md()`. O skill
+interno `wayne-agent` fala do produto como Work4You e aponta docs para
+`work4you.ai` — nunca `hermes-agent.nousresearch.com`.
+
+**Fly:** o overlay (`prepare-fly-overlay.mjs` + `publish-fly.ps1`) **tem** de
+incluir `agent/prompt_builder.py`, `agent/conversation_loop.py` e
+`work4you_cli/default_soul.py`. Sem isso o motor partilhado (`wayne-w4y`)
+continua a ensinar a marca antiga no system prompt.
 
 Guarda: `tests/agent/test_identity_brand.py` + `node scripts/check-user-facing-brand.mjs`.

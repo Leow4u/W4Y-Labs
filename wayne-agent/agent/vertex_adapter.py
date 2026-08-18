@@ -1,4 +1,4 @@
-"""Vertex AI (Google Cloud) adapter for Wayne Agent.
+"""Vertex AI (Google Cloud) adapter for Work4You.
 
 Provides authentication and configuration for Vertex AI's OpenAI-compatible
 endpoint. This allows Wayne to use Gemini models via Google Cloud with

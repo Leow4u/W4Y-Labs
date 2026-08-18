@@ -461,7 +461,7 @@ _PROVIDERS_WITHOUT_VISION: frozenset = frozenset({
 # reads; the previous `X-OpenRouter-Title` label was not recognized there.
 _OR_HEADERS_BASE = {
     "HTTP-Referer": "https://hermes-agent.nousresearch.com",
-    "X-Title": "Wayne Agent",
+    "X-Title": "Work4You",
     "X-OpenRouter-Categories": "productivity,cli-agent",
 }
 
@@ -643,7 +643,7 @@ def _codex_cloudflare_headers(access_token: str) -> Dict[str, str]:
     crash at client construction.
     """
     headers = {
-        "User-Agent": "codex_cli_rs/0.0.0 (Wayne Agent)",
+        "User-Agent": "codex_cli_rs/0.0.0 (Work4You)",
         "originator": "codex_cli_rs",
     }
     if not isinstance(access_token, str) or not access_token.strip():

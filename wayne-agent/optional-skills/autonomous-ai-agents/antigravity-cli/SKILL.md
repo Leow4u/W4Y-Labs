@@ -2,7 +2,7 @@
 name: antigravity-cli
 description: "Operate the Antigravity CLI (agy): plugins, auth, sandbox."
 version: 0.2.0
-author: Tony Simons (asimons81), Wayne Agent
+author: Tony Simons (asimons81), Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

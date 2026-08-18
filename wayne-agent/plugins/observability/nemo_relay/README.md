@@ -4,12 +4,12 @@ Optional Wayne observability plugin that maps Wayne observer hooks to
 NeMo Relay scopes, LLM spans, tool spans, marks, ATOF, and ATIF.
 
 NeMo Relay is NVIDIA's runtime layer for agent execution boundaries. It does
-not replace Wayne Agent's planner, tools, memory, model provider routing, or
+not replace Work4You's planner, tools, memory, model provider routing, or
 CLI UX. Instead, this plugin lets Wayne emit NeMo Relay lifecycle events for
 the work Wayne already owns: sessions, turns, provider/API calls, tool calls,
 approval prompts, and delegated subagents.
 
-With this plugin enabled, Wayne Agent can:
+With this plugin enabled, Work4You can:
 
 - Preserve Wayne execution as NeMo Relay scopes, LLM spans, tool spans, and
   mark events.
@@ -157,7 +157,7 @@ mode = "overwrite"
 enabled = true
 output_directory = ".nemo-relay/atif"
 filename_template = "trajectory-{session_id}.json"
-agent_name = "Wayne Agent"
+agent_name = "Work4You"
 agent_version = "local"
 ```
 
@@ -236,7 +236,7 @@ export WAYNE_NEMO_RELAY_ATOF_MODE=overwrite
 export WAYNE_NEMO_RELAY_ATIF_ENABLED=1
 export WAYNE_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=/tmp/wayne-nemo-relay-docs/subagent/atif
 export WAYNE_NEMO_RELAY_ATIF_FILENAME_TEMPLATE='nested-subagent-atif-{session_id}.json'
-export WAYNE_NEMO_RELAY_ATIF_AGENT_NAME='Wayne Agent E2E'
+export WAYNE_NEMO_RELAY_ATIF_AGENT_NAME='Work4You E2E'
 export WAYNE_NEMO_RELAY_ATIF_AGENT_VERSION=docs-example
 export WAYNE_NEMO_RELAY_ATIF_SUBAGENT_EXPORT_MODE=all
 
@@ -272,7 +272,7 @@ Sanitized ATIF excerpt:
 {
   "schema_version": "ATIF-v1.7",
   "session_id": "docs-parent-session",
-  "agent": {"name": "Wayne Agent E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
+  "agent": {"name": "Work4You E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
   "steps": [
     {
       "source": "agent",
@@ -322,7 +322,7 @@ export WAYNE_NEMO_RELAY_ATOF_MODE=overwrite
 export WAYNE_NEMO_RELAY_ATIF_ENABLED=1
 export WAYNE_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=/tmp/wayne-nemo-relay-docs/parallel/atif
 export WAYNE_NEMO_RELAY_ATIF_FILENAME_TEMPLATE='parallel-tools-atif-{session_id}.json'
-export WAYNE_NEMO_RELAY_ATIF_AGENT_NAME='Wayne Agent E2E'
+export WAYNE_NEMO_RELAY_ATIF_AGENT_NAME='Work4You E2E'
 export WAYNE_NEMO_RELAY_ATIF_AGENT_VERSION=docs-example
 
 wayne chat \
@@ -358,7 +358,7 @@ Sanitized ATIF excerpt:
 {
   "schema_version": "ATIF-v1.7",
   "session_id": "docs-parallel-session",
-  "agent": {"name": "Wayne Agent E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
+  "agent": {"name": "Work4You E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
   "steps": [
     {
       "source": "agent",

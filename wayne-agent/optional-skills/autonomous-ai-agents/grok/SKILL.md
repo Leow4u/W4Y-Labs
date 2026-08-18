@@ -2,7 +2,7 @@
 name: grok
 description: "Delegate coding to xAI Grok Build CLI (features, PRs)."
 version: 0.1.0
-author: Matt Maximo (MattMaximo), Wayne Agent
+author: Matt Maximo (MattMaximo), Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

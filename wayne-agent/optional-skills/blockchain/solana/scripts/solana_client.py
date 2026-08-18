@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Solana Blockchain CLI Tool for Wayne Agent
+Solana Blockchain CLI Tool for Work4You
 --------------------------------------------
 Queries the Solana JSON-RPC API and CoinGecko for enriched on-chain data.
 Uses only Python standard library — no external packages required.

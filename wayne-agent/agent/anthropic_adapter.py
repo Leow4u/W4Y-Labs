@@ -1,4 +1,4 @@
-"""Anthropic Messages API adapter for Wayne Agent.
+"""Anthropic Messages API adapter for Work4You.
 
 Translates between Wayne's internal OpenAI-style message format and
 Anthropic's Messages API. Follows the same pattern as the codex_responses
@@ -2530,7 +2530,7 @@ def build_anthropic_kwargs(
             if isinstance(block, dict) and block.get("type") == "text":
                 text = block.get("text", "")
                 # Brand-migration note: the prompt now says "Work4You" where it
-                # used to say "Wayne Agent". Both spellings are stripped so the
+                # used to say "Work4You". Both spellings are stripped so the
                 # sanitizer keeps working across mixed-version prompt text.
                 # Only the *branded* forms are rewritten — the lowercase
                 # ``work4you`` CLI verb is left alone, otherwise the model would
@@ -2539,7 +2539,7 @@ def build_anthropic_kwargs(
                 text = text.replace("Work4You agent", "Claude Code")
                 text = text.replace("Work4You", "Claude Code")
                 text = text.replace("work4you-agent", "claude-code")
-                text = text.replace("Wayne Agent", "Claude Code")
+                text = text.replace("Work4You", "Claude Code")
                 text = text.replace("Wayne agent", "Claude Code")
                 text = text.replace("wayne-agent", "claude-code")
                 text = text.replace("Nous Research", "Anthropic")

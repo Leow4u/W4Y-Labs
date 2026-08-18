@@ -2,7 +2,7 @@
 name: openclaw-migration
 description: Migrate a user's OpenClaw customization footprint into Work4You. Imports Work4You-compatible memories, SOUL.md, command allowlists, user skills, and selected workspace assets from ~/.openclaw, then reports exactly what could not be migrated and why.
 version: 1.0.0
-author: Wayne Agent (Nous Research)
+author: Work4You (Nous Research)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

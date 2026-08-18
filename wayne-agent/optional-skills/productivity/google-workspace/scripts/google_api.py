@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Google Workspace API CLI for Wayne Agent.
+"""Google Workspace API CLI for Work4You.
 
 Uses the Google Workspace CLI (`gws`) when available, but preserves the
 existing Wayne-facing JSON contract and falls back to the Python client

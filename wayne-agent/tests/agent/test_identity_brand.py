@@ -33,3 +33,41 @@ def test_claims_legacy_product_brand_catches_near_matches():
     assert is_product_seeded_soul(
         "You are Wayne Agent, an intelligent AI assistant created by Nous Research."
     )
+
+
+def test_heal_legacy_product_soul_unlinks_seed(tmp_path):
+    from work4you_cli.default_soul import heal_legacy_product_soul
+
+    soul = tmp_path / "SOUL.md"
+    soul.write_text(
+        "You are Wayne Agent, an intelligent AI assistant created by Nous Research.",
+        encoding="utf-8",
+    )
+    assert heal_legacy_product_soul(tmp_path) is True
+    assert not soul.exists()
+
+
+def test_heal_legacy_product_soul_keeps_custom_persona(tmp_path):
+    from work4you_cli.default_soul import heal_legacy_product_soul
+
+    soul = tmp_path / "SOUL.md"
+    soul.write_text("You are a concise technical expert. No fluff.", encoding="utf-8")
+    assert heal_legacy_product_soul(tmp_path) is False
+    assert soul.exists()
+
+
+def test_stored_prompt_rejects_legacy_brand_identity():
+    from agent.conversation_loop import _stored_prompt_matches_runtime
+
+    class _Agent:
+        model = "x"
+        provider = "y"
+
+    legacy = (
+        "You are Wayne Agent, an intelligent AI assistant created by Nous Research.\n"
+        "Model: x\n"
+        "Provider: y\n"
+    )
+    assert _stored_prompt_matches_runtime(_Agent(), legacy) is False
+    clean = "You are Work4You.\nModel: x\nProvider: y\n"
+    assert _stored_prompt_matches_runtime(_Agent(), clean) is True

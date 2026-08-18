@@ -357,6 +357,19 @@ def ensure_tenant_home(tenant_id: str) -> Path:
             _write_tenant_env(home, key)
 
     ensure_tenant_platform_config(home, plan)
+    # Shared-motor volumes still hold SOUL.md / MEMORY.md seeded as Work4You
+    # before the Work4You identity bake-in. Heal on every ensure so chat cannot
+    # keep teaching the old brand after a Fly overlay.
+    try:
+        from wayne_cli.default_soul import (
+            heal_legacy_brand_memory_files,
+            heal_legacy_product_soul,
+        )
+
+        heal_legacy_product_soul(home)
+        heal_legacy_brand_memory_files(home)
+    except Exception as exc:
+        _log.debug("tenant soul heal skipped tenant=%s err=%s", tenant_id, exc)
     return home
 
 

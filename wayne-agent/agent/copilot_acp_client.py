@@ -625,7 +625,7 @@ class CopilotACPClient:
                     },
                     "clientInfo": {
                         "name": "wayne-agent",
-                        "title": "Wayne Agent",
+                        "title": "Work4You",
                         "version": "0.0.0",
                     },
                 },

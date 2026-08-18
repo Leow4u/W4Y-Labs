@@ -2,7 +2,7 @@
 name: shop
 description: "Shop catalog search, checkout, order tracking, returns."
 version: 1.0.1
-author: Joe Rinaldi Johnson (joerj123), Wayne Agent
+author: Joe Rinaldi Johnson (joerj123), Work4You
 license: MIT
 platforms: [linux, macos, windows]
 prerequisites:

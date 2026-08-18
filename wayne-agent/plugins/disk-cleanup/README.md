@@ -1,6 +1,6 @@
 # disk-cleanup
 
-Auto-tracks and cleans up ephemeral files created during Wayne Agent
+Auto-tracks and cleans up ephemeral files created during Work4You
 sessions — test scripts, temp outputs, cron logs, stale chrome profiles.
 Scoped strictly to `$WAYNE_HOME` and `/tmp/wayne-*`.
 

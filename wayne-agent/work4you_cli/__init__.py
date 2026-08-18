@@ -1,5 +1,5 @@
 """
-Wayne CLI - Unified command-line interface for Wayne Agent.
+Wayne CLI - Unified command-line interface for Work4You.
 
 Provides subcommands for:
 - wayne chat          - Interactive chat (same as ./wayne)

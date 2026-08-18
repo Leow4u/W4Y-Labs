@@ -89,7 +89,7 @@ Z={QUERY}
 
 ---
 
-## Using with Wayne Agent
+## Using with Work4You
 
 ### As ephemeral system prompt (config.yaml)
 
