@@ -9,9 +9,9 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly252",
-  [string]$ProvisionerTag = "p8",
-  [string]$BaseTenantTag = "fly251",
+  [string]$TenantTag = "fly255",
+  [string]$ProvisionerTag = "p9",
+  [string]$BaseTenantTag = "fly254",
   [switch]$SkipTenant,
   [switch]$SkipProvisioner
 )
