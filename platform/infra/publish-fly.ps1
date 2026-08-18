@@ -9,9 +9,9 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly255",
+  [string]$TenantTag = "fly256",
   [string]$ProvisionerTag = "p9",
-  [string]$BaseTenantTag = "fly254",
+  [string]$BaseTenantTag = "fly255",
   [switch]$SkipTenant,
   [switch]$SkipProvisioner
 )
@@ -103,6 +103,8 @@ if (-not $SkipTenant) {
     # because overlayfs takes the lowerdir list in a single 4096-byte mount
     # option. The remote builder does not have that ceiling — but it still
     # rejects *additional* COPY/RUN on this base, so the stage above matters.
+    # If `fly deploy --build-only` still dies with COPY invalid argument, use
+    # platform/infra/publish-fly-ui-crane.sh (crane append) instead of Dockerfile.ui.
     Invoke-Native $fly @(
       'deploy', '--build-only', '--push', '--remote-only',
       '--dockerfile', (Join-Path $script:REPO_ROOT "platform\wayne-fly\Dockerfile.ui"),

@@ -1,5 +1,7 @@
 # Tenant UI + F3 PC-folder bridge — ONE COPY layer.
-# fly251 is at the overlayfs ceiling; extra COPY/RUN dies with "invalid argument".
+# fly251+ is at the overlayfs ceiling; extra COPY/RUN dies with "invalid argument".
+# When even this single COPY fails on Depot, publish with:
+#   platform/infra/publish-fly-ui-crane.sh
 # publish-fly.ps1 stages files into .fly-ui-overlay/ before this build.
 ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly251
 FROM ${BASE_IMAGE}
