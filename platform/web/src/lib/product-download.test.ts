@@ -57,3 +57,12 @@ describe("resolveDesktopDownloadTarget", () => {
     expect(t.href).toBe("/#install-terminal");
   });
 });
+
+describe("F2 — web first-class (L0 CTAs off)", () => {
+  it("signed-in enter goes to SSO, not /baixar", async () => {
+    const { browserEnter, browserEnterAuthed, desktopLaunchPublic } = await import("./product-download");
+    expect(desktopLaunchPublic()).toBe(false);
+    expect(browserEnterAuthed()).toBe("/login/enter");
+    expect(browserEnter()).toBe("/login?next=/login/enter");
+  });
+});
