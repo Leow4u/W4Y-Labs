@@ -48,16 +48,25 @@ type CloudBridge = {
   canMutate?: () => Promise<boolean>
 }
 
-export function cloudBridge(): CloudBridge | null {
+/** Tenant REST/WS bridge — desktop Electron IPC or browser same-origin. */
+export function cloudApiBridge(): CloudBridge | null {
   if (typeof window === 'undefined') return null
   const w4y = window.work4youDesktop
   const c = w4y?.cloud
   if (!c || typeof c.api !== 'function' || typeof c.wsUrl !== 'function') {
     return null
   }
-  // Full cloud run-target UX (local vs cloud chip) is desktop-only; browser
-  // still exposes cloud.api for plan gating and account settings.
-  if (w4y?.isDesktop !== true) {
+  return c
+}
+
+/**
+ * Desktop-only: Local vs Cloud chip + account gate that depend on Electron
+ * cookies. Browser SPA is already on the tenant — use {@link cloudApiBridge}.
+ */
+export function cloudBridge(): CloudBridge | null {
+  const c = cloudApiBridge()
+  if (!c) return null
+  if (window.work4youDesktop?.isDesktop !== true) {
     return null
   }
   return c
@@ -68,7 +77,7 @@ export function cloudRunAvailable(): boolean {
 }
 
 export async function mintCloudWsUrl(): Promise<string> {
-  const c = cloudBridge()
+  const c = cloudApiBridge()
   if (!c) throw new Error(CLOUD_UNAVAILABLE)
   const r = await c.wsUrl()
   if (!r?.ok || !r.url) {
@@ -88,7 +97,7 @@ export async function probeCloudLogin(): Promise<boolean | null> {
 }
 
 async function cloudRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
-  const c = cloudBridge()
+  const c = cloudApiBridge()
   if (!c) throw new Error(CLOUD_UNAVAILABLE)
   const res = await c.api({ method, path, body })
   if (!res?.ok) {

@@ -76,4 +76,24 @@ describe('cloud bridge login probe', () => {
     await expect(mintCloudWsUrl()).rejects.toThrow(CLOUD_NOT_LOGGED_IN)
     await expect(probeCloudLogin()).resolves.toBe(false)
   })
+
+  it('mints WS tickets from the browser cloud bridge (no isDesktop)', async () => {
+    vi.stubGlobal('window', {
+      work4youDesktop: {
+        isDesktop: false,
+        cloud: {
+          wsUrl: vi.fn(async () => ({ ok: true, url: 'wss://app.work4you.ai/api/ws?ticket=t' })),
+          api: vi.fn()
+        }
+      }
+    })
+
+    const { mintCloudWsUrl, cloudBridge, cloudApiBridge, cloudRunAvailable } = await import(
+      './w4y-cloud-projects'
+    )
+    await expect(mintCloudWsUrl()).resolves.toContain('ticket=t')
+    expect(cloudApiBridge()).not.toBeNull()
+    expect(cloudBridge()).toBeNull()
+    expect(cloudRunAvailable()).toBe(false)
+  })
 })
