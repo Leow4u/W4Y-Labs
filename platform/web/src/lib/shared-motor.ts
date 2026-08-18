@@ -1,27 +1,28 @@
 import "server-only";
 
-/** Phase L0 — ship desktop first; browser chat and shared motor stay off prod. */
+/**
+ * L0 (browser congelado + motor no PC) está revogado.
+ * Claude v1: 1 email = 1 Fly `wayne-<slug>`. Nunca wayne-w4y para cliente.
+ * @see docs/PLANO-CLAUDE-V1.md
+ */
+
+/** @deprecated L0 — sempre false. Signup provisiona Fly dedicada. */
 export function desktopLaunchMode(): boolean {
-  return (process.env.W4Y_LAUNCH_MODE ?? "").trim().toLowerCase() === "desktop";
+  return false;
 }
 
-/** Default post-login path (verify, abrir, onboarding ready). */
+/** Default post-login: SSO para o tenant da sessão. */
 export function postLoginDestination(): string {
-  return desktopLaunchMode() ? "/baixar" : "/login/enter";
+  return "/login/enter";
 }
 
-/** Human label for CTAs when launch mode is active. */
 export function postLoginCtaLabel(locale: "pt" | "en" = "pt"): string {
-  if (!desktopLaunchMode()) {
-    return locale === "en" ? "Open Work4You" : "Abrir o Work4You";
-  }
-  return locale === "en" ? "Download the app" : "Baixar aplicativo";
+  return locale === "en" ? "Open Work4You" : "Abrir o Work4You";
 }
 
-/** Shared multi-tenant Fly motor (Claude-style instant login). */
+/** Motor partilhado wayne-w4y NÃO é caminho de cliente. */
 export function sharedMotorEnabled(): boolean {
-  if (desktopLaunchMode()) return false;
-  return (process.env.W4Y_SHARED_MOTOR ?? "1") === "1";
+  return false;
 }
 
 export function sharedFlyApp(): string {
@@ -43,9 +44,7 @@ export function sharedMotorUrl(): string {
   return `https://${sharedFlyApp()}.fly.dev`;
 }
 
-/** Free-tier tenants use the shared motor; paid plans keep dedicated Fly apps. */
-export function useSharedMotorForPlan(plan: string): boolean {
-  if (!sharedMotorEnabled()) return false;
-  const p = plan.trim().toLowerCase();
-  return p === "free" || p === "";
+/** Todos os planos: Fly dedicada. Free não partilha wayne-w4y. */
+export function useSharedMotorForPlan(_plan: string): boolean {
+  return false;
 }
