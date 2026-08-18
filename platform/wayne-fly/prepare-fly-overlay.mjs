@@ -2,10 +2,17 @@
 // ===========================================================================
 // Fly tenant overlay — generate the `.wayne.py` variants
 // ===========================================================================
-// The Fly base image still ships the engine under its pre-rebrand package
-// names (`/opt/wayne/wayne_cli/`, top-level `wayne_state`), while this repo
-// has moved to `work4you_cli` / `work4you_state`. Dockerfile.ui therefore
-// COPYs a renamed variant of each file it overrides:
+// Source of truth for the engine is the Work4You package tree
+// (`work4you_cli`, `work4you_constants`, …). The Fly *base* image still lives
+// under `/opt/wayne/` with import names `wayne_cli` / `wayne_constants` for
+// historical reasons. Two mechanisms keep cloud aligned with desktop:
+//
+// 1) This script generates `.wayne.py` variants of selected files (pure
+//    module renames) that Dockerfile.ui / publish-fly.ps1 COPY into place.
+// 2) publish-fly.ps1 also stages the canonical `work4you_*.py` top-level
+//    modules PLUS the thin `wayne_*.py` legacy aliases from the repo
+//    (sys.modules swap). Work4You is truth; wayne_* re-exports — never the
+//    reverse.
 //
 //     COPY work4you_cli/web_server.wayne.py /opt/wayne/wayne_cli/web_server.py
 //

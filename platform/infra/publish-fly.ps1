@@ -9,9 +9,9 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly257",
+  [string]$TenantTag = "fly258",
   [string]$ProvisionerTag = "p9",
-  [string]$BaseTenantTag = "fly256",
+  [string]$BaseTenantTag = "fly257",
   [switch]$SkipTenant,
   [switch]$SkipProvisioner
 )
@@ -95,21 +95,30 @@ if (-not $SkipTenant) {
     Copy-Item (Join-Path $engineRoot "work4you_cli\app_dist") (Join-Path $cliDst "app_dist") -Recurse
     Copy-Item (Join-Path $engineRoot "work4you_cli\platform_tenant.wayne.py") (Join-Path $cliDst "platform_tenant.py")
     Copy-Item (Join-Path $engineRoot "work4you_cli\web_server.wayne.py") (Join-Path $cliDst "web_server.py")
-    # Fly image packages are still wayne_*; desktop tree imports work4you_*.
-    # Without these shims, gateway WS dies with ModuleNotFoundError (ago/2026).
-    $shimConst = Join-Path $stage "opt\wayne\work4you_constants.py"
-    $shimState = Join-Path $stage "opt\wayne\work4you_state.py"
-    Set-Content -Path $shimConst -Value @"
-"""Fly image packages remain wayne_*; desktop tree imports work4you_*."""
-from wayne_constants import *  # noqa: F403
-"@ -NoNewline
-    Set-Content -Path $shimState -Value @"
-"""Fly image packages remain wayne_*; desktop tree imports work4you_*."""
-from wayne_state import *  # noqa: F403
-"@ -NoNewline
-    $shimCli = Join-Path $stage "opt\wayne\work4you_cli"
-    if (Test-Path $shimCli) { Remove-Item -Force $shimCli }
-    New-Item -ItemType SymbolicLink -Path $shimCli -Target "wayne_cli" | Out-Null
+
+    # Brand modules: Work4You is source of truth; wayne_* are the thin legacy
+    # aliases already in the repo (sys.modules swap). Never invent reverse
+    # shims (work4you → wayne) — that is what broke agent init on fly256/257.
+    $wayneRoot = Join-Path $stage "opt\wayne"
+    foreach ($mod in @(
+      "work4you_constants.py",
+      "work4you_state.py",
+      "work4you_logging.py",
+      "work4you_bootstrap.py",
+      "work4you_time.py",
+      "wayne_constants.py",
+      "wayne_state.py",
+      "wayne_logging.py",
+      "wayne_bootstrap.py",
+      "wayne_time.py"
+    )) {
+      Copy-Item (Join-Path $engineRoot $mod) (Join-Path $wayneRoot $mod) -Force
+    }
+    # Package import name work4you_cli → directory still wayne_cli on the image.
+    $cliLink = Join-Path $wayneRoot "work4you_cli"
+    if (Test-Path $cliLink) { Remove-Item -Force $cliLink }
+    New-Item -ItemType SymbolicLink -Path $cliLink -Target "wayne_cli" | Out-Null
+
     Write-Host "Staged single-layer overlay at .fly-ui-overlay/" -ForegroundColor Cyan
 
     # Builds on Fly's remote builder, never locally. Each tag adds layers on top
