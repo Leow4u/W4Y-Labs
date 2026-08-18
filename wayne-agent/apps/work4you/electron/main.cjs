@@ -4799,6 +4799,43 @@ function openOauthLoginWindow(baseUrl) {
   })
 }
 
+/**
+ * F3 cloud-body REST: no local engine baseUrl. Same cookie jar + host as
+ * w4y:cloud:wsUrl (app.work4you.ai → tenant). Without this, hermes:api did
+ * `new URL('/api/...')` and threw TypeError: Invalid URL.
+ */
+async function fetchJsonViaCloudBody(requestPath, options = {}) {
+  const pathOnly = String(requestPath || '')
+  if (!pathOnly.startsWith('/')) {
+    throw new Error(`Invalid cloud-body API path: ${pathOnly.slice(0, 80)}`)
+  }
+  const timeoutMs = resolveTimeoutMs(options.timeoutMs, DEFAULT_FETCH_TIMEOUT_MS)
+  const res = await w4yCloud.cloudApiRequest(
+    {
+      method: options.method || 'GET',
+      path: pathOnly,
+      body: options.body
+    },
+    timeoutMs
+  )
+  if (!res.ok) {
+    const status = res.status || 0
+    if (status === 401 || res.error === 'not-logged-in') {
+      const err = new Error('401: not-logged-in')
+      err.statusCode = 401
+      throw err
+    }
+    const detail =
+      (res.json && typeof res.json === 'object' && (res.json.error || res.json.message)) ||
+      res.error ||
+      'request failed'
+    const err = new Error(`${status || 'cloud'}: ${detail}`)
+    err.statusCode = status
+    throw err
+  }
+  return res.json
+}
+
 // JSON request routed through the OAuth session partition so the HttpOnly
 // session cookie is attached automatically by Electron's net stack. Used for
 // authed REST against a gated gateway, including minting WS tickets.
@@ -6859,6 +6896,18 @@ ipcMain.handle('hermes:api', async (_event, request) => {
     globalRemote: globalRemoteActive(),
     profileRemoteOverride: profileHasRemoteOverride(profile)
   })
+
+  // F3 packaged: no local Python — REST goes to the tenant via app.work4you.ai
+  // cookies (same bridge as WS tickets). Empty baseUrl + new URL() was
+  // TypeError: Invalid URL on every hermes:api after boot.
+  if (connection.mode === 'cloud-body' || !connection.baseUrl) {
+    return fetchJsonViaCloudBody(requestPath, {
+      method: request?.method,
+      body: request?.body,
+      timeoutMs
+    })
+  }
+
   const url = `${connection.baseUrl}${requestPath}`
   // OAuth gateways authenticate REST via the HttpOnly session cookie held in
   // the OAuth partition — route through Electron's net stack bound to that

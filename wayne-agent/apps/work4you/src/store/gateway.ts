@@ -281,6 +281,16 @@ export async function ensureCloudBrainActive(): Promise<void> {
     return
   }
 
+  // Browser SPA is already on the tenant Fly — $runTarget 'cloud' must not
+  // mint a desktop-only secondary (that threw cloud-unavailable on send).
+  if (import.meta.env.VITE_APP_SHELL === 'browser') {
+    if (isOpen(primaryGateway)) {
+      setActive(primaryProfile)
+      return
+    }
+    throw new Error('gateway unavailable')
+  }
+
   try {
     await ensureGatewayForProfile(CLOUD_BRAIN_KEY)
   } catch (err) {

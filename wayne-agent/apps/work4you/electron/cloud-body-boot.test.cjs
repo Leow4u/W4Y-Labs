@@ -44,3 +44,11 @@ test('body IPC can write and exec in the open folder', () => {
   assert.match(source, /ipcMain\.handle\('hermes:body:exec'/)
   assert.match(source, /mkdir\(path\.dirname\(resolved\), \{ recursive: true \}\)/)
 })
+
+test('hermes:api routes cloud-body REST through the tenant cookie bridge', () => {
+  const source = readMain()
+  assert.match(source, /function fetchJsonViaCloudBody\(/)
+  assert.match(source, /connection\.mode === 'cloud-body' \|\| !connection\.baseUrl/)
+  assert.match(source, /fetchJsonViaCloudBody\(requestPath/)
+  assert.match(source, /w4yCloud\.cloudApiRequest/)
+})
