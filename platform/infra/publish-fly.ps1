@@ -79,11 +79,30 @@ if (-not $SkipTenant) {
 
   Push-Location $engineRoot
   try {
+    # Stage F3 motor + SPA into ONE tree so Dockerfile.ui can COPY a single
+    # layer. fly251 is at the overlayfs ceiling — a second COPY/RUN fails with
+    # "invalid argument" on Depot too.
+    $stage = Join-Path $engineRoot ".fly-ui-overlay"
+    if (Test-Path $stage) { Remove-Item -Recurse -Force $stage }
+    $toolsDst = Join-Path $stage "opt\wayne\tools"
+    $gwDst = Join-Path $stage "opt\wayne\tui_gateway"
+    $cliDst = Join-Path $stage "opt\wayne\wayne_cli"
+    New-Item -ItemType Directory -Force -Path $toolsDst, $gwDst, $cliDst | Out-Null
+    Copy-Item (Join-Path $engineRoot "tools\desktop_body.py") $toolsDst
+    Copy-Item (Join-Path $engineRoot "tools\file_tools.py") $toolsDst
+    Copy-Item (Join-Path $engineRoot "tools\terminal_tool.py") $toolsDst
+    Copy-Item (Join-Path $engineRoot "tui_gateway\server.py") $gwDst
+    Copy-Item (Join-Path $engineRoot "work4you_cli\app_dist") (Join-Path $cliDst "app_dist") -Recurse
+    Copy-Item (Join-Path $engineRoot "work4you_cli\platform_tenant.wayne.py") (Join-Path $cliDst "platform_tenant.py")
+    Copy-Item (Join-Path $engineRoot "work4you_cli\web_server.wayne.py") (Join-Path $cliDst "web_server.py")
+    Write-Host "Staged single-layer overlay at .fly-ui-overlay/" -ForegroundColor Cyan
+
     # Builds on Fly's remote builder, never locally. Each tag adds layers on top
     # of the previous one and the base crossed 496 layers in ago/2026: the local
     # docker driver then refuses the first COPY with "mount options is too long",
     # because overlayfs takes the lowerdir list in a single 4096-byte mount
-    # option. The remote builder does not have that ceiling.
+    # option. The remote builder does not have that ceiling — but it still
+    # rejects *additional* COPY/RUN on this base, so the stage above matters.
     Invoke-Native $fly @(
       'deploy', '--build-only', '--push', '--remote-only',
       '--dockerfile', (Join-Path $script:REPO_ROOT "platform\wayne-fly\Dockerfile.ui"),

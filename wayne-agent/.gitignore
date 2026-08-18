@@ -156,3 +156,7 @@ apps/work4you/demo/
 # PR body is the archive. See the wayne-agent-dev skill's
 # pr-infographic-workflow reference (storage rule + lapse #8 / #COMMIT-1).
 infographic/
+
+# Staged Fly UI/F3 overlay (publish-fly.ps1)
+.fly-ui-overlay/
+

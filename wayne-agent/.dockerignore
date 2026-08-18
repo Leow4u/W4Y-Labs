@@ -69,6 +69,7 @@ runtime/
 # Product SPA (apps/work4you) is built inside the image
 # via `npm run build:web` → work4you_cli/app_dist. Exclude Electron packaging
 # trees and the bootstrap installer — not needed at runtime.
+apps/
 apps/work4you/electron/
 apps/work4you/out/
 apps/work4you/release-build/

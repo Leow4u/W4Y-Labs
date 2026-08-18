@@ -1,9 +1,9 @@
-# Tenant-isolation overlay — COPY-only (Depot blocks some dashboard_auth overwrites).
-ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly251
-FROM ${BASE_IMAGE}
-
-COPY work4you_cli/app_dist /opt/wayne/wayne_cli/app_dist
-COPY work4you_cli/platform_tenant.wayne.py /opt/wayne/wayne_cli/platform_tenant.py
-COPY work4you_cli/web_server.wayne.py /opt/wayne/wayne_cli/web_server.py
-
-ENV WAYNE_WEB_DIST=/opt/wayne/wayne_cli/app_dist
+# Tenant UI + F3 PC-folder bridge — ONE COPY layer.
+# fly251 is at the overlayfs ceiling; extra COPY/RUN dies with "invalid argument".
+# publish-fly.ps1 stages files into .fly-ui-overlay/ before this build.
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly251
+FROM ${BASE_IMAGE}
+
+COPY .fly-ui-overlay/ /
+
+ENV WAYNE_WEB_DIST=/opt/wayne/wayne_cli/app_dist
