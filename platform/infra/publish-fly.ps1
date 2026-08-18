@@ -9,9 +9,9 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly255",
+  [string]$TenantTag = "fly257",
   [string]$ProvisionerTag = "p9",
-  [string]$BaseTenantTag = "fly254",
+  [string]$BaseTenantTag = "fly256",
   [switch]$SkipTenant,
   [switch]$SkipProvisioner
 )
@@ -95,6 +95,21 @@ if (-not $SkipTenant) {
     Copy-Item (Join-Path $engineRoot "work4you_cli\app_dist") (Join-Path $cliDst "app_dist") -Recurse
     Copy-Item (Join-Path $engineRoot "work4you_cli\platform_tenant.wayne.py") (Join-Path $cliDst "platform_tenant.py")
     Copy-Item (Join-Path $engineRoot "work4you_cli\web_server.wayne.py") (Join-Path $cliDst "web_server.py")
+    # Fly image packages are still wayne_*; desktop tree imports work4you_*.
+    # Without these shims, gateway WS dies with ModuleNotFoundError (ago/2026).
+    $shimConst = Join-Path $stage "opt\wayne\work4you_constants.py"
+    $shimState = Join-Path $stage "opt\wayne\work4you_state.py"
+    Set-Content -Path $shimConst -Value @"
+"""Fly image packages remain wayne_*; desktop tree imports work4you_*."""
+from wayne_constants import *  # noqa: F403
+"@ -NoNewline
+    Set-Content -Path $shimState -Value @"
+"""Fly image packages remain wayne_*; desktop tree imports work4you_*."""
+from wayne_state import *  # noqa: F403
+"@ -NoNewline
+    $shimCli = Join-Path $stage "opt\wayne\work4you_cli"
+    if (Test-Path $shimCli) { Remove-Item -Force $shimCli }
+    New-Item -ItemType SymbolicLink -Path $shimCli -Target "wayne_cli" | Out-Null
     Write-Host "Staged single-layer overlay at .fly-ui-overlay/" -ForegroundColor Cyan
 
     # Builds on Fly's remote builder, never locally. Each tag adds layers on top
@@ -103,6 +118,8 @@ if (-not $SkipTenant) {
     # because overlayfs takes the lowerdir list in a single 4096-byte mount
     # option. The remote builder does not have that ceiling — but it still
     # rejects *additional* COPY/RUN on this base, so the stage above matters.
+    # If `fly deploy --build-only` still dies with COPY invalid argument, use
+    # platform/infra/publish-fly-ui-crane.sh (crane append) instead of Dockerfile.ui.
     Invoke-Native $fly @(
       'deploy', '--build-only', '--push', '--remote-only',
       '--dockerfile', (Join-Path $script:REPO_ROOT "platform\wayne-fly\Dockerfile.ui"),
