@@ -1,0 +1,14 @@
+---
+description: Work4You v1 = Claude Desktop; do not change the north mid-work
+alwaysApply: true
+---
+
+# Norte fechado — Claude Desktop
+
+Read `docs/PLANO-CLAUDE-V1.md` before changing product, desktop boot, updates, or Fly.
+
+- Brain = Fly `wayne-<slug>`. Body = Electron (open folder / git / PTY on the PC).
+- Do not ship or extract a local Python engine. Do not defer the local folder to v2.
+- Launch = new download from the site, not the update chip.
+- L0 (web frozen + motor on PC) is revoked.
+- Do not pivot to Code-OSS / Cursor. Do not invent a new architecture mid-PR.
