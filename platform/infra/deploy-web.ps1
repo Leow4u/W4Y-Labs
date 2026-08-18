@@ -21,11 +21,13 @@ $imageRepo   = "$script:AR_HOST/$script:PROJECT_ID/$script:REPO/w4y-web"
 $image       = "${imageRepo}:$Tag"
 $sqlConn     = "$script:PROJECT_ID`:southamerica-east1:w4y-registry"
 
-$launchMode = if ($LaunchDesktop) { 'desktop' } else { '' }
-$sharedMotor = if ($LaunchDesktop) { '0' } else { '1' }
-$appSubdomain = if ($LaunchDesktop) { '0' } else { '1' }
+# Claude v1: L0 revogado. Signup sempre provisiona Fly dedicada; motor partilhado
+# wayne-w4y NÃO é caminho de cliente. -LaunchDesktop fica só como aviso legado.
+$launchMode = ''
+$sharedMotor = '0'
+$appSubdomain = '1'
 if ($LaunchDesktop) {
-  Write-Host "== Launch mode: desktop (L0) - browser chat off, download handoff ==" -ForegroundColor Yellow
+  Write-Host "== -LaunchDesktop ignorado (L0 revogado; ver docs/PLANO-CLAUDE-V1.md) ==" -ForegroundColor Yellow
 }
 
 Write-Host "== [1/3] build (linux/amd64) -> $image ==" -ForegroundColor Cyan
@@ -106,7 +108,7 @@ $deployArgs = @(
         'NEXT_PUBLIC_APP_ORIGIN=https://app.work4you.ai',
         "W4Y_APP_SUBDOMAIN=$appSubdomain",
         'W4Y_COOKIE_DOMAIN=.work4you.ai',
-        'TENANT_WAYNE_IMAGE=registry.fly.io/wayne-w4y:fly252',
+        'TENANT_WAYNE_IMAGE=registry.fly.io/wayne-w4y:fly255',
         'STRIPE_PRICE_STARTER=price_1TqadkCn608ngT3WOPRy6FXx',
         'STRIPE_PRICE_STARTER_YEAR=price_1TqadkCn608ngT3WfLm7zvbk',
         'STRIPE_PRICE_PRO=price_1TqadlCn608ngT3WHgbjXtP8',
