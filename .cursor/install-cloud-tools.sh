@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Cursor Cloud Agent Build install — tools needed to publish Fly overlays.
+# Cursor Cloud Agent Build install - tools needed to publish Fly overlays.
 # Secrets (FLY_API_TOKEN) come from the Cloud Agents Secrets tab, not this file.
 set -euo pipefail
 
@@ -13,9 +13,9 @@ if ! command -v fly >/dev/null 2>&1; then
 fi
 fly version || true
 
-echo "== Cloud tools: node (if missing) =="
+echo "== Cloud tools: node =="
 if ! command -v node >/dev/null 2>&1; then
-  echo "node not found — Cloud Agent image should ship Node; aborting install" >&2
+  echo "node not found" >&2
   exit 1
 fi
 node -v
