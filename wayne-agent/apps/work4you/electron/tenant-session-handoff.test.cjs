@@ -207,4 +207,9 @@ test('soft motor restart does not toast Backend stopped', () => {
     /shouldSuppressGatewayOfflineToast\(\)/,
     'backend-exit must honour the same suppress window as gateway-offline'
   )
+  assert.match(
+    boot,
+    /mode === 'cloud-body'/,
+    'packaged cloud-body must not toast Backend stopped — there is no local Python'
+  )
 })

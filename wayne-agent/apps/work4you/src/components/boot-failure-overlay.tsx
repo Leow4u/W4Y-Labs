@@ -7,9 +7,11 @@ import { LogView } from '@/components/ui/log-view'
 import type { DesktopConnectionConfig } from '@/global'
 import { useI18n } from '@/i18n'
 import { FileText, Loader2, LogIn, RefreshCw, Wrench } from '@/lib/icons'
+import { $accountGate, accountGateBlocksApp } from '@/store/account-gate'
 import { $desktopBoot } from '@/store/boot'
 import { notify, notifyError } from '@/store/notifications'
 import { $desktopOnboarding } from '@/store/onboarding'
+import { $connection } from '@/store/session'
 
 import type { RemoteReauth } from './boot-failure-reauth'
 import { deriveProviderShape, isRemoteReauthFailure, signInLabel } from './boot-failure-reauth'
@@ -30,13 +32,18 @@ type BusyAction = 'local' | 'repair' | 'retry' | 'signin' | null
 export function BootFailureOverlay() {
   const boot = useStore($desktopBoot)
   const onboarding = useStore($desktopOnboarding)
+  const gate = useStore($accountGate)
+  const connection = useStore($connection)
   const { t } = useI18n()
   const [busy, setBusy] = useState<BusyAction>(null)
   const [logs, setLogs] = useState<string[]>([])
   const [showLogs, setShowLogs] = useState(false)
   const [remoteReauth, setRemoteReauth] = useState<RemoteReauth | null>(null)
 
-  const visible = Boolean(boot.error) && !boot.running
+  const cloudBody = connection?.mode === 'cloud-body'
+  // Gate owns first-run login (z-1320). This overlay is z-1400 — if we paint
+  // it while Continuar is up, the user never sees sign-in.
+  const visible = Boolean(boot.error) && !boot.running && !accountGateBlocksApp(gate.phase)
   // While first-run onboarding owns the picker/flow we let it surface its own
   // progress; the recovery overlay is for hard failures, which it covers via a
   // higher z-index regardless of onboarding state.
@@ -205,22 +212,28 @@ export function BootFailureOverlay() {
                   {copy.retry}
                 </Button>
               )}
-              {!remoteReauth ? (
+              {!remoteReauth && !cloudBody ? (
                 <Button disabled={Boolean(busy)} onClick={() => void repair()} variant="secondary">
                   {busy === 'repair' ? <Loader2 className="animate-spin" /> : <Wrench />}
                   {copy.repairInstall}
                 </Button>
               ) : null}
-              <Button disabled={Boolean(busy)} onClick={() => void switchToLocalGateway()} variant="secondary">
-                {busy === 'local' ? <Loader2 className="animate-spin" /> : null}
-                {copy.useLocalGateway}
-              </Button>
+              {!cloudBody ? (
+                <Button disabled={Boolean(busy)} onClick={() => void switchToLocalGateway()} variant="secondary">
+                  {busy === 'local' ? <Loader2 className="animate-spin" /> : null}
+                  {copy.useLocalGateway}
+                </Button>
+              ) : null}
               <Button onClick={openLogs} variant="ghost">
                 <FileText />
                 {copy.openLogs}
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">{remoteReauth ? copy.remoteSignInHint : copy.repairHint}</p>
+            {remoteReauth ? (
+              <p className="text-xs text-muted-foreground">{copy.remoteSignInHint}</p>
+            ) : !cloudBody ? (
+              <p className="text-xs text-muted-foreground">{copy.repairHint}</p>
+            ) : null}
           </div>
 
           {logs.length > 0 ? (

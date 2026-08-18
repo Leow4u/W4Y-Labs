@@ -85,7 +85,7 @@ export const en: Translations = {
     failure: {
       title: "Work4You couldn't start",
       description:
-        "The background gateway didn't come up. Try one of the recovery steps below. Nothing here deletes your chats or settings.",
+        "Work4You couldn't reach the agent. Try again, or open the logs. Nothing here deletes your chats or settings.",
       remoteTitle: 'Remote gateway sign-in required',
       remoteDescription:
         'Your remote gateway session has expired. Sign in again to reconnect. Nothing here deletes your chats or settings.',

@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
+import { $accountGate, accountGateBlocksApp } from '@/store/account-gate'
 import { $desktopBoot } from '@/store/boot'
 import { $gatewayState } from '@/store/session'
 
@@ -35,6 +36,7 @@ const assetPath = (path: string) => `${import.meta.env.BASE_URL}${path.replace(/
 export function GatewayConnectingOverlay() {
   const gatewayState = useStore($gatewayState)
   const boot = useStore($desktopBoot)
+  const gate = useStore($accountGate)
   const { t } = useI18n()
   const [previewing] = useState(forcedPreview)
   const [phase, setPhase] = useState<Phase>('live')
@@ -45,7 +47,8 @@ export function GatewayConnectingOverlay() {
   // the chat then — users should still be able to type drafts, open settings,
   // and recover instead of staring at a modal CONNECTING screen.
   const initialBootActive = boot.visible || boot.running || boot.progress < 100
-  const connecting = gatewayState !== 'open' && !boot.error && initialBootActive
+  const gateBlocks = accountGateBlocksApp(gate.phase)
+  const connecting = gatewayState !== 'open' && !boot.error && initialBootActive && !gateBlocks
   // Latches once we've actually shown the overlay, so the brief frame where
   // gatewayState flips to "open" (connecting -> false) before the exit phase
   // kicks in doesn't unmount us and cause a flash.
@@ -100,6 +103,11 @@ export function GatewayConnectingOverlay() {
 
   // Boot failed — BootFailureOverlay owns the screen; don't linger behind it.
   if (boot.error && !previewing) {
+    return null
+  }
+
+  // First-run / signed-out — Continuar is the product path, not CONNECTING.
+  if (!previewing && gateBlocks) {
     return null
   }
 
