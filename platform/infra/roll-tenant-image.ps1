@@ -1,16 +1,16 @@
-# Actualiza apps Fly de tenants existentes para a imagem pinada (cérebro).
-# Contas novas já nascem no pin do provisioner; contas velhas ficam atrasadas
-# até este roll (sintoma típico: SSO 500 em app.work4you.ai/auth/platform-sso).
+# Actualiza apps Fly de tenants existentes para a imagem pinada (cerebro).
+# Contas novas ja nascem no pin do provisioner; contas velhas ficam atrasadas
+# ate este roll (sintoma tipico: SSO 500 em app.work4you.ai/auth/platform-sso).
 #
 # Uso:
 #   cd platform/infra
 #   .\roll-tenant-image.ps1 -Apps wayne-rafael-santos-558b29b,wayne-flavia-xxxx
-#   .\roll-tenant-image.ps1 -EmailHints rafael,flavia   # resolve via `fly apps list`
-#   .\roll-tenant-image.ps1 -Image registry.fly.io/wayne-w4y:fly252 -AllWayneApps
+#   .\roll-tenant-image.ps1 -EmailHints rafael,flavia
+#   .\roll-tenant-image.ps1 -Image registry.fly.io/wayne-w4y:fly253 -AllWayneApps
 #
 [CmdletBinding()]
 param(
-  [string]$Image = 'registry.fly.io/wayne-w4y:fly252',
+  [string]$Image = 'registry.fly.io/wayne-w4y:fly253',
   [string[]]$Apps = @(),
   [string[]]$EmailHints = @(),
   [switch]$AllWayneApps,
@@ -23,7 +23,7 @@ if (-not $fly) { $fly = (Get-Command flyctl -ErrorAction SilentlyContinue).Sourc
 if (-not $fly) { throw 'fly CLI not found' }
 
 & $fly auth whoami | Out-Null
-if ($LASTEXITCODE -ne 0) { throw 'fly not authenticated — run fly auth login' }
+if ($LASTEXITCODE -ne 0) { throw 'fly not authenticated - run fly auth login' }
 
 function Invoke-Native {
   param([string]$Exe, [string[]]$Arguments, [string]$What)
@@ -49,7 +49,7 @@ if ($EmailHints.Count -gt 0 -or $AllWayneApps) {
   foreach ($row in $all) {
     $name = [string]$row.Name
     if ($name -notmatch '^wayne-') { continue }
-    if ($name -eq 'wayne-w4y') { continue } # frota de clientes, não o motor partilhado interno
+    if ($name -eq 'wayne-w4y') { continue }
     if ($AllWayneApps) {
       [void]$targets.Add($name)
       continue
@@ -63,8 +63,8 @@ if ($EmailHints.Count -gt 0 -or $AllWayneApps) {
   }
 }
 
-$unique = $targets | Select-Object -Unique
-if (-not $unique -or $unique.Count -eq 0) {
+$unique = @($targets | Select-Object -Unique)
+if ($unique.Count -eq 0) {
   throw 'Nenhuma app alvo. Passa -Apps ou -EmailHints (rafael, flavia) ou -AllWayneApps.'
 }
 
@@ -79,8 +79,8 @@ foreach ($app in $unique) {
   $ErrorActionPreference = $prev
   $machines = @()
   try { $machines = @($machinesJson | ConvertFrom-Json) } catch { $machines = @() }
-  if (-not $machines -or $machines.Count -eq 0) {
-    Write-Host "  (sem máquinas — skip)" -ForegroundColor DarkYellow
+  if ($machines.Count -eq 0) {
+    Write-Host "  (sem maquinas - skip)" -ForegroundColor DarkYellow
     continue
   }
   foreach ($m in $machines) {
