@@ -25,6 +25,15 @@ logger = logging.getLogger(__name__)
 _EXPECTED_WRITE_ERRNOS = {errno.EACCES, errno.EPERM, errno.EROFS}
 
 
+def _try_desktop_body(op: str, args: dict) -> str | None:
+    """Route to the PC folder when this session has ``desktop_cwd`` (F3)."""
+    try:
+        from tools.desktop_body import try_desktop_body
+    except Exception:
+        return None
+    return try_desktop_body(op, args)
+
+
 def _expand_tilde(path: str) -> str:
     """Expand ``~`` using the effective profile home when available.
 
@@ -1138,6 +1147,9 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
     """Read a file with pagination and line numbers."""
     try:
         offset, limit = normalize_read_pagination(offset, limit)
+        routed = _try_desktop_body("read_file", {"path": path, "offset": offset, "limit": limit})
+        if routed is not None:
+            return routed
 
         # ── Device path guard ─────────────────────────────────────────
         # Block paths that would hang the process (infinite output,
@@ -1590,6 +1602,9 @@ def write_file_tool(path: str, content: str, task_id: str = "default",
             "Strip read_file line-number prefixes or reconstruct the intended "
             "file contents before writing."
         )
+    routed = _try_desktop_body("write_file", {"path": path, "content": content})
+    if routed is not None:
+        return routed
     try:
         # Resolve once for the registry lock + stale check.  Failures here
         # fall back to the legacy path — write proceeds, per-task staleness
@@ -1712,6 +1727,18 @@ def patch_tool(mode: str = "replace", path: str = None, old_string: str = None,
             cross_warning = _check_cross_profile_path(_p, task_id)
             if cross_warning:
                 return tool_error(cross_warning)
+    if mode == "replace" and path:
+        routed = _try_desktop_body(
+            "patch_replace",
+            {
+                "path": path,
+                "old_string": old_string,
+                "new_string": new_string,
+                "replace_all": bool(replace_all),
+            },
+        )
+        if routed is not None:
+            return routed
     try:
         # Resolve paths for locking.  Ordered + deduplicated so concurrent
         # callers lock in the same order — prevents deadlock on overlapping

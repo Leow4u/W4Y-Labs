@@ -63,6 +63,9 @@ export type GatewayEventPayload = {
   request_id?: string
   question?: string
   choices?: string[] | null
+  // desktop.body.request (F3: Fly brain → PC folder)
+  op?: string
+  desktop_cwd?: string
   // approval.request (dangerous command / execute_code) — session-keyed
   command?: string
   description?: string

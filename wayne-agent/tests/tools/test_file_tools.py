@@ -13,6 +13,28 @@ from tools.file_tools import (
 )
 
 
+class TestDesktopBodyIntercept:
+    def test_read_file_returns_desktop_result_when_bound(self):
+        from tools.file_tools import read_file_tool
+
+        with patch(
+            "tools.file_tools._try_desktop_body",
+            return_value='{"content":"from-pc","total_lines":1}',
+        ):
+            result = json.loads(read_file_tool("hello.txt"))
+        assert result["content"] == "from-pc"
+
+    def test_write_file_returns_desktop_result_when_bound(self):
+        from tools.file_tools import write_file_tool
+
+        with patch(
+            "tools.file_tools._try_desktop_body",
+            return_value='{"status":"ok","path":"C:\\\\repo\\\\a.txt"}',
+        ):
+            result = json.loads(write_file_tool("a.txt", "hi"))
+        assert result["status"] == "ok"
+
+
 class TestReadFileHandler:
     @patch("tools.file_tools._get_file_ops")
     def test_returns_file_content(self, mock_get):

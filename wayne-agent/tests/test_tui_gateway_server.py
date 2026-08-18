@@ -5630,6 +5630,50 @@ def test_session_create_lazy_info_reports_desktop_contract(monkeypatch):
     server._sessions.pop(resp["result"]["session_id"], None)
 
 
+def test_session_create_stores_desktop_cwd_without_host_isdir(monkeypatch):
+    """F3: a Windows folder is not a directory on Fly — still bind it."""
+
+    class _FakeWorker:
+        def __init__(self, key, model):
+            self.key = key
+
+        def close(self):
+            return None
+
+    monkeypatch.setattr(server, "_SlashWorker", _FakeWorker)
+    monkeypatch.setattr(server, "_get_db", lambda: None)
+    monkeypatch.setattr(server, "_emit", lambda *a, **kw: None)
+    monkeypatch.setattr(server, "_start_agent_build", lambda *a, **kw: None)
+    monkeypatch.setattr(server, "_schedule_agent_build", lambda *a, **kw: None)
+    monkeypatch.setattr(server, "_completion_cwd", lambda params=None: "/opt/data")
+
+    resp = server.handle_request(
+        {
+            "id": "1",
+            "method": "session.create",
+            "params": {
+                "cols": 80,
+                "source": "desktop",
+                "desktop_cwd": r"C:\Users\demo\repo",
+            },
+        }
+    )
+    assert "result" in resp
+    sid = resp["result"]["session_id"]
+    session = server._sessions[sid]
+    assert session["desktop_cwd"] == r"C:\Users\demo\repo"
+    assert resp["result"]["info"]["desktop_cwd"] == r"C:\Users\demo\repo"
+    # Fly cwd stays on the volume — the PC path is desktop_cwd only.
+    assert session["cwd"] == "/opt/data"
+
+    from tools.desktop_body import clear_desktop_cwd, get_desktop_cwd
+
+    assert get_desktop_cwd(session["session_key"]) == r"C:\Users\demo\repo"
+    clear_desktop_cwd(session["session_key"])
+
+    server._sessions.pop(sid, None)
+
+
 def test_session_list_returns_clean_error_when_state_db_is_unavailable(monkeypatch):
     monkeypatch.setattr(server, "_get_db", lambda: None)
     monkeypatch.setattr(server, "_db_error", "locking protocol")

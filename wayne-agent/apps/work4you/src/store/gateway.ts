@@ -47,9 +47,16 @@ export function configureGatewayRegistry(cfg: RegistryConfig): void {
 let primaryGateway: HermesGateway | null = null
 let primaryProfile = 'default'
 
-export function setPrimaryGateway(gateway: HermesGateway | null, profile = 'default'): void {
+let primaryIsCloudBody = false
+
+export function setPrimaryGateway(
+  gateway: HermesGateway | null,
+  profile = 'default',
+  opts?: { cloudBody?: boolean }
+): void {
   primaryGateway = gateway
   primaryProfile = normKey(profile)
+  primaryIsCloudBody = Boolean(opts?.cloudBody)
 }
 
 // ── Secondary (pool) backends ──────────────────────────────────────────────
@@ -266,8 +273,14 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
   setActive(key)
 }
 
-/** Route chat RPC to the Work4You cloud brain (Fly). Falls back to local on failure. */
+/** Route chat RPC to the Work4You cloud brain (Fly). */
 export async function ensureCloudBrainActive(): Promise<void> {
+  // Packaged F3: the window primary *is* the Fly socket — do not open a second.
+  if (primaryIsCloudBody && isOpen(primaryGateway)) {
+    setActive(primaryProfile)
+    return
+  }
+
   try {
     await ensureGatewayForProfile(CLOUD_BRAIN_KEY)
   } catch (err) {

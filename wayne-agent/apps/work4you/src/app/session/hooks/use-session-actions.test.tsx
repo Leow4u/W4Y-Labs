@@ -1,7 +1,7 @@
 import { cleanup, render, waitFor } from '@testing-library/react'
 import type { MutableRefObject } from 'react'
 import { useEffect } from 'react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getSessionMessages, type SessionInfo } from '@/hermes'
 import { createClientSessionState } from '@/lib/chat-runtime'
@@ -34,6 +34,11 @@ vi.mock('@/store/gateway', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   ensureCloudBrainActive: vi.fn(async () => undefined),
   ensureLocalBrainActive: vi.fn(async () => undefined)
+}))
+
+vi.mock('@/store/profile', async importOriginal => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  ensureGatewayProfile: vi.fn(async () => undefined)
 }))
 
 const RUNTIME_SESSION_ID = 'rt-new-001'
@@ -115,6 +120,12 @@ async function createWith(profileSetup: () => void): Promise<Record<string, unkn
 }
 
 describe('createBackendSessionForSend profile routing', () => {
+  beforeEach(async () => {
+    const { $runTarget, setSessionRunTarget } = await import('@/store/run-target')
+    $runTarget.set('local')
+    setSessionRunTarget('local')
+  })
+
   afterEach(async () => {
     cleanup()
     $newChatProfile.set(null)
@@ -181,6 +192,7 @@ describe('createBackendSessionForSend profile routing', () => {
     })
 
     expect(params?.cwd).toBeUndefined()
+    expect(params).toMatchObject({ desktop_cwd: 'C:\\Users\\demo\\repo' })
   })
 
   it('ships cloud project cwd (not a PC path) when cloud + slug are set', async () => {
@@ -191,7 +203,10 @@ describe('createBackendSessionForSend profile routing', () => {
       $currentCwd.set('C:\\Users\\demo\\repo')
     })
 
-    expect(params).toMatchObject({ cwd: '/opt/data/projects/acme-api' })
+    expect(params).toMatchObject({
+      cwd: '/opt/data/projects/acme-api',
+      desktop_cwd: 'C:\\Users\\demo\\repo'
+    })
   })
 })
 

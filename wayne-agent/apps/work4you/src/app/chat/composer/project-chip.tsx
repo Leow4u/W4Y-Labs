@@ -38,8 +38,7 @@ import {
 import {
   $cloudProjectSlug,
   beginCloudProjectSession,
-  clearCloudProjectSlug,
-  setRunTarget
+  clearCloudProjectSlug
 } from '@/store/run-target'
 import { setCurrentCwd } from '@/store/session'
 
@@ -135,7 +134,6 @@ export function ProjectChip({
     if (busy) return
     setBusy(true)
     clearCloudProjectSlug()
-    setRunTarget('local')
     void openOrCreateProjectFromFolder({
       createDirectory: true,
       title: c.projectNewFolderTitle
@@ -154,7 +152,6 @@ export function ProjectChip({
 
   const selectNone = () => {
     clearCloudProjectSlug()
-    setRunTarget('local')
     exitProjectScope()
     setCurrentCwd('')
   }
@@ -225,7 +222,6 @@ export function ProjectChip({
                   key={project.id}
                   onSelect={() => {
                     clearCloudProjectSlug()
-                    setRunTarget('local')
                     // Attach cwd so composer git chrome ($repoStatus) can probe.
                     enterProject(project.id, { attachCwd: true })
                   }}
@@ -246,7 +242,6 @@ export function ProjectChip({
           <DropdownMenuItem
             onSelect={() => {
               clearCloudProjectSlug()
-              setRunTarget('local')
               openProjectCreate()
             }}
           >

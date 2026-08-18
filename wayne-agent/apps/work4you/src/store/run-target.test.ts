@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest'
 
-import { resolveSessionCreateCwd, setCloudProjectSlug, setRunTarget, setSessionRunTarget } from './run-target'
+import {
+  resolveDesktopCwd,
+  resolveSessionCreateCwd,
+  setCloudProjectSlug,
+  setRunTarget,
+  setSessionRunTarget
+} from './run-target'
 
 describe('resolveSessionCreateCwd', () => {
   it('never ships a Windows path when cloud is preferred', () => {
@@ -22,5 +28,14 @@ describe('resolveSessionCreateCwd', () => {
     setSessionRunTarget('local')
     setCloudProjectSlug('')
     expect(resolveSessionCreateCwd('/home/user/proj')).toBe('/home/user/proj')
+  })
+
+  it('keeps a PC folder as desktop_cwd even when the brain is cloud', () => {
+    setRunTarget('cloud')
+    setSessionRunTarget('cloud')
+    setCloudProjectSlug('')
+    expect(resolveDesktopCwd('D:\\code\\app')).toBe('D:\\code\\app')
+    expect(resolveDesktopCwd('/Users/x/proj')).toBe('/Users/x/proj')
+    expect(resolveDesktopCwd('/opt/data/projects/demo')).toBe('')
   })
 })

@@ -5,6 +5,7 @@ import type { HermesConnection } from '@/global'
 import { HermesGateway } from '@/hermes'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
+import { CLOUD_NOT_LOGGED_IN, mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
 import {
   $desktopBoot,
   applyDesktopBootProgress,
@@ -158,7 +159,9 @@ export function useGatewayBoot({
         // mints a fresh ticket (or throws a reauth error in OAuth mode rather
         // than connecting with a stale one). For local/token gateways the URL
         // carries a long-lived token and the re-mint is a cheap no-op.
-        const wsUrl = await resolveGatewayWsUrl(desktop, conn)
+        // F3 packaged: primary is the Fly brain (cloud-body) — mint a tenant ticket.
+        const wsUrl =
+          conn.mode === 'cloud-body' ? await mintCloudWsUrl() : await resolveGatewayWsUrl(desktop, conn)
         await gateway.connect(wsUrl)
 
         if (cancelled) {
@@ -368,8 +371,20 @@ export function useGatewayBoot({
         // conn.wsUrl is stale; resolveGatewayWsUrl() re-mints it and, on
         // failure, throws a reauth error rather than connecting with a dead
         // ticket (which would surface as an opaque "connection closed").
-        const wsUrl = await resolveGatewayWsUrl(desktop, conn)
-        await gateway.connect(wsUrl)
+        // F3 packaged: no local Python — the primary socket is the tenant Fly.
+        try {
+          const wsUrl =
+            conn.mode === 'cloud-body' ? await mintCloudWsUrl() : await resolveGatewayWsUrl(desktop, conn)
+          await gateway.connect(wsUrl)
+        } catch (err) {
+          if (conn.mode === 'cloud-body' && err instanceof Error && err.message === CLOUD_NOT_LOGGED_IN) {
+            // Account gate owns sign-in. Finish boot so login is not a crash overlay.
+            completeDesktopBoot()
+            bootCompleted = true
+            return
+          }
+          throw err
+        }
 
         if (cancelled) {
           return
@@ -382,10 +397,13 @@ export function useGatewayBoot({
           const pref = await desktop.profile?.get?.()
           const profileKey = (pref?.profile ?? '').trim() || 'default'
           $activeGatewayProfile.set(profileKey)
-          setPrimaryGateway(gateway, profileKey)
-          void ensureGatewayForProfile(profileKey)
+          setPrimaryGateway(gateway, profileKey, { cloudBody: conn.mode === 'cloud-body' })
+          if (conn.mode !== 'cloud-body') {
+            void ensureGatewayForProfile(profileKey)
+          }
         } catch {
           $activeGatewayProfile.set('default')
+          setPrimaryGateway(gateway, 'default', { cloudBody: conn.mode === 'cloud-body' })
         }
 
         setDesktopBootStep({

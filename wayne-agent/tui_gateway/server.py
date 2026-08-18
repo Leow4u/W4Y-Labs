@@ -603,6 +603,43 @@ def _finalize_session(session: dict | None, end_reason: str = "tui_close") -> No
         pass
 
 
+def _unregister_session_side_channels(key: str) -> None:
+    if not key:
+        return
+    try:
+        from tools.approval import unregister_gateway_notify
+
+        unregister_gateway_notify(key)
+    except Exception:
+        pass
+    try:
+        from tools.desktop_body import clear_desktop_cwd, unregister_desktop_body
+
+        unregister_desktop_body(key)
+        clear_desktop_cwd(key)
+    except Exception:
+        pass
+
+
+def _register_session_side_channels(sid: str, key: str, session: dict | None = None) -> None:
+    """Approvals + desktop body (PC folder) for this live session."""
+    from tools.approval import load_permanent_allowlist, register_gateway_notify
+
+    register_gateway_notify(key, lambda data, _sid=sid: _emit_approval_request(_sid, data))
+    load_permanent_allowlist()
+    try:
+        from tools.desktop_body import register_desktop_body_notify, set_desktop_cwd
+
+        register_desktop_body_notify(
+            key, lambda data, _sid=sid: _emit("desktop.body.request", _sid, data)
+        )
+        cwd = str((session or {}).get("desktop_cwd") or "").strip()
+        if cwd:
+            set_desktop_cwd(key, cwd)
+    except Exception:
+        logger.debug("desktop body notify not registered", exc_info=True)
+
+
 def _teardown_session(session: dict | None, *, end_reason: str = "tui_close") -> None:
     """Fully tear down a session: finalize, unregister, close agent + worker.
 
@@ -617,10 +654,8 @@ def _teardown_session(session: dict | None, *, end_reason: str = "tui_close") ->
         return
     _finalize_session(session, end_reason=end_reason)
     try:
-        from tools.approval import unregister_gateway_notify
-
         if key := session.get("session_key"):
-            unregister_gateway_notify(key)
+            _unregister_session_side_channels(key)
     except Exception:
         pass
     try:
@@ -1267,16 +1302,8 @@ def _start_agent_build(sid: str, session: dict) -> None:
                 pass
 
             try:
-                from tools.approval import (
-                    register_gateway_notify,
-                    load_permanent_allowlist,
-                )
-
-                register_gateway_notify(
-                    key, lambda data: _emit_approval_request(sid, data)
-                )
+                _register_session_side_channels(sid, key, current)
                 notify_registered = True
-                load_permanent_allowlist()
             except Exception:
                 pass
 
@@ -1332,9 +1359,7 @@ def _start_agent_build(sid: str, session: dict) -> None:
                 replaced = _sessions.get(sid) is not current
             if replaced and notify_registered:
                 try:
-                    from tools.approval import unregister_gateway_notify
-
-                    unregister_gateway_notify(key)
+                    _unregister_session_side_channels(key)
                 except Exception:
                     pass
             ready.set()
@@ -3078,6 +3103,25 @@ def _sync_session_key_after_compress(
             )
         except Exception:
             pass
+        try:
+            from tools.desktop_body import (
+                get_desktop_cwd,
+                register_desktop_body_notify,
+                set_desktop_cwd,
+                unregister_desktop_body,
+            )
+
+            desktop_cwd = get_desktop_cwd(old_key) or str(session.get("desktop_cwd") or "")
+            unregister_desktop_body(old_key)
+            register_desktop_body_notify(
+                new_session_id,
+                lambda data, _sid=sid: _emit("desktop.body.request", _sid, data),
+            )
+            if desktop_cwd:
+                set_desktop_cwd(new_session_id, desktop_cwd)
+                session["desktop_cwd"] = desktop_cwd
+        except Exception:
+            pass
     except Exception:
         # Even if the approval module fails to import, still anchor the
         # session_key on the new continuation id so downstream lookups
@@ -4596,10 +4640,7 @@ def _init_session(
         # Defer hard-failure to slash.exec; chat still works without slash worker.
         _sessions[sid]["slash_worker"] = None
     try:
-        from tools.approval import register_gateway_notify, load_permanent_allowlist
-
-        register_gateway_notify(key, lambda data: _emit_approval_request(sid, data))
-        load_permanent_allowlist()
+        _register_session_side_channels(sid, key, _sessions.get(sid))
     except Exception:
         pass
     # Surface the self-improvement background review's "💾 …" summary as a
@@ -5069,6 +5110,12 @@ def _(rid, params: dict) -> dict:
     except Exception:
         explicit_cwd = False
     resolved_cwd = _completion_cwd(params)
+    try:
+        from tools.desktop_body import normalize_desktop_cwd
+
+        desktop_cwd = normalize_desktop_cwd(params.get("desktop_cwd"))
+    except Exception:
+        desktop_cwd = ""
     source = str(params.get("source") or "tui").strip() or "tui"
     _enable_gateway_prompts()
 
@@ -5125,6 +5172,7 @@ def _(rid, params: dict) -> dict:
             "history_version": 0,
             "image_counter": 0,
             "cwd": resolved_cwd,
+            "desktop_cwd": desktop_cwd,
             "inflight_turn": None,
             "last_active": now,
             "model_override": session_model_override,
@@ -5143,6 +5191,13 @@ def _(rid, params: dict) -> dict:
             "transport": current_transport() or _stdio_transport,
         }
         _register_session_cwd(_sessions[sid])
+        if desktop_cwd:
+            try:
+                from tools.desktop_body import set_desktop_cwd
+
+                set_desktop_cwd(key, desktop_cwd)
+            except Exception:
+                logger.debug("desktop_cwd bind failed", exc_info=True)
 
     # NOTE: we intentionally do NOT persist a DB row here. Every TUI/desktop
     # launch (and every "New agent" / draft) opens a session here just to paint
@@ -5183,6 +5238,7 @@ def _(rid, params: dict) -> dict:
                 "tools": {},
                 "skills": {},
                 "cwd": _sessions[sid]["cwd"],
+                "desktop_cwd": _sessions[sid].get("desktop_cwd") or "",
                 "branch": _git_branch_for_cwd(_sessions[sid]["cwd"]),
                 "lazy": True,
                 "desktop_contract": DESKTOP_BACKEND_CONTRACT,
@@ -5356,6 +5412,7 @@ def _deferred_session_record(
     lazy: bool = False,
     model_override=None,
     resume_runtime_overrides: dict | None = None,
+    desktop_cwd: str = "",
 ) -> dict:
     """A live-session record whose AIAgent is built later (lazy watch / cold
     resume) — _init_session's shape minus the agent."""
@@ -5370,6 +5427,7 @@ def _deferred_session_record(
         "cols": cols,
         "created_at": now,
         "cwd": cwd,
+        "desktop_cwd": desktop_cwd or "",
         "display_history_prefix": display_history_prefix or [],
         "edit_snapshots": {},
         "explicit_cwd": False,
@@ -5394,6 +5452,24 @@ def _deferred_session_record(
         "tool_started_at": {},
         "transport": current_transport() or _stdio_transport,
     }
+
+
+def _bind_resume_desktop_cwd(params: dict, record: dict, session_key: str) -> str:
+    """Re-attach a PC folder when the casca resumes a cloud session."""
+    try:
+        from tools.desktop_body import normalize_desktop_cwd, set_desktop_cwd
+
+        cwd = normalize_desktop_cwd(params.get("desktop_cwd"))
+    except Exception:
+        return ""
+    if not cwd:
+        return ""
+    record["desktop_cwd"] = cwd
+    try:
+        set_desktop_cwd(session_key, cwd)
+    except Exception:
+        pass
+    return cwd
 
 
 def _claim_or_reuse_live(
@@ -5554,8 +5630,12 @@ def _(rid, params: dict) -> dict:
             profile_home=profile_home,
             lazy=True,
         )
+        resume_desktop_cwd = _bind_resume_desktop_cwd(params, record, target)
         if (live := _claim_or_reuse_live(sid, target, record, lease)) is not None:
-            return _ok(rid, _reuse_live_payload(*live))
+            live_sid, live_session = live
+            if resume_desktop_cwd:
+                live_session["desktop_cwd"] = resume_desktop_cwd
+            return _ok(rid, _reuse_live_payload(live_sid, live_session))
         # A delegated child mid-run emits no session events of its own — report
         # its liveness from the relay registry so the window shows a busy turn.
         child_running = _child_run_active(target)
@@ -5629,8 +5709,12 @@ def _(rid, params: dict) -> dict:
             model_override=overrides.get("model_override"),
             resume_runtime_overrides=overrides or None,
         )
+        resume_desktop_cwd = _bind_resume_desktop_cwd(params, record, target)
         if (live := _claim_or_reuse_live(sid, target, record, lease)) is not None:
-            return _ok(rid, _reuse_live_payload(*live))
+            live_sid, live_session = live
+            if resume_desktop_cwd:
+                live_session["desktop_cwd"] = resume_desktop_cwd
+            return _ok(rid, _reuse_live_payload(live_sid, live_session))
 
         _schedule_agent_build(sid)
         _schedule_session_cap_enforcement()  # trim detached idle sessions over the cap
@@ -10289,6 +10373,18 @@ def _(rid, params: dict) -> dict:
             "name": name,
         },
     )
+
+
+@method("desktop.body.respond")
+def _(rid, params: dict) -> dict:
+    """Casca reply for a ``desktop.body.request`` (PC folder / git / PTY)."""
+    try:
+        from tools.desktop_body import resolve_desktop_body
+
+        request_id = str(params.get("request_id") or "").strip()
+        return _ok(rid, {"resolved": resolve_desktop_body(request_id, params)})
+    except Exception as e:
+        return _err(rid, 5005, str(e))
 
 
 @method("approval.respond")
