@@ -87,9 +87,9 @@ export const BROWSER_ENTER = "/login?next=/login/enter";
 /** Signed-in users skip the login form. */
 export const BROWSER_ENTER_AUTHED = "/login/enter";
 
-/** Client-safe mirror of W4Y_LAUNCH_MODE for static bundles. */
+/** L0 revogado — o site abre o produto (SSO), não só /baixar. */
 export function desktopLaunchPublic(): boolean {
-  return (process.env.NEXT_PUBLIC_W4Y_LAUNCH_MODE ?? "").trim().toLowerCase() === "desktop";
+  return false;
 }
 
 export function browserEnterAuthed(): string {
