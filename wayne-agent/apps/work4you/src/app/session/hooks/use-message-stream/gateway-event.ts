@@ -19,6 +19,7 @@ import { clearClarifyRequest, setClarifyRequest } from '@/store/clarify'
 import { $showReasoning } from '@/store/display-prefs'
 import { setSessionCompacting } from '@/store/compaction'
 import { refreshBackgroundProcesses } from '@/store/composer-status'
+import { fulfillDesktopBodyRequest } from '@/lib/desktop-body'
 import { $gateway } from '@/store/gateway'
 import { dispatchNativeNotification } from '@/store/native-notifications'
 import { notify } from '@/store/notifications'
@@ -479,6 +480,17 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
             title: translateNow('notifications.native.inputTitle')
           })
         }
+      } else if (event.type === 'desktop.body.request') {
+        // Fly brain → PC folder. The motor is blocked until desktop.body.respond.
+        const bodyPayload = payload && typeof payload === 'object' ? payload : {}
+        void fulfillDesktopBodyRequest($gateway.get(), {
+          args: (bodyPayload.args && typeof bodyPayload.args === 'object'
+            ? bodyPayload.args
+            : {}) as Record<string, unknown>,
+          desktop_cwd: typeof bodyPayload.desktop_cwd === 'string' ? bodyPayload.desktop_cwd : '',
+          op: typeof bodyPayload.op === 'string' ? bodyPayload.op : '',
+          request_id: typeof bodyPayload.request_id === 'string' ? bodyPayload.request_id : ''
+        })
       } else if (event.type === 'approval.request') {
         // Dangerous-command / execute_code approval. The Python side is blocked
         // in _await_gateway_decision() until approval.respond lands; without

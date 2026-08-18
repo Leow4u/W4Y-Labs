@@ -28,6 +28,7 @@ import {
   $runTarget,
   markRunTargetUserChoice,
   resolveCwdForPreferredTarget,
+  resolveDesktopCwd,
   resolveSessionCreateCwd,
   registerBrainTransferHandler,
   setRunTarget,
@@ -166,10 +167,8 @@ export function useSessionActions({
       // Never clear the composer here — ChatBar's per-thread draft swap owns it.
       setFreshDraftReady(true)
       if ($runTarget.get() === 'cloud') {
-        // Prefer cloud when chosen, but never leave the UI on a dead cloud socket.
-        void ensureCloudBrainActive().catch(() => {
-          void ensureLocalBrainActive()
-        })
+        // F3: cloud failure is login/reconnect — never spawn a second (local) brain.
+        void ensureCloudBrainActive().catch(() => undefined)
       } else {
         void ensureLocalBrainActive()
       }
@@ -207,8 +206,10 @@ export function useSessionActions({
 
         const localCwd = $currentCwd.get().trim() || workspaceCwdForNewSession()
         const cwd = resolveSessionCreateCwd(localCwd)
-        // Keep the composer cwd in sync with what we ship (cloud strips PC paths).
-        if (cwd !== $currentCwd.get()) {
+        const desktopCwd = resolveDesktopCwd(localCwd)
+        // Keep the composer on the PC folder when one is open (do not wipe it
+        // just because Fly ``cwd`` is empty / /opt/data).
+        if (!desktopCwd && cwd !== $currentCwd.get()) {
           setCurrentCwd(cwd)
         }
         // The composer's model/effort/fast is sticky UI state ($currentModel,
@@ -232,6 +233,7 @@ export function useSessionActions({
           cols: 96,
           source: 'desktop',
           ...(cwd && { cwd }),
+          ...(desktopCwd && { desktop_cwd: desktopCwd }),
           ...(preferred === 'local' && newChatProfile ? { profile: newChatProfile } : {}),
           ...(uiModel ? { model: uiModel, ...(createProvider ? { provider: createProvider } : {}) } : {}),
           ...(uiEffort ? { reasoning_effort: uiEffort } : {}),
@@ -523,6 +525,7 @@ export function useSessionActions({
             ? getCloudSessionMessages(storedSessionId)
             : getSessionMessages(storedSessionId, sessionProfile)
 
+        const resumeDesktopCwd = resolveDesktopCwd($currentCwd.get())
         const resumePromise = requestGateway<SessionResumeResponse>('session.resume', {
           session_id: storedSessionId,
           cols: 96,
@@ -533,7 +536,8 @@ export function useSessionActions({
           // (MCP discovery / prompt build), and the agent pre-warms in the
           // background while the prefetch above paints the transcript.
           ...(watchWindow ? { lazy: true } : {}),
-          ...(sessionProfile ? { profile: sessionProfile } : {})
+          ...(sessionProfile ? { profile: sessionProfile } : {}),
+          ...(resumeDesktopCwd ? { desktop_cwd: resumeDesktopCwd } : {})
         })
 
         // The rejection is consumed by the `await` below; this guard only

@@ -2085,6 +2085,24 @@ def terminal_tool(
                 "status": "error",
             }, ensure_ascii=False)
 
+        # F3: when the desktop opened a PC folder, run the command there.
+        try:
+            from tools.desktop_body import try_desktop_body
+
+            routed = try_desktop_body(
+                "terminal",
+                {
+                    "command": command,
+                    "workdir": workdir,
+                    "timeout": timeout,
+                },
+                timeout=int(timeout) if timeout else None,
+            )
+            if routed is not None:
+                return routed
+        except Exception:
+            logger.debug("desktop body terminal intercept skipped", exc_info=True)
+
         # Get configuration
         config = _get_env_config()
         env_type = config["env_type"]

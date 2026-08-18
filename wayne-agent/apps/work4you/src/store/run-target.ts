@@ -13,7 +13,9 @@ import {
   clearCloudProjectSlug,
   cloudProjectCwd,
   cwdForCloudSession,
+  desktopCwdForSession,
   isLocalMachinePath,
+  isPcFolderPath,
   markRunTargetUserChoice,
   type RunTarget,
   setCloudProjectSlug,
@@ -79,16 +81,31 @@ export async function transferSessionBrain(
 
 /**
  * Cwd for a brand-new chat given the preferred run target.
- * Cloud: projects/<slug> on the cloud volume, or empty — never a Windows/mac path.
+ * Cloud + explicit Fly project: /opt/data/projects/<slug>.
+ * Cloud + open PC folder: keep that folder (brain stays on Fly).
  * Local: existing project-scope / workspace resolver.
  */
 export function resolveCwdForPreferredTarget(): string {
-  if ($runTarget.get() === 'cloud') {
-    const slug = $cloudProjectSlug.get().trim()
-    return cwdForCloudSession(slug ? cloudProjectCwd(slug) : '')
+  const slug = $cloudProjectSlug.get().trim()
+  if ($runTarget.get() === 'cloud' && slug) {
+    return cwdForCloudSession(cloudProjectCwd(slug))
   }
 
-  return resolveNewSessionCwd()
+  const local = resolveNewSessionCwd()
+  if ($runTarget.get() === 'cloud' && isPcFolderPath(local)) {
+    return local
+  }
+
+  if ($runTarget.get() === 'cloud') {
+    return ''
+  }
+
+  return local
+}
+
+/** Absolute PC folder to ship as session.create ``desktop_cwd``. */
+export function resolveDesktopCwd(localFallback: string): string {
+  return desktopCwdForSession(localFallback.trim() || resolveNewSessionCwd())
 }
 
 /**

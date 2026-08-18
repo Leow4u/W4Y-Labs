@@ -173,6 +173,24 @@ if (USER_DATA_OVERRIDE) {
 
 const DEV_SERVER = process.env.HERMES_DESKTOP_DEV_SERVER
 const IS_PACKAGED = app.isPackaged
+
+/** F3: packaged product is the body. Brain is Fly. Dev can set W4Y_ALLOW_LOCAL_ENGINE=1. */
+function localEngineDisabled() {
+  return Boolean(IS_PACKAGED) && process.env.W4Y_ALLOW_LOCAL_ENGINE !== '1'
+}
+
+function cloudBodyConnection() {
+  return {
+    baseUrl: '',
+    mode: 'cloud-body',
+    source: 'cloud-body',
+    authMode: 'cloud',
+    token: '',
+    wsUrl: '',
+    logs: hermesLog.slice(-80),
+    ...getWindowState()
+  }
+}
 const IS_MAC = process.platform === 'darwin'
 const IS_WINDOWS = process.platform === 'win32'
 const IS_WSL = isWslEnvironment()
@@ -3210,6 +3228,9 @@ function resolveHermesBackend(backendArgs) {
 }
 
 async function ensureRuntime(backend) {
+  if (localEngineDisabled()) {
+    throw new Error('local-engine-disabled')
+  }
   if (!backend.bootstrap) {
     await advanceBootProgress('runtime.external', `Using ${backend.label}`, 32)
     return backend
@@ -5563,7 +5584,10 @@ function startPoolIdleReaper() {
 // local-spawn portion of startHermes() but without the boot-progress UI,
 // bootstrap, or remote handling (those belong to the primary backend only).
 async function spawnPoolBackend(profile, entry) {
-  // A profile may point at its OWN remote backend (connection.json
+  if (localEngineDisabled()) {
+    return { ...cloudBodyConnection(), profile }
+  }
+  // A profile may point at its OWN remote backend (connection.json)
   // `profiles[name]`), or inherit the app-wide remote (env / global settings).
   // In either case there is no local child to spawn — we just verify the
   // remote is reachable and hand back its connection descriptor. The pool
@@ -5769,6 +5793,18 @@ async function startHermes() {
   if (connectionPromise) return connectionPromise
 
   connectionPromise = (async () => {
+    if (localEngineDisabled()) {
+      await advanceBootProgress('backend.cloud-body', 'Connecting Work4You', 90)
+      updateBootProgress({
+        phase: 'backend.ready',
+        message: 'Work4You is ready',
+        progress: 94,
+        running: true,
+        error: null
+      })
+      return cloudBodyConnection()
+    }
+
     await advanceBootProgress('backend.resolve', 'Resolving Work4You engine', 8)
     // Resolve for the desktop's primary profile so a per-profile remote
     // override on the active profile is honored (falls back to env / global).
@@ -7321,6 +7357,56 @@ ipcMain.handle('hermes:fs:rename', async (_event, targetPath, newName) => {
 // is hardened (resolveRequestedPathForIpc) and the parent must already exist —
 // this never creates directory trees or escapes the allowed roots, and content
 // is size-capped so it can't be abused as a bulk-write primitive.
+ipcMain.handle('hermes:body:writeFile', async (_event, filePath, content) => {
+  const raw = String(filePath || '').trim()
+  if (!raw) {
+    throw new Error('Invalid path')
+  }
+  const text = String(content ?? '')
+  if (text.length > 10_000_000) {
+    throw new Error('Content too large')
+  }
+  const resolved = resolveRequestedPathForIpc(expandUserPath(raw), { purpose: 'Write file' })
+  await fs.promises.mkdir(path.dirname(resolved), { recursive: true })
+  await fs.promises.writeFile(resolved, text, 'utf8')
+  return { path: resolved, bytes_written: Buffer.byteLength(text, 'utf8') }
+})
+
+ipcMain.handle('hermes:body:exec', async (_event, payload = {}) => {
+  const command = String(payload.command || '').trim()
+  if (!command) {
+    throw new Error('Command required')
+  }
+  const cwdRaw = String(payload.cwd || payload.workdir || '').trim()
+  if (!cwdRaw) {
+    throw new Error('Working directory required')
+  }
+  const cwd = resolveRequestedPathForIpc(expandUserPath(cwdRaw), { purpose: 'Run command' })
+  const timeoutMs = Math.min(Math.max(Number(payload.timeoutMs) || 120_000, 1_000), 300_000)
+  const { exec } = require('node:child_process')
+  const { promisify } = require('node:util')
+  const execAsync = promisify(exec)
+  try {
+    const { stdout, stderr } = await execAsync(command, {
+      cwd,
+      timeout: timeoutMs,
+      maxBuffer: 4 * 1024 * 1024,
+      windowsHide: true,
+      shell: process.platform === 'win32' ? true : '/bin/bash'
+    })
+    return { output: `${stdout || ''}${stderr || ''}`, exit_code: 0 }
+  } catch (err) {
+    const stdout = err && typeof err === 'object' ? err.stdout || '' : ''
+    const stderr = err && typeof err === 'object' ? err.stderr || '' : ''
+    const code = err && typeof err === 'object' && typeof err.code === 'number' ? err.code : 1
+    return {
+      output: `${stdout}${stderr}`,
+      exit_code: code,
+      error: err && err.killed ? 'timeout' : err instanceof Error ? err.message : 'exec failed'
+    }
+  }
+})
+
 ipcMain.handle('hermes:fs:writeText', async (_event, filePath, content) => {
   const raw = String(filePath || '').trim()
 

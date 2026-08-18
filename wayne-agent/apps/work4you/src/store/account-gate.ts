@@ -185,6 +185,12 @@ export async function signInToWork4You(): Promise<boolean> {
     // the process before this line — cold start then runs refreshAccountGate.
     const gateOpen = await refreshAccountGate()
     if (gateOpen) {
+      try {
+        const { ensureCloudBrainActive } = await import('./gateway')
+        await ensureCloudBrainActive()
+      } catch {
+        /* reconnect retries from boot / visibility */
+      }
       return true
     }
 

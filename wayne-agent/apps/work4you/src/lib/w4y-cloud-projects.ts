@@ -125,18 +125,31 @@ export function cloudProjectCwd(slug: string): string {
   return projectCwd(CLOUD_FILES_ROOT, slug)
 }
 
-/** Windows-absolute or UNC — must never ship to cloud session.create. */
+/** Windows-absolute or UNC — must never ship as Fly ``cwd``. */
 export const LOCAL_PATH_RE = /^(?:[A-Za-z]:[\\/]|\\\\)/
 
 export function isLocalMachinePath(path: string): boolean {
   return LOCAL_PATH_RE.test(path.trim())
 }
 
-/** Strip PC paths when the brain is cloud (session.create contract). */
+export function isPcFolderPath(path: string): boolean {
+  const cwd = path.trim()
+  if (!cwd) return false
+  if (isLocalMachinePath(cwd)) return true
+  return cwd.startsWith('/') && !cwd.startsWith(CLOUD_FILES_ROOT)
+}
+
+/** Strip PC paths when shipping the Fly process cwd (session.create ``cwd``). */
 export function cwdForCloudSession(preferred?: null | string): string {
   const cwd = (preferred || '').trim()
   if (!cwd || isLocalMachinePath(cwd)) return ''
   return cwd
+}
+
+/** Absolute folder on the user's machine — session.create ``desktop_cwd``. */
+export function desktopCwdForSession(preferred?: null | string): string {
+  const cwd = (preferred || '').trim()
+  return isPcFolderPath(cwd) ? cwd : ''
 }
 
 export async function listCloudProjects(): Promise<CloudProjectRow[]> {
@@ -207,7 +220,7 @@ export const $runTargetExplicitLocal = persistentAtom<boolean>('hermes.desktop.r
 })
 
 /** Preferred brain for the NEXT new session (composer control). */
-export const $runTarget = persistentAtom<RunTarget>('hermes.desktop.runTarget', 'local', {
+export const $runTarget = persistentAtom<RunTarget>('hermes.desktop.runTarget', 'cloud', {
   decode: raw => (raw === 'cloud' ? 'cloud' : 'local'),
   encode: value => value
 })
@@ -216,7 +229,7 @@ export const $runTarget = persistentAtom<RunTarget>('hermes.desktop.runTarget', 
  * Where the LIVE session runs. Settles on session.create; new-session resets
  * to follow $runTarget again.
  */
-export const $sessionRunTarget = persistentAtom<RunTarget>('hermes.desktop.sessionRunTarget', 'local', {
+export const $sessionRunTarget = persistentAtom<RunTarget>('hermes.desktop.sessionRunTarget', 'cloud', {
   decode: raw => (raw === 'cloud' ? 'cloud' : 'local'),
   encode: value => value
 })

@@ -143,6 +143,13 @@ declare global {
       renamePath?: (path: string, newName: string) => Promise<{ path: string }>
       // Write a small UTF-8 text file (hardened path, parent must exist).
       writeTextFile?: (path: string, content: string) => Promise<{ path: string }>
+      bodyWriteFile?: (path: string, content: string) => Promise<{ path: string; bytes_written?: number }>
+      bodyExec?: (payload: {
+        command: string
+        cwd?: string
+        workdir?: string
+        timeoutMs?: number
+      }) => Promise<{ output: string; exit_code: number; error?: string }>
       // Move a file/folder to the OS trash (recoverable).
       trashPath?: (path: string) => Promise<boolean>
       // Git-driven worktree management for the "Start work" flow.
@@ -399,10 +406,10 @@ export interface DesktopUpdateProgress {
 export interface HermesConnection {
   baseUrl: string
   isFullscreen: boolean
-  mode?: 'local' | 'remote'
-  authMode?: 'oauth' | 'token'
+  mode?: 'local' | 'remote' | 'cloud-body'
+  authMode?: 'oauth' | 'token' | 'cloud'
   nativeOverlayWidth: number
-  source?: 'env' | 'local' | 'settings'
+  source?: 'env' | 'local' | 'settings' | 'cloud-body'
   token: string
   wsUrl: string
   logs: string[]

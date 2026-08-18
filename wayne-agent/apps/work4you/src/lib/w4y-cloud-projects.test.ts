@@ -4,7 +4,9 @@ import {
   CLOUD_NOT_LOGGED_IN,
   cloudProjectCwd,
   cwdForCloudSession,
+  desktopCwdForSession,
   isLocalMachinePath,
+  isPcFolderPath,
   prettifyProject,
   repoNameFromUrl,
   slugifyProject
@@ -31,10 +33,18 @@ describe('cloud cwd contract', () => {
     expect(isLocalMachinePath('/opt/data/projects/x')).toBe(false)
   })
 
-  it('strips PC paths for cloud session.create', () => {
+  it('strips PC paths for cloud session.create cwd', () => {
     expect(cwdForCloudSession('C:\\Users\\x\\repo')).toBe('')
     expect(cwdForCloudSession('/opt/data/projects/acme')).toBe('/opt/data/projects/acme')
     expect(cwdForCloudSession('')).toBe('')
+  })
+
+  it('ships PC folders as desktop_cwd', () => {
+    expect(isPcFolderPath('C:\\Users\\x\\repo')).toBe(true)
+    expect(isPcFolderPath('/Users/x/proj')).toBe(true)
+    expect(isPcFolderPath('/opt/data/projects/acme')).toBe(false)
+    expect(desktopCwdForSession('C:\\Users\\x\\repo')).toBe('C:\\Users\\x\\repo')
+    expect(desktopCwdForSession('/opt/data/projects/acme')).toBe('')
   })
 })
 
@@ -54,6 +64,7 @@ describe('cloud bridge login probe', () => {
   it('maps not-logged-in mint failures', async () => {
     vi.stubGlobal('window', {
       work4youDesktop: {
+        isDesktop: true,
         cloud: {
           wsUrl: vi.fn(async () => ({ ok: false, error: 'not-logged-in' })),
           api: vi.fn()
