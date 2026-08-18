@@ -8,8 +8,8 @@ primary_region = "gru"
   image = "registry.fly.io/provisioner-w4y:p7"
 
 [env]
-  TENANT_WAYNE_IMAGE = "registry.fly.io/wayne-w4y:fly253"
-  WAYNE_IMAGE = "registry.fly.io/wayne-w4y:fly253"
+  TENANT_WAYNE_IMAGE = "registry.fly.io/wayne-w4y:fly254"
+  WAYNE_IMAGE = "registry.fly.io/wayne-w4y:fly254"
 
 [http_service]
   internal_port = 8080

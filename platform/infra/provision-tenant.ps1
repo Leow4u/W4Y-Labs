@@ -16,7 +16,7 @@ param(
     [Parameter(Mandatory = $true)][string]$Email,
     [ValidateSet('base', 'premium')][string]$Plan = 'base',
     [double]$TrialUsd = 1,
-    [string]$Image = 'registry.fly.io/wayne-w4y:fly253',
+    [string]$Image = 'registry.fly.io/wayne-w4y:fly254',
     [int]$ProxyPort = 5434,
     # Retomar um provisionamento interrompido (pula recursos já criados).
     [switch]$Reconcile

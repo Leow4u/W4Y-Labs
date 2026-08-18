@@ -9,7 +9,7 @@
 
 [CmdletBinding()]
 param(
-  [string]$TenantTag = "fly253",
+  [string]$TenantTag = "fly254",
   [string]$ProvisionerTag = "p9",
   [string]$BaseTenantTag = "fly252",
   [switch]$SkipTenant,
@@ -89,10 +89,12 @@ if (-not $SkipTenant) {
     $cliDst = Join-Path $stage "opt\wayne\wayne_cli"
     $authDst = Join-Path $cliDst "dashboard_auth"
     New-Item -ItemType Directory -Force -Path $toolsDst, $gwDst, $cliDst, $authDst | Out-Null
+    # desktop_body has no work4you_* imports; the rest need .wayne.py renames
+    # so the Fly base (wayne_cli / wayne_constants) can import them.
     Copy-Item (Join-Path $engineRoot "tools\desktop_body.py") $toolsDst
-    Copy-Item (Join-Path $engineRoot "tools\file_tools.py") $toolsDst
-    Copy-Item (Join-Path $engineRoot "tools\terminal_tool.py") $toolsDst
-    Copy-Item (Join-Path $engineRoot "tui_gateway\server.py") $gwDst
+    Copy-Item (Join-Path $engineRoot "tools\file_tools.wayne.py") (Join-Path $toolsDst "file_tools.py")
+    Copy-Item (Join-Path $engineRoot "tools\terminal_tool.wayne.py") (Join-Path $toolsDst "terminal_tool.py")
+    Copy-Item (Join-Path $engineRoot "tui_gateway\server.wayne.py") (Join-Path $gwDst "server.py")
     Copy-Item (Join-Path $engineRoot "work4you_cli\app_dist") (Join-Path $cliDst "app_dist") -Recurse
     Copy-Item (Join-Path $engineRoot "work4you_cli\platform_tenant.wayne.py") (Join-Path $cliDst "platform_tenant.py")
     Copy-Item (Join-Path $engineRoot "work4you_cli\web_server.wayne.py") (Join-Path $cliDst "web_server.py")

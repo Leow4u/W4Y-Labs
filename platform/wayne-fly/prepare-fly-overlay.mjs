@@ -74,6 +74,11 @@ const PAIRS = [
   { src: "work4you_cli/dashboard_auth/middleware.py" },
   { src: "work4you_cli/dashboard_auth/login_page.py" },
   { src: "work4you_cli/dashboard_auth/ws_tickets.py" },
+  // F3 overlay copies these into the Fly image; they still import work4you_*
+  // while the base image only has wayne_* modules.
+  { src: "tui_gateway/server.py" },
+  { src: "tools/file_tools.py" },
+  { src: "tools/terminal_tool.py" },
   { src: "work4you_state.py", dst: "wayne_state.wayne.py", stateOnly: true },
 ];
 
