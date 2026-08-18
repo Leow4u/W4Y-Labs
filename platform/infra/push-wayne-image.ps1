@@ -1,5 +1,5 @@
 # Authenticate Docker to Artifact Registry (via the active gcloud SA token)
-# and push the Wayne Agent image. Records the immutable by-digest URI so the
+# and push the Work4You image. Records the immutable by-digest URI so the
 # deploy script can pin to it.
 #
 # Usage:  .\push-wayne-image.ps1 [-Tag <tag>]

@@ -1,4 +1,4 @@
-"""``wayne debug`` debug tools for Wayne Agent.
+"""``wayne debug`` debug tools for Work4You.
 
 Currently supports:
     wayne debug share    Collect a debug report (system info + logs) and

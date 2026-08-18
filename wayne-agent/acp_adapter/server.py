@@ -1,4 +1,4 @@
-"""ACP agent server — exposes Wayne Agent via the Agent Client Protocol."""
+"""ACP agent server — exposes Work4You via the Agent Client Protocol."""
 
 from __future__ import annotations
 

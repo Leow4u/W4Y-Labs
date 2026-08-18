@@ -1,5 +1,5 @@
 """
-Skills configuration for Wayne Agent.
+Skills configuration for Work4You.
 `wayne skills` enters this module.
 
 Toggle individual skills or categories on/off, globally or per-platform.

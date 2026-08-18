@@ -2,7 +2,7 @@
 name: openhands
 description: Delegate coding to OpenHands CLI (model-agnostic, LiteLLM).
 version: 0.1.0
-author: Tim Koepsel (xzessmedia), Wayne Agent
+author: Tim Koepsel (xzessmedia), Work4You
 license: MIT
 platforms: [linux, macos]
 metadata:

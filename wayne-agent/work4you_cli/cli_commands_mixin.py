@@ -2661,7 +2661,7 @@ class CLICommandsMixin:
         run_debug_share(args)
 
     def _handle_update_command(self) -> bool:
-        """Handle /update — update Wayne Agent to the latest version.
+        """Handle /update — update Work4You to the latest version.
 
         In the classic CLI this exits the session and relaunches as
         ``wayne update`` so the user sees update output directly and gets

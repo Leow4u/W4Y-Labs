@@ -1,5 +1,5 @@
 """
-Multi-provider authentication system for Wayne Agent.
+Multi-provider authentication system for Work4You.
 
 Supports OAuth device code flows (Nous Portal, future: OpenAI Codex) and
 traditional API key providers (OpenRouter, custom endpoints). Auth state

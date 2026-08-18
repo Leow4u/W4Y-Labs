@@ -1,4 +1,4 @@
-# Wayne Agent - Development Guide
+# Work4You - Development Guide
 
 Instructions for AI coding assistants and developers working on the Work4You agent codebase.
 
@@ -946,8 +946,8 @@ violate them.
 
 4. **`author` credits the human contributor first.** For external
    contributions, the contributor's real name + GitHub handle goes
-   first; "Wayne Agent" is the secondary collaborator. If the
-   contributor's commit shows "Wayne Agent" as author (because they
+   first; "Work4You" is the secondary collaborator. If the
+   contributor's commit shows "Work4You" as author (because they
    used Wayne to draft the skill), replace it with their actual name
    — credit the human, not the tool.
 

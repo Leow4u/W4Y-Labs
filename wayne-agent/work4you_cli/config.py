@@ -1,5 +1,5 @@
 """
-Configuration management for Wayne Agent.
+Configuration management for Work4You.
 
 Config files are stored in ~/.wayne/ for easy access:
 - ~/.wayne/config.yaml  - All settings (model, toolsets, terminal, etc.)
@@ -306,7 +306,6 @@ _EXTRA_ENV_KEYS = frozenset({
 import yaml
 
 from work4you_cli.colors import Colors, color
-from work4you_cli.default_soul import is_legacy_template_soul, is_product_seeded_soul
 
 
 # =============================================================================
@@ -823,18 +822,13 @@ def _ensure_default_soul_md(home: Path) -> None:
                                   wins; the stale file would otherwise shadow it).
     - User-customized SOUL.md   → never touch.
     """
-    soul_path = home / "SOUL.md"
-    if not soul_path.exists():
-        return
-    try:
-        existing = soul_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError):
-        return
-    if is_product_seeded_soul(existing):
-        try:
-            soul_path.unlink()
-        except OSError:
-            pass
+    from work4you_cli.default_soul import (
+        heal_legacy_brand_memory_files,
+        heal_legacy_product_soul,
+    )
+
+    heal_legacy_product_soul(home)
+    heal_legacy_brand_memory_files(home)
 
 
 def ensure_wayne_home():

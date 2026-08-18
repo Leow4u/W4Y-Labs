@@ -1,4 +1,4 @@
-# Deploy the Wayne Agent image to Cloud Run (southamerica-east1).
+# Deploy the Work4You image to Cloud Run (southamerica-east1).
 # Idempotent: also grants the runtime SA read access to the secrets and the
 # Cloud Run service agent read access to the Artifact Registry repo (both
 # resource-level, so they work without project-level IAM admin).

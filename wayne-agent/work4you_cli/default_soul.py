@@ -135,3 +135,57 @@ def is_product_seeded_soul(text: str) -> bool:
     if claims_legacy_product_brand(text):
         return True
     return False
+
+
+def heal_legacy_product_soul(home) -> bool:
+    """Unlink product-seeded / legacy-brand ``SOUL.md`` under *home*.
+
+    Returns True when a file was removed. Safe to call on every tenant boot —
+    never touches a real user-authored persona that does not claim Wayne /
+    Hermes / Nous as the product identity.
+    """
+    from pathlib import Path
+
+    soul_path = Path(home) / "SOUL.md"
+    if not soul_path.is_file():
+        return False
+    try:
+        existing = soul_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return False
+    if not is_product_seeded_soul(existing):
+        return False
+    try:
+        soul_path.unlink()
+        return True
+    except OSError:
+        return False
+
+
+def heal_legacy_brand_memory_files(home) -> int:
+    """Remove MEMORY.md / USER.md fragments that teach Wayne/Hermes as identity.
+
+    Only unlinks when the *whole file* claims a legacy product brand (same bar
+    as SOUL). Does not rewrite mixed user notes that merely mention the word
+    Wayne as a person name.
+    """
+    from pathlib import Path
+
+    removed = 0
+    root = Path(home)
+    for rel in ("MEMORY.md", "USER.md", "memories/MEMORY.md", "memories/USER.md"):
+        path = root / rel
+        if not path.is_file():
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if not claims_legacy_product_brand(text):
+            continue
+        try:
+            path.unlink()
+            removed += 1
+        except OSError:
+            pass
+    return removed

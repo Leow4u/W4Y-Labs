@@ -1,5 +1,5 @@
 """
-IRC Platform Adapter for Wayne Agent.
+IRC Platform Adapter for Work4You.
 
 A plugin-based gateway adapter that connects to an IRC server and relays
 messages to/from the Wayne agent.  Zero external dependencies — uses

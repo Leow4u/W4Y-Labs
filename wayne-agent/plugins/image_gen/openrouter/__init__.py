@@ -356,7 +356,7 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             "Content-Type": "application/json",
             # OpenRouter attribution headers (harmless against Nous Portal).
             "HTTP-Referer": "https://github.com/NousResearch/hermes-agent",
-            "X-Title": "Wayne Agent",
+            "X-Title": "Work4You",
         }
         last_error: Optional[Dict[str, Any]] = None
         for i, model_id in enumerate(model_chain):

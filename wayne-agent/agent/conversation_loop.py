@@ -399,7 +399,19 @@ def _restore_or_build_system_prompt(agent, system_message, conversation_history)
 
 
 def _stored_prompt_matches_runtime(agent, prompt: str) -> bool:
-    """Return False when the persisted Model/Provider lines are stale."""
+    """Return False when the persisted Model/Provider lines are stale.
+
+    Also rejects prompts that still teach Wayne / Hermes / Nous as the product
+    identity — otherwise an old ``state.db`` row keeps answering "sou o Wayne
+    Agent" after the runtime identity was fixed.
+    """
+    try:
+        from work4you_cli.default_soul import claims_legacy_product_brand
+
+        if claims_legacy_product_brand(prompt):
+            return False
+    except Exception:
+        pass
 
     def line_value(label: str) -> str:
         prefix = f"{label}:"

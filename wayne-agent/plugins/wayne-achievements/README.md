@@ -1,6 +1,6 @@
 # Wayne Achievements
 
-> **Bundled with Wayne Agent.** Originally authored by [@PCinkusz](https://github.com/PCinkusz) at https://github.com/PCinkusz/wayne-achievements — vendored into `plugins/wayne-achievements/` so it ships with the dashboard out-of-the-box and stays in lockstep with Wayne feature changes. Upstream repo remains the staging ground for new badges and UI iteration.
+> **Bundled with Work4You.** Originally authored by [@PCinkusz](https://github.com/PCinkusz) at https://github.com/PCinkusz/wayne-achievements — vendored into `plugins/wayne-achievements/` so it ships with the dashboard out-of-the-box and stays in lockstep with Wayne feature changes. Upstream repo remains the staging ground for new badges and UI iteration.
 >
 > When Wayne is installed via the install script or cloned from source, this plugin auto-registers as a dashboard tab on first `wayne dashboard` launch. No separate install step. See [Built-in Plugins → wayne-achievements](../../website/docs/user-guide/features/built-in-plugins.md) in the main docs.
 

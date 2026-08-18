@@ -68,12 +68,21 @@ const PAIRS = [
   { src: "work4you_cli/relay_free_model.py" },
   { src: "work4you_cli/web_server.py" },
   { src: "work4you_cli/restart_jobs.py" },
+  { src: "work4you_cli/default_soul.py" },
   { src: "work4you_cli/dashboard_auth/platform_sso.py" },
   { src: "work4you_cli/dashboard_auth/cookies.py" },
   { src: "work4you_cli/dashboard_auth/routes.py" },
   { src: "work4you_cli/dashboard_auth/middleware.py" },
   { src: "work4you_cli/dashboard_auth/login_page.py" },
   { src: "work4you_cli/dashboard_auth/ws_tickets.py" },
+  // Chat identity — without these the Fly base keeps teaching "Wayne Agent".
+  { src: "agent/prompt_builder.py" },
+  { src: "agent/conversation_loop.py" },
+  // F3 overlay copies these into the Fly image; they still import work4you_*
+  // while the base image only has wayne_* modules.
+  { src: "tui_gateway/server.py" },
+  { src: "tools/file_tools.py" },
+  { src: "tools/terminal_tool.py" },
   { src: "work4you_state.py", dst: "wayne_state.wayne.py", stateOnly: true },
 ];
 

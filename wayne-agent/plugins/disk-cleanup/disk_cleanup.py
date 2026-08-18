@@ -1,4 +1,4 @@
-"""disk_cleanup — ephemeral file cleanup for Wayne Agent.
+"""disk_cleanup — ephemeral file cleanup for Work4You.
 
 Library module wrapping the deterministic cleanup rules written by
 @LVT382009 in PR #12212. The plugin ``__init__.py`` wires these

@@ -1,11 +1,11 @@
 """
-Session Insights Engine for Wayne Agent.
+Session Insights Engine for Work4You.
 
 Analyzes historical session data from the SQLite state database to produce
 comprehensive usage insights — token consumption, cost estimates, tool usage
 patterns, activity trends, model/platform breakdowns, and session metrics.
 
-Inspired by Claude Code's /insights command, adapted for Wayne Agent's
+Inspired by Claude Code's /insights command, adapted for Work4You's
 multi-platform architecture with additional cost estimation and platform
 breakdown capabilities.
 

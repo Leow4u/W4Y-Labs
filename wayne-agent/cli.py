@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Wayne Agent CLI - Interactive Terminal Interface
+Work4You CLI - Interactive Terminal Interface
 
-A beautiful command-line interface for the Wayne Agent, inspired by Claude Code.
+A beautiful command-line interface for the Work4You, inspired by Claude Code.
 Features ASCII art branding, interactive REPL, toolset selection, and rich formatting.
 
 Usage:
@@ -3632,7 +3632,7 @@ def save_config_value(key_path: str, value: any) -> bool:
 
 class WayneCLI(CLIAgentSetupMixin, CLICommandsMixin):
     """
-    Interactive CLI for the Wayne Agent.
+    Interactive CLI for the Work4You.
     
     Provides a REPL interface with rich formatting, command history,
     and tool execution capabilities.

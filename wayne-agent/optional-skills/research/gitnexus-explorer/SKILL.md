@@ -2,7 +2,7 @@
 name: gitnexus-explorer
 description: Index a codebase with GitNexus and serve an interactive knowledge graph via web UI + Cloudflare tunnel.
 version: 1.0.0
-author: Wayne Agent + Teknium
+author: Work4You + Teknium
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

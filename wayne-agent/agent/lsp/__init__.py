@@ -1,4 +1,4 @@
-"""Language Server Protocol (LSP) integration for Wayne Agent.
+"""Language Server Protocol (LSP) integration for Work4You.
 
 Wayne runs full language servers (pyright, gopls, rust-analyzer,
 typescript-language-server, etc.) as subprocesses and pipes their

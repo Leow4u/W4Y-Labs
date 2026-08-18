@@ -1,4 +1,4 @@
-// Wayne Agent — Photon Spectrum sidecar
+// Work4You — Photon Spectrum sidecar
 //
 // Spawned by `plugins/platforms/photon/adapter.py` to bridge BOTH directions
 // of messaging to Photon's Spectrum platform via the `spectrum-ts` SDK (the

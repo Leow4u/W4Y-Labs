@@ -1,5 +1,5 @@
 """
-Microsoft Teams platform adapter for Wayne Agent.
+Microsoft Teams platform adapter for Work4You.
 
 Uses the microsoft-teams-apps SDK for authentication and activity processing.
 Runs an aiohttp webhook server to receive messages from Teams.

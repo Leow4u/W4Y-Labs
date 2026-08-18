@@ -1,5 +1,5 @@
 """
-Lazy dependency installer for opt-in Wayne Agent backends.
+Lazy dependency installer for opt-in Work4You backends.
 
 Many Wayne features (Mistral TTS, ElevenLabs TTS, Honcho memory, Bedrock,
 Slack, Matrix, etc.) require Python packages that not every user needs. The

@@ -2,7 +2,7 @@
 name: humanizer
 description: "Humanize text: strip AI-isms and add real voice."
 version: 2.5.1
-author: Siqi Chen (@blader, https://github.com/blader/humanizer), ported by Wayne Agent
+author: Siqi Chen (@blader, https://github.com/blader/humanizer), ported by Work4You
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

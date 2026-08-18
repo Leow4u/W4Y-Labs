@@ -1,5 +1,5 @@
 """
-Baked-in build metadata for Wayne Agent.
+Baked-in build metadata for Work4You.
 
 Source installs report their git revision live via ``git rev-parse`` (see
 ``work4you_cli/dump.py`` and ``work4you_cli/banner.py``).  That doesn't work inside

@@ -1,7 +1,7 @@
 """
 Doctor command for wayne CLI.
 
-Diagnoses issues with Wayne Agent setup.
+Diagnoses issues with Work4You setup.
 """
 
 import os

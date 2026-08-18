@@ -1,0 +1,23 @@
+---
+description: Cloud Agent can publish Fly tenant overlays via FLY_API_TOKEN
+alwaysApply: true
+---
+
+# Cloud Agent — publish Fly (sem sessao local)
+
+Quando o utilizador pedir publish Fly / overlay / wayne-w4y / flyN nesta sessao cloud:
+
+1. Confirmar `echo ${FLY_API_TOKEN:+set}` (valor redacted). Se vazio -> docs/CLOUD-AGENT-FLY.md e parar.
+2. Garantir fly no PATH (`export PATH="$HOME/.fly/bin:$PATH"` se preciso).
+3. Se mudou UI: `cd wayne-agent/apps/work4you && npm run build:web`.
+4. Publicar:
+   ```bash
+   bash platform/infra/publish-fly.sh --skip-provisioner \
+     --tenant-tag flyN --base-tag fly252
+   ```
+   Base preferida: fly252 (evitar overlayfs invalid argument).
+5. Confirmar Image = wayne-w4y:flyN e grep Work4You em prompt_builder.py.
+
+Nao pedir sessao local so por causa do Fly se FLY_API_TOKEN existir.
+
+Fora de scope: deploy-web.ps1 / GCS / gcloud (ADC ou OIDC GCP).

@@ -1,6 +1,6 @@
-# platform/infra — build & deploy do Wayne Agent (M0)
+# platform/infra — build & deploy do Work4You (M0)
 
-Fluxo **reproduzível** para publicar o Wayne Agent no Cloud Run **sem Cloud Build**
+Fluxo **reproduzível** para publicar o Work4You no Cloud Run **sem Cloud Build**
 (build local com Docker Desktop → push para Artifact Registry → deploy no Cloud Run).
 Alvo de plataforma: **linux/amd64**.
 

@@ -248,7 +248,7 @@ class CodexAppServerSession:
             )
         self._client.initialize(
             client_name="wayne",
-            client_title="Wayne Agent",
+            client_title="Work4You",
             client_version=_get_wayne_version(),
         )
         # Permission selection is intentionally NOT sent on thread/start.

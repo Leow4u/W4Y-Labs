@@ -1,4 +1,4 @@
-# Termux / Android dependency constraints for Wayne Agent.
+# Termux / Android dependency constraints for Work4You.
 #
 # Usage:
 #   python -m pip install -e '.[termux]' -c constraints-termux.txt

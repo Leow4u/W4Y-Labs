@@ -1826,9 +1826,15 @@ def load_soul_md(context_length: Optional[int] = None) -> Optional[str]:
         if not content:
             return None
         try:
-            from work4you_cli.default_soul import is_product_seeded_soul
+            from work4you_cli.default_soul import (
+                heal_legacy_product_soul,
+                is_product_seeded_soul,
+            )
 
             if is_product_seeded_soul(content):
+                # Drop the file so the next turn cannot re-load a Wayne seed
+                # if ensure_wayne_home / tenant heal did not run yet.
+                heal_legacy_product_soul(get_wayne_home())
                 return None
         except Exception:
             pass
