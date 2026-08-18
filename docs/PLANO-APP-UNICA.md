@@ -65,7 +65,17 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 
 ---
 
-## Fase L0 — Lançamento desktop-first (ago/2026)
+## Fase L0 — REVOGADA (18/08/2026)
+
+L0 congelava o browser e punha o motor no PC. Isso **não** é o produto.
+Norte vigente: [`PLANO-CLAUDE-V1.md`](./PLANO-CLAUDE-V1.md).
+
+O texto abaixo fica só como histórico do que **não** se volta a fazer.
+
+<details>
+<summary>Texto L0 (caduco — não executar)</summary>
+
+## Fase L0 — Lançamento desktop-first (ago/2026) [CADUCO]
 
 > **Objectivo:** primeiros ~50 utilizadores só na **app instalada**; site = conta + billing + download.  
 > **Flag:** `W4Y_LAUNCH_MODE=desktop` (+ `W4Y_SHARED_MOTOR=0`, `W4Y_APP_SUBDOMAIN=0`).  
@@ -109,6 +119,8 @@ wayne-{slug}.fly.dev     tenant Fly + volume   motor + gateway + SPA estática
 ### Saída de L0 (Fase 2)
 
 Reactivar browser: `W4Y_LAUNCH_MODE=` vazio, `W4Y_SHARED_MOTOR=1`, validar isolamento fly249+ com duas contas **antes** de anunciar `app.work4you.ai`.
+
+</details>
 
 ---
 

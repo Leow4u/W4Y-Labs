@@ -1,7 +1,7 @@
 # Work4You — Superfícies técnicas
 
-> **Produto:** [`PRODUTO.md`](./PRODUTO.md). **Execução:** [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).  
-> Contratos: [`BACKEND-MAP.md`](./BACKEND-MAP.md). Infra: [`ARQUITETURA.md`](./ARQUITETURA.md).
+> **Produto:** [`PRODUTO.md`](./PRODUTO.md). **Norte v1:** [`PLANO-CLAUDE-V1.md`](./PLANO-CLAUDE-V1.md).  
+> Histórico de PRs: [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md). Contratos: [`BACKEND-MAP.md`](./BACKEND-MAP.md).
 
 ---
 
@@ -12,7 +12,7 @@
 | Superfície | Onde | Papel |
 |------------|------|--------|
 | **App browser** | `app.work4you.ai` (SPA no tenant Fly) | Produto completo na nuvem — **first-class** |
-| **App desktop** | Electron `apps/work4you` | **Mesma SPA** + motor local, PTY, git, fs, update GCS |
+| **App desktop** | Electron `apps/work4you` | **Mesma SPA** + pasta/git/PTY **no PC**; cérebro na Fly; update só casca |
 | **Runtime cloud** | Fly `wayne-{slug}` + volume | Computador na nuvem 24/7 (cron, gateway, sessões) |
 | **Plataforma** | `platform/web` (Cloud Run) | Login, Stripe, onboarding — **sem chat** |
 | **CLI** | `work4you` | Power user, scripting, CI |
@@ -31,8 +31,8 @@ CLI, TUI e gateway **mantêm-se** — não competem com a app visual; ligam ao *
 3. **Motor Python** — tools, skills, conectores, cron (waist estreito).  
 4. **VM por utilizador** — Fly + `/opt/data` (config, sessões, projetos).
 
-Desktop **adiciona** capacidades locais (terminal PTY local, git IPC, ficheiros offline).  
-Browser usa **PTY remoto** na VM — mesma UI, adapter diferente.
+Desktop **é o corpo no PC**: abrir pasta, git, PTY — a Fly **manda** nessas mãos.
+Browser usa o disco da VM (cron, canais, 24/7). A pasta do Windows **não** é v2.
 
 ---
 
@@ -46,11 +46,12 @@ Browser usa **PTY remoto** na VM — mesma UI, adapter diferente.
 
 ---
 
-## Benchmark Cursor / Claude
+## Benchmark: Claude Desktop (não Cursor)
 
-- Cloud agents correm na VM com o portátil fechado.  
-- **Web e desktop são entradas de primeira classe** — mesma app, não “site secundário”.  
-- CLI/terminal continuam para quem prefere — não substituem a app visual.
+- Cérebro na nuvem; **pasta no PC desde o dia 1**.  
+- Web e desktop = a mesma conta; o desktop **não** é um segundo Hermes no disco.  
+- CLI/extensão VS Code: **depois** deste v1.  
+- Lançamento = download novo em `/baixar`, não chip sobre instalação antiga.
 
 ---
 
@@ -71,7 +72,9 @@ Detalhe billing: [`BILLING-ARQUITETURA.md`](./BILLING-ARQUITETURA.md).
 - Chat no Next.js `platform/web`.  
 - Desktop como `loadURL` de site externo por defeito.  
 - Segunda app Electron ou segundo feed GCS.  
-- Reescrever o motor Python para unificar UI.
+- Reescrever o motor Python para unificar UI.  
+- Instalar CPython/ZIP no first-run.  
+- Adiar “abrir pasta no PC” para uma v2.
 
 ---
 
@@ -79,7 +82,8 @@ Detalhe billing: [`BILLING-ARQUITETURA.md`](./BILLING-ARQUITETURA.md).
 
 | Doc | Conteúdo |
 |-----|----------|
-| [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md) | PRs e fases |
+| [`PLANO-CLAUDE-V1.md`](./PLANO-CLAUDE-V1.md) | Norte v1 — não desviar |
+| [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md) | PRs históricos; L0 revogado |
 | [`PRODUTO.md`](./PRODUTO.md) | Público, Work, fórmula vs conectores |
 | [`BACKEND-MAP.md`](./BACKEND-MAP.md) | Contratos, gotchas |
 | [`BILLING-ARQUITETURA.md`](./BILLING-ARQUITETURA.md) | Planos, Stripe, OpenRouter |

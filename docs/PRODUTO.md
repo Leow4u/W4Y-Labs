@@ -56,11 +56,15 @@ runtime (**Wayne**, etc.) **não** aparecem ao utilizador.
 
 ## Modelo de conta (v1)
 
-**1 email = 1 tenant.** Cada conta recebe um runtime cloud isolado (app Fly
-dedicado). No desktop L0, `WAYNE_HOME` fica em
-`%LOCALAPPDATA%\work4you\accounts\<tenantId>` (motor partilhado ao lado) — dois
-emails no mesmo PC Windows não partilham `state.db`. Multi-user por organização
-(Enterprise) fica para uma fase posterior.
+**1 email = 1 tenant = 1 app Fly** (`wayne-<slug>`). Isolamento físico.
+Multi-user por organização (Enterprise) fica para depois.
+
+O desktop **não** é um segundo motor no PC. Estado antigo em
+`%LOCALAPPDATA%\work4you` **não se migra** — o lançamento deste v1 é
+instalação nova a partir do site.
+
+**Norte fechado:** [`PLANO-CLAUDE-V1.md`](./PLANO-CLAUDE-V1.md) — igual
+Claude Desktop (cérebro na nuvem, pasta no PC). Não alterar a meio.
 
 ---
 
@@ -70,7 +74,7 @@ Uma plataforma com **um produto** no v1 (mesma app, mesma base técnica):
 
 | Produto | O que é para o utilizador | Analogia de mercado |
 |--------|---------------------------|---------------------|
-| **Work** | O agente do dia a dia — chat, canais, ficheiros, rotina, Personalizar | Cursor (Customize + agent) / Claude Code |
+| **Work** | O agente do dia a dia — chat, pasta no PC, canais, rotina, Personalizar | **Claude Desktop** (não Cursor; não só o site) |
 
 **Agent Studio está morto.** Não há segundo produto “criar agentes Hermes por
 profile / lista + connected”. Não se constrói módulo Studio, roster de perfis
@@ -90,13 +94,13 @@ decisão de produto aqui é só: **Studio fora; Subagentes = caminho correcto**.
 
 | Onde | O quê |
 |------|--------|
-| **Browser** (`app.work4you.ai`) | Mesma app visual que o desktop — runtime na nuvem (tenant Fly) |
-| **Desktop** (Electron instalado) | Mesma app visual + motor local, terminal, git, ficheiros offline |
-| **CLI / TUI** | Mesmo motor — power users; não substituem a app visual |
-| **Canais** (Telegram, …) | Gateway na VM cloud — 24/7 conforme plano |
-| **Site** (`work4you.ai`) | Login, billing, marketing — não é a app de trabalho |
+| **Browser** (`app.work4you.ai`) | Mesma conta e chat — cérebro na Fly da conta |
+| **Desktop** (instalador novo em `/baixar`) | Mesma UI + **abrir pasta no PC** (git, terminal, ficheiros). O agente na Fly manda nas mãos da casca. Sem Python no instalador |
+| **CLI / TUI** | Fora deste v1 (o CLI actual é o motor local — não vai no instalador) |
+| **Canais** (Telegram, …) | Gateway na Fly — 24/7 conforme plano |
+| **Site** (`work4you.ai`) | Login, billing, **download** — não é a app de trabalho |
 
-Detalhe técnico: [`PLATAFORMA.md`](./PLATAFORMA.md). Execução: [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md).
+Detalhe: [`PLATAFORMA.md`](./PLATAFORMA.md). Contrato: [`PLANO-CLAUDE-V1.md`](./PLANO-CLAUDE-V1.md). L0 (só app + motor no PC) está **revogado**.
 
 ---
 
