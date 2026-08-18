@@ -1,3 +1,4 @@
+import { useStore } from '@nanostores/react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { BrandMark } from '@/components/brand-mark'
@@ -17,6 +18,8 @@ import { useI18n } from '@/i18n'
 import { ChevronDown, ChevronRight, iconSize } from '@/lib/icons'
 import { capitalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
+import { $accountGate, accountGateBlocksApp } from '@/store/account-gate'
+import { $connection } from '@/store/session'
 
 /**
  * DesktopInstallOverlay
@@ -250,6 +253,9 @@ function applyEvent(state: DesktopBootstrapState, ev: DesktopBootstrapEvent): De
 export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayProps) {
   const { t } = useI18n()
   const copy = t.install
+  const connection = useStore($connection)
+  const gate = useStore($accountGate)
+  const cloudBody = connection?.mode === 'cloud-body'
 
   const [state, setState] = useState<DesktopBootstrapState>(EMPTY_STATE)
   const [logOpen, setLogOpen] = useState(false)
@@ -329,6 +335,11 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
       return false
     }
 
+    // Packaged product has no local Python — never show the engine installer.
+    if (cloudBody || accountGateBlocksApp(gate.phase)) {
+      return false
+    }
+
     if (state.active) {
       return true
     }
@@ -342,7 +353,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
     }
 
     return false
-  }, [enabled, state.active, state.error, state.unsupportedPlatform])
+  }, [cloudBody, enabled, gate.phase, state.active, state.error, state.unsupportedPlatform])
 
   if (!shouldShow) {
     return null

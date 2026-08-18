@@ -21,6 +21,9 @@ export type AuthMe = {
 
 export type AccountSessionStatus = 'unknown' | 'checking' | 'signedIn' | 'signedOut'
 
+/** Cheap /me classification for the product gate — not the same as identity. */
+export type AccountSessionProbe = 'signed-in' | 'signed-out' | 'unavailable'
+
 export interface AccountSessionState {
   me: AuthMe | null
   status: AccountSessionStatus
@@ -44,14 +47,27 @@ export function clearAccountSession() {
   $accountSession.set({ status: 'signedOut', me: null })
 }
 
+function classifyFailedMe(res: {
+  error?: string
+  ok?: boolean
+  status?: number
+} | null): AccountSessionProbe {
+  const status = typeof res?.status === 'number' ? res.status : 0
+  const error = typeof res?.error === 'string' ? res.error : ''
+  if (status === 401 || status === 403 || error === 'not-logged-in') {
+    return 'signed-out'
+  }
+  return 'unavailable'
+}
+
 /**
- * Ask the tenant who we are. Returns true only when identity is present.
- * Fail-closed on network errors for the desktop product gate.
+ * Ask the tenant who we are. Distinguishes first-run 401 (signed-out — show
+ * Continuar now) from Fly-wake / network 5xx (unavailable — budgeted wait).
  */
-export async function refreshAccountSession(): Promise<boolean> {
+export async function probeAccountSession(): Promise<AccountSessionProbe> {
   if (!cloudRunAvailable()) {
     $accountSession.set({ status: 'signedOut', me: null })
-    return false
+    return 'signed-out'
   }
 
   $accountSession.set({
@@ -62,14 +78,14 @@ export async function refreshAccountSession(): Promise<boolean> {
   const api = window.work4youDesktop?.cloud?.api
   if (!api) {
     clearAccountSession()
-    return false
+    return 'unavailable'
   }
 
   try {
     const res = await api({ method: 'GET', path: '/api/auth/me' })
     if (!res?.ok || !res.json || typeof res.json !== 'object') {
       clearAccountSession()
-      return false
+      return classifyFailedMe(res)
     }
 
     const me = res.json as AuthMe
@@ -77,13 +93,21 @@ export async function refreshAccountSession(): Promise<boolean> {
     const userId = (me.user_id || '').trim()
     if (!email && !userId) {
       clearAccountSession()
-      return false
+      return 'signed-out'
     }
 
     $accountSession.set({ status: 'signedIn', me })
-    return true
+    return 'signed-in'
   } catch {
     clearAccountSession()
-    return false
+    return 'unavailable'
   }
+}
+
+/**
+ * Ask the tenant who we are. Returns true only when identity is present.
+ * Fail-closed on network errors for callers that only need a boolean.
+ */
+export async function refreshAccountSession(): Promise<boolean> {
+  return (await probeAccountSession()) === 'signed-in'
 }

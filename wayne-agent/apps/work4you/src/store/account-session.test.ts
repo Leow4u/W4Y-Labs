@@ -10,6 +10,7 @@ import {
   $accountSession,
   accountSessionSignedIn,
   clearAccountSession,
+  probeAccountSession,
   refreshAccountSession
 } from './account-session'
 
@@ -55,6 +56,25 @@ describe('accountSession', () => {
     expect($accountSession.get().status).toBe('signedOut')
   })
 
+  it('probeAccountSession distinguishes 401 from 5xx', async () => {
+    mockCloud(vi.fn(async () => ({ ok: false, status: 401 })))
+    await expect(probeAccountSession()).resolves.toBe('signed-out')
+
+    mockCloud(vi.fn(async () => ({ ok: false, status: 500 })))
+    await expect(probeAccountSession()).resolves.toBe('unavailable')
+
+    mockCloud(vi.fn(async () => ({ ok: false, error: 'not-logged-in' })))
+    await expect(probeAccountSession()).resolves.toBe('signed-out')
+  })
+
+  it('probeAccountSession treats a thrown /me as unavailable', async () => {
+    mockCloud(vi.fn(async () => {
+      throw new Error('network')
+    }))
+    await expect(probeAccountSession()).resolves.toBe('unavailable')
+    expect(accountSessionSignedIn()).toBe(false)
+  })
+
   it('clearAccountSession drops identity for logout', () => {
     $accountSession.set({
       status: 'signedIn',
@@ -71,8 +91,8 @@ describe('accountGate no longer opens on hasKey alone', () => {
     const path = await import('node:path')
     const source = fs.readFileSync(path.join(__dirname, 'account-gate.ts'), 'utf8')
 
-    expect(source).toMatch(/refreshAccountSession\(\)/)
+    expect(source).toMatch(/probeAccountSession\(\)/)
     expect(source).not.toMatch(/hasKey\?\.\(\)/)
-    expect(source).not.toMatch(/probeSession/)
+    expect(source).not.toMatch(/w4y\?\.probeSession/)
   })
 })

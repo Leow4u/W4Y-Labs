@@ -326,6 +326,12 @@ export function useGatewayBoot({
     })
 
     const offExit = desktop.onBackendExit(() => {
+      // Packaged cloud-body has no local Python — an exit event is leftover
+      // IPC, not a product failure. Do not toast or fail the boot overlay.
+      if ($connection.get()?.mode === 'cloud-body') {
+        return
+      }
+
       // Intentional stop during an in-app engine update — suppress the scary
       // "Backend stopped" toast. The update overlay already shows progress.
       if ($updateApply.get().applying) {

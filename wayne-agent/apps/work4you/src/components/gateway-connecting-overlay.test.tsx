@@ -1,9 +1,11 @@
 import { cleanup, render, screen } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
+import type { HermesConnection } from '@/global'
+import { $accountGate } from '@/store/account-gate'
 import { $desktopBoot } from '@/store/boot'
 import { $desktopOnboarding } from '@/store/onboarding'
-import { setGatewayState } from '@/store/session'
+import { $connection, setConnection, setGatewayState } from '@/store/session'
 
 import { BootFailureOverlay } from './boot-failure-overlay'
 import { GatewayConnectingOverlay } from './gateway-connecting-overlay'
@@ -21,8 +23,24 @@ import { GatewayConnectingOverlay } from './gateway-connecting-overlay'
 // boot.error null. The fix keeps the initial-boot overlay out of post-boot
 // reconnects, leaving chat/settings usable while the reconnect loop runs.
 
+function cloudBodyConnection(): HermesConnection {
+  return {
+    baseUrl: 'https://wayne-example.fly.dev',
+    isFullscreen: false,
+    mode: 'cloud-body',
+    nativeOverlayWidth: 0,
+    source: 'cloud-body',
+    token: '',
+    wsUrl: 'wss://wayne-example.fly.dev/api/ws',
+    logs: [],
+    windowButtonPosition: null
+  }
+}
+
 function resetStores() {
   setGatewayState('idle')
+  $accountGate.set({ phase: 'idle', error: null })
+  setConnection(null)
   $desktopBoot.set({
     error: null,
     fakeMode: false,
@@ -146,5 +164,50 @@ describe('connecting overlay vs recovery surface', () => {
     expect(isRecoveryShown()).toBe(true)
     expect(screen.getByText(/use local gateway/i)).toBeTruthy()
     expect(isConnectingShown()).toBe(false)
+  })
+
+  it('hides the recovery overlay while the account gate owns first-run', () => {
+    $accountGate.set({ phase: 'required', error: null })
+    $desktopBoot.set({
+      ...$desktopBoot.get(),
+      error: 'Work4You engine did not become ready',
+      running: false,
+      visible: true
+    })
+    setGatewayState('error')
+
+    render(
+      <>
+        <GatewayConnectingOverlay />
+        <BootFailureOverlay />
+      </>
+    )
+
+    expect(isRecoveryShown()).toBe(false)
+    expect(isConnectingShown()).toBe(false)
+  })
+
+  it('cloud-body recovery keeps Retry and logs, hides Repair / Use local gateway', () => {
+    setConnection(cloudBodyConnection())
+    $desktopBoot.set({
+      ...$desktopBoot.get(),
+      error: 'Lost connection to the agent',
+      running: false,
+      visible: true
+    })
+    setGatewayState('error')
+
+    render(
+      <>
+        <GatewayConnectingOverlay />
+        <BootFailureOverlay />
+      </>
+    )
+
+    expect(screen.getByText(/retry/i)).toBeTruthy()
+    expect(screen.getByText(/open logs/i)).toBeTruthy()
+    expect(screen.queryByText(/repair install/i)).toBeNull()
+    expect(screen.queryByText(/use local gateway/i)).toBeNull()
+    expect($connection.get()?.mode).toBe('cloud-body')
   })
 })

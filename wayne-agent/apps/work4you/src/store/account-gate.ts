@@ -8,7 +8,8 @@
  *
  * Safety (must never leave the user stranded after a chip update):
  * - Cheap `/me` first — if cookies survived, open immediately.
- * - Credential heal is budgeted; after the budget we show Continuar.
+ * - 401 / signed-out → Continuar immediately (do not wait on Python or heal).
+ * - 5xx / network: credential heal is budgeted; after the budget we show Continuar.
  * - A late heal that restores the tenant still opens the gate.
  * - Concurrent refresh calls share one in-flight promise.
  */
@@ -17,8 +18,10 @@ import { atom } from 'nanostores'
 import { cloudRunAvailable } from '@/lib/w4y-cloud-projects'
 
 import {
+  type AccountSessionProbe,
   accountSessionSignedIn,
   clearAccountSession,
+  probeAccountSession,
   refreshAccountSession
 } from './account-session'
 
@@ -65,8 +68,26 @@ async function markGateOpen(): Promise<void> {
 
 function healCredentialsInBackground(): void {
   const ensure = window.work4youDesktop?.w4y?.ensureCredentials
-  if (!ensure) return
+  if (!ensure) {
+    return
+  }
   void Promise.resolve(ensure()).catch(() => undefined)
+}
+
+/** Heal may still mint cookies after Continuar is already on screen. */
+function openGateIfHealRestoresSession(heal: Promise<unknown>): void {
+  void heal.then(async () => {
+    if ($accountGate.get().phase !== 'required') {
+      return
+    }
+    try {
+      if (await refreshAccountSession()) {
+        await markGateOpen()
+      }
+    } catch {
+      /* stay on Continuar */
+    }
+  })
 }
 
 /**
@@ -96,15 +117,18 @@ export function refreshAccountGate(): Promise<boolean> {
 async function runRefreshAccountGate(): Promise<boolean> {
   $accountGate.set({ phase: 'checking', error: null })
 
-  // Fast path: cookies still good after relaunch / motor chip — enter now.
+  let probe: AccountSessionProbe
   try {
-    if (await refreshAccountSession()) {
-      await markGateOpen()
-      healCredentialsInBackground()
-      return true
-    }
+    probe = await probeAccountSession()
   } catch {
-    /* heal below */
+    probe = 'unavailable'
+  }
+
+  // Cookies still good after relaunch — enter now; heal is not the product path.
+  if (probe === 'signed-in') {
+    await markGateOpen()
+    healCredentialsInBackground()
+    return true
   }
 
   const ensure = window.work4youDesktop?.w4y?.ensureCredentials
@@ -112,6 +136,15 @@ async function runRefreshAccountGate(): Promise<boolean> {
     ? Promise.resolve(ensure()).catch(() => null)
     : Promise.resolve(null)
 
+  // First-run / logged-out: Continuar immediately. Do not wait on Python,
+  // Fly wake, or a hanging ensureCredentials (that was the eternal spinner).
+  if (probe === 'signed-out') {
+    $accountGate.set({ phase: 'required', error: null })
+    openGateIfHealRestoresSession(heal)
+    return false
+  }
+
+  // 5xx / network / missing bridge — cookies might still appear after wake.
   let timedOut = false
   await Promise.race([
     heal,
@@ -136,16 +169,7 @@ async function runRefreshAccountGate(): Promise<boolean> {
   $accountGate.set({ phase: 'required', error: null })
 
   if (timedOut) {
-    void heal.then(async () => {
-      if ($accountGate.get().phase !== 'required') return
-      try {
-        if (await refreshAccountSession()) {
-          await markGateOpen()
-        }
-      } catch {
-        /* stay on Continuar */
-      }
-    })
+    openGateIfHealRestoresSession(heal)
   }
 
   return false
