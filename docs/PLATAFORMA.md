@@ -82,7 +82,8 @@ Detalhe billing: [`BILLING-ARQUITETURA.md`](./BILLING-ARQUITETURA.md).
 
 | Doc | Conteúdo |
 |-----|----------|
-| [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md) | PRs e fases |
+| [`PLANO-CLAUDE-V1.md`](./PLANO-CLAUDE-V1.md) | Norte v1 — não desviar |
+| [`PLANO-APP-UNICA.md`](./PLANO-APP-UNICA.md) | PRs históricos; L0 revogado |
 | [`PRODUTO.md`](./PRODUTO.md) | Público, Work, fórmula vs conectores |
 | [`BACKEND-MAP.md`](./BACKEND-MAP.md) | Contratos, gotchas |
 | [`BILLING-ARQUITETURA.md`](./BILLING-ARQUITETURA.md) | Planos, Stripe, OpenRouter |
