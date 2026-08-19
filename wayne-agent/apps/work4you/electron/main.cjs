@@ -8099,6 +8099,13 @@ app.whenReady().then(async () => {
   // Work4You Fase 3: real cloud bridge + login IPC; Wayne motor via resolver.
   ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
   w4yCloud.registerCloudIpc(ipcMain)
+  if (localEngineDisabled()) {
+    try {
+      await w4yLogin.migrateSharedMotorDesktopSession()
+    } catch (err) {
+      console.warn('[w4y] shared-motor desktop migration:', err && err.message)
+    }
+  }
   const relaunchForAccountHome = async (info) => {
     // Tell the renderer first so open→closed is not toasted as "gateway offline".
     try {

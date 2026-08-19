@@ -77,8 +77,8 @@ test('the handoff believes the tenant, not the redirect it followed', () => {
   )
   assert.match(
     body,
-    /if \(who\.ok\) return \{ ok: true/,
-    'success must be decided by the tenant answering, not by a status below 400'
+    /if \(tenantIdentityOk\(who\)\)/,
+    'success must be decided by the tenant answering with identity JSON, not by a status below 400'
   )
   assert.doesNotMatch(
     body,
@@ -100,6 +100,26 @@ test('a tenant that is still waking gets another chance; one that says 401 does 
     /if \(who\.status === 401\) break/,
     '401 is a reachable tenant refusing us — retrying cannot help'
   )
+})
+
+test('packaged desktop drives SSO in a BrowserWindow before net.request fallback', () => {
+  const source = read('w4y-login.cjs')
+  const start = source.indexOf('async function bootstrapAppSession(')
+  const body = source.slice(start, source.indexOf('\nasync function bootstrapAppSessionViaBrowser', start))
+
+  assert.match(body, /app\.isPackaged/, 'upgrade installs are packaged — handoff must use Chromium')
+  assert.match(body, /bootstrapAppSessionViaBrowser\(/, 'net.request alone loses cross-site Set-Cookie')
+})
+
+test('upgrade from shared motor clears lab route and stale tenant cookies on boot', () => {
+  const source = read('w4y-login.cjs')
+  assert.match(source, /async function migrateSharedMotorDesktopSession\(/)
+  assert.match(source, /wayne-w4y/)
+  assert.match(source, /clearDefaultSessionCookies\(appOrigin\(\)\)/)
+
+  const main = read('main.cjs')
+  assert.match(main, /migrateSharedMotorDesktopSession\(\)/)
+  assert.match(main, /localEngineDisabled\(\)/)
 })
 
 test('boot repairs an app whose tenant session died, instead of running signed out', () => {

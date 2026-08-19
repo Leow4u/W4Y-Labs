@@ -58,6 +58,26 @@ export function accountGateBlocksApp(phase: AccountGatePhase): boolean {
   return phase === 'checking' || phase === 'required' || phase === 'signing-in'
 }
 
+/**
+ * Gateway boot must not mint WS tickets while the gate is still healing SSO.
+ * Returns true when the tenant session is ready; false when sign-in owns the UX.
+ */
+export async function whenAccountGateReady(): Promise<boolean> {
+  if (!w4yAccountGateEnabled()) {
+    return true
+  }
+
+  const phase = $accountGate.get().phase
+  if (phase === 'idle') {
+    return true
+  }
+  if (phase === 'required' || phase === 'signing-in') {
+    return false
+  }
+
+  return refreshAccountGate()
+}
+
 let gateRefreshInFlight: Promise<boolean> | null = null
 
 async function markGateOpen(): Promise<void> {
