@@ -58,7 +58,7 @@ describe("signup provisions a dedicated Fly app", () => {
 
   it("router refuses defaulting customers onto wayne-w4y", () => {
     const source = readFileSync(
-      join(webRoot, "..", "router-fly", "server.js"),
+      join(webRoot, "..", "..", "router-fly", "server.js"),
       "utf8",
     );
     expect(source).toMatch(/FORBIDDEN_CUSTOMER_APPS/);
