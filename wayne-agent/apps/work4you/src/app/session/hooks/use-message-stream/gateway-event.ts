@@ -20,7 +20,8 @@ import { $showReasoning } from '@/store/display-prefs'
 import { setSessionCompacting } from '@/store/compaction'
 import { refreshBackgroundProcesses } from '@/store/composer-status'
 import { fulfillDesktopBodyRequest } from '@/lib/desktop-body'
-import { $gateway } from '@/store/gateway'
+import type { HermesGateway } from '@/hermes'
+import { $gateway, activeGateway } from '@/store/gateway'
 import { dispatchNativeNotification } from '@/store/native-notifications'
 import { notify } from '@/store/notifications'
 import { requestDesktopOnboarding } from '@/store/onboarding'
@@ -101,7 +102,8 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
   } = deps
 
   return useCallback(
-    (event: RpcEvent) => {
+    (event: RpcEvent, sourceGateway?: HermesGateway | null) => {
+      const respondGateway = sourceGateway ?? activeGateway() ?? $gateway.get()
       const payload = event.payload as GatewayEventPayload | undefined
       const explicitSid = event.session_id || ''
 
@@ -483,7 +485,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
       } else if (event.type === 'desktop.body.request') {
         // Fly brain → PC folder. The motor is blocked until desktop.body.respond.
         const bodyPayload = payload && typeof payload === 'object' ? payload : {}
-        void fulfillDesktopBodyRequest($gateway.get(), {
+        void fulfillDesktopBodyRequest(respondGateway, {
           args: (bodyPayload.args && typeof bodyPayload.args === 'object'
             ? bodyPayload.args
             : {}) as Record<string, unknown>,
@@ -579,7 +581,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
           const count = typeof payload?.count === 'number' ? payload.count : undefined
           const result = readActiveTerminal({ start, count })
 
-          void $gateway.get()?.request('terminal.read.respond', {
+          void respondGateway?.request('terminal.read.respond', {
             request_id: requestId,
             text: result ? JSON.stringify(result) : ''
           })

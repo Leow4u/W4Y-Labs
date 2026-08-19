@@ -405,6 +405,10 @@ export interface DesktopUpdateProgress {
 
 export interface HermesConnection {
   baseUrl: string
+  /** Fly tenant brain when packaged; local Python when dev. */
+  brain?: 'fly' | 'local' | 'remote'
+  /** Electron shell as PC body (folder/git/PTY) when brain is fly. */
+  body?: 'electron' | 'none'
   isFullscreen: boolean
   mode?: 'local' | 'remote' | 'cloud-body'
   authMode?: 'oauth' | 'token' | 'cloud'

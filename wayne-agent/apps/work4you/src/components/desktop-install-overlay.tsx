@@ -16,6 +16,7 @@ import type {
 } from '@/global'
 import { useI18n } from '@/i18n'
 import { ChevronDown, ChevronRight, iconSize } from '@/lib/icons'
+import { isPackagedFlyPrimary } from '@/lib/connection-target'
 import { capitalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import { $accountGate, accountGateBlocksApp } from '@/store/account-gate'

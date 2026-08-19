@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react'
 import type { HermesConnection } from '@/global'
 import { HermesGateway } from '@/hermes'
 import { translateNow } from '@/i18n'
+import { isFlyBrainConnection } from '@/lib/connection-target'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import { CLOUD_NOT_LOGGED_IN, mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
 import { $accountGate, whenAccountGateReady } from '@/store/account-gate'
@@ -51,7 +52,7 @@ const RECONNECT_ESCALATE_AFTER =
   import.meta.env.VITE_APP_SHELL === 'browser' ? 10 : 6
 
 interface GatewayBootOptions {
-  handleGatewayEvent: (event: RpcEvent) => void
+  handleGatewayEvent: (event: RpcEvent, source?: HermesGateway) => void
   onConnectionReady: (
     connection: Awaited<ReturnType<NonNullable<typeof window.hermesDesktop>['getConnection']>> | null
   ) => void
@@ -154,7 +155,7 @@ export function useGatewayBoot({
         }
 
         publish(conn)
-        if (conn.mode === 'cloud-body' && !(await whenAccountGateReady())) {
+        if (isFlyBrainConnection(conn) && !(await whenAccountGateReady())) {
           return
         }
         // Re-mint the WS URL before reconnecting. OAuth tickets are single-use
@@ -164,9 +165,10 @@ export function useGatewayBoot({
         // mints a fresh ticket (or throws a reauth error in OAuth mode rather
         // than connecting with a stale one). For local/token gateways the URL
         // carries a long-lived token and the re-mint is a cheap no-op.
-        // F3 packaged: primary is the Fly brain (cloud-body) — mint a tenant ticket.
-        const wsUrl =
-          conn.mode === 'cloud-body' ? await mintCloudWsUrl() : await resolveGatewayWsUrl(desktop, conn)
+        // Packaged: primary is the Fly brain — mint a tenant ticket.
+        const wsUrl = isFlyBrainConnection(conn)
+          ? await mintCloudWsUrl()
+          : await resolveGatewayWsUrl(desktop, conn)
         await gateway.connect(wsUrl)
 
         if (cancelled) {
@@ -245,11 +247,13 @@ export function useGatewayBoot({
     callbacksRef.current.onGatewayReady(gateway)
     setPrimaryGateway(gateway, normalizeProfileKey($activeGatewayProfile.get()))
     // Secondary (background-profile) sockets funnel into the same handler.
-    configureGatewayRegistry({ onEvent: event => callbacksRef.current.handleGatewayEvent(event) })
+    configureGatewayRegistry({
+      onEvent: (event, source) => callbacksRef.current.handleGatewayEvent(event, source)
+    })
 
     const connectCloudPrimary = async () => {
       const conn = $connection.get()
-      if (conn?.mode !== 'cloud-body') {
+      if (!isFlyBrainConnection(conn)) {
         return
       }
       if (!(await whenAccountGateReady())) {
@@ -275,7 +279,7 @@ export function useGatewayBoot({
       if (cancelled || gate.phase !== 'idle') {
         return
       }
-      if ($connection.get()?.mode !== 'cloud-body' || gatewayOpen()) {
+      if (!isFlyBrainConnection($connection.get()) || gatewayOpen()) {
         return
       }
       void connectCloudPrimary().catch(err => {
@@ -316,7 +320,7 @@ export function useGatewayBoot({
       }
     })
 
-    const offEvent = gateway.onEvent(event => callbacksRef.current.handleGatewayEvent(event))
+    const offEvent = gateway.onEvent(event => callbacksRef.current.handleGatewayEvent(event, gateway))
 
     // Wake signals: power resume (macOS/Windows), network coming back, and the
     // window regaining focus/visibility. Each nudges an immediate reconnect.
@@ -374,9 +378,9 @@ export function useGatewayBoot({
     })
 
     const offExit = desktop.onBackendExit(() => {
-      // Packaged cloud-body has no local Python — an exit event is leftover
+      // Packaged Fly brain has no local Python — an exit event is leftover
       // IPC, not a product failure. Do not toast or fail the boot overlay.
-      if ($connection.get()?.mode === 'cloud-body') {
+      if (isFlyBrainConnection($connection.get())) {
         return
       }
 
@@ -420,10 +424,11 @@ export function useGatewayBoot({
           progress: 95
         })
         publish(conn)
-        if (conn.mode === 'cloud-body') {
+        const flyPrimary = isFlyBrainConnection(conn)
+        if (flyPrimary) {
           setPrimaryGateway(gateway, normalizeProfileKey($activeGatewayProfile.get()), { cloudBody: true })
         }
-        if (conn.mode === 'cloud-body' && !(await whenAccountGateReady())) {
+        if (flyPrimary && !(await whenAccountGateReady())) {
           completeDesktopBoot()
           bootCompleted = true
           return
@@ -433,13 +438,12 @@ export function useGatewayBoot({
         // conn.wsUrl is stale; resolveGatewayWsUrl() re-mints it and, on
         // failure, throws a reauth error rather than connecting with a dead
         // ticket (which would surface as an opaque "connection closed").
-        // F3 packaged: no local Python — the primary socket is the tenant Fly.
+        // Packaged: no local Python — the primary socket is the tenant Fly.
         try {
-          const wsUrl =
-            conn.mode === 'cloud-body' ? await mintCloudWsUrl() : await resolveGatewayWsUrl(desktop, conn)
+          const wsUrl = flyPrimary ? await mintCloudWsUrl() : await resolveGatewayWsUrl(desktop, conn)
           await gateway.connect(wsUrl)
         } catch (err) {
-          if (conn.mode === 'cloud-body' && err instanceof Error && err.message === CLOUD_NOT_LOGGED_IN) {
+          if (flyPrimary && err instanceof Error && err.message === CLOUD_NOT_LOGGED_IN) {
             // Account gate owns sign-in. Finish boot so login is not a crash overlay.
             completeDesktopBoot()
             bootCompleted = true
@@ -459,13 +463,13 @@ export function useGatewayBoot({
           const pref = await desktop.profile?.get?.()
           const profileKey = (pref?.profile ?? '').trim() || 'default'
           $activeGatewayProfile.set(profileKey)
-          setPrimaryGateway(gateway, profileKey, { cloudBody: conn.mode === 'cloud-body' })
-          if (conn.mode !== 'cloud-body') {
+          setPrimaryGateway(gateway, profileKey, { cloudBody: flyPrimary })
+          if (!flyPrimary) {
             void ensureGatewayForProfile(profileKey)
           }
         } catch {
           $activeGatewayProfile.set('default')
-          setPrimaryGateway(gateway, 'default', { cloudBody: conn.mode === 'cloud-body' })
+          setPrimaryGateway(gateway, 'default', { cloudBody: flyPrimary })
         }
 
         setDesktopBootStep({

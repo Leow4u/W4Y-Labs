@@ -26,7 +26,7 @@ import { $gatewayState } from '@/store/session'
 
 describe('ensureCloudBrainActive fallback', () => {
   beforeEach(() => {
-    configureGatewayRegistry({ onEvent: () => undefined })
+    configureGatewayRegistry({ onEvent: (_event, _source) => undefined })
     $gatewayState.set('idle')
   })
 

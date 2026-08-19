@@ -2,6 +2,7 @@ import { type ConnectionState, type GatewayEvent, resolveGatewayWsUrl } from '@h
 import { atom } from 'nanostores'
 
 import { HermesGateway } from '@/hermes'
+import { isFlyBrainConnection } from '@/lib/connection-target'
 import { mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
 import { setGatewayState } from '@/store/session'
 
@@ -34,7 +35,7 @@ const isOpen = (gateway: HermesGateway | null): boolean => gateway?.connectionSt
 export const $gateway = atom<HermesGateway | null>(null)
 
 interface RegistryConfig {
-  onEvent: (event: GatewayEvent) => void
+  onEvent: (event: GatewayEvent, source: HermesGateway) => void
 }
 
 let config: RegistryConfig | null = null
@@ -214,7 +215,7 @@ function createSecondary(profile: string): Secondary {
     wantOpen: true
   }
 
-  entry.offEvent = gateway.onEvent(event => config?.onEvent(event))
+  entry.offEvent = gateway.onEvent(event => config?.onEvent(event, gateway))
   entry.offState = gateway.onState(state => {
     reportGatewayState(profile, state)
 

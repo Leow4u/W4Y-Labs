@@ -28,6 +28,7 @@ const { execFileSync, spawn } = require('node:child_process')
 // Work4You deltas (login / ZIP / bridge / GCS) — see w4y-*.cjs.
 const w4yDeltas = require('./w4y-deltas.cjs')
 const w4yCloud = require('./w4y-cloud.cjs')
+const connectionTarget = require('./connection-target.cjs')
 const w4yLogin = require('./w4y-login.cjs')
 const { ensureEulaAccepted } = require('./eula-gate.cjs')
 const w4yWayne = require('./w4y-wayne-resolve.cjs')
@@ -176,20 +177,17 @@ const IS_PACKAGED = app.isPackaged
 
 /** F3: packaged product is the body. Brain is Fly. Dev can set W4Y_ALLOW_LOCAL_ENGINE=1. */
 function localEngineDisabled() {
-  return Boolean(IS_PACKAGED) && process.env.W4Y_ALLOW_LOCAL_ENGINE !== '1'
+  return connectionTarget.localEngineDisabled({
+    isPackaged: IS_PACKAGED,
+    allowLocalEngine: process.env.W4Y_ALLOW_LOCAL_ENGINE === '1'
+  })
 }
 
 function cloudBodyConnection() {
-  return {
-    baseUrl: '',
-    mode: 'cloud-body',
-    source: 'cloud-body',
-    authMode: 'cloud',
-    token: '',
-    wsUrl: '',
+  return connectionTarget.buildFlyBrainConnection({
     logs: hermesLog.slice(-80),
-    ...getWindowState()
-  }
+    windowState: getWindowState()
+  })
 }
 const IS_MAC = process.platform === 'darwin'
 const IS_WINDOWS = process.platform === 'win32'
@@ -4950,6 +4948,15 @@ async function freshGatewayWsUrl(profile) {
   // the wrong profile's DB. A null/empty profile resolves to the primary, so
   // legacy callers and single-profile users are unchanged.
   const connection = await ensureBackend(profile)
+  if (connectionTarget.isFlyBrainConnection(connection)) {
+    const minted = await w4yCloud.mintCloudWsUrl()
+    if (!minted.ok) {
+      const err = new Error(minted.error || 'ws-mint-failed')
+      err.code = minted.error === 'not-logged-in' ? 'GATEWAY_REAUTH_REQUIRED' : 'GATEWAY_WS_MINT_FAILED'
+      throw err
+    }
+    return minted.url
+  }
   if (connection.authMode === 'oauth') {
     const ticket = await mintGatewayWsTicket(connection.baseUrl)
     return buildGatewayWsUrlWithTicket(connection.baseUrl, ticket)
@@ -6900,7 +6907,7 @@ ipcMain.handle('hermes:api', async (_event, request) => {
   // F3 packaged: no local Python — REST goes to the tenant via app.work4you.ai
   // cookies (same bridge as WS tickets). Empty baseUrl + new URL() was
   // TypeError: Invalid URL on every hermes:api after boot.
-  if (connection.mode === 'cloud-body' || !connection.baseUrl) {
+  if (connectionTarget.isFlyBrainConnection(connection) || !connection.baseUrl) {
     return fetchJsonViaCloudBody(requestPath, {
       method: request?.method,
       body: request?.body,
