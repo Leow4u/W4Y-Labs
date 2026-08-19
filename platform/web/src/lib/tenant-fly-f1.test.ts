@@ -68,6 +68,8 @@ describe("signup provisions a dedicated Fly app", () => {
     expect(source).toMatch(/wayne-w4y/);
     expect(source).not.toMatch(/DEFAULT_APP/);
     expect(source).toMatch(/PLATFORM_LOGIN|work4you\.ai\/login/);
+    expect(source).toMatch(/sendApiUnauthorized|no_route/);
+    expect(source).toMatch(/isApiPath/);
   });
 
   it("instancias shows dedicated migration wait copy", () => {

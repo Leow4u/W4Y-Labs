@@ -8,8 +8,9 @@
 // (/login/enter). O cookie é só um HINT de roteamento: forjá-lo leva no
 // máximo à tela de login de outro tenant.
 //
-// Claude v1: sem cookie (ou app proibido / lab `wayne-w4y`) → redirect para
-// o site de login. Nunca fazer fallback para o motor partilhado.
+// Claude v1: sem cookie (ou app proibido / lab `wayne-w4y`) → login.
+// Pedidos /api/* recebem 401 JSON (a casca Electron segue redirects e
+// tratava a HTML do login como "ok"). Navegação de browser → 302 login.
 const http = require("node:http");
 
 const PLATFORM_LOGIN =
@@ -31,6 +32,19 @@ function routeFor(req) {
   return candidate;
 }
 
+function requestPath(req) {
+  const raw = req.url || "/";
+  try {
+    return new URL(raw, "http://router.local").pathname;
+  } catch {
+    return String(raw).split("?")[0] || "/";
+  }
+}
+
+function isApiPath(pathname) {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 function sendLoginRedirect(res) {
   res.writeHead(302, {
     location: PLATFORM_LOGIN,
@@ -39,12 +53,21 @@ function sendLoginRedirect(res) {
   res.end();
 }
 
+function sendApiUnauthorized(res) {
+  res.writeHead(401, {
+    "content-type": "application/json; charset=utf-8",
+    "cache-control": "no-store",
+  });
+  res.end(JSON.stringify({ error: "no_route", login: PLATFORM_LOGIN }));
+}
+
 function sendLoginRedirectSocket(socket) {
   socket.end(
-    `HTTP/1.1 302 Found\r\n` +
-      `location: ${PLATFORM_LOGIN}\r\n` +
+    `HTTP/1.1 401 Unauthorized\r\n` +
+      `content-type: application/json\r\n` +
       `cache-control: no-store\r\n` +
-      `connection: close\r\n\r\n`,
+      `connection: close\r\n\r\n` +
+      `{"error":"no_route"}`,
   );
 }
 
@@ -56,6 +79,10 @@ const server = http.createServer((req, res) => {
   }
   const app = routeFor(req);
   if (!app) {
+    if (isApiPath(requestPath(req))) {
+      sendApiUnauthorized(res);
+      return;
+    }
     sendLoginRedirect(res);
     return;
   }

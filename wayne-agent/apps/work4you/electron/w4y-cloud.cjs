@@ -102,8 +102,7 @@ function cloudApiRequest(args, timeoutMs = 15_000) {
   });
 }
 
-async function mintCloudWsUrl() {
-  const APP_ORIGIN = appOrigin();
+async function mintCloudWsTicketOnce() {
   const res = await cloudApiRequest(
     { method: "POST", path: "/api/auth/ws-ticket" },
     8_000,
@@ -117,11 +116,36 @@ async function mintCloudWsUrl() {
   const ticket =
     res.json && typeof res.json.ticket === "string" ? res.json.ticket : "";
   if (!ticket) return { ok: false, error: "network" };
+  return { ok: true, ticket };
+}
+
+/** Optional healer registered by w4y-login (avoids a require cycle). */
+let cloudSessionHealer = null;
+
+function setCloudSessionHealer(fn) {
+  cloudSessionHealer = typeof fn === "function" ? fn : null;
+}
+
+async function mintCloudWsUrl() {
+  const APP_ORIGIN = appOrigin();
+  let minted = await mintCloudWsTicketOnce();
+  // Stale lab route cookie (wayne-w4y) → 401 from router; re-SSO once.
+  if (!minted.ok && minted.error === "not-logged-in" && cloudSessionHealer) {
+    try {
+      const handoff = await cloudSessionHealer();
+      if (handoff && handoff.ok) {
+        minted = await mintCloudWsTicketOnce();
+      }
+    } catch {
+      /* keep first error */
+    }
+  }
+  if (!minted.ok) return minted;
   const origin = new URL(APP_ORIGIN);
   const scheme = origin.protocol === "https:" ? "wss" : "ws";
   return {
     ok: true,
-    url: `${scheme}://${origin.host}/api/ws?ticket=${encodeURIComponent(ticket)}`,
+    url: `${scheme}://${origin.host}/api/ws?ticket=${encodeURIComponent(minted.ticket)}`,
   };
 }
 
@@ -140,4 +164,5 @@ module.exports = {
   platformOrigin,
   appOrigin,
   registerCloudIpc,
+  setCloudSessionHealer,
 };

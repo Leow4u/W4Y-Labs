@@ -117,7 +117,16 @@ test('boot repairs an app whose tenant session died, instead of running signed o
 
   const heal = source.slice(source.indexOf('async function healTenantSession('))
   assert.match(heal, /path: "\/api\/auth\/me"/, 'repair starts by asking whether anything is wrong')
-  assert.match(heal, /if \(who\.ok\) return/, 'a healthy session must cost nothing beyond that one call')
+  assert.match(
+    heal,
+    /if \(tenantIdentityOk\(who\)\) return/,
+    'a healthy session must cost nothing beyond that one call (identity JSON, not bare HTTP 200)',
+  )
+  assert.match(
+    heal,
+    /clearForbiddenRouteCookies/,
+    'stale lab w4y_route must be cleared before re-SSO',
+  )
   assert.match(
     heal,
     /bootstrapLocalConnectors\(\)/,
