@@ -29,6 +29,12 @@ const { execFileSync, spawn } = require('node:child_process')
 const w4yDeltas = require('./w4y-deltas.cjs')
 const w4yCloud = require('./w4y-cloud.cjs')
 const connectionTarget = require('./connection-target.cjs')
+const { createConnectionsRegistryStore } = require('./connections-registry-store.cjs')
+const { createRegistryBackend } = require('./registry-backend.cjs')
+const {
+  WORK4YOU_CLOUD_CONNECTION_ID,
+  resolvedConnectionId
+} = require('./connection-registry.cjs')
 const w4yLogin = require('./w4y-login.cjs')
 const { ensureEulaAccepted } = require('./eula-gate.cjs')
 const w4yWayne = require('./w4y-wayne-resolve.cjs')
@@ -390,6 +396,7 @@ const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_HERMES_ROOT, '.hermes-bootstr
 const BOOTSTRAP_MARKER_SCHEMA_VERSION = 1
 
 const DESKTOP_CONNECTION_CONFIG_PATH = path.join(app.getPath('userData'), 'connection.json')
+const DESKTOP_CONNECTIONS_REGISTRY_PATH = path.join(app.getPath('userData'), 'connections.json')
 const DESKTOP_UPDATE_CONFIG_PATH = path.join(app.getPath('userData'), 'updates.json')
 const DESKTOP_WINDOW_STATE_PATH = path.join(app.getPath('userData'), 'window-state.json')
 // active-profile.json records which Hermes profile the desktop launches its
@@ -4940,14 +4947,17 @@ async function mintGatewayWsTicket(baseUrl) {
 // calls this immediately before every gateway.connect() so each WS upgrade
 // carries a freshly-minted ticket. For local/token connections this just
 // reuses the static token (no minting needed).
-async function freshGatewayWsUrl(profile) {
-  // Mint for the requested profile's backend, NOT always the primary. The
-  // renderer re-mints right before every gateway.connect(); when swapping to a
-  // pooled profile we must return THAT backend's ws URL, otherwise the connect
-  // silently lands back on the primary (default) backend and writes sessions to
-  // the wrong profile's DB. A null/empty profile resolves to the primary, so
-  // legacy callers and single-profile users are unchanged.
-  const connection = await ensureBackend(profile)
+async function freshGatewayWsUrl(profileOrPayload) {
+  const payload =
+    profileOrPayload && typeof profileOrPayload === 'object' && !Array.isArray(profileOrPayload)
+      ? profileOrPayload
+      : { profile: profileOrPayload }
+  const profile = payload.profile
+  const connectionId = payload.connectionId
+
+  const connection = connectionId
+    ? await getRegistryBackendApi().ensureRegistryBackend(connectionId, profile)
+    : await ensureBackend(profile)
   if (connectionTarget.isFlyBrainConnection(connection)) {
     const minted = await w4yCloud.mintCloudWsUrl()
     if (!minted.ok) {
@@ -4963,6 +4973,156 @@ async function freshGatewayWsUrl(profile) {
   }
   // Local/token: the cached wsUrl already carries the (long-lived) token.
   return connection.wsUrl
+}
+
+let connectionsRegistryStore = null
+let registryBackendApi = null
+
+function getConnectionsRegistryStore() {
+  if (connectionsRegistryStore) {
+    return connectionsRegistryStore
+  }
+
+  connectionsRegistryStore = createConnectionsRegistryStore({
+    userDataPath: app.getPath('userData'),
+    readV1Config: readDesktopConnectionConfig,
+    writeAtomic: writeFileAtomic,
+    decryptSecret: decryptDesktopSecret,
+    encryptSecret: (value, { allowPlainText } = {}) => {
+      if (!value) {
+        return null
+      }
+
+      if (allowPlainText) {
+        return { encoding: 'plain', value }
+      }
+
+      return encryptDesktopSecret(value)
+    },
+    safeStorageAvailable: () => {
+      try {
+        return Boolean(safeStorage.isEncryptionAvailable())
+      } catch {
+        return false
+      }
+    }
+  })
+
+  return connectionsRegistryStore
+}
+
+function getRegistryBackendApi() {
+  if (registryBackendApi) {
+    return registryBackendApi
+  }
+
+  registryBackendApi = createRegistryBackend({
+    readRegistry: () => getConnectionsRegistryStore().read(),
+    buildFlyBrainConnection: cloudBodyConnection,
+    buildRemoteConnection,
+    decryptSecret: decryptDesktopSecret,
+    ensureBackend,
+    getWindowState,
+    hermesLog,
+    localEngineDisabled,
+    normAuthMode,
+    globalRemoteActive,
+    profileHasRemoteOverride,
+    backendPool,
+    POOL_MAX_BACKENDS,
+    spawnPoolBackend,
+    evictLruPoolBackends,
+    startPoolIdleReaper,
+    stopPoolBackend,
+    waitForBackendExit,
+    stopBackendChild
+  })
+
+  return registryBackendApi
+}
+
+async function syncPackagedConnectionsRegistry() {
+  if (!localEngineDisabled()) {
+    return
+  }
+
+  let tenantSlug = ''
+
+  try {
+    tenantSlug = (await w4yCloud.readW4yRouteFlyApp()) || ''
+  } catch {
+    tenantSlug = ''
+  }
+
+  getConnectionsRegistryStore().syncPackagedCloud({
+    label: 'Work4You',
+    tenantSlug
+  })
+}
+
+function broadcastConnectionsChanged(payload) {
+  const windows = BrowserWindow.getAllWindows()
+
+  for (const win of windows) {
+    if (!win.isDestroyed()) {
+      win.webContents.send('hermes:connections:changed', payload)
+    }
+  }
+}
+
+function registerConnectionsRegistryIpc() {
+  const store = getConnectionsRegistryStore()
+  const backend = getRegistryBackendApi()
+
+  ipcMain.removeHandler?.('hermes:connections:list')
+  ipcMain.removeHandler?.('hermes:connections:save')
+  ipcMain.removeHandler?.('hermes:connections:remove')
+  ipcMain.removeHandler?.('hermes:connections:set-primary')
+  ipcMain.removeHandler?.('hermes:connections:set-launch-mode')
+  ipcMain.removeHandler?.('hermes:connections:set-last-used')
+  ipcMain.removeHandler?.('hermes:connection:for')
+
+  ipcMain.handle('hermes:connections:list', async () => store.sanitize())
+  ipcMain.handle('hermes:connections:save', async (_event, payload) => {
+    const before = payload?.id ? store.find(payload.id) : null
+    const saved = store.saveConnection(payload || {})
+    const after = store.find(saved.id)
+
+    if (before && after && store.dialFieldsChanged(before, after)) {
+      await backend.stopRegistryConnectionBackends(saved.id)
+      broadcastConnectionsChanged({ connectionId: saved.id, reason: 'updated' })
+    }
+
+    return { ok: true, connection: saved, registry: store.sanitize() }
+  })
+  ipcMain.handle('hermes:connections:remove', async (_event, id) => {
+    const key = String(id || '')
+    await backend.stopRegistryConnectionBackends(key)
+    const registry = store.remove(key)
+    broadcastConnectionsChanged({ connectionId: key, reason: 'removed' })
+
+    return { ok: true, registry }
+  })
+  ipcMain.handle('hermes:connections:set-primary', async (_event, id) => ({
+    ok: true,
+    registry: store.setPrimary(id)
+  }))
+  ipcMain.handle('hermes:connections:set-launch-mode', async (_event, mode) => ({
+    ok: true,
+    registry: store.setLaunchMode(mode)
+  }))
+  ipcMain.handle('hermes:connections:set-last-used', async (_event, id) => ({
+    ok: true,
+    registry: store.setLastUsed(id)
+  }))
+  ipcMain.handle('hermes:connection:for', async (_event, payload) => {
+    const { connectionId, profile } = payload && typeof payload === 'object' ? payload : {}
+    const registry = store.read()
+    const id = String(connectionId || '').trim() || registry.primary
+    const connection = await backend.ensureRegistryBackend(id, profile)
+
+    return { ...connection, connectionId: id, registryScoped: true }
+  })
 }
 
 function encryptDesktopSecret(value) {
@@ -6423,7 +6583,12 @@ function createWindow() {
   })
 }
 
-ipcMain.handle('hermes:connection', async (_event, profile) => ensureBackend(profile))
+ipcMain.handle('hermes:connection', async (_event, profile) => {
+  const connection = await ensureBackend(profile)
+  const connectionId = resolvedConnectionId(getConnectionsRegistryStore().read(), connection)
+
+  return connectionId ? { ...connection, connectionId } : connection
+})
 // Reconnect-after-wake recovery. A REMOTE primary backend has no child process,
 // so the 'exit'/'error' handlers that would clear a dead connectionPromise never
 // fire — once the remote becomes unreachable across a sleep/wake the renderer
@@ -8106,6 +8271,8 @@ app.whenReady().then(async () => {
   // Work4You Fase 3: real cloud bridge + login IPC; Wayne motor via resolver.
   ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
   w4yCloud.registerCloudIpc(ipcMain)
+  registerConnectionsRegistryIpc()
+  await syncPackagedConnectionsRegistry().catch(() => undefined)
   if (localEngineDisabled()) {
     w4yCloud.installCloudBodyCookieBridge()
   }

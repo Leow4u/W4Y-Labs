@@ -5895,6 +5895,37 @@ def _(rid, params: dict) -> dict:
     return _ok(rid, info)
 
 
+@method("session.desktop_cwd.set")
+def _(rid, params: dict) -> dict:
+    """Update the PC folder the Fly brain uses for desktop.body ops mid-session."""
+    session, err = _sess(params, rid)
+    if err:
+        return err
+    if session.get("running"):
+        return _err(rid, 4009, "session busy")
+    try:
+        from tools.desktop_body import normalize_desktop_cwd, set_desktop_cwd
+
+        desktop_cwd = normalize_desktop_cwd(params.get("desktop_cwd"))
+    except Exception as e:
+        return _err(rid, 5000, f"desktop_body unavailable: {e}")
+    if not desktop_cwd:
+        return _err(rid, 4016, "desktop_cwd required")
+    key = session["session_key"]
+    session["desktop_cwd"] = desktop_cwd
+    try:
+        set_desktop_cwd(key, desktop_cwd)
+    except Exception:
+        logger.debug("desktop_cwd bind failed", exc_info=True)
+    info = {
+        "desktop_cwd": desktop_cwd,
+        "cwd": session.get("cwd") or "",
+        "branch": session.get("branch") or "",
+    }
+    _emit("session.info", params.get("session_id", ""), info)
+    return _ok(rid, info)
+
+
 def _session_pending_kind(sid: str) -> str:
     for rid, (owner_sid, _ev) in list(_pending.items()):
         if owner_sid != sid:

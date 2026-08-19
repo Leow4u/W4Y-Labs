@@ -49,6 +49,7 @@ import { $activeGatewayProfile, $freshSessionRequest, $profileScope, refreshActi
 import { $startWorkSessionRequest, followActiveSessionCwd, resolveNewSessionCwd } from '../store/projects'
 import { applyCloudFirstRunTargetDefault } from '../store/run-target'
 import { refreshAccountGate, w4yAccountGateEnabled } from '../store/account-gate'
+import { initializeConnectionsRegistry } from '../store/connections'
 import { $reviewOpen, REVIEW_PANE_ID } from '../store/review'
 import {
   $activeSessionId,
@@ -900,6 +901,7 @@ export function DesktopController() {
     if (w4yAccountGateEnabled()) {
       void refreshAccountGate()
     }
+    void initializeConnectionsRegistry().catch(() => undefined)
   }, [])
 
   // Same-home soft login: motor respawned, casca stayed. Re-ask the tenant who

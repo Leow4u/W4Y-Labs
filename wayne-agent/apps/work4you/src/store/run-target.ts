@@ -22,7 +22,9 @@ import {
   setRunTarget,
   setSessionRunTarget
 } from '@/lib/w4y-cloud-projects'
+import { WORK4YOU_CLOUD_CONNECTION_ID } from '@/lib/connection-target'
 import { ensureCloudBrainActive, ensureLocalBrainActive } from '@/store/gateway'
+import { selectConnection } from '@/store/connections'
 import { $sessions } from '@/store/session'
 import { resolveNewSessionCwd } from '@/store/projects'
 
@@ -142,6 +144,17 @@ export function beginLocalSession(): void {
   setSessionRunTarget('local')
 }
 
+export async function activateRunTargetConnection(target: RunTarget): Promise<void> {
+  if (target === 'cloud') {
+    await selectConnection(WORK4YOU_CLOUD_CONNECTION_ID)
+    await ensureCloudBrainActive()
+    return
+  }
+
+  await selectConnection('local')
+  await ensureLocalBrainActive()
+}
+
 /**
  * Awaited before every prompt.submit — picks the correct gateway brain and
  * avoids cloud/local races (BACKEND-MAP fly206 / Trilha F4).
@@ -157,9 +170,9 @@ export async function prepareBrainForSubmit(storedSessionId: null | string): Pro
     $sessionRunTarget.get() === 'cloud'
 
   if (useCloud) {
-    await ensureCloudBrainActive()
+    await activateRunTargetConnection('cloud')
     return
   }
 
-  await ensureLocalBrainActive()
+  await activateRunTargetConnection('local')
 }

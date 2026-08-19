@@ -256,7 +256,7 @@ export function DesktopInstallOverlay({ enabled = true }: DesktopInstallOverlayP
   const copy = t.install
   const connection = useStore($connection)
   const gate = useStore($accountGate)
-  const cloudBody = connection?.mode === 'cloud-body'
+  const cloudBody = isPackagedFlyPrimary(connection)
 
   const [state, setState] = useState<DesktopBootstrapState>(EMPTY_STATE)
   const [logOpen, setLogOpen] = useState(false)

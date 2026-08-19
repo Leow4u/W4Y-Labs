@@ -2,9 +2,11 @@ const { contextBridge, ipcRenderer, webUtils } = require('electron')
 
 contextBridge.exposeInMainWorld('hermesDesktop', {
   getConnection: profile => ipcRenderer.invoke('hermes:connection', profile),
+  getConnectionFor: payload => ipcRenderer.invoke('hermes:connection:for', payload),
   revalidateConnection: () => ipcRenderer.invoke('hermes:connection:revalidate'),
   touchBackend: profile => ipcRenderer.invoke('hermes:backend:touch', profile),
   getGatewayWsUrl: profile => ipcRenderer.invoke('hermes:gateway:ws-url', profile),
+  getGatewayWsUrlFor: payload => ipcRenderer.invoke('hermes:gateway:ws-url', payload),
   openSessionWindow: (sessionId, opts) => ipcRenderer.invoke('hermes:window:openSession', sessionId, opts),
   openNewSessionWindow: () => ipcRenderer.invoke('hermes:window:openNewSession'),
   petOverlay: {
@@ -41,6 +43,19 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
   probeConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:probe', remoteUrl),
   oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-login', remoteUrl),
   oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('hermes:connection-config:oauth-logout', remoteUrl),
+  connections: {
+    list: () => ipcRenderer.invoke('hermes:connections:list'),
+    save: payload => ipcRenderer.invoke('hermes:connections:save', payload),
+    remove: id => ipcRenderer.invoke('hermes:connections:remove', id),
+    setPrimary: id => ipcRenderer.invoke('hermes:connections:set-primary', id),
+    setLaunchMode: mode => ipcRenderer.invoke('hermes:connections:set-launch-mode', mode),
+    setLastUsed: id => ipcRenderer.invoke('hermes:connections:set-last-used', id),
+    onChanged: callback => {
+      const listener = (_event, payload) => callback(payload)
+      ipcRenderer.on('hermes:connections:changed', listener)
+      return () => ipcRenderer.removeListener('hermes:connections:changed', listener)
+    }
+  },
   profile: {
     get: () => ipcRenderer.invoke('hermes:profile:get'),
     set: name => ipcRenderer.invoke('hermes:profile:set', name)

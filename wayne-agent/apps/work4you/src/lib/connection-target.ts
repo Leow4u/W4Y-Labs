@@ -6,6 +6,8 @@
  */
 import type { HermesConnection } from '@/global'
 
+export const WORK4YOU_CLOUD_CONNECTION_ID = 'work4you-cloud'
+
 export type BrainKind = 'fly' | 'local' | 'remote'
 export type BodyKind = 'electron' | 'none'
 

@@ -629,6 +629,67 @@ export interface Translations {
       set: string
       clear: string
     }
+    connections: {
+      title: string
+      intro: string
+      stagedNote: string
+      launchModeTitle: string
+      launchModeDesc: string
+      searchPlaceholder: string
+      noSearchResults: string
+      loadFailed: string
+      currentPill: string
+      primaryPill: string
+      managedPill: string
+      addConnection: string
+      editConnection: string
+      removeConnection: string
+      removeConfirmTitle: string
+      removeConfirmDesc: (label: string) => string
+      makePrimary: string
+      testConnection: string
+      testOk: string
+      testFailed: string
+      saveFailed: string
+      removeFailed: string
+      updateAll: string
+      updateAllRunning: string
+      updateAllDone: string
+      updateAllFailed: string
+      updateSkippedCloud: string
+      kindLocal: string
+      kindRemote: string
+      kindCloud: string
+      kindSsh: string
+      kindLocalDesc: string
+      kindRemoteDesc: string
+      kindCloudDesc: string
+      kindSshDesc: string
+      labelTitle: string
+      labelDesc: string
+      labelPlaceholder: string
+      urlTitle: string
+      sshHostTitle: string
+      headersTitle: string
+      headersDesc: string
+      headerValuePlaceholder: string
+      headerValueSaved: string
+      headerAdd: string
+      headerRemove: string
+      duplicateLocal: string
+      duplicateUrl: (label: string) => string
+      duplicateSsh: (label: string) => string
+      sameBackendHint: (label: string) => string
+      localAddHint: string
+      cloudAddHint: string
+      save: string
+      saving: string
+      cancel: string
+      empty: string
+      plainTextConfirmTitle: string
+      plainTextConfirmDesc: string
+      plainTextConfirmAction: string
+    }
     gateway: {
       loading: string
       unavailableTitle: string

@@ -68,7 +68,16 @@ test('hermes:api routes Fly brain REST through the tenant cookie bridge', () => 
 
 test('freshGatewayWsUrl mints tenant tickets for Fly brain connections', () => {
   const source = readMain()
-  assert.match(source, /async function freshGatewayWsUrl\(profile\)/)
+  assert.match(source, /async function freshGatewayWsUrl\(profileOrPayload\)/)
   assert.match(source, /connectionTarget\.isFlyBrainConnection\(connection\)/)
   assert.match(source, /w4yCloud\.mintCloudWsUrl\(\)/)
+  assert.match(source, /getRegistryBackendApi\(\)\.ensureRegistryBackend/)
+})
+
+test('packaged boot registers v2 connection registry IPC', () => {
+  const source = readMain()
+  assert.match(source, /function registerConnectionsRegistryIpc\(\)/)
+  assert.match(source, /hermes:connections:list/)
+  assert.match(source, /hermes:connection:for/)
+  assert.match(source, /syncPackagedConnectionsRegistry/)
 })
