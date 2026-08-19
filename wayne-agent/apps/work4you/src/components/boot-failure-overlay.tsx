@@ -7,6 +7,7 @@ import { LogView } from '@/components/ui/log-view'
 import type { DesktopConnectionConfig } from '@/global'
 import { useI18n } from '@/i18n'
 import { FileText, Loader2, LogIn, RefreshCw, Wrench } from '@/lib/icons'
+import { isPackagedFlyPrimary } from '@/lib/connection-target'
 import { $accountGate, accountGateBlocksApp } from '@/store/account-gate'
 import { $desktopBoot } from '@/store/boot'
 import { notify, notifyError } from '@/store/notifications'
@@ -40,7 +41,7 @@ export function BootFailureOverlay() {
   const [showLogs, setShowLogs] = useState(false)
   const [remoteReauth, setRemoteReauth] = useState<RemoteReauth | null>(null)
 
-  const cloudBody = connection?.mode === 'cloud-body'
+  const cloudBody = isPackagedFlyPrimary(connection)
   // Gate owns first-run login (z-1320). This overlay is z-1400 — if we paint
   // it while Continuar is up, the user never sees sign-in.
   const visible = Boolean(boot.error) && !boot.running && !accountGateBlocksApp(gate.phase)

@@ -53,6 +53,16 @@ declare global {
       // the window's backend; pass a named profile to lazily spawn/reuse that
       // profile's backend from the pool.
       getConnection: (profile?: string | null) => Promise<HermesConnection>
+      // Registry-scoped backend resolution: dial (connectionId, profile). An
+      // empty/local connectionId delegates to the legacy getConnection path.
+      getConnectionFor?: (payload: {
+        connectionId?: null | string
+        profile?: null | string
+      }) => Promise<HermesConnection>
+      getGatewayWsUrlFor?: (payload: {
+        connectionId?: null | string
+        profile?: null | string
+      }) => Promise<string>
       // Reconnect-after-wake recovery: liveness-probe the cached PRIMARY backend
       // and drop it if a remote one has gone unreachable, so the next
       // getConnection() rebuilds a reachable descriptor instead of the renderer
@@ -91,6 +101,27 @@ declare global {
       saveConnectionConfig: (payload: DesktopConnectionConfigInput) => Promise<DesktopConnectionConfig>
       applyConnectionConfig: (payload: DesktopConnectionConfigInput) => Promise<DesktopConnectionConfig>
       testConnectionConfig: (payload: DesktopConnectionConfigInput) => Promise<DesktopConnectionTestResult>
+      // v2 multi-connection registry: named agent sources, all persisted together.
+      connections?: {
+        list: () => Promise<DesktopConnectionsRegistry>
+        save: (
+          payload: DesktopRegistryConnectionInput
+        ) => Promise<{ ok: boolean; connection: DesktopRegistryConnection; registry: DesktopConnectionsRegistry }>
+        remove: (id: string) => Promise<{ ok: boolean; registry: DesktopConnectionsRegistry }>
+        setPrimary: (id: string) => Promise<{ ok: boolean; registry: DesktopConnectionsRegistry }>
+        setLaunchMode?: (
+          mode: 'last-used' | 'primary'
+        ) => Promise<{ ok: boolean; registry: DesktopConnectionsRegistry }>
+        setLastUsed?: (id: string) => Promise<{ ok: boolean; registry: DesktopConnectionsRegistry }>
+        syncPackaged?: () => Promise<{
+          ok: boolean
+          changed: boolean
+          registry: DesktopConnectionsRegistry
+        }>
+        test: (id: string) => Promise<DesktopConnectionTestResult>
+        updateAll?: () => Promise<{ ok: boolean; results: DesktopConnectionUpdateResult[] }>
+        onChanged?: (callback: (payload: { connectionId: string; reason: 'removed' | 'updated' }) => void) => () => void
+      }
       probeConnectionConfig: (remoteUrl: string) => Promise<DesktopConnectionProbeResult>
       oauthLoginConnectionConfig: (remoteUrl: string) => Promise<DesktopOauthLoginResult>
       oauthLogoutConnectionConfig: (remoteUrl?: string) => Promise<DesktopOauthLogoutResult>
@@ -405,6 +436,10 @@ export interface DesktopUpdateProgress {
 
 export interface HermesConnection {
   baseUrl: string
+  /** Fly tenant brain when packaged; local Python when dev. */
+  brain?: 'fly' | 'local' | 'remote'
+  /** Electron shell as PC body (folder/git/PTY) when brain is fly. */
+  body?: 'electron' | 'none'
   isFullscreen: boolean
   mode?: 'local' | 'remote' | 'cloud-body'
   authMode?: 'oauth' | 'token' | 'cloud'
@@ -416,6 +451,10 @@ export interface HermesConnection {
   // Set for pool (non-primary) backends so the renderer knows which profile a
   // connection belongs to.
   profile?: string
+  // The registry connection this descriptor resolves to.
+  connectionId?: string
+  // True only when getConnectionFor explicitly resolved a v2 registry route.
+  registryScoped?: boolean
   windowButtonPosition: { x: number; y: number } | null
 }
 
@@ -463,6 +502,67 @@ export interface DesktopConnectionTestResult {
   baseUrl: string
   ok: boolean
   version: string | null
+  reachable?: boolean
+  error?: string
+}
+
+export type DesktopConnectionKind = 'cloud' | 'local' | 'remote' | 'ssh'
+
+export interface DesktopRegistryConnection {
+  id: string
+  kind: DesktopConnectionKind
+  label: string
+  url?: string
+  authMode?: 'oauth' | 'token'
+  org?: string
+  host?: string
+  user?: string
+  port?: number
+  keyPath?: string
+  remoteHermesPath?: string
+  remoteProfile?: string
+  tokenSet: boolean
+  tokenPreview: null | string
+  headerNames?: string[]
+  installId?: string
+}
+
+export interface DesktopConnectionsRegistry {
+  version: number
+  primary: string
+  launchMode?: 'last-used' | 'primary'
+  lastUsed?: string
+  secureTokenStorage: boolean
+  connections: DesktopRegistryConnection[]
+}
+
+export interface DesktopRegistryConnectionInput {
+  id?: string
+  kind: DesktopConnectionKind
+  label: string
+  url?: string
+  authMode?: 'oauth' | 'token'
+  token?: string
+  allowPlainTextToken?: boolean
+  headers?: Record<string, null | string>
+  org?: string
+  host?: string
+  user?: string
+  port?: null | number
+  keyPath?: string
+  remoteHermesPath?: string
+  remoteProfile?: string
+}
+
+export interface DesktopConnectionUpdateResult {
+  connectionId: string
+  label: string
+  kind: DesktopConnectionKind
+  ok: boolean
+  skipped?: boolean
+  reason?: string
+  detail?: string
+  error?: string
 }
 
 export interface DesktopAuthProvider {

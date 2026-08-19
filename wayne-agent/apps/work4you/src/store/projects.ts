@@ -5,6 +5,7 @@ import type { HermesGitBranch } from '@/global'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd, selectDesktopPaths, writeDesktopFileText } from '@/lib/desktop-fs'
 import { desktopGit } from '@/lib/desktop-git'
+import { syncDesktopCwdToActiveSession } from '@/lib/desktop-session-cwd'
 import { pathIsInside } from '@/lib/fs-path'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { persistentAtom } from '@/lib/persisted'
@@ -922,6 +923,7 @@ export async function openOrCreateProjectFromFolder(
     enterProject(existing, { attachCwd: true })
     // Folder picker path wins even when the tree row's primary path differs.
     setCurrentCwd(dir)
+    void syncDesktopCwdToActiveSession(dir).catch(() => undefined)
 
     return existing
   }
@@ -939,6 +941,7 @@ export async function openOrCreateProjectFromFolder(
 
   enterProject(created.id, { attachCwd: true })
   setCurrentCwd(dir)
+  void syncDesktopCwdToActiveSession(dir).catch(() => undefined)
 
   return created.id
 }

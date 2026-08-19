@@ -23,6 +23,7 @@ import {
 } from '@/lib/w4y-cloud-projects'
 import { Check, Cloud, FolderOpen, iconSize, Plus, X } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { signInToWork4You } from '@/store/account-gate'
 import { ensureCloudBrainActive } from '@/store/gateway'
 import { $dismissedAutoProjectIds } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
@@ -55,10 +56,10 @@ const HEADER =
 const RECENT_LIMIT = 8
 
 async function signInW4Y(): Promise<void> {
-  const login = window.work4youDesktop?.w4y?.login
-  if (!login) throw new Error('login-unavailable')
-  const res = await login()
-  if (!res?.ok) throw new Error(res?.reason || 'login-failed')
+  const ok = await signInToWork4You()
+  if (!ok) {
+    throw new Error('login-failed')
+  }
 }
 
 export function ProjectChip({

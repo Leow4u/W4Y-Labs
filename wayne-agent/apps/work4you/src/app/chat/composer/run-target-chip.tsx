@@ -18,12 +18,14 @@ import { Check, Cloud, iconSize, Monitor } from '@/lib/icons'
 import { cloudRunAvailable, probeCloudLogin } from '@/lib/w4y-cloud-projects'
 import { cn } from '@/lib/utils'
 import { isCloudBrainSession } from '@/lib/cloud-sessions'
+import { signInToWork4You } from '@/store/account-gate'
 import { ensureCloudBrainActive, ensureLocalBrainActive } from '@/store/gateway'
 import { notifyError } from '@/store/notifications'
 import { $sessions } from '@/store/session'
 import {
   $runTarget,
   $sessionRunTarget,
+  activateRunTargetConnection,
   isRunTargetLocked,
   markRunTargetUserChoice,
   resolveCwdForPreferredTarget,
@@ -38,13 +40,9 @@ const CHIP =
   'flex h-6 max-w-[12rem] items-center gap-1 rounded-md px-1.5 text-[0.7rem] font-medium text-muted-foreground transition-colors hover:bg-(--chrome-action-hover) hover:text-foreground'
 
 async function signInW4Y(): Promise<void> {
-  const login = window.work4youDesktop?.w4y?.login
-  if (!login) {
-    throw new Error('login-unavailable')
-  }
-  const res = await login()
-  if (!res?.ok) {
-    throw new Error(res?.reason || 'login-failed')
+  const ok = await signInToWork4You()
+  if (!ok) {
+    throw new Error('login-failed')
   }
 }
 
@@ -82,11 +80,9 @@ export function RunTargetChip({ sessionId }: { sessionId?: null | string }) {
     setRunTarget(target)
     setSessionRunTarget(target)
     setCurrentCwd(resolveCwdForPreferredTarget())
-    if (target === 'cloud') {
-      void ensureCloudBrainActive().catch(err => notifyError(err, c.runCloudUnavailable))
-    } else {
-      void ensureLocalBrainActive()
-    }
+    void activateRunTargetConnection(target).catch(err =>
+      notifyError(err, target === 'cloud' ? c.runCloudUnavailable : c.runLocalOption)
+    )
   }
 
   const pick = (target: RunTarget) => {

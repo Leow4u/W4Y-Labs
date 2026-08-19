@@ -1,9 +1,12 @@
 import { type ConnectionState, type GatewayEvent, resolveGatewayWsUrl } from '@hermes/shared'
 import { atom } from 'nanostores'
 
+import type { HermesConnection } from '@/global'
 import { HermesGateway } from '@/hermes'
+import { registryBackendScopeKey } from '@/lib/backend-scope'
+import { isFlyBrainConnection } from '@/lib/connection-target'
 import { mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
-import { setGatewayState } from '@/store/session'
+import { setConnection, setGatewayState } from '@/store/session'
 
 // ── Multi-profile gateway routing ──────────────────────────────────────────
 // Concurrent sessions across profiles need concurrent sockets: the renderer's
@@ -34,7 +37,7 @@ const isOpen = (gateway: HermesGateway | null): boolean => gateway?.connectionSt
 export const $gateway = atom<HermesGateway | null>(null)
 
 interface RegistryConfig {
-  onEvent: (event: GatewayEvent) => void
+  onEvent: (event: GatewayEvent, source: HermesGateway) => void
 }
 
 let config: RegistryConfig | null = null
@@ -68,7 +71,9 @@ export function setPrimaryGateway(
 
 // ── Secondary (pool) backends ──────────────────────────────────────────────
 interface Secondary {
+  scope: string
   profile: string
+  connectionId: null | string
   gateway: HermesGateway
   offEvent: () => void
   offState: () => void
@@ -94,6 +99,18 @@ export function activeGateway(): HermesGateway | null {
   }
 
   return secondaries.get(activeKey)?.gateway ?? primaryGateway
+}
+
+function resolveConnection(
+  desktop: NonNullable<Window['hermesDesktop']>,
+  profile: string,
+  connectionId: null | string
+): Promise<HermesConnection> {
+  if (connectionId && desktop.getConnectionFor) {
+    return desktop.getConnectionFor({ connectionId, profile })
+  }
+
+  return desktop.getConnection(profile)
 }
 
 /** Always the local/window backend — used by projects.* and other PC-scoped RPC. */
@@ -159,10 +176,24 @@ async function openSecondary(entry: Secondary): Promise<void> {
     return
   }
 
-  const conn = await desktop.getConnection(entry.profile)
-  const wsUrl = await resolveGatewayWsUrl(desktop, conn)
+  const conn = await resolveConnection(desktop, entry.profile, entry.connectionId)
+  const wsDeps =
+    entry.connectionId && desktop.getGatewayWsUrlFor
+      ? {
+          getGatewayWsUrl: () =>
+            desktop.getGatewayWsUrlFor!({ connectionId: entry.connectionId, profile: entry.profile })
+        }
+      : entry.connectionId
+        ? {}
+        : desktop
+  const wsUrl = await resolveGatewayWsUrl(wsDeps, conn)
   await entry.gateway.connect(wsUrl)
-  void desktop.touchBackend?.(entry.profile).catch(() => undefined)
+
+  if (activeKey === entry.scope) {
+    setConnection(conn)
+  }
+
+  void desktop.touchBackend?.(entry.scope).catch(() => undefined)
 }
 
 function scheduleReconnect(entry: Secondary): void {
@@ -200,11 +231,14 @@ async function reconnectSecondary(entry: Secondary): Promise<void> {
   }
 }
 
-function createSecondary(profile: string): Secondary {
+function createSecondary(profile: string, connectionId: null | string = null): Secondary {
   const gateway = new HermesGateway()
+  const scope = registryBackendScopeKey(connectionId, profile)
 
   const entry: Secondary = {
+    scope,
     profile,
+    connectionId,
     gateway,
     offEvent: () => {},
     offState: () => {},
@@ -214,9 +248,9 @@ function createSecondary(profile: string): Secondary {
     wantOpen: true
   }
 
-  entry.offEvent = gateway.onEvent(event => config?.onEvent(event))
+  entry.offEvent = gateway.onEvent(event => config?.onEvent(event, gateway))
   entry.offState = gateway.onState(state => {
-    reportGatewayState(profile, state)
+    reportGatewayState(scope, state)
 
     if (state === 'open') {
       entry.reconnectAttempt = 0
@@ -226,7 +260,7 @@ function createSecondary(profile: string): Secondary {
     }
   })
 
-  secondaries.set(profile, entry)
+  secondaries.set(scope, entry)
 
   return entry
 }
@@ -249,7 +283,7 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
   let entry = secondaries.get(key)
 
   if (!entry) {
-    entry = createSecondary(key)
+    entry = createSecondary(key, null)
   }
 
   entry.wantOpen = true
@@ -278,6 +312,58 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
   }
 
   setActive(key)
+}
+
+/**
+ * Activate one registry-scoped agent backend. Uses getConnectionFor when the
+ * desktop bridge exposes it; otherwise falls back to getConnection(profile).
+ */
+export async function ensureGatewayForAgent(connectionId: null | string, profile: string): Promise<boolean> {
+  const key = normKey(profile)
+  const scope = registryBackendScopeKey(connectionId, key)
+
+  if (scope === key) {
+    await ensureGatewayForProfile(profile)
+
+    return true
+  }
+
+  const desktop = window.hermesDesktop
+
+  if (!desktop) {
+    return false
+  }
+
+  let entry = secondaries.get(scope)
+
+  if (!entry) {
+    entry = createSecondary(key, connectionId)
+  }
+
+  entry.wantOpen = true
+
+  if (!isOpen(entry.gateway)) {
+    clearTimer(entry)
+    entry.reconnectAttempt = 0
+
+    try {
+      await openSecondary(entry)
+    } catch {
+      scheduleReconnect(entry)
+
+      return false
+    }
+  }
+
+  if (!isOpen(entry.gateway)) {
+    scheduleReconnect(entry)
+
+    return false
+  }
+
+  setActive(scope)
+
+  return true
 }
 
 /** Route chat RPC to the Work4You cloud brain (Fly). */
@@ -374,6 +460,73 @@ export function touchSecondaryGateways(): void {
   }
 }
 
+function disposeSecondary(entry: Secondary): void {
+  entry.wantOpen = false
+  clearTimer(entry)
+  entry.offEvent()
+  entry.offState()
+  entry.gateway.close()
+}
+
+async function openGatewayForAgent(connectionId: null | string, profile: string): Promise<void> {
+  const key = normKey(profile)
+  const scope = registryBackendScopeKey(connectionId, key)
+
+  if (scope === key) {
+    await ensureGatewayForProfile(profile)
+
+    return
+  }
+
+  let entry = secondaries.get(scope)
+
+  if (!entry) {
+    entry = createSecondary(key, connectionId)
+  }
+
+  entry.wantOpen = true
+
+  if (!isOpen(entry.gateway)) {
+    clearTimer(entry)
+    entry.reconnectAttempt = 0
+    await openSecondary(entry)
+  }
+}
+
+/** Registry lifecycle: tear down (and optionally re-dial) secondaries for one connection. */
+export function disposeSecondariesForConnection(connectionId: string, opts: { redial?: boolean } = {}): void {
+  const id = String(connectionId || '').trim()
+  let activeInvalidated = false
+
+  if (!id) {
+    return
+  }
+
+  for (const [key, entry] of [...secondaries]) {
+    if (entry.connectionId !== id) {
+      continue
+    }
+
+    const wasActive = key === activeKey
+    activeInvalidated ||= wasActive
+
+    disposeSecondary(entry)
+    secondaries.delete(key)
+
+    if (opts.redial) {
+      const reopen = wasActive
+        ? ensureGatewayForAgent(entry.connectionId, entry.profile)
+        : openGatewayForAgent(entry.connectionId, entry.profile)
+
+      void reopen.catch(() => undefined)
+    }
+  }
+
+  if (activeInvalidated && !opts.redial) {
+    setActive(primaryProfile)
+  }
+}
+
 // Close + evict secondaries whose profile is neither active nor in `keep`
 // (profiles with a running / needs-input session). Bounds cost to live work.
 export function pruneSecondaryGateways(keep: Set<string>): void {
@@ -384,20 +537,14 @@ export function pruneSecondaryGateways(keep: Set<string>): void {
 
     entry.wantOpen = false
     clearTimer(entry)
-    entry.offEvent()
-    entry.offState()
-    entry.gateway.close()
+    disposeSecondary(entry)
     secondaries.delete(key)
   }
 }
 
 export function closeSecondaryGateways(): void {
   for (const entry of secondaries.values()) {
-    entry.wantOpen = false
-    clearTimer(entry)
-    entry.offEvent()
-    entry.offState()
-    entry.gateway.close()
+    disposeSecondary(entry)
   }
 
   secondaries.clear()

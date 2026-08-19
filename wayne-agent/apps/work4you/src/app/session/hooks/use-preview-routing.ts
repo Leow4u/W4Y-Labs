@@ -15,7 +15,7 @@ import {
 import { $currentCwd } from '@/store/session'
 import type { RpcEvent } from '@/types/hermes'
 
-type EventHandler = (event: RpcEvent) => void
+type EventHandler = (event: RpcEvent, source?: import('@/hermes').HermesGateway) => void
 
 interface PreviewRoutingOptions {
   activeSessionIdRef: MutableRefObject<string | null>
@@ -98,8 +98,8 @@ export function usePreviewRouting({
   )
 
   const handleDesktopGatewayEvent = useCallback<EventHandler>(
-    event => {
-      baseHandleGatewayEvent(event)
+    (event, source) => {
+      baseHandleGatewayEvent(event, source)
 
       if (event.type === 'preview.restart.complete') {
         const { task_id, text } = asRecord(event.payload)

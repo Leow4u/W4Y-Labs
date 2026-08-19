@@ -85,6 +85,12 @@ async function markGateOpen(): Promise<void> {
   ensurePlatformOnboardingComplete()
   $accountGate.set({ phase: 'idle', error: null })
   try {
+    const { ensureWork4YouCloudAfterAuth } = await import('./connections')
+    await ensureWork4YouCloudAfterAuth()
+  } catch {
+    /* registry refresh is best-effort */
+  }
+  try {
     const { ensureCloudBrainActive } = await import('./gateway')
     await ensureCloudBrainActive()
   } catch {
@@ -235,6 +241,12 @@ export async function signInToWork4You(): Promise<boolean> {
     // the process before this line — cold start then runs refreshAccountGate.
     const gateOpen = await refreshAccountGate()
     if (gateOpen) {
+      try {
+        const { ensureWork4YouCloudAfterAuth } = await import('./connections')
+        await ensureWork4YouCloudAfterAuth()
+      } catch {
+        /* registry refresh is best-effort */
+      }
       try {
         const { ensureCloudBrainActive } = await import('./gateway')
         await ensureCloudBrainActive()

@@ -1,4 +1,4 @@
-import { atom, computed } from 'nanostores'
+import { atom, batch, computed } from 'nanostores'
 
 import { getProfiles, setApiRequestProfile, STARTUP_REQUEST_TIMEOUT_MS } from '@/hermes'
 import { queryClient } from '@/lib/query-client'
@@ -11,7 +11,7 @@ import {
   storedStringArray,
   storedStringRecord
 } from '@/lib/storage'
-import { $gateway, ensureGatewayForProfile } from '@/store/gateway'
+import { $gateway, ensureGatewayForAgent, ensureGatewayForProfile } from '@/store/gateway'
 import { setConnection } from '@/store/session'
 import { resetStarmapGraph } from '@/store/starmap'
 import type { ProfileInfo } from '@/types/hermes'
@@ -260,6 +260,82 @@ export async function ensureGatewayProfile(profile: string | null | undefined): 
     // The active backend just changed; resync $connection so remote-aware
     // paths (image.attach_bytes vs image.attach, /api/fs/*, /api/media) follow.
     await syncConnectionToActiveProfile(target)
+  })()
+
+  try {
+    await gatewaySwitch
+  } finally {
+    gatewaySwitch = null
+    $gatewaySwapTarget.set(null)
+  }
+}
+
+async function resolveConnectionForAgent(connectionId: string, profile: string): Promise<HermesConnection | null> {
+  const getConnectionFor = window.hermesDesktop?.getConnectionFor
+
+  if (getConnectionFor) {
+    try {
+      return await getConnectionFor({ connectionId, profile })
+    } catch (err) {
+      console.warn(
+        `[profile] descriptor lookup for agent "${connectionId}:${profile}" failed; keeping the previous connection`,
+        err
+      )
+
+      return null
+    }
+  }
+
+  const getConnection = window.hermesDesktop?.getConnection
+
+  if (!getConnection) {
+    return null
+  }
+
+  try {
+    return await getConnection(profile)
+  } catch (err) {
+    console.warn(
+      `[profile] descriptor lookup for agent "${connectionId}:${profile}" failed; keeping the previous connection`,
+      err
+    )
+
+    return null
+  }
+}
+
+export async function ensureGatewayAgent(connectionId: null | string, profile: string): Promise<void> {
+  const target = normalizeProfileKey(profile)
+  const connection = (connectionId ?? '').trim() || null
+
+  if (!connection) {
+    return ensureGatewayProfile(target)
+  }
+
+  if (gatewaySwitch) {
+    await gatewaySwitch.catch(() => undefined)
+  }
+
+  $gatewaySwapTarget.set(target)
+  gatewaySwitch = (async () => {
+    const [descriptor, activated] = await Promise.all([
+      resolveConnectionForAgent(connection, target),
+      ensureGatewayForAgent(connection, target)
+    ])
+
+    if (!activated) {
+      console.warn(`[profile] agent gateway activation for "${connection}:${target}" did not land`)
+
+      return
+    }
+
+    batch(() => {
+      $activeGatewayProfile.set(target)
+
+      if (descriptor) {
+        setConnection(descriptor)
+      }
+    })
   })()
 
   try {

@@ -18,9 +18,9 @@ function readMain() {
 
 test('packaged product skips the local engine unless explicitly allowed', () => {
   const source = readMain()
-  assert.match(source, /function localEngineDisabled\(\)/)
+  assert.match(source, /connectionTarget\.localEngineDisabled/)
   assert.match(source, /W4Y_ALLOW_LOCAL_ENGINE/)
-  assert.match(source, /mode: 'cloud-body'/)
+  assert.match(source, /connectionTarget\.buildFlyBrainConnection/)
 
   const start = source.indexOf('async function startHermes()')
   assert.notEqual(start, -1)
@@ -58,10 +58,27 @@ test('renderer WebSockets to app.work4you.ai carry w4y_route from the jar', () =
   assert.match(main, /installCloudBodyCookieBridge\(\)/)
 })
 
-test('hermes:api routes cloud-body REST through the tenant cookie bridge', () => {
+test('hermes:api routes Fly brain REST through the tenant cookie bridge', () => {
   const source = readMain()
   assert.match(source, /function fetchJsonViaCloudBody\(/)
-  assert.match(source, /connection\.mode === 'cloud-body' \|\| !connection\.baseUrl/)
+  assert.match(source, /connectionTarget\.isFlyBrainConnection\(connection\)/)
   assert.match(source, /fetchJsonViaCloudBody\(requestPath/)
   assert.match(source, /w4yCloud\.cloudApiRequest/)
+})
+
+test('freshGatewayWsUrl mints tenant tickets for Fly brain connections', () => {
+  const source = readMain()
+  assert.match(source, /async function freshGatewayWsUrl\(profileOrPayload\)/)
+  assert.match(source, /connectionTarget\.isFlyBrainConnection\(connection\)/)
+  assert.match(source, /w4yCloud\.mintCloudWsUrl\(\)/)
+  assert.match(source, /getRegistryBackendApi\(\)\.ensureRegistryBackend/)
+})
+
+test('packaged boot registers v2 connection registry IPC', () => {
+  const source = readMain()
+  assert.match(source, /function registerConnectionsRegistryIpc\(\)/)
+  assert.match(source, /hermes:connections:list/)
+  assert.match(source, /hermes:connection:for/)
+  assert.match(source, /hermes:connections:sync-packaged/)
+  assert.match(source, /syncPackagedConnectionsRegistry/)
 })

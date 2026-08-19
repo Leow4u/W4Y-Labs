@@ -11,6 +11,7 @@ import { notify, notifyError } from '@/store/notifications'
 import { $profiles, refreshActiveProfile } from '@/store/profile'
 
 import { CONTROL_TEXT } from './constants'
+import { ConnectionsRegistrySection } from './connections-registry'
 import { EmptyState, ListRow, LoadingState, Pill, SettingsContent } from './primitives'
 
 type Mode = 'local' | 'remote'
@@ -603,6 +604,8 @@ export function GatewaySettings() {
           title={g.diagnostics}
         />
       </div>
+
+      <ConnectionsRegistrySection />
     </SettingsContent>
   )
 }
