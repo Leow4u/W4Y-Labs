@@ -45,6 +45,17 @@ test('body IPC can write and exec in the open folder', () => {
   assert.match(source, /mkdir\(path\.dirname\(resolved\), \{ recursive: true \}\)/)
 })
 
+test('renderer WebSockets to app.work4you.ai carry w4y_route from the jar', () => {
+  const cloud = fs
+    .readFileSync(path.join(__dirname, 'w4y-cloud.cjs'), 'utf8')
+    .replace(/\r\n/g, '\n')
+  const main = readMain()
+  assert.match(cloud, /installCloudBodyCookieBridge/)
+  assert.match(cloud, /w4y_route/)
+  assert.match(cloud, /onBeforeSendHeaders/)
+  assert.match(main, /installCloudBodyCookieBridge\(\)/)
+})
+
 test('hermes:api routes cloud-body REST through the tenant cookie bridge', () => {
   const source = readMain()
   assert.match(source, /function fetchJsonViaCloudBody\(/)

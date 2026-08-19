@@ -158,11 +158,54 @@ function registerCloudIpc(ipcMain) {
   ipcMain.handle("w4y:cloud:canMutate", async () => true);
 }
 
+let cloudBodyCookieBridgeInstalled = false;
+
+/**
+ * Packaged desktop loads the renderer from file://. Chromium will not attach
+ * SameSite=Lax HttpOnly cookies (notably w4y_route) to cross-site WebSockets
+ * opened by the renderer — while net.request in this process does. REST via IPC
+ * therefore works and ws-ticket mints, but /api/ws hits router-w4y without a
+ * route cookie and dies with "Could not connect to Work4You gateway".
+ */
+function installCloudBodyCookieBridge() {
+  if (cloudBodyCookieBridgeInstalled) return;
+  cloudBodyCookieBridgeInstalled = true;
+
+  let filterHost;
+  try {
+    filterHost = new URL(appOrigin()).host;
+  } catch {
+    return;
+  }
+
+  session.defaultSession.webRequest.onBeforeSendHeaders(
+    { urls: [`*://${filterHost}/*`] },
+    (details, callback) => {
+      void (async () => {
+        const headers = { ...details.requestHeaders };
+        try {
+          const reqUrl = details.url
+            .replace(/^wss:\/\//i, "https://")
+            .replace(/^ws:\/\//i, "http://");
+          const cookies = await session.defaultSession.cookies.get({ url: reqUrl });
+          if (cookies.length) {
+            headers.Cookie = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
+          }
+        } catch {
+          /* best effort */
+        }
+        callback({ requestHeaders: headers });
+      })();
+    },
+  );
+}
+
 module.exports = {
   cloudApiRequest,
   mintCloudWsUrl,
   platformOrigin,
   appOrigin,
+  installCloudBodyCookieBridge,
   registerCloudIpc,
   setCloudSessionHealer,
 };
