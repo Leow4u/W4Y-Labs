@@ -24,6 +24,10 @@ const {
   cookiesHaveLiveSession,
   normAuthMode,
   normalizeRemoteBaseUrl,
+  normalizeRemoteHeaders,
+  normalizeSshConfig,
+  hostLabelFromBaseUrl,
+  modeIsRemoteLike,
   pathWithGlobalRemoteProfile,
   profileRemoteOverride,
   resolveAuthMode,
@@ -366,6 +370,53 @@ test('resolveTestWsUrl (oauth, mint ok) builds a ?ticket= URL', async () => {
     mintTicket: async () => 'tkt-9'
   })
   assert.equal(url, 'wss://gw.example.com/api/ws?ticket=tkt-9')
+})
+
+test('normalizeRemoteBaseUrl accepts scheme-less host:port input', () => {
+  assert.equal(normalizeRemoteBaseUrl('10.0.0.5:9119'), 'http://10.0.0.5:9119')
+})
+
+test('modeIsRemoteLike treats cloud like remote', () => {
+  assert.equal(modeIsRemoteLike('remote'), true)
+  assert.equal(modeIsRemoteLike('cloud'), true)
+  assert.equal(modeIsRemoteLike('local'), false)
+})
+
+test('hostLabelFromBaseUrl returns hostname or host:port', () => {
+  assert.equal(hostLabelFromBaseUrl('https://gw.example.com/hermes'), 'gw.example.com')
+  assert.equal(hostLabelFromBaseUrl('http://127.0.0.1:9119'), '127.0.0.1:9119')
+  assert.equal(hostLabelFromBaseUrl(''), null)
+})
+
+test('normalizeRemoteHeaders drops forbidden transport headers', () => {
+  assert.deepEqual(
+    normalizeRemoteHeaders({
+      'CF-Access-Client-Id': { encoding: 'plain', value: 'id' },
+      Authorization: { encoding: 'plain', value: 'secret' },
+      Cookie: { encoding: 'plain', value: 'blocked' }
+    }),
+    {
+      'CF-Access-Client-Id': { encoding: 'plain', value: 'id' }
+    }
+  )
+})
+
+test('normalizeSshConfig parses user@host:port and ssh prefix', () => {
+  assert.deepEqual(normalizeSshConfig({ mode: 'ssh', host: 'ssh root@box:2222' }), {
+    mode: 'ssh',
+    host: 'box',
+    user: 'root',
+    port: 2222
+  })
+})
+
+test('profileRemoteOverride accepts cloud profile entries', () => {
+  const config = {
+    profiles: {
+      coder: { mode: 'cloud', url: 'https://tenant.fly.dev', authMode: 'oauth' }
+    }
+  }
+  assert.equal(profileRemoteOverride(config, 'coder').authMode, 'oauth')
 })
 
 test('resolveTestWsUrl (oauth, mint FAILS) throws — must NOT skip WS validation', async () => {

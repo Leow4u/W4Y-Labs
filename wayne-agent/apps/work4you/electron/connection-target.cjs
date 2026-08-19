@@ -1,3 +1,11 @@
+'use strict'
+
+const {
+  WORK4YOU_CLOUD_CONNECTION_ID,
+  ensureWork4YouCloudConnection,
+  resolveWork4YouCloudConnection
+} = require('./connection-registry.cjs')
+
 /**
  * Work4You connection target — brain (Fly) + body (Electron) model.
  *
@@ -6,8 +14,8 @@
  * when W4Y_ALLOW_LOCAL_ENGINE=1.
  *
  * Replaces scattered `cloud-body` special cases with one resolver.
+ * Registry-shaped cloud entries live in connection-registry.cjs.
  */
-'use strict'
 
 /** @typedef {'fly' | 'local' | 'remote'} BrainKind */
 /** @typedef {'electron' | 'none'} BodyKind */
@@ -96,8 +104,11 @@ function buildFlyBrainConnection(extras = {}) {
 }
 
 module.exports = {
+  WORK4YOU_CLOUD_CONNECTION_ID,
   buildFlyBrainConnection,
+  ensureWork4YouCloudConnection,
   isFlyBrainConnection,
   localEngineDisabled,
-  resolvePackagedTarget
+  resolvePackagedTarget,
+  resolveWork4YouCloudConnection
 }

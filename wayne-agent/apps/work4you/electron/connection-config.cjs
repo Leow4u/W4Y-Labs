@@ -38,10 +38,14 @@ const AT_COOKIE_VARIANTS = ['__Host-hermes_session_at', '__Secure-hermes_session
 const RT_COOKIE_VARIANTS = ['__Host-hermes_session_rt', '__Secure-hermes_session_rt', 'hermes_session_rt']
 
 function normalizeRemoteBaseUrl(rawUrl) {
-  const value = String(rawUrl || '').trim()
+  let value = String(rawUrl || '').trim()
 
   if (!value) {
     throw new Error('Remote gateway URL is required.')
+  }
+
+  if (!/^[a-z][a-z0-9+.-]*:\/\//i.test(value)) {
+    value = `http://${value}`
   }
 
   let parsed
@@ -142,19 +146,182 @@ function normAuthMode(mode) {
   return mode === 'oauth' ? 'oauth' : 'token'
 }
 
+const REMOTE_HEADER_NAME_RE = /^[!#$%&'*+.^_`|~0-9A-Za-z-]+$/
+
+const FORBIDDEN_REMOTE_HEADER_NAMES = new Set([
+  'authorization',
+  'connection',
+  'content-length',
+  'content-type',
+  'cookie',
+  'host',
+  'origin',
+  'referer',
+  'te',
+  'trailer',
+  'transfer-encoding',
+  'upgrade',
+  'x-hermes-session-token'
+])
+
+function normalizeRemoteHeaders(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+    return {}
+  }
+
+  const out = {}
+
+  for (const [name, secret] of Object.entries(raw)) {
+    const headerName = String(name || '').trim()
+    const lower = headerName.toLowerCase()
+
+    if (!headerName || !REMOTE_HEADER_NAME_RE.test(headerName) || FORBIDDEN_REMOTE_HEADER_NAMES.has(lower)) {
+      continue
+    }
+
+    if (typeof secret === 'string') {
+      const value = secret.trim()
+
+      if (value) {
+        out[headerName] = { encoding: 'plain', value }
+      }
+
+      continue
+    }
+
+    if (secret && typeof secret === 'object') {
+      const encoding = String(secret.encoding || '')
+      const value = String(secret.value || '')
+
+      if (value && (encoding === 'safeStorage' || encoding === 'plain' || !encoding)) {
+        out[headerName] = { encoding: encoding || 'plain', value }
+      }
+    }
+  }
+
+  return out
+}
+
+function modeIsRemoteLike(mode) {
+  return mode === 'remote' || mode === 'cloud'
+}
+
+const RESERVED_REMOTE_PROFILES = new Set(['hermes', 'test', 'tmp', 'root', 'sudo'])
+
+function normalizeSshConfig(entry) {
+  if (!entry || typeof entry !== 'object' || entry.mode !== 'ssh') {
+    return null
+  }
+
+  let host = String(entry.host || '').trim()
+
+  host = host.replace(/^ssh\s+/i, '').trim()
+
+  if (!host) {
+    return null
+  }
+
+  let parsedUser
+  let parsedPort
+  const at = host.indexOf('@')
+
+  if (at > 0) {
+    parsedUser = host.slice(0, at)
+    host = host.slice(at + 1)
+  }
+
+  const bracketed = /^\[([^\]]+)](?::(\d+))?$/.exec(host)
+
+  if (bracketed) {
+    host = bracketed[1]
+
+    if (bracketed[2]) {
+      parsedPort = Number(bracketed[2])
+    }
+  } else if ((host.match(/:/g) || []).length === 1) {
+    const [name, rawPort] = host.split(':')
+
+    if (/^\d+$/.test(rawPort)) {
+      host = name
+      parsedPort = Number(rawPort)
+    }
+  }
+
+  if (!host) {
+    return null
+  }
+
+  const out = { mode: 'ssh', host }
+  const user = String(entry.user || '').trim() || parsedUser || ''
+
+  if (user) {
+    out.user = user
+  }
+
+  const rawExplicitPort = String(entry.port ?? '').trim()
+  const explicitPort = /^\d+$/.test(rawExplicitPort) ? Number(rawExplicitPort) : null
+  const port = explicitPort ?? parsedPort
+
+  if (Number.isInteger(port) && port > 0 && port <= 65535 && port !== 22) {
+    out.port = port
+  }
+
+  const keyPath = String(entry.keyPath || '').trim()
+
+  if (keyPath) {
+    out.keyPath = keyPath
+  }
+
+  const remoteHermesPath = String(entry.remoteHermesPath || '').trim()
+
+  if (remoteHermesPath) {
+    out.remoteHermesPath = remoteHermesPath
+  }
+
+  const remoteProfile = String(entry.remoteProfile || '').trim()
+
+  if (/^[a-z0-9][a-z0-9_-]{0,63}$/.test(remoteProfile) && !RESERVED_REMOTE_PROFILES.has(remoteProfile)) {
+    out.remoteProfile = remoteProfile
+  }
+
+  return out
+}
+
+function hostLabelFromBaseUrl(baseUrl) {
+  const raw = String(baseUrl || '').trim()
+
+  if (!raw) {
+    return null
+  }
+
+  try {
+    const parsed = new URL(raw)
+
+    if (!parsed.hostname) {
+      return null
+    }
+
+    return parsed.port && parsed.port !== '80' && parsed.port !== '443'
+      ? `${parsed.hostname}:${parsed.port}`
+      : parsed.hostname
+  } catch {
+    return null
+  }
+}
+
 /**
  * Select a profile's explicit remote override from a connection config, or null
  * when it has none (so the caller falls back to env → global remote → local).
  *
  * The config may carry a `profiles` map keyed by name; an entry counts as an
- * override only with `mode === 'remote'` and a non-empty `url`. Pure: `token`
- * is the raw stored secret; main.cjs decrypts it. Returns
- * `{ url, authMode, token } | null`.
+ * override only with a remote-like `mode` (remote or cloud) and a non-empty
+ * `url`. Pure: `token` and `headers` are raw stored secrets; main.cjs decrypts
+ * them. Returns `{ url, authMode, token, headers } | null`.
  */
 function profileRemoteOverride(config, profile) {
   const key = connectionScopeKey(profile)
   const entry = key ? config?.profiles?.[key] : null
-  if (!entry || typeof entry !== 'object' || entry.mode !== 'remote') {
+  if (!entry || typeof entry !== 'object' || !modeIsRemoteLike(entry.mode)) {
     return null
   }
 
@@ -163,7 +330,14 @@ function profileRemoteOverride(config, profile) {
     return null
   }
 
-  return { url, authMode: normAuthMode(entry.authMode), token: entry.token }
+  const headers = normalizeRemoteHeaders(entry.headers)
+
+  return {
+    url,
+    authMode: normAuthMode(entry.authMode),
+    token: entry.token,
+    ...(Object.keys(headers).length > 0 ? { headers } : {})
+  }
 }
 
 /**
@@ -273,8 +447,12 @@ module.exports = {
   connectionScopeKey,
   cookiesHaveSession,
   cookiesHaveLiveSession,
+  hostLabelFromBaseUrl,
+  modeIsRemoteLike,
   normAuthMode,
   normalizeRemoteBaseUrl,
+  normalizeRemoteHeaders,
+  normalizeSshConfig,
   pathWithGlobalRemoteProfile,
   profileRemoteOverride,
   resolveAuthMode,

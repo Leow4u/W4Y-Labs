@@ -38,4 +38,10 @@ describe('connection-target', () => {
     assert.equal(isFlyBrainConnection({ mode: 'local' }), false)
     assert.equal(isFlyBrainConnection(null), false)
   })
+
+  it('ensureWork4YouCloudConnection is re-exported from connection-target', () => {
+    const { ensureWork4YouCloudConnection, WORK4YOU_CLOUD_CONNECTION_ID } = require('./connection-target.cjs')
+    assert.equal(WORK4YOU_CLOUD_CONNECTION_ID, 'work4you-cloud')
+    assert.equal(typeof ensureWork4YouCloudConnection, 'function')
+  })
 })
