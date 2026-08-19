@@ -1,5 +1,6 @@
 import { atom, batch, computed } from 'nanostores'
 
+import type { HermesConnection } from '@/global'
 import { getProfiles, setApiRequestProfile, STARTUP_REQUEST_TIMEOUT_MS } from '@/hermes'
 import { queryClient } from '@/lib/query-client'
 import {
