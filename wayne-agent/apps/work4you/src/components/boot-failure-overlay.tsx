@@ -119,6 +119,9 @@ export function BootFailureOverlay() {
 
   const retry = async () => {
     setBusy('retry')
+    if (cloudBody) {
+      await window.work4youDesktop?.w4y?.bootstrapApp?.().catch(() => undefined)
+    }
     await window.hermesDesktop?.resetBootstrap().catch(() => undefined)
     window.location.reload()
   }

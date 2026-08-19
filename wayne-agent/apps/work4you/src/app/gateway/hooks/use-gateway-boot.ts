@@ -6,6 +6,7 @@ import { HermesGateway } from '@/hermes'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import { CLOUD_NOT_LOGGED_IN, mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
+import { whenAccountGateReady } from '@/store/account-gate'
 import {
   $desktopBoot,
   applyDesktopBootProgress,
@@ -152,6 +153,9 @@ export function useGatewayBoot({
         }
 
         publish(conn)
+        if (conn.mode === 'cloud-body' && !(await whenAccountGateReady())) {
+          return
+        }
         // Re-mint the WS URL before reconnecting. OAuth tickets are single-use
         // with a short TTL, so the ticket baked into the cached conn.wsUrl is
         // dead on every reconnect after the initial boot — reusing it surfaces
@@ -372,6 +376,11 @@ export function useGatewayBoot({
           progress: 95
         })
         publish(conn)
+        if (conn.mode === 'cloud-body' && !(await whenAccountGateReady())) {
+          completeDesktopBoot()
+          bootCompleted = true
+          return
+        }
         // Mint a fresh WS URL right before connecting. For OAuth gateways the
         // ticket is single-use with a short TTL, so the ticket baked into
         // conn.wsUrl is stale; resolveGatewayWsUrl() re-mints it and, on

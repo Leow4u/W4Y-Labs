@@ -191,7 +191,18 @@ function requestLoginEnter(timeoutMs = 30_000) {
  * 502 for a few seconds after, and one attempt would throw the session away.
  */
 async function bootstrapAppSession(timeoutMs = 30_000) {
+  await clearForbiddenRouteCookies();
   let last = { ok: false };
+
+  // Packaged desktop: Chromium handoff is reliable; net.request often loses
+  // cross-site Set-Cookie on the platform-sso redirect chain (upgrade installs).
+  if (app.isPackaged) {
+    const viaBrowser = await bootstrapAppSessionViaBrowser(
+      Math.max(timeoutMs, 60_000),
+    );
+    if (viaBrowser.ok) return viaBrowser;
+    last = viaBrowser;
+  }
 
   for (let attempt = 0; attempt < 3; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 2_000 * attempt));
@@ -201,7 +212,10 @@ async function bootstrapAppSession(timeoutMs = 30_000) {
       { method: "GET", path: "/api/auth/me" },
       12_000,
     );
-    if (who.ok) return { ok: true, email: who.json && who.json.email };
+    if (tenantIdentityOk(who)) {
+      await flushSessionCookies();
+      return { ok: true, email: who.json && who.json.email };
+    }
 
     // 401 is a real answer from a reachable tenant: the handoff did not take,
     // and hammering it will not change that.
@@ -210,6 +224,96 @@ async function bootstrapAppSession(timeoutMs = 30_000) {
   }
 
   return last;
+}
+
+/**
+ * Drive `/login/enter` in a real BrowserWindow so the platform-sso redirect
+ * chain lands tenant session cookies in the default jar (net.request does not).
+ */
+async function bootstrapAppSessionViaBrowser(timeoutMs = 60_000) {
+  const enterUrl = `${platformOrigin()}/login/enter`;
+  const deadline = Date.now() + timeoutMs;
+  const win = new BrowserWindow({
+    show: false,
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  });
+
+  const destroy = () => {
+    try {
+      if (!win.isDestroyed()) win.destroy();
+    } catch {
+      /* ignore */
+    }
+  };
+
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("sso-handoff-timeout"));
+      }, timeoutMs);
+      win.webContents.once("did-fail-load", (_e, _code, desc) => {
+        clearTimeout(timer);
+        reject(new Error(desc || "sso-handoff-load-failed"));
+      });
+      win.loadURL(enterUrl).then(
+        () => {
+          clearTimeout(timer);
+          resolve();
+        },
+        (err) => {
+          clearTimeout(timer);
+          reject(err);
+        },
+      );
+    });
+
+    while (Date.now() < deadline) {
+      const who = await cloudApiRequest(
+        { method: "GET", path: "/api/auth/me" },
+        12_000,
+      );
+      if (tenantIdentityOk(who)) {
+        await flushSessionCookies();
+        return { ok: true, email: who.json && who.json.email };
+      }
+      if (who.status === 401 && Date.now() + 4_000 > deadline) break;
+      await new Promise((r) => setTimeout(r, 1500));
+    }
+    return { ok: false, reason: "tenant-identity-missing" };
+  } catch (err) {
+    return { ok: false, reason: String(err && err.message) };
+  } finally {
+    destroy();
+  }
+}
+
+/**
+ * One-time hygiene after shared-motor revocation: drop lab route + stale tenant
+ * cookies so the next heal/login can SSO into the dedicated Fly.
+ */
+async function migrateSharedMotorDesktopSession() {
+  const sess = session.defaultSession;
+  let hadLabRoute = false;
+  try {
+    const routes = await sess.cookies.get({ name: "w4y_route" });
+    hadLabRoute = routes.some(
+      (c) => decodeURIComponent(String(c.value || "").trim()) === "wayne-w4y",
+    );
+  } catch {
+    /* ignore */
+  }
+  await clearForbiddenRouteCookies();
+  if (hadLabRoute) {
+    try {
+      await clearDefaultSessionCookies(appOrigin());
+    } catch {
+      /* ignore */
+    }
+  }
+  if (hasOpenRouterKey()) {
+    return healTenantSession();
+  }
+  return { ok: false, skipped: true };
 }
 
 /**
@@ -885,6 +989,8 @@ module.exports = {
   runLogoutFlow,
   probePlatformSession,
   bootstrapAppSession,
+  migrateSharedMotorDesktopSession,
+  healTenantSession,
   upsertEnvKey,
   activateAccount,
   clearActiveAccount,
