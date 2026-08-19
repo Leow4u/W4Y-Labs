@@ -49,6 +49,13 @@ let primaryProfile = 'default'
 
 let primaryIsCloudBody = false
 
+let reconnectPrimaryCloudBody: (() => Promise<void>) | null = null
+
+/** Registered by use-gateway-boot — reconnects the packaged Fly primary socket. */
+export function registerPrimaryCloudBodyReconnect(fn: (() => Promise<void>) | null): void {
+  reconnectPrimaryCloudBody = fn
+}
+
 export function setPrimaryGateway(
   gateway: HermesGateway | null,
   profile = 'default',
@@ -276,9 +283,18 @@ export async function ensureGatewayForProfile(profile: string): Promise<void> {
 /** Route chat RPC to the Work4You cloud brain (Fly). */
 export async function ensureCloudBrainActive(): Promise<void> {
   // Packaged F3: the window primary *is* the Fly socket — do not open a second.
-  if (primaryIsCloudBody && isOpen(primaryGateway)) {
+  if (primaryIsCloudBody) {
     setActive(primaryProfile)
-    return
+    if (isOpen(primaryGateway)) {
+      return
+    }
+    if (reconnectPrimaryCloudBody) {
+      await reconnectPrimaryCloudBody()
+      if (isOpen(primaryGateway)) {
+        return
+      }
+    }
+    throw new Error('gateway unavailable')
   }
 
   // Browser SPA is already on the tenant Fly — $runTarget 'cloud' must not

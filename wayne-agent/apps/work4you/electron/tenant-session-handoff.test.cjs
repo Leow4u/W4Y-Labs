@@ -145,7 +145,7 @@ test('boot repairs an app whose tenant session died, instead of running signed o
   assert.match(
     heal,
     /clearForbiddenRouteCookies/,
-    'stale lab w4y_route must be cleared before re-SSO',
+    'stale w4y_route must be cleared before re-SSO',
   )
   assert.match(
     heal,
