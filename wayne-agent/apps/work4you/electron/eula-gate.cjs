@@ -24,12 +24,16 @@ function readAcceptedVersion() {
 
 /**
  * Packaged builds only. Returns false when the user declines (caller should quit).
+ * @param {import('electron').BrowserWindow | null | undefined} [parentWindow]
  */
-async function ensureEulaAccepted() {
+async function ensureEulaAccepted(parentWindow) {
   if (!app.isPackaged) return true
   if (readAcceptedVersion() === EULA_VERSION) return true
 
-  const { response } = await dialog.showMessageBox({
+  const parent =
+    parentWindow && !parentWindow.isDestroyed() ? parentWindow : undefined
+
+  const { response } = await dialog.showMessageBox(parent, {
     type: 'info',
     title: 'Work4You',
     message: 'Termos de uso',

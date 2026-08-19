@@ -120,6 +120,15 @@ test('upgrade from shared motor clears lab route and stale tenant cookies on boo
   const main = read('main.cjs')
   assert.match(main, /migrateSharedMotorDesktopSession\(\)/)
   assert.match(main, /localEngineDisabled\(\)/)
+
+  const createIdx = main.indexOf('createWindow()')
+  const migrateIdx = main.indexOf('migrateSharedMotorDesktopSession()')
+  assert.notEqual(createIdx, -1)
+  assert.notEqual(migrateIdx, -1)
+  assert.ok(
+    createIdx < migrateIdx,
+    'first-run window must paint before shared-motor SSO heal (clean install felt dead)'
+  )
 })
 
 test('boot repairs an app whose tenant session died, instead of running signed out', () => {

@@ -2,7 +2,7 @@
   "name": "work4you",
   "productName": "Work4You",
   "private": true,
-  "version": "1.0.130",
+  "version": "1.0.131",
   "description": "Work4You desktop — native agent workspace (official app).",
   "author": "Work4You",
   "type": "module",
@@ -276,6 +276,7 @@
     },
     "nsis": {
       "oneClick": true,
+      "runAfterFinish": true,
       "perMachine": false,
       "installerIcon": "assets/icon.ico",
       "uninstallerIcon": "assets/icon.ico",

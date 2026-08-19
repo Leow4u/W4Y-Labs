@@ -37,3 +37,16 @@ test('beforePack defaults to shell-only (fat pack is opt-in)', () => {
   const defaultFn = source.slice(source.indexOf('exports.default'))
   assert.match(defaultFn, /if \(packWithEngine\(\)\)/)
 })
+
+test('oneClick NSIS launches Work4You when the installer finishes', () => {
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8')
+  )
+  const nsis = pkg.build?.nsis || {}
+  assert.equal(nsis.oneClick, true)
+  assert.equal(
+    nsis.runAfterFinish,
+    true,
+    'electron-builder defaults runAfterFinish to false for oneClick — clean installs must open the app'
+  )
+})

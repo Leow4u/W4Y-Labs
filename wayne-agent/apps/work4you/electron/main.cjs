@@ -8101,11 +8101,6 @@ app.whenReady().then(async () => {
   w4yCloud.registerCloudIpc(ipcMain)
   if (localEngineDisabled()) {
     w4yCloud.installCloudBodyCookieBridge()
-    try {
-      await w4yLogin.migrateSharedMotorDesktopSession()
-    } catch (err) {
-      console.warn('[w4y] shared-motor desktop migration:', err && err.message)
-    }
   }
   const relaunchForAccountHome = async (info) => {
     // Tell the renderer first so open→closed is not toasted as "gateway offline".
@@ -8188,13 +8183,27 @@ app.whenReady().then(async () => {
   configureSpellChecker()
   registerPowerResumeListeners()
 
-  const eulaOk = await ensureEulaAccepted()
+  // Paint the shell immediately — never block the window on SSO heal / migrate.
+  createWindow()
+
+  if (localEngineDisabled()) {
+    void w4yLogin.migrateSharedMotorDesktopSession().catch((err) => {
+      console.warn('[w4y] shared-motor desktop migration:', err && err.message)
+    })
+  }
+
+  const eulaOk = await ensureEulaAccepted(mainWindow)
   if (!eulaOk) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.destroy()
+    }
     app.quit()
     return
   }
 
-  createWindow()
+  if (mainWindow && !mainWindow.isDestroyed() && !mainWindow.isVisible()) {
+    mainWindow.show()
+  }
 
   // Win/Linux cold start: the launching hermes:// URL is in our own argv.
   const _coldStartLink = _extractDeepLink(process.argv)
