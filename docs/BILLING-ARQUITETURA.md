@@ -175,7 +175,7 @@ tier no menu, mapeamento tier→(modelo, esforço, agentes).
 
 | Risco | Impacto | Mitigação |
 |---|---|---|
-| **Piso de infra (~US$5/tenant dedicado)** | Free/low tier **sangram** (1.000 free = US$5k/mês) | Free = **trial 14 dias / CAC ~$5**; `suspend` agressivo; entrada ≥ ~R$97; **infra compartilhada** p/ tiers baixos se pesar (decisão futura) |
+| **Piso de infra (~US$5/tenant dedicado)** | Free/low tier **sangram** (1.000 free = US$5k/mês) | Free = **trial 14 dias / CAC ~$5**; `suspend` agressivo; entrada ≥ ~R$97. **Infra partilhada está revogada** (Claude v1 — 1 Fly por email) |
 | **Blowup agêntico** (loops consomem tokens) | Custo dispara | **Teto rígido da chave** + Auto/Flash padrão + limite de passos por turno |
 | **Preço de LLM / câmbio muda** | Margem encolhe | Allowance em **US$** (não tokens fixos); revisar câmbio dos planos por trimestre |
 | **Abuso** (revenda, bots) | Custo/risco | 1 chave/tenant + rate-limit + termos |

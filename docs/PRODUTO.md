@@ -57,6 +57,8 @@ runtime (**Wayne**, etc.) **não** aparecem ao utilizador.
 ## Modelo de conta (v1)
 
 **1 email = 1 tenant = 1 app Fly** (`wayne-<slug>`). Isolamento físico.
+O motor partilhado (`wayne-w4y` + `W4Y_SHARED_MOTOR`) está **revogado** — não é
+caminho de produto, Free, nem QA. `wayne-w4y` fica só como lab/fábrica de imagem.
 Multi-user por organização (Enterprise) fica para depois.
 
 O desktop **não** é um segundo motor no PC. Estado antigo em

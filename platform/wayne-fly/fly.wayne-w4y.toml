@@ -1,17 +1,13 @@
-# Instância Wayne principal (tenant W4Y) no Fly.io — GRU.
-# Mesma topologia validada no PoC: dashboard público na 8080, api_server
-# interno na 8642, /opt/data em volume persistente, autostop=suspend
-# (RSS ocioso medido: ~438MB — cabe no teto de 2GB do suspend).
+# W4Y internal lab / image-factory Fly app — NOT a customer runtime.
+# Claude v1: customers get dedicated wayne-<slug>. This app stays for overlay
+# publishes (publish-fly.ps1) and W4Y-only experiments. Shared motor is revoked.
 app = "wayne-w4y"
 primary_region = "gru"
 
 [build]
   dockerfile = "Dockerfile.ui"
   [build.args]
-    BASE_IMAGE = "registry.fly.io/wayne-w4y:fly250"
-
-# Runtime pin (after fly241 push):
-# image = "registry.fly.io/wayne-w4y:fly241"
+    BASE_IMAGE = "registry.fly.io/wayne-w4y:fly258"
 
 [processes]
   # init-fly -> main-wrapper.sh -> `wayne gateway run`
@@ -22,10 +18,9 @@ primary_region = "gru"
   WAYNE_DASHBOARD_HOST = "0.0.0.0"
   WAYNE_DASHBOARD_PORT = "8080"
   FORWARDED_ALLOW_IPS = "*"
-  # Claude-style shared motor: one Fly app, isolated WAYNE_HOME per tenant.
-  W4Y_SHARED_MOTOR = "1"
+  # Revoked: do not run multi-tenant customer isolation on this app.
+  W4Y_SHARED_MOTOR = "0"
   W4Y_PLATFORM_ORIGIN = "https://work4you.ai"
-  W4Y_TENANTS_ROOT = "/opt/data/tenants"
   # Legacy env on base images pointed at web_dist; UI overlay ships app_dist only.
   WAYNE_WEB_DIST = "/opt/wayne/wayne_cli/app_dist"
 

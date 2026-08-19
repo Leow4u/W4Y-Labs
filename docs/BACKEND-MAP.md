@@ -51,7 +51,7 @@ Mudança de UI/UX/motor → publicar **todos** os artefactos do mesmo commit: `b
 |---|---|---|
 | Auth do dashboard = **UM `_SESSION_TOKEN` por processo**, comparado com `hmac.compare_digest`. Autentica o DASHBOARD, não o USUÁRIO — não há auth por-usuário dentro de um tenant | `web_server.py:314` (`_has_valid_session_token`), `dashboard_auth.py` | ✅ |
 | A camada de auth **NÃO conhece tenant** — só `_connector_tenant_id` (conectores). Tenant não é parâmetro de request | `web_server.py:2062` | ✅ |
-| Isolamento entre tenants = **1 app Fly por tenant** (`wayne-w4y` = "tenant W4Y"; nome legado, migração de infra pendente), processo próprio, token próprio, WORK4YOU_HOME próprio → **isolamento FÍSICO** | `platform/wayne-fly/fly.wayne-w4y.toml:1` | ✅ |
+| Isolamento entre tenants = **1 app Fly por email** (`wayne-<slug>`); `wayne-w4y` = lab/imagem W4Y apenas (motor partilhado **revogado**) → **isolamento FÍSICO** | `docs/PLANO-CLAUDE-V1.md`, `shared-motor.ts` | ✅ |
 | **Recalibração (v1):** 1 email = 1 tenant Fly — auth intra-tenant multi-user **fora de scope v1**. O limite REAL é posse de sessão dentro do mesmo tenant quando partilhado (não suportado v1) | análise 16/07 + produto 06/08 | ✅ v1 |
 
 
@@ -514,10 +514,9 @@ real (`Expand-Archive` bloqueante, sem percentagem).
 - Motor ready: CPython + `.venv` (`runtime-ready.json`). `uv sync` no PC do
   utilizador só para ZIPs source-only legados.
 
-**Desktop data home (L0):** motor partilhado em `…\work4you\wayne-agent`;
-sessões/chaves em `…\work4you\accounts\<tenantId>` (pin `active-account.json`).
-Dois emails no mesmo utilizador Windows = duas pastas — não o mesmo `state.db`.
-Não reactivar `W4Y_SHARED_MOTOR` sem E2E de duas contas.
+**Desktop (Claude v1):** cérebro na Fly dedicada; corpo = casca (pasta/git/PTY).
+Não reactivar `W4Y_SHARED_MOTOR` nem motor Python local no instalador.
+Clientes = `wayne-<slug>`; `wayne-w4y` = lab/imagem apenas.
 
 ### Distribuição do motor — contratos (15/08/2026) ✅
 

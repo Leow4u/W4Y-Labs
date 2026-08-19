@@ -16,12 +16,19 @@ interface Row {
   name: string;
   url: string;
   notes: string | null;
+  status: string | null;
   createdAt: Date;
   health: InstanceHealth;
 }
 
-export default async function InstanciasPage() {
+export default async function InstanciasPage({
+  searchParams,
+}: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const session = (await getDevSession())!; // layout (app) garante auth
+  const params = (await searchParams) ?? {};
+  const migrar = params.migrar === "dedicada" || params.migrar?.[0] === "dedicada";
   const l0 = desktopLaunchMode();
   const enterHref = postLoginDestination();
   const enterLabel = l0 ? "Baixar aplicativo →" : "Entrar no Work4You →";
@@ -42,6 +49,12 @@ export default async function InstanciasPage() {
     rows = null;
   }
 
+  const provisioning =
+    migrar ||
+    (rows ?? []).some(
+      (r) => r.status === "provisioning" || (r.notes ?? "").includes("migrado do motor partilhado"),
+    );
+
   const dateFmt = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "short",
     timeZone: "America/Sao_Paulo",
@@ -55,6 +68,17 @@ export default async function InstanciasPage() {
           Seu workspace Work4You — a instância dedicada do seu tenant, acessada
           pelo domínio único work4you.ai.
         </p>
+
+        {provisioning ? (
+          <div className="mb-6 rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900 dark:border-sky-900 dark:bg-sky-950 dark:text-sky-200">
+            A preparar a sua máquina dedicada. Isto pode demorar um minuto —
+            depois volte a{" "}
+            <a href={enterHref} className="font-medium underline underline-offset-2">
+              Abrir o Work4You
+            </a>
+            .
+          </div>
+        ) : null}
 
         {rows === null ? (
           <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-300">

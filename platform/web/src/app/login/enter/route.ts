@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { sql } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { getDevSession, DEV_TENANT_ID } from "@/lib/dev-auth";
+import { getDevSession } from "@/lib/dev-auth";
 import { mintPlatformSsoTicket } from "@/lib/platform-sso";
 import { loadTenantDashboardCreds } from "@/lib/tenant-secrets";
 import {
@@ -10,29 +10,23 @@ import {
   cookieDomain,
 } from "@/lib/site-origins";
 import { pokeTenantWake } from "@/lib/wake-tenant";
-import { sharedMotorEnabled, sharedMotorUrl, sharedFlyApp, desktopLaunchMode, postLoginDestination } from "@/lib/shared-motor";
+import {
+  isForbiddenCustomerFlyApp,
+  desktopLaunchMode,
+  postLoginDestination,
+} from "@/lib/shared-motor";
+import { ensureDedicatedFlyInstance } from "@/lib/ensure-dedicated-fly";
 
 export const dynamic = "force-dynamic";
 
-// SSO Work4You → Wayne, POR TENANT (Fase 3). Resolve a instância do tenant
-// no registry (URL + credenciais do dashboard daquela instância), autentica
-// nela e COPIA os cookies de sessão verbatim — ou, com app.work4you.ai (E1),
-// redirecciona para /auth/platform-sso no subdomínio app (cookies __Host-
-// só podem ser emitidos na origem do tenant). Grava o cookie de ROTA
-// `w4y_route` (Domain=.work4you.ai) para o router fly-replay.
-const FALLBACK_URL = (process.env.WAYNE_INTERNAL_URL ?? "https://wayne-w4y.fly.dev").replace(/\/$/, "");
+// SSO Work4You → dedicated Fly tenant (Claude v1 / F1).
+ // Cookie `w4y_route` steers app.work4you.ai via router-w4y.
+ // Shared lab app `wayne-w4y` is never a customer target.
 const ROUTE_COOKIE = "w4y_route";
 const APP_RE = /^wayne-[a-z0-9-]{2,30}$/;
 
-function ssoAppBase(): string {
-  // Motor partilhado: app.work4you.ai quando DNS/router estiverem live;
-  // até lá, hostname Fly directo (wayne-w4y.fly.dev).
-  if (sharedMotorEnabled()) return sharedMotorUrl();
-  return appOrigin();
-}
-
 function ssoAppPath(path: string): string {
-  const base = ssoAppBase().replace(/\/$/, "");
+  const base = appOrigin().replace(/\/$/, "");
   const p = path.startsWith("/") ? path : `/${path}`;
   return `${base}${p}`;
 }
@@ -55,33 +49,34 @@ async function resolveTarget(tenantId: string): Promise<Target | null> {
       fly_app: string | null;
       dashboard_username: string | null;
       dashboard_password: string | null;
-    }>(sql`SELECT url, fly_app, dashboard_username, dashboard_password FROM instances WHERE tenant_id=${tenantId} LIMIT 1`);
+      status: string | null;
+    }>(
+      sql`SELECT url, fly_app, dashboard_username, dashboard_password, status FROM instances WHERE tenant_id=${tenantId} LIMIT 1`,
+    );
     const row = r.rows[0];
-    if (row) {
-      let password = row.dashboard_password ?? undefined;
-      if (!password) {
-        const sm = await loadTenantDashboardCreds(tenantId);
-        if (sm) password = sm.password;
-      }
-      return {
-        url: row.url.replace(/\/$/, ""),
-        username: row.dashboard_username ?? undefined,
-        password,
-        flyApp: row.fly_app ?? undefined,
-      };
+    if (!row) return null;
+    if (isForbiddenCustomerFlyApp(row.fly_app)) return null;
+    if (row.status && row.status !== "ready") return null;
+    if (!row.url?.trim()) return null;
+
+    let password = row.dashboard_password ?? undefined;
+    if (!password) {
+      const sm = await loadTenantDashboardCreds(tenantId);
+      if (sm) password = sm.password;
     }
+    return {
+      url: row.url.replace(/\/$/, ""),
+      username: row.dashboard_username ?? undefined,
+      password,
+      flyApp: row.fly_app ?? undefined,
+    };
   } catch {
-    /* registry indisponível — cai no fallback abaixo */
+    return null;
   }
-  if (sharedMotorEnabled()) {
-    return { url: sharedMotorUrl(), flyApp: sharedFlyApp() };
-  }
-  if (tenantId === DEV_TENANT_ID) return { url: FALLBACK_URL, flyApp: "wayne-w4y" };
-  return null;
 }
 
 function setRouteCookie(res: NextResponse, flyApp: string): void {
-  if (!APP_RE.test(flyApp)) return;
+  if (!APP_RE.test(flyApp) || isForbiddenCustomerFlyApp(flyApp)) return;
   const domain = cookieDomain();
   res.cookies.set(ROUTE_COOKIE, flyApp, {
     httpOnly: true,
@@ -101,9 +96,17 @@ export async function GET() {
     return redirectTo(postLoginDestination());
   }
 
-  const target = await resolveTarget(session.tenantId);
+  let target = await resolveTarget(session.tenantId);
   if (!target) {
-    return redirectTo("/instancias");
+    const status = await ensureDedicatedFlyInstance({
+      tenantId: session.tenantId,
+      email: session.email,
+    });
+    if (status === "failed") {
+      return redirectTo("/instancias?erro=provision");
+    }
+    // Dedicated machine still provisioning — onboarding / instancias wait UI.
+    return redirectTo("/instancias?migrar=dedicada");
   }
 
   void db()
@@ -118,13 +121,15 @@ export async function GET() {
   }
 
   const useAppHost = appSubdomainEnabled() && cookieDomain();
-  const ticket = useAppHost ? mintPlatformSsoTicket(session.tenantId, session.email) : null;
+  const ticket = useAppHost
+    ? mintPlatformSsoTicket(session.tenantId, session.email)
+    : null;
 
   if (useAppHost && ticket) {
     const res = redirectTo(
       ssoAppPath(`/auth/platform-sso?ticket=${encodeURIComponent(ticket)}`),
     );
-    setRouteCookie(res, sharedMotorEnabled() ? sharedFlyApp() : flyApp);
+    setRouteCookie(res, flyApp);
     return res;
   }
 
@@ -132,9 +137,8 @@ export async function GET() {
     return redirectTo("/login?error=sso");
   }
 
-  // Same-origin fallback (local dev ou W4Y_APP_SUBDOMAIN=0).
   const res = redirectTo("/chat");
-  setRouteCookie(res, sharedMotorEnabled() ? sharedFlyApp() : flyApp);
+  setRouteCookie(res, flyApp);
 
   const username = (target.username ?? process.env.WAYNE_DASHBOARD_USERNAME ?? "").trim();
   const password = (target.password ?? process.env.WAYNE_DASHBOARD_PASSWORD ?? "").trim();
