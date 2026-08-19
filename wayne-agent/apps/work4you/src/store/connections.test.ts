@@ -35,8 +35,10 @@ const {
   $activeConnectionId,
   $connectionsRegistry,
   $pendingConnectionId,
+  ensureWork4YouCloudAfterAuth,
   initializeConnectionsRegistry,
   refreshConnectionsRegistry,
+  syncWork4YouCloudRegistry,
   _resetConnectionsForTests,
   selectConnection,
   setConnectionsRegistry
@@ -55,6 +57,18 @@ const registry: DesktopConnectionsRegistry = {
 
 const list = vi.fn(async () => registry)
 const setLastUsed = vi.fn(async (id: string) => ({ ok: true, registry: { ...registry, lastUsed: id } }))
+const syncPackaged = vi.fn(async () => ({
+  ok: true,
+  changed: true,
+  registry: {
+    ...registry,
+    primary: 'work4you-cloud',
+    connections: [
+      ...registry.connections,
+      { id: 'work4you-cloud', kind: 'cloud', label: 'Work4You', tokenPreview: null, tokenSet: false }
+    ]
+  }
+}))
 
 beforeEach(() => {
   localStorage.clear()
@@ -78,7 +92,11 @@ beforeEach(() => {
   wipeSessionListsForGatewaySwitch.mockClear()
   list.mockClear()
   setLastUsed.mockClear()
-  vi.stubGlobal('window', { hermesDesktop: { connections: { list, setLastUsed } }, localStorage })
+  syncPackaged.mockClear()
+  vi.stubGlobal('window', {
+    hermesDesktop: { connections: { list, setLastUsed, syncPackaged } },
+    localStorage
+  })
 })
 
 afterEach(() => vi.unstubAllGlobals())
@@ -240,5 +258,31 @@ describe('selectConnection', () => {
     expect($newChatProfile.get()).toBeNull()
     expect($pendingConnectionId.get()).toBeNull()
     expect(setLastUsed).not.toHaveBeenCalled()
+  })
+})
+
+describe('syncWork4YouCloudRegistry', () => {
+  it('upserts tenant metadata from Electron and refreshes the cache', async () => {
+    const result = await syncWork4YouCloudRegistry()
+
+    expect(syncPackaged).toHaveBeenCalledTimes(1)
+    expect(result.changed).toBe(true)
+    expect($connectionsRegistry.get()?.primary).toBe('work4you-cloud')
+  })
+
+  it('activates work4you-cloud after auth when another source is active', async () => {
+    setConnectionsRegistry({
+      ...registry,
+      primary: 'work4you-cloud',
+      connections: [
+        ...registry.connections,
+        { id: 'work4you-cloud', kind: 'cloud', label: 'Work4You', tokenPreview: null, tokenSet: false }
+      ]
+    })
+    $connection.set({ connectionId: 'local', mode: 'local' })
+
+    await ensureWork4YouCloudAfterAuth()
+
+    expect(ensureGatewayAgent).toHaveBeenCalledWith('work4you-cloud', 'default')
   })
 })

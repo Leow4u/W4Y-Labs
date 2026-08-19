@@ -79,5 +79,6 @@ test('packaged boot registers v2 connection registry IPC', () => {
   assert.match(source, /function registerConnectionsRegistryIpc\(\)/)
   assert.match(source, /hermes:connections:list/)
   assert.match(source, /hermes:connection:for/)
+  assert.match(source, /hermes:connections:sync-packaged/)
   assert.match(source, /syncPackagedConnectionsRegistry/)
 })

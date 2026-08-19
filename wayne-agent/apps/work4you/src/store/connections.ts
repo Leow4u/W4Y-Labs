@@ -2,6 +2,7 @@ import { atom, computed } from 'nanostores'
 
 import type { DesktopConnectionsRegistry } from '@/global'
 import { persistStringRecord, storedStringRecord } from '@/lib/storage'
+import { WORK4YOU_CLOUD_CONNECTION_ID } from '@/lib/connection-target'
 import { wipeSessionListsForGatewaySwitch } from '@/store/gateway-switch'
 import {
   $activeGatewayProfile,
@@ -82,6 +83,44 @@ export async function refreshConnectionsRegistry(): Promise<DesktopConnectionsRe
   setConnectionsRegistry(registry)
 
   return registry
+}
+
+/**
+ * Packaged desktop: upsert the Work4You cloud registry entry from the tenant
+ * route (post-login / gate open). Returns whether dial fields changed.
+ */
+export async function syncWork4YouCloudRegistry(): Promise<{
+  changed: boolean
+  registry: DesktopConnectionsRegistry | null
+}> {
+  const bridge = window.hermesDesktop?.connections
+
+  if (!bridge?.syncPackaged) {
+    const registry = await refreshConnectionsRegistry()
+
+    return { changed: false, registry }
+  }
+
+  const result = await bridge.syncPackaged()
+  setConnectionsRegistry(result.registry)
+
+  return { changed: result.changed, registry: result.registry }
+}
+
+/**
+ * After auth: sync tenant into the registry and activate the Work4You cloud
+ * connection so run-target / gateway routing share one source of truth.
+ */
+export async function ensureWork4YouCloudAfterAuth(): Promise<void> {
+  const { registry } = await syncWork4YouCloudRegistry()
+
+  if (!registry?.connections.some(connection => connection.id === WORK4YOU_CLOUD_CONNECTION_ID)) {
+    return
+  }
+
+  if ($activeConnectionId.get() !== WORK4YOU_CLOUD_CONNECTION_ID) {
+    await selectConnection(WORK4YOU_CLOUD_CONNECTION_ID)
+  }
 }
 
 async function rememberConnection(connectionId: string): Promise<void> {

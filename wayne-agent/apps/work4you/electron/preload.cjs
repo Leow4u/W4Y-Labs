@@ -50,6 +50,7 @@ contextBridge.exposeInMainWorld('hermesDesktop', {
     setPrimary: id => ipcRenderer.invoke('hermes:connections:set-primary', id),
     setLaunchMode: mode => ipcRenderer.invoke('hermes:connections:set-launch-mode', mode),
     setLastUsed: id => ipcRenderer.invoke('hermes:connections:set-last-used', id),
+    syncPackaged: () => ipcRenderer.invoke('hermes:connections:sync-packaged'),
     onChanged: callback => {
       const listener = (_event, payload) => callback(payload)
       ipcRenderer.on('hermes:connections:changed', listener)

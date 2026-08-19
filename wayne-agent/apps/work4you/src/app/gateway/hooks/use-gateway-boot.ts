@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react'
 import type { HermesConnection } from '@/global'
 import { HermesGateway } from '@/hermes'
 import { translateNow } from '@/i18n'
-import { isFlyBrainConnection } from '@/lib/connection-target'
+import { isFlyBrainConnection, WORK4YOU_CLOUD_CONNECTION_ID } from '@/lib/connection-target'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import { CLOUD_NOT_LOGGED_IN, mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
 import { $accountGate, whenAccountGateReady } from '@/store/account-gate'
@@ -20,6 +20,7 @@ import {
   $gateway,
   closeSecondaryGateways,
   configureGatewayRegistry,
+  disposeSecondariesForConnection,
   ensureGatewayForProfile,
   pruneSecondaryGateways,
   reconnectSecondaryGateways,
@@ -326,6 +327,22 @@ export function useGatewayBoot({
     // window regaining focus/visibility. Each nudges an immediate reconnect.
     const offPowerResume = desktop.onPowerResume?.(() => reconnectNow())
 
+    const offConnectionsChanged = desktop.connections?.onChanged?.(payload => {
+      if (!payload || typeof payload.connectionId !== 'string') {
+        return
+      }
+
+      disposeSecondariesForConnection(payload.connectionId, { redial: payload.reason === 'updated' })
+
+      if (
+        payload.reason === 'updated' &&
+        payload.connectionId === WORK4YOU_CLOUD_CONNECTION_ID &&
+        isFlyBrainConnection($connection.get())
+      ) {
+        reconnectNow()
+      }
+    })
+
     const onOnline = () => reconnectNow()
 
     const onVisible = () => {
@@ -523,6 +540,7 @@ export function useGatewayBoot({
       window.removeEventListener('online', onOnline)
       document.removeEventListener('visibilitychange', onVisible)
       offPowerResume?.()
+      offConnectionsChanged?.()
       offState()
       offEvent()
       offOfflineSuppress?.()

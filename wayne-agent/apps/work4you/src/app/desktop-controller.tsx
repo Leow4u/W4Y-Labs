@@ -12,6 +12,7 @@ import { Work4YouAccountGate } from '@/components/work4you-account-gate'
 import { Pane, PaneMain } from '@/components/pane-shell'
 import { RemoteDisplayBanner } from '@/components/remote-display-banner'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { bindDesktopCwdSync } from '@/lib/bind-desktop-cwd-sync'
 import { isFocusWithin } from '@/lib/keybinds/combo'
 import { useSkinCommand } from '@/themes/use-skin-command'
 
@@ -49,7 +50,7 @@ import { $activeGatewayProfile, $freshSessionRequest, $profileScope, refreshActi
 import { $startWorkSessionRequest, followActiveSessionCwd, resolveNewSessionCwd } from '../store/projects'
 import { applyCloudFirstRunTargetDefault } from '../store/run-target'
 import { refreshAccountGate, w4yAccountGateEnabled } from '../store/account-gate'
-import { initializeConnectionsRegistry } from '../store/connections'
+import { initializeConnectionsRegistry, refreshConnectionsRegistry } from '../store/connections'
 import { $reviewOpen, REVIEW_PANE_ID } from '../store/review'
 import {
   $activeSessionId,
@@ -902,6 +903,16 @@ export function DesktopController() {
       void refreshAccountGate()
     }
     void initializeConnectionsRegistry().catch(() => undefined)
+  }, [])
+
+  useEffect(() => bindDesktopCwdSync(), [])
+
+  useEffect(() => {
+    const off = window.hermesDesktop?.connections?.onChanged?.(() => {
+      void refreshConnectionsRegistry().catch(() => undefined)
+    })
+
+    return () => off?.()
   }, [])
 
   // Same-home soft login: motor respawned, casca stayed. Re-ask the tenant who

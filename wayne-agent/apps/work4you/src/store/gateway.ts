@@ -460,6 +460,73 @@ export function touchSecondaryGateways(): void {
   }
 }
 
+function disposeSecondary(entry: Secondary): void {
+  entry.wantOpen = false
+  clearTimer(entry)
+  entry.offEvent()
+  entry.offState()
+  entry.gateway.close()
+}
+
+async function openGatewayForAgent(connectionId: null | string, profile: string): Promise<void> {
+  const key = normKey(profile)
+  const scope = registryBackendScopeKey(connectionId, key)
+
+  if (scope === key) {
+    await ensureGatewayForProfile(profile)
+
+    return
+  }
+
+  let entry = secondaries.get(scope)
+
+  if (!entry) {
+    entry = createSecondary(key, connectionId)
+  }
+
+  entry.wantOpen = true
+
+  if (!isOpen(entry.gateway)) {
+    clearTimer(entry)
+    entry.reconnectAttempt = 0
+    await openSecondary(entry)
+  }
+}
+
+/** Registry lifecycle: tear down (and optionally re-dial) secondaries for one connection. */
+export function disposeSecondariesForConnection(connectionId: string, opts: { redial?: boolean } = {}): void {
+  const id = String(connectionId || '').trim()
+  let activeInvalidated = false
+
+  if (!id) {
+    return
+  }
+
+  for (const [key, entry] of [...secondaries]) {
+    if (entry.connectionId !== id) {
+      continue
+    }
+
+    const wasActive = key === activeKey
+    activeInvalidated ||= wasActive
+
+    disposeSecondary(entry)
+    secondaries.delete(key)
+
+    if (opts.redial) {
+      const reopen = wasActive
+        ? ensureGatewayForAgent(entry.connectionId, entry.profile)
+        : openGatewayForAgent(entry.connectionId, entry.profile)
+
+      void reopen.catch(() => undefined)
+    }
+  }
+
+  if (activeInvalidated && !opts.redial) {
+    setActive(primaryProfile)
+  }
+}
+
 // Close + evict secondaries whose profile is neither active nor in `keep`
 // (profiles with a running / needs-input session). Bounds cost to live work.
 export function pruneSecondaryGateways(keep: Set<string>): void {
@@ -470,20 +537,14 @@ export function pruneSecondaryGateways(keep: Set<string>): void {
 
     entry.wantOpen = false
     clearTimer(entry)
-    entry.offEvent()
-    entry.offState()
-    entry.gateway.close()
+    disposeSecondary(entry)
     secondaries.delete(key)
   }
 }
 
 export function closeSecondaryGateways(): void {
   for (const entry of secondaries.values()) {
-    entry.wantOpen = false
-    clearTimer(entry)
-    entry.offEvent()
-    entry.offState()
-    entry.gateway.close()
+    disposeSecondary(entry)
   }
 
   secondaries.clear()

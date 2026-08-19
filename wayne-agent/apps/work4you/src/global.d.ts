@@ -113,6 +113,11 @@ declare global {
           mode: 'last-used' | 'primary'
         ) => Promise<{ ok: boolean; registry: DesktopConnectionsRegistry }>
         setLastUsed?: (id: string) => Promise<{ ok: boolean; registry: DesktopConnectionsRegistry }>
+        syncPackaged?: () => Promise<{
+          ok: boolean
+          changed: boolean
+          registry: DesktopConnectionsRegistry
+        }>
         test: (id: string) => Promise<DesktopConnectionTestResult>
         updateAll?: () => Promise<{ ok: boolean; results: DesktopConnectionUpdateResult[] }>
         onChanged?: (callback: (payload: { connectionId: string; reason: 'removed' | 'updated' }) => void) => () => void

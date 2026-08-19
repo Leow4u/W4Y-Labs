@@ -5041,11 +5041,13 @@ function getRegistryBackendApi() {
   return registryBackendApi
 }
 
-async function syncPackagedConnectionsRegistry() {
+async function syncPackagedConnectionsRegistry(opts = {}) {
   if (!localEngineDisabled()) {
-    return
+    return { changed: false, registry: getConnectionsRegistryStore().sanitize() }
   }
 
+  const store = getConnectionsRegistryStore()
+  const before = store.find(WORK4YOU_CLOUD_CONNECTION_ID)
   let tenantSlug = ''
 
   try {
@@ -5054,10 +5056,20 @@ async function syncPackagedConnectionsRegistry() {
     tenantSlug = ''
   }
 
-  getConnectionsRegistryStore().syncPackagedCloud({
+  store.syncPackagedCloud({
     label: 'Work4You',
     tenantSlug
   })
+
+  const after = store.find(WORK4YOU_CLOUD_CONNECTION_ID)
+  const changed = Boolean(before && after && store.dialFieldsChanged(before, after))
+
+  if (changed && opts.broadcast !== false) {
+    await getRegistryBackendApi().stopRegistryConnectionBackends(WORK4YOU_CLOUD_CONNECTION_ID)
+    broadcastConnectionsChanged({ connectionId: WORK4YOU_CLOUD_CONNECTION_ID, reason: 'updated' })
+  }
+
+  return { changed, registry: store.sanitize() }
 }
 
 function broadcastConnectionsChanged(payload) {
@@ -5081,8 +5093,14 @@ function registerConnectionsRegistryIpc() {
   ipcMain.removeHandler?.('hermes:connections:set-launch-mode')
   ipcMain.removeHandler?.('hermes:connections:set-last-used')
   ipcMain.removeHandler?.('hermes:connection:for')
+  ipcMain.removeHandler?.('hermes:connections:sync-packaged')
 
   ipcMain.handle('hermes:connections:list', async () => store.sanitize())
+  ipcMain.handle('hermes:connections:sync-packaged', async () => {
+    const result = await syncPackagedConnectionsRegistry()
+
+    return { ok: true, ...result }
+  })
   ipcMain.handle('hermes:connections:save', async (_event, payload) => {
     const before = payload?.id ? store.find(payload.id) : null
     const saved = store.saveConnection(payload || {})
