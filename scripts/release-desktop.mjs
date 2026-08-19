@@ -51,6 +51,13 @@ if (!/^\d+\.\d+\.\d+$/.test(next)) {
   throw new Error(`Invalid semver: ${next}`)
 }
 
+if (dryRun) {
+  console.log(`[dry-run] Would release ${current} → ${next}`)
+  console.log(`[dry-run] Tag: desktop/v${next}`)
+  console.log('https://github.com/Leow4u/W4Y-Labs/actions/workflows/release-desktop.yml')
+  process.exit(0)
+}
+
 pkg.version = next
 writeJson(pkgPath, pkg)
 
