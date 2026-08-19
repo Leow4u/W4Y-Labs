@@ -4,9 +4,8 @@ app = "router-w4y"
 primary_region = "gru"
 
 [build]
-  dockerfile = "Dockerfile"
-  # Published tag after `fly deploy --image-label r3` (or machine update).
-  # image = "registry.fly.io/router-w4y:r3"
+  # Live image after API-401 fix (shared-motor kill follow-up).
+  image = "registry.fly.io/router-w4y:deployment-01M0BQRV03TFPQ69W2JD49M5GR"
 
 [env]
   # No DEFAULT_APP — missing/invalid w4y_route redirects to work4you.ai/login.
