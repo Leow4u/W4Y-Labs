@@ -211,13 +211,11 @@ jobs:
       - name: Skip without Fly token
         if: ${{ env.FLY_API_TOKEN == '' }}
         run: |
-          echo "::warning::FLY_API_TOKEN not set — skipping Fly tenant overlay. Add the secret to automate brain publish."
-          exit 0
+          echo "::error::FLY_API_TOKEN secret missing — web/Fly brain will stay stale while desktop updates. Add FLY_API_TOKEN in repo secrets, then re-run."
+          exit 1
 
       - name: Setup flyctl
-        if: ${{ env.FLY_API_TOKEN != '' }}
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Publish tenant UI overlay
-        if: ${{ env.FLY_API_TOKEN != '' }}
         run: bash platform/infra/publish-fly-tenant-ci.sh
