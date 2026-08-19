@@ -4,10 +4,13 @@ app = "router-w4y"
 primary_region = "gru"
 
 [build]
-  image = "registry.fly.io/router-w4y:r1"
+  # Live image after API-401 fix (shared-motor kill follow-up).
+  image = "registry.fly.io/router-w4y:deployment-01M0BQRV03TFPQ69W2JD49M5GR"
 
 [env]
-  DEFAULT_APP = "wayne-w4y"
+  # No DEFAULT_APP — missing/invalid w4y_route redirects to work4you.ai/login.
+  # wayne-w4y is lab-only and must never be the customer fallback (Claude v1).
+  PLATFORM_LOGIN_URL = "https://work4you.ai/login"
 
 [http_service]
   internal_port = 8080

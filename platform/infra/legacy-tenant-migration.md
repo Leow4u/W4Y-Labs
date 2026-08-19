@@ -1,46 +1,41 @@
-# Migração legacy `dev-tenant` / `wayne-w4y`
+# Migração legacy → Fly dedicada `wayne-<slug>`
 
-Utilizadores mapeados a `dev-tenant` partilham a instância Fly `wayne-w4y`. O modelo alvo é **1 app Fly por tenant** (`wayne-{slug}`).
+Claude v1: **1 email = 1 app Fly**. O motor partilhado (`wayne-w4y` +
+`W4Y_SHARED_MOTOR`) está **revogado**. Clientes nunca voltam a esse caminho.
 
-## Quando usar
+## Caminho automático (preferido)
 
-- Utilizador reporta sessões/dados misturados com outros early adopters
-- Novo signup já vai para tenant próprio (`t-{slug}`); só contas antigas precisam disto
+No login, `/login/enter` chama `ensureDedicatedFlyInstance`:
 
-## Pré-requisitos
+- Se `instances.fly_app` está vazio ou é `wayne-w4y` → actualiza para
+  `wayne-<slug>`, status `provisioning`, e dispara o provisionador.
+- O utilizador vê `/instancias?migrar=dedicada` até a máquina ficar `ready`.
+- Retry manual: `POST /onboarding/retry` (mesmo helper).
 
-- `DATABASE_URL` apontando ao registry Cloud SQL
-- `psql` no PATH (ou Cloud SQL Auth Proxy)
-- Provisionador e casca web em produção
+Não é preciso script SQL para contas que ainda façam login.
 
-## Passos
+## Script SQL (só contas órfãs / `dev-tenant`)
 
-1. **Dry-run** — lista e-mails a migrar:
+Utilizadores ainda mapeados a `dev-tenant` (pré-F1) podem precisar do script
+histórico:
 
-   ```powershell
-   cd platform/infra
-   $env:DATABASE_URL = (gcloud secrets versions access latest --secret=w4y-web-database-url)
-   .\migrate-legacy-wayne-w4y.ps1
-   ```
+```powershell
+cd platform/infra
+$env:DATABASE_URL = (gcloud secrets versions access latest --secret=w4y-web-database-url)
+.\migrate-legacy-wayne-w4y.ps1          # dry-run
+.\migrate-legacy-wayne-w4y.ps1 -Apply
+```
 
-2. **Apply** — actualiza `users.tenant_id` e cria linhas `instances` + `billing`:
+Depois o login/enter trata o provisionamento.
 
-   ```powershell
-   .\migrate-legacy-wayne-w4y.ps1 -Apply
-   ```
+## Lab `wayne-w4y`
 
-3. **Provisionar** — para cada tenant novo em `provisioning`:
-   - Opção A: utilizador faz logout/login (FREE_OPEN dispara auto-provision só para contas sem tenant — aqui já têm tenant, usar retry)
-   - Opção B: POST manual ao provisionador com HMAC (ver `platform/provisioner/server.js`)
-   - Opção C: utilizador abre `/onboarding` e clica **Tentar de novo** (rota `/onboarding/retry`)
-
-4. **Validar** — `/login/enter` → cookie `w4y_route=wayne-{slug}`; chat no tenant isolado
+Fica só como fábrica de imagem / lab W4Y. **Não** roteia clientes
+(`router-w4y` recusa `w4y_route=wayne-w4y`). Não reactivar
+`W4Y_SHARED_MOTOR=1` nem `configure-shared-motor-fly.ps1`.
 
 ## O que NÃO fazer
 
-- Não destruir `wayne-w4y` até todos migrarem (dados no volume)
-- Não reutilizar tag de imagem no deploy do provisioner (ver BACKEND-MAP.md)
-
-## Rollback
-
-Reverter `users.tenant_id` para `dev-tenant` manualmente no SQL; instância nova pode ficar `archived` via recycle.
+- Não apontar Free/QA de cliente para `wayne-w4y`
+- Não destruir o volume do lab até arquivos W4Y internos estarem seguros
+- Não reutilizar tags de imagem no provisioner sem bump (ver BACKEND-MAP.md)

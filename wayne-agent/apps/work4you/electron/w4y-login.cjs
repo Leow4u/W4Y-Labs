@@ -7,7 +7,7 @@ const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 const { app, BrowserWindow, net, session, shell } = require("electron");
-const { appOrigin, cloudApiRequest, platformOrigin } = require("./w4y-cloud.cjs");
+const { appOrigin, cloudApiRequest, platformOrigin, setCloudSessionHealer } = require("./w4y-cloud.cjs");
 const { bootstrapLocalConnectors } = require("./w4y-composio.cjs");
 const {
   resolveWayneHome,
@@ -644,6 +644,41 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
   };
 }
 
+/** True only when the tenant answered with a real identity payload. */
+function tenantIdentityOk(who) {
+  if (!who || !who.ok || !who.json || typeof who.json !== "object") return false;
+  const email = String(who.json.email || "").trim();
+  const userId = String(who.json.user_id || who.json.userId || "").trim();
+  return Boolean(email || userId);
+}
+
+/**
+ * Drop a lab/shared `w4y_route` so `/login/enter` can mint the dedicated app.
+ * After shared-motor revocation the Electron jar often still had wayne-w4y;
+ * following a 302 to the login HTML then looked like "ok" to heal.
+ */
+async function clearForbiddenRouteCookies() {
+  const sess = session.defaultSession;
+  try {
+    const cookies = await sess.cookies.get({ name: "w4y_route" });
+    await Promise.all(
+      cookies
+        .filter((c) => {
+          const v = decodeURIComponent(String(c.value || "").trim());
+          return !v || v === "wayne-w4y";
+        })
+        .map((c) => {
+          const host = (c.domain || "work4you.ai").replace(/^\./, "");
+          const scheme = c.secure === false ? "http" : "https";
+          const cookieUrl = `${scheme}://${host}${c.path || "/"}`;
+          return sess.cookies.remove(cookieUrl, c.name).catch(() => undefined);
+        }),
+    );
+  } catch {
+    /* best effort */
+  }
+}
+
 /**
  * Re-run the handoff when the tenant no longer knows us.
  *
@@ -655,8 +690,11 @@ async function ensurePlatformCredentials({ onAccountSwitched } = {}) {
  */
 async function healTenantSession() {
   const who = await cloudApiRequest({ method: "GET", path: "/api/auth/me" }, 12_000);
-  if (who.ok) return { ok: true, healed: false };
+  // Require identity JSON — a followed redirect to the login HTML is status 200
+  // with no body, and must not short-circuit the handoff (shared-motor migrate).
+  if (tenantIdentityOk(who)) return { ok: true, healed: false };
 
+  await clearForbiddenRouteCookies();
   const restored = await bootstrapAppSession();
   if (!restored.ok) return { ok: false, healed: false };
 
@@ -815,6 +853,12 @@ function registerLoginIpc(ipcMain, { getMainWindow, onAccountSwitched, onLoggedO
     const parent =
       typeof getMainWindow === "function" ? getMainWindow() : undefined;
     return runLoginFlow({ parentWindow: parent, onAccountSwitched });
+  });
+
+  // Let cloud WS mint re-SSO when the lab route cookie is stale (no require cycle).
+  setCloudSessionHealer(async () => {
+    await clearForbiddenRouteCookies();
+    return bootstrapAppSession(30_000);
   });
 
   // Boot heal: if an account is already pinned, seed Relay/OpenRouter defaults

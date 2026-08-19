@@ -43,7 +43,7 @@ UPDATE APP  latest.yml           Só a casca
 UPDATE AGENTE  imagem Fly        Não é chip no PC
 ```
 
-- **1 email = 1 app Fly.** Signup cria `wayne-<slug>`. `wayne-w4y` é interno W4Y, não runtime de cliente.
+- **1 email = 1 app Fly.** Signup cria `wayne-<slug>`. `wayne-w4y` é lab/imagem interna W4Y — **nunca** runtime de cliente. Motor partilhado (`W4Y_SHARED_MOTOR`) está **revogado**.
 - Pasta do utilizador = disco **Windows/macOS** via casca. O agente na Fly **manda** nessas mãos. Sem isto o produto é um site.
 - Disco `/opt/data` na Fly = cron, canais, projectos na nuvem — **não** substitui “abrir pasta”.
 - Wake: a app **já é a app**; nome/plano/sessões enchem em silêncio. Sem copy de infra.
@@ -74,7 +74,7 @@ UPDATE AGENTE  imagem Fly        Não é chip no PC
 | **F7** | QA humano | Instalar **limpo** do site → login → abrir pasta → editar ficheiro; o mesmo email no browser |
 
 **Não** avançar F3 sem F1 (app sem tenant = ecrã vazio).  
-**Não** avançar F2 sem F1 (web no motor partilhado = o “estranho” de novo).  
+**Não** avançar F2 sem F1 (web numa Fly partilhada = o “estranho” de novo — caminho **apagado**).  
 F4 pode acompanhar a casca quando F3 mexer no boot.
 
 ---

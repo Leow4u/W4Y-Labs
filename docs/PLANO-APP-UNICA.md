@@ -116,9 +116,10 @@ O texto abaixo fica só como histórico do que **não** se volta a fazer.
 - [ ] Smoke: plano pago Stripe → `/instancias` (sem botão browser em L0)
 - [ ] Suporte: `contato@work4you.ai` + playbook “só app desktop nesta fase”
 
-### Saída de L0 (Fase 2)
+### Saída de L0 (Fase 2) — caduco
 
-Reactivar browser: `W4Y_LAUNCH_MODE=` vazio, `W4Y_SHARED_MOTOR=1`, validar isolamento fly249+ com duas contas **antes** de anunciar `app.work4you.ai`.
+Claude v1 revogou L0 e o motor partilhado. Browser + app usam Fly **dedicada**
+`wayne-<slug>` (`W4Y_SHARED_MOTOR` nunca volta a ser caminho de cliente).
 
 </details>
 

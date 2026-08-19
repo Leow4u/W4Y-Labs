@@ -21,8 +21,9 @@ $imageRepo   = "$script:AR_HOST/$script:PROJECT_ID/$script:REPO/w4y-web"
 $image       = "${imageRepo}:$Tag"
 $sqlConn     = "$script:PROJECT_ID`:southamerica-east1:w4y-registry"
 
-# Claude v1: L0 revogado. Signup sempre provisiona Fly dedicada; motor partilhado
-# wayne-w4y NÃO é caminho de cliente. -LaunchDesktop fica só como aviso legado.
+# Claude v1: L0 revogado. Signup sempre provisiona Fly dedicada.
+# Motor partilhado wayne-w4y NÃO é caminho de cliente (revogado).
+# -LaunchDesktop fica só como aviso legado.
 $launchMode = ''
 $sharedMotor = '0'
 $appSubdomain = '1'
@@ -103,12 +104,13 @@ $deployArgs = @(
         "W4Y_LAUNCH_MODE=$launchMode",
         "NEXT_PUBLIC_W4Y_LAUNCH_MODE=$launchMode",
         "W4Y_SHARED_MOTOR=$sharedMotor",
+        # Lab app name only — never used as customer SSO target (sharedMotorEnabled=false).
         'W4Y_SHARED_FLY_APP=wayne-w4y',
         'NEXT_PUBLIC_PLATFORM_ORIGIN=https://work4you.ai',
         'NEXT_PUBLIC_APP_ORIGIN=https://app.work4you.ai',
         "W4Y_APP_SUBDOMAIN=$appSubdomain",
         'W4Y_COOKIE_DOMAIN=.work4you.ai',
-        'TENANT_WAYNE_IMAGE=registry.fly.io/wayne-w4y:fly256',
+        'TENANT_WAYNE_IMAGE=registry.fly.io/wayne-w4y:fly258',
         'STRIPE_PRICE_STARTER=price_1TqadkCn608ngT3WOPRy6FXx',
         'STRIPE_PRICE_STARTER_YEAR=price_1TqadkCn608ngT3WfLm7zvbk',
         'STRIPE_PRICE_PRO=price_1TqadlCn608ngT3WHgbjXtP8',
