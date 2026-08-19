@@ -8100,6 +8100,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('w4y:update:policy', () => w4yDeltas.getUpdatePolicy())
   w4yCloud.registerCloudIpc(ipcMain)
   if (localEngineDisabled()) {
+    w4yCloud.installCloudBodyCookieBridge()
     try {
       await w4yLogin.migrateSharedMotorDesktopSession()
     } catch (err) {
