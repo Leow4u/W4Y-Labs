@@ -51,8 +51,10 @@ test('renderer WebSockets to app.work4you.ai carry w4y_route from the jar', () =
     .replace(/\r\n/g, '\n')
   const main = readMain()
   assert.match(cloud, /installCloudBodyCookieBridge/)
-  assert.match(cloud, /w4y_route/)
+  assert.match(cloud, /cachedAppCookieHeader/)
   assert.match(cloud, /onBeforeSendHeaders/)
+  assert.match(cloud, /buildCloudGatewayWsUrl/)
+  assert.match(cloud, /\.fly\.dev\/api\/ws/)
   assert.match(main, /installCloudBodyCookieBridge\(\)/)
 })
 

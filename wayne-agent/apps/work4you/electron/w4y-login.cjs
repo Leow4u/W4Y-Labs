@@ -329,6 +329,12 @@ async function migrateSharedMotorDesktopSession() {
 async function flushSessionCookies() {
   try {
     await session.defaultSession.cookies.flushStore();
+    try {
+      const { refreshCloudBodyCookieCache } = require("./w4y-cloud.cjs");
+      await refreshCloudBodyCookieCache();
+    } catch {
+      /* ignore */
+    }
     return true;
   } catch {
     return false;
@@ -757,26 +763,21 @@ function tenantIdentityOk(who) {
 }
 
 /**
- * Drop a lab/shared `w4y_route` so `/login/enter` can mint the dedicated app.
- * After shared-motor revocation the Electron jar often still had wayne-w4y;
- * following a 302 to the login HTML then looked like "ok" to heal.
+ * Drop stale `w4y_route` cookies before re-SSO. `/login/enter` always sets a
+ * fresh route; keeping an old one (lab wayne-w4y or wrong dedicated tenant)
+ * makes ws-ticket mint look fine while WebSocket routing fails.
  */
 async function clearForbiddenRouteCookies() {
   const sess = session.defaultSession;
   try {
     const cookies = await sess.cookies.get({ name: "w4y_route" });
     await Promise.all(
-      cookies
-        .filter((c) => {
-          const v = decodeURIComponent(String(c.value || "").trim());
-          return !v || v === "wayne-w4y";
-        })
-        .map((c) => {
-          const host = (c.domain || "work4you.ai").replace(/^\./, "");
-          const scheme = c.secure === false ? "http" : "https";
-          const cookieUrl = `${scheme}://${host}${c.path || "/"}`;
-          return sess.cookies.remove(cookieUrl, c.name).catch(() => undefined);
-        }),
+      cookies.map((c) => {
+        const host = (c.domain || "work4you.ai").replace(/^\./, "");
+        const scheme = c.secure === false ? "http" : "https";
+        const cookieUrl = `${scheme}://${host}${c.path || "/"}`;
+        return sess.cookies.remove(cookieUrl, c.name).catch(() => undefined);
+      }),
     );
   } catch {
     /* best effort */

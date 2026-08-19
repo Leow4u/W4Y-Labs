@@ -84,6 +84,12 @@ async function markGateOpen(): Promise<void> {
   const { ensurePlatformOnboardingComplete } = await import('./onboarding')
   ensurePlatformOnboardingComplete()
   $accountGate.set({ phase: 'idle', error: null })
+  try {
+    const { ensureCloudBrainActive } = await import('./gateway')
+    await ensureCloudBrainActive()
+  } catch {
+    /* gateway boot / gate listener retries connect */
+  }
 }
 
 function healCredentialsInBackground(): void {

@@ -6,7 +6,7 @@ import { HermesGateway } from '@/hermes'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import { CLOUD_NOT_LOGGED_IN, mintCloudWsUrl } from '@/lib/w4y-cloud-projects'
-import { whenAccountGateReady } from '@/store/account-gate'
+import { $accountGate, whenAccountGateReady } from '@/store/account-gate'
 import {
   $desktopBoot,
   applyDesktopBootProgress,
@@ -22,6 +22,7 @@ import {
   ensureGatewayForProfile,
   pruneSecondaryGateways,
   reconnectSecondaryGateways,
+  registerPrimaryCloudBodyReconnect,
   reportPrimaryGatewayState,
   setPrimaryGateway,
   touchSecondaryGateways,
@@ -246,6 +247,49 @@ export function useGatewayBoot({
     // Secondary (background-profile) sockets funnel into the same handler.
     configureGatewayRegistry({ onEvent: event => callbacksRef.current.handleGatewayEvent(event) })
 
+    const connectCloudPrimary = async () => {
+      const conn = $connection.get()
+      if (conn?.mode !== 'cloud-body') {
+        return
+      }
+      if (!(await whenAccountGateReady())) {
+        return
+      }
+      const wsUrl = await mintCloudWsUrl()
+      await gateway.connect(wsUrl)
+      const profileKey = ($activeGatewayProfile.get() || 'default').trim() || 'default'
+      setPrimaryGateway(gateway, profileKey, { cloudBody: true })
+      await callbacksRef.current.refreshHermesConfig().catch(() => undefined)
+      await callbacksRef.current.refreshSessions().catch(() => undefined)
+      completeDesktopBoot()
+      bootCompleted = true
+      escalated = false
+      reconnectAttempt = 0
+    }
+
+    registerPrimaryCloudBodyReconnect(async () => {
+      await connectCloudPrimary()
+    })
+
+    const offGate = $accountGate.subscribe(gate => {
+      if (cancelled || gate.phase !== 'idle') {
+        return
+      }
+      if ($connection.get()?.mode !== 'cloud-body' || gatewayOpen()) {
+        return
+      }
+      void connectCloudPrimary().catch(err => {
+        if (cancelled || gatewayOpen()) {
+          return
+        }
+        const message = err instanceof Error ? err.message : String(err)
+        if (err instanceof Error && err.message === CLOUD_NOT_LOGGED_IN) {
+          return
+        }
+        failDesktopBoot(message)
+      })
+    })
+
     const offState = gateway.onState(st => {
       // Mirror to the composer only while the primary is the active profile —
       // a background secondary reconnect mustn't flip the foreground state.
@@ -376,6 +420,9 @@ export function useGatewayBoot({
           progress: 95
         })
         publish(conn)
+        if (conn.mode === 'cloud-body') {
+          setPrimaryGateway(gateway, normalizeProfileKey($activeGatewayProfile.get()), { cloudBody: true })
+        }
         if (conn.mode === 'cloud-body' && !(await whenAccountGateReady())) {
           completeDesktopBoot()
           bootCompleted = true
@@ -462,6 +509,8 @@ export function useGatewayBoot({
 
     return () => {
       cancelled = true
+      registerPrimaryCloudBodyReconnect(null)
+      offGate()
       clearReconnectTimer()
       clearInterval(keepaliveTimer)
       offWorking()

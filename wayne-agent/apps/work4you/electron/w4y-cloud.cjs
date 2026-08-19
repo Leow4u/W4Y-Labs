@@ -7,6 +7,8 @@
 const { net, session } = require("electron");
 
 const CLOUD_API_METHODS = new Set(["GET", "POST", "PATCH", "PUT", "DELETE"]);
+const FORBIDDEN_FLY_APPS = new Set(["wayne-w4y"]);
+const FLY_APP_RE = /^wayne-[a-z0-9-]{2,30}$/;
 
 function platformOrigin() {
   return (process.env.W4Y_PLATFORM_ORIGIN || "https://work4you.ai").replace(/\/$/, "");
@@ -126,8 +128,34 @@ function setCloudSessionHealer(fn) {
   cloudSessionHealer = typeof fn === "function" ? fn : null;
 }
 
+async function readW4yRouteFlyApp() {
+  try {
+    const cookies = await session.defaultSession.cookies.get({ name: "w4y_route" });
+    for (const c of cookies) {
+      const v = decodeURIComponent(String(c.value || "").trim());
+      if (FLY_APP_RE.test(v) && !FORBIDDEN_FLY_APPS.has(v)) return v;
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+/**
+ * Desktop packaged shell: connect straight to the tenant Fly when we know the
+ * app name. The router at app.work4you.ai needs w4y_route on the WebSocket
+ * wire — Chromium will not attach it from file:// even with a cookie bridge.
+ */
+function buildCloudGatewayWsUrl(ticket, flyApp) {
+  if (flyApp) {
+    return `wss://${flyApp}.fly.dev/api/ws?ticket=${encodeURIComponent(ticket)}`;
+  }
+  const origin = new URL(appOrigin());
+  const scheme = origin.protocol === "https:" ? "wss" : "ws";
+  return `${scheme}://${origin.host}/api/ws?ticket=${encodeURIComponent(ticket)}`;
+}
+
 async function mintCloudWsUrl() {
-  const APP_ORIGIN = appOrigin();
   let minted = await mintCloudWsTicketOnce();
   // Stale lab route cookie (wayne-w4y) → 401 from router; re-SSO once.
   if (!minted.ok && minted.error === "not-logged-in" && cloudSessionHealer) {
@@ -141,11 +169,11 @@ async function mintCloudWsUrl() {
     }
   }
   if (!minted.ok) return minted;
-  const origin = new URL(APP_ORIGIN);
-  const scheme = origin.protocol === "https:" ? "wss" : "ws";
+  const flyApp = await readW4yRouteFlyApp();
   return {
     ok: true,
-    url: `${scheme}://${origin.host}/api/ws?ticket=${encodeURIComponent(minted.ticket)}`,
+    url: buildCloudGatewayWsUrl(minted.ticket, flyApp),
+    flyApp: flyApp || null,
   };
 }
 
@@ -159,13 +187,30 @@ function registerCloudIpc(ipcMain) {
 }
 
 let cloudBodyCookieBridgeInstalled = false;
+/** Sync header value — onBeforeSendHeaders must not await (WS handshake race). */
+let cachedAppCookieHeader = "";
+
+async function refreshCloudBodyCookieCache() {
+  const seen = new Map();
+  const urls = [appOrigin(), platformOrigin()];
+  for (const base of urls) {
+    try {
+      const cookies = await session.defaultSession.cookies.get({ url: base });
+      for (const c of cookies) {
+        if (!seen.has(c.name)) seen.set(c.name, c.value);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+  cachedAppCookieHeader = [...seen.entries()]
+    .map(([name, value]) => `${name}=${value}`)
+    .join("; ");
+}
 
 /**
- * Packaged desktop loads the renderer from file://. Chromium will not attach
- * SameSite=Lax HttpOnly cookies (notably w4y_route) to cross-site WebSockets
- * opened by the renderer — while net.request in this process does. REST via IPC
- * therefore works and ws-ticket mints, but /api/ws hits router-w4y without a
- * route cookie and dies with "Could not connect to Work4You gateway".
+ * Belt-and-suspenders for renderer fetch/XHR to app.work4you.ai. Primary WS
+ * path bypasses the router via direct *.fly.dev (see buildCloudGatewayWsUrl).
  */
 function installCloudBodyCookieBridge() {
   if (cloudBodyCookieBridgeInstalled) return;
@@ -178,24 +223,23 @@ function installCloudBodyCookieBridge() {
     return;
   }
 
+  void refreshCloudBodyCookieCache();
+  try {
+    session.defaultSession.cookies.on("changed", () => {
+      void refreshCloudBodyCookieCache();
+    });
+  } catch {
+    /* ignore */
+  }
+
   session.defaultSession.webRequest.onBeforeSendHeaders(
     { urls: [`*://${filterHost}/*`] },
     (details, callback) => {
-      void (async () => {
-        const headers = { ...details.requestHeaders };
-        try {
-          const reqUrl = details.url
-            .replace(/^wss:\/\//i, "https://")
-            .replace(/^ws:\/\//i, "http://");
-          const cookies = await session.defaultSession.cookies.get({ url: reqUrl });
-          if (cookies.length) {
-            headers.Cookie = cookies.map((c) => `${c.name}=${c.value}`).join("; ");
-          }
-        } catch {
-          /* best effort */
-        }
-        callback({ requestHeaders: headers });
-      })();
+      const headers = { ...details.requestHeaders };
+      if (cachedAppCookieHeader) {
+        headers.Cookie = cachedAppCookieHeader;
+      }
+      callback({ requestHeaders: headers });
     },
   );
 }
@@ -206,6 +250,9 @@ module.exports = {
   platformOrigin,
   appOrigin,
   installCloudBodyCookieBridge,
+  refreshCloudBodyCookieCache,
   registerCloudIpc,
   setCloudSessionHealer,
+  buildCloudGatewayWsUrl,
+  readW4yRouteFlyApp,
 };
