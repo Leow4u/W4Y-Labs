@@ -7,6 +7,17 @@ import { FREE_ALLOWANCE_USD } from "@/lib/billing";
 import { isForbiddenCustomerFlyApp } from "@/lib/shared-motor";
 
 /**
+ * Prefer the slug already baked into `t-<slug>`; only mint a new one for
+ * brand-new tenants. Randomizing on migrate would orphan the registry row.
+ */
+function slugFromTenant(tenantId: string, email: string): string {
+  if (tenantId.startsWith("t-") && tenantId.length > 2) {
+    return tenantId.slice(2);
+  }
+  return slugFor(email);
+}
+
+/**
  * Ensure the registry row points at a dedicated `wayne-<slug>` and kick
  * provisioner. Used when a legacy/shared `wayne-w4y` (or empty) fly_app is
  * found at login — customers must not stay on the lab shared motor.
@@ -16,7 +27,7 @@ export async function ensureDedicatedFlyInstance(opts: {
   email: string;
 }): Promise<"ready" | "provisioning" | "failed"> {
   const database = db();
-  const slug = slugFor(opts.email);
+  const slug = slugFromTenant(opts.tenantId, opts.email);
   const flyApp = `wayne-${slug}`;
   const tenantId = opts.tenantId.startsWith("t-")
     ? opts.tenantId
@@ -39,7 +50,12 @@ export async function ensureDedicatedFlyInstance(opts: {
     return "ready";
   }
 
-  if (row && row.status === "provisioning" && !isForbiddenCustomerFlyApp(row.fly_app)) {
+  if (
+    row &&
+    row.status === "provisioning" &&
+    row.fly_app &&
+    !isForbiddenCustomerFlyApp(row.fly_app)
+  ) {
     return "provisioning";
   }
 

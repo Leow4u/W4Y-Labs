@@ -54,6 +54,9 @@ describe("signup provisions a dedicated Fly app", () => {
     expect(source).toMatch(/isForbiddenCustomerFlyApp/);
     expect(source).toMatch(/requestProvision/);
     expect(source).toMatch(/migrado do motor partilhado/);
+    expect(source).toMatch(/slugFromTenant|tenantId\.slice\(2\)|replace\(\/\^t-\//);
+    // Must not mint a fresh random slug when tenant_id already encodes it.
+    expect(source).not.toMatch(/const slug = slugFor\(opts\.email\)/);
   });
 
   it("router refuses defaulting customers onto wayne-w4y", () => {
