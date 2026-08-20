@@ -1,9 +1,20 @@
-# Tenant UI + F3 PC-folder bridge — ONE COPY layer.
-# fly251 is at the overlayfs ceiling; extra COPY/RUN dies with "invalid argument".
-# publish-fly.ps1 stages files into .fly-ui-overlay/ before this build.
-ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly251
-FROM ${BASE_IMAGE}
+# Tenant UI overlay — ONE flattened rootfs + overlay (resets overlayfs lowerdir ceiling).
+# fly258+ cannot take another plain `COPY … /` ("invalid argument" on Depot/remote).
+# publish-fly*.ps1/sh stages files into .fly-ui-overlay/ before this build.
+ARG BASE_IMAGE=registry.fly.io/wayne-w4y:fly258
 
-COPY .fly-ui-overlay/ /
+FROM ${BASE_IMAGE} AS src
 
+# Pack base + overlay into a single tar so the final image has a short layer stack.
+FROM alpine:3.20 AS pack
+COPY --from=src / /rootfs/
+COPY .fly-ui-overlay/ /overlay/
+RUN cp -a /overlay/. /rootfs/ \
+  && tar -C /rootfs --numeric-owner -cf /rootfs.tar . \
+  && rm -rf /rootfs /overlay
+
+FROM scratch
+ADD rootfs.tar /
 ENV WAYNE_WEB_DIST=/opt/wayne/wayne_cli/app_dist
+# Base image entrypoint (see platform/wayne-fly/Dockerfile).
+ENTRYPOINT ["/init-fly"]
