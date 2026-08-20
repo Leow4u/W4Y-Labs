@@ -209,13 +209,19 @@ jobs:
           path: wayne-agent/work4you_cli/app_dist
 
       - name: Skip without Fly token
-        if: ${{ env.FLY_API_TOKEN == '' }}
+        id: fly_gate
         run: |
-          echo "::error::FLY_API_TOKEN secret missing — web/Fly brain will stay stale while desktop updates. Add FLY_API_TOKEN in repo secrets, then re-run."
-          exit 1
+          if [ -z "${FLY_API_TOKEN:-}" ]; then
+            echo "::warning::FLY_API_TOKEN missing — desktop may publish, but web/Fly brain stays OLD."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Setup flyctl
+        if: steps.fly_gate.outputs.skip != 'true'
         uses: superfly/flyctl-actions/setup-flyctl@master
 
       - name: Publish tenant UI overlay
+        if: steps.fly_gate.outputs.skip != 'true'
         run: bash platform/infra/publish-fly-tenant-ci.sh
